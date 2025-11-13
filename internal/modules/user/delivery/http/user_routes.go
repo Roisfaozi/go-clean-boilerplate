@@ -1,13 +1,12 @@
-package routes
+package http
 
 import (
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/delivery/http/middleware"
 	"github.com/gin-gonic/gin"
 )
 
 // RegisterUserRoutes registers all user-related routes
-func RegisterUserRoutes(router *gin.RouterGroup, userHandler *http.UserHandler) {
+func RegisterUserRoutes(router *gin.RouterGroup, userHandler *UserHandler) {
 	userGroup := router.Group("/users")
 	{
 		// Public routes

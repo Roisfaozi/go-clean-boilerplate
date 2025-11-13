@@ -50,7 +50,7 @@ func NewService(
 	validate *validator.Validate,
 	tm tx.TransactionManager,
 	log *logrus.Logger,
-) *Service {
+) AuthUseCase {
 	return &Service{
 		config:    config,
 		tokenRepo: tokenRepo,
@@ -199,7 +199,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 		return nil, "", err
 	}
 
-	user, err := s.userRepo.FindByID(ctx, claims.Subject)
+	user, err := s.userRepo.FindByID(ctx, claims.UserID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -223,12 +223,12 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 }
 
 // ValidateAccessToken validates an access token and returns its claims
-func (s *Service) ValidateAccessToken(tokenString string) (*jwt.RegisteredClaims, error) {
+func (s *Service) ValidateAccessToken(tokenString string) (*Claims, error) {
 	return s.validateToken(tokenString, s.config.GetAccessTokenSecret())
 }
 
 // ValidateRefreshToken validates a refresh token and returns its claims
-func (s *Service) ValidateRefreshToken(tokenString string) (*jwt.RegisteredClaims, error) {
+func (s *Service) ValidateRefreshToken(tokenString string) (*Claims, error) {
 	return s.validateToken(tokenString, s.config.GetRefreshTokenSecret())
 }
 
@@ -254,7 +254,7 @@ func (s *Service) Verify(ctx context.Context, userID string, sessionID string) (
 	return auth, err
 }
 
-func (s *Service) validateToken(tokenString string, secret string) (*jwt.RegisteredClaims, error) {
+func (s *Service) validateToken(tokenString string, secret string) (*Claims, error) {
 	claims := &jwt.RegisteredClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -285,5 +285,26 @@ func (s *Service) validateToken(tokenString string, secret string) (*jwt.Registe
 		return nil, ErrTokenRevoked
 	}
 
-	return claims, nil
+	customClaims := &Claims{
+		UserID:    claims.Subject,
+		SessionID: claims.ID,
+	}
+
+	return customClaims, nil
+}
+
+func (s *Service) RevokeToken(ctx context.Context, userID, sessionID string) error {
+	s.log.Infof("Revoking token for user %s with session %s", userID, sessionID)
+	return s.tokenRepo.DeleteToken(ctx, userID, sessionID)
+}
+
+func (s *Service) GetUserSessions(ctx context.Context, userID string) ([]*model.Auth, error) {
+	s.log.Infof("Getting all sessions for user %s", userID)
+	return s.tokenRepo.GetUserSessions(ctx, userID)
+
+}
+
+func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
+	s.log.Infof("Revoking all sessions for user %s", userID)
+	return s.tokenRepo.RevokeAllSessions(ctx, userID)
 }
