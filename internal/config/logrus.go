@@ -2,14 +2,18 @@ package config
 
 import (
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
-func NewLogger(viper *viper.Viper) *logrus.Logger {
-	log := logrus.New()
-
-	log.SetLevel(logrus.Level(viper.GetInt32("log.level")))
-	log.SetFormatter(&logrus.JSONFormatter{})
-
-	return log
+// NewLogrus creates a new Logrus logger instance based on the application configuration.
+func NewLogrus(config *AppConfig) *logrus.Logger {
+	logger := logrus.New()
+	level, err := logrus.ParseLevel(config.Log.Level)
+	if err != nil {
+		logger.SetLevel(logrus.InfoLevel)
+		logger.Warnf("Invalid log level '%s'. Defaulting to 'info'.", config.Log.Level)
+	} else {
+		logger.SetLevel(level)
+	}
+	logger.SetFormatter(&logrus.JSONFormatter{})
+	return logger
 }

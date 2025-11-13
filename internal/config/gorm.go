@@ -5,21 +5,20 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-func NewDatabase(viper *viper.Viper, log *logrus.Logger) *gorm.DB {
-	username := viper.GetString("database.username")
-	password := viper.GetString("database.password")
-	host := viper.GetString("database.host")
-	port := viper.GetInt("database.port")
-	database := viper.GetString("database.name")
-	idleConnection := viper.GetInt("database.pool.idle")
-	maxConnection := viper.GetInt("database.pool.max")
-	maxLifeTimeConnection := viper.GetInt("database.pool.lifetime")
+func NewDatabase(config *AppConfig, log *logrus.Logger) *gorm.DB {
+	username := config.Postgres.User
+	password := config.Postgres.Password
+	host := config.Postgres.Host
+	port := config.Postgres.Port
+	database := config.Postgres.DBName
+	idleConnection := config.Postgres.IdleConnection
+	maxConnection := config.Postgres.MaxConnection
+	maxLifeTimeConnection := config.Postgres.MaxLifeTimeConnection
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", username, password, host, port, database)
 
