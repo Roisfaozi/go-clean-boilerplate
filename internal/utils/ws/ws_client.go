@@ -1,0 +1,201 @@
+package ws
+
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
+	"github.com/sirupsen/logrus"
+)
+
+// Client represents a WebSocket client
+type Client struct {
+	ID      string
+	Conn    *websocket.Conn
+	Manager Manager
+	Send    chan []byte
+	Log     *logrus.Logger
+	Config  *WebSocketConfig
+}
+
+// ClientMessage represents a message from a client
+type ClientMessage struct {
+	Type    string          `json:"type"`    // subscribe, unsubscribe, message
+	Channel string          `json:"channel"` // channel name
+	Data    json.RawMessage `json:"data"`    // message data
+}
+
+// ServerMessage represents a message to a client
+type ServerMessage struct {
+	Type    string      `json:"type"`    // message, error, info
+	Channel string      `json:"channel"` // channel name
+	Data    interface{} `json:"data"`    // message data
+}
+
+// NewClient creates a new WebSocket client
+func NewClient(conn *websocket.Conn, manager Manager, log *logrus.Logger, config *WebSocketConfig) *Client {
+	return &Client{
+		ID:      uuid.New().String(),
+		Conn:    conn,
+		Manager: manager,
+		Send:    make(chan []byte, 256),
+		Log:     log,
+		Config:  config,
+	}
+}
+
+// ReadPump pumps messages from the WebSocket connection to the Manager
+func (c *Client) ReadPump() {
+	defer func() {
+		c.Manager.UnregisterClient(c)
+		c.Conn.Close()
+	}()
+
+	c.Conn.SetReadDeadline(time.Now().Add(c.Config.PongWait))
+	c.Conn.SetPongHandler(func(string) error {
+		c.Conn.SetReadDeadline(time.Now().Add(c.Config.PongWait))
+		return nil
+	})
+
+	c.Conn.SetReadLimit(c.Config.MaxMessageSize)
+
+	for {
+		_, message, err := c.Conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				c.Log.Errorf("WebSocket error for client %s: %v", c.ID, err)
+			}
+			break
+		}
+
+		c.handleMessage(message)
+	}
+}
+
+// WritePump pumps messages from the Manager to the WebSocket connection
+func (c *Client) WritePump() {
+	ticker := time.NewTicker(c.Config.PingPeriod)
+	defer func() {
+		ticker.Stop()
+		c.Conn.Close()
+	}()
+
+	for {
+		select {
+		case message, ok := <-c.Send:
+			c.Conn.SetWriteDeadline(time.Now().Add(c.Config.WriteWait))
+			if !ok {
+				// Manager closed the channel
+				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			w, err := c.Conn.NextWriter(websocket.TextMessage)
+			if err != nil {
+				return
+			}
+			w.Write(message)
+
+			// Add queued messages to the current WebSocket message
+			n := len(c.Send)
+			for i := 0; i < n; i++ {
+				w.Write([]byte{'\n'})
+				w.Write(<-c.Send)
+			}
+
+			if err := w.Close(); err != nil {
+				return
+			}
+
+		case <-ticker.C:
+			c.Conn.SetWriteDeadline(time.Now().Add(c.Config.WriteWait))
+			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}
+}
+
+// handleMessage handles incoming messages from the client
+func (c *Client) handleMessage(message []byte) {
+	var msg ClientMessage
+	if err := json.Unmarshal(message, &msg); err != nil {
+		c.Log.Errorf("Failed to unmarshal message from client %s: %v", c.ID, err)
+		c.sendError("Invalid message format")
+		return
+	}
+
+	switch msg.Type {
+	case "subscribe":
+		if msg.Channel == "" {
+			c.sendError("Channel name is required")
+			return
+		}
+		c.Manager.SubscribeToChannel(c, msg.Channel)
+		c.sendInfo(msg.Channel, "Subscribed to channel")
+
+	case "unsubscribe":
+		if msg.Channel == "" {
+			c.sendError("Channel name is required")
+			return
+		}
+		c.Manager.UnsubscribeFromChannel(c, msg.Channel)
+		c.sendInfo(msg.Channel, "Unsubscribed from channel")
+
+	case "message":
+		if msg.Channel == "" {
+			c.sendError("Channel name is required")
+			return
+		}
+		// Broadcast the message to all clients in the channel
+		serverMsg := ServerMessage{
+			Type:    "message",
+			Channel: msg.Channel,
+			Data:    msg.Data,
+		}
+		msgBytes, err := json.Marshal(serverMsg)
+		if err != nil {
+			c.Log.Errorf("Failed to marshal message: %v", err)
+			return
+		}
+		c.Manager.BroadcastToChannel(msg.Channel, msgBytes)
+
+	default:
+		c.sendError("Unknown message type")
+	}
+}
+
+// sendError sends an error message to the client
+func (c *Client) sendError(errorMsg string) {
+	msg := ServerMessage{
+		Type: "error",
+		Data: errorMsg,
+	}
+	c.sendMessage(msg)
+}
+
+// sendInfo sends an info message to the client
+func (c *Client) sendInfo(channel, infoMsg string) {
+	msg := ServerMessage{
+		Type:    "info",
+		Channel: channel,
+		Data:    infoMsg,
+	}
+	c.sendMessage(msg)
+}
+
+// sendMessage sends a message to the client
+func (c *Client) sendMessage(msg ServerMessage) {
+	msgBytes, err := json.Marshal(msg)
+	if err != nil {
+		c.Log.Errorf("Failed to marshal message: %v", err)
+		return
+	}
+
+	select {
+	case c.Send <- msgBytes:
+	default:
+		c.Log.Warnf("Client %s Send buffer is full", c.ID)
+	}
+}
