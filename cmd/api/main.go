@@ -17,7 +17,7 @@ func main() {
 	}
 
 	// 2. Create and run the server
-	server, err := NewServer(cfg)
+	server, err := config.NewAppServer(cfg)
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 	}

@@ -1,9 +1,8 @@
-package main
+package config
 
 import (
 	"fmt"
 
-	"github.com/Roisfaozi/casbin-db/internal/config"
 	authHttp "github.com/Roisfaozi/casbin-db/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/delivery/http/middleware"
 	authRepo "github.com/Roisfaozi/casbin-db/internal/modules/auth/repository"
@@ -20,30 +19,30 @@ import (
 type Server struct {
 	router    *gin.Engine
 	log       *logrus.Logger
-	cfg       *config.AppConfig
+	cfg       *AppConfig
 	db        *gorm.DB
 	wsManager ws.Manager
 }
 
-// NewServer creates a new server instance with all dependencies initialized.
-func NewServer(cfg *config.AppConfig) (*Server, error) {
+// NewAppServer creates a new server instance with all dependencies initialized.
+func NewAppServer(cfg *AppConfig) (*Server, error) {
 	// Initialize Logger
-	logger := config.NewLogrus(cfg)
+	logger := NewLogrus(cfg)
 	logger.Info("Configuration and logger initialized successfully.")
 
 	// Initialize Validator
-	validate := config.NewValidator()
+	validate := NewValidator()
 	logger.Info("Validator initialized.")
 
 	// Initialize Database Connections
-	dbConnection := config.NewDatabase(cfg, logger)
+	dbConnection := NewDatabase(cfg, logger)
 
-	redisClient := config.NewRedisConfig(cfg, logger)
+	redisClient := NewRedisConfig(cfg, logger)
 
 	logger.Info("Database connections established.")
 
 	// Initialize WebSocket Manager
-	wsConfig := config.NewDefaultWebSocketConfig()
+	wsConfig := NewDefaultWebSocketConfig()
 	wsManager := ws.NewWebSocketManager((*ws.WebSocketConfig)(wsConfig), logger)
 	wsController := ws.NewWebSocketController(logger, wsManager)
 	logger.Info("WebSocket manager and controller initialized.")

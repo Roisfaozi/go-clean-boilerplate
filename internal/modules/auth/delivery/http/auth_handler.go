@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/Roisfaozi/casbin-db/internal/config"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
@@ -15,14 +14,12 @@ import (
 type AuthHandler struct {
 	AuthUseCase usecase.AuthUseCase
 	Log         *logrus.Logger
-	Config      *config.AppConfig
 }
 
-func NewAuthHandler(authUseCase usecase.AuthUseCase, log *logrus.Logger, cfg *config.AppConfig) *AuthHandler {
+func NewAuthHandler(authUseCase usecase.AuthUseCase, log *logrus.Logger) *AuthHandler {
 	return &AuthHandler{
 		AuthUseCase: authUseCase,
 		Log:         log,
-		Config:      cfg,
 	}
 }
 
@@ -115,22 +112,22 @@ func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
 		maxAge = 3600 * 24 * 7 // 7 days
 	}
 
-	secure := true
+	secure := false
 
-	if h.Config.Server.AppEnv != "production" {
-		maxAge = 3600 * 24 * 7 // 7 days
-		secure = false
-		c.SetCookie(
-			"refresh_token",
-			token,
-			maxAge,
-			"/api/v1/auth/refresh", // Path should be specific to the refresh endpoint
-			"",                     // Domain
-			secure,                 // Secure flag (true in production)
-			true,                   // HttpOnly flag
-		)
-		return
-	}
+	//if h.Config.Server.AppEnv != "production" {
+	//	maxAge = 3600 * 24 * 7 // 7 days
+	//	secure = false
+	//	c.SetCookie(
+	//		"refresh_token",
+	//		token,
+	//		maxAge,
+	//		"/api/v1/auth/refresh", // Path should be specific to the refresh endpoint
+	//		"",                     // Domain
+	//		secure,                 // Secure flag (true in production)
+	//		true,                   // HttpOnly flag
+	//	)
+	//	return
+	//}
 	c.SetCookie(
 		"refresh_token",
 		token,
