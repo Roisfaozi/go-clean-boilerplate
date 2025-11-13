@@ -32,8 +32,6 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 		Password: "password123",
 	}
 
-	// No need for expectedUser in this test
-
 	// Mock expectations
 	mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Return(nil).
@@ -46,7 +44,6 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 		Return((*entity.User)(nil), gorm.ErrRecordNotFound)
 
 	mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
-		// Verify password is hashed
 		err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(testReq.Password))
 		return u.ID == testID && u.Name == testReq.Name && err == nil
 	})).Return(nil)
@@ -191,7 +188,7 @@ func TestUserUseCase_GetUserByID_NotFound(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+	assert.True(t, errors.Is(err, exception.ErrNotFound)) // FIXED
 
 	mockRepo.AssertExpectations(t)
 	mockTM.AssertExpectations(t)
@@ -361,7 +358,7 @@ func TestUserUseCase_Update_NotFound(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+	assert.True(t, errors.Is(err, exception.ErrNotFound)) // FIXED
 
 	mockRepo.AssertExpectations(t)
 	mockTM.AssertExpectations(t)
@@ -401,7 +398,7 @@ func TestUserUseCase_Current_NotFound(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+	assert.True(t, errors.Is(err, exception.ErrNotFound)) // FIXED
 
 	mockRepo.AssertExpectations(t)
 	mockTM.AssertExpectations(t)
@@ -491,7 +488,7 @@ func TestUserUseCase_Logout_UserNotFound(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+	assert.True(t, errors.Is(err, exception.ErrNotFound)) // FIXED
 
 	mockRepo.AssertExpectations(t)
 	mockTM.AssertExpectations(t)

@@ -20,12 +20,11 @@ import (
 type userUseCase struct {
 	Log            *logrus.Logger
 	Validate       *validator.Validate
-	TM             tx.TransactionManager
+	TM             tx.WithTransactionManager
 	UserRepository repository.UserRepository
-	//UserProducer   *messaging.UserProducer
 }
 
-func NewUserUseCase(logger *logrus.Logger, validate *validator.Validate, tm tx.TransactionManager,
+func NewUserUseCase(logger *logrus.Logger, validate *validator.Validate, tm tx.WithTransactionManager,
 	userRepository repository.UserRepository) UserUseCase {
 	return &userUseCase{
 		Log:            logger,
@@ -40,7 +39,15 @@ func (uc *userUseCase) GetUserByID(ctx context.Context, id string) (*entity.User
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error
 		user, err = uc.UserRepository.FindByID(txCtx, id)
-		return err
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				uc.Log.Warnf("User with id %s not found", id)
+				return exception.ErrNotFound
+			}
+			uc.Log.Errorf("Failed to find user by id %s: %v", id, err)
+			return exception.ErrInternalServer
+		}
+		return nil
 	})
 	return user, err
 }
@@ -53,15 +60,14 @@ func (c *userUseCase) Create(ctx context.Context, request *model.RegisterUserReq
 
 	var response *model.UserResponse
 	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
-		user, err := c.UserRepository.FindByID(txCtx, request.ID)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			c.Log.Warnf("Failed find user by id : %+v", err)
-			return exception.ErrInternalServer
-		}
-
-		if user != nil && user.ID != "" {
+		_, err := c.UserRepository.FindByID(txCtx, request.ID)
+		if err == nil {
 			c.Log.Warnf("User already exists : %+v", request.ID)
 			return exception.ErrConflict
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			c.Log.Warnf("Failed find user by id : %+v", err)
+			return exception.ErrInternalServer
 		}
 
 		password, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
@@ -99,8 +105,12 @@ func (c *userUseCase) Current(ctx context.Context, request *model.GetUserRequest
 	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		user, err := c.UserRepository.FindByID(txCtx, request.ID)
 		if err != nil {
-			c.Log.Warnf("Failed find user by id : %+v", err)
-			return exception.ErrNotFound
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.Log.Warnf("User with id %s not found", request.ID)
+				return exception.ErrNotFound
+			}
+			c.Log.Errorf("Failed to find user by id %s: %v", request.ID, err)
+			return exception.ErrInternalServer
 		}
 		response = converter.UserToResponse(user)
 		return nil
@@ -119,8 +129,12 @@ func (c *userUseCase) Update(ctx context.Context, request *model.UpdateUserReque
 	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		user, err := c.UserRepository.FindByID(txCtx, request.ID)
 		if err != nil {
-			c.Log.Warnf("Failed find user by id : %+v", err)
-			return exception.ErrNotFound
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.Log.Warnf("User with id %s not found for update", request.ID)
+				return exception.ErrNotFound
+			}
+			c.Log.Errorf("Failed to find user by id %s for update: %v", request.ID, err)
+			return exception.ErrInternalServer
 		}
 
 		if len(request.Password) > 0 {
@@ -158,8 +172,12 @@ func (c *userUseCase) Logout(ctx context.Context, request *model.LogoutUserReque
 	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		user, err := c.UserRepository.FindByID(txCtx, request.ID)
 		if err != nil {
-			c.Log.Warnf("Failed find user by id : %+v", err)
-			return exception.ErrNotFound
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.Log.Warnf("User with id %s not found for logout", request.ID)
+				return exception.ErrNotFound
+			}
+			c.Log.Errorf("Failed to find user by id %s for logout: %v", request.ID, err)
+			return exception.ErrInternalServer
 		}
 
 		user.Token = ""

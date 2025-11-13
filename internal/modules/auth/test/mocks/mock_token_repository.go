@@ -2,7 +2,6 @@ package mocks
 
 import (
 	"context"
-	"time"
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
 	"github.com/stretchr/testify/mock"
@@ -14,8 +13,8 @@ type MockTokenRepository struct {
 }
 
 // StoreToken mocks the StoreToken method
-func (m *MockTokenRepository) StoreToken(ctx context.Context, userID string, token string, expiration time.Duration) error {
-	args := m.Called(ctx, userID, token, expiration)
+func (m *MockTokenRepository) StoreToken(ctx context.Context, session *model.Auth) error {
+	args := m.Called(ctx, session)
 	return args.Error(0)
 }
 
@@ -47,29 +46,4 @@ func (m *MockTokenRepository) GetUserSessions(ctx context.Context, userID string
 func (m *MockTokenRepository) RevokeAllSessions(ctx context.Context, userID string) error {
 	args := m.Called(ctx, userID)
 	return args.Error(0)
-}
-
-// Helper functions for test setup
-func (m *MockTokenRepository) SetupSuccessfulTokenRetrieval(userID, sessionID, token string) {
-	m.On("GetToken", mock.Anything, userID, sessionID).
-		Return(&model.Auth{
-			ID:          sessionID,
-			UserID:      userID,
-			AccessToken: token,
-		}, nil)
-}
-
-func (m *MockTokenRepository) SetupFailedTokenRetrieval(userID, sessionID string, err error) {
-	m.On("GetToken", mock.Anything, userID, sessionID).
-		Return((*model.Auth)(nil), err)
-}
-
-func (m *MockTokenRepository) SetupSuccessfulTokenStorage(userID, token string, expiration time.Duration) {
-	m.On("StoreToken", mock.Anything, userID, token, expiration).
-		Return(nil)
-}
-
-func (m *MockTokenRepository) SetupFailedTokenStorage(userID, token string, expiration time.Duration, err error) {
-	m.On("StoreToken", mock.Anything, userID, token, expiration).
-		Return(err)
 }

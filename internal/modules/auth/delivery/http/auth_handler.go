@@ -1,6 +1,10 @@
 package http
 
 import (
+	"errors"
+	"strings"
+
+	"github.com/Roisfaozi/casbin-db/internal/config"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
@@ -11,162 +15,129 @@ import (
 type AuthHandler struct {
 	AuthUseCase usecase.AuthUseCase
 	Log         *logrus.Logger
+	Config      *config.AppConfig
 }
 
-func NewAuthHandler(authUseCase usecase.AuthUseCase, log *logrus.Logger) *AuthHandler {
+func NewAuthHandler(authUseCase usecase.AuthUseCase, log *logrus.Logger, cfg *config.AppConfig) *AuthHandler {
 	return &AuthHandler{
 		AuthUseCase: authUseCase,
 		Log:         log,
+		Config:      cfg,
 	}
 }
 
 // Login handles user login
-// @Summary User login
-// @Description Authenticate user and return tokens
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body model.LoginRequest true "Login credentials"
-// @Success 200 {object} model.LoginResponse
-// @Failure 400 {object} response.ErrorResponse
-// @Failure 401 {object} response.ErrorResponse
-// @Failure 500 {object} response.ErrorResponse
-// @Router /api/v1/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	ctx := c.Request.Context()
 	var req model.LoginRequest
-
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.Log.WithError(err).Error("Failed to bind request body")
-		response.BadRequest(c, err)
+		h.Log.WithError(err).Warn("Login failed: could not bind request")
+		response.BadRequest(c, errors.New("invalid request body"))
 		return
 	}
 
-	if err := req.Validate(); err != nil {
-		h.Log.WithError(err).Error("Invalid login request")
-		response.BadRequest(c, err)
-		return
-	}
-
-	loginResp, refreshToken, err := h.AuthUseCase.Login(ctx, req)
+	// The use case now handles validation, so we can remove it from here.
+	loginResp, refreshToken, err := h.AuthUseCase.Login(c.Request.Context(), req)
 	if err != nil {
-		h.handleError(c, err, "Login failed")
+		h.handleError(c, err)
 		return
 	}
 
-	// Set refresh token as HTTP-only cookie
-	h.setRefreshTokenCookie(c, refreshToken, int(loginResp.ExpiresIn))
-
+	h.setRefreshTokenCookie(c, refreshToken)
 	response.Success(c, loginResp)
 }
 
 // RefreshToken handles token refresh
-// @Summary Refresh access token
-// @Description Refresh access token using refresh token
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body model.RefreshRequest true "Refresh token"
-// @Success 200 {object} model.TokenResponse
-// @Failure 400 {object} response.ErrorResponse
-// @Failure 401 {object} response.ErrorResponse
-// @Failure 500 {object} response.ErrorResponse
-// @Router /api/v1/auth/refresh [post]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
-	ctx := c.Request.Context()
-	var req model.RefreshRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.Log.WithError(err).Error("Failed to bind request body")
-		response.BadRequest(c, err)
-		return
-	}
-
-	if err := req.Validate(); err != nil {
-		h.Log.WithError(err).Error("Invalid refresh request")
-		response.BadRequest(c, err)
-		return
-	}
-
-	tokenResp, newRefreshToken, err := h.AuthUseCase.RefreshToken(ctx, req.RefreshToken)
+	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
-		h.handleError(c, err, "Failed to refresh token")
+		h.Log.Warn("Refresh token not found in cookie")
+		response.Unauthorized(c, errors.New("refresh token not found"))
 		return
 	}
 
-	// Update refresh token cookie
-	h.setRefreshTokenCookie(c, newRefreshToken, int(tokenResp.ExpiresIn))
+	tokenResp, newRefreshToken, err := h.AuthUseCase.RefreshToken(c.Request.Context(), refreshToken)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
 
+	h.setRefreshTokenCookie(c, newRefreshToken)
 	response.Success(c, tokenResp)
 }
 
 // Logout handles user logout
-// @Summary User logout
-// @Description Invalidate user session
-// @Tags auth
-// @Security Bearer
-// @Produce json
-// @Success 200 {object} response.SuccessResponse
-// @Failure 401 {object} response.ErrorResponse
-// @Failure 500 {object} response.ErrorResponse
-// @Router /api/v1/auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.Unauthorized(c, "User not authenticated")
+		response.Unauthorized(c, errors.New("user not authenticated"))
 		return
 	}
 
 	sessionID, exists := c.Get("session_id")
 	if !exists {
-		response.Unauthorized(c, "Invalid session")
+		response.Unauthorized(c, errors.New("invalid session"))
 		return
 	}
 
-	ctx := c.Request.Context()
-	err := h.AuthUseCase.RevokeToken(ctx, userID.(string), sessionID.(string))
+	err := h.AuthUseCase.RevokeToken(c.Request.Context(), userID.(string), sessionID.(string))
 	if err != nil {
-		h.handleError(c, err, "Failed to logout")
+		h.handleError(c, err)
 		return
 	}
 
-	// Clear refresh token cookie
-	c.SetCookie(
-		"refresh_token",
-		"",
-		-1, // Expire immediately
-		"/",
-		"",
-		false, // Secure
-		true,  // HttpOnly
-	)
-
-	response.Success(c, nil)
+	// Clear the refresh token cookie
+	h.setRefreshTokenCookie(c, "")
+	response.Success(c, gin.H{"message": "logged out successfully"})
 }
 
-// handleError handles common errors
-func (h *AuthHandler) handleError(c *gin.Context, err error, message string) {
-	h.Log.WithError(err).Error(message)
-
+// handleError centralizes error handling for the auth handler
+func (h *AuthHandler) handleError(c *gin.Context, err error) {
+	h.Log.WithError(err).Error("An error occurred in auth handler")
 	switch {
-	case err == usecase.ErrInvalidCredentials:
-		response.Unauthorized(c, "Invalid credentials")
-	case err == usecase.ErrInvalidToken || err == usecase.ErrExpiredToken:
-		response.Unauthorized(c, err.Error())
+	case errors.Is(err, usecase.ErrInvalidCredentials):
+		response.Unauthorized(c, err)
+	case errors.Is(err, usecase.ErrInvalidToken), errors.Is(err, usecase.ErrExpiredToken), errors.Is(err, usecase.ErrTokenRevoked):
+		response.Unauthorized(c, err)
+	// Catch validation errors (this requires your validator to be configured to return error)
+	case strings.Contains(err.Error(), "validation"):
+		response.BadRequest(c, err)
 	default:
-		response.InternalServerError(c, err)
+		response.InternalServerError(c, errors.New("an unexpected internal error occurred"))
 	}
 }
 
-// setRefreshTokenCookie sets the refresh token as an HTTP-only cookie
-func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string, maxAge int) {
+// setRefreshTokenCookie sets or clears the refresh token in an HTTP-only cookie
+func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
+	var maxAge int
+	if token == "" {
+		maxAge = -1 // Expire immediately
+	} else {
+		maxAge = 3600 * 24 * 7 // 7 days
+	}
+
+	secure := true
+
+	if h.Config.Server.AppEnv != "production" {
+		maxAge = 3600 * 24 * 7 // 7 days
+		secure = false
+		c.SetCookie(
+			"refresh_token",
+			token,
+			maxAge,
+			"/api/v1/auth/refresh", // Path should be specific to the refresh endpoint
+			"",                     // Domain
+			secure,                 // Secure flag (true in production)
+			true,                   // HttpOnly flag
+		)
+		return
+	}
 	c.SetCookie(
 		"refresh_token",
 		token,
 		maxAge,
-		"/api/v1/auth/refresh",
-		"",
-		false, // Set to true in production with HTTPS
-		true,  // HttpOnly
+		"/api/v1/auth/refresh", // Path should be specific to the refresh endpoint
+		"",                     // Domain
+		secure,                 // Secure flag (true in production)
+		true,                   // HttpOnly flag
 	)
 }

@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
+	"github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -27,21 +27,21 @@ func (m *MockAuthUseCase) GenerateRefreshToken(user *entity.User) (string, error
 }
 
 // ValidateAccessToken mocks the ValidateAccessToken method
-func (m *MockAuthUseCase) ValidateAccessToken(token string) (*jwt.RegisteredClaims, error) {
+func (m *MockAuthUseCase) ValidateAccessToken(token string) (*usecase.Claims, error) {
 	args := m.Called(token)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*jwt.RegisteredClaims), args.Error(1)
+	return args.Get(0).(*usecase.Claims), args.Error(1)
 }
 
 // ValidateRefreshToken mocks the ValidateRefreshToken method
-func (m *MockAuthUseCase) ValidateRefreshToken(token string) (*jwt.RegisteredClaims, error) {
+func (m *MockAuthUseCase) ValidateRefreshToken(token string) (*usecase.Claims, error) {
 	args := m.Called(token)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*jwt.RegisteredClaims), args.Error(1)
+	return args.Get(0).(*usecase.Claims), args.Error(1)
 }
 
 // RevokeToken mocks the RevokeToken method
@@ -90,26 +90,4 @@ func (m *MockAuthUseCase) GetUserSessions(ctx context.Context, userID string) ([
 func (m *MockAuthUseCase) RevokeAllSessions(ctx context.Context, userID string) error {
 	args := m.Called(ctx, userID)
 	return args.Error(0)
-}
-
-// Helper function to set up a successful token validation
-func (m *MockAuthUseCase) SetupSuccessfulTokenValidation(token string, claims *jwt.RegisteredClaims) {
-	m.On("ValidateAccessToken", token).Return(claims, nil)
-	m.On("ValidateRefreshToken", token).Return(claims, nil)
-}
-
-// Helper function to set up a failed token validation
-func (m *MockAuthUseCase) SetupFailedTokenValidation(token string, err error) {
-	m.On("ValidateAccessToken", token).Return((*jwt.RegisteredClaims)(nil), err)
-	m.On("ValidateRefreshToken", token).Return((*jwt.RegisteredClaims)(nil), err)
-}
-
-// Helper function to set up a successful login
-func (m *MockAuthUseCase) SetupSuccessfulLogin(ctx context.Context, request model.LoginRequest, response *model.LoginResponse, refreshToken string) {
-	m.On("Login", ctx, request).Return(response, refreshToken, nil)
-}
-
-// Helper function to set up a failed login
-func (m *MockAuthUseCase) SetupFailedLogin(ctx context.Context, request model.LoginRequest, err error) {
-	m.On("Login", ctx, request).Return((*model.LoginResponse)(nil), "", err)
 }

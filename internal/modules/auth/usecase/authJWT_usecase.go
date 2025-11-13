@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -11,8 +12,8 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
 	userRepository "github.com/Roisfaozi/casbin-db/internal/modules/user/repository"
 	"github.com/Roisfaozi/casbin-db/internal/utils"
-	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
+	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -32,8 +33,9 @@ type Service struct {
 	tokenDuration map[TokenType]time.Duration
 	userRepo      userRepository.UserRepository
 	validate      *validator.Validate
-	tm            tx.TransactionManager
+	tm            tx.WithTransactionManager
 	log           *logrus.Logger
+	wsManager     ws.Manager
 }
 
 type Config interface {
@@ -48,8 +50,9 @@ func NewService(
 	tokenRepo repository.TokenRepository,
 	userRepo userRepository.UserRepository,
 	validate *validator.Validate,
-	tm tx.TransactionManager,
+	tm tx.WithTransactionManager,
 	log *logrus.Logger,
+	wsManager ws.Manager,
 ) AuthUseCase {
 	return &Service{
 		config:    config,
@@ -58,6 +61,7 @@ func NewService(
 		validate:  validate,
 		tm:        tm,
 		log:       log,
+		wsManager: wsManager,
 		tokenDuration: map[TokenType]time.Duration{
 			AccessToken:  config.GetAccessTokenDuration(),
 			RefreshToken: config.GetRefreshTokenDuration(),
@@ -65,8 +69,45 @@ func NewService(
 	}
 }
 
+func (s *Service) generateTokenPair(user *entity.User) (string, string, error) {
+	sessionID := uuid.New().String()
+
+	accessToken, err := s.generateToken(user, AccessToken, sessionID)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	refreshToken, err := s.generateToken(user, RefreshToken, sessionID)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	if err := s.storeSession(user.ID, sessionID, accessToken, refreshToken); err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+func (s *Service) storeSession(userID, sessionID, accessToken, refreshToken string) error {
+	session := &model.Auth{
+		ID:           sessionID,
+		UserID:       userID,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresAt:    time.Now().Add(s.config.GetRefreshTokenDuration()),
+	}
+
+	err := s.tokenRepo.StoreToken(context.Background(), session)
+	if err != nil {
+		s.log.WithError(err).Error("Failed to store session in Redis")
+		return fmt.Errorf("failed to store session: %w", err)
+	}
+	return nil
+}
+
 // generateToken generates a JWT token for the given user and token type
-func (s *Service) generateToken(user *entity.User, tokenType TokenType) (string, error) {
+func (s *Service) generateToken(user *entity.User, tokenType TokenType, sessionID string) (string, error) {
 	var secret string
 	var expiresIn time.Duration
 
@@ -81,14 +122,10 @@ func (s *Service) generateToken(user *entity.User, tokenType TokenType) (string,
 		return "", fmt.Errorf("unsupported token type: %s", tokenType)
 	}
 
-	sessionID := uuid.New().String()
 	now := time.Now()
-
-	// Create claims with expiration
-	expiresAt := now.Add(expiresIn)
 	claims := &jwt.RegisteredClaims{
 		Subject:   user.ID,
-		ExpiresAt: jwt.NewNumericDate(expiresAt),
+		ExpiresAt: jwt.NewNumericDate(now.Add(expiresIn)),
 		IssuedAt:  jwt.NewNumericDate(now),
 		NotBefore: jwt.NewNumericDate(now),
 		ID:        sessionID,
@@ -101,47 +138,17 @@ func (s *Service) generateToken(user *entity.User, tokenType TokenType) (string,
 		return "", fmt.Errorf("failed to generate token: %w", err)
 	}
 
-	// Store session information
-	session := &model.Auth{
-		ID:           sessionID,
-		UserID:       user.ID,
-		SessionID:    sessionID,
-		AccessToken:  "",
-		RefreshToken: "",
-		ExpiresAt:    expiresAt,
-		CreatedAt:    now,
-		UpdatedAt:    now,
-	}
-
-	if tokenType == AccessToken {
-		session.AccessToken = tokenString
-	} else {
-		session.RefreshToken = tokenString
-	}
-
-	// Store session in Redis
-	err = s.tokenRepo.StoreToken(
-		context.Background(),
-		user.ID,
-		tokenString,
-		expiresIn,
-	)
-	if err != nil {
-		s.log.WithError(err).Error("Failed to store token in Redis")
-		return "", fmt.Errorf("failed to store token: %w", err)
-	}
-
 	return tokenString, nil
 }
 
 // GenerateAccessToken generates a new access token for the user
 func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
-	return s.generateToken(user, AccessToken)
+	return s.generateToken(user, AccessToken, uuid.NewString())
 }
 
 // GenerateRefreshToken generates a new refresh token for the user
 func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
-	return s.generateToken(user, RefreshToken)
+	return s.generateToken(user, RefreshToken, uuid.NewString())
 }
 
 // Login handles user login and returns access and refresh tokens
@@ -162,12 +169,6 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 			return errors.New("invalid credentials")
 		}
 
-		sessionID := uuid.NewString()
-		user.Token = sessionID
-		if err := s.userRepo.Update(txCtx, user); err != nil {
-			return err
-		}
-
 		return nil
 	})
 
@@ -175,15 +176,20 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		return nil, "", err
 	}
 
-	accessToken, err := s.GenerateAccessToken(user)
+	accessToken, refreshToken, err := s.generateTokenPair(user)
 	if err != nil {
 		return nil, "", err
 	}
 
-	refreshToken, err := s.GenerateRefreshToken(user)
-	if err != nil {
-		return nil, "", err
+	// Broadcast login event via WebSocket
+	notification := map[string]string{
+		"type":    "user_login",
+		"user_id": user.ID,
+		"message": fmt.Sprintf("User '%s' has just logged in.", user.Name),
+		"time":    time.Now().Format(time.RFC3339),
 	}
+	notificationJSON, _ := json.Marshal(notification)
+	s.wsManager.BroadcastToChannel("global_notifications", notificationJSON)
 
 	loginResponse := &model.LoginResponse{
 		AccessToken: accessToken,
@@ -204,12 +210,12 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 		return nil, "", err
 	}
 
-	newAccessToken, err := s.GenerateAccessToken(user)
-	if err != nil {
-		return nil, "", err
+	// Revoke the old session
+	if err := s.RevokeToken(ctx, claims.UserID, claims.SessionID); err != nil {
+		s.log.WithError(err).Warn("Failed to revoke old session during refresh")
 	}
 
-	newRefreshToken, err := s.GenerateRefreshToken(user)
+	newAccessToken, newRefreshToken, err := s.generateTokenPair(user)
 	if err != nil {
 		return nil, "", err
 	}
@@ -234,24 +240,7 @@ func (s *Service) ValidateRefreshToken(tokenString string) (*Claims, error) {
 
 // Verify verifies the user's session
 func (s *Service) Verify(ctx context.Context, userID string, sessionID string) (*model.Auth, error) {
-	var auth *model.Auth
-	err := s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
-		user, err := s.userRepo.FindByID(txCtx, userID)
-		if err != nil {
-
-			return exception.ErrNotFound
-		}
-
-		if user.Token == "" || user.Token != sessionID {
-			s.log.Warnf("User token mismatch or empty for user : %s", userID)
-			return exception.ErrUnauthorized
-		}
-
-		auth = &model.Auth{ID: user.ID}
-		return nil
-	})
-
-	return auth, err
+	return s.tokenRepo.GetToken(ctx, userID, sessionID)
 }
 
 func (s *Service) validateToken(tokenString string, secret string) (*Claims, error) {
@@ -275,13 +264,21 @@ func (s *Service) validateToken(tokenString string, secret string) (*Claims, err
 	}
 
 	// Check if token exists in Redis
-	savedToken, err := s.tokenRepo.GetToken(context.Background(), claims.Subject, claims.ID)
+	savedSession, err := s.tokenRepo.GetToken(context.Background(), claims.Subject, claims.ID)
 	if err != nil {
+		// Considering DB or Redis errors as a reason for revocation check failure
 		return nil, ErrTokenRevoked
 	}
 
-	// If no token found in Redis or the tokens don't match
-	if savedToken == nil || (savedToken.AccessToken != tokenString && savedToken.RefreshToken != tokenString) {
+	// If no session is found in Redis, the token is considered revoked or invalid
+	if savedSession == nil {
+		return nil, ErrTokenRevoked
+	}
+
+	// Ensure the token being validated matches the one in the session
+	isAccessToken := savedSession.AccessToken == tokenString
+	isRefreshToken := savedSession.RefreshToken == tokenString
+	if !isAccessToken && !isRefreshToken {
 		return nil, ErrTokenRevoked
 	}
 
@@ -307,4 +304,18 @@ func (s *Service) GetUserSessions(ctx context.Context, userID string) ([]*model.
 func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
 	s.log.Infof("Revoking all sessions for user %s", userID)
 	return s.tokenRepo.RevokeAllSessions(ctx, userID)
+}
+
+// GenerateTestToken is a helper function for testing purposes.
+// It should not be used in production code.
+func GenerateTestToken(userID, sessionID, secret string, expiry time.Duration) (string, error) {
+	claims := &jwt.RegisteredClaims{
+		ID:        sessionID,
+		Subject:   userID,
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiry)),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
 }
