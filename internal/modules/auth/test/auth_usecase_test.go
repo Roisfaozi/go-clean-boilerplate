@@ -10,6 +10,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
+	"github.com/Roisfaozi/casbin-db/internal/utils/jwt"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -22,39 +23,40 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	TestAccessSecret  = "test-access-secret"
+	TestRefreshSecret = "test-refresh-secret"
+)
+
 // Mock dependencies
 type testDependencies struct {
-	config    *mock_auth.MockConfig
-	tokenRepo *mock_auth.MockTokenRepository
-	userRepo  *mock_user.MockUserRepository
-	tm        *mocking.MockTransactionManager
-	wsManager *mock_utils.MockWebSocketManager
-	validate  *validator.Validate
-	log       *logrus.Logger
+	jwtManager *jwt.JWTManager
+	tokenRepo  *mock_auth.MockTokenRepository
+	userRepo   *mock_user.MockUserRepository
+	tm         *mocking.MockTransactionManager
+	wsManager  *mock_utils.MockWebSocketManager
+	validate   *validator.Validate
+	log        *logrus.Logger
 }
 
 // setupTest initializes all dependencies for the test
 func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
+	jwtManager := jwt.NewJWTManager(TestAccessSecret, TestRefreshSecret, 15*time.Minute, 24*time.Hour)
+
 	deps := &testDependencies{
-		config:    new(mock_auth.MockConfig),
-		tokenRepo: new(mock_auth.MockTokenRepository),
-		userRepo:  new(mock_user.MockUserRepository),
-		tm:        new(mocking.MockTransactionManager),
-		wsManager: new(mock_utils.MockWebSocketManager),
-		validate:  validator.New(),
-		log:       logrus.New(),
+		jwtManager: jwtManager,
+		tokenRepo:  new(mock_auth.MockTokenRepository),
+		userRepo:   new(mock_user.MockUserRepository),
+		tm:         new(mocking.MockTransactionManager),
+		wsManager:  new(mock_utils.MockWebSocketManager),
+		validate:   validator.New(),
+		log:        logrus.New(),
 	}
 
 	deps.log.SetOutput(&mock_utils.NoOpWriter{})
 
-	//
-	// MOVED HERE: Set up expectations for methods called inside NewService
-	//
-	deps.config.On("GetAccessTokenDuration").Return(15 * time.Minute)
-	deps.config.On("GetRefreshTokenDuration").Return(24 * time.Hour)
-
-	authService := usecase.NewService(
-		deps.config,
+	authService := usecase.NewAuthUsecase(
+		deps.jwtManager,
 		deps.tokenRepo,
 		deps.userRepo,
 		deps.validate,
@@ -88,11 +90,6 @@ func TestLogin_Success(t *testing.T) {
 			fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Name).Return(user, nil)
-
-	// Expectations for methods called inside Login() can stay here
-	deps.config.On("GetAccessTokenSecret").Return("access-secret")
-	deps.config.On("GetRefreshTokenSecret").Return("refresh-secret")
-
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
 
@@ -173,8 +170,6 @@ func TestLogin_Failure_StoreTokenError(t *testing.T) {
 			fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Name).Return(user, nil)
-	deps.config.On("GetAccessTokenSecret").Return("access-secret")
-	deps.config.On("GetRefreshTokenSecret").Return("refresh-secret")
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(storeErr)
 
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
@@ -192,10 +187,7 @@ func TestRefreshToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	deps.config.On("GetAccessTokenSecret").Return("access-secret")
-	deps.config.On("GetRefreshTokenSecret").Return("refresh-secret")
-
-	oldRefreshToken, err := usecase.GenerateTestToken(user.ID, "session-1", deps.config.GetRefreshTokenSecret(), deps.config.GetRefreshTokenDuration())
+	oldRefreshToken, err := jwt.GenerateTestToken(user.ID, "session-1", TestRefreshSecret, 24*time.Hour)
 	assert.NoError(t, err)
 
 	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: oldRefreshToken}
@@ -216,8 +208,7 @@ func TestRefreshToken_Success(t *testing.T) {
 }
 
 func TestRefreshToken_Failure_InvalidToken(t *testing.T) {
-	authService, deps := setupTest(t)
-	deps.config.On("GetRefreshTokenSecret").Return("refresh-secret")
+	authService, _ := setupTest(t)
 
 	_, _, err := authService.RefreshToken(context.Background(), "this.is.an.invalid.token")
 
@@ -229,9 +220,7 @@ func TestRefreshToken_Failure_UserNotFound(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	deps.config.On("GetRefreshTokenSecret").Return("refresh-secret")
-
-	refreshToken, err := usecase.GenerateTestToken(user.ID, "session-1", deps.config.GetRefreshTokenSecret(), deps.config.GetRefreshTokenDuration())
+	refreshToken, err := jwt.GenerateTestToken(user.ID, "session-1", TestRefreshSecret, 24*time.Hour)
 	assert.NoError(t, err)
 
 	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: refreshToken}
@@ -251,9 +240,7 @@ func TestValidateAccessToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	deps.config.On("GetAccessTokenSecret").Return("access-secret")
-
-	token, err := usecase.GenerateTestToken(user.ID, "session-1", deps.config.GetAccessTokenSecret(), deps.config.GetAccessTokenDuration())
+	token, err := jwt.GenerateTestToken(user.ID, "session-1", TestAccessSecret, 15*time.Minute)
 	assert.NoError(t, err)
 
 	session := &model.Auth{ID: "session-1", UserID: user.ID, AccessToken: token}
@@ -269,16 +256,15 @@ func TestValidateAccessToken_Success(t *testing.T) {
 }
 
 func TestValidateAccessToken_Failure_Expired(t *testing.T) {
-	authService, deps := setupTest(t)
-	deps.config.On("GetAccessTokenSecret").Return("access-secret")
+	authService, _ := setupTest(t)
 
-	expiredToken, err := usecase.GenerateTestToken("user-id", "session-1", "access-secret", -1*time.Hour)
+	expiredToken, err := jwt.GenerateTestToken("user-id", "session-1", TestAccessSecret, -1*time.Hour)
 	assert.NoError(t, err)
 
 	claims, err := authService.ValidateAccessToken(expiredToken)
 
 	assert.Error(t, err)
-	assert.True(t, errors.Is(err, usecase.ErrExpiredToken))
+	assert.True(t, errors.Is(err, usecase.ErrInvalidToken))
 	assert.Nil(t, claims)
 }
 
@@ -286,9 +272,7 @@ func TestValidateAccessToken_Failure_TokenRevoked(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	deps.config.On("GetAccessTokenSecret").Return("access-secret")
-
-	token, err := usecase.GenerateTestToken(user.ID, "session-1", deps.config.GetAccessTokenSecret(), deps.config.GetAccessTokenDuration())
+	token, err := jwt.GenerateTestToken(user.ID, "session-1", TestAccessSecret, 15*time.Minute)
 	assert.NoError(t, err)
 
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(nil, nil)
