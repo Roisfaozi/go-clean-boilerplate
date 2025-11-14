@@ -2,7 +2,6 @@ package http
 
 import (
 	"errors"
-	"net/http"
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/permission/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase"
@@ -43,7 +42,7 @@ func (h *PermissionHandler) AssignRole(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusOK, gin.H{"message": "Role assigned successfully"})
+	response.Success(c, gin.H{"message": "Role assigned successfully"})
 }
 
 func (h *PermissionHandler) GrantPermission(c *gin.Context) {
@@ -63,5 +62,5 @@ func (h *PermissionHandler) GrantPermission(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusOK, gin.H{"message": "Permission granted successfully"})
+	response.Success(c, gin.H{"message": "Permission granted successfully"})
 }

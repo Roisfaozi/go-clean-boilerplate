@@ -57,7 +57,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	// 3. Initialize Modules
 	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager)
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm)
-	permissionModule := permission.NewPermissionModule(enforcer, validate, logger)
+	permissionModule := permission.NewUserModule(enforcer, validate, logger)
 	logger.Info("Application modules initialized.")
 
 	// 4. Initialize Middleware
