@@ -131,39 +131,6 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	response.Success(c, user)
 }
 
-// LogoutUser handles user logout
-// @Summary      Logout user (deprecated)
-// @Description  This endpoint is deprecated. Use /auth/logout instead.
-// @Tags         auth
-// @Security     BearerAuth
-// @Produce      json
-// @Success      200  {object}  response.WebResponse[string]
-// @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
-// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
-// @Router       /auth/logout [post]
-func (h *UserHandler) LogoutUser(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	// Get user ID from context (set by auth middleware)
-	userID, exists := c.Get("user_id")
-	if !exists {
-		response.Unauthorized(c, errors.New("unauthorized"))
-		return
-	}
-
-	req := &model.LogoutUserRequest{
-		ID: userID.(string),
-	}
-
-	_, err := h.UserUseCase.Logout(ctx, req)
-	if err != nil {
-		h.handleError(c, err, "failed to logout user")
-		return
-	}
-
-	c.Status(http.StatusOK)
-}
-
 // handleError is a helper function to handle different types of errors
 func (h *UserHandler) handleError(c *gin.Context, err error, message string) {
 	h.Log.WithError(err).Error(message)

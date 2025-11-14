@@ -7,11 +7,13 @@ import (
 
 	"github.com/Roisfaozi/casbin-db/internal/middleware"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth"
+	"github.com/Roisfaozi/casbin-db/internal/modules/permission"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user"
 	"github.com/Roisfaozi/casbin-db/internal/router"
 	"github.com/Roisfaozi/casbin-db/internal/utils/jwt"
 	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
 	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
+	"github.com/casbin/casbin/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -19,10 +21,11 @@ import (
 
 // Application holds all major application components.
 type Application struct {
-	Server *http.Server
-	DB     *gorm.DB
-	Redis  *redis.Client
-	Log    *logrus.Logger
+	Server   *http.Server
+	DB       *gorm.DB
+	Redis    *redis.Client
+	Log      *logrus.Logger
+	Enforcer *casbin.Enforcer
 }
 
 // NewApplication initializes and wires up all application components.
@@ -45,21 +48,29 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	go wsManager.Run()
 	logger.Info("Shared dependencies initialized.")
 
-	// 2. Initialize Modules
+	// 2. Initialize Casbin (conditionally)
+	enforcer, err := NewCasbinEnforcer(cfg, dbConnection, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Initialize Modules
 	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager)
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm)
+	permissionModule := permission.NewPermissionModule(enforcer, validate, logger)
 	logger.Info("Application modules initialized.")
 
-	// 3. Initialize Middleware
+	// 4. Initialize Middleware
 	authUseCase := authModule.AuthHandler().AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger)
+	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	logger.Info("Middleware initialized.")
 
-	// 4. Setup Router
-	ginRouter := router.SetupRouter(authModule, userModule, authMiddleware, wsController)
+	// 5. Setup Router
+	ginRouter := router.SetupRouter(authModule, userModule, permissionModule, authMiddleware, casbinMiddleware, wsController)
 	logger.Info("Router setup complete.")
 
-	// 5. Create HTTP Server
+	// 6. Create HTTP Server
 	serverPort := fmt.Sprintf(":%d", cfg.Server.Port)
 	httpServer := &http.Server{
 		Addr:    serverPort,
@@ -67,12 +78,12 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 	logger.Infof("Server configured to run on port %s", serverPort)
 
-	// 6. Return the application container
 	app := &Application{
-		Server: httpServer,
-		DB:     dbConnection,
-		Redis:  redisClient,
-		Log:    logger,
+		Server:   httpServer,
+		DB:       dbConnection,
+		Redis:    redisClient,
+		Log:      logger,
+		Enforcer: enforcer,
 	}
 
 	return app, nil
@@ -85,18 +96,21 @@ func (app *Application) Shutdown(ctx context.Context) error {
 		return fmt.Errorf("server forced to shutdown: %w", err)
 	}
 
-	app.Log.Info("Closing Redis connection...")
-	if err := app.Redis.Close(); err != nil {
-		return fmt.Errorf("failed to close Redis client: %w", err)
+	if app.Redis != nil {
+		app.Log.Info("Closing Redis connection...")
+		if err := app.Redis.Close(); err != nil {
+			app.Log.Errorf("Failed to close Redis client: %v", err)
+		}
 	}
 
-	app.Log.Info("Closing database connection...")
-	sqlDB, err := app.DB.DB()
-	if err != nil {
-		return fmt.Errorf("failed to get DB instance for closing: %w", err)
-	}
-	if err := sqlDB.Close(); err != nil {
-		return fmt.Errorf("failed to close database connection: %w", err)
+	if app.DB != nil {
+		app.Log.Info("Closing database connection...")
+		sqlDB, err := app.DB.DB()
+		if err != nil {
+			app.Log.Errorf("Failed to get DB instance for closing: %v", err)
+		} else if err := sqlDB.Close(); err != nil {
+			app.Log.Errorf("Failed to close database connection: %v", err)
+		}
 	}
 
 	return nil

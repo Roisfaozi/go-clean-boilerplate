@@ -1,23 +1,24 @@
 package http
 
 import (
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/delivery/http/middleware"
+	"github.com/Roisfaozi/casbin-db/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterAuthRoutes registers all auth-related routes
-func RegisterAuthRoutes(router *gin.RouterGroup, authHandler *AuthHandler, authMiddleware *middleware.AuthMiddleware) {
+// RegisterPublicRoutes registers auth routes that do not require authentication.
+func RegisterPublicRoutes(router *gin.RouterGroup, authHandler *AuthHandler) {
 	authGroup := router.Group("/auth")
 	{
-		// Public routes
 		authGroup.POST("/login", authHandler.Login)
 		authGroup.POST("/refresh", authHandler.RefreshToken)
-
-		// Protected routes
-		protected := authGroup.Group("")
-		protected.Use(authMiddleware.ValidateToken())
-		{
-			protected.POST("/logout", authHandler.Logout)
-		}
 	}
 }
+
+// RegisterAuthenticatedRoutes registers auth routes that require authentication.
+func RegisterAuthenticatedRoutes(router *gin.RouterGroup, authHandler *AuthHandler) {
+	authGroup := router.Group("/auth")
+	{
+		authGroup.POST("/logout", authHandler.Logout)
+	}
+}
+

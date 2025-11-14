@@ -4,6 +4,8 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/middleware"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth"
 	authHttp "github.com/Roisfaozi/casbin-db/internal/modules/auth/delivery/http"
+	"github.com/Roisfaozi/casbin-db/internal/modules/permission"
+	permissionHttp "github.com/Roisfaozi/casbin-db/internal/modules/permission/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user"
 	userHttp "github.com/Roisfaozi/casbin-db/internal/modules/user/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
@@ -18,7 +20,9 @@ import (
 func SetupRouter(
 	authModule *auth.AuthModule,
 	userModule *user.UserModule,
+	permissionModule *permission.PermissionModule,
 	authMiddleware *middleware.AuthMiddleware,
+	casbinMiddleware gin.HandlerFunc,
 	wsController *ws.WebSocketController,
 ) *gin.Engine {
 	router := gin.New()
@@ -28,18 +32,37 @@ func SetupRouter(
 	router.Use(gin.Recovery())
 	router.Use(middleware.CORSMiddleware())
 
+	// Swagger Route
+	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// WebSocket Route
+	router.GET("/ws", wsController.HandleWebSocket)
+
 	// API v1 Group
 	apiV1 := router.Group("/api/v1")
 
-	// Register module routes
-	authHttp.RegisterAuthRoutes(apiV1, authModule.AuthHandler(), authMiddleware)
-	userHttp.RegisterUserRoutes(apiV1, userModule.UserHandler(), authMiddleware)
+	// Public routes (no auth required)
+	public := apiV1.Group("")
+	{
+		authHttp.RegisterPublicRoutes(public, authModule.AuthHandler())
+		userHttp.RegisterPublicRoutes(public, userModule.UserHandler())
+	}
 
-	// Register WebSocket route
-	router.GET("/ws", wsController.HandleWebSocket)
+	// Authenticated routes (JWT required)
+	authenticated := apiV1.Group("")
+	authenticated.Use(authMiddleware.ValidateToken())
+	{
+		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthHandler())
+	}
 
-	// Register Swagger route
-	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Authorized routes (JWT + Casbin RBAC required)
+	authorized := apiV1.Group("")
+	authorized.Use(authMiddleware.ValidateToken())
+	authorized.Use(casbinMiddleware)
+	{
+		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserHandler())
+		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionHandler())
+	}
 
 	return router
 }

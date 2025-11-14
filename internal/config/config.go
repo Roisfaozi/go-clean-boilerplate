@@ -17,6 +17,7 @@ type AppConfig struct {
 	JWT       JWTConfig       `mapstructure:"jwt"`
 	Log       LoggerConfig    `mapstructure:"log"`
 	WebSocket WebSocketConfig `mapstructure:"websocket"`
+	Casbin    CasbinConfig    `mapstructure:"casbin"`
 }
 
 // ServerConfig holds server-specific configuration.
@@ -64,6 +65,19 @@ type LoggerConfig struct {
 	Level string `mapstructure:"level"`
 }
 
+// CasbinConfig holds Casbin-related configuration.
+type CasbinConfig struct {
+	Enabled bool          `mapstructure:"enabled"`
+	Model   string        `mapstructure:"model"`
+	Watcher WatcherConfig `mapstructure:"watcher"`
+}
+
+// WatcherConfig holds Casbin Redis watcher configuration.
+type WatcherConfig struct {
+	Enabled bool   `mapstructure:"enabled"`
+	Channel string `mapstructure:"channel"`
+}
+
 // NewConfig initializes and returns the application's configuration by reading from
 // a .env file and environment variables.
 func NewConfig() (*AppConfig, error) {
@@ -85,6 +99,10 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("redis.addr", "localhost:6379")
 	v.SetDefault("jwt.access_duration", "15m")
 	v.SetDefault("jwt.refresh_duration", "720h")
+	v.SetDefault("casbin.enabled", false)
+	v.SetDefault("casbin.model", "internal/config/casbin_model.conf")
+	v.SetDefault("casbin.watcher.enabled", false)
+	v.SetDefault("casbin.watcher.channel", "/casbin")
 
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
@@ -124,6 +142,10 @@ func NewConfig() (*AppConfig, error) {
 	cfg.Postgres.IdleConnection = v.GetInt("postgres.idle_connection")
 	cfg.Postgres.MaxConnection = v.GetInt("postgres.max_connection")
 	cfg.Postgres.MaxLifeTimeConnection = v.GetInt("postgres.max_life_time_connection")
+
+	// Casbin
+	cfg.Casbin.Enabled = v.GetBool("casbin.enabled")
+	cfg.Casbin.Watcher.Enabled = v.GetBool("casbin.watcher.enabled")
 
 	return &cfg, nil
 }
