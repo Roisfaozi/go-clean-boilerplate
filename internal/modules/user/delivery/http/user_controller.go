@@ -25,17 +25,17 @@ func NewUserHandler(userUseCase usecase.UserUseCase, log *logrus.Logger) *UserHa
 }
 
 // RegisterUser handles user registration
-// @Summary Register a new user
-// @Description Register a new user with the provided information
-// @Tags users
-// @Accept json
-// @Produce json
-// @Param request body model.RegisterUserRequest true "User registration details"
-// @Success 201 {object} helpers.ResponseSuccess{data=model.UserResponse} "User registered successfully"
-// @Failure 400 {object} helpers.ResponseError "Invalid request body"
-// @Failure 409 {object} helpers.ResponseError "User already exists"
-// @Failure 500 {object} helpers.ResponseError "Internal server error"
-// @Router /api/v1/users/register [post]
+// @Summary      Register a new user
+// @Description  Creates a new user account.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request body model.RegisterUserRequest true "User Registration Details"
+// @Success      201  {object}  response.WebResponse[model.UserResponse]
+// @Failure      400  {object}  response.WebResponse[any] "Invalid request body"
+// @Failure      409  {object}  response.WebResponse[any] "User with the same ID already exists"
+// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Router       /users/register [post]
 func (h *UserHandler) RegisterUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.RegisterUserRequest
@@ -56,16 +56,16 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 }
 
 // GetCurrentUser gets the currently authenticated user's information
-// @Summary Get current user
-// @Description Get information about the currently authenticated user
-// @Tags users
-// @Security Bearer
-// @Produce json
-// @Success 200 {object} helpers.ResponseSuccess{data=model.UserResponse} "User retrieved successfully"
-// @Failure 401 {object} helpers.ResponseError "Unauthorized"
-// @Failure 404 {object} helpers.ResponseError "User not found"
-// @Failure 500 {object} helpers.ResponseError "Internal server error"
-// @Router /api/v1/users/me [get]
+// @Summary      Get current user
+// @Description  Retrieves profile information for the currently authenticated user.
+// @Tags         users
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  response.WebResponse[model.UserResponse]
+// @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
+// @Failure      404  {object}  response.WebResponse[any] "User not found"
+// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Router       /users/me [get]
 func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -90,19 +90,19 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 }
 
 // UpdateUser updates user information
-// @Summary Update user
-// @Description Update user information
-// @Tags users
-// @Security Bearer
-// @Accept json
-// @Produce json
-// @Param request body model.UpdateUserRequest true "User update details"
-// @Success 200 {object} helpers.ResponseSuccess{data=model.UserResponse} "User updated successfully"
-// @Failure 400 {object} helpers.ResponseError "Invalid request body"
-// @Failure 401 {object} helpers.ResponseError "Unauthorized"
-// @Failure 404 {object} helpers.ResponseError "User not found"
-// @Failure 500 {object} helpers.ResponseError "Internal server error"
-// @Router /api/v1/users/me [put]
+// @Summary      Update current user
+// @Description  Updates the name or password for the currently authenticated user.
+// @Tags         users
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.UpdateUserRequest true "Fields to update"
+// @Success      200  {object}  response.WebResponse[model.UserResponse]
+// @Failure      400  {object}  response.WebResponse[any] "Invalid request body"
+// @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
+// @Failure      404  {object}  response.WebResponse[any] "User not found"
+// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Router       /users/me [put]
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -132,15 +132,15 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 }
 
 // LogoutUser handles user logout
-// @Summary Logout user
-// @Description Logout the currently authenticated user
-// @Tags auth
-// @Security Bearer
-// @Produce json
-// @Success 200 {object} helpers.ResponseSuccess "Logged out successfully"
-// @Failure 401 {object} helpers.ResponseError "Unauthorized"
-// @Failure 500 {object} helpers.ResponseError "Internal server error"
-// @Router /api/v1/auth/logout [post]
+// @Summary      Logout user (deprecated)
+// @Description  This endpoint is deprecated. Use /auth/logout instead.
+// @Tags         auth
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  response.WebResponse[string]
+// @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
+// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Router       /auth/logout [post]
 func (h *UserHandler) LogoutUser(c *gin.Context) {
 	ctx := c.Request.Context()
 
