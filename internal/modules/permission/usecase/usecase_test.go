@@ -12,9 +12,8 @@ import (
 // setupTest creates an in-memory Casbin enforcer for isolated testing.
 func setupTest(t *testing.T) IPermissionUseCase {
 	log := logrus.New()
-	log.SetOutput(&nullWriter{}) // Suppress logs during tests
+	log.SetOutput(&nullWriter{})
 
-	// Create an in-memory model
 	m, err := model.NewModelFromString(`
 	[request_definition]
 	r = sub, obj, act
@@ -35,7 +34,6 @@ func setupTest(t *testing.T) IPermissionUseCase {
 		t.Fatalf("Failed to create model: %v", err)
 	}
 
-	// Create an enforcer with the in-memory model and no adapter
 	enforcer, err := casbin.NewEnforcer(m)
 	if err != nil {
 		t.Fatalf("Failed to create enforcer: %v", err)
@@ -44,7 +42,6 @@ func setupTest(t *testing.T) IPermissionUseCase {
 	return NewPermissionUseCase(enforcer, log)
 }
 
-// nullWriter is used to discard log output during tests.
 type nullWriter struct{}
 
 func (w *nullWriter) Write(p []byte) (n int, err error) {
@@ -54,7 +51,6 @@ func (w *nullWriter) Write(p []byte) (n int, err error) {
 func TestGetAllPermissions(t *testing.T) {
 	t.Run("Success - Policies Exist", func(t *testing.T) {
 		uc := setupTest(t)
-		// Add some policies for the test
 		_, _ = uc.(*PermissionUseCase).enforcer.AddPolicy("admin", "/api/v1/users", "GET")
 		_, _ = uc.(*PermissionUseCase).enforcer.AddPolicy("user", "/api/v1/users/me", "GET")
 
@@ -63,13 +59,12 @@ func TestGetAllPermissions(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, permissions)
 		assert.Len(t, permissions, 2)
-		// Check if the policies are returned correctly
 		assert.Contains(t, permissions, []string{"admin", "/api/v1/users", "GET"})
 		assert.Contains(t, permissions, []string{"user", "/api/v1/users/me", "GET"})
 	})
 
 	t.Run("Success - No Policies", func(t *testing.T) {
-		uc := setupTest(t) // A fresh enforcer with no policies
+		uc := setupTest(t)
 
 		permissions, err := uc.GetAllPermissions()
 
@@ -80,7 +75,6 @@ func TestGetAllPermissions(t *testing.T) {
 
 func TestGetPermissionsForRole(t *testing.T) {
 	uc := setupTest(t)
-	// Setup initial policies
 	_, _ = uc.(*PermissionUseCase).enforcer.AddPolicy("admin", "/api/v1/admin/dashboard", "GET")
 	_, _ = uc.(*PermissionUseCase).enforcer.AddPolicy("admin", "/api/v1/admin/users", "POST")
 	_, _ = uc.(*PermissionUseCase).enforcer.AddPolicy("user", "/api/v1/users/me", "GET")
@@ -96,7 +90,6 @@ func TestGetPermissionsForRole(t *testing.T) {
 	})
 
 	t.Run("Success - Role with No Policies", func(t *testing.T) {
-		// Add a role without direct policies (it might inherit or just be empty)
 		_, _ = uc.(*PermissionUseCase).enforcer.AddRoleForUser("some_user", "guest")
 
 		permissions, err := uc.GetPermissionsForRole("guest")
@@ -118,7 +111,6 @@ func TestUpdatePermission(t *testing.T) {
 		uc := setupTest(t)
 		oldPolicy := []string{"admin", "/api/v1/old", "GET"}
 		newPolicy := []string{"admin", "/api/v1/new", "POST"}
-		// Convert slice of strings to slice of interface{} for variadic func
 		oldPolicyInterfaces := make([]interface{}, len(oldPolicy))
 		for i, v := range oldPolicy {
 			oldPolicyInterfaces[i] = v
@@ -130,7 +122,6 @@ func TestUpdatePermission(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, updated)
 
-		// Verify the old policy is gone and the new one exists
 		hasOld, _ := uc.(*PermissionUseCase).enforcer.HasPolicy(oldPolicyInterfaces...)
 		assert.False(t, hasOld)
 
@@ -149,7 +140,7 @@ func TestUpdatePermission(t *testing.T) {
 
 		updated, err := uc.UpdatePermission(oldPolicy, newPolicy)
 
-		assert.Error(t, err) // Expect an error because the policy to update wasn't found
+		assert.Error(t, err)
 		assert.False(t, updated)
 		assert.Contains(t, err.Error(), "policy to update not found")
 	})
@@ -173,7 +164,6 @@ func TestAssignRoleToUser(t *testing.T) {
 		err := uc.AssignRoleToUser(userID, role)
 		assert.NoError(t, err)
 
-		// Verify the role was assigned
 		hasRole, err := uc.(*PermissionUseCase).enforcer.HasRoleForUser(userID, role)
 		assert.NoError(t, err)
 		assert.True(t, hasRole)
@@ -190,7 +180,6 @@ func TestGrantPermissionToRole(t *testing.T) {
 		err := uc.GrantPermissionToRole(role, path, method)
 		assert.NoError(t, err)
 
-		// Verify the policy was created
 		hasPolicy, _ := uc.(*PermissionUseCase).enforcer.HasPolicy(role, path, method)
 		assert.True(t, hasPolicy)
 	})
@@ -203,24 +192,20 @@ func TestRevokePermissionFromRole(t *testing.T) {
 		path := "/api/v1/logs"
 		method := "GET"
 
-		// First, add the policy to be revoked
 		_, err := uc.(*PermissionUseCase).enforcer.AddPolicy(role, path, method)
 		assert.NoError(t, err)
 		hasPolicy, _ := uc.(*PermissionUseCase).enforcer.HasPolicy(role, path, method)
 		assert.True(t, hasPolicy)
 
-		// Now, revoke it
 		err = uc.RevokePermissionFromRole(role, path, method)
 		assert.NoError(t, err)
 
-		// Verify the policy is gone
 		hasPolicy, _ = uc.(*PermissionUseCase).enforcer.HasPolicy(role, path, method)
 		assert.False(t, hasPolicy)
 	})
 
 	t.Run("Failure - Revoke non-existent permission", func(t *testing.T) {
 		uc := setupTest(t)
-		// Attempt to revoke a policy that was never added
 		err := uc.RevokePermissionFromRole("ghost", "/dev/null", "READ")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "policy to revoke not found")
