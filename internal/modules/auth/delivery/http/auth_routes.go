@@ -1,16 +1,15 @@
 package http
 
 import (
-	"github.com/Roisfaozi/casbin-db/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterPublicRoutes registers auth routes that do not require authentication.
-func RegisterPublicRoutes(router *gin.RouterGroup, authHandler *AuthHandler) {
+// RegisterPublicRoutes registers the public authentication routes.
+func RegisterPublicRoutes(router *gin.RouterGroup, handler *AuthHandler) {
 	authGroup := router.Group("/auth")
 	{
-		authGroup.POST("/login", authHandler.Login)
-		authGroup.POST("/refresh", authHandler.RefreshToken)
+		authGroup.POST("/login", handler.Login)
+		authGroup.POST("/refresh", handler.RefreshToken)
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/casbin/casbin/v2"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	rediswatcher "github.com/casbin/redis-watcher/v2"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -31,9 +32,11 @@ func NewCasbinEnforcer(cfg *AppConfig, db *gorm.DB, log *logrus.Logger) (*casbin
 	// Initialize Watcher if enabled
 	if cfg.Casbin.Watcher.Enabled {
 		watcher, err := rediswatcher.NewWatcher(cfg.Redis.Addr, rediswatcher.WatcherOptions{
-			Channel:  cfg.Casbin.Watcher.Channel,
-			Password: cfg.Redis.Password,
-			DB:       cfg.Redis.DB,
+			Channel: cfg.Casbin.Watcher.Channel,
+			Options: redis.Options{
+				Password: cfg.Redis.Password,
+				DB:       cfg.Redis.DB,
+			},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create casbin redis watcher: %w", err)

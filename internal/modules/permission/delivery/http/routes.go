@@ -9,5 +9,8 @@ func RegisterPermissionRoutes(router *gin.RouterGroup, handler *PermissionHandle
 	{
 		permissionGroup.POST("/assign-role", handler.AssignRole)
 		permissionGroup.POST("/grant", handler.GrantPermission)
+		permissionGroup.GET("", handler.GetAllPermissions)
+		permissionGroup.GET("/:role", handler.GetPermissionsForRole)
+		permissionGroup.PUT("", handler.UpdatePermission)
 	}
 }

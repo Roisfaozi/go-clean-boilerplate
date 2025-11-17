@@ -6,6 +6,24 @@ GOTEST=$(GOCMD) test
 GOCLEAN=$(GOCMD) clean
 GOMOD=$(GOCMD) mod
 
+# Database
+# Migration variables
+MIGRATIONS_DIR = ./db/migrations
+DB_DRIVER = mysql
+DB_USER = root
+DB_PASSWORD = Password0!
+DB_PASSWORD_PROD =
+DB_HOST = localhost
+DB_HOST_PROD =
+DB_PORT = 3306
+DB_PORT_PROD = 3307
+DB_NAME = 
+DB_NAME_PROD =
+DB_URL = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@tcp($(DB_HOST):$(DB_PORT))/$(DB_NAME)"
+DB_URL_PROD = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_PROD)@tcp($(DB_HOST_PROD):$(DB_PORT_PROD))/$(DB_NAME_PROD)"
+DB_URL_STAG = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_PROD)@tcp($(DB_HOST_PROD):$(DB_PORT_PROD))/$(DB_NAME)"
+
+
 # Swagger CLI
 SWAG_CLI=swag
 
@@ -78,4 +96,44 @@ clean:
 	@if (Test-Path $(BINARY_NAME)) { Remove-Item -Force $(BINARY_NAME) }
 	@if (Test-Path ./docs) { Remove-Item -Recurse -Force ./docs }
 	$(GOCLEAN)
+
+
+# Migration commands
+.PHONY: migrate-install
+migrate-install: ## Install golang-migrate
+	@echo "Installing golang-migrate..."
+	@go install -tags '$(DB_DRIVER)' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+.PHONY: migrate-create
+migrate-create: ## Create new migration file (e.g., make migrate-create name=create_users_table)
+	@migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $(filter-out $@,$(MAKECMDGOALS))
+
+.PHONY: migrate-up
+migrate-up: ## Run all up migrations
+	@migrate -path $(MIGRATIONS_DIR) -database $(DB_URL) -verbose up
+
+
+.PHONY: migrate-up-1
+migrate-up-1: ## Runcd  the next up migration
+	@migrate -path $(MIGRATIONS_DIR) -database $(DB_URL) -verbose up 1
+
+
+.PHONY: migrate-down
+migrate-down: ## Roll back all migrations
+	@migrate -path $(MIGRATIONS_DIR) -database $(DB_URL) -verbose down
+
+
+.PHONY: migrate-down-1
+migrate-down-1: ## Roll back the most recent migration
+	@migrate -path $(MIGRATIONS_DIR) -database $(DB_URL) -verbose down 1
+
+
+.PHONY: migrate-force
+migrate-force: ## Force a specific migration version (e.g., make migrate-force version=1)
+	@migrate -path $(MIGRATIONS_DIR) -database $(DB_URL) -verbose force $(filter-out $@,$(MAKECMDGOALS))
+
+.PHONY: migrate-version
+migrate-version: ## Show current migration version
+	@migrate -path $(MIGRATIONS_DIR) -database $(DB_URL) version
+
 

@@ -31,7 +31,7 @@ func NewAuthModule(
 	// Note: Auth module might need access to user data, so creating userRepo here can be valid.
 	userRepo := userRepository.NewUserRepository(db, log)
 
-	authUseCase := usecase.NewService(jwtManager, tokenRepository, userRepo, validator, tm, log, wsManager)
+	authUseCase := usecase.NewAuthUsecase(jwtManager, tokenRepository, userRepo, validator, tm, log, wsManager)
 
 	authHandler := http.NewAuthHandler(authUseCase, log)
 

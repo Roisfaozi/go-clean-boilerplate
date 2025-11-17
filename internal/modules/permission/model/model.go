@@ -12,3 +12,9 @@ type GrantPermissionRequest struct {
 	Path   string `json:"path" validate:"required"`
 	Method string `json:"method" validate:"required"`
 }
+
+// UpdatePermissionRequest defines the structure for updating a permission.
+type UpdatePermissionRequest struct {
+	OldPermission []string `json:"old_permission" validate:"required,min=3,max=3"`
+	NewPermission []string `json:"new_permission" validate:"required,min=3,max=3"`
+}
