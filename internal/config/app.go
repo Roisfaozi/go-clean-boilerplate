@@ -17,6 +17,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"github.com/Roisfaozi/casbin-db/internal/modules/access"
 )
 
 // Application holds all major application components.
@@ -58,6 +59,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager)
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm)
 	permissionModule := permission.NewUserModule(enforcer, validate, logger)
+	accessModule := access.NewAccessModule(dbConnection, logger, validate)
 	logger.Info("Application modules initialized.")
 
 	// 4. Initialize Middleware
@@ -67,7 +69,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	logger.Info("Middleware initialized.")
 
 	// 5. Setup Router
-	ginRouter := router.SetupRouter(authModule, userModule, permissionModule, authMiddleware, casbinMiddleware, wsController)
+	ginRouter := router.SetupRouter(authModule, userModule, permissionModule, accessModule, authMiddleware, casbinMiddleware, wsController)
 	logger.Info("Router setup complete.")
 
 	// 6. Create HTTP Server

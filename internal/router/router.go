@@ -2,6 +2,8 @@ package router
 
 import (
 	"github.com/Roisfaozi/casbin-db/internal/middleware"
+	"github.com/Roisfaozi/casbin-db/internal/modules/access"
+	accessHttp "github.com/Roisfaozi/casbin-db/internal/modules/access/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth"
 	authHttp "github.com/Roisfaozi/casbin-db/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/modules/permission"
@@ -19,6 +21,7 @@ func SetupRouter(
 	authModule *auth.AuthModule,
 	userModule *user.UserModule,
 	permissionModule *permission.PermissionModule,
+	accessModule *access.AccessModule,
 	authMiddleware *middleware.AuthMiddleware,
 	casbinMiddleware gin.HandlerFunc,
 	wsController *ws.WebSocketController,
@@ -60,6 +63,7 @@ func SetupRouter(
 	{
 		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserHandler())
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionHandler())
+		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessHandler())
 	}
 
 	return router
