@@ -134,7 +134,7 @@ func (uc *PermissionUseCase) UpdatePermission(oldPermission, newPermission []str
 	if len(oldPermission) == 0 || len(newPermission) == 0 {
 		return false, errors.New("old and new permissions cannot be empty")
 	}
-	
+
 	uc.log.Infof("Updating permission from %v to %v", oldPermission, newPermission)
 	updated, err := uc.enforcer.UpdatePolicy(oldPermission, newPermission)
 	if err != nil {
