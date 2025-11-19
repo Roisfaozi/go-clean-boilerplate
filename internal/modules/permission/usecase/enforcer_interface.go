@@ -1,0 +1,12 @@
+package usecase
+
+//go:generate mockery --name IEnforcer --output ../test/mocks --outpkg mocks
+// IEnforcer defines an interface for the casbin enforcer to make it mockable.
+type IEnforcer interface {
+	AddGroupingPolicy(params ...interface{}) (bool, error)
+	AddPolicy(params ...interface{}) (bool, error)
+	RemovePolicy(params ...interface{}) (bool, error)
+	GetPolicy() ([][]string, error)
+	GetFilteredPolicy(fieldIndex int, fieldValues ...string) ([][]string, error)
+	UpdatePolicy(oldRule []string, newRule []string) (bool, error)
+}
