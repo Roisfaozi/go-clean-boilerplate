@@ -8,6 +8,7 @@ import (
 	authHttp "github.com/Roisfaozi/casbin-db/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/modules/permission"
 	permissionHttp "github.com/Roisfaozi/casbin-db/internal/modules/permission/delivery/http"
+	"github.com/Roisfaozi/casbin-db/internal/modules/role"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user"
 	userHttp "github.com/Roisfaozi/casbin-db/internal/modules/user/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
@@ -22,6 +23,7 @@ func SetupRouter(
 	userModule *user.UserModule,
 	permissionModule *permission.PermissionModule,
 	accessModule *access.AccessModule,
+	roleModule *role.RoleModule,
 	authMiddleware *middleware.AuthMiddleware,
 	casbinMiddleware gin.HandlerFunc,
 	wsController *ws.WebSocketController,

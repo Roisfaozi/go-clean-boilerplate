@@ -4,7 +4,7 @@ CREATE TABLE access_rights (
                                description TEXT,
                                created_at BIGINT NOT NULL,
                                updated_at BIGINT NOT NULL,
-);
+)Engine=InnoDB;
 
 CREATE TABLE endpoints (
                            id INT AUTO_INCREMENT PRIMARY KEY,
@@ -12,7 +12,7 @@ CREATE TABLE endpoints (
                            method VARCHAR(10) NOT NULL,
                            deleted_at BIGINT DEFAULT 0
                            UNIQUE KEY idx_path_method (path, method)
-);
+)Engine=InnoDB;
 
 CREATE TABLE access_right_endpoints (
                                         access_right_id INT NOT NULL,
@@ -20,4 +20,4 @@ CREATE TABLE access_right_endpoints (
                                         PRIMARY KEY (access_right_id, endpoint_id),
                                         FOREIGN KEY (access_right_id) REFERENCES access_rights(id) ON DELETE CASCADE,
                                         FOREIGN KEY (endpoint_id) REFERENCES endpoints(id) ON DELETE CASCADE
-);
+)Engine=InnoDB;

@@ -6,8 +6,11 @@ import (
 	"net/http"
 
 	"github.com/Roisfaozi/casbin-db/internal/middleware"
+	"github.com/Roisfaozi/casbin-db/internal/modules/access"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth"
 	"github.com/Roisfaozi/casbin-db/internal/modules/permission"
+	"github.com/Roisfaozi/casbin-db/internal/modules/role"
+	roleRepository "github.com/Roisfaozi/casbin-db/internal/modules/role/repository"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user"
 	"github.com/Roisfaozi/casbin-db/internal/router"
 	"github.com/Roisfaozi/casbin-db/internal/utils/jwt"
@@ -17,7 +20,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"github.com/Roisfaozi/casbin-db/internal/modules/access"
 )
 
 // Application holds all major application components.
@@ -35,8 +37,11 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	logger := NewLogrus(cfg)
 	validate := NewValidator()
 	dbConnection := NewDatabase(cfg, logger)
+
 	redisClient := NewRedisConfig(cfg, logger)
+
 	tm := tx.NewTransactionManager(dbConnection, logger)
+
 	jwtManager := jwt.NewJWTManager(
 		cfg.JWT.AccessTokenSecret,
 		cfg.JWT.RefreshTokenSecret,
@@ -56,10 +61,18 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 
 	// 3. Initialize Modules
+	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
+
 	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager)
+
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm)
-	permissionModule := permission.NewUserModule(enforcer, validate, logger)
+
+	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo)
+
+	roleModule := role.NewRoleModule(dbConnection, logger, validate, tm)
+
 	accessModule := access.NewAccessModule(dbConnection, logger, validate)
+
 	logger.Info("Application modules initialized.")
 
 	// 4. Initialize Middleware
@@ -69,7 +82,16 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	logger.Info("Middleware initialized.")
 
 	// 5. Setup Router
-	ginRouter := router.SetupRouter(authModule, userModule, permissionModule, accessModule, authMiddleware, casbinMiddleware, wsController)
+	ginRouter := router.SetupRouter(
+		authModule,
+		userModule,
+		permissionModule,
+		accessModule,
+		roleModule,
+		authMiddleware,
+		casbinMiddleware,
+		wsController,
+	)
 	logger.Info("Router setup complete.")
 
 	// 6. Create HTTP Server

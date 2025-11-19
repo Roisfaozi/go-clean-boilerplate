@@ -26,6 +26,7 @@ func NewPermissionHandler(useCase usecase.IPermissionUseCase, validate *validato
 }
 
 func (h *PermissionHandler) AssignRole(c *gin.Context) {
+	ctx := c.Request.Context()
 	var req model.AssignRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, errors.New("invalid request body"))
@@ -36,7 +37,7 @@ func (h *PermissionHandler) AssignRole(c *gin.Context) {
 		return
 	}
 
-	if err := h.useCase.AssignRoleToUser(req.UserID, req.Role); err != nil {
+	if err := h.useCase.AssignRoleToUser(ctx, req.UserID, req.Role); err != nil {
 		h.log.WithError(err).Error("Failed to assign role")
 		response.InternalServerError(c, errors.New("could not assign role"))
 		return
@@ -46,6 +47,7 @@ func (h *PermissionHandler) AssignRole(c *gin.Context) {
 }
 
 func (h *PermissionHandler) GrantPermission(c *gin.Context) {
+	ctx := c.Request.Context()
 	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, errors.New("invalid request body"))
@@ -56,7 +58,7 @@ func (h *PermissionHandler) GrantPermission(c *gin.Context) {
 		return
 	}
 
-	if err := h.useCase.GrantPermissionToRole(req.Role, req.Path, req.Method); err != nil {
+	if err := h.useCase.GrantPermissionToRole(ctx, req.Role, req.Path, req.Method); err != nil {
 		h.log.WithError(err).Error("Failed to grant permission")
 		response.InternalServerError(c, errors.New("could not grant permission"))
 		return

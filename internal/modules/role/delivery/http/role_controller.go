@@ -1,0 +1,75 @@
+package http
+
+import (
+	"errors"
+	"net/http"
+
+	"github.com/Roisfaozi/casbin-db/internal/modules/role/model"
+	"github.com/Roisfaozi/casbin-db/internal/modules/role/usecase"
+	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/response"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+)
+
+type RoleHandler struct {
+	RoleUseCase usecase.RoleUseCase
+	Log         *logrus.Logger
+}
+
+func NewRoleHandler(roleUseCase usecase.RoleUseCase, log *logrus.Logger) *RoleHandler {
+	return &RoleHandler{
+		RoleUseCase: roleUseCase,
+		Log:         log,
+	}
+}
+
+func (h *RoleHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
+	var req model.CreateRoleRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.Log.WithError(err).Error("failed to bind request body for create role")
+		response.BadRequest(c, errors.New("invalid request body"))
+		return
+	}
+
+	role, err := h.RoleUseCase.Create(ctx, &req)
+	if err != nil {
+		h.handleError(c, err, "failed to create role")
+		return
+	}
+
+	response.Created(c, role)
+}
+
+func (h *RoleHandler) GetAll(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	roles, err := h.RoleUseCase.GetAll(ctx)
+	if err != nil {
+		h.handleError(c, err, "failed to get all roles")
+		return
+	}
+
+	response.Success(c, roles)
+}
+
+func (h *RoleHandler) handleError(c *gin.Context, err error, message string) {
+	h.Log.WithError(err).Error(message)
+
+	switch {
+	case errors.Is(err, exception.ErrBadRequest):
+		response.BadRequest(c, err)
+	case errors.Is(err, exception.ErrUnauthorized):
+		response.Unauthorized(c, err)
+	case errors.Is(err, exception.ErrForbidden):
+		response.Forbidden(c, err)
+	case errors.Is(err, exception.ErrNotFound):
+		response.NotFound(c, err)
+	case errors.Is(err, exception.ErrConflict):
+		response.ErrorResponse(c, http.StatusConflict, err)
+	default:
+		response.InternalServerError(c, errors.New("internal server error"))
+	}
+}
