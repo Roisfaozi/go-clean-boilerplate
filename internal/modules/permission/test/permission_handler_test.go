@@ -1,4 +1,4 @@
-package http_test
+package test_test
 
 import (
 	"bytes"
@@ -54,11 +54,11 @@ func TestGrantPermission_Success(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.NoError(t, err)
 
-    // Correctly access the nested data object
+	// Correctly access the nested data object
 	data, ok := responseBody["data"].(map[string]interface{})
 	assert.True(t, ok, "Response should have a 'data' object")
 	assert.Equal(t, "Permission granted successfully", data["message"])
-	
+
 	mockUseCase.AssertExpectations(t)
 }
 
