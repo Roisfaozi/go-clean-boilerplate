@@ -29,17 +29,6 @@ func TestGrantPermission_Success(t *testing.T) {
 	mockUseCase := new(mocks.IPermissionUseCase)
 	handler := permHandler.NewPermissionHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupTestRouter()
-	// In the original handler, GrantPermission returns a 200 OK with a message.
-	// For a resource creation/permission grant, 201 Created might be more appropriate.
-	// We will assume the handler is changed to return 201, or we adjust the test.
-	// Let's test for 200 as per the original `Success` function.
-	// UPDATE: The original `GrantPermission` in the handler uses `response.Success` which is 200 OK.
-	// Let's change the handler to use `response.Created` which is 201, which is more semantically correct.
-	// And then test for 201. Oh wait, I can't change the handler code, I must adapt the test.
-	// The handler uses `response.Success`, which calls `SuccessResponse` with `http.StatusOK`.
-	// The test for `TestGrantPermission_Success` in `permission_handler_test.go` has a bug where it asserts for `responseBody["message"]` directly.
-	// The `SuccessResponse` function wraps the data in a `WebResponse` struct, so the JSON is `{"data": {"message": "..."}}`.
-	// The test needs to be corrected to look inside the "data" object.
 	router.POST("/permissions/grant", handler.GrantPermission)
 
 	// Mocking
@@ -60,17 +49,16 @@ func TestGrantPermission_Success(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	// Assert
-	// The handler's GrantPermission uses response.Success which returns http.StatusOK (200)
 	assert.Equal(t, http.StatusOK, w.Code)
 	var responseBody map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.NoError(t, err)
 
-	// Correctly access the nested data object
+    // Correctly access the nested data object
 	data, ok := responseBody["data"].(map[string]interface{})
 	assert.True(t, ok, "Response should have a 'data' object")
 	assert.Equal(t, "Permission granted successfully", data["message"])
-
+	
 	mockUseCase.AssertExpectations(t)
 }
 
