@@ -12,7 +12,7 @@ import (
 // AppConfig holds all configuration for the application, loaded from environment variables.
 type AppConfig struct {
 	Server    ServerConfig    `mapstructure:"server"`
-	Postgres  PostgresConfig  `mapstructure:"postgres"`
+	Mysql     MySqlConfig     `mapstructure:"mysql"`
 	Redis     RedisConfig     `mapstructure:"redis"`
 	JWT       JWTConfig       `mapstructure:"jwt"`
 	Log       LoggerConfig    `mapstructure:"log"`
@@ -29,8 +29,8 @@ type ServerConfig struct {
 	AppEnv       string        `mapstructure:"app_env"`
 }
 
-// PostgresConfig holds PostgreSQL database connection details.
-type PostgresConfig struct {
+// MySqlConfig holds PostgreSQL database connection details.
+type MySqlConfig struct {
 	Host                  string `mapstructure:"host"`
 	Port                  int    `mapstructure:"port"`
 	User                  string `mapstructure:"user"`
@@ -113,9 +113,6 @@ func NewConfig() (*AppConfig, error) {
 	//JWT
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")
-	cfg.Postgres.User = v.GetString("postgres.user")
-	cfg.Postgres.Password = v.GetString("postgres.password")
-	cfg.Postgres.DBName = v.GetString("postgres.dbname")
 
 	//redis
 	cfg.Redis.Addr = v.GetString("redis.addr")
@@ -133,19 +130,20 @@ func NewConfig() (*AppConfig, error) {
 	//log
 	cfg.Log.Level = v.GetString("log.level")
 
-	//postgres
-	cfg.Postgres.Host = v.GetString("postgres.host")
-	cfg.Postgres.Port = v.GetInt("postgres.port")
-	cfg.Postgres.User = v.GetString("postgres.user")
-	cfg.Postgres.Password = v.GetString("postgres.password")
-	cfg.Postgres.DBName = v.GetString("postgres.dbname")
-	cfg.Postgres.IdleConnection = v.GetInt("postgres.idle_connection")
-	cfg.Postgres.MaxConnection = v.GetInt("postgres.max_connection")
-	cfg.Postgres.MaxLifeTimeConnection = v.GetInt("postgres.max_life_time_connection")
+	//mysql
+	cfg.Mysql.Host = v.GetString("mysql.host")
+	cfg.Mysql.Port = v.GetInt("mysql.port")
+	cfg.Mysql.User = v.GetString("mysql.user")
+	cfg.Mysql.Password = v.GetString("mysql.password")
+	cfg.Mysql.DBName = v.GetString("mysql.dbname")
+	cfg.Mysql.IdleConnection = v.GetInt("mysql.idle_connection")
+	cfg.Mysql.MaxConnection = v.GetInt("mysql.max_connection")
+	cfg.Mysql.MaxLifeTimeConnection = v.GetInt("mysql.max_life_time_connection")
 
-	// Casbin
+	//casbin
 	cfg.Casbin.Enabled = v.GetBool("casbin.enabled")
+	cfg.Casbin.Model = v.GetString("casbin.model")
 	cfg.Casbin.Watcher.Enabled = v.GetBool("casbin.watcher.enabled")
-
+	cfg.Casbin.Watcher.Channel = v.GetString("casbin.watcher.channel")
 	return &cfg, nil
 }

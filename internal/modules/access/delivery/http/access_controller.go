@@ -32,6 +32,11 @@ func (h *AccessHandler) CreateAccessRight(c *gin.Context) {
 		return
 	}
 
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+
 	accessRight, err := h.useCase.CreateAccessRight(c.Request.Context(), req)
 	if err != nil {
 		if _, ok := err.(validator.ValidationErrors); ok {
@@ -64,6 +69,11 @@ func (h *AccessHandler) CreateEndpoint(c *gin.Context) {
 		return
 	}
 
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+
 	endpoint, err := h.useCase.CreateEndpoint(c.Request.Context(), req)
 	if err != nil {
 		if _, ok := err.(validator.ValidationErrors); ok {
@@ -82,6 +92,11 @@ func (h *AccessHandler) LinkEndpointToAccessRight(c *gin.Context) {
 	var req model.LinkEndpointRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, errors.New("invalid request body"))
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
 		return
 	}
 

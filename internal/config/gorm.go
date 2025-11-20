@@ -11,14 +11,14 @@ import (
 )
 
 func NewDatabase(config *AppConfig, log *logrus.Logger) *gorm.DB {
-	username := config.Postgres.User
-	password := config.Postgres.Password
-	host := config.Postgres.Host
-	port := config.Postgres.Port
-	database := config.Postgres.DBName
-	idleConnection := config.Postgres.IdleConnection
-	maxConnection := config.Postgres.MaxConnection
-	maxLifeTimeConnection := config.Postgres.MaxLifeTimeConnection
+	username := config.Mysql.User
+	password := config.Mysql.Password
+	host := config.Mysql.Host
+	port := config.Mysql.Port
+	database := config.Mysql.DBName
+	idleConnection := config.Mysql.IdleConnection
+	maxConnection := config.Mysql.MaxConnection
+	maxLifeTimeConnection := config.Mysql.MaxLifeTimeConnection
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", username, password, host, port, database)
 
