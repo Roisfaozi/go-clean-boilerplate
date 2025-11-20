@@ -265,6 +265,11 @@
                                     "pm.test(\"Response data should contain the correct user\", function () {",
                                     "    const jsonData = pm.response.json();",
                                     "    pm.expect(jsonData.data.user.id).to.eql(pm.environment.get(\"userId\"));",
+                                    "});",
+                                    "",
+                                    "pm.test(\"Response should include X-Content-Type-Options header\", function () {",
+                                    "    pm.response.to.have.header(\"X-Content-Type-Options\");",
+                                    "    pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
                                     "});"
                                 ],
                                 "type": "text/javascript"
@@ -337,6 +342,29 @@
                         "method": "DELETE",
                         "url": { "raw": "{{baseURL}}/users/{{userId}}", "host": [ "{{baseURL}}" ], "path": [ "users", "{{userId}}" ] }
                     }
+                },
+                {
+                    "name": "[SECURITY] Method Tampering on Get User",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code should be 405 Method Not Allowed\", function () {",
+                                    "    pm.response.to.have.status(405);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{authToken}}", "type": "string" } ] },
+                        "method": "PUT",
+                        "body": { "mode": "raw", "raw": "{\n    \"fullname\": \"tampered name\"\n}", "options": { "raw": { "language": "json" } } },
+                        "url": { "raw": "{{baseURL}}/users/{{userId}}", "host": [ "{{baseURL}}" ], "path": [ "users", "{{userId}}" ] }
+                    },
+                    "response": []
                 }
             ],
             "description": "Requests for managing user resources (CRUD)."
