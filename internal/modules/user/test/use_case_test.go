@@ -49,20 +49,15 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 	t.Run("Success - User Found", func(t *testing.T) {
 		expectedUser := &entity.User{ID: "test123", Name: "Test User"}
 
-		// Set up the mock for FindByID to be called once
 		mockRepo.On("FindByID", mock.Anything, "test123").Return(expectedUser, nil).Once()
 
-		// Set up the mock for WithinTransaction
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 			Return(nil).
 			Run(func(args mock.Arguments) {
-				// This is the function that will be called by WithinTransaction
 				fn := args.Get(1).(func(context.Context) error)
 
-				// Set up the FindByID mock that will be called inside the transaction
 				mockRepo.On("FindByID", mock.Anything, "test123").Return(expectedUser, nil).Once()
 
-				// Execute the function
 				err := fn(context.Background())
 				assert.NoError(t, err)
 			}).Once()
@@ -73,7 +68,6 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 		assert.NotNil(t, result)
 		assert.Equal(t, "test123", result.ID)
 
-		// Verify all expectations were met
 		mockRepo.AssertExpectations(t)
 		mockTM.AssertExpectations(t)
 	})
@@ -122,8 +116,7 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 
 	t.Run("Error - Database Error", func(t *testing.T) {
 		dbError := errors.New("database connection failed")
-		expectedError := exception.ErrInternalServer // The actual implementation wraps the error
-
+		expectedError := exception.ErrInternalServer
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 			Run(func(args mock.Arguments) {
 				fn := args.Get(1).(func(context.Context) error)
@@ -154,20 +147,15 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 			{ID: "user2", Name: "User Two"},
 		}
 
-		// Set up the mock for FindAll to be called once
 		mockRepo.On("FindAll", mock.Anything, 100, 0).Return(mockUsers, nil).Once()
 
-		// Set up the mock for WithinTransaction
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 			Return(nil).
 			Run(func(args mock.Arguments) {
-				// This is the function that will be called by WithinTransaction
 				fn := args.Get(1).(func(context.Context) error)
 
-				// Set up the FindAll mock that will be called inside the transaction
 				mockRepo.On("FindAll", mock.Anything, 100, 0).Return(mockUsers, nil).Once()
 
-				// Execute the function
 				err := fn(context.Background())
 				assert.NoError(t, err)
 			}).Once()
@@ -184,20 +172,15 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 	})
 
 	t.Run("Success - Empty Result", func(t *testing.T) {
-		// Set up the mock for FindAll to be called once
 		mockRepo.On("FindAll", mock.Anything, 100, 0).Return([]*entity.User{}, nil).Once()
 
-		// Set up the mock for WithinTransaction
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 			Return(nil).
 			Run(func(args mock.Arguments) {
-				// This is the function that will be called by WithinTransaction
 				fn := args.Get(1).(func(context.Context) error)
 
-				// Set up the FindAll mock that will be called inside the transaction
 				mockRepo.On("FindAll", mock.Anything, 100, 0).Return([]*entity.User{}, nil).Once()
 
-				// Execute the function
 				err := fn(context.Background())
 				assert.NoError(t, err)
 			}).Once()
@@ -213,7 +196,7 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 
 	t.Run("Error - Database Error", func(t *testing.T) {
 		dbError := errors.New("database connection failed")
-		expectedError := exception.ErrInternalServer // The actual implementation wraps the error
+		expectedError := exception.ErrInternalServer
 
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 			Run(func(args mock.Arguments) {
@@ -229,6 +212,189 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Equal(t, expectedError, err)
+		mockRepo.AssertExpectations(t)
+		mockTM.AssertExpectations(t)
+	})
+}
+
+func TestUserUseCase_Current(t *testing.T) {
+	mockRepo := new(mocks.MockUserRepository)
+	mockTM := new(mocking.MockTransactionManager)
+	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo)
+
+	t.Run("Success - User Found", func(t *testing.T) {
+		expectedUser := &entity.User{ID: "current-user", Name: "Current User"}
+		testReq := &model.GetUserRequest{ID: "current-user"}
+
+		mockRepo.On("FindByID", mock.Anything, "current-user").Return(expectedUser, nil).Once()
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+			Return(nil).
+			Run(func(args mock.Arguments) {
+			}).Once()
+
+		result, err := uc.Current(context.Background(), testReq)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "current-user", result.ID)
+		mockRepo.AssertExpectations(t)
+		mockTM.AssertExpectations(t)
+	})
+
+	t.Run("Error - User Not Found", func(t *testing.T) {
+		testReq := &model.GetUserRequest{ID: "nonexistent"}
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+			Return(exception.ErrNotFound).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+
+				mockRepo.On("FindByID", mock.Anything, "nonexistent").Return(nil, gorm.ErrRecordNotFound).Once()
+
+				err := fn(context.Background())
+				assert.ErrorIs(t, err, exception.ErrNotFound)
+			}).Once()
+
+		result, err := uc.Current(context.Background(), testReq)
+
+		assert.ErrorIs(t, err, exception.ErrNotFound)
+		assert.Nil(t, result)
+		mockRepo.AssertExpectations(t)
+		mockTM.AssertExpectations(t)
+	})
+
+	t.Run("Error - Database Error", func(t *testing.T) {
+		testReq := &model.GetUserRequest{ID: "db-error"}
+		dbError := errors.New("database error")
+
+		mockRepo.On("FindByID", mock.Anything, "db-error").Return(nil, dbError).Once()
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+			Return(exception.ErrInternalServer).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				err := fn(context.Background())
+				assert.ErrorIs(t, err, exception.ErrInternalServer)
+			}).Once()
+
+		result, err := uc.Current(context.Background(), testReq)
+
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		assert.Nil(t, result)
+		mockRepo.AssertExpectations(t)
+		mockTM.AssertExpectations(t)
+	})
+
+	t.Run("Error - Empty ID", func(t *testing.T) {
+		testReq := &model.GetUserRequest{ID: ""}
+
+		result, err := uc.Current(context.Background(), testReq)
+
+		assert.ErrorIs(t, err, exception.ErrBadRequest)
+		assert.Nil(t, result)
+	})
+}
+
+func TestUserUseCase_Update(t *testing.T) {
+	mockRepo := new(mocks.MockUserRepository)
+	mockTM := new(mocking.MockTransactionManager)
+	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo)
+
+	t.Run("Success - User Updated", func(t *testing.T) {
+		request := &model.UpdateUserRequest{
+			ID:   "user123",
+			Name: "Updated User",
+		}
+
+		existingUser := &entity.User{
+			ID:   "user123",
+			Name: "Original User",
+		}
+
+		mockRepo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil).Once()
+		mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+			return u.ID == "user123" && u.Name == "Updated User"
+		})).Return(nil).Once()
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+			Return(nil).Once()
+
+		result, err := uc.Update(context.Background(), request)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "user123", result.ID)
+		assert.Equal(t, "Updated User", result.Name)
+
+		mockRepo.AssertExpectations(t)
+		mockTM.AssertExpectations(t)
+	})
+	t.Run("Error - User Not Found", func(t *testing.T) {
+		updateReq := &model.UpdateUserRequest{
+			ID:   "nonexistent",
+			Name: "New Name",
+		}
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+			Return(exception.ErrNotFound).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+
+				mockRepo.On("FindByID", mock.Anything, "nonexistent").Return(nil, gorm.ErrRecordNotFound).Once()
+
+				err := fn(context.Background())
+				assert.ErrorIs(t, err, exception.ErrNotFound)
+			}).Once()
+
+		result, err := uc.Update(context.Background(), updateReq)
+
+		assert.ErrorIs(t, err, exception.ErrNotFound)
+		assert.Nil(t, result)
+		mockRepo.AssertExpectations(t)
+		mockTM.AssertExpectations(t)
+	})
+
+	t.Run("Error - Validation Error", func(t *testing.T) {
+		updateReq := &model.UpdateUserRequest{
+			ID:   "",
+			Name: "New Name",
+		}
+
+		result, err := uc.Update(context.Background(), updateReq)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, exception.ErrBadRequest)
+	})
+
+	t.Run("Error - Database Error During Update", func(t *testing.T) {
+		updateReq := &model.UpdateUserRequest{
+			ID:   "user123",
+			Name: "New Name",
+		}
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+			Run(func(args mock.Arguments) {
+				mockRepo.On("FindByID", mock.Anything, "user123").
+					Return(&entity.User{ID: "user123", Name: "Old Name"}, nil).Once()
+
+				mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+					return u.ID == "user123" && u.Name == "New Name"
+				})).Return(errors.New("database error")).Once()
+
+				fn := args.Get(1).(func(context.Context) error)
+				err := fn(context.Background())
+				assert.ErrorIs(t, err, exception.ErrInternalServer)
+			}).
+			Return(exception.ErrInternalServer).
+			Once()
+
+		result, err := uc.Update(context.Background(), updateReq)
+
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		assert.Nil(t, result)
+
 		mockRepo.AssertExpectations(t)
 		mockTM.AssertExpectations(t)
 	})
@@ -319,11 +485,9 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		// Set up the mock for WithinTransaction to return context.Canceled
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 			Return(context.Canceled).
 			Run(func(args mock.Arguments) {
-				// This function won't be called because the context is already canceled
 			}).Once()
 
 		err := uc.DeleteUser(ctx, userID)

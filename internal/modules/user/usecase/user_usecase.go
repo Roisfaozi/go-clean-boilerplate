@@ -165,38 +165,6 @@ func (c *userUseCase) Update(ctx context.Context, request *model.UpdateUserReque
 	return response, err
 }
 
-func (uc *userUseCase) Logout(ctx context.Context, request *model.LogoutUserRequest) (*model.UserResponse, error) {
-	if err := uc.Validate.Struct(request); err != nil {
-		uc.Log.Warnf("Invalid request body : %+v", err)
-		return nil, exception.ErrBadRequest
-	}
-
-	var response *model.UserResponse
-	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
-		user, err := uc.UserRepository.FindByID(txCtx, request.ID)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				uc.Log.Warnf("User with id %s not found for logout", request.ID)
-				return exception.ErrNotFound
-			}
-			uc.Log.Errorf("Failed to find user by id %s for logout: %v", request.ID, err)
-			return exception.ErrInternalServer
-		}
-
-		user.Token = ""
-
-		if err := uc.UserRepository.Update(txCtx, user); err != nil {
-			uc.Log.Warnf("Failed update user : %+v", err)
-			return exception.ErrInternalServer
-		}
-
-		response = converter.UserToResponse(user)
-		return nil
-	})
-
-	return response, err
-}
-
 func (u *userUseCase) GetAllUsers(ctx context.Context) ([]*model.UserResponse, error) {
 	var users []*entity.User
 	err := u.TM.WithinTransaction(ctx, func(txCtx context.Context) error {

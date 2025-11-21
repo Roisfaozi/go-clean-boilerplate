@@ -1,4 +1,4 @@
-package mocks
+package mocking
 
 import (
 	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
@@ -39,11 +39,8 @@ func (m *MockWebSocketManager) GetChannelClients(channel string) int {
 	return args.Int(0)
 }
 
-// NoOpWriter is a simple io.Writer that does nothing.
-// It's useful for suppressing log output during tests.
 type NoOpWriter struct{}
 
-// Write implements the io.Writer interface.
 func (w *NoOpWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }

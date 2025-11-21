@@ -14,5 +14,4 @@ type UserUseCase interface {
 	Current(ctx context.Context, request *model.GetUserRequest) (*model.UserResponse, error)
 	Update(ctx context.Context, request *model.UpdateUserRequest) (*model.UserResponse, error)
 	DeleteUser(ctx context.Context, id string) error
-	Logout(ctx context.Context, request *model.LogoutUserRequest) (*model.UserResponse, error)
 }

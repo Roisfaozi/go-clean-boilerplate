@@ -18,7 +18,6 @@ import (
 
 	mock_auth "github.com/Roisfaozi/casbin-db/internal/modules/auth/test/mocks"
 	mock_user "github.com/Roisfaozi/casbin-db/internal/modules/user/test/mocks"
-	mock_utils "github.com/Roisfaozi/casbin-db/internal/utils/test/mocks"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -34,7 +33,7 @@ type testDependencies struct {
 	tokenRepo  *mock_auth.MockTokenRepository
 	userRepo   *mock_user.MockUserRepository
 	tm         *mocking.MockTransactionManager
-	wsManager  *mock_utils.MockWebSocketManager
+	wsManager  *mocking.MockWebSocketManager
 	validate   *validator.Validate
 	log        *logrus.Logger
 }
@@ -48,12 +47,12 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		tokenRepo:  new(mock_auth.MockTokenRepository),
 		userRepo:   new(mock_user.MockUserRepository),
 		tm:         new(mocking.MockTransactionManager),
-		wsManager:  new(mock_utils.MockWebSocketManager),
+		wsManager:  new(mocking.MockWebSocketManager),
 		validate:   validator.New(),
 		log:        logrus.New(),
 	}
 
-	deps.log.SetOutput(&mock_utils.NoOpWriter{})
+	deps.log.SetOutput(&mocking.NoOpWriter{})
 
 	authService := usecase.NewAuthUsecase(
 		deps.jwtManager,
