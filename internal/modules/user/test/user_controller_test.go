@@ -11,6 +11,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/response"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"

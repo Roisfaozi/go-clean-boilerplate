@@ -13,10 +13,14 @@ type MockTransactionManager struct {
 // WithinTransaction mocking the WithinTransaction method
 func (m *MockTransactionManager) WithinTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
 	args := m.Called(ctx, fn)
-	if args.Get(0) == nil {
-		return fn(ctx)
+
+	// If an error is configured to be returned by the mock, return it immediately.
+	if err := args.Error(0); err != nil {
+		return err
 	}
-	return args.Error(0)
+
+	// Otherwise, execute the function that was passed in.
+	return fn(ctx)
 }
 
 // NewMockTransactionManager creates a new instance of MockTransactionManager

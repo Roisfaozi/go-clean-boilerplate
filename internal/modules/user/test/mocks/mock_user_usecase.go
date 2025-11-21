@@ -5,7 +5,6 @@ package mocks
 import (
 	context "context"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -76,23 +75,23 @@ func (_m *MockUserUseCase) Current(ctx context.Context, request *model.GetUserRe
 }
 
 // GetUserByID provides a mock function with given fields: ctx, id
-func (_m *MockUserUseCase) GetUserByID(ctx context.Context, id string) (*entity.User, error) {
+func (_m *MockUserUseCase) GetUserByID(ctx context.Context, id string) (*model.UserResponse, error) {
 	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserByID")
 	}
 
-	var r0 *entity.User
+	var r0 *model.UserResponse
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*entity.User, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*model.UserResponse, error)); ok {
 		return rf(ctx, id)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *entity.User); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.UserResponse); ok {
 		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*entity.User)
+			r0 = ret.Get(0).(*model.UserResponse)
 		}
 	}
 
@@ -163,4 +162,52 @@ func (_m *MockUserUseCase) Update(ctx context.Context, request *model.UpdateUser
 	}
 
 	return r0, r1
+}
+
+// GetAllUsers provides a mock function with given fields: ctx
+func (_m *MockUserUseCase) GetAllUsers(ctx context.Context) ([]*model.UserResponse, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAllUsers")
+	}
+
+	var r0 []*model.UserResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) ([]*model.UserResponse, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) []*model.UserResponse); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.UserResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DeleteUser provides a mock function with given fields: ctx, id
+func (_m *MockUserUseCase) DeleteUser(ctx context.Context, id string) error {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteUser")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }

@@ -34,7 +34,7 @@ func NewUserUseCase(logger *logrus.Logger, validate *validator.Validate, tm tx.W
 	}
 }
 
-func (uc *userUseCase) GetUserByID(ctx context.Context, id string) (*entity.User, error) {
+func (uc *userUseCase) GetUserByID(ctx context.Context, id string) (*model.UserResponse, error) {
 	var user *entity.User
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error
@@ -49,7 +49,10 @@ func (uc *userUseCase) GetUserByID(ctx context.Context, id string) (*entity.User
 		}
 		return nil
 	})
-	return user, err
+	if err != nil {
+		return nil, err
+	}
+	return converter.UserToResponse(user), nil
 }
 
 func (c *userUseCase) Create(ctx context.Context, request *model.RegisterUserRequest) (*model.UserResponse, error) {
