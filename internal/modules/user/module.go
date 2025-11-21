@@ -14,6 +14,14 @@ type UserModule struct {
 	userHandler *http.UserHandler
 }
 
+// NewUserModule creates a new UserModule instance with the given dependencies.
+//
+// db: The GORM database connection.
+// log: The logger instance.
+// validator: The validator instance.
+// tm: The transaction manager instance.
+//
+// Returns a pointer to the newly created UserModule instance.
 func NewUserModule(db *gorm.DB, log *logrus.Logger, validator *validator.Validate, tm tx.WithTransactionManager) *UserModule {
 	userRepository := userRepository.NewUserRepository(db, log)
 

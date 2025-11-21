@@ -6,7 +6,6 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
 )
 
-// UserRepository defines the interface for user repository operations
 type UserRepository interface {
 	Create(ctx context.Context, user *entity.User) error
 	Update(ctx context.Context, user *entity.User) error

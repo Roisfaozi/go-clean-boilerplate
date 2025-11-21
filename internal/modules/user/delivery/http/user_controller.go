@@ -69,7 +69,6 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get user ID from context (set by auth middleware)
 	userID, exists := c.Get("user_id")
 	if !exists {
 		response.Unauthorized(c, errors.New("unauthorized"))
@@ -106,7 +105,6 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get user ID from context (set by auth middleware)
 	userID, exists := c.Get("user_id")
 	if !exists {
 		response.Unauthorized(c, errors.New("unauthorized"))
@@ -205,7 +203,6 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	response.Success(c, gin.H{"message": "User deleted successfully"})
 }
 
-// handleError is a helper function to handle different types of errors
 func (h *UserHandler) handleError(c *gin.Context, err error, message string) {
 	h.Log.WithError(err).Error(message)
 

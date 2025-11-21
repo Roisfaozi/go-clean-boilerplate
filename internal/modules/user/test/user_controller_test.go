@@ -25,7 +25,7 @@ func setupUserTestRouter() *gin.Engine {
 }
 
 func TestUserHandler_RegisterUser_Success(t *testing.T) {
-	mockUseCase := new(mocks.MockUserUseCase) // Corrected mock struct name
+	mockUseCase := new(mocks.MockUserUseCase)
 	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
 	router := setupUserTestRouter()
 	router.POST("/users/register", handler.RegisterUser)
@@ -53,7 +53,7 @@ func TestUserHandler_RegisterUser_Success(t *testing.T) {
 }
 
 func TestUserHandler_RegisterUser_Conflict(t *testing.T) {
-	mockUseCase := new(mocks.MockUserUseCase) // Corrected mock struct name
+	mockUseCase := new(mocks.MockUserUseCase)
 	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
 	router := setupUserTestRouter()
 	router.POST("/users/register", handler.RegisterUser)
@@ -76,7 +76,7 @@ func TestUserHandler_RegisterUser_Conflict(t *testing.T) {
 }
 
 func TestUserHandler_GetCurrentUser_Success(t *testing.T) {
-	mockUseCase := new(mocks.MockUserUseCase) // Corrected mock struct name
+	mockUseCase := new(mocks.MockUserUseCase)
 	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
 	router := setupUserTestRouter()
 	router.GET("/users/me", handler.GetCurrentUser)
@@ -91,7 +91,6 @@ func TestUserHandler_GetCurrentUser_Success(t *testing.T) {
 
 	req, _ := http.NewRequest(http.MethodGet, "/users/me", nil)
 
-	// Manually set user_id in context for test
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
@@ -110,7 +109,7 @@ func TestUserHandler_GetCurrentUser_Success(t *testing.T) {
 }
 
 func TestUserHandler_GetCurrentUser_NotFound(t *testing.T) {
-	mockUseCase := new(mocks.MockUserUseCase) // Corrected mock struct name
+	mockUseCase := new(mocks.MockUserUseCase)
 	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
 	router := setupUserTestRouter()
 	router.GET("/users/me", handler.GetCurrentUser)

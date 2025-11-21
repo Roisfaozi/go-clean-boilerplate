@@ -32,7 +32,6 @@ func TestGenerateAndValidateTokenPair_Success(t *testing.T) {
 	assert.NotEmpty(t, accessToken)
 	assert.NotEmpty(t, refreshToken)
 
-	// Validate Access Token
 	accessClaims, err := manager.ValidateAccessToken(accessToken)
 	assert.NoError(t, err)
 	assert.NotNil(t, accessClaims)
@@ -41,7 +40,6 @@ func TestGenerateAndValidateTokenPair_Success(t *testing.T) {
 	assert.Equal(t, testUserID, accessClaims.Subject)
 	assert.WithinDuration(t, time.Now().Add(time.Minute*15), accessClaims.ExpiresAt.Time, time.Second*5)
 
-	// Validate Refresh Token
 	refreshClaims, err := manager.ValidateRefreshToken(refreshToken)
 	assert.NoError(t, err)
 	assert.NotNil(t, refreshClaims)
@@ -51,13 +49,12 @@ func TestGenerateAndValidateTokenPair_Success(t *testing.T) {
 }
 
 func TestValidateToken_Expired(t *testing.T) {
-	// Create a manager that generates tokens that expire almost immediately
+
 	manager := NewJWTManager(testAccessSecret, testRefreshSecret, -time.Second, -time.Second)
 
 	accessToken, _, err := manager.GenerateTokenPair(testUserID, testSessionID)
 	assert.NoError(t, err)
 
-	// Allow a moment for the token to be definitively expired
 	time.Sleep(10 * time.Millisecond)
 
 	claims, err := manager.ValidateAccessToken(accessToken)
@@ -70,11 +67,9 @@ func TestValidateToken_InvalidSignature(t *testing.T) {
 	manager1 := NewJWTManager("secret-one", "refresh-one", time.Minute, time.Hour)
 	manager2 := NewJWTManager("secret-two", "refresh-two", time.Minute, time.Hour)
 
-	// Generate token with manager1
 	accessToken, _, err := manager1.GenerateTokenPair(testUserID, testSessionID)
 	assert.NoError(t, err)
 
-	// Try to validate with manager2 (which has a different secret)
 	claims, err := manager2.ValidateAccessToken(accessToken)
 	assert.Error(t, err, "Validation should fail for a token with a wrong signature")
 	assert.Nil(t, claims)

@@ -9,13 +9,19 @@ import (
 	"gorm.io/gorm"
 )
 
-// userRepositoryData implements UserRepository using GORM
 type userRepositoryData struct {
 	db  *gorm.DB
 	log *logrus.Logger
 }
 
-// NewUserRepository creates a new user repository
+// NewUserRepository creates a new instance of UserRepository.
+//
+// Parameters:
+// - db: The GORM database connection.
+// - log: The logger instance.
+//
+// Returns:
+// - A pointer to the newly created UserRepository instance.
 func NewUserRepository(db *gorm.DB, log *logrus.Logger) UserRepository {
 	return &userRepositoryData{
 		db:  db,
@@ -23,7 +29,6 @@ func NewUserRepository(db *gorm.DB, log *logrus.Logger) UserRepository {
 	}
 }
 
-// Create creates a new user
 func (r *userRepositoryData) Create(ctx context.Context, user *entity.User) error {
 	if err := r.db.WithContext(ctx).Create(user).Error; err != nil {
 		r.log.WithError(err).Error("failed to create user")
@@ -32,7 +37,6 @@ func (r *userRepositoryData) Create(ctx context.Context, user *entity.User) erro
 	return nil
 }
 
-// Update updates an existing user
 func (r *userRepositoryData) Update(ctx context.Context, user *entity.User) error {
 	if err := r.db.WithContext(ctx).Save(user).Error; err != nil {
 		r.log.WithError(err).Error("failed to update user")
@@ -41,7 +45,6 @@ func (r *userRepositoryData) Update(ctx context.Context, user *entity.User) erro
 	return nil
 }
 
-// FindByID finds a user by ID
 func (r *userRepositoryData) FindByID(ctx context.Context, id string) (*entity.User, error) {
 	var user entity.User
 	if err := r.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
@@ -54,7 +57,6 @@ func (r *userRepositoryData) FindByID(ctx context.Context, id string) (*entity.U
 	return &user, nil
 }
 
-// FindByEmail finds a user by email
 func (r *userRepositoryData) FindByEmail(ctx context.Context, email string) (*entity.User, error) {
 	var user entity.User
 	if err := r.db.WithContext(ctx).First(&user, "email = ?", email).Error; err != nil {
@@ -67,7 +69,6 @@ func (r *userRepositoryData) FindByEmail(ctx context.Context, email string) (*en
 	return &user, nil
 }
 
-// FindByToken finds a user by token
 func (r *userRepositoryData) FindByToken(ctx context.Context, token string) (*entity.User, error) {
 	var user entity.User
 	if err := r.db.WithContext(ctx).First(&user, "token = ?", token).Error; err != nil {
@@ -80,7 +81,6 @@ func (r *userRepositoryData) FindByToken(ctx context.Context, token string) (*en
 	return &user, nil
 }
 
-// Delete deletes a user
 func (r *userRepositoryData) Delete(ctx context.Context, id string) error {
 	if err := r.db.WithContext(ctx).Delete(&entity.User{}, "id = ?", id).Error; err != nil {
 		r.log.WithError(err).Error("failed to delete user")
@@ -89,7 +89,6 @@ func (r *userRepositoryData) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// FindAll finds all users with pagination
 func (r *userRepositoryData) FindAll(ctx context.Context, limit, offset int) ([]*entity.User, error) {
 	var users []*entity.User
 	if err := r.db.WithContext(ctx).Limit(limit).Offset(offset).Find(&users).Error; err != nil {

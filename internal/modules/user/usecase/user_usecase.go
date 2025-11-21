@@ -24,6 +24,16 @@ type userUseCase struct {
 	UserRepository repository.UserRepository
 }
 
+// NewUserUseCase creates a new instance of UserUseCase.
+//
+// Parameters:
+// - logger: The logger instance.
+// - validate: The validator instance.
+// - tm: The transaction manager instance.
+// - userRepository: The user repository instance.
+//
+// Returns:
+// - A pointer to the newly created UserUseCase instance.
 func NewUserUseCase(logger *logrus.Logger, validate *validator.Validate, tm tx.WithTransactionManager,
 	userRepository repository.UserRepository) UserUseCase {
 	return &userUseCase{
@@ -169,7 +179,7 @@ func (u *userUseCase) GetAllUsers(ctx context.Context) ([]*model.UserResponse, e
 	var users []*entity.User
 	err := u.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error
-		// Using default limit and offset, can be parameterized if needed
+
 		users, err = u.UserRepository.FindAll(txCtx, 100, 0)
 		if err != nil {
 			u.Log.Errorf("Failed to find all users: %v", err)

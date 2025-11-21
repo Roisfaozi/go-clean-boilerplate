@@ -7,32 +7,33 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Claims contains the custom claims for the JWT.
 type Claims struct {
 	UserID    string `json:"user_id"`
 	SessionID string `json:"session_id"`
 	jwt.RegisteredClaims
 }
 
-// JWTManager handles JWT creation and validation.
 type JWTManager struct {
-	accessTokenSecret      string
-	refreshTokenSecret     string
+	accessTokenSecret    string
+	refreshTokenSecret   string
 	accessTokenDuration  time.Duration
 	refreshTokenDuration time.Duration
 }
 
-// NewJWTManager creates a new JWTManager.
+// NewJWTManager creates a new instance of JWTManager.
+//
+// It takes in the secrets for generating access and refresh tokens,
+// as well as the duration for both tokens. It returns a pointer to
+// the newly created JWTManager.
 func NewJWTManager(accessSecret, refreshSecret string, accessDuration, refreshDuration time.Duration) *JWTManager {
 	return &JWTManager{
-		accessTokenSecret:      accessSecret,
-		refreshTokenSecret:     refreshSecret,
+		accessTokenSecret:    accessSecret,
+		refreshTokenSecret:   refreshSecret,
 		accessTokenDuration:  accessDuration,
 		refreshTokenDuration: refreshDuration,
 	}
 }
 
-// GenerateTokenPair generates a new access and refresh token for a given user ID.
 func (m *JWTManager) GenerateTokenPair(userID, sessionID string) (string, string, error) {
 	accessToken, err := m.generateToken(userID, sessionID, m.accessTokenSecret, m.accessTokenDuration)
 	if err != nil {
@@ -47,7 +48,6 @@ func (m *JWTManager) GenerateTokenPair(userID, sessionID string) (string, string
 	return accessToken, refreshToken, nil
 }
 
-// generateToken creates a new JWT with the given claims.
 func (m *JWTManager) generateToken(userID, sessionID, secret string, expiresIn time.Duration) (string, error) {
 	now := time.Now()
 	claims := &Claims{
@@ -66,17 +66,14 @@ func (m *JWTManager) generateToken(userID, sessionID, secret string, expiresIn t
 	return token.SignedString([]byte(secret))
 }
 
-// ValidateAccessToken validates the given access token string.
 func (m *JWTManager) ValidateAccessToken(tokenString string) (*Claims, error) {
 	return m.validateToken(tokenString, m.accessTokenSecret)
 }
 
-// ValidateRefreshToken validates the given refresh token string.
 func (m *JWTManager) ValidateRefreshToken(tokenString string) (*Claims, error) {
 	return m.validateToken(tokenString, m.refreshTokenSecret)
 }
 
-// validateToken parses and validates a token string, returning the custom claims.
 func (m *JWTManager) validateToken(tokenString, secret string) (*Claims, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
@@ -97,13 +94,10 @@ func (m *JWTManager) validateToken(tokenString, secret string) (*Claims, error) 
 	return claims, nil
 }
 
-// GetRefreshTokenDuration returns the duration of the refresh token.
 func (m *JWTManager) GetRefreshTokenDuration() time.Duration {
 	return m.refreshTokenDuration
 }
 
-// GenerateTestToken is a helper function for testing purposes.
-// It should not be used in production code.
 func GenerateTestToken(userID, sessionID, secret string, expiry time.Duration) (string, error) {
 	claims := &Claims{
 		UserID:    userID,

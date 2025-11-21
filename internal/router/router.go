@@ -17,7 +17,6 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-// SetupRouter initializes the Gin router and registers all application routes.
 func SetupRouter(
 	authModule *auth.AuthModule,
 	userModule *user.UserModule,
@@ -30,35 +29,28 @@ func SetupRouter(
 ) *gin.Engine {
 	router := gin.New()
 
-	// Global Middlewares
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(middleware.CORSMiddleware())
 
-	// Swagger Route
 	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// WebSocket Route
 	router.GET("/ws", wsController.HandleWebSocket)
 
-	// API v1 Group
 	apiV1 := router.Group("/api/v1")
 
-	// Public routes (no auth required)
 	public := apiV1.Group("")
 	{
 		authHttp.RegisterPublicRoutes(public, authModule.AuthHandler())
 		userHttp.RegisterPublicRoutes(public, userModule.UserHandler())
 	}
 
-	// Authenticated routes (JWT required)
 	authenticated := apiV1.Group("")
 	authenticated.Use(authMiddleware.ValidateToken())
 	{
 		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthHandler())
 	}
 
-	// Authorized routes (JWT + Casbin RBAC required)
 	authorized := apiV1.Group("")
 	authorized.Use(authMiddleware.ValidateToken())
 	authorized.Use(casbinMiddleware)

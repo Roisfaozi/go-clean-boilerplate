@@ -17,6 +17,12 @@ type TransactionManager struct {
 	Log *logrus.Logger
 }
 
+// NewTransactionManager creates a new instance of TransactionManager.
+//
+// db: The database connection used for transactions.
+// log: The logger used for logging.
+//
+// Returns a pointer to the newly created TransactionManager.
 func NewTransactionManager(db *gorm.DB, log *logrus.Logger) WithTransactionManager {
 	return &TransactionManager{
 		DB:  db,
