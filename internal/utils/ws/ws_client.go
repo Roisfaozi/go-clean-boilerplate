@@ -9,7 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Client represents a WebSocket client
 type Client struct {
 	ID      string
 	Conn    *websocket.Conn
@@ -19,22 +18,27 @@ type Client struct {
 	Config  *WebSocketConfig
 }
 
-// ClientMessage represents a message from a client
 type ClientMessage struct {
-	Type    string          `json:"type"`    // subscribe, unsubscribe, message
-	Channel string          `json:"channel"` // channel name
-	Data    json.RawMessage `json:"data"`    // message data
+	Type    string          `json:"type"`
+	Channel string          `json:"channel"`
+	Data    json.RawMessage `json:"data"`
 }
 
-// ServerMessage represents a message to a client
 type ServerMessage struct {
-	Type    string      `json:"type"`    // message, error, info
-	Channel string      `json:"channel"` // channel name
-	Data    interface{} `json:"data"`    // message data
+	Type    string      `json:"type"`
+	Channel string      `json:"channel"`
+	Data    interface{} `json:"data"`
 }
 
-// NewClient creates a new WebSocket client
-func NewClient(conn *websocket.Conn, manager Manager, log *logrus.Logger, config *WebSocketConfig) *Client {
+// NewWebsocketClient creates a new WebSocket client
+//
+// conn: The WebSocket connection to the client
+// manager: The WebSocket manager to handle client events
+// log: The logger to log client events
+// config: The WebSocket configuration options
+//
+// Returns a pointer to the newly created client
+func NewWebsocketClient(conn *websocket.Conn, manager Manager, log *logrus.Logger, config *WebSocketConfig) *Client {
 	return &Client{
 		ID:      uuid.New().String(),
 		Conn:    conn,
@@ -45,7 +49,6 @@ func NewClient(conn *websocket.Conn, manager Manager, log *logrus.Logger, config
 	}
 }
 
-// ReadPump pumps messages from the WebSocket connection to the Manager
 func (c *Client) ReadPump() {
 	defer func() {
 		c.Manager.UnregisterClient(c)
@@ -73,7 +76,6 @@ func (c *Client) ReadPump() {
 	}
 }
 
-// WritePump pumps messages from the Manager to the WebSocket connection
 func (c *Client) WritePump() {
 	ticker := time.NewTicker(c.Config.PingPeriod)
 	defer func() {
@@ -86,7 +88,6 @@ func (c *Client) WritePump() {
 		case message, ok := <-c.Send:
 			c.Conn.SetWriteDeadline(time.Now().Add(c.Config.WriteWait))
 			if !ok {
-				// Manager closed the channel
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
@@ -97,7 +98,6 @@ func (c *Client) WritePump() {
 			}
 			w.Write(message)
 
-			// Add queued messages to the current WebSocket message
 			n := len(c.Send)
 			for i := 0; i < n; i++ {
 				w.Write([]byte{'\n'})
@@ -117,7 +117,6 @@ func (c *Client) WritePump() {
 	}
 }
 
-// handleMessage handles incoming messages from the client
 func (c *Client) handleMessage(message []byte) {
 	var msg ClientMessage
 	if err := json.Unmarshal(message, &msg); err != nil {
@@ -148,7 +147,6 @@ func (c *Client) handleMessage(message []byte) {
 			c.sendError("Channel name is required")
 			return
 		}
-		// Broadcast the message to all clients in the channel
 		serverMsg := ServerMessage{
 			Type:    "message",
 			Channel: msg.Channel,
@@ -166,7 +164,6 @@ func (c *Client) handleMessage(message []byte) {
 	}
 }
 
-// sendError sends an error message to the client
 func (c *Client) sendError(errorMsg string) {
 	msg := ServerMessage{
 		Type: "error",
@@ -175,7 +172,6 @@ func (c *Client) sendError(errorMsg string) {
 	c.sendMessage(msg)
 }
 
-// sendInfo sends an info message to the client
 func (c *Client) sendInfo(channel, infoMsg string) {
 	msg := ServerMessage{
 		Type:    "info",
@@ -185,7 +181,6 @@ func (c *Client) sendInfo(channel, infoMsg string) {
 	c.sendMessage(msg)
 }
 
-// sendMessage sends a message to the client
 func (c *Client) sendMessage(msg ServerMessage) {
 	msgBytes, err := json.Marshal(msg)
 	if err != nil {

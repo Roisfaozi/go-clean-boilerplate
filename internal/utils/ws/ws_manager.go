@@ -7,7 +7,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Manager interface for WebSocket operations
 type Manager interface {
 	Run()
 	RegisterClient(client *Client)
@@ -18,52 +17,38 @@ type Manager interface {
 	GetChannelClients(channel string) int
 }
 
-// WebSocketManager manages WebSocket connections and channels
 type WebSocketManager struct {
-	// Registered clients
 	clients map[*Client]bool
 
-	// Channel subscriptions: channel -> set of clients
 	channels map[string]map[*Client]bool
 
-	// Inbound messages from clients
 	broadcast chan *BroadcastMessage
 
-	// Register requests from clients
 	register chan *Client
 
-	// Unregister requests from clients
 	unregister chan *Client
 
-	// Channel subscription requests
 	subscribe chan *SubscriptionRequest
 
-	// Channel unsubscription requests
 	unsubscribe chan *SubscriptionRequest
 
-	// Mutex for thread-safe operations
 	mu sync.RWMutex
 
-	// Logger
 	log *logrus.Logger
 
-	// Configuration
 	config *WebSocketConfig
 }
 
-// BroadcastMessage represents a message to broadcast to a channel
 type BroadcastMessage struct {
 	Channel string
 	Message []byte
 }
 
-// SubscriptionRequest represents a channel subscription/unsubscription request
 type SubscriptionRequest struct {
 	Client  *Client
 	Channel string
 }
 
-// WebSocketConfig holds WebSocket configuration
 type WebSocketConfig struct {
 	WriteWait      time.Duration
 	PongWait       time.Duration
@@ -71,7 +56,12 @@ type WebSocketConfig struct {
 	MaxMessageSize int64
 }
 
-// NewWebSocketManager creates a new WebSocket Manager
+// NewWebSocketManager creates a new WebSocketManager with the provided configuration and logger.
+//
+// config: The WebSocket configuration options.
+// log: The logger to log manager events.
+//
+// Returns a pointer to the newly created WebSocketManager.
 func NewWebSocketManager(config *WebSocketConfig, log *logrus.Logger) *WebSocketManager {
 	return &WebSocketManager{
 		clients:     make(map[*Client]bool),
@@ -86,7 +76,6 @@ func NewWebSocketManager(config *WebSocketConfig, log *logrus.Logger) *WebSocket
 	}
 }
 
-// Run starts the WebSocket Manager event loop
 func (m *WebSocketManager) Run() {
 	m.log.Info("WebSocket Manager started")
 
@@ -110,7 +99,6 @@ func (m *WebSocketManager) Run() {
 	}
 }
 
-// handleRegister registers a new client
 func (m *WebSocketManager) handleRegister(client *Client) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -119,19 +107,17 @@ func (m *WebSocketManager) handleRegister(client *Client) {
 	m.log.Infof("Client registered: %s, total clients: %d", client.ID, len(m.clients))
 }
 
-// handleUnregister unregisters a client and removes from all channels
 func (m *WebSocketManager) handleUnregister(client *Client) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	if _, ok := m.clients[client]; ok {
-		// Remove from all channels
+
 		for channel, clients := range m.channels {
 			if _, exists := clients[client]; exists {
 				delete(clients, client)
 				m.log.Infof("Client %s removed from channel: %s", client.ID, channel)
 
-				// Clean up empty channels
 				if len(clients) == 0 {
 					delete(m.channels, channel)
 					m.log.Infof("Channel removed (empty): %s", channel)
@@ -139,7 +125,6 @@ func (m *WebSocketManager) handleUnregister(client *Client) {
 			}
 		}
 
-		// Remove from clients map
 		delete(m.clients, client)
 		close(client.Send)
 
@@ -147,7 +132,6 @@ func (m *WebSocketManager) handleUnregister(client *Client) {
 	}
 }
 
-// handleBroadcast sends a message to all clients in a channel
 func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -159,7 +143,7 @@ func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 			case client.Send <- msg.Message:
 				count++
 			default:
-				// Client's Send buffer is full, skip
+
 				m.log.Warnf("Failed to Send message to client %s (buffer full)", client.ID)
 			}
 		}
@@ -167,24 +151,20 @@ func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 	}
 }
 
-// handleSubscribe subscribes a client to a channel
 func (m *WebSocketManager) handleSubscribe(req *SubscriptionRequest) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Create channel if it doesn't exist
 	if _, ok := m.channels[req.Channel]; !ok {
 		m.channels[req.Channel] = make(map[*Client]bool)
 		m.log.Infof("Channel created: %s", req.Channel)
 	}
 
-	// Add client to channel
 	m.channels[req.Channel][req.Client] = true
 	m.log.Infof("Client %s subscribed to channel: %s, total subscribers: %d",
 		req.Client.ID, req.Channel, len(m.channels[req.Channel]))
 }
 
-// handleUnsubscribe unsubscribes a client from a channel
 func (m *WebSocketManager) handleUnsubscribe(req *SubscriptionRequest) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -195,7 +175,6 @@ func (m *WebSocketManager) handleUnsubscribe(req *SubscriptionRequest) {
 			m.log.Infof("Client %s unsubscribed from channel: %s, remaining subscribers: %d",
 				req.Client.ID, req.Channel, len(clients))
 
-			// Clean up empty channels
 			if len(clients) == 0 {
 				delete(m.channels, req.Channel)
 				m.log.Infof("Channel removed (empty): %s", req.Channel)
@@ -204,17 +183,14 @@ func (m *WebSocketManager) handleUnsubscribe(req *SubscriptionRequest) {
 	}
 }
 
-// RegisterClient registers a new client
 func (m *WebSocketManager) RegisterClient(client *Client) {
 	m.register <- client
 }
 
-// UnregisterClient unregisters a client
 func (m *WebSocketManager) UnregisterClient(client *Client) {
 	m.unregister <- client
 }
 
-// BroadcastToChannel broadcasts a message to all clients in a channel
 func (m *WebSocketManager) BroadcastToChannel(channel string, message []byte) {
 	m.broadcast <- &BroadcastMessage{
 		Channel: channel,
@@ -222,7 +198,6 @@ func (m *WebSocketManager) BroadcastToChannel(channel string, message []byte) {
 	}
 }
 
-// SubscribeToChannel subscribes a client to a channel
 func (m *WebSocketManager) SubscribeToChannel(client *Client, channel string) {
 	m.subscribe <- &SubscriptionRequest{
 		Client:  client,
@@ -230,7 +205,6 @@ func (m *WebSocketManager) SubscribeToChannel(client *Client, channel string) {
 	}
 }
 
-// UnsubscribeFromChannel unsubscribes a client from a channel
 func (m *WebSocketManager) UnsubscribeFromChannel(client *Client, channel string) {
 	m.unsubscribe <- &SubscriptionRequest{
 		Client:  client,
@@ -238,7 +212,6 @@ func (m *WebSocketManager) UnsubscribeFromChannel(client *Client, channel string
 	}
 }
 
-// GetChannelClients returns the number of clients in a channel
 func (m *WebSocketManager) GetChannelClients(channel string) int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

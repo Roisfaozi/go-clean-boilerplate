@@ -9,14 +9,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// WebSocketController handles WebSocket connections
 type WebSocketController struct {
 	log      *logrus.Logger
 	manager  Manager
 	upgrader *websocket.Upgrader
 }
 
-// NewWebSocketController creates a new WebSocket controller
+// NewWebSocketController creates a new WebSocketController instance.
+//
+// log: The logger to log WebSocket events.
+// manager: The WebSocket manager to handle WebSocket events.
+//
+// Returns a pointer to the newly created WebSocketController.
 func NewWebSocketController(log *logrus.Logger, manager Manager) *WebSocketController {
 	upgrader := &websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -35,16 +39,13 @@ func NewWebSocketController(log *logrus.Logger, manager Manager) *WebSocketContr
 	}
 }
 
-// HandleWebSocket handles WebSocket connection requests
 func (c *WebSocketController) HandleWebSocket(ctx *gin.Context) {
-	// Upgrade HTTP connection to WebSocket
 	conn, err := c.upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
 		c.log.Errorf("Failed to upgrade connection: %v", err)
 		return
 	}
 
-	// Get WebSocket Config from Manager
 	config := &WebSocketConfig{
 		WriteWait:      10 * time.Second,
 		PongWait:       60 * time.Second,
@@ -52,13 +53,10 @@ func (c *WebSocketController) HandleWebSocket(ctx *gin.Context) {
 		MaxMessageSize: 512 * 1024,
 	}
 
-	// Create new client
-	client := NewClient(conn, c.manager, c.log, config)
+	client := NewWebsocketClient(conn, c.manager, c.log, config)
 
-	// Register client with Manager
 	c.manager.RegisterClient(client)
 
-	// Start client goroutines
 	go client.WritePump()
 	go client.ReadPump()
 
