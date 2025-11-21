@@ -162,28 +162,28 @@ func (c *userUseCase) Update(ctx context.Context, request *model.UpdateUserReque
 	return response, err
 }
 
-func (c *userUseCase) Logout(ctx context.Context, request *model.LogoutUserRequest) (*model.UserResponse, error) {
-	if err := c.Validate.Struct(request); err != nil {
-		c.Log.Warnf("Invalid request body : %+v", err)
+func (uc *userUseCase) Logout(ctx context.Context, request *model.LogoutUserRequest) (*model.UserResponse, error) {
+	if err := uc.Validate.Struct(request); err != nil {
+		uc.Log.Warnf("Invalid request body : %+v", err)
 		return nil, exception.ErrBadRequest
 	}
 
 	var response *model.UserResponse
-	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
-		user, err := c.UserRepository.FindByID(txCtx, request.ID)
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		user, err := uc.UserRepository.FindByID(txCtx, request.ID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				c.Log.Warnf("User with id %s not found for logout", request.ID)
+				uc.Log.Warnf("User with id %s not found for logout", request.ID)
 				return exception.ErrNotFound
 			}
-			c.Log.Errorf("Failed to find user by id %s for logout: %v", request.ID, err)
+			uc.Log.Errorf("Failed to find user by id %s for logout: %v", request.ID, err)
 			return exception.ErrInternalServer
 		}
 
 		user.Token = ""
 
-		if err := c.UserRepository.Update(txCtx, user); err != nil {
-			c.Log.Warnf("Failed update user : %+v", err)
+		if err := uc.UserRepository.Update(txCtx, user); err != nil {
+			uc.Log.Warnf("Failed update user : %+v", err)
 			return exception.ErrInternalServer
 		}
 
@@ -192,4 +192,49 @@ func (c *userUseCase) Logout(ctx context.Context, request *model.LogoutUserReque
 	})
 
 	return response, err
+}
+
+func (u *userUseCase) GetAllUsers(ctx context.Context) ([]*model.UserResponse, error) {
+	var users []*entity.User
+	err := u.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		var err error
+		// Using default limit and offset, can be parameterized if needed
+		users, err = u.UserRepository.FindAll(txCtx, 100, 0)
+		if err != nil {
+			u.Log.Errorf("Failed to find all users: %v", err)
+			return exception.ErrInternalServer
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []*model.UserResponse
+	for _, user := range users {
+		responses = append(responses, converter.UserToResponse(user))
+	}
+
+	return responses, nil
+}
+
+func (u *userUseCase) DeleteUser(ctx context.Context, id string) error {
+	return u.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		_, err := u.UserRepository.FindByID(txCtx, id)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				u.Log.Warnf("User with id %s not found for deletion", id)
+				return exception.ErrNotFound
+			}
+			u.Log.Errorf("Failed to find user by id %s for deletion: %v", id, err)
+			return exception.ErrInternalServer
+		}
+
+		if err := u.UserRepository.Delete(txCtx, id); err != nil {
+			u.Log.Errorf("Failed to delete user with id %s: %v", id, err)
+			return exception.ErrInternalServer
+		}
+		return nil
+	})
 }

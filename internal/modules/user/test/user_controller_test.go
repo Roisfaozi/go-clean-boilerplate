@@ -129,3 +129,112 @@ func TestUserHandler_GetCurrentUser_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	mockUseCase.AssertExpectations(t)
 }
+
+func TestUserHandler_GetAllUsers(t *testing.T) {
+	mockUseCase := new(mocks.MockUserUseCase)
+	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
+	router := setupUserTestRouter()
+	router.GET("/users", handler.GetAllUsers)
+
+	t.Run("Success", func(t *testing.T) {
+		expectedUsers := []*model.UserResponse{
+			{ID: "user-1", Name: "User One"},
+			{ID: "user-2", Name: "User Two"},
+		}
+		mockUseCase.On("GetAllUsers", mock.Anything).Return(expectedUsers, nil).Once()
+
+		req, _ := http.NewRequest(http.MethodGet, "/users", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response response.WebResponse[[]*model.UserResponse]
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedUsers, response.Data)
+
+		mockUseCase.AssertExpectations(t)
+	})
+
+	t.Run("Internal Server Error", func(t *testing.T) {
+		mockUseCase.On("GetAllUsers", mock.Anything).Return(nil, exception.ErrInternalServer).Once()
+
+		req, _ := http.NewRequest(http.MethodGet, "/users", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		mockUseCase.AssertExpectations(t)
+	})
+}
+
+func TestUserHandler_GetUserByID(t *testing.T) {
+	mockUseCase := new(mocks.MockUserUseCase)
+	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
+	router := setupUserTestRouter()
+	router.GET("/users/:id", handler.GetUserByID)
+
+	t.Run("Success", func(t *testing.T) {
+		userID := "user-123"
+		expectedUser := &model.UserResponse{ID: userID, Name: "Test User"}
+
+		mockUseCase.On("GetUserByID", mock.Anything, userID).Return(expectedUser, nil).Once()
+
+		req, _ := http.NewRequest(http.MethodGet, "/users/"+userID, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response response.WebResponse[*model.UserResponse]
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedUser, response.Data)
+
+		mockUseCase.AssertExpectations(t)
+	})
+
+	t.Run("Not Found", func(t *testing.T) {
+		userID := "not-found-id"
+		mockUseCase.On("GetUserByID", mock.Anything, userID).Return(nil, exception.ErrNotFound).Once()
+
+		req, _ := http.NewRequest(http.MethodGet, "/users/"+userID, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		mockUseCase.AssertExpectations(t)
+	})
+}
+
+func TestUserHandler_DeleteUser(t *testing.T) {
+	mockUseCase := new(mocks.MockUserUseCase)
+	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
+	router := setupUserTestRouter()
+	router.DELETE("/users/:id", handler.DeleteUser)
+
+	t.Run("Success", func(t *testing.T) {
+		userID := "user-to-delete"
+		mockUseCase.On("DeleteUser", mock.Anything, userID).Return(nil).Once()
+
+		req, _ := http.NewRequest(http.MethodDelete, "/users/"+userID, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockUseCase.AssertExpectations(t)
+	})
+
+	t.Run("Not Found", func(t *testing.T) {
+		userID := "not-found-id"
+		mockUseCase.On("DeleteUser", mock.Anything, userID).Return(exception.ErrNotFound).Once()
+
+		req, _ := http.NewRequest(http.MethodDelete, "/users/"+userID, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		mockUseCase.AssertExpectations(t)
+	})
+}

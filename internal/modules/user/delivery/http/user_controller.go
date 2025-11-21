@@ -131,6 +131,80 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	response.Success(c, user)
 }
 
+// GetAllUsers retrieves all users
+// @Summary      Get all users
+// @Description  Retrieves a list of all users. Accessible only by admins/superadmins.
+// @Tags         users
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  response.WebResponse[[]model.UserResponse]
+// @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
+// @Failure      403  {object}  response.WebResponse[any] "Forbidden"
+// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Router       /users [get]
+func (h *UserHandler) GetAllUsers(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	users, err := h.UserUseCase.GetAllUsers(ctx)
+	if err != nil {
+		h.handleError(c, err, "failed to get all users")
+		return
+	}
+
+	response.Success(c, users)
+}
+
+// GetUserByID retrieves a single user by their ID
+// @Summary      Get user by ID
+// @Description  Retrieves profile information for a specific user by their ID. Accessible only by admins/superadmins.
+// @Tags         users
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path      string  true  "User ID"
+// @Success      200  {object}  response.WebResponse[model.UserResponse]
+// @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
+// @Failure      403  {object}  response.WebResponse[any] "Forbidden"
+// @Failure      404  {object}  response.WebResponse[any] "User not found"
+// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Router       /users/{id} [get]
+func (h *UserHandler) GetUserByID(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID := c.Param("id")
+
+	user, err := h.UserUseCase.GetUserByID(ctx, userID)
+	if err != nil {
+		h.handleError(c, err, "failed to get user by id")
+		return
+	}
+	response.Success(c, user)
+}
+
+// DeleteUser deletes a user by their ID
+// @Summary      Delete user by ID
+// @Description  Deletes a specific user by their ID. Accessible only by admins/superadmins.
+// @Tags         users
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path      string  true  "User ID"
+// @Success      200  {object}  response.WebResponse[any] "message: User deleted successfully"
+// @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
+// @Failure      403  {object}  response.WebResponse[any] "Forbidden"
+// @Failure      404  {object}  response.WebResponse[any] "User not found"
+// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Router       /users/{id} [delete]
+func (h *UserHandler) DeleteUser(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID := c.Param("id")
+
+	err := h.UserUseCase.DeleteUser(ctx, userID)
+	if err != nil {
+		h.handleError(c, err, "failed to delete user")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "User deleted successfully"})
+}
+
 // handleError is a helper function to handle different types of errors
 func (h *UserHandler) handleError(c *gin.Context, err error, message string) {
 	h.Log.WithError(err).Error(message)

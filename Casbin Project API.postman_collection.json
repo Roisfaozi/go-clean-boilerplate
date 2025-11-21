@@ -547,6 +547,89 @@
                         }
                     },
                     "response": []
+                },
+                {
+                    "name": "[Admin] Get All Users",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/users",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "users"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Admin] Get User By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/users/{{userId}}",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "users",
+                                "{{userId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Admin] Delete User By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/users/{{userId}}",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "users",
+                                "{{userId}}"
+                            ]
+                        }
+                    },
+                    "response": []
                 }
             ],
             "description": "Requests for managing user resources (CRUD)."
@@ -968,6 +1051,56 @@
                         "body": { "mode": "raw", "raw": "{\n    \"role\": \"{{roleName}}\",\n    \"path\": \"/articles\",\n    \"method\": \"write\"\n}", "options": { "raw": { "language": "json" } } },
                         "url": { "raw": "{{baseURL}}/permissions/revoke", "host": [ "{{baseURL}}" ], "path": [ "permissions", "revoke" ] }
                     }
+                },
+                {
+                    "name": "[SETUP] Grant Admin Access to Get All Users",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 201\", function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"role\": \"role:admin\",\n    \"path\": \"/users\",\n    \"method\": \"GET\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/permissions/grant",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "permissions",
+                                "grant"
+                            ]
+                        }
+                    },
+                    "description": "Sets up the necessary policy for admins to access the GET /users endpoint."
                 }
             ],
             "description": "Requests for managing Casbin access control policies."
