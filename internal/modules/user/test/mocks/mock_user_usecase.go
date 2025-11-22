@@ -164,9 +164,9 @@ func (_m *MockUserUseCase) Update(ctx context.Context, request *model.UpdateUser
 	return r0, r1
 }
 
-// GetAllUsers provides a mock function with given fields: ctx
-func (_m *MockUserUseCase) GetAllUsers(ctx context.Context) ([]*model.UserResponse, error) {
-	ret := _m.Called(ctx)
+// GetAllUsers provides a mock function with given fields: ctx, request
+func (_m *MockUserUseCase) GetAllUsers(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, error) {
+	ret := _m.Called(ctx, request)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAllUsers")
@@ -174,19 +174,19 @@ func (_m *MockUserUseCase) GetAllUsers(ctx context.Context) ([]*model.UserRespon
 
 	var r0 []*model.UserResponse
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context) ([]*model.UserResponse, error)); ok {
-		return rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) ([]*model.UserResponse, error)); ok {
+		return rf(ctx, request)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context) []*model.UserResponse); ok {
-		r0 = rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) []*model.UserResponse); ok {
+		r0 = rf(ctx, request)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*model.UserResponse)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = rf(ctx)
+	if rf, ok := ret.Get(1).(func(context.Context, *model.GetUserListRequest) error); ok {
+		r1 = rf(ctx, request)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
+	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
 )
 
 type UserRepository interface {
@@ -14,5 +15,5 @@ type UserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*entity.User, error)
 	FindByToken(ctx context.Context, token string) (*entity.User, error)
 	Delete(ctx context.Context, id string) error
-	FindAll(ctx context.Context, limit, offset int) ([]*entity.User, error)
+	FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, error)
 }

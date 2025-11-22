@@ -10,13 +10,19 @@ import (
 	"gorm.io/gorm"
 )
 
-// RoleModule contains all the components of the role module.
 type RoleModule struct {
 	Handler *http.RoleHandler
 	Repo    roleRepository.RoleRepository
 }
 
-// NewRoleModule initializes a new role module with all its dependencies.
+// NewRoleModule creates a new RoleModule instance with the given dependencies.
+//
+// db: The GORM database connection.
+// log: The logger instance.
+// validator: The validator instance.
+// tm: The transaction manager instance.
+//
+// Returns a pointer to the newly created RoleModule instance.
 func NewRoleModule(db *gorm.DB, log *logrus.Logger, validator *validator.Validate, tm tx.WithTransactionManager) *RoleModule {
 	roleRepo := roleRepository.NewRoleRepository(db, log)
 	roleUseCase := usecase.NewRoleUseCase(log, validator, tm, roleRepo)

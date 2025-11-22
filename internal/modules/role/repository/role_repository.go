@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/entity"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -12,7 +13,6 @@ type roleRepository struct {
 	log *logrus.Logger
 }
 
-// NewRoleRepository creates a new role repository.
 func NewRoleRepository(db *gorm.DB, log *logrus.Logger) RoleRepository {
 	return &roleRepository{
 		db:  db,

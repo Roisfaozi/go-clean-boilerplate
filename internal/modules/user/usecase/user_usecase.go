@@ -175,12 +175,11 @@ func (c *userUseCase) Update(ctx context.Context, request *model.UpdateUserReque
 	return response, err
 }
 
-func (u *userUseCase) GetAllUsers(ctx context.Context) ([]*model.UserResponse, error) {
+func (u *userUseCase) GetAllUsers(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, error) {
 	var users []*entity.User
 	err := u.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error
-
-		users, err = u.UserRepository.FindAll(txCtx, 100, 0)
+		users, err = u.UserRepository.FindAll(txCtx, request)
 		if err != nil {
 			u.Log.Errorf("Failed to find all users: %v", err)
 			return exception.ErrInternalServer

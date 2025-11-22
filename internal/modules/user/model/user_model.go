@@ -36,3 +36,10 @@ type LogoutUserRequest struct {
 type GetUserRequest struct {
 	ID string `json:"id" validate:"required,max=100"`
 }
+
+type GetUserListRequest struct {
+	Page     int    `form:"page" json:"page"`
+	Limit    int    `form:"limit" json:"limit"`
+	Username string `form:"username" json:"username"`
+	Email    string `form:"email" json:"email"`
+}

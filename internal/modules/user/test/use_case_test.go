@@ -146,21 +146,22 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 			{ID: "user1", Name: "User One"},
 			{ID: "user2", Name: "User Two"},
 		}
+		req := &model.GetUserListRequest{Page: 1, Limit: 10}
 
-		mockRepo.On("FindAll", mock.Anything, 100, 0).Return(mockUsers, nil).Once()
+		mockRepo.On("FindAll", mock.Anything, req).Return(mockUsers, nil).Once()
 
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 			Return(nil).
 			Run(func(args mock.Arguments) {
 				fn := args.Get(1).(func(context.Context) error)
 
-				mockRepo.On("FindAll", mock.Anything, 100, 0).Return(mockUsers, nil).Once()
+				mockRepo.On("FindAll", mock.Anything, req).Return(mockUsers, nil).Once()
 
 				err := fn(context.Background())
 				assert.NoError(t, err)
 			}).Once()
 
-		result, err := uc.GetAllUsers(context.Background())
+		result, err := uc.GetAllUsers(context.Background(), req)
 
 		assert.NoError(t, err)
 		assert.Len(t, result, 2)
@@ -172,20 +173,21 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 	})
 
 	t.Run("Success - Empty Result", func(t *testing.T) {
-		mockRepo.On("FindAll", mock.Anything, 100, 0).Return([]*entity.User{}, nil).Once()
+		req := &model.GetUserListRequest{Page: 1, Limit: 10}
+		mockRepo.On("FindAll", mock.Anything, req).Return([]*entity.User{}, nil).Once()
 
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 			Return(nil).
 			Run(func(args mock.Arguments) {
 				fn := args.Get(1).(func(context.Context) error)
 
-				mockRepo.On("FindAll", mock.Anything, 100, 0).Return([]*entity.User{}, nil).Once()
+				mockRepo.On("FindAll", mock.Anything, req).Return([]*entity.User{}, nil).Once()
 
 				err := fn(context.Background())
 				assert.NoError(t, err)
 			}).Once()
 
-		result, err := uc.GetAllUsers(context.Background())
+		result, err := uc.GetAllUsers(context.Background(), req)
 
 		assert.NoError(t, err)
 		assert.Empty(t, result)
@@ -197,6 +199,7 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 	t.Run("Error - Database Error", func(t *testing.T) {
 		dbError := errors.New("database connection failed")
 		expectedError := exception.ErrInternalServer
+		req := &model.GetUserListRequest{Page: 1, Limit: 10}
 
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 			Run(func(args mock.Arguments) {
@@ -205,9 +208,9 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 				assert.Equal(t, expectedError, err)
 			}).Return(expectedError).Once()
 
-		mockRepo.On("FindAll", mock.Anything, 100, 0).Return(nil, dbError).Once()
+		mockRepo.On("FindAll", mock.Anything, req).Return(nil, dbError).Once()
 
-		result, err := uc.GetAllUsers(context.Background())
+		result, err := uc.GetAllUsers(context.Background(), req)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)

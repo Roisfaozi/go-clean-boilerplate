@@ -129,21 +129,33 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	response.Success(c, user)
 }
 
-// GetAllUsers retrieves all users
+// GetAllUsers retrieves all users with pagination and filtering
 // @Summary      Get all users
-// @Description  Retrieves a list of all users. Accessible only by admins/superadmins.
+// @Description  Retrieves a list of all users with optional pagination and filtering. Accessible only by admins/superadmins.
 // @Tags         users
 // @Security     BearerAuth
 // @Produce      json
+// @Param        page      query     int     false  "Page number (default 1)"
+// @Param        limit     query     int     false  "Items per page (default 10)"
+// @Param        username  query     string  false  "Filter by username"
+// @Param        email     query     string  false  "Filter by email"
 // @Success      200  {object}  response.WebResponse[[]model.UserResponse]
+// @Failure      400  {object}  response.WebResponse[any] "Invalid query parameters"
 // @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
 // @Failure      403  {object}  response.WebResponse[any] "Forbidden"
 // @Failure      500  {object}  response.WebResponse[any] "Internal server error"
 // @Router       /users [get]
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	ctx := c.Request.Context()
+	var req model.GetUserListRequest
 
-	users, err := h.UserUseCase.GetAllUsers(ctx)
+	if err := c.ShouldBindQuery(&req); err != nil {
+		h.Log.WithError(err).Error("failed to bind query parameters")
+		response.BadRequest(c, errors.New("invalid query parameters"))
+		return
+	}
+
+	users, err := h.UserUseCase.GetAllUsers(ctx, &req)
 	if err != nil {
 		h.handleError(c, err, "failed to get all users")
 		return

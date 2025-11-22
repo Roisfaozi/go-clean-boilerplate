@@ -141,7 +141,10 @@ func TestUserHandler_GetAllUsers(t *testing.T) {
 			{ID: "user-1", Name: "User One"},
 			{ID: "user-2", Name: "User Two"},
 		}
-		mockUseCase.On("GetAllUsers", mock.Anything).Return(expectedUsers, nil).Once()
+		// Expect default values (0) because we don't send query params
+		expectedReq := &model.GetUserListRequest{Page: 0, Limit: 0, Username: "", Email: ""}
+		
+		mockUseCase.On("GetAllUsers", mock.Anything, expectedReq).Return(expectedUsers, nil).Once()
 
 		req, _ := http.NewRequest(http.MethodGet, "/users", nil)
 		w := httptest.NewRecorder()
@@ -158,7 +161,8 @@ func TestUserHandler_GetAllUsers(t *testing.T) {
 	})
 
 	t.Run("Internal Server Error", func(t *testing.T) {
-		mockUseCase.On("GetAllUsers", mock.Anything).Return(nil, exception.ErrInternalServer).Once()
+		expectedReq := &model.GetUserListRequest{Page: 0, Limit: 0}
+		mockUseCase.On("GetAllUsers", mock.Anything, expectedReq).Return(nil, exception.ErrInternalServer).Once()
 
 		req, _ := http.NewRequest(http.MethodGet, "/users", nil)
 		w := httptest.NewRecorder()

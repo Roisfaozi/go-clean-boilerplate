@@ -2,6 +2,8 @@ package test
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/Roisfaozi/casbin-db/internal/mocking"
@@ -14,75 +16,385 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
 
-// TestRoleUseCase_Create_Success (Positive Case)
 func TestRoleUseCase_Create_Success(t *testing.T) {
 	mockRepo := new(mocks.RoleRepository)
 	mockTM := new(mocking.MockTransactionManager)
 
-	req := &model.CreateRoleRequest{Name: "new_role", Description: "A new role for testing"}
+	// Register custom validations for test
+	val := validator.New()
+	_ = model.RegisterCustomValidations(val)
 
-	mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
-		Return(nil).
-		Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			fn(context.Background())
+	tests := []struct {
+		name     string
+		req      *model.CreateRoleRequest
+		mockFunc func()
+	}{
+		{
+			name: "Success - Basic Role Creation",
+			req:  &model.CreateRoleRequest{Name: "new_role", Description: "A new role for testing"},
+			mockFunc: func() {
+				mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+					Return(nil).
+					Run(func(args mock.Arguments) {
+						fn := args.Get(1).(func(context.Context) error)
+						fn(context.Background())
+					})
+
+				mockRepo.On("FindByName", mock.Anything, "new_role").Return((*entity.Role)(nil), gorm.ErrRecordNotFound)
+				mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(r *entity.Role) bool {
+					return r.Name == "new_role" && r.Description == "A new role for testing"
+				})).Return(nil)
+			},
+		},
+		{
+			name: "Success - Role with Maximum Length Name",
+			req:  &model.CreateRoleRequest{Name: "role_with_32_chars_123456789012", Description: "Test"},
+			mockFunc: func() {
+				mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+					Return(nil).
+					Run(func(args mock.Arguments) {
+						fn := args.Get(1).(func(context.Context) error)
+						fn(context.Background())
+					})
+
+				mockRepo.On("FindByName", mock.Anything, "role_with_32_chars_123456789012").Return((*entity.Role)(nil), gorm.ErrRecordNotFound)
+				mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(r *entity.Role) bool {
+					return r.Name == "role_with_32_chars_123456789012"
+				})).Return(nil)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockFunc()
+
+			defer func() {
+				mockRepo.ExpectedCalls = nil
+				mockTM.ExpectedCalls = nil
+			}()
+
+			uc := usecase.NewRoleUseCase(logrus.New(), val, mockTM, mockRepo)
+			res, err := uc.Create(context.Background(), tt.req)
+
+			assert.NoError(t, err)
+			assert.NotNil(t, res)
+			assert.Equal(t, tt.req.Name, res.Name)
+			mockRepo.AssertExpectations(t)
+			mockTM.AssertExpectations(t)
 		})
-
-	mockRepo.On("FindByName", mock.Anything, req.Name).Return((*entity.Role)(nil), gorm.ErrRecordNotFound)
-	mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(r *entity.Role) bool {
-		return r.Name == req.Name
-	})).Return(nil)
-
-	uc := usecase.NewRoleUseCase(logrus.New(), validator.New(), mockTM, mockRepo)
-	res, err := uc.Create(context.Background(), req)
-
-	assert.NoError(t, err)
-	assert.NotNil(t, res)
-	assert.Equal(t, req.Name, res.Name)
-	mockRepo.AssertExpectations(t)
-	mockTM.AssertExpectations(t)
+	}
 }
 
-// TestRoleUseCase_Create_Conflict (Negative Case: Role Already Exists)
-func TestRoleUseCase_Create_Conflict(t *testing.T) {
-	mockRepo := new(mocks.RoleRepository)
-	mockTM := new(mocking.MockTransactionManager)
+func TestRoleUseCase_Create_ErrorCases(t *testing.T) {
+	// Register custom validations for test
+	val := validator.New()
+	_ = model.RegisterCustomValidations(val)
 
-	req := &model.CreateRoleRequest{Name: "existing_role"}
+	tests := []struct {
+		name        string
+		req         *model.CreateRoleRequest
+		setupMocks  func(*mocks.RoleRepository, *mocking.MockTransactionManager)
+		expectedErr error
+	}{
+		{
+			name:        "Error - Empty Name",
+			req:         &model.CreateRoleRequest{Name: ""},
+			setupMocks:  func(r *mocks.RoleRepository, tm *mocking.MockTransactionManager) {},
+			expectedErr: exception.ErrBadRequest,
+		},
+		{
+			name: "Error - Name Too Long",
+			req: &model.CreateRoleRequest{
+				Name: "this_role_name_is_way_too_long_and_exceeds_the_maximum_allowed_length_of_sixty_four_characters_1234567890",
+			},
+			setupMocks:  func(r *mocks.RoleRepository, tm *mocking.MockTransactionManager) {},
+			expectedErr: exception.ErrBadRequest,
+		},
+		{
+			name: "Error - Role Already Exists",
+			req:  &model.CreateRoleRequest{Name: "existing_role"},
+			setupMocks: func(r *mocks.RoleRepository, tm *mocking.MockTransactionManager) {
+				tm.On("WithinTransaction", mock.Anything, mock.Anything).
+					Return(nil).
+					Run(func(args mock.Arguments) {
+						fn := args.Get(1).(func(context.Context) error)
+						fn(context.Background())
+					})
+				r.On("FindByName", mock.Anything, "existing_role").
+					Return(&entity.Role{Name: "existing_role"}, nil)
+			},
+			expectedErr: exception.ErrConflict,
+		},
+		{
+			name: "Error - Database Error on FindByName",
+			req:  &model.CreateRoleRequest{Name: "db_error_role"},
+			setupMocks: func(r *mocks.RoleRepository, tm *mocking.MockTransactionManager) {
+				tm.On("WithinTransaction", mock.Anything, mock.Anything).
+					Return(exception.ErrInternalServer).
+					Run(func(args mock.Arguments) {
+						fn := args.Get(1).(func(context.Context) error)
+						err := fn(context.Background())
+						assert.Error(t, err)
+					})
+				r.On("FindByName", mock.Anything, "db_error_role").
+					Return(nil, errors.New("database error"))
+			},
+			expectedErr: exception.ErrInternalServer,
+		},
+		{
+			name: "Error - Database Error on Create",
+			req:  &model.CreateRoleRequest{Name: "create_error_role"},
+			setupMocks: func(r *mocks.RoleRepository, tm *mocking.MockTransactionManager) {
+				tm.On("WithinTransaction", mock.Anything, mock.Anything).
+					Return(exception.ErrInternalServer).
+					Run(func(args mock.Arguments) {
+						fn := args.Get(1).(func(context.Context) error)
+						err := fn(context.Background())
+						assert.Error(t, err)
+					})
+				r.On("FindByName", mock.Anything, "create_error_role").
+					Return((*entity.Role)(nil), gorm.ErrRecordNotFound)
+				r.On("Create", mock.Anything, mock.Anything).
+					Return(errors.New("database error"))
+			},
+			expectedErr: exception.ErrInternalServer,
+		},
+	}
 
-	mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
-		Return(nil).
-		Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			fn(context.Background())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := new(mocks.RoleRepository)
+			mockTM := new(mocking.MockTransactionManager)
+
+			tt.setupMocks(mockRepo, mockTM)
+
+			uc := usecase.NewRoleUseCase(logrus.New(), val, mockTM, mockRepo)
+			res, err := uc.Create(context.Background(), tt.req)
+
+			assert.Error(t, err)
+			assert.Nil(t, res)
+			assert.ErrorIs(t, err, tt.expectedErr)
+
+			mockRepo.AssertExpectations(t)
+			mockTM.AssertExpectations(t)
 		})
-
-	mockRepo.On("FindByName", mock.Anything, req.Name).Return(&entity.Role{Name: req.Name}, nil)
-
-	uc := usecase.NewRoleUseCase(logrus.New(), validator.New(), mockTM, mockRepo)
-	res, err := uc.Create(context.Background(), req)
-
-	assert.Error(t, err)
-	assert.Nil(t, res)
-	assert.Equal(t, exception.ErrConflict, err)
-	mockRepo.AssertExpectations(t)
-	mockRepo.AssertNotCalled(t, "Create")
+	}
 }
 
-// TestRoleUseCase_Create_InvalidPayload (Edge Case: Bad Request)
-func TestRoleUseCase_Create_InvalidPayload(t *testing.T) {
-	mockRepo := new(mocks.RoleRepository)
-	mockTM := new(mocking.MockTransactionManager)
+func TestRoleUseCase_GetAll(t *testing.T) {
+	// Register custom validations for test
+	val := validator.New()
+	_ = model.RegisterCustomValidations(val)
 
-	req := &model.CreateRoleRequest{Name: ""}
+	tests := []struct {
+		name        string
+		setupMocks  func(*mocks.RoleRepository, *mocking.MockTransactionManager)
+		expectedLen int
+		expectError bool
+	}{
+		{
+			name: "Success - Get All Roles",
+			setupMocks: func(r *mocks.RoleRepository, tm *mocking.MockTransactionManager) {
+				tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+					Return(nil).
+					Run(func(args mock.Arguments) {
+						fn := args.Get(1).(func(context.Context) error)
+						fn(context.Background())
+					})
 
-	uc := usecase.NewRoleUseCase(logrus.New(), validator.New(), mockTM, mockRepo)
-	res, err := uc.Create(context.Background(), req)
+				r.On("FindAll", mock.Anything).
+					Return([]*entity.Role{
+						{ID: "1", Name: "admin"},
+						{ID: "2", Name: "user"},
+					}, nil)
+			},
+			expectedLen: 2,
+			expectError: false,
+		},
+		{
+			name: "Success - No Roles Found",
+			setupMocks: func(r *mocks.RoleRepository, tm *mocking.MockTransactionManager) {
+				tm.On("WithinTransaction", mock.Anything, mock.Anything).
+					Return(nil).
+					Run(func(args mock.Arguments) {
+						fn := args.Get(1).(func(context.Context) error)
+						fn(context.Background())
+					})
 
-	assert.Error(t, err)
-	assert.Nil(t, res)
-	assert.Equal(t, exception.ErrBadRequest, err)
+				r.On("FindAll", mock.Anything).Return([]*entity.Role{}, nil)
+			},
+			expectedLen: 0,
+			expectError: false,
+		},
+		{
+			name: "Error - Database Error",
+			setupMocks: func(r *mocks.RoleRepository, tm *mocking.MockTransactionManager) {
+				tm.On("WithinTransaction", mock.Anything, mock.Anything).
+					Return(exception.ErrInternalServer).
+					Run(func(args mock.Arguments) {
+						fn := args.Get(1).(func(context.Context) error)
+						err := fn(context.Background())
+						assert.Error(t, err)
+					})
+
+				r.On("FindAll", mock.Anything).Return(nil, errors.New("database error"))
+			},
+			expectedLen: 0,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := new(mocks.RoleRepository)
+			mockTM := new(mocking.MockTransactionManager)
+
+			tt.setupMocks(mockRepo, mockTM)
+
+			uc := usecase.NewRoleUseCase(logrus.New(), val, mockTM, mockRepo)
+			result, err := uc.GetAll(context.Background())
+
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.Len(t, result, tt.expectedLen)
+			}
+
+			mockRepo.AssertExpectations(t)
+			mockTM.AssertExpectations(t)
+		})
+	}
+}
+
+func TestRoleUseCase_ContextCancellation(t *testing.T) {
+	// Register custom validations for test
+	val := validator.New()
+	_ = model.RegisterCustomValidations(val)
+
+	tests := []struct {
+		name        string
+		req         *model.CreateRoleRequest
+		setupMocks  func(*mocks.RoleRepository, *mocking.MockTransactionManager)
+		expectError bool
+	}{
+		{
+			name: "Context Cancelled",
+			req:  &model.CreateRoleRequest{Name: "test_role", Description: "Test"},
+			setupMocks: func(r *mocks.RoleRepository, tm *mocking.MockTransactionManager) {
+				tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+					Return(context.Canceled)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := new(mocks.RoleRepository)
+			mockTM := new(mocking.MockTransactionManager)
+
+			if tt.setupMocks != nil {
+				tt.setupMocks(mockRepo, mockTM)
+			}
+
+			uc := usecase.NewRoleUseCase(logrus.New(), val, mockTM, mockRepo)
+			result, err := uc.Create(context.Background(), tt.req)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			}
+
+			mockTM.AssertExpectations(t)
+		})
+	}
+}
+
+func TestRoleUseCase_SecurityTests(t *testing.T) {
+	tests := []struct {
+		name          string
+		req           *model.CreateRoleRequest
+		setupMocks    func(*mocks.RoleRepository, *mocking.MockTransactionManager)
+		expectedErr   error
+		shouldSucceed bool
+	}{
+		{
+			name:          "Security - XSS in Description",
+			req:           &model.CreateRoleRequest{Name: "role_xss_test", Description: "<script>alert('xss')</script>"},
+			setupMocks:    nil,
+			expectedErr:   exception.ErrBadRequest,
+			shouldSucceed: false,
+		},
+		{
+			name: "Security - Valid Role with Sanitized Description",
+			req:  &model.CreateRoleRequest{Name: "role_valid", Description: "This is a <b>safe</b> description"},
+			setupMocks: func(r *mocks.RoleRepository, tm *mocking.MockTransactionManager) {
+				tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+					Return(nil).
+					Run(func(args mock.Arguments) {
+						fn := args.Get(1).(func(context.Context) error)
+						fn(context.Background())
+					})
+				r.On("FindByName", mock.Anything, "role_valid").Return((*entity.Role)(nil), gorm.ErrRecordNotFound)
+				r.On("Create", mock.AnythingOfType("context.backgroundCtx"), mock.MatchedBy(func(r *entity.Role) bool {
+					return r.Name == "role_valid" && r.Description == "This is a <b>safe</b> description"
+				})).Return(nil)
+			},
+			expectedErr:   nil,
+			shouldSucceed: true,
+		},
+		{
+			name:          "Security - Very Long Name",
+			req:           &model.CreateRoleRequest{Name: "role_" + strings.Repeat("a", 1000)},
+			setupMocks:    nil,
+			expectedErr:   exception.ErrBadRequest,
+			shouldSucceed: false,
+		},
+	}
+
+	v := validator.New()
+	err := model.RegisterCustomValidations(v)
+	require.NoError(t, err, "Failed to register custom validations")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := new(mocks.RoleRepository)
+			mockTM := new(mocking.MockTransactionManager)
+
+			if tt.setupMocks != nil {
+				tt.setupMocks(mockRepo, mockTM)
+			}
+
+			uc := usecase.NewRoleUseCase(logrus.New(), v, mockTM, mockRepo)
+
+			res, err := uc.Create(context.Background(), tt.req)
+
+			if !tt.shouldSucceed {
+				assert.Error(t, err)
+				assert.Nil(t, res)
+				if tt.expectedErr != nil {
+					assert.ErrorIs(t, err, tt.expectedErr)
+				}
+
+				if tt.setupMocks == nil {
+					mockRepo.AssertNotCalled(t, "Create")
+					mockRepo.AssertNotCalled(t, "FindByName")
+					mockTM.AssertNotCalled(t, "WithinTransaction")
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, res)
+			}
+
+			mockRepo.AssertExpectations(t)
+			mockTM.AssertExpectations(t)
+		})
+	}
 }

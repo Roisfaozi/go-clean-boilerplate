@@ -6,6 +6,7 @@ import (
 	context "context"
 
 	entity "github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
+	model "github.com/Roisfaozi/casbin-db/internal/modules/user/model"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -125,13 +126,13 @@ func (_m *MockUserRepository) Delete(ctx context.Context, id string) error {
 	return r0
 }
 
-// FindAll provides a mocking function with given fields: ctx, limit, offset
-func (_m *MockUserRepository) FindAll(ctx context.Context, limit int, offset int) ([]*entity.User, error) {
-	ret := _m.Called(ctx, limit, offset)
+// FindAll provides a mocking function with given fields: ctx, filter
+func (_m *MockUserRepository) FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, error) {
+	ret := _m.Called(ctx, filter)
 
 	var r0 []*entity.User
-	if rf, ok := ret.Get(0).(func(context.Context, int, int) []*entity.User); ok {
-		r0 = rf(ctx, limit, offset)
+	if rf, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) []*entity.User); ok {
+		r0 = rf(ctx, filter)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*entity.User)
@@ -139,8 +140,8 @@ func (_m *MockUserRepository) FindAll(ctx context.Context, limit int, offset int
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, int, int) error); ok {
-		r1 = rf(ctx, limit, offset)
+	if rf, ok := ret.Get(1).(func(context.Context, *model.GetUserListRequest) error); ok {
+		r1 = rf(ctx, filter)
 	} else {
 		r1 = ret.Error(1)
 	}

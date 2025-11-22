@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
+	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -89,9 +90,29 @@ func (r *userRepositoryData) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (r *userRepositoryData) FindAll(ctx context.Context, limit, offset int) ([]*entity.User, error) {
+func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, error) {
 	var users []*entity.User
-	if err := r.db.WithContext(ctx).Limit(limit).Offset(offset).Find(&users).Error; err != nil {
+	query := r.db.WithContext(ctx)
+
+	if filter.Username != "" {
+		query = query.Where("name LIKE ?", "%"+filter.Username+"%")
+	}
+	if filter.Email != "" {
+		query = query.Where("email LIKE ?", "%"+filter.Email+"%")
+	}
+
+	limit := filter.Limit
+	if limit <= 0 {
+		limit = 10
+	}
+
+	page := filter.Page
+	if page <= 0 {
+		page = 1
+	}
+	offset := (page - 1) * limit
+
+	if err := query.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
 		r.log.WithError(err).Error("failed to find all users")
 		return nil, err
 	}
