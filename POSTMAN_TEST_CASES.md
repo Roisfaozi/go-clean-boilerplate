@@ -1,160 +1,108 @@
-# Casbin Project API - Postman Collection & Test Documentation
+# Dokumentasi Koleksi Postman: Casbin Project API
 
-This document provides a detailed overview of the Postman collection designed to test the Casbin Project API. The collection covers **end-to-end (E2E) testing**, including positive flows, negative scenarios, security checks, and edge cases.
+Dokumen ini menjelaskan struktur, endpoint, dan skenario pengujian yang tercakup dalam koleksi Postman untuk proyek **Casbin Project API**. Koleksi ini dirancang untuk menguji fungsionalitas *end-to-end* (E2E), termasuk manajemen pengguna, autentikasi, manajemen peran (RBAC), hak akses, dan endpoint API.
 
-## 📂 Collection Structure
+---
 
-The collection is organized into logical folders representing different modules of the application.
+## 📂 Struktur Folder
 
-### 1. Users
-Handles user registration and management.
+Koleksi ini dibagi menjadi beberapa folder utama berdasarkan modul fungsionalitas:
 
-*   **Register New User** (`POST /users/register`)
-    *   *Scenario*: Successful user registration.
-    *   *Tests*: Checks for 201 Created status, valid JSON response, and presence of `userId`. Saves `userId`, `username`, and `password` to environment variables for subsequent tests.
-*   **Register User with Existing Username** (`POST /users/register`)
-    *   *Scenario*: Attempt to register a user with a username that already exists.
-    *   *Tests*: Checks for 409 Conflict status (or appropriate error code) and validates the error message.
-*   **Register User with Bad Payload** (`POST /users/register`)
-    *   *Scenario*: Sends various invalid payloads (missing fields, empty body, wrong types).
-    *   *Tests*: Checks for 400 Bad Request status.
-*   **[SECURITY] POST User with Malformed JSON** (`POST /users/register`)
-    *   *Scenario*: Sends syntactically incorrect JSON.
-    *   *Tests*: Checks for 400 Bad Request and ensures the server handles it gracefully (no panic/stack trace).
-*   **Get Current User** (`GET /users/me`)
-    *   *Scenario*: Retrieve profile of the logged-in user.
-    *   *Auth*: Bearer Token (`{{authToken}}`).
-    *   *Tests*: Checks for 200 OK status and validates that the returned ID matches the logged-in user.
-*   **Update Current User** (`PUT /users/me`)
-    *   *Scenario*: Update the logged-in user's profile (e.g., fullname).
-    *   *Auth*: Bearer Token (`{{authToken}}`).
-    *   *Tests*: Checks for 200 OK status and validates the updated data.
-*   **[Admin] Get All Users** (`GET /users`)
-    *   *Scenario*: Retrieve a list of all registered users.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 200 OK status and verifies the response is an array. Includes access control tests (admin success vs regular user failure).
-*   **[Admin] Get All Users (Filtered & Paginated)** (`GET /users?page=1&limit=5&username=User`)
-    *   *Scenario*: Retrieve a subset of users based on pagination and filters.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 200 OK status, verifies response is an array, and asserts that the number of returned items respects the `limit` parameter.
-*   **[Admin] Get User By ID** (`GET /users/:id`)
-    *   *Scenario*: Retrieve details of a specific user by ID.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 200 OK status and validates the correct user data is returned.
-*   **[Admin] Delete User** (`DELETE /users/:id`)
-    *   *Scenario*: Delete a specific user.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 200 OK status.
+1.  **Users**: Manajemen pengguna (pendaftaran, profil, dan admin actions).
+2.  **Authentication**: Login, refresh token, dan logout.
+3.  **Roles**: Manajemen peran pengguna (Role-Based Access Control).
+4.  **Permissions (Casbin Policies)**: Manajemen kebijakan akses granular menggunakan Casbin.
+5.  **Access Scenarios (Protected Routes)**: Skenario pengujian hak akses untuk berbagai peran (Admin, Editor, Viewer).
+6.  **Endpoints**: Manajemen metadata endpoint API.
+7.  **Access Rights**: Manajemen hak akses abstrak dan penghubungannya ke endpoint.
+8.  **Happy Path Workflow**: Alur kerja lengkap pengguna dari pendaftaran hingga akses fitur.
 
-### 2. Authentication
-Handles login, token refresh, and logout.
+---
 
-*   **Login User** (`POST /auth/login`)
-    *   *Scenario*: Authenticate a registered user.
-    *   *Tests*: Checks for 200 OK status and saves the `accessToken` to the `authToken` environment variable.
-*   **Refresh Token** (Sub-folder)
-    *   **[Positive] Refresh with Valid Cookie**: Uses the HTTP-only cookie from login to get a new access token.
-    *   **[Negative] Refresh with No Cookie**: Attempts refresh without a cookie (Expect 401).
-    *   **[Negative] Refresh with Invalid Token**: Attempts refresh with a forged cookie (Expect 401).
-*   **Logout** (Sub-folder)
-    *   **[Positive] Logout with Valid Token**: Logs out the user, invalidating the refresh token cookie.
-    *   **[Negative] Logout with No Token**: Attempts logout without authentication (Expect 401).
+## 📝 Detail Endpoint dan Skenario Tes
 
-### 3. Roles
-Manages user roles.
+### 1. Users (Manajemen Pengguna)
 
-*   **Create a New Role** (`POST /roles`)
-    *   *Scenario*: Admin creates a new role definition.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 201 Created status and validates the role name.
-*   **List All Roles** (`GET /roles`)
-    *   *Scenario*: Admin retrieves all available roles.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 200 OK status and verifies response is an array.
+Folder ini berisi operasi CRUD untuk pengguna, termasuk endpoint publik dan endpoint khusus admin.
 
-### 4. Permissions (Casbin Policies)
-Manages granular permissions (policies) in Casbin.
+| Request | Method | Endpoint | Auth | Deskripsi & Skenario Tes |
+| :--- | :---: | :--- | :---: | :--- |
+| **Register New User** | `POST` | `/users/register` | - | Mendaftarkan pengguna baru.<br>✅ **Tes Positif**: Memastikan status `201 Created`, respon JSON valid, dan presence of `userId`. Saves `userId`, `username`, and `password` to environment variables for subsequent tests. |
+| **Register User with Existing Username** | `POST` | `/users/register` | - | Mencoba mendaftar dengan username yang sudah ada.<br>❌ **Tes Negatif**: Memastikan status `409 Conflict` atau konflik yang sesuai. |
+| **Register User with Bad Payload** | `POST` | `/users/register` | - | Mengirim payload yang tidak lengkap atau salah.<br>❌ **Tes Negatif**: Memastikan status `400 Bad Request`. |
+| **[SECURITY] POST User with Malformed JSON** | `POST` | `/users/register` | - | Mengirim JSON yang rusak (syntax error).<br>🔒 **Tes Keamanan**: Memastikan server menangani error dengan `400 Bad Request` tanpa *panic*. |
+| **Get Current User** | `GET` | `/users/me` | `authToken` | Mengambil profil pengguna yang sedang login.<br>✅ **Tes Positif**: Memastikan status `200 OK` dan ID pengguna sesuai dengan token. |
+| **Update Current User** | `PUT` | `/users/me` | `authToken` | Memperbarui profil pengguna yang sedang login.<br>✅ **Tes Positif**: Memastikan status `200 OK` dan data berhasil diperbarui. |
+| **[Admin] Get All Users** | `GET` | `/users` | `adminToken` | Mengambil daftar semua pengguna (Khusus Admin).<br>✅ **Tes Positif**: Memastikan status `200 OK` dan respons berupa array. |
+| **[Admin] Get All Users (Filtered & Paginated)** | `GET` | `/users?page=1&limit=5&username=User` | `adminToken` | Mengambil subset pengguna berdasarkan paginasi dan filter.<br>✅ **Tes Positif**: Memastikan status `200 OK`, respons berupa array, dan jumlah item sesuai `limit`. |
+| **[Admin] Get User By ID** | `GET` | `/users/:id` | `adminToken` | Mengambil detail pengguna spesifik berdasarkan ID (Khusus Admin).<br>✅ **Tes Positif**: Memastikan status `200 OK` dan ID data sesuai parameter. |
+| **[Admin] Delete User** | `DELETE` | `/users/:id` | `adminToken` | Menghapus pengguna spesifik (Khusus Admin).<br>✅ **Tes Positif**: Memastikan status `200 OK`. |
 
-*   **Add Policy (Grant Permission)** (`POST /permissions/grant`)
-    *   *Scenario*: Grants a specific permission (role + path + method) to a role.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 201 Created status.
-*   **View Policies** (`GET /permissions`)
-    *   *Scenario*: Lists all active Casbin policies.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 200 OK status and array response.
-*   **Get Permissions for Role** (`GET /permissions/:role`)
-    *   *Scenario*: Gets all permissions assigned to a specific role.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 200 OK status.
-*   **Assign Role to User** (`POST /permissions/assign-role`)
-    *   *Scenario*: Assigns a role (e.g., 'role_admin') to a specific user ID.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 200 OK status.
-*   **Update Permission** (`PUT /permissions`)
-    *   *Scenario*: Modifies an existing policy.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 200 OK status.
-*   **Remove Policy (Revoke Permission)** (`DELETE /permissions/revoke`)
-    *   *Scenario*: Removes a specific permission rule.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 200 OK status.
-*   **[SETUP] Grant Admin Access to Get All Users** (`POST /permissions/grant`)
-    *   *Description*: A helper request to ensure the admin role has permission to access the `/users` endpoint for testing purposes.
+### 2. Authentication (Autentikasi)
 
-### 5. Access Scenarios (Protected Routes)
-Tests the enforcement of RBAC policies.
+| Request | Method | Endpoint | Auth | Deskripsi & Skenario Tes |
+| :--- | :---: | :--- | :---: | :--- |
+| **Login User** | `POST` | `/auth/login` | - | Login pengguna untuk mendapatkan token.<br>✅ **Tes Positif**: Memastikan status `200 OK` dan menyimpan `accessToken` ke variabel `authToken`. |
+| **[Positive] Refresh with Valid Cookie** | `POST` | `/auth/refresh` | Cookie | Menggunakan refresh token dari cookie untuk mendapatkan access token baru.<br>✅ **Tes Positif**: Status `200 OK`, token baru diterima, dan cookie diperbarui. |
+| **[Negative] Refresh with No Cookie** | `POST` | `/auth/refresh` | - | Mencoba refresh tanpa cookie.<br>❌ **Tes Negatif**: Memastikan status `401 Unauthorized`. |
+| **[Negative] Refresh with Invalid Token** | `POST` | `/auth/refresh` | Cookie | Mencoba refresh dengan token palsu.<br>❌ **Tes Negatif**: Memastikan status `401 Unauthorized`. |
+| **[Positive] Logout with Valid Token** | `POST` | `/auth/logout` | `authToken` | Logout pengguna.<br>✅ **Tes Positif**: Status `200 OK` dan cookie refresh token dihapus/dikosongkan. |
+| **[Negative] Logout with No Token** | `POST` | `/auth/logout` | - | Logout tanpa token akses.<br>❌ **Tes Negatif**: Memastikan status `401 Unauthorized`. |
 
-*   **[SETUP] Prerequisite Roles & Tokens**: A set of requests to register and login users with different personas (`admin`, `editor`, `viewer`) and assign them roles.
+### 3. Roles (Peran)
+
+| Request | Method | Endpoint | Auth | Deskripsi & Skenario Tes |
+| :--- | :---: | :--- | :---: | :--- |
+| **Create a New Role** | `POST` | `/roles` | `adminToken` | Membuat peran baru (misal: 'manager').<br>✅ **Tes Positif**: Status `201 Created`, memvalidasi nama role yang dibuat. |
+| **List All Roles** | `GET` | `/roles` | `adminToken` | Mendapatkan semua peran yang tersedia.<br>✅ **Tes Positif**: Status `200 OK`, respons berupa array role. |
+
+### 4. Permissions (Kebijakan Casbin)
+
+Mengelola aturan akses granular (Siapa boleh melakukan Apa pada Apa).
+
+| Request | Method | Endpoint | Auth | Deskripsi & Skenario Tes |
+| :--- | :---: | :--- | :---: | :--- |
+| **Add Policy (Grant Permission)** | `POST` | `/permissions/grant` | `adminToken` | Memberikan izin akses ke sebuah role.<br>✅ **Tes Positif**: Status `201 Created`. |
+| **View Policies** | `GET` | `/permissions` | `adminToken` | Melihat semua kebijakan akses.<br>✅ **Tes Positif**: Status `200 OK`, respons array. |
+| **Get Permissions for Role** | `GET` | `/permissions/:role` | `adminToken` | Melihat izin khusus untuk role tertentu.<br>✅ **Tes Positif**: Status `200 OK`. |
+| **Assign Role to User** | `POST` | `/permissions/assign-role` | `adminToken` | Menetapkan role ke user tertentu.<br>✅ **Tes Positif**: Status `200 OK`. |
+| **Update Permission** | `PUT` | `/permissions` | `adminToken` | Mengubah aturan kebijakan yang ada.<br>✅ **Tes Positif**: Status `200 OK`. |
+| **Remove Policy (Revoke Permission)** | `DELETE` | `/permissions/revoke` | `adminToken` | Mencabut izin akses.<br>✅ **Tes Positif**: Status `200 OK`. |
+
+### 5. Access Scenarios (Skenario Akses)
+
+Bagian ini adalah **inti pengujian keamanan RBAC**. Folder ini mensimulasikan berbagai pengguna dengan peran berbeda mencoba mengakses sumber daya yang dilindungi.
+
+*   **[SETUP]**: Rangkaian request untuk mendaftarkan user `Admin`, `Editor`, dan `Viewer`, login mereka, dan menetapkan role yang sesuai.
 *   **[SCENARIO] Article Access**:
-    *   **[VIEWER] GET Articles (Should Succeed)**: Tests that a Viewer role *can* read.
-    *   **[VIEWER] POST Article (Should be Forbidden)**: Tests that a Viewer role *cannot* write (Expect 403).
-    *   **[EDITOR] POST Article (Should Succeed)**: Tests that an Editor role *can* write.
+    *   **[VIEWER] GET Articles**: Memastikan Viewer **BISA** membaca (`200 OK`).
+    *   **[VIEWER] POST Article**: Memastikan Viewer **TIDAK BISA** menulis (`403 Forbidden`).
+    *   **[EDITOR] POST Article**: Memastikan Editor **BISA** menulis (`201 Created`).
 
-### 6. Endpoints
-Manages API endpoint definitions (metadata).
+### 6. Endpoints & Access Rights
 
-*   **Create an Endpoint** (`POST /endpoints`)
-    *   *Scenario*: Registers a new API endpoint in the system database.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 201 Created status.
+Fitur manajemen metadata API dan hak akses abstrak.
 
-### 7. Access Rights
-Manages abstract access rights and linking them to endpoints.
+| Request | Method | Endpoint | Auth | Deskripsi & Skenario Tes |
+| :--- | :---: | :--- | :---: | :--- |
+| **Create an Endpoint** | `POST` | `/endpoints` | `adminToken` | Mendaftarkan endpoint API baru ke sistem.<br>✅ **Tes Positif**: Status `201 Created`. |
+| **Create an Access Right** | `POST` | `/access-rights` | `adminToken` | Membuat hak akses logis (misal: 'document:read').<br>✅ **Tes Positif**: Status `201 Created`. |
+| **List All Access Rights** | `GET` | `/access-rights` | `adminToken` | Melihat semua hak akses.<br>✅ **Tes Positif**: Status `200 OK`. |
+| **Link Endpoint to Access Right** | `POST` | `/access-rights/link` | `adminToken` | Menghubungkan endpoint fisik dengan hak akses logis.<br>✅ **Tes Positif**: Status `200 OK`. |
 
-*   **Create an Access Right** (`POST /access-rights`)
-    *   *Scenario*: Creates a high-level access right (e.g., "document:read").
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 201 Created status.
-*   **List All Access Rights** (`GET /access-rights`)
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 200 OK status.
-*   **Link Endpoint to Access Right** (`POST /access-rights/link`)
-    *   *Scenario*: Associates a concrete API endpoint with an abstract access right.
-    *   *Auth*: Bearer Token (`{{adminToken}}`).
-    *   *Tests*: Checks for 200 OK status.
+---
 
-### 8. Happy Path Workflow
-A sequential folder designed to be run as a complete integration test. It simulates a new user registering, logging in, getting a role assigned by an admin, and then successfully accessing a protected resource.
+## ⚙️ Variabel Lingkungan (Environment Variables)
 
-## 🛠 Environment Variables
+Koleksi ini menggunakan variabel berikut yang diatur secara otomatis oleh skrip tes (`pm.environment.set`):
 
-The collection relies on the following environment variables, which are often set dynamically by the test scripts:
+*   `baseURL`: URL dasar API (misal: `http://localhost:8080`).
+*   `authToken`: Token JWT pengguna biasa yang sedang dites.
+*   `adminToken`: Token JWT khusus admin untuk endpoint terproteksi tinggi.
+*   `userId`: ID pengguna yang baru dibuat.
+*   `roleName`: Nama role yang baru dibuat.
+*   `endpointId`, `accessRightId`: ID untuk entitas terkait.
 
-| Variable | Description |
-| :--- | :--- |
-| `baseURL` | The root URL of your API (e.g., `http://localhost:8080`). |
-| `authToken` | JWT access token for the currently tested regular user. |
-| `adminToken` | JWT access token for the admin user. |
-| `userId` | ID of the user created during the test run. |
-| `roleName` | Name of the role created during the test run. |
-| `newRoleName` | Input variable for creating a new role. |
-| `endpointId` | ID of a created endpoint metadata. |
-| `accessRightId` | ID of a created access right. |
+---
 
-## 🚀 How to Run
-
-1.  Import the collection into Postman.
-2.  Create an environment with `baseURL` set to your running server's address.
-3.  Run the collection (or specific folders) using the **Collection Runner**.
-4.  Ensure your database is clean or handles conflicts gracefully (tests are designed to generate unique data where possible, e.g., using `{{$timestamp}}`).
+**Catatan:** Koleksi ini dirancang untuk dijalankan secara berurutan (terutama folder *Happy Path* dan *Access Scenarios*) karena adanya ketergantungan data antar request (misal: login butuh user yang sudah diregister).
