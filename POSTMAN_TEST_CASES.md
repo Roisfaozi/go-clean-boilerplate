@@ -33,6 +33,10 @@ Handles user registration and management.
     *   *Scenario*: Retrieve a list of all registered users.
     *   *Auth*: Bearer Token (`{{adminToken}}`).
     *   *Tests*: Checks for 200 OK status and verifies the response is an array. Includes access control tests (admin success vs regular user failure).
+*   **[Admin] Get All Users (Filtered & Paginated)** (`GET /users?page=1&limit=5&username=User`)
+    *   *Scenario*: Retrieve a subset of users based on pagination and filters.
+    *   *Auth*: Bearer Token (`{{adminToken}}`).
+    *   *Tests*: Checks for 200 OK status, verifies response is an array, and asserts that the number of returned items respects the `limit` parameter.
 *   **[Admin] Get User By ID** (`GET /users/:id`)
     *   *Scenario*: Retrieve details of a specific user by ID.
     *   *Auth*: Bearer Token (`{{adminToken}}`).
