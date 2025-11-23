@@ -8,18 +8,21 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
 
 type AuthHandler struct {
 	AuthUseCase usecase.AuthUseCase
 	Log         *logrus.Logger
+	validate    *validator.Validate
 }
 
-func NewAuthHandler(authUseCase usecase.AuthUseCase, log *logrus.Logger) *AuthHandler {
+func NewAuthHandler(authUseCase usecase.AuthUseCase, log *logrus.Logger, validate *validator.Validate) *AuthHandler {
 	return &AuthHandler{
 		AuthUseCase: authUseCase,
 		Log:         log,
+		validate:    validate,
 	}
 }
 
@@ -43,7 +46,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// The use case now handles validation, so we can remove it from here.
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+
 	loginResp, refreshToken, err := h.AuthUseCase.Login(c.Request.Context(), req)
 	if err != nil {
 		h.handleError(c, err)

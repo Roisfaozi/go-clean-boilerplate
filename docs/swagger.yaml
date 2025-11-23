@@ -314,6 +314,21 @@ definitions:
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
+  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerPermissionListResponseWrapper:
+    properties:
+      data:
+        items:
+          items:
+            type: string
+          type: array
+        type: array
+      error:
+        type: string
+      errors:
+        type: string
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+    type: object
   github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerRoleListResponseWrapper:
     properties:
       data:
@@ -374,16 +389,6 @@ definitions:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
   github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any:
-    properties:
-      data: {}
-      error:
-        type: string
-      errors:
-        type: string
-      paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
-    type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny:
     properties:
       data: {}
       error:
@@ -610,11 +615,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerPermissionListResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get all permissions
@@ -637,19 +642,19 @@ paths:
         "200":
           description: Permission updated successfully
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "404":
           description: Policy to update not found
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Update permission
@@ -670,15 +675,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerPermissionListResponseWrapper'
         "400":
           description: Role parameter required
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get permissions for role
@@ -702,15 +707,15 @@ paths:
         "200":
           description: Role assigned successfully
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Assign role to user
@@ -734,15 +739,15 @@ paths:
         "200":
           description: Permission granted successfully
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Grant permission
@@ -766,15 +771,15 @@ paths:
         "200":
           description: Permission revoked successfully
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Revoke permission
@@ -970,15 +975,15 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get current user
@@ -1005,19 +1010,19 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Update current user
@@ -1045,15 +1050,15 @@ paths:
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "409":
           description: User with the same ID already exists
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
       summary: Register a new user
       tags:
       - users

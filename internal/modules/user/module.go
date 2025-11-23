@@ -27,9 +27,9 @@ type UserModule struct {
 func NewUserModule(db *gorm.DB, log *logrus.Logger, validator *validator.Validate, tm tx.WithTransactionManager, enforcer permissionUseCase.IEnforcer) *UserModule {
 	userRepository := userRepository.NewUserRepository(db, log)
 
-	userUseCase := usecase.NewUserUseCase(log, validator, tm, userRepository, enforcer)
+	userUseCase := usecase.NewUserUseCase(log, tm, userRepository, enforcer)
 
-	userHandler := http.NewUserHandler(userUseCase, log)
+	userHandler := http.NewUserHandler(userUseCase, log, validator)
 
 	return &UserModule{
 		userHandler: userHandler,

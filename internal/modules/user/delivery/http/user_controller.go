@@ -9,18 +9,21 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
 
 type UserHandler struct {
 	UserUseCase usecase.UserUseCase
 	Log         *logrus.Logger
+	validate    *validator.Validate
 }
 
-func NewUserHandler(userUseCase usecase.UserUseCase, log *logrus.Logger) *UserHandler {
+func NewUserHandler(userUseCase usecase.UserUseCase, log *logrus.Logger, validate *validator.Validate) *UserHandler {
 	return &UserHandler{
 		UserUseCase: userUseCase,
 		Log:         log,
+		validate:    validate,
 	}
 }
 
@@ -32,9 +35,9 @@ func NewUserHandler(userUseCase usecase.UserUseCase, log *logrus.Logger) *UserHa
 // @Produce      json
 // @Param        request body model.RegisterUserRequest true "User Registration Details"
 // @Success      201  {object}  response.SwaggerUserResponseWrapper
-// @Failure      400  {object}  response.WebResponse[any] "Invalid request body"
-// @Failure      409  {object}  response.WebResponse[any] "User with the same ID already exists"
-// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      409  {object}  response.SwaggerErrorResponseWrapper "User with the same ID already exists"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users/register [post]
 func (h *UserHandler) RegisterUser(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -43,6 +46,11 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body")
 		response.BadRequest(c, errors.New("invalid request body"))
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
 		return
 	}
 
@@ -62,9 +70,9 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 // @Security     BearerAuth
 // @Produce      json
 // @Success      200  {object}  response.SwaggerUserResponseWrapper
-// @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
-// @Failure      404  {object}  response.WebResponse[any] "User not found"
-// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "User not found"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users/me [get]
 func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -97,10 +105,10 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 // @Produce      json
 // @Param        request body model.UpdateUserRequest true "Fields to update"
 // @Success      200  {object}  response.SwaggerUserResponseWrapper
-// @Failure      400  {object}  response.WebResponse[any] "Invalid request body"
-// @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
-// @Failure      404  {object}  response.WebResponse[any] "User not found"
-// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "User not found"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users/me [put]
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -119,6 +127,11 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	req.ID = userID.(string)
+
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
 
 	user, err := h.UserUseCase.Update(ctx, &req)
 	if err != nil {

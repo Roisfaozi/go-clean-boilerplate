@@ -15,7 +15,6 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/utils/jwt"
 	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
 	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -24,7 +23,6 @@ type Service struct {
 	jwtManager *jwt.JWTManager
 	tokenRepo  repository.TokenRepository
 	userRepo   userRepository.UserRepository
-	validate   *validator.Validate
 	tm         tx.WithTransactionManager
 	log        *logrus.Logger
 	wsManager  ws.Manager
@@ -34,7 +32,6 @@ func NewAuthUsecase(
 	jwtManager *jwt.JWTManager,
 	tokenRepo repository.TokenRepository,
 	userRepo userRepository.UserRepository,
-	validate *validator.Validate,
 	tm tx.WithTransactionManager,
 	log *logrus.Logger,
 	wsManager ws.Manager,
@@ -43,7 +40,6 @@ func NewAuthUsecase(
 		jwtManager: jwtManager,
 		tokenRepo:  tokenRepo,
 		userRepo:   userRepo,
-		validate:   validate,
 		tm:         tm,
 		log:        log,
 		wsManager:  wsManager,
@@ -76,10 +72,6 @@ func (s *Service) generateAndStoreTokenPair(user *entity.User) (string, string, 
 
 // Login handles user login and returns access and refresh tokens
 func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model.LoginResponse, string, error) {
-	if err := s.validate.Struct(request); err != nil {
-		return nil, "", err
-	}
-
 	var user *entity.User
 	err := s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error

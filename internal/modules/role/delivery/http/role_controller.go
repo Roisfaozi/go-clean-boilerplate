@@ -9,18 +9,21 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
 
 type RoleHandler struct {
 	RoleUseCase usecase.RoleUseCase
 	Log         *logrus.Logger
+	validate    *validator.Validate
 }
 
-func NewRoleHandler(roleUseCase usecase.RoleUseCase, log *logrus.Logger) *RoleHandler {
+func NewRoleHandler(roleUseCase usecase.RoleUseCase, log *logrus.Logger, validate *validator.Validate) *RoleHandler {
 	return &RoleHandler{
 		RoleUseCase: roleUseCase,
 		Log:         log,
+		validate:    validate,
 	}
 }
 
@@ -44,6 +47,11 @@ func (h *RoleHandler) Create(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body for create role")
 		response.BadRequest(c, errors.New("invalid request body"))
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
 		return
 	}
 

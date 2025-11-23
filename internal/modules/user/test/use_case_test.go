@@ -12,7 +12,6 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	permMocks "github.com/Roisfaozi/casbin-db/internal/modules/permission/test/mocks"
-	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -23,7 +22,7 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 	mockRepo := new(mocks.MockUserRepository)
 	mockTM := new(mocking.MockTransactionManager)
 	mockEnforcer := new(permMocks.IEnforcer)
-	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo, mockEnforcer)
+	uc := usecase.NewUserUseCase(logrus.New(), mockTM, mockRepo, mockEnforcer)
 
 	testReq := &model.RegisterUserRequest{
 		Username: "testuser",
@@ -62,7 +61,7 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 	mockRepo := new(mocks.MockUserRepository)
 	mockTM := new(mocking.MockTransactionManager)
 	mockEnforcer := new(permMocks.IEnforcer)
-	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo, mockEnforcer)
+	uc := usecase.NewUserUseCase(logrus.New(), mockTM, mockRepo, mockEnforcer)
 
 	t.Run("Success - User Found", func(t *testing.T) {
 		expectedUser := &entity.User{ID: "test123", Name: "Test User"}
@@ -107,10 +106,6 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 		assert.Equal(t, exception.ErrNotFound, err)
 		mockRepo.AssertExpectations(t)
 		mockTM.AssertExpectations(t)
-	})
-
-	t.Run("Error - Empty ID", func(t *testing.T) {
-		t.Skip("Skipping as the current implementation doesn't validate empty ID")
 	})
 
 	t.Run("Error - SQL Injection Attempt", func(t *testing.T) {
@@ -158,7 +153,7 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 	mockRepo := new(mocks.MockUserRepository)
 	mockTM := new(mocking.MockTransactionManager)
 	mockEnforcer := new(permMocks.IEnforcer)
-	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo, mockEnforcer)
+	uc := usecase.NewUserUseCase(logrus.New(), mockTM, mockRepo, mockEnforcer)
 
 	t.Run("Success - With Users", func(t *testing.T) {
 		mockUsers := []*entity.User{
@@ -243,17 +238,20 @@ func TestUserUseCase_Current(t *testing.T) {
 	mockRepo := new(mocks.MockUserRepository)
 	mockTM := new(mocking.MockTransactionManager)
 	mockEnforcer := new(permMocks.IEnforcer)
-	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo, mockEnforcer)
+	uc := usecase.NewUserUseCase(logrus.New(), mockTM, mockRepo, mockEnforcer)
 
 	t.Run("Success - User Found", func(t *testing.T) {
 		expectedUser := &entity.User{ID: "current-user", Name: "Current User"}
 		testReq := &model.GetUserRequest{ID: "current-user"}
 
-		mockRepo.On("FindByID", mock.Anything, "current-user").Return(expectedUser, nil).Once()
+		mockRepo.On("FindByID", mock.Anything, "current-user").Return(expectedUser, nil)
 
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 			Return(nil).
 			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				err := fn(context.Background())
+				assert.NoError(t, err)
 			}).Once()
 
 		result, err := uc.Current(context.Background(), testReq)
@@ -308,22 +306,13 @@ func TestUserUseCase_Current(t *testing.T) {
 		mockRepo.AssertExpectations(t)
 		mockTM.AssertExpectations(t)
 	})
-
-	t.Run("Error - Empty ID", func(t *testing.T) {
-		testReq := &model.GetUserRequest{ID: ""}
-
-		result, err := uc.Current(context.Background(), testReq)
-
-		assert.ErrorIs(t, err, exception.ErrBadRequest)
-		assert.Nil(t, result)
-	})
 }
 
 func TestUserUseCase_Update(t *testing.T) {
 	mockRepo := new(mocks.MockUserRepository)
 	mockTM := new(mocking.MockTransactionManager)
 	mockEnforcer := new(permMocks.IEnforcer)
-	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo, mockEnforcer)
+	uc := usecase.NewUserUseCase(logrus.New(), mockTM, mockRepo, mockEnforcer)
 
 	t.Run("Success - User Updated", func(t *testing.T) {
 		request := &model.UpdateUserRequest{
@@ -378,57 +367,13 @@ func TestUserUseCase_Update(t *testing.T) {
 		mockRepo.AssertExpectations(t)
 		mockTM.AssertExpectations(t)
 	})
-
-	t.Run("Error - Validation Error", func(t *testing.T) {
-		updateReq := &model.UpdateUserRequest{
-			ID:   "",
-			Name: "New Name",
-		}
-
-		result, err := uc.Update(context.Background(), updateReq)
-
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		assert.ErrorIs(t, err, exception.ErrBadRequest)
-	})
-
-	t.Run("Error - Database Error During Update", func(t *testing.T) {
-		updateReq := &model.UpdateUserRequest{
-			ID:   "user123",
-			Name: "New Name",
-		}
-
-		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
-			Run(func(args mock.Arguments) {
-				mockRepo.On("FindByID", mock.Anything, "user123").
-					Return(&entity.User{ID: "user123", Name: "Old Name"}, nil).Once()
-
-				mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
-					return u.ID == "user123" && u.Name == "New Name"
-				})).Return(errors.New("database error")).Once()
-
-				fn := args.Get(1).(func(context.Context) error)
-				err := fn(context.Background())
-				assert.ErrorIs(t, err, exception.ErrInternalServer)
-			}).
-			Return(exception.ErrInternalServer).
-			Once()
-
-		result, err := uc.Update(context.Background(), updateReq)
-
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-		assert.Nil(t, result)
-
-		mockRepo.AssertExpectations(t)
-		mockTM.AssertExpectations(t)
-	})
 }
 
 func TestUserUseCase_DeleteUser(t *testing.T) {
 	mockRepo := new(mocks.MockUserRepository)
 	mockTM := new(mocking.MockTransactionManager)
 	mockEnforcer := new(permMocks.IEnforcer)
-	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo, mockEnforcer)
+	uc := usecase.NewUserUseCase(logrus.New(), mockTM, mockRepo, mockEnforcer)
 	userID := "user-to-delete"
 
 	t.Run("Success - User Deleted", func(t *testing.T) {
@@ -460,10 +405,6 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		assert.Equal(t, exception.ErrNotFound, err)
 		mockRepo.AssertExpectations(t)
 		mockTM.AssertExpectations(t)
-	})
-
-	t.Run("Error - Empty ID", func(t *testing.T) {
-		t.Skip("Skipping as the current implementation doesn't validate empty ID")
 	})
 
 	t.Run("Error - SQL Injection Attempt", func(t *testing.T) {

@@ -12,7 +12,6 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/repository"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
@@ -21,7 +20,6 @@ import (
 
 type userUseCase struct {
 	Log            *logrus.Logger
-	Validate       *validator.Validate
 	TM             tx.WithTransactionManager
 	UserRepository repository.UserRepository
 	Enforcer       usecase.IEnforcer
@@ -31,18 +29,16 @@ type userUseCase struct {
 //
 // Parameters:
 // - logger: The logger instance.
-// - validate: The validator instance.
 // - tm: The transaction manager instance.
 // - userRepository: The user repository instance.
 // - enforcer: The Casbin enforcer instance.
 //
 // Returns:
 // - A pointer to the newly created UserUseCase instance.
-func NewUserUseCase(logger *logrus.Logger, validate *validator.Validate, tm tx.WithTransactionManager,
+func NewUserUseCase(logger *logrus.Logger, tm tx.WithTransactionManager,
 	userRepository repository.UserRepository, enforcer usecase.IEnforcer) UserUseCase {
 	return &userUseCase{
 		Log:            logger,
-		Validate:       validate,
 		TM:             tm,
 		UserRepository: userRepository,
 		Enforcer:       enforcer,
@@ -71,11 +67,6 @@ func (uc *userUseCase) GetUserByID(ctx context.Context, id string) (*model.UserR
 }
 
 func (c *userUseCase) Create(ctx context.Context, request *model.RegisterUserRequest) (*model.UserResponse, error) {
-	if err := c.Validate.Struct(request); err != nil {
-		c.Log.Warnf("Invalid request body : %+v", err)
-		return nil, exception.ErrBadRequest
-	}
-
 	var response *model.UserResponse
 	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		_, err := c.UserRepository.FindByUsername(txCtx, request.Username)
@@ -135,11 +126,6 @@ func (c *userUseCase) Create(ctx context.Context, request *model.RegisterUserReq
 }
 
 func (c *userUseCase) Current(ctx context.Context, request *model.GetUserRequest) (*model.UserResponse, error) {
-	if err := c.Validate.Struct(request); err != nil {
-		c.Log.Warnf("Invalid request body : %+v", err)
-		return nil, exception.ErrBadRequest
-	}
-
 	var response *model.UserResponse
 	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		user, err := c.UserRepository.FindByID(txCtx, request.ID)
@@ -159,11 +145,6 @@ func (c *userUseCase) Current(ctx context.Context, request *model.GetUserRequest
 }
 
 func (c *userUseCase) Update(ctx context.Context, request *model.UpdateUserRequest) (*model.UserResponse, error) {
-	if err := c.Validate.Struct(request); err != nil {
-		c.Log.Warnf("Invalid request body : %+v", err)
-		return nil, exception.ErrBadRequest
-	}
-
 	var response *model.UserResponse
 	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		user, err := c.UserRepository.FindByID(txCtx, request.ID)

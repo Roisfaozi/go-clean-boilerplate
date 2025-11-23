@@ -15,7 +15,7 @@ type AccessModule struct {
 
 func NewAccessModule(db *gorm.DB, log *logrus.Logger, validate *validator.Validate) *AccessModule {
 	repo := repository.NewAccessRepository(db)
-	uc := usecase.NewAccessUseCase(repo, log, validate)
+	uc := usecase.NewAccessUseCase(repo, log)
 	handler := http.NewAccessHandler(uc, validate, log)
 
 	return &AccessModule{

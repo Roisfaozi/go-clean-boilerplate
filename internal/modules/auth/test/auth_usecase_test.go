@@ -58,7 +58,6 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		deps.jwtManager,
 		deps.tokenRepo,
 		deps.userRepo,
-		deps.validate,
 		deps.tm,
 		deps.log,
 		deps.wsManager,
@@ -103,17 +102,6 @@ func TestLogin_Success(t *testing.T) {
 	deps.userRepo.AssertExpectations(t)
 	deps.tokenRepo.AssertExpectations(t)
 	deps.wsManager.AssertExpectations(t)
-}
-
-func TestLogin_Failure_InvalidRequest(t *testing.T) {
-	authService, _ := setupTest(t)
-	loginReq := model.LoginRequest{Username: "", Password: "123"} // Invalid username
-
-	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
-
-	assert.Error(t, err)
-	assert.Nil(t, loginResp)
-	assert.Empty(t, refreshToken)
 }
 
 func TestLogin_Failure_UserNotFound(t *testing.T) {

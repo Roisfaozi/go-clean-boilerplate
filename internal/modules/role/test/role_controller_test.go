@@ -13,6 +13,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/test/mocks"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -24,9 +25,15 @@ func setupTestRouter() *gin.Engine {
 	return router
 }
 
+func newTestRoleHandler(mockUseCase *mocks.RoleUseCase) *roleHandler.RoleHandler {
+	v := validator.New()
+	model.RegisterCustomValidations(v) // Register the custom 'xss' validation
+	return roleHandler.NewRoleHandler(mockUseCase, logrus.New(), v)
+}
+
 func TestRoleHandler_Create_Success(t *testing.T) {
 	mockUseCase := new(mocks.RoleUseCase)
-	handler := roleHandler.NewRoleHandler(mockUseCase, logrus.New())
+	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.POST("/roles", handler.Create)
 
@@ -53,7 +60,7 @@ func TestRoleHandler_Create_Success(t *testing.T) {
 
 func TestRoleHandler_Create_BindingError(t *testing.T) {
 	mockUseCase := new(mocks.RoleUseCase)
-	handler := roleHandler.NewRoleHandler(mockUseCase, logrus.New())
+	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.POST("/roles", handler.Create)
 
@@ -67,9 +74,30 @@ func TestRoleHandler_Create_BindingError(t *testing.T) {
 	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
 }
 
+func TestRoleHandler_Create_ValidationError(t *testing.T) {
+	mockUseCase := new(mocks.RoleUseCase)
+	handler := newTestRoleHandler(mockUseCase)
+	router := setupTestRouter()
+	router.POST("/roles", handler.Create)
+
+	reqBody := &model.CreateRoleRequest{
+		Name: "", // This will fail validation
+	}
+
+	bodyBytes, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/roles", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+}
+
 func TestRoleHandler_Create_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.RoleUseCase)
-	handler := roleHandler.NewRoleHandler(mockUseCase, logrus.New())
+	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.POST("/roles", handler.Create)
 
@@ -91,7 +119,7 @@ func TestRoleHandler_Create_UseCaseError(t *testing.T) {
 
 func TestRoleHandler_GetAll_Success(t *testing.T) {
 	mockUseCase := new(mocks.RoleUseCase)
-	handler := roleHandler.NewRoleHandler(mockUseCase, logrus.New())
+	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.GET("/roles", handler.GetAll)
 
@@ -117,7 +145,7 @@ func TestRoleHandler_GetAll_Success(t *testing.T) {
 
 func TestRoleHandler_GetAll_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.RoleUseCase)
-	handler := roleHandler.NewRoleHandler(mockUseCase, logrus.New())
+	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.GET("/roles", handler.GetAll)
 

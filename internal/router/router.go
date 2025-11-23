@@ -9,6 +9,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/permission"
 	permissionHttp "github.com/Roisfaozi/casbin-db/internal/modules/permission/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/modules/role"
+	roleHttp "github.com/Roisfaozi/casbin-db/internal/modules/role/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user"
 	userHttp "github.com/Roisfaozi/casbin-db/internal/modules/user/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
@@ -64,6 +65,7 @@ func SetupRouter(
 		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserHandler())
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionHandler())
 		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessHandler())
+		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleHandler())
 	}
 
 	return router

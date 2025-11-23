@@ -11,8 +11,7 @@ import (
 )
 
 type RoleModule struct {
-	Handler *http.RoleHandler
-	Repo    roleRepository.RoleRepository
+	roleHandler *http.RoleHandler
 }
 
 // NewRoleModule creates a new RoleModule instance with the given dependencies.
@@ -25,11 +24,14 @@ type RoleModule struct {
 // Returns a pointer to the newly created RoleModule instance.
 func NewRoleModule(db *gorm.DB, log *logrus.Logger, validator *validator.Validate, tm tx.WithTransactionManager) *RoleModule {
 	roleRepo := roleRepository.NewRoleRepository(db, log)
-	roleUseCase := usecase.NewRoleUseCase(log, validator, tm, roleRepo)
-	roleHandler := http.NewRoleHandler(roleUseCase, log)
+	roleUseCase := usecase.NewRoleUseCase(log, tm, roleRepo)
+	roleHandler := http.NewRoleHandler(roleUseCase, log, validator)
 
 	return &RoleModule{
-		Handler: roleHandler,
-		Repo:    roleRepo,
+		roleHandler: roleHandler,
 	}
+}
+
+func (m *RoleModule) RoleHandler() *http.RoleHandler {
+	return m.roleHandler
 }

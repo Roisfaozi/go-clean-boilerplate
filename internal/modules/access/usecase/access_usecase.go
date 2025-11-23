@@ -6,33 +6,25 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/entity"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/repository"
-	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
 
 // AccessUseCase implements the access use case.
 type AccessUseCase struct {
-	repo     repository.IAccessRepository
-	log      *logrus.Logger
-	validate *validator.Validate
+	repo repository.IAccessRepository
+	log  *logrus.Logger
 }
 
 // NewAccessUseCase creates a new AccessUseCase.
-func NewAccessUseCase(repo repository.IAccessRepository, log *logrus.Logger, validate *validator.Validate) IAccessUseCase {
+func NewAccessUseCase(repo repository.IAccessRepository, log *logrus.Logger) IAccessUseCase {
 	return &AccessUseCase{
-		repo:     repo,
-		log:      log,
-		validate: validate,
+		repo: repo,
+		log:  log,
 	}
 }
 
 // CreateAccessRight handles the business logic for creating a new access right.
 func (uc *AccessUseCase) CreateAccessRight(ctx context.Context, req model.CreateAccessRightRequest) (*model.AccessRightResponse, error) {
-	if err := uc.validate.Struct(req); err != nil {
-		uc.log.WithError(err).Error("Validation failed for creating access right")
-		return nil, err
-	}
-
 	accessRightEntity := &entity.AccessRight{
 		Name:        req.Name,
 		Description: req.Description,
@@ -62,11 +54,6 @@ func (uc *AccessUseCase) GetAllAccessRights(ctx context.Context) (*model.AccessR
 
 // CreateEndpoint handles the business logic for creating a new endpoint.
 func (uc *AccessUseCase) CreateEndpoint(ctx context.Context, req model.CreateEndpointRequest) (*model.EndpointResponse, error) {
-	if err := uc.validate.Struct(req); err != nil {
-		uc.log.WithError(err).Error("Validation failed for creating endpoint")
-		return nil, err
-	}
-
 	endpointEntity := &entity.Endpoint{
 		Path:   req.Path,
 		Method: req.Method,
@@ -89,11 +76,6 @@ func (uc *AccessUseCase) CreateEndpoint(ctx context.Context, req model.CreateEnd
 
 // LinkEndpointToAccessRight handles the business logic for linking an endpoint to an access right.
 func (uc *AccessUseCase) LinkEndpointToAccessRight(ctx context.Context, req model.LinkEndpointRequest) error {
-	if err := uc.validate.Struct(req); err != nil {
-		uc.log.WithError(err).Error("Validation failed for linking endpoint")
-		return err
-	}
-
 	err := uc.repo.LinkEndpointToAccessRight(ctx, req.AccessRightID, req.EndpointID)
 	if err != nil {
 		uc.log.WithError(err).Error("Failed to link endpoint to access right in repository")

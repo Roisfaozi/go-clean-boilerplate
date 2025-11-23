@@ -33,9 +33,9 @@ func NewPermissionHandler(useCase usecase.IPermissionUseCase, validate *validato
 // @Accept       json
 // @Produce      json
 // @Param        request body model.AssignRoleRequest true "Assign Role Request"
-// @Success      200  {object}  response.WebResponseAny "Role assigned successfully"
-// @Failure      400  {object}  response.WebResponseAny "Invalid request body"
-// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Role assigned successfully"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions/assign-role [post]
 func (h *PermissionHandler) AssignRole(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -66,9 +66,9 @@ func (h *PermissionHandler) AssignRole(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        request body model.GrantPermissionRequest true "Grant Permission Request"
-// @Success      200  {object}  response.WebResponseAny "Permission granted successfully"
-// @Failure      400  {object}  response.WebResponseAny "Invalid request body"
-// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Permission granted successfully"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions/grant [post]
 func (h *PermissionHandler) GrantPermission(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -97,8 +97,8 @@ func (h *PermissionHandler) GrantPermission(c *gin.Context) {
 // @Tags         permissions
 // @Security     BearerAuth
 // @Produce      json
-// @Success      200  {object}  response.WebResponseAny
-// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Success      200  {object}  response.SwaggerPermissionListResponseWrapper
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions [get]
 func (h *PermissionHandler) GetAllPermissions(c *gin.Context) {
 	permissions, err := h.useCase.GetAllPermissions()
@@ -117,9 +117,9 @@ func (h *PermissionHandler) GetAllPermissions(c *gin.Context) {
 // @Security     BearerAuth
 // @Produce      json
 // @Param        role path string true "Role Name"
-// @Success      200  {object}  response.WebResponseAny
-// @Failure      400  {object}  response.WebResponseAny "Role parameter required"
-// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Success      200  {object}  response.SwaggerPermissionListResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Role parameter required"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions/{role} [get]
 func (h *PermissionHandler) GetPermissionsForRole(c *gin.Context) {
 	role := c.Param("role")
@@ -145,10 +145,10 @@ func (h *PermissionHandler) GetPermissionsForRole(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        request body model.UpdatePermissionRequest true "Update Permission Request"
-// @Success      200  {object}  response.WebResponseAny "Permission updated successfully"
-// @Failure      400  {object}  response.WebResponseAny "Invalid request body"
-// @Failure      404  {object}  response.WebResponseAny "Policy to update not found"
-// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Permission updated successfully"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Policy to update not found"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions [put]
 func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 	var req model.UpdatePermissionRequest
@@ -183,9 +183,9 @@ func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        request body model.GrantPermissionRequest true "Revoke Permission Request"
-// @Success      200  {object}  response.WebResponseAny "Permission revoked successfully"
-// @Failure      400  {object}  response.WebResponseAny "Invalid request body"
-// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Permission revoked successfully"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions/revoke [delete]
 func (h *PermissionHandler) RevokePermission(c *gin.Context) {
 	ctx := c.Request.Context()

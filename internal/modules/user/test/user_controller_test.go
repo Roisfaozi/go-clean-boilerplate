@@ -13,6 +13,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -24,15 +25,21 @@ func setupUserTestRouter() *gin.Engine {
 	return router
 }
 
+func newTestUserHandler(mockUseCase *mocks.MockUserUseCase) *userHandler.UserHandler {
+	return userHandler.NewUserHandler(mockUseCase, logrus.New(), validator.New())
+}
+
 func TestUserHandler_RegisterUser_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockUserUseCase)
-	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
+	handler := newTestUserHandler(mockUseCase)
 	router := setupUserTestRouter()
 	router.POST("/users/register", handler.RegisterUser)
 
 	reqBody := &model.RegisterUserRequest{
-		Name:     "testuser",
+		Username: "testuser",
 		Password: "password123",
+		Name:     "Test User",
+		Email:    "test@example.com",
 	}
 	resBody := &model.UserResponse{
 		ID:   "user-123",
@@ -54,13 +61,15 @@ func TestUserHandler_RegisterUser_Success(t *testing.T) {
 
 func TestUserHandler_RegisterUser_Conflict(t *testing.T) {
 	mockUseCase := new(mocks.MockUserUseCase)
-	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
+	handler := newTestUserHandler(mockUseCase)
 	router := setupUserTestRouter()
 	router.POST("/users/register", handler.RegisterUser)
 
 	reqBody := &model.RegisterUserRequest{
-		Name:     "existing_user",
+		Username: "existing_user",
 		Password: "password123",
+		Name:     "Existing User",
+		Email:    "existing@example.com",
 	}
 	mockUseCase.On("Create", mock.Anything, reqBody).Return(nil, exception.ErrConflict)
 
@@ -77,7 +86,7 @@ func TestUserHandler_RegisterUser_Conflict(t *testing.T) {
 
 func TestUserHandler_GetCurrentUser_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockUserUseCase)
-	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
+	handler := newTestUserHandler(mockUseCase)
 	router := setupUserTestRouter()
 	router.GET("/users/me", handler.GetCurrentUser)
 
@@ -110,7 +119,7 @@ func TestUserHandler_GetCurrentUser_Success(t *testing.T) {
 
 func TestUserHandler_GetCurrentUser_NotFound(t *testing.T) {
 	mockUseCase := new(mocks.MockUserUseCase)
-	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
+	handler := newTestUserHandler(mockUseCase)
 	router := setupUserTestRouter()
 	router.GET("/users/me", handler.GetCurrentUser)
 
@@ -132,7 +141,7 @@ func TestUserHandler_GetCurrentUser_NotFound(t *testing.T) {
 
 func TestUserHandler_GetAllUsers(t *testing.T) {
 	mockUseCase := new(mocks.MockUserUseCase)
-	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
+	handler := newTestUserHandler(mockUseCase)
 	router := setupUserTestRouter()
 	router.GET("/users", handler.GetAllUsers)
 
@@ -143,7 +152,7 @@ func TestUserHandler_GetAllUsers(t *testing.T) {
 		}
 		// Expect default values (0) because we don't send query params
 		expectedReq := &model.GetUserListRequest{Page: 0, Limit: 0, Username: "", Email: ""}
-		
+
 		mockUseCase.On("GetAllUsers", mock.Anything, expectedReq).Return(expectedUsers, nil).Once()
 
 		req, _ := http.NewRequest(http.MethodGet, "/users", nil)
@@ -161,7 +170,7 @@ func TestUserHandler_GetAllUsers(t *testing.T) {
 	})
 
 	t.Run("Internal Server Error", func(t *testing.T) {
-		expectedReq := &model.GetUserListRequest{Page: 0, Limit: 0}
+		expectedReq := &model.GetUserListRequest{Page: 0, Limit: 0, Username: "", Email: ""}
 		mockUseCase.On("GetAllUsers", mock.Anything, expectedReq).Return(nil, exception.ErrInternalServer).Once()
 
 		req, _ := http.NewRequest(http.MethodGet, "/users", nil)
@@ -175,7 +184,7 @@ func TestUserHandler_GetAllUsers(t *testing.T) {
 
 func TestUserHandler_GetUserByID(t *testing.T) {
 	mockUseCase := new(mocks.MockUserUseCase)
-	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
+	handler := newTestUserHandler(mockUseCase)
 	router := setupUserTestRouter()
 	router.GET("/users/:id", handler.GetUserByID)
 
@@ -214,7 +223,7 @@ func TestUserHandler_GetUserByID(t *testing.T) {
 
 func TestUserHandler_DeleteUser(t *testing.T) {
 	mockUseCase := new(mocks.MockUserUseCase)
-	handler := userHandler.NewUserHandler(mockUseCase, logrus.New())
+	handler := newTestUserHandler(mockUseCase)
 	router := setupUserTestRouter()
 	router.DELETE("/users/:id", handler.DeleteUser)
 

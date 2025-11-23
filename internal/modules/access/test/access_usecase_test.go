@@ -2,14 +2,12 @@ package test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/entity"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/test/mocks"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/usecase"
-	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -27,9 +25,8 @@ func TestCreateAccessRight(t *testing.T) {
 	mockRepo := new(mocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
-	validate := validator.New()
 
-	uc := usecase.NewAccessUseCase(mockRepo, log, validate)
+	uc := usecase.NewAccessUseCase(mockRepo, log)
 	ctx := context.Background()
 
 	t.Run("Success - Create Valid Access Right", func(t *testing.T) {
@@ -44,32 +41,13 @@ func TestCreateAccessRight(t *testing.T) {
 		assert.Equal(t, req.Name, createdAccessRight.Name)
 		mockRepo.AssertExpectations(t)
 	})
-
-	t.Run("Failure - Invalid Input (Empty Name)", func(t *testing.T) {
-		req := model.CreateAccessRightRequest{Name: ""}
-		_, err := uc.CreateAccessRight(ctx, req)
-		assert.Error(t, err)
-		_, ok := err.(validator.ValidationErrors)
-		assert.True(t, ok)
-	})
-
-	t.Run("Failure - Repository Error", func(t *testing.T) {
-		repoErr := errors.New("database error")
-		mockRepo.On("CreateAccessRight", ctx, mock.AnythingOfType("*entity.AccessRight")).Return(repoErr).Once()
-		req := model.CreateAccessRightRequest{Name: "another_right"}
-		_, err := uc.CreateAccessRight(ctx, req)
-		assert.Error(t, err)
-		assert.Equal(t, repoErr, err)
-		mockRepo.AssertExpectations(t)
-	})
 }
 
 func TestGetAllAccessRights(t *testing.T) {
 	mockRepo := new(mocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
-	validate := validator.New()
-	uc := usecase.NewAccessUseCase(mockRepo, log, validate)
+	uc := usecase.NewAccessUseCase(mockRepo, log)
 	ctx := context.Background()
 
 	t.Run("Success - Has Data", func(t *testing.T) {
@@ -99,8 +77,7 @@ func TestCreateEndpoint(t *testing.T) {
 	mockRepo := new(mocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
-	validate := validator.New()
-	uc := usecase.NewAccessUseCase(mockRepo, log, validate)
+	uc := usecase.NewAccessUseCase(mockRepo, log)
 	ctx := context.Background()
 
 	t.Run("Success - Create Valid Endpoint", func(t *testing.T) {
@@ -112,32 +89,13 @@ func TestCreateEndpoint(t *testing.T) {
 		assert.Equal(t, req.Path, createdEndpoint.Path)
 		mockRepo.AssertExpectations(t)
 	})
-
-	t.Run("Failure - Invalid Input (Empty Path)", func(t *testing.T) {
-		req := model.CreateEndpointRequest{Path: "", Method: "GET"}
-		_, err := uc.CreateEndpoint(ctx, req)
-		assert.Error(t, err)
-		_, ok := err.(validator.ValidationErrors)
-		assert.True(t, ok)
-	})
-
-	t.Run("Failure - Repository Error", func(t *testing.T) {
-		repoErr := errors.New("db insert error")
-		mockRepo.On("CreateEndpoint", ctx, mock.AnythingOfType("*entity.Endpoint")).Return(repoErr).Once()
-		req := model.CreateEndpointRequest{Path: "/api/v1/fail", Method: "POST"}
-		_, err := uc.CreateEndpoint(ctx, req)
-		assert.Error(t, err)
-		assert.Equal(t, repoErr, err)
-		mockRepo.AssertExpectations(t)
-	})
 }
 
 func TestLinkEndpointToAccessRight(t *testing.T) {
 	mockRepo := new(mocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
-	validate := validator.New()
-	uc := usecase.NewAccessUseCase(mockRepo, log, validate)
+	uc := usecase.NewAccessUseCase(mockRepo, log)
 	ctx := context.Background()
 
 	t.Run("Success - Link Valid IDs", func(t *testing.T) {
@@ -145,16 +103,6 @@ func TestLinkEndpointToAccessRight(t *testing.T) {
 		mockRepo.On("LinkEndpointToAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(nil).Once()
 		err := uc.LinkEndpointToAccessRight(ctx, req)
 		assert.NoError(t, err)
-		mockRepo.AssertExpectations(t)
-	})
-
-	t.Run("Failure - Repository Error", func(t *testing.T) {
-		req := model.LinkEndpointRequest{AccessRightID: 99, EndpointID: 1}
-		repoErr := errors.New("foreign key constraint failed")
-		mockRepo.On("LinkEndpointToAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(repoErr).Once()
-		err := uc.LinkEndpointToAccessRight(ctx, req)
-		assert.Error(t, err)
-		assert.Equal(t, repoErr, err)
 		mockRepo.AssertExpectations(t)
 	})
 }

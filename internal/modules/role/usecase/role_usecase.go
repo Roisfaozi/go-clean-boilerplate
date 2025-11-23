@@ -10,7 +10,6 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/repository"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -18,26 +17,19 @@ import (
 
 type roleUseCase struct {
 	Log            *logrus.Logger
-	Validate       *validator.Validate
 	TM             tx.WithTransactionManager
 	RoleRepository repository.RoleRepository
 }
 
-func NewRoleUseCase(log *logrus.Logger, validate *validator.Validate, tm tx.WithTransactionManager, roleRepository repository.RoleRepository) RoleUseCase {
+func NewRoleUseCase(log *logrus.Logger, tm tx.WithTransactionManager, roleRepository repository.RoleRepository) RoleUseCase {
 	return &roleUseCase{
 		Log:            log,
-		Validate:       validate,
 		TM:             tm,
 		RoleRepository: roleRepository,
 	}
 }
 
 func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequest) (*model.RoleResponse, error) {
-	if err := uc.Validate.Struct(request); err != nil {
-		uc.Log.Warnf("Invalid request body for create role: %+v", err)
-		return nil, exception.ErrBadRequest
-	}
-
 	var response *model.RoleResponse
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		_, err := uc.RoleRepository.FindByName(txCtx, request.Name)

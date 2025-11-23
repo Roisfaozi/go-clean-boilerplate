@@ -1,4 +1,4 @@
-package http_test
+package test_test
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/test/mocks"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -26,7 +27,7 @@ func setupAuthTestRouter() *gin.Engine {
 
 // Helper to create a new handler instance
 func newTestAuthHandler(mockUseCase *mocks.AuthUseCase) *authHandler.AuthHandler {
-	return authHandler.NewAuthHandler(mockUseCase, logrus.New())
+	return authHandler.NewAuthHandler(mockUseCase, logrus.New(), validator.New())
 }
 
 // --- Login Handler Tests ---
@@ -71,14 +72,13 @@ func TestAuthHandler_Login_InvalidBody(t *testing.T) {
 	mockUseCase.AssertNotCalled(t, "Login", mock.Anything, mock.Anything)
 }
 
-func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
+func TestAuthHandler_Login_ValidationError(t *testing.T) {
 	mockUseCase := new(mocks.AuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/login", handler.Login)
 
-	reqBody := model.LoginRequest{Username: "wrong", Password: "wrong"}
-	mockUseCase.On("Login", mock.Anything, reqBody).Return(nil, "", usecase.ErrInvalidCredentials)
+	reqBody := model.LoginRequest{Username: "", Password: "password123"} // Invalid username
 
 	bodyBytes, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(bodyBytes))
@@ -87,7 +87,34 @@ func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	mockUseCase.AssertNotCalled(t, "Login", mock.Anything, mock.Anything)
+}
+
+func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
+	mockUseCase := new(mocks.AuthUseCase)
+	handler := newTestAuthHandler(mockUseCase)
+	router := setupAuthTestRouter()
+	router.POST("/auth/login", handler.Login)
+
+	reqBody := model.LoginRequest{
+		Username: "testuser",
+		Password: "password123",
+	}
+
+	mockUseCase.On("Login", mock.Anything, mock.MatchedBy(func(req model.LoginRequest) bool {
+		return req.Username == "testuser" && req.Password == "password123"
+	})).Return(nil, "", usecase.ErrInvalidCredentials).Once()
+
+	bodyBytes, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code, "Expected status code 401 Unauthorized but got %d", w.Code)
+
 	mockUseCase.AssertExpectations(t)
 }
 
