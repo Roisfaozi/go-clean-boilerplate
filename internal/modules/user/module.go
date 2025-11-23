@@ -1,6 +1,7 @@
 package user
 
 import (
+	permissionUseCase "github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/delivery/http"
 	userRepository "github.com/Roisfaozi/casbin-db/internal/modules/user/repository"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/usecase"
@@ -20,12 +21,13 @@ type UserModule struct {
 // log: The logger instance.
 // validator: The validator instance.
 // tm: The transaction manager instance.
+// enforcer: The Casbin enforcer instance.
 //
 // Returns a pointer to the newly created UserModule instance.
-func NewUserModule(db *gorm.DB, log *logrus.Logger, validator *validator.Validate, tm tx.WithTransactionManager) *UserModule {
+func NewUserModule(db *gorm.DB, log *logrus.Logger, validator *validator.Validate, tm tx.WithTransactionManager, enforcer permissionUseCase.IEnforcer) *UserModule {
 	userRepository := userRepository.NewUserRepository(db, log)
 
-	userUseCase := usecase.NewUserUseCase(log, validator, tm, userRepository)
+	userUseCase := usecase.NewUserUseCase(log, validator, tm, userRepository, enforcer)
 
 	userHandler := http.NewUserHandler(userUseCase, log)
 

@@ -62,7 +62,7 @@ func (r *userRepositoryData) FindByEmail(ctx context.Context, email string) (*en
 	var user entity.User
 	if err := r.db.WithContext(ctx).First(&user, "email = ?", email).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("user not found")
+			return nil, gorm.ErrRecordNotFound
 		}
 		r.log.WithError(err).Error("failed to find user by email")
 		return nil, err
@@ -121,6 +121,6 @@ func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserL
 
 func (r *userRepositoryData) FindByUsername(ctx context.Context, username string) (*entity.User, error) {
 	var user entity.User
-	err := r.db.WithContext(ctx).Where("name = ?", username).First(&user).Error
+	err := r.db.WithContext(ctx).Where("username = ?", username).First(&user).Error
 	return &user, err
 }

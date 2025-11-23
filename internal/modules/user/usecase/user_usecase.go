@@ -3,7 +3,9 @@ package usecase
 import (
 	"context"
 	"errors"
+	"strings"
 
+	"github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/model/converter"
@@ -22,6 +24,7 @@ type userUseCase struct {
 	Validate       *validator.Validate
 	TM             tx.WithTransactionManager
 	UserRepository repository.UserRepository
+	Enforcer       usecase.IEnforcer
 }
 
 // NewUserUseCase creates a new instance of UserUseCase.
@@ -31,16 +34,18 @@ type userUseCase struct {
 // - validate: The validator instance.
 // - tm: The transaction manager instance.
 // - userRepository: The user repository instance.
+// - enforcer: The Casbin enforcer instance.
 //
 // Returns:
 // - A pointer to the newly created UserUseCase instance.
 func NewUserUseCase(logger *logrus.Logger, validate *validator.Validate, tm tx.WithTransactionManager,
-	userRepository repository.UserRepository) UserUseCase {
+	userRepository repository.UserRepository, enforcer usecase.IEnforcer) UserUseCase {
 	return &userUseCase{
 		Log:            logger,
 		Validate:       validate,
 		TM:             tm,
 		UserRepository: userRepository,
+		Enforcer:       enforcer,
 	}
 }
 
@@ -73,31 +78,52 @@ func (c *userUseCase) Create(ctx context.Context, request *model.RegisterUserReq
 
 	var response *model.UserResponse
 	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
-		_, err := c.UserRepository.FindByID(txCtx, request.ID)
+		_, err := c.UserRepository.FindByUsername(txCtx, request.Username)
 		if err == nil {
-			c.Log.Warnf("User already exists : %+v", request.ID)
+			c.Log.Warnf("User already exists : %+v", request.Username)
 			return exception.ErrConflict
 		}
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			c.Log.Warnf("Failed find user by id : %+v", err)
+			c.Log.Errorf("Failed find user by username : %+v", err)
+			return exception.ErrInternalServer
+		}
+
+		_, err = c.UserRepository.FindByEmail(txCtx, request.Email)
+		if err == nil {
+			c.Log.Warnf("User already exists : %+v", request.Email)
+			return exception.ErrConflict
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			c.Log.Errorf("Failed find user by email : %+v", err)
 			return exception.ErrInternalServer
 		}
 
 		password, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 		if err != nil {
-			c.Log.Warnf("Failed to encrypt password : %+v", err)
+			c.Log.Errorf("Failed to encrypt password : %+v", err)
 			return exception.ErrInternalServer
 		}
 
 		newUser := &entity.User{
-			ID:       request.ID,
+			ID:       uuid.NewString(),
+			Username: request.Username,
+			Email:    request.Email,
 			Password: string(password),
 			Name:     request.Name,
 			Token:    uuid.NewString(),
 		}
 
 		if err := c.UserRepository.Create(txCtx, newUser); err != nil {
-			c.Log.Warnf("Failed to insert user : %+v", err)
+			c.Log.Errorf("Failed to insert user : %+v", err)
+			if strings.Contains(err.Error(), "Error 1062") || strings.Contains(err.Error(), "Duplicate entry") {
+				return exception.ErrConflict
+			}
+			return exception.ErrInternalServer
+		}
+
+		// Assign default role "role:user"
+		if _, err := c.Enforcer.AddGroupingPolicy(newUser.ID, "role:user"); err != nil {
+			c.Log.Errorf("Failed to assign default role to user : %+v", err)
 			return exception.ErrInternalServer
 		}
 

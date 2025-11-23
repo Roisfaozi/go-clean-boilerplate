@@ -11,6 +11,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	permMocks "github.com/Roisfaozi/casbin-db/internal/modules/permission/test/mocks"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -21,17 +22,32 @@ import (
 func TestUserUseCase_Create_Success(t *testing.T) {
 	mockRepo := new(mocks.MockUserRepository)
 	mockTM := new(mocking.MockTransactionManager)
-	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo)
+	mockEnforcer := new(permMocks.IEnforcer)
+	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo, mockEnforcer)
 
 	testReq := &model.RegisterUserRequest{
-		ID:       "test123",
+		Username: "testuser",
+		Email:    "test@example.com",
 		Name:     "Test User",
 		Password: "password123",
 	}
 
-	mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(nil)
-	mockRepo.On("FindByID", mock.Anything, "test123").Return(nil, gorm.ErrRecordNotFound)
+	mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			fn(context.Background())
+		}).
+		Return(nil)
+	
+	// Update FindByUsername and FindByEmail expectations
+	mockRepo.On("FindByUsername", mock.Anything, "testuser").Return(nil, gorm.ErrRecordNotFound)
+	mockRepo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, gorm.ErrRecordNotFound)
+	
+	// Create expectation
 	mockRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
+
+	// Enforcer expectation
+	mockEnforcer.On("AddGroupingPolicy", mock.AnythingOfType("string"), "role:user").Return(true, nil)
 
 	result, err := uc.Create(context.Background(), testReq)
 
@@ -39,12 +55,14 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 	assert.NotNil(t, result)
 	mockRepo.AssertExpectations(t)
 	mockTM.AssertExpectations(t)
+	mockEnforcer.AssertExpectations(t)
 }
 
 func TestUserUseCase_GetUserByID(t *testing.T) {
 	mockRepo := new(mocks.MockUserRepository)
 	mockTM := new(mocking.MockTransactionManager)
-	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo)
+	mockEnforcer := new(permMocks.IEnforcer)
+	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo, mockEnforcer)
 
 	t.Run("Success - User Found", func(t *testing.T) {
 		expectedUser := &entity.User{ID: "test123", Name: "Test User"}
@@ -139,7 +157,8 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 func TestUserUseCase_GetAllUsers(t *testing.T) {
 	mockRepo := new(mocks.MockUserRepository)
 	mockTM := new(mocking.MockTransactionManager)
-	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo)
+	mockEnforcer := new(permMocks.IEnforcer)
+	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo, mockEnforcer)
 
 	t.Run("Success - With Users", func(t *testing.T) {
 		mockUsers := []*entity.User{
@@ -223,7 +242,8 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 func TestUserUseCase_Current(t *testing.T) {
 	mockRepo := new(mocks.MockUserRepository)
 	mockTM := new(mocking.MockTransactionManager)
-	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo)
+	mockEnforcer := new(permMocks.IEnforcer)
+	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo, mockEnforcer)
 
 	t.Run("Success - User Found", func(t *testing.T) {
 		expectedUser := &entity.User{ID: "current-user", Name: "Current User"}
@@ -302,7 +322,8 @@ func TestUserUseCase_Current(t *testing.T) {
 func TestUserUseCase_Update(t *testing.T) {
 	mockRepo := new(mocks.MockUserRepository)
 	mockTM := new(mocking.MockTransactionManager)
-	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo)
+	mockEnforcer := new(permMocks.IEnforcer)
+	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo, mockEnforcer)
 
 	t.Run("Success - User Updated", func(t *testing.T) {
 		request := &model.UpdateUserRequest{
@@ -406,7 +427,8 @@ func TestUserUseCase_Update(t *testing.T) {
 func TestUserUseCase_DeleteUser(t *testing.T) {
 	mockRepo := new(mocks.MockUserRepository)
 	mockTM := new(mocking.MockTransactionManager)
-	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo)
+	mockEnforcer := new(permMocks.IEnforcer)
+	uc := usecase.NewUserUseCase(logrus.New(), validator.New(), mockTM, mockRepo, mockEnforcer)
 	userID := "user-to-delete"
 
 	t.Run("Success - User Deleted", func(t *testing.T) {

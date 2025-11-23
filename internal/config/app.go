@@ -65,7 +65,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager)
 
-	userModule := user.NewUserModule(dbConnection, logger, validate, tm)
+	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer)
 
 	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo)
 
