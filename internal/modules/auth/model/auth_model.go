@@ -45,9 +45,10 @@ type LoginResponse struct {
 
 // UserInfo represents basic user information
 type UserInfo struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 }
 
 // RefreshRequest represents a refresh token request

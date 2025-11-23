@@ -98,6 +98,10 @@ func (m *JWTManager) GetRefreshTokenDuration() time.Duration {
 	return m.refreshTokenDuration
 }
 
+func (m *JWTManager) GetAccessTokenDuration() time.Duration {
+	return m.accessTokenDuration
+}
+
 func GenerateTestToken(userID, sessionID, secret string, expiry time.Duration) (string, error) {
 	claims := &Claims{
 		UserID:    userID,

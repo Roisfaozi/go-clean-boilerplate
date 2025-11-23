@@ -103,7 +103,6 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	if err != nil {
 		return nil, "", err
 	}
-
 	// Broadcast login event via WebSocket
 	notification := map[string]string{
 		"type":    "user_login",
@@ -114,9 +113,17 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	notificationJSON, _ := json.Marshal(notification)
 	s.wsManager.BroadcastToChannel("global_notifications", notificationJSON)
 
+	accessTokenDuration := s.jwtManager.GetAccessTokenDuration()
 	loginResponse := &model.LoginResponse{
 		AccessToken: accessToken,
 		TokenType:   "Bearer",
+		ExpiresIn:   int64(accessTokenDuration.Seconds()),
+		ExpiresAt:   time.Now().Add(accessTokenDuration),
+		User: model.UserInfo{
+			ID:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
+		},
 	}
 
 	return loginResponse, refreshToken, nil
