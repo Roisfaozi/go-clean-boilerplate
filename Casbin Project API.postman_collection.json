@@ -6,1297 +6,2048 @@
 	},
 	"item": [
 		{
-            "name": "Users",
-            "item": [
-                {
-                    "name": "Register New User",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 201\", function () {",
-                                    "    pm.response.to.have.status(201);",
-                                    "});",
-                                    "",
-                                    "pm.test(\"Response should be a valid JSON\", function () {",
-                                    "    pm.response.to.be.json;",
-                                    "});",
-                                    "",
-                                    "pm.test(\"Response data should contain userId\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    pm.expect(jsonData.data).to.have.property('userId');",
-                                    "    pm.expect(jsonData.data.userId).to.be.a('string');",
-                                    "});",
-                                    "",
-                                    "// Save the userId and credentials for subsequent requests",
-                                    "const jsonData = pm.response.json();",
-                                    "if (jsonData.data && jsonData.data.userId) {",
-                                    "    pm.environment.set(\"userId\", jsonData.data.userId);",
-                                    "    // Set credentials for the login request",
-                                    "    const username = pm.variables.get(\"newUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
-                                    "    pm.environment.set(\"username\", username);",
-                                    "    pm.environment.set(\"password\", pm.variables.get(\"newPassword\"));",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"username\": \"{{newUsername}}-{{$timestamp}}\",\n    \"password\": \"{{newPassword}}\",\n    \"fullname\": \"{{newFullname}}\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseURL}}/users/register",
-                            "host": [
-                                "{{baseURL}}"
-                            ],
-                            "path": [
-                                "users",
-                                "register"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Register User with Existing Username",
-                    "event": [
-                        {
-                            "listen": "prerequest",
-                            "script": {
-                                "exec": [
-                                    "// This script ensures a user exists before attempting to register with the same username.",
-                                    "const registerUserRequest = {",
-                                    "  url: `${pm.environment.get(\"baseURL\")}/users/register`,",
-                                    "  method: 'POST',",
-                                    "  header: 'Content-Type:application/json',",
-                                    "  body: {",
-                                    "    mode: 'raw',",
-                                    "    raw: JSON.stringify({",
-                                    "      username: pm.environment.get(\"username\"),",
-                                    "      password: pm.environment.get(\"password\"),",
-                                    "      fullname: pm.variables.get(\"newFullname\")",
-                                    "    })",
-                                    "  }",
-                                    "};",
-                                    "",
-                                    "pm.sendRequest(registerUserRequest, (err, res) => {});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        },
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 409 Conflict\", function () {",
-                                    "    pm.response.to.have.status(409);",
-                                    "});",
-                                    "",
-                                    "pm.test(\"Error message should indicate username is taken\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    pm.expect(jsonData.status).to.eql('fail');",
-                                    "    pm.expect(jsonData.message).to.contain('already exists');",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"username\": \"{{username}}\",\n    \"password\": \"{{password}}\",\n    \"fullname\": \"{{newFullname}}\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseURL}}/users/register",
-                            "host": [
-                                "{{baseURL}}"
-                            ],
-                            "path": [
-                                "users",
-                                "register"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Register User with Bad Payload",
-                    "event": [
-                        {
-                            "listen": "prerequest",
-                            "script": {
-                                "exec": [
-                                    "let badUserPayloads = pm.environment.get('badUserPayloads');",
-                                    "if (!badUserPayloads || badUserPayloads.length === 0) {",
-                                    "    badUserPayloads = [",
-                                    "        {},",
-                                    "        { password: 'password123', fullname: 'Test User' },",
-                                    "        { username: 'testuser', fullname: 'Test User' },",
-                                    "        { username: 'testuser', password: 'password123' },",
-                                    "        { username: 123, password: 'password123', fullname: 'Test User' },",
-                                    "        { username: 'testuser', password: 123, fullname: 'Test User' }",
-                                    "    ];",
-                                    "}",
-                                    "const currentPayload = badUserPayloads.shift();",
-                                    "pm.environment.set('currentBadUserPayload', JSON.stringify(currentPayload));",
-                                    "pm.environment.set('badUserPayloads', badUserPayloads);"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        },
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 400\", function () {",
-                                    "    pm.response.to.have.status(400);",
-                                    "});",
-                                    "",
-                                    "// Loop until all bad payloads are tested",
-                                    "const badUserPayloads = pm.environment.get('badUserPayloads');",
-                                    "if (badUserPayloads && badUserPayloads.length > 0) {",
-                                    "    postman.setNextRequest('Register User with Bad Payload');",
-                                    "} else {",
-                                    "    pm.environment.unset('badUserPayloads');",
-                                    "    pm.environment.unset('currentBadUserPayload');",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{{currentBadUserPayload}}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseURL}}/users/register",
-                            "host": [
-                                "{{baseURL}}"
-                            ],
-                            "path": [
-                                "users",
-                                "register"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "[SECURITY] POST User with Malformed JSON",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status should be 400 Bad Request\", function () {",
-                                    "    pm.response.to.have.status(400);",
-                                    "});",
-                                    "",
-                                    "pm.test(\"Response message should be generic and safe\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    pm.expect(jsonData.status).to.eql('fail');",
-                                    "    const responseText = pm.response.text().toLowerCase();",
-                                    "    pm.expect(responseText).to.not.include('panic');",
-                                    "    pm.expect(responseText).to.not.include('stack');",
-                                    "    pm.expect(responseText).to.not.include('error');",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\\n    \"username\": \"malformed\",\\n    \"password\": \"malformedpass\",\\n    \"fullname\": \"Malformed User\"\\n,"
-                        },
-                        "url": {
-                            "raw": "{{baseURL}}/users/register",
-                            "host": [
-                                "{{baseURL}}"
-                            ],
-                            "path": [
-                                "users",
-                                "register"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Get Current User",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200 OK\", function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "",
-                                    "pm.test(\"Response should contain current user's data\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    pm.expect(jsonData.data).to.have.property('id');",
-                                    "    pm.expect(jsonData.data.id).to.eql(pm.environment.get(\"userId\"));",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{authToken}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseURL}}/users/me",
-                            "host": [
-                                "{{baseURL}}"
-                            ],
-                            "path": [
-                                "users",
-                                "me"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Update Current User",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200 OK\", function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "const jsonData = pm.response.json();",
-                                    "pm.test(\"Fullname should be updated\", function () {",
-                                    "    pm.expect(jsonData.data.fullname).to.eql(pm.environment.get(\"updatedFullname\"));",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{authToken}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "PUT",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"fullname\": \"{{updatedFullname}}\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseURL}}/users/me",
-                            "host": [
-                                "{{baseURL}}"
-                            ],
-                            "path": [
-                                "users",
-                                "me"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "[Admin] Get All Users",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200 OK\", function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "pm.test(\"Response should be an array\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    pm.expect(jsonData.data).to.be.an('array');",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{adminToken}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseURL}}/users",
-                            "host": [
-                                "{{baseURL}}"
-                            ],
-                            "path": [
-                                "users"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "[Admin] Get All Users (Filtered & Paginated)",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200 OK\", function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "pm.test(\"Response should be an array\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    pm.expect(jsonData.data).to.be.an('array');",
-                                    "});",
-                                    "pm.test(\"Result limit check\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    // Since we requested limit=5, the length should be <= 5",
-                                    "    pm.expect(jsonData.data.length).to.be.at.most(5);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{adminToken}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseURL}}/users?page=1&limit=5&username=User",
-                            "host": [
-                                "{{baseURL}}"
-                            ],
-                            "path": [
-                                "users"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "5"
-                                },
-                                {
-                                    "key": "username",
-                                    "value": "User"
-                                }
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "[Admin] Get User By ID",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200 OK\", function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "pm.test(\"Response should contain user data\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    pm.expect(jsonData.data.id).to.eql(pm.environment.get(\"userId\"));",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{adminToken}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseURL}}/users/{{userId}}",
-                            "host": [
-                                "{{baseURL}}"
-                            ],
-                            "path": [
-                                "users",
-                                "{{userId}}"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "[Admin] Delete User By ID",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200 OK\", function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{adminToken}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "DELETE",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseURL}}/users/{{userId}}",
-                            "host": [
-                                "{{baseURL}}"
-                            ],
-                            "path": [
-                                "users",
-                                "{{userId}}"
-                            ]
-                        }
-                    },
-                    "response": []
-                }
-            ],
-            "description": "Requests for managing user resources (CRUD)."
-        },
-		{
-            "name": "Authentication",
-            "item": [
+			"name": "Users",
+			"item": [
 				{
-                    "name": "Login User",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200\", function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "",
-                                    "pm.test(\"Response should have accessToken\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    pm.expect(jsonData.data).to.have.property('accessToken');",
-                                    "    pm.expect(jsonData.data.accessToken).to.be.a('string');",
-                                    "});",
-                                    "",
-                                    "// Save the access token to an environment variable",
-                                    "const jsonData = pm.response.json();",
-                                    "if (jsonData.data && jsonData.data.accessToken) {",
-                                    "    pm.environment.set(\"authToken\", jsonData.data.accessToken);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"username\": \"{{username}}\",\n    \"password\": \"{{password}}\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseURL}}/auth/login",
-                            "host": [
-                                "{{baseURL}}"
-                            ],
-                            "path": [
-                                "auth",
-                                "login"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Refresh Token",
-                    "item": [
-                        {
-                            "name": "[Positive] Refresh with Valid Cookie",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "pm.test(\"Status should be 200 OK\", function () {",
-                                            "    pm.response.to.have.status(200);",
-                                            "});",
-                                            "",
-                                            "pm.test(\"Response should contain new access token\", function () {",
-                                            "    const jsonData = pm.response.json();",
-                                            "    pm.expect(jsonData.data).to.have.property('accessToken');",
-                                            "    pm.environment.set(\"authToken\", jsonData.data.accessToken); // Update the auth token",
-                                            "});",
-                                            "",
-                                            "pm.test(\"Should receive a new refresh_token cookie\", function () {",
-                                            "    pm.expect(pm.response.headers.get('Set-Cookie')).to.include('refresh_token=');",
-                                            "});"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [],
-                                "url": {
-                                    "raw": "{{baseURL}}/auth/refresh",
-                                    "host": [
-                                        "{{baseURL}}"
-                                    ],
-                                    "path": [
-                                        "auth",
-                                        "refresh"
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "[Negative] Refresh with No Cookie",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "pm.test(\"Status should be 401 Unauthorized\", function () {",
-                                            "    pm.response.to.have.status(401);",
-                                            "});"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [],
-                                "url": {
-                                    "raw": "{{baseURL}}/auth/refresh",
-                                    "host": [
-                                        "{{baseURL}}"
-                                    ],
-                                    "path": [
-                                        "auth",
-                                        "refresh"
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "[Negative] Refresh with Invalid Token",
-                            "event": [
-                                {
-                                    "listen": "prerequest",
-                                    "script": {
-                                        "exec": [
-                                            "// This script is illustrative. In a real runner environment, you'd manage cookies.",
-                                            "// For a single request, we can add the header manually.",
-                                            "pm.request.headers.add({",
-                                            "    key: 'Cookie',",
-                                            "    value: 'refresh_token=this-is-an-invalid-token'",
-                                            "});"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                },
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "pm.test(\"Status should be 401 Unauthorized\", function () {",
-                                            "    pm.response.to.have.status(401);",
-                                            "});"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [],
-                                "url": {
-                                    "raw": "{{baseURL}}/auth/refresh",
-                                    "host": [
-                                        "{{baseURL}}"
-                                    ],
-                                    "path": [
-                                        "auth",
-                                        "refresh"
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Logout",
-                    "item": [
-                        {
-                            "name": "[Positive] Logout with Valid Token",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "pm.test(\"Status should be 200 OK\", function () {",
-                                            "    pm.response.to.have.status(200);",
-                                            "});",
-                                            "",
-                                            "pm.test(\"Should clear the refresh_token cookie\", function () {",
-                                            "    const cookie = pm.response.headers.get('Set-Cookie');",
-                                            "    pm.expect(cookie).to.include('refresh_token=;');",
-                                            "    pm.expect(cookie).to.include('Max-Age=-1');",
-                                            "});",
-                                            "",
-                                            "// Try to use the supposedly revoked token",
-                                            "pm.sendRequest({",
-                                            "    url: `${pm.environment.get(\"baseURL\")}/users/me`,",
-                                            "    method: 'GET',",
-                                            "    header: { 'Authorization': 'Bearer ' + pm.environment.get('authToken') }",
-                                            "}, function (err, response) {",
-                                            "    pm.test('Token should be revoked (expect 401)', () => {",
-                                            "        pm.expect(response.code).to.be.oneOf([401, 403]); // Or 403 depending on implementation",
-                                            "    });",
-                                            "});"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "auth": {
-                                    "type": "bearer",
-                                    "bearer": [
-                                        {
-                                            "key": "token",
-                                            "value": "{{authToken}}",
-                                            "type": "string"
-                                        }
-                                    ]
-                                },
-                                "method": "POST",
-                                "header": [],
-                                "url": {
-                                    "raw": "{{baseURL}}/auth/logout",
-                                    "host": [
-                                        "{{baseURL}}"
-                                    ],
-                                    "path": [
-                                        "auth",
-                                        "logout"
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "[Negative] Logout with No Token",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "pm.test(\"Status should be 401 Unauthorized\", function () {",
-                                            "    pm.response.to.have.status(401);",
-                                            "});"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [],
-                                "url": {
-                                    "raw": "{{baseURL}}/auth/logout",
-                                    "host": [
-                                        "{{baseURL}}"
-                                    ],
-                                    "path": [
-                                        "auth",
-                                        "logout"
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                }
+					"name": "Register New User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response should be a valid JSON\", function () {",
+									"    pm.response.to.be.json;",
+									"});",
+									"",
+									"pm.test(\"Response data should contain id\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property('id');",
+									"    pm.expect(jsonData.data.id).to.be.a('string');",
+									"});",
+									"",
+									"// Save the userId and credentials for subsequent requests",
+									"const jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.id) {",
+									"    pm.environment.set(\"userId\", jsonData.data.id);",
+									"    // Set credentials for the login request",
+									"    const username = pm.variables.get(\"newUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
+									"    pm.environment.set(\"username\", username);",
+									"    pm.environment.set(\"password\", pm.variables.get(\"newPassword\"));",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{newUsername}}-{{$timestamp}}\",\n    \"password\": \"{{newPassword}}\",\n    \"fullname\": \"{{newFullname}}\",\n    \"email\": \"{{newUsername}}-{{$timestamp}}@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/register",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register User with Existing Username",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// This script ensures a user exists before attempting to register with the same username.",
+									"const registerUserRequest = {",
+									"  url: `${pm.environment.get(\"baseURL\")}/${pm.environment.get(\"apiVersion\")}/users/register`,",
+									"  method: 'POST',",
+									"  header: 'Content-Type:application/json',",
+									"  body: {",
+									"    mode: 'raw',",
+									"    raw: JSON.stringify({",
+									"      username: pm.environment.get(\"username\"),",
+									"      password: pm.environment.get(\"password\"),",
+									"      fullname: pm.variables.get(\"newFullname\"),",
+									"      email: `${pm.environment.get(\"username\")}@existing.com`",
+									"    })",
+									"  }",
+									"};",
+									"",
+									"pm.sendRequest(registerUserRequest, (err, res) => {});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 409 Conflict\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"",
+									"pm.test(\"Error message should indicate username is taken\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('fail');",
+									"    // Message might vary depending on implementation detail but usually contains conflict info",
+									"    pm.expect(pm.response.text()).to.include('exists');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{username}}\",\n    \"password\": \"{{password}}\",\n    \"fullname\": \"{{newFullname}}\",\n    \"email\": \"{{username}}@different.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/register",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register User with Bad Payload",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"let badUserPayloads = pm.environment.get('badUserPayloads');",
+									"if (!badUserPayloads || badUserPayloads.length === 0) {",
+									"    badUserPayloads = [",
+									"        {},",
+									"        { password: 'password123', fullname: 'Test User' },",
+									"        { username: 'testuser', fullname: 'Test User' },",
+									"        { username: 'testuser', password: 'password123' },",
+									"        { username: 123, password: 'password123', fullname: 'Test User' },",
+									"        { username: 'testuser', password: 123, fullname: 'Test User' }",
+									"    ];",
+									"}",
+									"const currentPayload = badUserPayloads.shift();",
+									"pm.environment.set('currentBadUserPayload', JSON.stringify(currentPayload));",
+									"pm.environment.set('badUserPayloads', badUserPayloads);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"// Loop until all bad payloads are tested",
+									"const badUserPayloads = pm.environment.get('badUserPayloads');",
+									"if (badUserPayloads && badUserPayloads.length > 0) {",
+									"    postman.setNextRequest('Register User with Bad Payload');",
+									"} else {",
+									"    pm.environment.unset('badUserPayloads');",
+									"    pm.environment.unset('currentBadUserPayload');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{{currentBadUserPayload}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/register",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[SECURITY] POST User with Malformed JSON",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status should be 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Response message should be generic and safe\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('fail');",
+									"    const responseText = pm.response.text().toLowerCase();",
+									"    pm.expect(responseText).to.not.include('panic');",
+									"    pm.expect(responseText).to.not.include('stack');",
+									"    pm.expect(responseText).to.not.include('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"malformed\",\n    \"password\": \"malformedpass\",\n    \"fullname\": \"Malformed User\"\n,",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/register",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response should contain current user's data\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property('id');",
+									"    pm.expect(jsonData.data.id).to.eql(pm.environment.get(\"userId\"));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/me",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Current User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"const jsonData = pm.response.json();",
+									"pm.test(\"Fullname should be updated\", function () {",
+									"    pm.expect(jsonData.data.name).to.eql(pm.environment.get(\"updatedFullname\"));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{updatedFullname}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/me",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[Admin] Get All Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response should be an array\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[Admin] Get All Users (Filtered & Paginated)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response should be an array\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"});",
+									"pm.test(\"Result limit check\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    // Since we requested limit=5, the length should be <= 5",
+									"    pm.expect(jsonData.data.length).to.be.at.most(5);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users?page=1&limit=5&username=User",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "username",
+									"value": "User"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[Admin] Get User By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response should contain user data\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data.id).to.eql(pm.environment.get(\"userId\"));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/{{userId}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"{{userId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[Admin] Delete User By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/{{userId}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"{{userId}}"
+							]
+						}
+					},
+					"response": []
+				}
 			],
-            "description": "Requests for user login and token management."
-        },
-        {
-            "name": "Permissions (Casbin Policies)",
-            "item": [
-                {
-                    "name": "Add Policy (Grant Permission)",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 201\", function () {",
-                                    "    pm.response.to.have.status(201);",
-                                    "});",
-                                    "pm.test(\"Response message should indicate success\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    pm.expect(jsonData.message).to.eql('Permission granted successfully');",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                        "method": "POST",
-                        "header": [],
-                        "body": { "mode": "raw", "raw": "{\n    \"role\": \"{{roleName}}\",\n    \"path\": \"/articles\",\n    \"method\": \"read\"\n}", "options": { "raw": { "language": "json" } } },
-                        "url": { "raw": "{{baseURL}}/permissions/grant", "host": [ "{{baseURL}}" ], "path": [ "permissions", "grant" ] }
-                    },
-                    "description": "This is equivalent to AddPolicy in Casbin. It grants a role permission to a specific path and method."
-                },
-                {
-                    "name": "View Policies",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
-                                    "pm.test(\"Response data should be an array of policies\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    pm.expect(jsonData.data).to.be.an('array');",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                        "method": "GET",
-                        "header": [],
-                        "url": { "raw": "{{baseURL}}/permissions", "host": [ "{{baseURL}}" ], "path": [ "permissions" ] }
-                    }
-                },
-                {
-                    "name": "Get Permissions for Role",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                        "method": "GET",
-                        "url": { "raw": "{{baseURL}}/permissions/{{roleName}}", "host": [ "{{baseURL}}" ], "path": [ "permissions", "{{roleName}}" ] }
-                    }
-                },
-                {
-                    "name": "Assign Role to User",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200 OK\", function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                     "pm.test(\"Response message should indicate success\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    pm.expect(jsonData.message).to.eql('Role assigned successfully');",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                        "method": "POST",
-                        "header": [],
-                        "body": { "mode": "raw", "raw": "{\n    \"user_id\": \"{{userId}}\",\n    \"role\": \"{{roleName}}\"\n}", "options": { "raw": { "language": "json" } } },
-                        "url": { "raw": "{{baseURL}}/permissions/assign-role", "host": [ "{{baseURL}}" ], "path": [ "permissions", "assign-role" ] }
-                    }
-                },
-                {
-                    "name": "Update Permission",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200 OK\", function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                        "method": "PUT",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"old_permission\": [\"{{roleName}}\", \"/articles\", \"read\"],\n    \"new_permission\": [\"{{roleName}}\", \"/articles\", \"write\"]\n}",
-                            "options": { "raw": { "language": "json" } }
-                        },
-                        "url": { "raw": "{{baseURL}}/permissions", "host": [ "{{baseURL}}" ], "path": [ "permissions" ] }
-                    }
-                },
-                {
-                    "name": "Remove Policy (Revoke Permission)",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                        "method": "DELETE",
-                        "header": [],
-                        "body": { "mode": "raw", "raw": "{\n    \"role\": \"{{roleName}}\",\n    \"path\": \"/articles\",\n    \"method\": \"write\"\n}", "options": { "raw": { "language": "json" } } },
-                        "url": { "raw": "{{baseURL}}/permissions/revoke", "host": [ "{{baseURL}}" ], "path": [ "permissions", "revoke" ] }
-                    }
-                },
-                {
-                    "name": "[SETUP] Grant Admin Access to Get All Users",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 201\", function () {",
-                                    "    pm.response.to.have.status(201);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{adminToken}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"role\": \"role:admin\",\n    \"path\": \"/users\",\n    \"method\": \"GET\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseURL}}/permissions/grant",
-                            "host": [
-                                "{{baseURL}}"
-                            ],
-                            "path": [
-                                "permissions",
-                                "grant"
-                            ]
-                        }
-                    },
-                    "description": "Sets up the necessary policy for admins to access the GET /users endpoint."
-                }
-            ],
-            "description": "Requests for managing Casbin access control policies."
-        },
-        {
-            "name": "Access Scenarios (Protected Routes)",
-            "item": [
-                {
-                    "name": "[SETUP] Prerequisite Roles & Tokens",
-                    "item": [
-                        {
-                            "name": "[SETUP] Register Admin User",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
-                                            "const jsonData = pm.response.json();",
-                                            "if (jsonData.data && jsonData.data.userId) {",
-                                            "    pm.environment.set(\"adminUserId\", jsonData.data.userId);",
-                                            "    const username = pm.variables.get(\"adminUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
-                                            "    pm.environment.set(\"adminUsernameRegistered\", username);",
-                                            "}"
-                                        ]
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n    \"username\": \"{{adminUsername}}-{{$timestamp}}\",\n    \"password\": \"{{adminPassword}}\",\n    \"fullname\": \"Admin User\"\n}",
-                                    "options": { "raw": { "language": "json" } }
-                                },
-                                "url": {
-                                    "raw": "{{baseURL}}/users",
-                                    "host": [ "{{baseURL}}" ],
-                                    "path": [ "users" ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "[SETUP] Login as Admin",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                                            "const jsonData = pm.response.json();",
-                                            "if (jsonData.data && jsonData.data.accessToken) {",
-                                            "    pm.environment.set(\"adminToken\", jsonData.data.accessToken);",
-                                            "}"
-                                        ]
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n    \"username\": \"{{adminUsernameRegistered}}\",\n    \"password\": \"{{adminPassword}}\"\n}",
-                                    "options": { "raw": { "language": "json" } }
-                                },
-                                "url": {
-                                    "raw": "{{baseURL}}/auth/login",
-                                    "host": [ "{{baseURL}}" ],
-                                    "path": [ "auth", "login" ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "[SETUP] Register Editor User",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
-                                            "const jsonData = pm.response.json();",
-                                            "if (jsonData.data && jsonData.data.userId) {",
-                                            "    pm.environment.set(\"editorUserId\", jsonData.data.userId);",
-                                            "    const username = pm.variables.get(\"editorUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
-                                            "    pm.environment.set(\"editorUsernameRegistered\", username);",
-                                            "}"
-                                        ]
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n    \"username\": \"{{editorUsername}}-{{$timestamp}}\",\n    \"password\": \"{{editorPassword}}\",\n    \"fullname\": \"Editor User\"\n}",
-                                    "options": { "raw": { "language": "json" } }
-                                },
-                                "url": {
-                                    "raw": "{{baseURL}}/users",
-                                    "host": [ "{{baseURL}}" ],
-                                    "path": [ "users" ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "[SETUP] Login as Editor",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                                            "const jsonData = pm.response.json();",
-                                            "if (jsonData.data && jsonData.data.accessToken) {",
-                                            "    pm.environment.set(\"editorToken\", jsonData.data.accessToken);",
-                                            "}"
-                                        ]
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n    \"username\": \"{{editorUsernameRegistered}}\",\n    \"password\": \"{{editorPassword}}\"\n}",
-                                    "options": { "raw": { "language": "json" } }
-                                },
-                                "url": {
-                                    "raw": "{{baseURL}}/auth/login",
-                                    "host": [ "{{baseURL}}" ],
-                                    "path": [ "auth", "login" ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "[SETUP] Register Viewer User",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
-                                            "const jsonData = pm.response.json();",
-                                            "if (jsonData.data && jsonData.data.userId) {",
-                                            "    pm.environment.set(\"viewerUserId\", jsonData.data.userId);",
-                                            "    const username = pm.variables.get(\"viewerUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
-                                            "    pm.environment.set(\"viewerUsernameRegistered\", username);",
-                                            "}"
-                                        ]
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n    \"username\": \"{{viewerUsername}}-{{$timestamp}}\",\n    \"password\": \"{{viewerPassword}}\",\n    \"fullname\": \"Viewer User\"\n}",
-                                    "options": { "raw": { "language": "json" } }
-                                },
-                                "url": {
-                                    "raw": "{{baseURL}}/users",
-                                    "host": [ "{{baseURL}}" ],
-                                    "path": [ "users" ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "[SETUP] Login as Viewer",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                                            "const jsonData = pm.response.json();",
-                                            "if (jsonData.data && jsonData.data.accessToken) {",
-                                            "    pm.environment.set(\"viewerToken\", jsonData.data.accessToken);",
-                                            "}"
-                                        ]
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n    \"username\": \"{{viewerUsernameRegistered}}\",\n    \"password\": \"{{viewerPassword}}\"\n}",
-                                    "options": { "raw": { "language": "json" } }
-                                },
-                                "url": {
-                                    "raw": "{{baseURL}}/auth/login",
-                                    "host": [ "{{baseURL}}" ],
-                                    "path": [ "auth", "login" ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "[SETUP] Assign Admin Role",
-                            "event": [ { "listen": "test", "script": { "exec": ["pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"] } } ],
-                            "request": {
-                                "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                                "method": "POST",
-                                "header": [],
-                                "body": { "mode": "raw", "raw": "{\n    \"v0\": \"{{adminUserId}}\",\n    \"v1\": \"role_admin\"\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{baseURL}}/permissions", "host": [ "{{baseURL}}" ], "path": [ "permissions" ] }
-                            }
-                        },
-                        {
-                            "name": "[SETUP] Assign Editor Role",
-                            "event": [ { "listen": "test", "script": { "exec": ["pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"] } } ],
-                            "request": {
-                                "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                                "method": "POST",
-                                "header": [],
-                                "body": { "mode": "raw", "raw": "{\n    \"v0\": \"{{editorUserId}}\",\n    \"v1\": \"role_editor\"\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{baseURL}}/permissions", "host": [ "{{baseURL}}" ], "path": [ "permissions" ] }
-                            }
-                        },
-                        {
-                            "name": "[SETUP] Assign Viewer Role",
-                            "event": [ { "listen": "test", "script": { "exec": ["pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"] } } ],
-                            "request": {
-                                "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                                "method": "POST",
-                                "header": [],
-                                "body": { "mode": "raw", "raw": "{\n    \"v0\": \"{{viewerUserId}}\",\n    \"v1\": \"role_viewer\"\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{baseURL}}/permissions", "host": [ "{{baseURL}}" ], "path": [ "permissions" ] }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "[SCENARIO] Article Access",
-                    "item": [
-                        {
-                            "name": "[VIEWER] GET Articles (Should Succeed)",
-                            "event": [ { "listen": "test", "script": { "exec": ["pm.test(\"Status code should be 200 OK\", () => pm.response.to.have.status(200));"] } } ],
-                            "request": {
-                                "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{viewerToken}}", "type": "string" } ] },
-                                "method": "GET",
-                                "url": { "raw": "{{baseURL}}/articles", "host": [ "{{baseURL}}" ], "path": [ "articles" ] }
-                            }
-                        },
-                        {
-                            "name": "[VIEWER] POST Article (Should be Forbidden)",
-                            "event": [ { "listen": "test", "script": { "exec": ["pm.test(\"Status code should be 403 Forbidden\", () => pm.response.to.have.status(403));"] } } ],
-                            "request": {
-                                "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{viewerToken}}", "type": "string" } ] },
-                                "method": "POST",
-                                "body": { "mode": "raw", "raw": "{\n    \"title\": \"Viewer Article\",\n    \"content\": \"This should not be created.\"\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{baseURL}}/articles", "host": [ "{{baseURL}}" ], "path": [ "articles" ] }
-                            }
-                        },
-                        {
-                            "name": "[EDITOR] POST Article (Should Succeed)",
-                            "event": [ { "listen": "test", "script": { "exec": ["pm.test(\"Status code should be 201 Created\", () => pm.response.to.have.status(201));"] } } ],
-                            "request": {
-                                "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{editorToken}}", "type": "string" } ] },
-                                "method": "POST",
-                                "body": { "mode": "raw", "raw": "{\n    \"title\": \"Editor Article\",\n    \"content\": \"This should be created.\"\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{baseURL}}/articles", "host": [ "{{baseURL}}" ], "path": [ "articles" ] }
-                            }
-                        }
-                    ]
-                }
-            ],
-            "description": "Test scenarios for accessing protected endpoints with different user roles to verify Casbin middleware."
-        },
-        {
+			"description": "Requests for managing user resources (CRUD)."
+		},
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response should have accessToken\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    // Fix: model uses 'access_token' json tag, not 'accessToken'",
+									"    pm.expect(jsonData.data).to.have.property('access_token');",
+									"    pm.expect(jsonData.data.access_token).to.be.a('string');",
+									"});",
+									"",
+									"// Save the access token to an environment variable",
+									"const jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.access_token) {",
+									"    pm.environment.set(\"authToken\", jsonData.data.access_token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{username}}\",\n    \"password\": \"{{password}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"item": [
+						{
+							"name": "[Positive] Refresh with Valid Cookie",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status should be 200 OK\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response should contain new access token\", function () {",
+											"    const jsonData = pm.response.json();",
+											"    pm.expect(jsonData.data).to.have.property('access_token');",
+											"    pm.environment.set(\"authToken\", jsonData.data.access_token); // Update the auth token",
+											"});",
+											"",
+											"pm.test(\"Should receive a new refresh_token cookie\", function () {",
+											"    pm.expect(pm.response.headers.get('Set-Cookie')).to.include('refresh_token=');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/auth/refresh",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"auth",
+										"refresh"
+									]
+								}
+						}
+						},
+						{
+							"name": "[Negative] Refresh with No Cookie",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status should be 401 Unauthorized\", function () {",
+											"    pm.response.to.have.status(401);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/auth/refresh",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"auth",
+										"refresh"
+									]
+								}
+						}
+						},
+						{
+							"name": "[Negative] Refresh with Invalid Token",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"// This script is illustrative. In a real runner environment, you'd manage cookies.",
+											"// For a single request, we can add the header manually.",
+											"pm.request.headers.add({",
+											"    key: 'Cookie',",
+											"    value: 'refresh_token=this-is-an-invalid-token'",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status should be 401 Unauthorized\", function () {",
+											"    pm.response.to.have.status(401);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/auth/refresh",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"auth",
+										"refresh"
+									]
+								}
+						}
+						}
+					]
+				},
+				{
+					"name": "Logout",
+					"item": [
+						{
+							"name": "[Positive] Logout with Valid Token",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status should be 200 OK\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Should clear the refresh_token cookie\", function () {",
+											"    const cookie = pm.response.headers.get('Set-Cookie');",
+											"    pm.expect(cookie).to.include('refresh_token=;');",
+											"    pm.expect(cookie).to.include('Max-Age=-1');",
+											"});",
+											"",
+											"// Try to use the supposedly revoked token",
+											"pm.sendRequest({",
+											"    url: `${pm.environment.get(\"baseURL\")}/${pm.environment.get(\"apiVersion\")}/users/me`,",
+											"    method: 'GET',",
+											"    header: { 'Authorization': 'Bearer ' + pm.environment.get('authToken') }",
+											"}, function (err, response) {",
+											"    pm.test('Token should be revoked (expect 401)', () => {",
+											"        pm.expect(response.code).to.be.oneOf([401, 403]); // Or 403 depending on implementation",
+											"    });",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/auth/logout",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"auth",
+										"logout"
+									]
+								}
+						}
+						},
+						{
+							"name": "[Negative] Logout with No Token",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status should be 401 Unauthorized\", function () {",
+											"    pm.response.to.have.status(401);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/auth/logout",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"auth",
+										"logout"
+									]
+								}
+						}
+						}
+					]
+				}
+			],
+			"description": "Requests for user login and token management."
+		},
+		{
+			"name": "Roles",
+			"item": [
+				{
+					"name": "Create a New Role",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status should be 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"const jsonData = pm.response.json();",
+									"pm.test(\"Response should have new role data\", function () {",
+									"    pm.expect(jsonData.data.name).to.eql(pm.environment.get(\"newRoleName\"));",
+									"});",
+									"pm.environment.set(\"roleName\", jsonData.data.name);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{newRoleName}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/roles",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"roles"
+							]
+						}
+					}
+				},
+				{
+					"name": "List All Roles",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status should be 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response should be an array of roles\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/roles",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"roles"
+							]
+						}
+					}
+				}
+			],
+			"description": "Handles creation and listing of user roles."
+		},
+		{
+			"name": "Permissions (Casbin Policies)",
+			"item": [
+				{
+					"name": "Add Policy (Grant Permission)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Response message should indicate success\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql('Permission granted successfully');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"{{roleName}}\",\n    \"path\": \"/articles\",\n    \"method\": \"read\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/permissions/grant",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"permissions",
+								"grant"
+							]
+						}
+					},
+					"description": "This is equivalent to AddPolicy in Casbin. It grants a role permission to a specific path and method."
+				},
+				{
+					"name": "View Policies",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Response data should be an array of policies\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/permissions",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"permissions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Permissions for Role",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/permissions/{{roleName}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"permissions",
+								"{{roleName}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "Assign Role to User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response message should indicate success\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql('Role assigned successfully');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{userId}}\",\n    \"role\": \"{{roleName}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"permissions",
+								"assign-role"
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Permission",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"old_permission\": [\"{{roleName}}\", \"/articles\", \"read\"],\n    \"new_permission\": [\"{{roleName}}\", \"/articles\", \"write\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/permissions",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"permissions"
+							]
+						}
+					}
+				},
+				{
+					"name": "Remove Policy (Revoke Permission)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"{{roleName}}\",\n    \"path\": \"/articles\",\n    \"method\": \"write\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/permissions/revoke",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"permissions",
+								"revoke"
+							]
+						}
+					}
+				},
+				{
+					"name": "[SETUP] Grant Admin Access to Get All Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"role:admin\",\n    \"path\": \"/users\",\n    \"method\": \"GET\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/permissions/grant",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"permissions",
+								"grant"
+							]
+						}
+					},
+					"description": "Sets up the necessary policy for admins to access the GET /users endpoint."
+				}
+			],
+			"description": "Requests for managing Casbin access control policies."
+		},
+		{
+			"name": "Access Scenarios (Protected Routes)",
+			"item": [
+				{
+					"name": "[SETUP] Prerequisite Roles & Tokens",
+					"item": [
+						{
+							"name": "[SETUP] Register Admin User",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+											"const jsonData = pm.response.json();",
+											"if (jsonData.data && jsonData.data.userId) {",
+											"    pm.environment.set(\"adminUserId\", jsonData.data.userId);",
+											"    const username = pm.variables.get(\"adminUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
+											"    pm.environment.set(\"adminUsernameRegistered\", username);",
+									"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"{{adminUsername}}-{{$timestamp}}\",\n    \"password\": \"{{adminPassword}}\",\n    \"fullname\": \"Admin User\",\n    \"email\": \"{{adminUsername}}-{{$timestamp}}@example.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/users/register",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"users",
+										"register"
+									]
+								}
+						}
+						},
+						{
+							"name": "[SETUP] Login as Admin",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+											"const jsonData = pm.response.json();",
+											"if (jsonData.data && jsonData.data.access_token) {",
+											"    pm.environment.set(\"adminToken\", jsonData.data.access_token);",
+									"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"{{adminUsernameRegistered}}\",\n    \"password\": \"{{adminPassword}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"auth",
+										"login"
+									]
+								}
+						}
+						},
+						{
+							"name": "[SETUP] Register Editor User",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+											"const jsonData = pm.response.json();",
+											"if (jsonData.data && jsonData.data.userId) {",
+											"    pm.environment.set(\"editorUserId\", jsonData.data.userId);",
+											"    const username = pm.variables.get(\"editorUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
+											"    pm.environment.set(\"editorUsernameRegistered\", username);",
+									"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"{{editorUsername}}-{{$timestamp}}\",\n    \"password\": \"{{editorPassword}}\",\n    \"fullname\": \"Editor User\",\n    \"email\": \"{{editorUsername}}-{{$timestamp}}@example.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/users/register",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"users",
+										"register"
+									]
+								}
+						}
+						},
+						{
+							"name": "[SETUP] Login as Editor",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+											"const jsonData = pm.response.json();",
+											"if (jsonData.data && jsonData.data.access_token) {",
+											"    pm.environment.set(\"editorToken\", jsonData.data.access_token);",
+									"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"{{editorUsernameRegistered}}\",\n    \"password\": \"{{editorPassword}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"auth",
+										"login"
+									]
+								}
+						}
+						},
+						{
+							"name": "[SETUP] Register Viewer User",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+											"const jsonData = pm.response.json();",
+											"if (jsonData.data && jsonData.data.userId) {",
+											"    pm.environment.set(\"viewerUserId\", jsonData.data.userId);",
+											"    const username = pm.variables.get(\"viewerUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
+											"    pm.environment.set(\"viewerUsernameRegistered\", username);",
+									"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"{{viewerUsername}}-{{$timestamp}}\",\n    \"password\": \"{{viewerPassword}}\",\n    \"fullname\": \"Viewer User\",\n    \"email\": \"{{viewerUsername}}-{{$timestamp}}@example.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/users/register",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"users",
+										"register"
+									]
+								}
+						}
+						},
+						{
+							"name": "[SETUP] Login as Viewer",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+											"const jsonData = pm.response.json();",
+											"if (jsonData.data && jsonData.data.access_token) {",
+											"    pm.environment.set(\"viewerToken\", jsonData.data.access_token);",
+									"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"{{viewerUsernameRegistered}}\",\n    \"password\": \"{{viewerPassword}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"auth",
+										"login"
+									]
+								}
+						}
+						},
+						{
+							"name": "[SETUP] Assign Admin Role",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{adminToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_id\": \"{{adminUserId}}\",\n    \"role\": \"role:admin\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"permissions",
+										"assign-role"
+									]
+								}
+						}
+						},
+						{
+							"name": "[SETUP] Assign Editor Role",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{adminToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_id\": \"{{editorUserId}}\",\n    \"role\": \"role:editor\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"permissions",
+										"assign-role"
+									]
+								}
+						}
+						},
+						{
+							"name": "[SETUP] Assign Viewer Role",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{adminToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_id\": \"{{viewerUserId}}\",\n    \"role\": \"role:viewer\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"permissions",
+										"assign-role"
+									]
+								}
+						}
+						}
+					]
+				},
+				{
+					"name": "[SCENARIO] Article Access",
+					"item": [
+						{
+							"name": "[VIEWER] GET Articles (Should Succeed)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code should be 200 OK\", () => pm.response.to.have.status(200));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{viewerToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/articles",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"articles"
+									]
+								}
+						}
+						},
+						{
+							"name": "[VIEWER] POST Article (Should be Forbidden)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code should be 403 Forbidden\", () => pm.response.to.have.status(403));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{viewerToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Viewer Article\",\n    \"content\": \"This should not be created.\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/articles",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"articles"
+									]
+								}
+						}
+						},
+						{
+							"name": "[EDITOR] POST Article (Should Succeed)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code should be 201 Created\", () => pm.response.to.have.status(201));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{editorToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Editor Article\",\n    \"content\": \"This should be created.\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/{{apiVersion}}/articles",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"{{apiVersion}}",
+										"articles"
+									]
+								}
+						}
+						}
+					]
+				}
+			],
+			"description": "Test scenarios for accessing protected endpoints with different user roles to verify Casbin middleware."
+		},
+		{
+			"name": "Endpoints",
+			"item": [
+				{
+					"name": "Create an Endpoint",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status should be 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"const jsonData = pm.response.json();",
+									"pm.environment.set(\"endpointId\", jsonData.data.id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"path\": \"/api/v1/documents\",\n    \"method\": \"GET\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/endpoints",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"endpoints"
+							]
+						}
+					}
+				}
+			],
+			"description": "Manages API endpoint definitions."
+		},
+		{
+			"name": "Access Rights",
+			"item": [
+				{
+					"name": "Create an Access Right",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status should be 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"const jsonData = pm.response.json();",
+									"pm.environment.set(\"accessRightId\", jsonData.data.id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"document:read\",\n    \"description\": \"Allows reading documents\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/access-rights",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"access-rights"
+							]
+						}
+					}
+				},
+				{
+					"name": "List All Access Rights",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status should be 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/access-rights",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"access-rights"
+							]
+						}
+					}
+				},
+				{
+					"name": "Link Endpoint to Access Right",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status should be 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"access_right_id\": {{accessRightId}},\n    \"endpoint_id\": {{endpointId}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/access-rights/link",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"access-rights",
+								"link"
+							]
+						}
+					}
+				}
+			],
+			"description": "Manages conceptual access rights and their links to specific endpoints."
+		},
+		{
 			"name": "Happy Path Workflow",
 			"item": [
 				{
@@ -1321,13 +2072,27 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{workflowUsernameVar}}-{{$timestamp}}\",\n    \"password\": \"{{workflowPasswordVar}}\",\n    \"fullname\": \"Workflow User\"\n}",
-							"options": { "raw": { "language": "json" } }
+							"raw": "{\n    \"username\": \"{{workflowUsernameVar}}-{{$timestamp}}\",\n    \"password\": \"{{workflowPasswordVar}}\",\n    \"fullname\": \"Workflow User\",\n    \"email\": \"{{workflowUsernameVar}}-{{$timestamp}}@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
 						},
-						"url": { "raw": "{{baseURL}}/users", "host": [ "{{baseURL}}" ], "path": [ "users" ] }
-					}
-				},
-                {
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/register",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"register"
+							]
+						}
+				}
+			},
+			{
 					"name": "2. Login as Workflow User",
 					"event": [
 						{
@@ -1336,7 +2101,7 @@
 								"exec": [
 									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
 									"const jsonData = pm.response.json();",
-									"pm.environment.set(\"workflowAuthToken\", jsonData.data.accessToken);"
+									"pm.environment.set(\"workflowAuthToken\", jsonData.data.access_token);"
 								],
 								"type": "text/javascript"
 							}
@@ -1348,212 +2113,112 @@
 						"body": {
 							"mode": "raw",
 							"raw": "{\n    \"username\": \"{{workflowUsername}}\",\n    \"password\": \"{{workflowPasswordVar}}\"\n}",
-							"options": { "raw": { "language": "json" } }
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
 						},
-						"url": { "raw": "{{baseURL}}/auth/login", "host": [ "{{baseURL}}" ], "path": [ "auth", "login" ] }
-					}
-				},
-                {
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"auth",
+								"login"
+							]
+						}
+				}
+			},
+			{
 					"name": "3. [Admin] Assign Role to Workflow User",
-					"event": [ { "listen": "test", "script": { "exec": ["pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"] } } ],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
-						"auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
 						"method": "POST",
 						"header": [],
-						"body": { "mode": "raw", "raw": "{\n    \"v0\": \"{{workflowUserId}}\",\n    \"v1\": \"role_viewer\"\n}", "options": { "raw": { "language": "json" } } },
-						"url": { "raw": "{{baseURL}}/permissions", "host": [ "{{baseURL}}" ], "path": [ "permissions" ] }
-					}
-				},
-                {
-					"name": "4. [Workflow User] Access Protected Resource",
-					"event": [ { "listen": "test", "script": { "exec": ["pm.test(\"Status code should be 200 OK\", () => pm.response.to.have.status(200));"] } } ],
-					"request": {
-						"auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{workflowAuthToken}}", "type": "string" } ] },
-						"method": "GET",
-						"url": { "raw": "{{baseURL}}/articles", "host": [ "{{baseURL}}" ], "path": [ "articles" ] }
-					}
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{workflowUserId}}\",\n    \"role\": \"role:viewer\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"permissions",
+								"assign-role"
+							]
+						}
 				}
-			],
-			"description": "Demonstrates a standard user journey from registration to accessing a protected resource."
-		},
-        {
-            "name": "Roles",
-            "item": [
-                {
-                    "name": "Create a New Role",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status should be 201 Created\", function () {",
-                                    "    pm.response.to.have.status(201);",
-                                    "});",
-                                    "const jsonData = pm.response.json();",
-                                    "pm.test(\"Response should have new role data\", function () {",
-                                    "    pm.expect(jsonData.data.name).to.eql(pm.environment.get(\"newRoleName\"));",
-                                    "});",
-                                    "pm.environment.set(\"roleName\", jsonData.data.name);"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                        "method": "POST",
-                        "header": [],
-                        "body": { "mode": "raw", "raw": "{\n    \"name\": \"{{newRoleName}}\"\n}", "options": { "raw": { "language": "json" } } },
-                        "url": { "raw": "{{baseURL}}/roles", "host": [ "{{baseURL}}" ], "path": [ "roles" ] }
-                    }
-                },
-                {
-                    "name": "List All Roles",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status should be 200 OK\", function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "pm.test(\"Response should be an array of roles\", function () {",
-                                    "    const jsonData = pm.response.json();",
-                                    "    pm.expect(jsonData.data).to.be.an('array');",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                        "method": "GET",
-                        "header": [],
-                        "url": { "raw": "{{baseURL}}/roles", "host": [ "{{baseURL}}" ], "path": [ "roles" ] }
-                    }
-                }
-            ],
-            "description": "Handles creation and listing of user roles."
-        },
-        {
-            "name": "Endpoints",
-            "item": [
-                {
-                    "name": "Create an Endpoint",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status should be 201 Created\", function () {",
-                                    "    pm.response.to.have.status(201);",
-                                    "});",
-                                    "const jsonData = pm.response.json();",
-                                    "pm.environment.set(\"endpointId\", jsonData.data.id);"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"path\": \"/api/v1/documents\",\n    \"method\": \"GET\"\n}",
-                            "options": { "raw": { "language": "json" } }
-                        },
-                        "url": { "raw": "{{baseURL}}/endpoints", "host": [ "{{baseURL}}" ], "path": [ "endpoints" ] }
-                    }
-                }
-            ],
-            "description": "Manages API endpoint definitions."
-        },
-        {
-            "name": "Access Rights",
-            "item": [
-                {
-                    "name": "Create an Access Right",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status should be 201 Created\", function () {",
-                                    "    pm.response.to.have.status(201);",
-                                    "});",
-                                    "const jsonData = pm.response.json();",
-                                    "pm.environment.set(\"accessRightId\", jsonData.data.id);"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"name\": \"document:read\",\n    \"description\": \"Allows reading documents\"\n}",
-                            "options": { "raw": { "language": "json" } }
-                        },
-                        "url": { "raw": "{{baseURL}}/access-rights", "host": [ "{{baseURL}}" ], "path": [ "access-rights" ] }
-                    }
-                },
-                {
-                    "name": "List All Access Rights",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status should be 200 OK\", function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                        "method": "GET",
-                        "header": [],
-                        "url": { "raw": "{{baseURL}}/access-rights", "host": [ "{{baseURL}}" ], "path": [ "access-rights" ] }
-                    }
-                },
-                {
-                    "name": "Link Endpoint to Access Right",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status should be 200 OK\", function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"access_right_id\": {{accessRightId}},\n    \"endpoint_id\": {{endpointId}}\n}",
-                            "options": { "raw": { "language": "json" } }
-                        },
-                        "url": { "raw": "{{baseURL}}/access-rights/link", "host": [ "{{baseURL}}" ], "path": [ "access-rights", "link" ] }
-                    }
-                }
-            ],
-            "description": "Manages conceptual access rights and their links to specific endpoints."
-        }
+			},
+			{
+					"name": "4. [Workflow User] Access Protected Resource",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code should be 200 OK\", () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{workflowAuthToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/articles",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"articles"
+							]
+						}
+				}
+			}
+		],
+		"description": "Demonstrates a standard user journey from registration to accessing a protected resource."
+		}
 	]
 }
