@@ -8,6 +8,6 @@ var (
 	ErrUnauthorized        = errors.New("unauthorized")
 	ErrForbidden           = errors.New("forbidden")
 	ErrInternalServer      = errors.New("internal server error")
-	ErrConflict            = errors.New("conflict")
+	ErrConflict            = errors.New("data already exists")
 	ErrUnprocessableEntity = errors.New("unprocessable entity")
 )

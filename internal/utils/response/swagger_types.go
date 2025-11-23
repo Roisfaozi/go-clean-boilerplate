@@ -1,7 +1,9 @@
 package response
 
 import (
+	accessModel "github.com/Roisfaozi/casbin-db/internal/modules/access/model"
 	authModel "github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
+	roleModel "github.com/Roisfaozi/casbin-db/internal/modules/role/model"
 	userModel "github.com/Roisfaozi/casbin-db/internal/modules/user/model"
 )
 
@@ -43,4 +45,60 @@ type SwaggerGeneralResponseWrapper struct {
 	Paging *PageMetadata     `json:"paging,omitempty"`
 	Errors string            `json:"errors,omitempty"`
 	Error  string            `json:"error,omitempty"`
+}
+
+// SwaggerErrorResponseWrapper wraps an error response for Swagger documentation.
+type SwaggerErrorResponseWrapper struct {
+	Data   interface{}   `json:"data,omitempty"`
+	Paging *PageMetadata `json:"paging,omitempty"`
+	Errors string        `json:"errors,omitempty"`
+	Error  string        `json:"error,omitempty"`
+}
+
+// SwaggerRoleResponseWrapper wraps the RoleResponse for Swagger documentation.
+type SwaggerRoleResponseWrapper struct {
+	Data   roleModel.RoleResponse `json:"data"`
+	Paging *PageMetadata          `json:"paging,omitempty"`
+	Errors string                 `json:"errors,omitempty"`
+	Error  string                 `json:"error,omitempty"`
+}
+
+// SwaggerRoleListResponseWrapper wraps a list of RoleResponse for Swagger documentation.
+type SwaggerRoleListResponseWrapper struct {
+	Data   []roleModel.RoleResponse `json:"data"`
+	Paging *PageMetadata            `json:"paging,omitempty"`
+	Errors string                   `json:"errors,omitempty"`
+	Error  string                   `json:"error,omitempty"`
+}
+
+// SwaggerAccessRightResponseWrapper wraps the AccessRightResponse for Swagger documentation.
+type SwaggerAccessRightResponseWrapper struct {
+	Data   accessModel.AccessRightResponse `json:"data"`
+	Paging *PageMetadata                   `json:"paging,omitempty"`
+	Errors string                          `json:"errors,omitempty"`
+	Error  string                          `json:"error,omitempty"`
+}
+
+// SwaggerAccessRightListResponseWrapper wraps the AccessRightListResponse for Swagger documentation.
+type SwaggerAccessRightListResponseWrapper struct {
+	Data   accessModel.AccessRightListResponse `json:"data"`
+	Paging *PageMetadata                       `json:"paging,omitempty"`
+	Errors string                              `json:"errors,omitempty"`
+	Error  string                              `json:"error,omitempty"`
+}
+
+// SwaggerEndpointResponseWrapper wraps the EndpointResponse for Swagger documentation.
+type SwaggerEndpointResponseWrapper struct {
+	Data   accessModel.EndpointResponse `json:"data"`
+	Paging *PageMetadata                `json:"paging,omitempty"`
+	Errors string                       `json:"errors,omitempty"`
+	Error  string                       `json:"error,omitempty"`
+}
+
+// SwaggerPermissionListResponseWrapper wraps a list of permissions (string arrays) for Swagger documentation.
+type SwaggerPermissionListResponseWrapper struct {
+	Data   [][]string    `json:"data"`
+	Paging *PageMetadata `json:"paging,omitempty"`
+	Errors string        `json:"errors,omitempty"`
+	Error  string        `json:"error,omitempty"`
 }

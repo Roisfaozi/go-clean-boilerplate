@@ -32,10 +32,10 @@ func NewRoleHandler(roleUseCase usecase.RoleUseCase, log *logrus.Logger) *RoleHa
 // @Accept       json
 // @Produce      json
 // @Param        request body model.CreateRoleRequest true "Role Creation Details"
-// @Success      201  {object}  response.WebResponseAny
-// @Failure      400  {object}  response.WebResponseAny "Invalid request body"
-// @Failure      409  {object}  response.WebResponseAny "Role already exists"
-// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Success      201  {object}  response.SwaggerRoleResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      409  {object}  response.SwaggerErrorResponseWrapper "Role already exists"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /roles [post]
 func (h *RoleHandler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -62,8 +62,8 @@ func (h *RoleHandler) Create(c *gin.Context) {
 // @Tags         roles
 // @Security     BearerAuth
 // @Produce      json
-// @Success      200  {object}  response.WebResponseAny
-// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Success      200  {object}  response.SwaggerRoleListResponseWrapper
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /roles [get]
 func (h *RoleHandler) GetAll(c *gin.Context) {
 	ctx := c.Request.Context()
