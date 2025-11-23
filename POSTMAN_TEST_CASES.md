@@ -21,14 +21,16 @@ Koleksi ini dibagi menjadi beberapa folder utama berdasarkan modul fungsionalita
 
 ## 📝 Detail Endpoint dan Skenario Tes
 
+Semua URL endpoint menggunakan variabel `{{baseURL}}/{{apiVersion}}/` (contoh: `http://localhost:8080/api/v1/`).
+
 ### 1. Users (Manajemen Pengguna)
 
 Folder ini berisi operasi CRUD untuk pengguna, termasuk endpoint publik dan endpoint khusus admin.
 
 | Request | Method | Endpoint | Auth | Deskripsi & Skenario Tes |
 | :--- | :---: | :--- | :---: | :--- |
-| **Register New User** | `POST` | `/users/register` | - | Mendaftarkan pengguna baru.<br>✅ **Tes Positif**: Memastikan status `201 Created`, respon JSON valid, dan presence of `userId`. Saves `userId`, `username`, and `password` to environment variables for subsequent tests. |
-| **Register User with Existing Username** | `POST` | `/users/register` | - | Mencoba mendaftar dengan username yang sudah ada.<br>❌ **Tes Negatif**: Memastikan status `409 Conflict` atau konflik yang sesuai. |
+| **Register New User** | `POST` | `/users/register` | - | Mendaftarkan pengguna baru.<br>✅ **Tes Positif**: Memastikan status `201 Created`, respon JSON valid, dan presence of `id`. Saves `userId`, `username`, and `password` to environment variables. |
+| **Register User with Existing Username** | `POST` | `/users/register` | - | Mencoba mendaftar dengan username yang sudah ada.<br>❌ **Tes Negatif**: Memastikan status `409 Conflict`. |
 | **Register User with Bad Payload** | `POST` | `/users/register` | - | Mengirim payload yang tidak lengkap atau salah.<br>❌ **Tes Negatif**: Memastikan status `400 Bad Request`. |
 | **[SECURITY] POST User with Malformed JSON** | `POST` | `/users/register` | - | Mengirim JSON yang rusak (syntax error).<br>🔒 **Tes Keamanan**: Memastikan server menangani error dengan `400 Bad Request` tanpa *panic*. |
 | **Get Current User** | `GET` | `/users/me` | `authToken` | Mengambil profil pengguna yang sedang login.<br>✅ **Tes Positif**: Memastikan status `200 OK` dan ID pengguna sesuai dengan token. |
@@ -42,7 +44,7 @@ Folder ini berisi operasi CRUD untuk pengguna, termasuk endpoint publik dan endp
 
 | Request | Method | Endpoint | Auth | Deskripsi & Skenario Tes |
 | :--- | :---: | :--- | :---: | :--- |
-| **Login User** | `POST` | `/auth/login` | - | Login pengguna untuk mendapatkan token.<br>✅ **Tes Positif**: Memastikan status `200 OK` dan menyimpan `accessToken` ke variabel `authToken`. |
+| **Login User** | `POST` | `/auth/login` | - | Login pengguna untuk mendapatkan token.<br>✅ **Tes Positif**: Memastikan status `200 OK` dan menyimpan `access_token` ke variabel `authToken`. |
 | **[Positive] Refresh with Valid Cookie** | `POST` | `/auth/refresh` | Cookie | Menggunakan refresh token dari cookie untuk mendapatkan access token baru.<br>✅ **Tes Positif**: Status `200 OK`, token baru diterima, dan cookie diperbarui. |
 | **[Negative] Refresh with No Cookie** | `POST` | `/auth/refresh` | - | Mencoba refresh tanpa cookie.<br>❌ **Tes Negatif**: Memastikan status `401 Unauthorized`. |
 | **[Negative] Refresh with Invalid Token** | `POST` | `/auth/refresh` | Cookie | Mencoba refresh dengan token palsu.<br>❌ **Tes Negatif**: Memastikan status `401 Unauthorized`. |
@@ -53,7 +55,7 @@ Folder ini berisi operasi CRUD untuk pengguna, termasuk endpoint publik dan endp
 
 | Request | Method | Endpoint | Auth | Deskripsi & Skenario Tes |
 | :--- | :---: | :--- | :---: | :--- |
-| **Create a New Role** | `POST` | `/roles` | `adminToken` | Membuat peran baru (misal: 'manager').<br>✅ **Tes Positif**: Status `201 Created`, memvalidasi nama role yang dibuat. |
+| **Create a New Role** | `POST` | `/roles` | `adminToken` | Membuat peran baru (misal: 'manager').<br>✅ **Tes Positif**: Status `201 Created`. |
 | **List All Roles** | `GET` | `/roles` | `adminToken` | Mendapatkan semua peran yang tersedia.<br>✅ **Tes Positif**: Status `200 OK`, respons berupa array role. |
 
 ### 4. Permissions (Kebijakan Casbin)
@@ -97,6 +99,7 @@ Fitur manajemen metadata API dan hak akses abstrak.
 Koleksi ini menggunakan variabel berikut yang diatur secara otomatis oleh skrip tes (`pm.environment.set`):
 
 *   `baseURL`: URL dasar API (misal: `http://localhost:8080`).
+*   `apiVersion`: Versi API (misal: `api/v1`).
 *   `authToken`: Token JWT pengguna biasa yang sedang dites.
 *   `adminToken`: Token JWT khusus admin untuk endpoint terproteksi tinggi.
 *   `userId`: ID pengguna yang baru dibuat.

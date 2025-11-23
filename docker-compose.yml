@@ -1,0 +1,60 @@
+
+services:
+  mysql:
+    image: mysql:lts
+    container_name: casbin-mysql
+    environment:
+      MYSQL_DATABASE: gin_starter
+      MYSQL_ROOT_PASSWORD: Password0!
+      MYSQL_INITDB_SKIP_TZINFO: 1
+    ports:
+      - "3307:3306"
+    volumes:
+      - casbin_db:/var/lib/mysql
+      - ./db/initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
+    restart: unless-stopped
+    networks:
+      - casbin-network
+      - global-network
+
+  redis:
+    image: redis:8.4-alpine
+    container_name: casbin-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - casbin_cache:/data
+    command: redis-server --save 20 1 --loglevel warning --requirepass Password0!
+    restart: unless-stopped
+    networks:
+      - casbin-network
+      - global-network
+
+  # Uncomment and configure this if you need a web interface for Redis
+  # redis-commander:
+  #   image: rediscommander/redis-commander:latest
+  #   container_name: redis-commander
+  #   environment:
+  #     - REDIS_HOSTS=local:redis:6379
+  #   ports:
+  #     - "8081:8081"
+  #   depends_on:
+  #     - redis
+  #   restart: unless-stopped
+  #   networks:
+  #     - casbin-network
+
+networks:
+  casbin-network:
+    driver: bridge
+  global-network:
+    driver: bridge
+
+volumes:
+  casbin_db:
+  casbin_cache:
