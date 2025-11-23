@@ -25,6 +25,18 @@ func NewPermissionHandler(useCase usecase.IPermissionUseCase, validate *validato
 	}
 }
 
+// AssignRole assigns a role to a user
+// @Summary      Assign role to user
+// @Description  Assigns a specific role to a user.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.AssignRoleRequest true "Assign Role Request"
+// @Success      200  {object}  response.WebResponseAny "Role assigned successfully"
+// @Failure      400  {object}  response.WebResponseAny "Invalid request body"
+// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Router       /permissions/assign-role [post]
 func (h *PermissionHandler) AssignRole(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.AssignRoleRequest
@@ -46,6 +58,18 @@ func (h *PermissionHandler) AssignRole(c *gin.Context) {
 	response.Success(c, gin.H{"message": "Role assigned successfully"})
 }
 
+// GrantPermission grants a permission to a role
+// @Summary      Grant permission
+// @Description  Grants a specific permission (path & method) to a role.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.GrantPermissionRequest true "Grant Permission Request"
+// @Success      200  {object}  response.WebResponseAny "Permission granted successfully"
+// @Failure      400  {object}  response.WebResponseAny "Invalid request body"
+// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Router       /permissions/grant [post]
 func (h *PermissionHandler) GrantPermission(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.GrantPermissionRequest
@@ -67,7 +91,15 @@ func (h *PermissionHandler) GrantPermission(c *gin.Context) {
 	response.Success(c, gin.H{"message": "Permission granted successfully"})
 }
 
-// GetAllPermissions handles the request to get all permissions.
+// GetAllPermissions retrieves all permissions
+// @Summary      Get all permissions
+// @Description  Retrieves all policies from the Casbin enforcer.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  response.WebResponseAny
+// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Router       /permissions [get]
 func (h *PermissionHandler) GetAllPermissions(c *gin.Context) {
 	permissions, err := h.useCase.GetAllPermissions()
 	if err != nil {
@@ -78,7 +110,17 @@ func (h *PermissionHandler) GetAllPermissions(c *gin.Context) {
 	response.Success(c, permissions)
 }
 
-// GetPermissionsForRole handles the request to get permissions for a specific role.
+// GetPermissionsForRole retrieves permissions for a specific role
+// @Summary      Get permissions for role
+// @Description  Retrieves all permissions associated with a specific role.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        role path string true "Role Name"
+// @Success      200  {object}  response.WebResponseAny
+// @Failure      400  {object}  response.WebResponseAny "Role parameter required"
+// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Router       /permissions/{role} [get]
 func (h *PermissionHandler) GetPermissionsForRole(c *gin.Context) {
 	role := c.Param("role")
 	if role == "" {
@@ -95,7 +137,19 @@ func (h *PermissionHandler) GetPermissionsForRole(c *gin.Context) {
 	response.Success(c, permissions)
 }
 
-// UpdatePermission handles the request to update a permission.
+// UpdatePermission updates an existing permission
+// @Summary      Update permission
+// @Description  Updates an existing policy rule.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.UpdatePermissionRequest true "Update Permission Request"
+// @Success      200  {object}  response.WebResponseAny "Permission updated successfully"
+// @Failure      400  {object}  response.WebResponseAny "Invalid request body"
+// @Failure      404  {object}  response.WebResponseAny "Policy to update not found"
+// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Router       /permissions [put]
 func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 	var req model.UpdatePermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -119,4 +173,37 @@ func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{"message": "Permission updated successfully"})
+}
+
+// RevokePermission revokes a permission from a role
+// @Summary      Revoke permission
+// @Description  Revokes a specific permission (path & method) from a role.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.GrantPermissionRequest true "Revoke Permission Request"
+// @Success      200  {object}  response.WebResponseAny "Permission revoked successfully"
+// @Failure      400  {object}  response.WebResponseAny "Invalid request body"
+// @Failure      500  {object}  response.WebResponseAny "Internal server error"
+// @Router       /permissions/revoke [delete]
+func (h *PermissionHandler) RevokePermission(c *gin.Context) {
+	ctx := c.Request.Context()
+	var req model.GrantPermissionRequest // Reuse GrantPermissionRequest as it has Role, Path, Method
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, errors.New("invalid request body"))
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+
+	if err := h.useCase.RevokePermissionFromRole(ctx, req.Role, req.Path, req.Method); err != nil {
+		h.log.WithError(err).Error("Failed to revoke permission")
+		response.InternalServerError(c, errors.New("could not revoke permission"))
+		return
+	}
+
+	response.Success(c, gin.H{"message": "Permission revoked successfully"})
 }

@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/Roisfaozi/casbin-db/docs" // Register Swagger docs
 	"github.com/Roisfaozi/casbin-db/internal/config"
 )
 

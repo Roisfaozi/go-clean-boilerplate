@@ -30,10 +30,10 @@ func NewAuthHandler(authUseCase usecase.AuthUseCase, log *logrus.Logger) *AuthHa
 // @Accept       json
 // @Produce      json
 // @Param        loginRequest  body      model.LoginRequest  true  "Login Credentials"
-// @Success      200      {object}  response.WebResponse[model.LoginResponse]
-// @Failure      400      {object}  response.WebResponse[any] "Invalid request body"
-// @Failure      401      {object}  response.WebResponse[any] "Invalid credentials"
-// @Failure      500      {object}  response.WebResponse[any] "Internal server error"
+// @Success      200      {object}  response.SwaggerLoginResponseWrapper
+// @Failure      400      {object}  response.WebResponseAny "Invalid request body"
+// @Failure      401      {object}  response.WebResponseAny "Invalid credentials"
+// @Failure      500      {object}  response.WebResponseAny "Internal server error"
 // @Router       /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req model.LoginRequest
@@ -59,9 +59,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Description  Refreshes an access token using a valid refresh token provided in an HTTP-only cookie.
 // @Tags         auth
 // @Produce      json
-// @Success      200  {object}  response.WebResponse[model.TokenResponse]
-// @Failure      401  {object}  response.WebResponse[any] "Refresh token not found or invalid"
-// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Success      200  {object}  response.SwaggerTokenResponseWrapper
+// @Failure      401  {object}  response.WebResponseAny "Refresh token not found or invalid"
+// @Failure      500  {object}  response.WebResponseAny "Internal server error"
 // @Router       /auth/refresh [post]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")
@@ -87,9 +87,9 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // @Tags         auth
 // @Security     BearerAuth
 // @Produce      json
-// @Success      200  {object}  response.WebResponse[string] "message: logged out successfully"
-// @Failure      401  {object}  response.WebResponse[any] "User not authenticated or invalid session"
-// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "message: logged out successfully"
+// @Failure      401  {object}  response.WebResponseAny "User not authenticated or invalid session"
+// @Failure      500  {object}  response.WebResponseAny "Internal server error"
 // @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	userID, exists := c.Get("user_id")

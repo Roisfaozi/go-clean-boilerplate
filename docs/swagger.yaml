@@ -1,0 +1,940 @@
+basePath: /api/v1
+definitions:
+  github_com_Roisfaozi_casbin-db_internal_modules_access_model.CreateAccessRightRequest:
+    properties:
+      description:
+        maxLength: 255
+        type: string
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+    required:
+    - name
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_access_model.CreateEndpointRequest:
+    properties:
+      method:
+        maxLength: 10
+        minLength: 1
+        type: string
+      path:
+        maxLength: 191
+        minLength: 1
+        type: string
+    required:
+    - method
+    - path
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_access_model.LinkEndpointRequest:
+    properties:
+      access_right_id:
+        type: integer
+      endpoint_id:
+        type: integer
+    required:
+    - access_right_id
+    - endpoint_id
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginRequest:
+    properties:
+      password:
+        minLength: 8
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      expires_at:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+      user:
+        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.UserInfo'
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_auth_model.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_at:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_auth_model.UserInfo:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      username:
+        type: string
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_permission_model.AssignRoleRequest:
+    properties:
+      role:
+        type: string
+      user_id:
+        type: string
+    required:
+    - role
+    - user_id
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_permission_model.GrantPermissionRequest:
+    properties:
+      method:
+        type: string
+      path:
+        type: string
+      role:
+        type: string
+    required:
+    - method
+    - path
+    - role
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_permission_model.UpdatePermissionRequest:
+    properties:
+      new_permission:
+        items:
+          type: string
+        maxItems: 3
+        minItems: 3
+        type: array
+      old_permission:
+        items:
+          type: string
+        maxItems: 3
+        minItems: 3
+        type: array
+    required:
+    - new_permission
+    - old_permission
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_role_model.CreateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        maxLength: 50
+        type: string
+    required:
+    - name
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_user_model.RegisterUserRequest:
+    properties:
+      email:
+        type: string
+      fullname:
+        maxLength: 100
+        minLength: 3
+        type: string
+      password:
+        maxLength: 100
+        minLength: 8
+        type: string
+      username:
+        maxLength: 100
+        minLength: 6
+        type: string
+    required:
+    - fullname
+    - password
+    - username
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_user_model.UpdateUserRequest:
+    properties:
+      name:
+        maxLength: 100
+        type: string
+      password:
+        maxLength: 100
+        type: string
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse:
+    properties:
+      created_at:
+        type: integer
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      token:
+        type: string
+      updated_at:
+        type: integer
+      username:
+        type: string
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata:
+    properties:
+      page:
+        type: integer
+      size:
+        type: integer
+      total_item:
+        type: integer
+      total_page:
+        type: integer
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper:
+    properties:
+      data:
+        additionalProperties:
+          type: string
+        description: 'Example: {"message": "success"}'
+        type: object
+      error:
+        type: string
+      errors:
+        type: string
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerLoginResponseWrapper:
+    properties:
+      data:
+        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginResponse'
+      error:
+        type: string
+      errors:
+        type: string
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerTokenResponseWrapper:
+    properties:
+      data:
+        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.TokenResponse'
+      error:
+        type: string
+      errors:
+        type: string
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserListResponseWrapper:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse'
+        type: array
+      error:
+        type: string
+      errors:
+        type: string
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper:
+    properties:
+      data:
+        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse'
+      error:
+        type: string
+      errors:
+        type: string
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny:
+    properties:
+      data: {}
+      error:
+        type: string
+      errors:
+        type: string
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server for a modular application with JWT authentication.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Modular API with JWT
+  version: "1.0"
+paths:
+  /access-rights:
+    get:
+      description: Retrieves a list of all available access rights.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: List all access rights
+      tags:
+      - access-rights
+    post:
+      consumes:
+      - application/json
+      description: Creates a new access right (resource group).
+      parameters:
+      - description: Create Access Right Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.CreateAccessRightRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Create access right
+      tags:
+      - access-rights
+  /access-rights/link:
+    post:
+      consumes:
+      - application/json
+      description: Associates an endpoint with a specific access right.
+      parameters:
+      - description: Link Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.LinkEndpointRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Endpoint linked successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Link endpoint to access right
+      tags:
+      - access-rights
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Logs in a user by validating credentials and returns an access
+        token and a refresh token cookie.
+      parameters:
+      - description: Login Credentials
+        in: body
+        name: loginRequest
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerLoginResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      summary: User Login
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Logs out the current user by revoking their session.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: logged out successfully'
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
+        "401":
+          description: User not authenticated or invalid session
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: User Logout
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      description: Refreshes an access token using a valid refresh token provided
+        in an HTTP-only cookie.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerTokenResponseWrapper'
+        "401":
+          description: Refresh token not found or invalid
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      summary: Refresh Access Token
+      tags:
+      - auth
+  /endpoints:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new API endpoint in the system.
+      parameters:
+      - description: Create Endpoint Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.CreateEndpointRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Create endpoint
+      tags:
+      - endpoints
+  /permissions:
+    get:
+      description: Retrieves all policies from the Casbin enforcer.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Get all permissions
+      tags:
+      - permissions
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing policy rule.
+      parameters:
+      - description: Update Permission Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_permission_model.UpdatePermissionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Permission updated successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "404":
+          description: Policy to update not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Update permission
+      tags:
+      - permissions
+  /permissions/{role}:
+    get:
+      description: Retrieves all permissions associated with a specific role.
+      parameters:
+      - description: Role Name
+        in: path
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "400":
+          description: Role parameter required
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Get permissions for role
+      tags:
+      - permissions
+  /permissions/assign-role:
+    post:
+      consumes:
+      - application/json
+      description: Assigns a specific role to a user.
+      parameters:
+      - description: Assign Role Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_permission_model.AssignRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role assigned successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Assign role to user
+      tags:
+      - permissions
+  /permissions/grant:
+    post:
+      consumes:
+      - application/json
+      description: Grants a specific permission (path & method) to a role.
+      parameters:
+      - description: Grant Permission Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_permission_model.GrantPermissionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Permission granted successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Grant permission
+      tags:
+      - permissions
+  /permissions/revoke:
+    delete:
+      consumes:
+      - application/json
+      description: Revokes a specific permission (path & method) from a role.
+      parameters:
+      - description: Revoke Permission Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_permission_model.GrantPermissionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Permission revoked successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Revoke permission
+      tags:
+      - permissions
+  /roles:
+    get:
+      description: Get a list of all available roles.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: List all roles
+      tags:
+      - roles
+    post:
+      consumes:
+      - application/json
+      description: Create a new user role.
+      parameters:
+      - description: Role Creation Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "409":
+          description: Role already exists
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Create a new role
+      tags:
+      - roles
+  /users:
+    get:
+      description: Retrieves a list of all users with optional pagination and filtering.
+        Accessible only by admins/superadmins.
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 10)
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by username
+        in: query
+        name: username
+        type: string
+      - description: Filter by email
+        in: query
+        name: email
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserListResponseWrapper'
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Get all users
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      description: Deletes a specific user by their ID. Accessible only by admins/superadmins.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: User deleted successfully'
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Delete user by ID
+      tags:
+      - users
+    get:
+      description: Retrieves profile information for a specific user by their ID.
+        Accessible only by admins/superadmins.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Get user by ID
+      tags:
+      - users
+  /users/me:
+    get:
+      description: Retrieves profile information for the currently authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Updates the name or password for the currently authenticated user.
+      parameters:
+      - description: Fields to update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      security:
+      - BearerAuth: []
+      summary: Update current user
+      tags:
+      - users
+  /users/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account.
+      parameters:
+      - description: User Registration Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.RegisterUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "409":
+          description: User with the same ID already exists
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseAny'
+      summary: Register a new user
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: '"Type ''Bearer '' followed by a space and the access token."'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

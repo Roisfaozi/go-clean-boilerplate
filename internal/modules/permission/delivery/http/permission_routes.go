@@ -12,5 +12,6 @@ func RegisterPermissionRoutes(router *gin.RouterGroup, handler *PermissionHandle
 		permissionGroup.GET("", handler.GetAllPermissions)
 		permissionGroup.GET("/:role", handler.GetPermissionsForRole)
 		permissionGroup.PUT("", handler.UpdatePermission)
+		permissionGroup.DELETE("/revoke", handler.RevokePermission)
 	}
 }
