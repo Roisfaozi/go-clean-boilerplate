@@ -35,6 +35,12 @@ func SetupRouter(
 
 	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	router.GET("/api/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "OK",
+		})
+	})
+
 	router.GET("/ws", wsController.HandleWebSocket)
 
 	apiV1 := router.Group("/api/v1")

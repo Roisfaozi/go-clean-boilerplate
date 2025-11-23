@@ -15,9 +15,9 @@ DB_PASSWORD = Password0!
 DB_PASSWORD_PROD =
 DB_HOST = localhost
 DB_HOST_PROD =
-DB_PORT = 3306
+DB_PORT = 3307
 DB_PORT_PROD = 3307
-DB_NAME = 
+DB_NAME = gin_starter
 DB_NAME_PROD =
 DB_URL = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@tcp($(DB_HOST):$(DB_PORT))/$(DB_NAME)"
 DB_URL_PROD = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_PROD)@tcp($(DB_HOST_PROD):$(DB_PORT_PROD))/$(DB_NAME_PROD)"
@@ -136,4 +136,7 @@ migrate-force: ## Force a specific migration version (e.g., make migrate-force v
 migrate-version: ## Show current migration version
 	@migrate -path $(MIGRATIONS_DIR) -database $(DB_URL) version
 
+.PHONY: gemini
+gemini: ## Set MySQL environment variables
+	@powershell -Command "$$env:MYSQL_HOST='$(DB_HOST)'; $$env:MYSQL_PORT='$(DB_PORT)'; $$env:MYSQL_DATABASE='$(DB_NAME)'; $$env:MYSQL_USER='$(DB_USER)'; $$env:MYSQL_PASSWORD='$(DB_PASSWORD)'; gemini"
 
