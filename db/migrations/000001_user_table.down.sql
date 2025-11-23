@@ -1,4 +1,5 @@
 -- Drop users table and its indexes
-DROP INDEX IF EXISTS idx_users_email;
-DROP INDEX IF EXISTS idx_users_deleted_at;
-DROP TABLE IF EXISTS users;
+ALTER TABLE users
+    DROP INDEX idx_users_email,
+    DROP INDEX idx_users_deleted_at;
+DROP TABLE users;

@@ -3,14 +3,14 @@ CREATE TABLE access_rights (
                                name VARCHAR(191) NOT NULL UNIQUE,
                                description TEXT,
                                created_at BIGINT NOT NULL,
-                               updated_at BIGINT NOT NULL,
+                               updated_at BIGINT NOT NULL
 )Engine=InnoDB;
 
 CREATE TABLE endpoints (
                            id INT AUTO_INCREMENT PRIMARY KEY,
                            path VARCHAR(191) NOT NULL,
                            method VARCHAR(10) NOT NULL,
-                           deleted_at BIGINT DEFAULT 0
+                           deleted_at BIGINT DEFAULT 0,
                            UNIQUE KEY idx_path_method (path, method)
 )Engine=InnoDB;
 
