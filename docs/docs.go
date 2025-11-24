@@ -749,25 +749,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid query parameters",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     }
                 }
@@ -963,25 +963,25 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     }
                 }
@@ -1019,25 +1019,25 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     }
                 }
@@ -1414,12 +1414,6 @@ const docTemplate = `{
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightListResponse"
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1430,12 +1424,6 @@ const docTemplate = `{
             "properties": {
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightResponse"
-                },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
                 },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
@@ -1448,12 +1436,6 @@ const docTemplate = `{
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.EndpointResponse"
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1462,15 +1444,11 @@ const docTemplate = `{
         "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper": {
             "type": "object",
             "properties": {
-                "data": {},
                 "error": {
                     "type": "string"
                 },
-                "errors": {
+                "message": {
                     "type": "string"
-                },
-                "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
             }
         },
@@ -1484,12 +1462,6 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1500,12 +1472,6 @@ const docTemplate = `{
             "properties": {
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginResponse"
-                },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
                 },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
@@ -1524,12 +1490,6 @@ const docTemplate = `{
                         }
                     }
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1544,12 +1504,6 @@ const docTemplate = `{
                         "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.RoleResponse"
                     }
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1561,12 +1515,6 @@ const docTemplate = `{
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.RoleResponse"
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1577,12 +1525,6 @@ const docTemplate = `{
             "properties": {
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.TokenResponse"
-                },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
                 },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
@@ -1598,12 +1540,6 @@ const docTemplate = `{
                         "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse"
                     }
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1615,27 +1551,15 @@ const docTemplate = `{
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse"
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any": {
+        "github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any": {
             "type": "object",
             "properties": {
                 "data": {},
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1662,8 +1586,6 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "This is a sample server for a modular application with JWT authentication.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
-	LeftDelim:        "{{",
-	RightDelim:       "}}",
 }
 
 func init() {

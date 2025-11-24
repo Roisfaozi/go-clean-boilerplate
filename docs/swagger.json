@@ -743,25 +743,25 @@
                     "400": {
                         "description": "Invalid query parameters",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     }
                 }
@@ -957,25 +957,25 @@
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     }
                 }
@@ -1013,25 +1013,25 @@
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
                         }
                     }
                 }
@@ -1408,12 +1408,6 @@
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightListResponse"
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1424,12 +1418,6 @@
             "properties": {
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightResponse"
-                },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
                 },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
@@ -1442,12 +1430,6 @@
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.EndpointResponse"
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1456,15 +1438,11 @@
         "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper": {
             "type": "object",
             "properties": {
-                "data": {},
                 "error": {
                     "type": "string"
                 },
-                "errors": {
+                "message": {
                     "type": "string"
-                },
-                "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
             }
         },
@@ -1478,12 +1456,6 @@
                         "type": "string"
                     }
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1494,12 +1466,6 @@
             "properties": {
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginResponse"
-                },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
                 },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
@@ -1518,12 +1484,6 @@
                         }
                     }
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1538,12 +1498,6 @@
                         "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.RoleResponse"
                     }
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1555,12 +1509,6 @@
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.RoleResponse"
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1571,12 +1519,6 @@
             "properties": {
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.TokenResponse"
-                },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
                 },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
@@ -1592,12 +1534,6 @@
                         "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse"
                     }
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
@@ -1609,27 +1545,15 @@
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse"
                 },
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any": {
+        "github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any": {
             "type": "object",
             "properties": {
                 "data": {},
-                "error": {
-                    "type": "string"
-                },
-                "errors": {
-                    "type": "string"
-                },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }

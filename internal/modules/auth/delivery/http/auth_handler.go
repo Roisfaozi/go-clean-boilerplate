@@ -6,6 +6,7 @@ import (
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase"
+	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -42,18 +43,19 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Warn("Login failed: could not bind request")
-		response.BadRequest(c, errors.New("invalid request body"))
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.validate.Struct(req); err != nil {
-		response.ValidationError(c, err)
+		validationErrors := err.(validator.ValidationErrors)
+		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
 		return
 	}
 
 	loginResp, refreshToken, err := h.AuthUseCase.Login(c.Request.Context(), req)
 	if err != nil {
-		h.handleError(c, err)
+		h.handleError(c, err, "login failed")
 		return
 	}
 
@@ -74,13 +76,13 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
 		h.Log.Warn("Refresh token not found in cookie")
-		response.Unauthorized(c, errors.New("refresh token not found"))
+		response.Unauthorized(c, exception.ErrUnauthorized, "refresh token not found")
 		return
 	}
 
 	tokenResp, newRefreshToken, err := h.AuthUseCase.RefreshToken(c.Request.Context(), refreshToken)
 	if err != nil {
-		h.handleError(c, err)
+		h.handleError(c, err, "failed to refresh token")
 		return
 	}
 
@@ -101,19 +103,19 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 func (h *AuthHandler) Logout(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.Unauthorized(c, errors.New("user not authenticated"))
+		response.Unauthorized(c, exception.ErrUnauthorized, "unauthorized")
 		return
 	}
 
 	sessionID, exists := c.Get("session_id")
 	if !exists {
-		response.Unauthorized(c, errors.New("invalid session"))
+		response.Unauthorized(c, exception.ErrUnauthorized, "invalid session")
 		return
 	}
 
 	err := h.AuthUseCase.RevokeToken(c.Request.Context(), userID.(string), sessionID.(string))
 	if err != nil {
-		h.handleError(c, err)
+		h.handleError(c, err, "failed to revoke token")
 		return
 	}
 
@@ -123,18 +125,18 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 // handleError centralizes error handling for the auth handler
-func (h *AuthHandler) handleError(c *gin.Context, err error) {
+func (h *AuthHandler) handleError(c *gin.Context, err error, message string) {
 	h.Log.WithError(err).Error("An error occurred in auth handler")
 	switch {
 	case errors.Is(err, usecase.ErrInvalidCredentials):
-		response.Unauthorized(c, err)
+		response.Unauthorized(c, err, message)
 	case errors.Is(err, usecase.ErrInvalidToken), errors.Is(err, usecase.ErrExpiredToken), errors.Is(err, usecase.ErrTokenRevoked):
-		response.Unauthorized(c, err)
+		response.Unauthorized(c, err, message)
 	// Catch validation errors (this requires your validator to be configured to return error)
 	case strings.Contains(err.Error(), "validation"):
-		response.BadRequest(c, err)
+		response.BadRequest(c, err, message)
 	default:
-		response.InternalServerError(c, errors.New("an unexpected internal error occurred"))
+		response.InternalServerError(c, err, message)
 	}
 }
 

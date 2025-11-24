@@ -5,6 +5,7 @@ import (
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/permission/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase"
+	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -41,17 +42,18 @@ func (h *PermissionHandler) AssignRole(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.AssignRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, errors.New("invalid request body"))
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 	if err := h.validate.Struct(req); err != nil {
-		response.ValidationError(c, err)
+		validationErrors := err.(validator.ValidationErrors)
+		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
 		return
 	}
 
 	if err := h.useCase.AssignRoleToUser(ctx, req.UserID, req.Role); err != nil {
 		h.log.WithError(err).Error("Failed to assign role")
-		response.InternalServerError(c, errors.New("could not assign role"))
+		response.InternalServerError(c, errors.New("could not assign role"), "failed to assign role")
 		return
 	}
 
@@ -74,17 +76,18 @@ func (h *PermissionHandler) GrantPermission(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, errors.New("invalid request body"))
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 	if err := h.validate.Struct(req); err != nil {
-		response.ValidationError(c, err)
+		validationErrors := err.(validator.ValidationErrors)
+		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
 		return
 	}
 
 	if err := h.useCase.GrantPermissionToRole(ctx, req.Role, req.Path, req.Method); err != nil {
 		h.log.WithError(err).Error("Failed to grant permission")
-		response.InternalServerError(c, errors.New("could not grant permission"))
+		response.InternalServerError(c, errors.New("could not grant permission"), "failed to grant permission")
 		return
 	}
 
@@ -104,7 +107,7 @@ func (h *PermissionHandler) GetAllPermissions(c *gin.Context) {
 	permissions, err := h.useCase.GetAllPermissions()
 	if err != nil {
 		h.log.WithError(err).Error("Failed to get all permissions")
-		response.InternalServerError(c, errors.New("could not retrieve permissions"))
+		response.InternalServerError(c, errors.New("could not retrieve permissions"), "failed to get all permissions")
 		return
 	}
 	response.Success(c, permissions)
@@ -124,14 +127,14 @@ func (h *PermissionHandler) GetAllPermissions(c *gin.Context) {
 func (h *PermissionHandler) GetPermissionsForRole(c *gin.Context) {
 	role := c.Param("role")
 	if role == "" {
-		response.BadRequest(c, errors.New("role parameter is required"))
+		response.BadRequest(c, exception.ErrBadRequest, "role parameter is required")
 		return
 	}
 
 	permissions, err := h.useCase.GetPermissionsForRole(role)
 	if err != nil {
 		h.log.WithError(err).Error("Failed to get permissions for role")
-		response.InternalServerError(c, errors.New("could not retrieve permissions for role"))
+		response.InternalServerError(c, errors.New("could not retrieve permissions for role"), "failed to get permissions for role")
 		return
 	}
 	response.Success(c, permissions)
@@ -153,11 +156,12 @@ func (h *PermissionHandler) GetPermissionsForRole(c *gin.Context) {
 func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 	var req model.UpdatePermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, errors.New("invalid request body"))
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 	if err := h.validate.Struct(req); err != nil {
-		response.ValidationError(c, err)
+		validationErrors := err.(validator.ValidationErrors)
+		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
 		return
 	}
 
@@ -165,10 +169,10 @@ func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 	if err != nil {
 		h.log.WithError(err).Error("Failed to update permission")
 		if err.Error() == "policy to update not found" {
-			response.NotFound(c, err)
+			response.NotFound(c, err, "policy to update not found")
 			return
 		}
-		response.InternalServerError(c, errors.New("could not update permission"))
+		response.InternalServerError(c, errors.New("could not update permission"), "failed to update permission")
 		return
 	}
 
@@ -191,17 +195,18 @@ func (h *PermissionHandler) RevokePermission(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.GrantPermissionRequest // Reuse GrantPermissionRequest as it has Role, Path, Method
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, errors.New("invalid request body"))
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 	if err := h.validate.Struct(req); err != nil {
-		response.ValidationError(c, err)
+		validationErrors := err.(validator.ValidationErrors)
+		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
 		return
 	}
 
 	if err := h.useCase.RevokePermissionFromRole(ctx, req.Role, req.Path, req.Method); err != nil {
 		h.log.WithError(err).Error("Failed to revoke permission")
-		response.InternalServerError(c, errors.New("could not revoke permission"))
+		response.InternalServerError(c, errors.New("could not revoke permission"), "failed to revoke permission")
 		return
 	}
 

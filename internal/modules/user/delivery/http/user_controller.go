@@ -45,12 +45,14 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body")
-		response.BadRequest(c, errors.New("invalid request body"))
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.validate.Struct(req); err != nil {
-		response.ValidationError(c, err)
+		validationErrors := err.(validator.ValidationErrors)
+
+		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
 		return
 	}
 
@@ -79,7 +81,7 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.Unauthorized(c, errors.New("unauthorized"))
+		response.Unauthorized(c, exception.ErrUnauthorized, "unauthorized")
 		return
 	}
 
@@ -115,21 +117,24 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.Unauthorized(c, errors.New("unauthorized"))
+		response.Unauthorized(c, exception.ErrUnauthorized, "unauthorized")
+
 		return
 	}
 
 	var req model.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body")
-		response.BadRequest(c, errors.New("invalid request body"))
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
 	req.ID = userID.(string)
 
 	if err := h.validate.Struct(req); err != nil {
-		response.ValidationError(c, err)
+		validationErrors := err.(validator.ValidationErrors)
+
+		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
 		return
 	}
 
@@ -153,10 +158,10 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 // @Param        username  query     string  false  "Filter by username"
 // @Param        email     query     string  false  "Filter by email"
 // @Success      200  {object}  response.SwaggerUserListResponseWrapper
-// @Failure      400  {object}  response.WebResponse[any] "Invalid query parameters"
-// @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
-// @Failure      403  {object}  response.WebResponse[any] "Forbidden"
-// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Failure      400  {object}  response.WebResponseSuccess[any] "Invalid query parameters"
+// @Failure      401  {object}  response.WebResponseSuccess[any] "Unauthorized"
+// @Failure      403  {object}  response.WebResponseSuccess[any] "Forbidden"
+// @Failure      500  {object}  response.WebResponseSuccess[any] "Internal server error"
 // @Router       /users [get]
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -164,7 +169,7 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 
 	if err := c.ShouldBindQuery(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind query parameters")
-		response.BadRequest(c, errors.New("invalid query parameters"))
+		response.BadRequest(c, exception.ErrBadRequest, "invalid query parameters")
 		return
 	}
 
@@ -185,10 +190,10 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 // @Produce      json
 // @Param        id   path      string  true  "User ID"
 // @Success      200  {object}  response.SwaggerUserResponseWrapper
-// @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
-// @Failure      403  {object}  response.WebResponse[any] "Forbidden"
-// @Failure      404  {object}  response.WebResponse[any] "User not found"
-// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Failure      401  {object}  response.WebResponseSuccess[any] "Unauthorized"
+// @Failure      403  {object}  response.WebResponseSuccess[any] "Forbidden"
+// @Failure      404  {object}  response.WebResponseSuccess[any] "User not found"
+// @Failure      500  {object}  response.WebResponseSuccess[any] "Internal server error"
 // @Router       /users/{id} [get]
 func (h *UserHandler) GetUserByID(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -210,10 +215,10 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 // @Produce      json
 // @Param        id   path      string  true  "User ID"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper
-// @Failure      401  {object}  response.WebResponse[any] "Unauthorized"
-// @Failure      403  {object}  response.WebResponse[any] "Forbidden"
-// @Failure      404  {object}  response.WebResponse[any] "User not found"
-// @Failure      500  {object}  response.WebResponse[any] "Internal server error"
+// @Failure      401  {object}  response.WebResponseSuccess[any] "Unauthorized"
+// @Failure      403  {object}  response.WebResponseSuccess[any] "Forbidden"
+// @Failure      404  {object}  response.WebResponseSuccess[any] "User not found"
+// @Failure      500  {object}  response.WebResponseSuccess[any] "Internal server error"
 // @Router       /users/{id} [delete]
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -233,16 +238,16 @@ func (h *UserHandler) handleError(c *gin.Context, err error, message string) {
 
 	switch {
 	case errors.Is(err, exception.ErrBadRequest):
-		response.BadRequest(c, err)
+		response.BadRequest(c, err, message)
 	case errors.Is(err, exception.ErrUnauthorized):
-		response.Unauthorized(c, err)
+		response.Unauthorized(c, err, message)
 	case errors.Is(err, exception.ErrForbidden):
-		response.Forbidden(c, err)
+		response.Forbidden(c, err, message)
 	case errors.Is(err, exception.ErrNotFound):
-		response.NotFound(c, err)
+		response.NotFound(c, err, message)
 	case errors.Is(err, exception.ErrConflict):
-		response.ErrorResponse(c, http.StatusConflict, err)
+		response.ErrorResponse(c, http.StatusConflict, err, message)
 	default:
-		response.InternalServerError(c, errors.New("internal server error"))
+		response.InternalServerError(c, exception.ErrInternalServer, "something went wrong")
 	}
 }

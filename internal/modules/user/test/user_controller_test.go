@@ -161,7 +161,7 @@ func TestUserHandler_GetAllUsers(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response response.WebResponse[[]*model.UserResponse]
+		var response response.WebResponseSuccess[[]*model.UserResponse]
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedUsers, response.Data)
@@ -200,7 +200,7 @@ func TestUserHandler_GetUserByID(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response response.WebResponse[*model.UserResponse]
+		var response response.WebResponseSuccess[*model.UserResponse]
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedUser, response.Data)

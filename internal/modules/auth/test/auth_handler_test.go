@@ -26,13 +26,13 @@ func setupAuthTestRouter() *gin.Engine {
 }
 
 // Helper to create a new handler instance
-func newTestAuthHandler(mockUseCase *mocks.AuthUseCase) *authHandler.AuthHandler {
+func newTestAuthHandler(mockUseCase *mocks.MockAuthUseCase) *authHandler.AuthHandler {
 	return authHandler.NewAuthHandler(mockUseCase, logrus.New(), validator.New())
 }
 
 // --- Login Handler Tests ---
 func TestAuthHandler_Login_Success(t *testing.T) {
-	mockUseCase := new(mocks.AuthUseCase)
+	mockUseCase := new(mocks.MockAuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/login", handler.Login)
@@ -57,7 +57,7 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 }
 
 func TestAuthHandler_Login_InvalidBody(t *testing.T) {
-	mockUseCase := new(mocks.AuthUseCase)
+	mockUseCase := new(mocks.MockAuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/login", handler.Login)
@@ -73,7 +73,7 @@ func TestAuthHandler_Login_InvalidBody(t *testing.T) {
 }
 
 func TestAuthHandler_Login_ValidationError(t *testing.T) {
-	mockUseCase := new(mocks.AuthUseCase)
+	mockUseCase := new(mocks.MockAuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/login", handler.Login)
@@ -92,7 +92,7 @@ func TestAuthHandler_Login_ValidationError(t *testing.T) {
 }
 
 func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
-	mockUseCase := new(mocks.AuthUseCase)
+	mockUseCase := new(mocks.MockAuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/login", handler.Login)
@@ -119,7 +119,7 @@ func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 }
 
 func TestAuthHandler_Login_UseCaseGenericError(t *testing.T) {
-	mockUseCase := new(mocks.AuthUseCase)
+	mockUseCase := new(mocks.MockAuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/login", handler.Login)
@@ -140,7 +140,7 @@ func TestAuthHandler_Login_UseCaseGenericError(t *testing.T) {
 
 // --- RefreshToken Handler Tests ---
 func TestAuthHandler_RefreshToken_Success(t *testing.T) {
-	mockUseCase := new(mocks.AuthUseCase)
+	mockUseCase := new(mocks.MockAuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/refresh", handler.RefreshToken)
@@ -163,7 +163,7 @@ func TestAuthHandler_RefreshToken_Success(t *testing.T) {
 }
 
 func TestAuthHandler_RefreshToken_NoCookie(t *testing.T) {
-	mockUseCase := new(mocks.AuthUseCase)
+	mockUseCase := new(mocks.MockAuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/refresh", handler.RefreshToken)
@@ -178,7 +178,7 @@ func TestAuthHandler_RefreshToken_NoCookie(t *testing.T) {
 }
 
 func TestAuthHandler_RefreshToken_UseCaseInvalidTokenError(t *testing.T) {
-	mockUseCase := new(mocks.AuthUseCase)
+	mockUseCase := new(mocks.MockAuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/refresh", handler.RefreshToken)
@@ -198,7 +198,7 @@ func TestAuthHandler_RefreshToken_UseCaseInvalidTokenError(t *testing.T) {
 
 // --- Logout Handler Tests ---
 func TestAuthHandler_Logout_Success(t *testing.T) {
-	mockUseCase := new(mocks.AuthUseCase)
+	mockUseCase := new(mocks.MockAuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/logout", handler.Logout)
@@ -224,7 +224,7 @@ func TestAuthHandler_Logout_Success(t *testing.T) {
 }
 
 func TestAuthHandler_Logout_NoUserIDInContext(t *testing.T) {
-	mockUseCase := new(mocks.AuthUseCase)
+	mockUseCase := new(mocks.MockAuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/logout", handler.Logout)
@@ -243,7 +243,7 @@ func TestAuthHandler_Logout_NoUserIDInContext(t *testing.T) {
 }
 
 func TestAuthHandler_Logout_UseCaseError(t *testing.T) {
-	mockUseCase := new(mocks.AuthUseCase)
+	mockUseCase := new(mocks.MockAuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/logout", handler.Logout)

@@ -250,10 +250,6 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightListResponse'
-      error:
-        type: string
-      errors:
-        type: string
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
@@ -261,10 +257,6 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightResponse'
-      error:
-        type: string
-      errors:
-        type: string
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
@@ -272,22 +264,15 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.EndpointResponse'
-      error:
-        type: string
-      errors:
-        type: string
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
   github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper:
     properties:
-      data: {}
       error:
         type: string
-      errors:
+      message:
         type: string
-      paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
   github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper:
     properties:
@@ -296,10 +281,6 @@ definitions:
           type: string
         description: 'Example: {"message": "success"}'
         type: object
-      error:
-        type: string
-      errors:
-        type: string
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
@@ -307,10 +288,6 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginResponse'
-      error:
-        type: string
-      errors:
-        type: string
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
@@ -322,10 +299,6 @@ definitions:
             type: string
           type: array
         type: array
-      error:
-        type: string
-      errors:
-        type: string
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
@@ -335,10 +308,6 @@ definitions:
         items:
           $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.RoleResponse'
         type: array
-      error:
-        type: string
-      errors:
-        type: string
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
@@ -346,10 +315,6 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.RoleResponse'
-      error:
-        type: string
-      errors:
-        type: string
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
@@ -357,10 +322,6 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.TokenResponse'
-      error:
-        type: string
-      errors:
-        type: string
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
@@ -370,10 +331,6 @@ definitions:
         items:
           $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse'
         type: array
-      error:
-        type: string
-      errors:
-        type: string
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
@@ -381,20 +338,12 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse'
-      error:
-        type: string
-      errors:
-        type: string
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any:
+  github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any:
     properties:
       data: {}
-      error:
-        type: string
-      errors:
-        type: string
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
     type: object
@@ -870,19 +819,19 @@ paths:
         "400":
           description: Invalid query parameters
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any'
       security:
       - BearerAuth: []
       summary: Get all users
@@ -907,19 +856,19 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any'
       security:
       - BearerAuth: []
       summary: Delete user by ID
@@ -944,19 +893,19 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponse-any'
+            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any'
       security:
       - BearerAuth: []
       summary: Get user by ID

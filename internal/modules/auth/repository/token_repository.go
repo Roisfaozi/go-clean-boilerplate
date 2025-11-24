@@ -28,19 +28,16 @@ func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger) TokenRepo
 func (r *tokenRepositoryRedis) StoreToken(ctx context.Context, session *model.Auth) error {
 	key := r.getSessionKey(session.UserID, session.ID)
 
-	// Set CreatedAt and UpdatedAt timestamps
 	now := time.Now()
 	session.CreatedAt = now
 	session.UpdatedAt = now
 
-	// Marshal the session object to JSON
 	sessionJSON, err := json.Marshal(session)
 	if err != nil {
 		r.log.WithError(err).Error("Failed to marshal session to JSON")
 		return fmt.Errorf("failed to store session: %w", err)
 	}
 
-	// Store the JSON string in Redis with an expiration based on the session's ExpiresAt field
 	expiration := time.Until(session.ExpiresAt)
 	err = r.client.Set(ctx, key, sessionJSON, expiration).Err()
 	if err != nil {
@@ -56,7 +53,7 @@ func (r *tokenRepositoryRedis) GetToken(ctx context.Context, userID, sessionID s
 	key := r.getSessionKey(userID, sessionID)
 	sessionJSON, err := r.client.Get(ctx, key).Result()
 	if err == redis.Nil {
-		return nil, nil // Session not found
+		return nil, nil
 	} else if err != nil {
 		r.log.WithError(err).Error("Failed to get session from Redis")
 		return nil, fmt.Errorf("failed to get session: %w", err)

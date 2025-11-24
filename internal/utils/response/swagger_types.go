@@ -7,98 +7,74 @@ import (
 	userModel "github.com/Roisfaozi/casbin-db/internal/modules/user/model"
 )
 
-// SwaggerUserResponseWrapper wraps the UserResponse for Swagger documentation.
+// SwaggerUserResponseWrapper wraps the UserResponse for Swagger documentation (Success).
 type SwaggerUserResponseWrapper struct {
 	Data   userModel.UserResponse `json:"data"`
 	Paging *PageMetadata          `json:"paging,omitempty"`
-	Errors string                 `json:"errors,omitempty"`
-	Error  string                 `json:"error,omitempty"`
 }
 
-// SwaggerUserListResponseWrapper wraps a list of UserResponse for Swagger documentation.
+// SwaggerUserListResponseWrapper wraps a list of UserResponse for Swagger documentation (Success).
 type SwaggerUserListResponseWrapper struct {
 	Data   []userModel.UserResponse `json:"data"`
 	Paging *PageMetadata            `json:"paging,omitempty"`
-	Errors string                   `json:"errors,omitempty"`
-	Error  string                   `json:"error,omitempty"`
 }
 
-// SwaggerLoginResponseWrapper wraps the LoginResponse for Swagger documentation.
+// SwaggerLoginResponseWrapper wraps the LoginResponse for Swagger documentation (Success).
 type SwaggerLoginResponseWrapper struct {
 	Data   authModel.LoginResponse `json:"data"`
 	Paging *PageMetadata           `json:"paging,omitempty"`
-	Errors string                  `json:"errors,omitempty"`
-	Error  string                  `json:"error,omitempty"`
 }
 
-// SwaggerTokenResponseWrapper wraps the TokenResponse for Swagger documentation.
+// SwaggerTokenResponseWrapper wraps the TokenResponse for Swagger documentation (Success).
 type SwaggerTokenResponseWrapper struct {
 	Data   authModel.TokenResponse `json:"data"`
 	Paging *PageMetadata           `json:"paging,omitempty"`
-	Errors string                  `json:"errors,omitempty"`
-	Error  string                  `json:"error,omitempty"`
 }
 
-// SwaggerGeneralResponseWrapper wraps a generic message response (e.g. for Delete or Logout).
+// SwaggerGeneralResponseWrapper wraps a generic message response (Success).
 type SwaggerGeneralResponseWrapper struct {
 	Data   map[string]string `json:"data"` // Example: {"message": "success"}
 	Paging *PageMetadata     `json:"paging,omitempty"`
-	Errors string            `json:"errors,omitempty"`
-	Error  string            `json:"error,omitempty"`
 }
 
-// SwaggerErrorResponseWrapper wraps an error response for Swagger documentation.
+// SwaggerErrorResponseWrapper wraps an error response for Swagger documentation (Failure).
 type SwaggerErrorResponseWrapper struct {
-	Data   interface{}   `json:"data,omitempty"`
-	Paging *PageMetadata `json:"paging,omitempty"`
-	Errors string        `json:"errors,omitempty"`
-	Error  string        `json:"error,omitempty"`
+	Message string `json:"message"`
+	Error   string `json:"error"`
 }
 
-// SwaggerRoleResponseWrapper wraps the RoleResponse for Swagger documentation.
+// SwaggerRoleResponseWrapper wraps the RoleResponse for Swagger documentation (Success).
 type SwaggerRoleResponseWrapper struct {
 	Data   roleModel.RoleResponse `json:"data"`
 	Paging *PageMetadata          `json:"paging,omitempty"`
-	Errors string                 `json:"errors,omitempty"`
-	Error  string                 `json:"error,omitempty"`
 }
 
-// SwaggerRoleListResponseWrapper wraps a list of RoleResponse for Swagger documentation.
+// SwaggerRoleListResponseWrapper wraps a list of RoleResponse for Swagger documentation (Success).
 type SwaggerRoleListResponseWrapper struct {
 	Data   []roleModel.RoleResponse `json:"data"`
 	Paging *PageMetadata            `json:"paging,omitempty"`
-	Errors string                   `json:"errors,omitempty"`
-	Error  string                   `json:"error,omitempty"`
 }
 
-// SwaggerAccessRightResponseWrapper wraps the AccessRightResponse for Swagger documentation.
+// SwaggerAccessRightResponseWrapper wraps the AccessRightResponse for Swagger documentation (Success).
 type SwaggerAccessRightResponseWrapper struct {
 	Data   accessModel.AccessRightResponse `json:"data"`
 	Paging *PageMetadata                   `json:"paging,omitempty"`
-	Errors string                          `json:"errors,omitempty"`
-	Error  string                          `json:"error,omitempty"`
 }
 
-// SwaggerAccessRightListResponseWrapper wraps the AccessRightListResponse for Swagger documentation.
+// SwaggerAccessRightListResponseWrapper wraps the AccessRightListResponse for Swagger documentation (Success).
 type SwaggerAccessRightListResponseWrapper struct {
 	Data   accessModel.AccessRightListResponse `json:"data"`
 	Paging *PageMetadata                       `json:"paging,omitempty"`
-	Errors string                              `json:"errors,omitempty"`
-	Error  string                              `json:"error,omitempty"`
 }
 
-// SwaggerEndpointResponseWrapper wraps the EndpointResponse for Swagger documentation.
+// SwaggerEndpointResponseWrapper wraps the EndpointResponse for Swagger documentation (Success).
 type SwaggerEndpointResponseWrapper struct {
 	Data   accessModel.EndpointResponse `json:"data"`
 	Paging *PageMetadata                `json:"paging,omitempty"`
-	Errors string                       `json:"errors,omitempty"`
-	Error  string                       `json:"error,omitempty"`
 }
 
-// SwaggerPermissionListResponseWrapper wraps a list of permissions (string arrays) for Swagger documentation.
+// SwaggerPermissionListResponseWrapper wraps a list of permissions for Swagger documentation (Success).
 type SwaggerPermissionListResponseWrapper struct {
 	Data   [][]string    `json:"data"`
 	Paging *PageMetadata `json:"paging,omitempty"`
-	Errors string        `json:"errors,omitempty"`
-	Error  string        `json:"error,omitempty"`
 }

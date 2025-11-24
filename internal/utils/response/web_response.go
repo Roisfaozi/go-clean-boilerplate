@@ -1,10 +1,13 @@
 package response
 
-type WebResponse[T any] struct {
+type WebResponseSuccess[T any] struct {
 	Data   T             `json:"data,omitempty"`
 	Paging *PageMetadata `json:"paging,omitempty"`
-	Errors string        `json:"errors,omitempty"`
-	Error  string        `json:"error,omitempty"`
+}
+
+type WebResponseError[T any] struct {
+	Message string `json:"message,omitempty"`
+	Error   string `json:"error,omitempty"`
 }
 
 type PageResponse[T any] struct {
@@ -19,7 +22,7 @@ type PageMetadata struct {
 	TotalPage int64 `json:"total_page"`
 }
 
-// WebResponseAny is a non-generic wrapper for WebResponse to be used in Swagger docs
+// WebResponseAny is a non-generic wrapper for WebResponseSuccess to be used in Swagger docs
 type WebResponseAny struct {
 	Data   interface{}   `json:"data,omitempty"`
 	Paging *PageMetadata `json:"paging,omitempty"`

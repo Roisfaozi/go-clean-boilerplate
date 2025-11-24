@@ -46,12 +46,13 @@ func (h *RoleHandler) Create(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body for create role")
-		response.BadRequest(c, errors.New("invalid request body"))
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.validate.Struct(req); err != nil {
-		response.ValidationError(c, err)
+		validationErrors := err.(validator.ValidationErrors)
+		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
 		return
 	}
 
@@ -90,16 +91,16 @@ func (h *RoleHandler) handleError(c *gin.Context, err error, message string) {
 
 	switch {
 	case errors.Is(err, exception.ErrBadRequest):
-		response.BadRequest(c, err)
+		response.BadRequest(c, err, message)
 	case errors.Is(err, exception.ErrUnauthorized):
-		response.Unauthorized(c, err)
+		response.Unauthorized(c, err, message)
 	case errors.Is(err, exception.ErrForbidden):
-		response.Forbidden(c, err)
+		response.Forbidden(c, err, message)
 	case errors.Is(err, exception.ErrNotFound):
-		response.NotFound(c, err)
+		response.NotFound(c, err, message)
 	case errors.Is(err, exception.ErrConflict):
-		response.ErrorResponse(c, http.StatusConflict, err)
+		response.ErrorResponse(c, http.StatusConflict, err, message)
 	default:
-		response.InternalServerError(c, errors.New("internal server error"))
+		response.InternalServerError(c, exception.ErrInternalServer, "something went wrong")
 	}
 }
