@@ -1,4 +1,4 @@
-package test_test
+package test
 
 import (
 	"bytes"
@@ -97,14 +97,8 @@ func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 	router := setupAuthTestRouter()
 	router.POST("/auth/login", handler.Login)
 
-	reqBody := model.LoginRequest{
-		Username: "testuser",
-		Password: "password123",
-	}
-
-	mockUseCase.On("Login", mock.Anything, mock.MatchedBy(func(req model.LoginRequest) bool {
-		return req.Username == "testuser" && req.Password == "password123"
-	})).Return(nil, "", usecase.ErrInvalidCredentials).Once()
+	reqBody := model.LoginRequest{Username: "wrong", Password: "wrong-password"}
+	mockUseCase.On("Login", mock.Anything, reqBody).Return(nil, "", usecase.ErrInvalidCredentials)
 
 	bodyBytes, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(bodyBytes))
@@ -113,8 +107,7 @@ func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code, "Expected status code 401 Unauthorized but got %d", w.Code)
-
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	mockUseCase.AssertExpectations(t)
 }
 

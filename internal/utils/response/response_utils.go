@@ -1,8 +1,10 @@
 package response
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/gin-gonic/gin"
 )
 
@@ -56,4 +58,22 @@ func InternalServerError(c *gin.Context, err error, msg string) {
 
 func ValidationError(c *gin.Context, err error, msg string) {
 	ErrorResponse(c, http.StatusUnprocessableEntity, err, msg)
+}
+
+// HandleError determines the appropriate HTTP status code based on the error type and sends a JSON response.
+func HandleError(c *gin.Context, err error, message string) {
+	switch {
+	case errors.Is(err, exception.ErrBadRequest):
+		BadRequest(c, err, message)
+	case errors.Is(err, exception.ErrUnauthorized):
+		Unauthorized(c, err, message)
+	case errors.Is(err, exception.ErrForbidden):
+		Forbidden(c, err, message)
+	case errors.Is(err, exception.ErrNotFound):
+		NotFound(c, err, message)
+	case errors.Is(err, exception.ErrConflict):
+		ErrorResponse(c, http.StatusConflict, err, message)
+	default:
+		InternalServerError(c, err, message)
+	}
 }

@@ -18,6 +18,14 @@ type PermissionHandler struct {
 	log      *logrus.Logger
 }
 
+// NewPermissionHandler creates a new instance of PermissionHandler.
+//
+// It takes the following parameters:
+// - useCase: the IPermissionUseCase implementation.
+// - validate: the validator.Validate implementation.
+// - log: the logrus.Logger implementation.
+//
+// It returns a pointer to the newly created PermissionHandler.
 func NewPermissionHandler(useCase usecase.IPermissionUseCase, validate *validator.Validate, log *logrus.Logger) *PermissionHandler {
 	return &PermissionHandler{
 		useCase:  useCase,
@@ -193,7 +201,7 @@ func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 // @Router       /permissions/revoke [delete]
 func (h *PermissionHandler) RevokePermission(c *gin.Context) {
 	ctx := c.Request.Context()
-	var req model.GrantPermissionRequest // Reuse GrantPermissionRequest as it has Role, Path, Method
+	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return

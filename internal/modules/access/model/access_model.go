@@ -4,36 +4,30 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/entity"
 )
 
-// CreateAccessRightRequest represents the request payload for creating a new access right
 type CreateAccessRightRequest struct {
 	Name        string `json:"name" validate:"required,min=3,max=100"`
 	Description string `json:"description" validate:"max=255"`
 }
 
-// CreateEndpointRequest defines the payload for creating a new endpoint.
 type CreateEndpointRequest struct {
 	Path   string `json:"path" validate:"required,min=1,max=191"`
 	Method string `json:"method" validate:"required,min=1,max=10"`
 }
 
-// LinkEndpointRequest defines the payload for linking an endpoint to an access right.
 type LinkEndpointRequest struct {
 	AccessRightID uint `json:"access_right_id" validate:"required"`
 	EndpointID    uint `json:"endpoint_id" validate:"required"`
 }
 
-// UpdateAccessRightRequest represents the request payload for updating an access right
 type UpdateAccessRightRequest struct {
 	Name        string `json:"name,omitempty" validate:"omitempty,min=3,max=100"`
 	Description string `json:"description,omitempty" validate:"max=255"`
 }
 
-// AddEndpointToAccessRightRequest represents the request payload for adding an endpoint to an access right
 type AddEndpointToAccessRightRequest struct {
 	EndpointID uint `json:"endpoint_id" validate:"required"`
 }
 
-// AccessRightResponse represents the access right response structure
 type AccessRightResponse struct {
 	ID          uint               `json:"id"`
 	Name        string             `json:"name"`
@@ -43,7 +37,6 @@ type AccessRightResponse struct {
 	UpdatedAt   int64              `json:"updated_at"`
 }
 
-// EndpointResponse represents the endpoint response structure
 type EndpointResponse struct {
 	ID        uint   `json:"id"`
 	Path      string `json:"path"`
@@ -51,7 +44,6 @@ type EndpointResponse struct {
 	CreatedAt int64  `json:"created_at"`
 }
 
-// AccessRightListResponse represents a list of access rights
 type AccessRightListResponse struct {
 	Data []AccessRightResponse `json:"data"`
 	Meta struct {
@@ -59,14 +51,12 @@ type AccessRightListResponse struct {
 	} `json:"meta"`
 }
 
-// SuccessResponse represents a generic success response
 type SuccessResponse struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
 }
 
-// ErrorResponse represents an error response
 type ErrorResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`

@@ -27,7 +27,7 @@ func setupTestRouter() *gin.Engine {
 
 func newTestRoleHandler(mockUseCase *mocks.RoleUseCase) *roleHandler.RoleHandler {
 	v := validator.New()
-	model.RegisterCustomValidations(v) // Register the custom 'xss' validation
+	model.RegisterCustomValidations(v)
 	return roleHandler.NewRoleHandler(mockUseCase, logrus.New(), v)
 }
 
@@ -81,7 +81,7 @@ func TestRoleHandler_Create_ValidationError(t *testing.T) {
 	router.POST("/roles", handler.Create)
 
 	reqBody := &model.CreateRoleRequest{
-		Name: "", // This will fail validation
+		Name: "",
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)

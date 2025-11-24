@@ -6,7 +6,6 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/model"
 )
 
-// IAccessUseCase defines the interface for access management business logic.
 type IAccessUseCase interface {
 	CreateAccessRight(ctx context.Context, req model.CreateAccessRightRequest) (*model.AccessRightResponse, error)
 	GetAllAccessRights(ctx context.Context) (*model.AccessRightListResponse, error)

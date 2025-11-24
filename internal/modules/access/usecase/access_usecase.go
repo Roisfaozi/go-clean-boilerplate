@@ -9,13 +9,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// AccessUseCase implements the access use case.
 type AccessUseCase struct {
 	repo repository.IAccessRepository
 	log  *logrus.Logger
 }
 
-// NewAccessUseCase creates a new AccessUseCase.
+// NewAccessUseCase creates a new AccessUseCase with the given repository and logger.
+//
+// Parameters:
+// - repo: The repository to use for accessing access rights and endpoints.
+// - log: The logger to use for logging.
+//
+// Returns:
+// - An instance of IAccessUseCase implemented by AccessUseCase.
 func NewAccessUseCase(repo repository.IAccessRepository, log *logrus.Logger) IAccessUseCase {
 	return &AccessUseCase{
 		repo: repo,
@@ -23,7 +29,6 @@ func NewAccessUseCase(repo repository.IAccessRepository, log *logrus.Logger) IAc
 	}
 }
 
-// CreateAccessRight handles the business logic for creating a new access right.
 func (uc *AccessUseCase) CreateAccessRight(ctx context.Context, req model.CreateAccessRightRequest) (*model.AccessRightResponse, error) {
 	accessRightEntity := &entity.AccessRight{
 		Name:        req.Name,
@@ -40,7 +45,6 @@ func (uc *AccessUseCase) CreateAccessRight(ctx context.Context, req model.Create
 	return model.ConvertAccessRightToResponse(accessRightEntity), nil
 }
 
-// GetAllAccessRights retrieves all access rights.
 func (uc *AccessUseCase) GetAllAccessRights(ctx context.Context) (*model.AccessRightListResponse, error) {
 	uc.log.Info("Retrieving all access rights")
 	accessRightEntities, err := uc.repo.GetAllAccessRights(ctx)
@@ -52,7 +56,6 @@ func (uc *AccessUseCase) GetAllAccessRights(ctx context.Context) (*model.AccessR
 	return model.ConvertAccessRightListToResponse(accessRightEntities), nil
 }
 
-// CreateEndpoint handles the business logic for creating a new endpoint.
 func (uc *AccessUseCase) CreateEndpoint(ctx context.Context, req model.CreateEndpointRequest) (*model.EndpointResponse, error) {
 	endpointEntity := &entity.Endpoint{
 		Path:   req.Path,
@@ -74,7 +77,6 @@ func (uc *AccessUseCase) CreateEndpoint(ctx context.Context, req model.CreateEnd
 	}, nil
 }
 
-// LinkEndpointToAccessRight handles the business logic for linking an endpoint to an access right.
 func (uc *AccessUseCase) LinkEndpointToAccessRight(ctx context.Context, req model.LinkEndpointRequest) error {
 	err := uc.repo.LinkEndpointToAccessRight(ctx, req.AccessRightID, req.EndpointID)
 	if err != nil {

@@ -28,6 +28,16 @@ type Service struct {
 	wsManager  ws.Manager
 }
 
+// NewAuthUsecase creates a new instance of the AuthUseCase interface.
+//
+// jwtManager: The JWT manager instance.
+// tokenRepo: The token repository instance.
+// userRepo: The user repository instance.
+// tm: The transaction manager instance.
+// log: The logger instance.
+// wsManager: The WebSocket manager instance.
+//
+// Returns a pointer to the newly created AuthUseCase instance.
 func NewAuthUsecase(
 	jwtManager *jwt.JWTManager,
 	tokenRepo repository.TokenRepository,

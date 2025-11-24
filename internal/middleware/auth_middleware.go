@@ -27,21 +27,21 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			response.Unauthorized(c, errors.New("authorization header is required"))
+			response.Unauthorized(c, errors.New("authorization header is required"), "unauthorized")
 			c.Abort()
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			response.Unauthorized(c, errors.New("invalid authorization header format"))
+			response.Unauthorized(c, errors.New("invalid authorization header format"), "unauthorized")
 			c.Abort()
 			return
 		}
 
 		token := parts[1]
 		if token == "" {
-			response.Unauthorized(c, errors.New("token is required"))
+			response.Unauthorized(c, errors.New("token is required"), "unauthorized")
 			c.Abort()
 			return
 		}
@@ -50,7 +50,7 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 		if err != nil {
 			m.Log.WithError(err).Warn("Token validation failed")
 			// We can pass the specific error from the use case directly
-			response.Unauthorized(c, err)
+			response.Unauthorized(c, err, "unauthorized")
 			c.Abort()
 			return
 		}
@@ -59,13 +59,13 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 		session, err := m.AuthUseCase.Verify(c.Request.Context(), claims.UserID, claims.SessionID)
 		if err != nil {
 			m.Log.WithError(err).Warn("Session verification failed with database/redis error")
-			response.InternalServerError(c, errors.New("could not verify session"))
+			response.InternalServerError(c, errors.New("could not verify session"), "internal server error")
 			c.Abort()
 			return
 		}
 		if session == nil {
 			m.Log.Warn("Session is not valid or has been revoked")
-			response.Unauthorized(c, errors.New("invalid or expired session"))
+			response.Unauthorized(c, errors.New("invalid or expired session"), "unauthorized")
 			c.Abort()
 			return
 		}

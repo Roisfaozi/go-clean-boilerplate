@@ -6,7 +6,6 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
 )
 
-// TokenRepository defines the interface for token and session management
 type TokenRepository interface {
 	StoreToken(ctx context.Context, session *model.Auth) error
 	GetToken(ctx context.Context, userID, sessionID string) (*model.Auth, error)

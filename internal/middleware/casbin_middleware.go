@@ -23,7 +23,7 @@ func CasbinMiddleware(enforcer *casbin.Enforcer, log *logrus.Logger) gin.Handler
 		userID, exists := c.Get("user_id")
 		if !exists {
 			log.Warn("Casbin middleware: user_id not found in context")
-			response.Unauthorized(c, errors.New("user not authenticated"))
+			response.Unauthorized(c, errors.New("user not authenticated"), "unauthorized")
 			c.Abort()
 			return
 		}
@@ -36,14 +36,14 @@ func CasbinMiddleware(enforcer *casbin.Enforcer, log *logrus.Logger) gin.Handler
 		ok, err := enforcer.Enforce(userID.(string), obj, act)
 		if err != nil {
 			log.WithError(err).Error("Casbin enforce error")
-			response.InternalServerError(c, errors.New("authorization error"))
+			response.InternalServerError(c, errors.New("authorization error"), "internal server error")
 			c.Abort()
 			return
 		}
 
 		if !ok {
 			log.Warnf("Casbin authorization failed for user '%s' on %s %s", userID, act, obj)
-			response.Forbidden(c, errors.New("you don't have permission to access this resource"))
+			response.Forbidden(c, errors.New("you don't have permission to access this resource"), "forbidden")
 			c.Abort()
 			return
 		}

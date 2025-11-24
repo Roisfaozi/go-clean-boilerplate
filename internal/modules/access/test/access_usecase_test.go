@@ -21,7 +21,6 @@ func (w *nullWriter) Write(p []byte) (n int, err error) {
 }
 
 func TestCreateAccessRight(t *testing.T) {
-	// Setup
 	mockRepo := new(mocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})

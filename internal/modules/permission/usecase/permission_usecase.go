@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// IPermissionUseCase defines the interface for permission management.
 type IPermissionUseCase interface {
 	AssignRoleToUser(ctx context.Context, userID, role string) error
 	GrantPermissionToRole(ctx context.Context, role, path, method string) error
@@ -20,14 +19,12 @@ type IPermissionUseCase interface {
 	UpdatePermission(oldPermission, newPermission []string) (bool, error)
 }
 
-// PermissionUseCase implements the permission use case.
 type PermissionUseCase struct {
 	enforcer IEnforcer
 	log      *logrus.Logger
 	RoleRepo repository.RoleRepository
 }
 
-// NewPermissionUseCase creates a new PermissionUseCase.
 func NewPermissionUseCase(enforcer IEnforcer, log *logrus.Logger, roleRepo repository.RoleRepository) IPermissionUseCase {
 	return &PermissionUseCase{
 		enforcer: enforcer,
@@ -36,7 +33,6 @@ func NewPermissionUseCase(enforcer IEnforcer, log *logrus.Logger, roleRepo repos
 	}
 }
 
-// AssignRoleToUser assigns a role to a user after validating the role exists.
 func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role string) error {
 	uc.log.Infof("Attempting to assign role '%s' to user '%s'", role, userID)
 
@@ -59,7 +55,6 @@ func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role 
 	return nil
 }
 
-// GrantPermissionToRole grants a permission to a role after validating the role exists.
 func (uc *PermissionUseCase) GrantPermissionToRole(ctx context.Context, role, path, method string) error {
 	uc.log.Infof("Attempting to grant permission to role '%s'", role)
 
@@ -82,7 +77,6 @@ func (uc *PermissionUseCase) GrantPermissionToRole(ctx context.Context, role, pa
 	return nil
 }
 
-// RevokePermissionFromRole revokes a permission from a role after validating the role exists.
 func (uc *PermissionUseCase) RevokePermissionFromRole(ctx context.Context, role, path, method string) error {
 	uc.log.Infof("Attempting to revoke permission from role '%s'", role)
 
@@ -107,7 +101,6 @@ func (uc *PermissionUseCase) RevokePermissionFromRole(ctx context.Context, role,
 	return nil
 }
 
-// GetAllPermissions retrieves all policy rules from Casbin.
 func (uc *PermissionUseCase) GetAllPermissions() ([][]string, error) {
 	uc.log.Info("Retrieving all permissions")
 	policies, err := uc.enforcer.GetPolicy()
@@ -118,7 +111,6 @@ func (uc *PermissionUseCase) GetAllPermissions() ([][]string, error) {
 	return policies, nil
 }
 
-// GetPermissionsForRole retrieves all policy rules for a specific role.
 func (uc *PermissionUseCase) GetPermissionsForRole(role string) ([][]string, error) {
 	uc.log.Infof("Retrieving permissions for role '%s'", role)
 	policies, err := uc.enforcer.GetFilteredPolicy(0, role)
@@ -129,7 +121,6 @@ func (uc *PermissionUseCase) GetPermissionsForRole(role string) ([][]string, err
 	return policies, nil
 }
 
-// UpdatePermission removes an old policy and adds a new one.
 func (uc *PermissionUseCase) UpdatePermission(oldPermission, newPermission []string) (bool, error) {
 	if len(oldPermission) == 0 || len(newPermission) == 0 {
 		return false, errors.New("old and new permissions cannot be empty")

@@ -1,9 +1,6 @@
 package http
 
 import (
-	"errors"
-	"net/http"
-
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
@@ -51,14 +48,14 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 
 	if err := h.validate.Struct(req); err != nil {
 		validationErrors := err.(validator.ValidationErrors)
-
 		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
 		return
 	}
 
 	user, err := h.UserUseCase.Create(ctx, &req)
 	if err != nil {
-		h.handleError(c, err, "failed to create user")
+		h.Log.WithError(err).Error("failed to create user")
+		response.HandleError(c, err, "failed to create user")
 		return
 	}
 
@@ -91,7 +88,8 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 
 	user, err := h.UserUseCase.Current(ctx, req)
 	if err != nil {
-		h.handleError(c, err, "failed to get current user")
+		h.Log.WithError(err).Error("failed to get current user")
+		response.HandleError(c, err, "failed to get current user")
 		return
 	}
 
@@ -118,7 +116,6 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
 		response.Unauthorized(c, exception.ErrUnauthorized, "unauthorized")
-
 		return
 	}
 
@@ -133,14 +130,14 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 	if err := h.validate.Struct(req); err != nil {
 		validationErrors := err.(validator.ValidationErrors)
-
 		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
 		return
 	}
 
 	user, err := h.UserUseCase.Update(ctx, &req)
 	if err != nil {
-		h.handleError(c, err, "failed to update user")
+		h.Log.WithError(err).Error("failed to update user")
+		response.HandleError(c, err, "failed to update user")
 		return
 	}
 
@@ -158,10 +155,10 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 // @Param        username  query     string  false  "Filter by username"
 // @Param        email     query     string  false  "Filter by email"
 // @Success      200  {object}  response.SwaggerUserListResponseWrapper
-// @Failure      400  {object}  response.WebResponseSuccess[any] "Invalid query parameters"
-// @Failure      401  {object}  response.WebResponseSuccess[any] "Unauthorized"
-// @Failure      403  {object}  response.WebResponseSuccess[any] "Forbidden"
-// @Failure      500  {object}  response.WebResponseSuccess[any] "Internal server error"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid query parameters"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users [get]
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -175,7 +172,8 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 
 	users, err := h.UserUseCase.GetAllUsers(ctx, &req)
 	if err != nil {
-		h.handleError(c, err, "failed to get all users")
+		h.Log.WithError(err).Error("failed to get all users")
+		response.HandleError(c, err, "failed to get all users")
 		return
 	}
 
@@ -190,10 +188,10 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 // @Produce      json
 // @Param        id   path      string  true  "User ID"
 // @Success      200  {object}  response.SwaggerUserResponseWrapper
-// @Failure      401  {object}  response.WebResponseSuccess[any] "Unauthorized"
-// @Failure      403  {object}  response.WebResponseSuccess[any] "Forbidden"
-// @Failure      404  {object}  response.WebResponseSuccess[any] "User not found"
-// @Failure      500  {object}  response.WebResponseSuccess[any] "Internal server error"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "User not found"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users/{id} [get]
 func (h *UserHandler) GetUserByID(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -201,7 +199,8 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 
 	user, err := h.UserUseCase.GetUserByID(ctx, userID)
 	if err != nil {
-		h.handleError(c, err, "failed to get user by id")
+		h.Log.WithError(err).Error("failed to get user by id")
+		response.HandleError(c, err, "failed to get user by id")
 		return
 	}
 	response.Success(c, user)
@@ -215,10 +214,10 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 // @Produce      json
 // @Param        id   path      string  true  "User ID"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper
-// @Failure      401  {object}  response.WebResponseSuccess[any] "Unauthorized"
-// @Failure      403  {object}  response.WebResponseSuccess[any] "Forbidden"
-// @Failure      404  {object}  response.WebResponseSuccess[any] "User not found"
-// @Failure      500  {object}  response.WebResponseSuccess[any] "Internal server error"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "User not found"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users/{id} [delete]
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -226,28 +225,10 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 	err := h.UserUseCase.DeleteUser(ctx, userID)
 	if err != nil {
-		h.handleError(c, err, "failed to delete user")
+		h.Log.WithError(err).Error("failed to delete user")
+		response.HandleError(c, err, "failed to delete user")
 		return
 	}
 
 	response.Success(c, gin.H{"message": "User deleted successfully"})
-}
-
-func (h *UserHandler) handleError(c *gin.Context, err error, message string) {
-	h.Log.WithError(err).Error(message)
-
-	switch {
-	case errors.Is(err, exception.ErrBadRequest):
-		response.BadRequest(c, err, message)
-	case errors.Is(err, exception.ErrUnauthorized):
-		response.Unauthorized(c, err, message)
-	case errors.Is(err, exception.ErrForbidden):
-		response.Forbidden(c, err, message)
-	case errors.Is(err, exception.ErrNotFound):
-		response.NotFound(c, err, message)
-	case errors.Is(err, exception.ErrConflict):
-		response.ErrorResponse(c, http.StatusConflict, err, message)
-	default:
-		response.InternalServerError(c, exception.ErrInternalServer, "something went wrong")
-	}
 }

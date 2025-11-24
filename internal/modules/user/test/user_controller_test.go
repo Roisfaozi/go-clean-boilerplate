@@ -150,7 +150,6 @@ func TestUserHandler_GetAllUsers(t *testing.T) {
 			{ID: "user-1", Name: "User One"},
 			{ID: "user-2", Name: "User Two"},
 		}
-		// Expect default values (0) because we don't send query params
 		expectedReq := &model.GetUserListRequest{Page: 0, Limit: 0, Username: "", Email: ""}
 
 		mockUseCase.On("GetAllUsers", mock.Anything, expectedReq).Return(expectedUsers, nil).Once()

@@ -16,7 +16,9 @@ type tokenRepositoryRedis struct {
 	log    *logrus.Logger
 }
 
-// NewTokenRepositoryRedis creates a new Redis-based token repository
+// NewTokenRepositoryRedis creates a new instance of tokenRepositoryRedis
+// It takes a redis client and a logger as parameters
+// and returns a TokenRepository interface
 func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger) TokenRepository {
 	return &tokenRepositoryRedis{
 		client: client,
@@ -24,7 +26,6 @@ func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger) TokenRepo
 	}
 }
 
-// StoreToken stores a session in Redis
 func (r *tokenRepositoryRedis) StoreToken(ctx context.Context, session *model.Auth) error {
 	key := r.getSessionKey(session.UserID, session.ID)
 
@@ -48,7 +49,6 @@ func (r *tokenRepositoryRedis) StoreToken(ctx context.Context, session *model.Au
 	return nil
 }
 
-// GetToken retrieves a session by user ID and session ID
 func (r *tokenRepositoryRedis) GetToken(ctx context.Context, userID, sessionID string) (*model.Auth, error) {
 	key := r.getSessionKey(userID, sessionID)
 	sessionJSON, err := r.client.Get(ctx, key).Result()
@@ -68,7 +68,6 @@ func (r *tokenRepositoryRedis) GetToken(ctx context.Context, userID, sessionID s
 	return &session, nil
 }
 
-// DeleteToken removes a session by user ID and session ID
 func (r *tokenRepositoryRedis) DeleteToken(ctx context.Context, userID, sessionID string) error {
 	key := r.getSessionKey(userID, sessionID)
 	err := r.client.Del(ctx, key).Err()
@@ -79,7 +78,6 @@ func (r *tokenRepositoryRedis) DeleteToken(ctx context.Context, userID, sessionI
 	return nil
 }
 
-// GetUserSessions retrieves all active sessions for a user
 func (r *tokenRepositoryRedis) GetUserSessions(ctx context.Context, userID string) ([]*model.Auth, error) {
 	pattern := r.getSessionKey(userID, "*")
 	keys, err := r.client.Keys(ctx, pattern).Result()
@@ -107,7 +105,6 @@ func (r *tokenRepositoryRedis) GetUserSessions(ctx context.Context, userID strin
 	return sessions, nil
 }
 
-// RevokeAllSessions revokes all active sessions for a user
 func (r *tokenRepositoryRedis) RevokeAllSessions(ctx context.Context, userID string) error {
 	pattern := r.getSessionKey(userID, "*")
 	keys, err := r.client.Keys(ctx, pattern).Result()
@@ -126,7 +123,6 @@ func (r *tokenRepositoryRedis) RevokeAllSessions(ctx context.Context, userID str
 	return nil
 }
 
-// getSessionKey generates a Redis key for session storage
 func (r *tokenRepositoryRedis) getSessionKey(userID, sessionID string) string {
 	return fmt.Sprintf("session:%s:%s", userID, sessionID)
 }

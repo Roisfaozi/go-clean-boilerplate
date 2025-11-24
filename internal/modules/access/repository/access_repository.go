@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/entity"
 	"gorm.io/gorm"
 )
@@ -11,11 +12,16 @@ type AccessRepository struct {
 	db *gorm.DB
 }
 
-// NewAccessRepository creates a new AccessRepository.
+// NewAccessRepository creates a new AccessRepository instance.
+//
+// Parameters:
+// - db: The database connection.
+//
+// Returns:
+// - IAccessRepository: The newly created AccessRepository instance.
 func NewAccessRepository(db *gorm.DB) IAccessRepository {
 	return &AccessRepository{db: db}
 }
-
 func (r *AccessRepository) CreateAccessRight(ctx context.Context, accessRight *entity.AccessRight) error {
 	return r.db.WithContext(ctx).Create(accessRight).Error
 }

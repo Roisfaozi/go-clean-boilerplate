@@ -28,7 +28,6 @@ func NewAuthModule(
 	wsManager ws.Manager,
 ) *AuthModule {
 	tokenRepository := repository.NewTokenRepositoryRedis(redis, log)
-	// Note: Auth module might need access to user data, so creating userRepo here can be valid.
 	userRepo := userRepository.NewUserRepository(db, log)
 
 	authUseCase := usecase.NewAuthUsecase(jwtManager, tokenRepository, userRepo, tm, log, wsManager)

@@ -18,6 +18,14 @@ type AccessHandler struct {
 	log      *logrus.Logger
 }
 
+// NewAccessHandler creates a new instance of AccessHandler.
+//
+// It takes the following parameters:
+// - useCase: the IAccessUseCase implementation.
+// - validate: the validator.Validate implementation.
+// - log: the logrus.Logger implementation.
+//
+// It returns a pointer to the newly created AccessHandler.
 func NewAccessHandler(useCase usecase.IAccessUseCase, validate *validator.Validate, log *logrus.Logger) *AccessHandler {
 	return &AccessHandler{
 		useCase:  useCase,

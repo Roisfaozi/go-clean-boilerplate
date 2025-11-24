@@ -19,6 +19,14 @@ type RoleHandler struct {
 	validate    *validator.Validate
 }
 
+// NewRoleHandler creates a new RoleHandler instance.
+//
+// It takes the following parameters:
+// - roleUseCase: the RoleUseCase implementation.
+// - log: the logrus.Logger implementation.
+// - validate: the validator.Validate implementation.
+//
+// It returns a pointer to the newly created RoleHandler.
 func NewRoleHandler(roleUseCase usecase.RoleUseCase, log *logrus.Logger, validate *validator.Validate) *RoleHandler {
 	return &RoleHandler{
 		RoleUseCase: roleUseCase,

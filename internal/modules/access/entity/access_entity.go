@@ -1,6 +1,5 @@
 package entity
 
-// AccessRight represents an access right entity in the database
 type AccessRight struct {
 	ID          uint       `gorm:"primaryKey;column:id"`
 	Name        string     `gorm:"column:name;type:varchar(191);unique;not null"`
@@ -14,7 +13,6 @@ func (AccessRight) TableName() string {
 	return "access_rights"
 }
 
-// Endpoint represents an API endpoint entity in the database
 type Endpoint struct {
 	ID        uint   `gorm:"primaryKey;column:id"`
 	Path      string `gorm:"column:path;type:varchar(191);not null"`
@@ -27,7 +25,6 @@ func (Endpoint) TableName() string {
 	return "endpoints"
 }
 
-// AccessRightEndpoint represents the junction table for many-to-many relationship
 type AccessRightEndpoint struct {
 	AccessRightID uint `gorm:"primaryKey;column:access_right_id"`
 	EndpointID    uint `gorm:"primaryKey;column:endpoint_id"`
