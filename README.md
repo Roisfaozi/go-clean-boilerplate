@@ -1,146 +1,198 @@
-# Casbin DB - Go Modular API
+# Casbin DB - Go Modular REST API
 
-This project is a modular, role-based access control (RBAC) API built with Go, Gin, GORM, and Casbin. It serves as a robust starter template for creating secure and scalable backend services.
+![Go Version](https://img.shields.io/badge/Go-1.21%2B-blue)
+![License](https://img.shields.io/badge/License-Apache%202.0-green)
+![Architecture](https://img.shields.io/badge/Architecture-Clean%20%26%20Modular-orange)
+
+This project is a production-ready, modular, **Role-Based Access Control (RBAC)** REST API built with Go. It leverages **Gin** for high-performance HTTP handling, **GORM** for database interactions, **Casbin** for robust authorization policy enforcement, and **Redis** for secure session management.
+
+It serves as a solid foundation for building scalable, secure, and maintainable backend services.
 
 ---
 
-## 🚀 Features
+## 🚀 Key Features
 
--   **Modular Architecture**: Code is organized by feature modules (`user`, `auth`, `role`, `permission`, `access`), promoting separation of concerns.
--   **Clean Architecture**: Follows a strict layered architecture (Handler, UseCase, Repository) for testability and maintainability.
--   **RBAC with Casbin**: Granular access control managed by Casbin policies stored in the database.
--   **JWT Authentication**: Secure, stateless authentication using JSON Web Tokens.
--   **Database Migrations**: Uses `golang-migrate` for version-controlled database schema management.
--   **Swagger Documentation**: Automatically generated API documentation via `swaggo`.
--   **Configuration Management**: Centralized configuration loaded from `.env` files.
--   **Comprehensive Testing**: Includes unit tests (with mocks) and a full Postman collection for E2E testing.
--   **Live Reloading**: Uses `air` for hot-reloading during development.
+-   **Modular & Clean Architecture**: Codebase is strictly organized by feature modules (`user`, `auth`, `role`, `permission`, `access`) and layers (`Handler` -> `UseCase` -> `Repository`), ensuring scalability and testability.
+-   **Advanced RBAC Authorization**: Fine-grained access control using [Casbin](https://casbin.org/). Policies are persisted in the database, allowing dynamic permission updates without restarting the server.
+-   **Secure Authentication**:
+    -   **JWT (JSON Web Tokens)**: Stateless access tokens carrying user identity and role.
+    -   **Session Management**: Stateful refresh tokens stored in **Redis** for secure token rotation and instant revocation (logout/ban).
+-   **Real-time Notifications**: Integrated WebSocket support to broadcast events (e.g., user login alerts) to connected clients.
+-   **Robust Validation**: Centralized request validation using `go-playground/validator` with user-friendly error messages.
+-   **Standardized Response**: Unified JSON response structure for success (`data`, `paging`) and errors (`message`, `error`), making frontend integration seamless.
+-   **Database Migrations**: Version-controlled schema management using `golang-migrate`.
+-   **Observability**: Structured logging via `logrus`.
+-   **Developer Experience**:
+    -   **Swagger/OpenAPI**: Auto-generated interactive API documentation.
+    -   **Hot Reload**: Development made easy with `air`.
+    -   **Postman Collection**: Ready-to-use collection for end-to-end testing.
 
 ---
 
 ## 🛠️ Tech Stack
 
--   **Language**: Go
--   **Web Framework**: Gin
--   **ORM**: GORM
--   **Authorization**: Casbin
--   **Authentication**: JWT (dgrijalva/jwt-go)
--   **Database**: MySQL
--   **Migrations**: golang-migrate
--   **API Documentation**: Swaggo
--   **Live Reload**: Air
+| Category | Technology | Description |
+| :--- | :--- | :--- |
+| **Language** | [Go (Golang)](https://go.dev/) | Core programming language |
+| **Framework** | [Gin](https://github.com/gin-gonic/gin) | High-performance HTTP web framework |
+| **Database** | [MySQL](https://www.mysql.com/) | Primary relational database |
+| **ORM** | [GORM](https://gorm.io/) | Data access and relationship management |
+| **Cache/Session** | [Redis](https://redis.io/) | Session storage and token management |
+| **Authorization** | [Casbin](https://casbin.org/) | Authorization library (RBAC model) |
+| **Authentication** | [golang-jwt/jwt/v5](https://github.com/golang-jwt/jwt) | JWT implementation |
+| **Migrations** | [golang-migrate](https://github.com/golang-migrate/migrate) | Database schema migrations |
+| **Docs** | [Swaggo](https://github.com/swaggo/swag) | Swagger documentation generator |
+| **Test** | [Testify](https://github.com/stretchr/testify) | Assertion and mocking toolkit |
 
 ---
 
-## 🏗️ Project Structure
+## ⚙️ Prerequisites
 
-The project follows a Clean Architecture-inspired, modular layout:
+Ensure you have the following installed on your system:
 
-```
-├── cmd/api/            # Main application entrypoint
-├── db/                 # Database migrations and seeds
-├── docs/               # Generated Swagger files
-├── internal/
-│   ├── config/         # Application configuration
-│   ├── middleware/     # Gin middleware (Auth, CORS, Casbin)
-│   ├── modules/        # Business logic modules (user, auth, etc.)
-│   │   └── [module]/
-│   │       ├── delivery/ # Handlers (HTTP layer)
-│   │       ├── usecase/    # Business logic
-│   │       ├── repository/ # Data access layer
-│   │       ├── model/      # Data Transfer Objects (DTOs)
-│   │       └── entity/     # GORM database models
-│   ├── router/         # Gin router setup
-│   └── utils/          # Shared utilities (response, JWT, etc.)
-├── Makefile            # Helper commands
-├── docker-compose.yml  # Docker setup for services
-└── go.mod              # Go modules
-```
+1.  **Go**: Version 1.21 or higher.
+2.  **Docker & Docker Compose**: For running MySQL and Redis services easily.
+3.  **Make**: For running automation commands defined in `Makefile`.
+4.  **Air** (Optional): For live reloading during development.
+    ```bash
+    go install github.com/air-verse/air@latest
+    ```
+5.  **Swag CLI** (Optional): For regenerating API docs.
+    ```bash
+    go install github.com/swaggo/swag/cmd/swag@latest
+    ```
+6.  **Golang Migrate** (Optional): If you want to run migrations manually without the Makefile helper.
 
 ---
 
-## ⚙️ Setup & Running the Project
+## 🚀 Getting Started
 
-### Prerequisites
+### 1. Clone the Repository
+```bash
+git clone https://github.com/yourusername/casbin-db.git
+cd casbin-db
+```
 
--   Go (1.18+)
--   Docker and Docker Compose
--   `make`
--   `golang-migrate` (can be installed with `make migrate-install`)
--   `swag` CLI (for regenerating docs: `go install github.com/swaggo/swag/cmd/swag@latest`)
--   `air` (for live reload: `go install github.com/cosmtrek/air@latest`)
-
-### 1. Environment Configuration
-
-Copy the `.env.example` file to `.env` and fill in the required database and application variables.
-
-```sh
+### 2. Environment Configuration
+Copy the example environment file and configure it according to your setup.
+```bash
 cp .env.example .env
 ```
+*Tip: The default values in `.env.example` usually work out-of-the-box with the provided `docker-compose.yml`.*
 
-### 2. Running with Docker (Recommended)
-
-This is the easiest way to get the entire stack (Go app, MySQL database) running.
-
-```sh
+### 3. Start Infrastructure (Database & Redis)
+Use Docker Compose to spin up MySQL and Redis containers.
+```bash
 docker-compose up -d
 ```
 
-### 3. Running Locally (with `make`)
-
-If you have a local MySQL instance running, you can use the `Makefile` commands.
-
-```sh
-# 1. Run database migrations
+### 4. Run Database Migrations
+Apply the database schema and seed default data (like `role:admin` and `role:user`).
+```bash
 make migrate-up
+```
 
-# 2. Run the application with live reload
+### 5. Run the Application
+You can run the application in development mode (with hot reload) or standard mode.
+
+**Development Mode (Recommended):**
+```bash
 air
-
-# OR run without live reload
-make run
+```
+*Or if you don't have `air` installed:*
+```bash
+go run cmd/api/main.go
 ```
 
-### 4. Running Tests
-
-To run the full suite of unit tests:
-
-```sh
-make test
+**Production Build:**
+```bash
+make build
+./bin/api
 ```
 
-### 5. API Documentation
-
--   **Swagger UI**: Once the server is running, access the interactive API documentation at `http://localhost:8080/api/docs/index.html`.
--   **Postman**: Import `Casbin Project API.postman_collection.json` and `Casbin Project Env.postman_environment.json` into Postman to run end-to-end tests. A detailed guide is available in `POSTMAN_TEST_CASES.md`.
+The server will start on **http://localhost:8080** (or the port defined in your `.env`).
 
 ---
 
-## 🌐 API Overview
+## 🧪 Testing
 
-The API is versioned and prefixed with `/api/v1`.
+### Unit Tests
+Run the full suite of unit tests to ensure system integrity.
+```bash
+make test
+```
+*Note: This runs `go test ./...` covering all modules.*
 
-### Main Endpoints
+### End-to-End Testing (Postman)
+We provide a comprehensive Postman collection to test the entire flow:
+1.  Import `Casbin_API_Full_Flow.postman_collection.json` into Postman.
+2.  Set up your environment variables (`baseURL` = `http://localhost:8080`, `apiVersion` = `v1`).
+3.  Run the collection runner to verify Registration -> Login -> RBAC Enforcement -> Cleanup.
 
--   **Authentication** (`/auth`)
-    -   `POST /login`: Logs in a user, returns JWT.
-    -   `POST /refresh`: Refreshes an access token.
-    -   `POST /logout`: Logs out a user.
--   **Users** (`/users`)
-    -   `POST /register`: Creates a new user account.
-    -   `GET /me`: Retrieves the current user's profile.
-    -   `PUT /me`: Updates the current user's profile.
-    -   `GET /`: [Admin] Retrieves a list of all users (supports pagination/filtering).
-    -   `GET /{id}`: [Admin] Retrieves a specific user by ID.
-    -   `DELETE /{id}`: [Admin] Deletes a specific user.
--   **Roles** (`/roles`)
-    -   `POST /`: [Admin] Creates a new role.
-    -   `GET /`: [Admin] Lists all roles.
--   **Permissions** (`/permissions`)
-    -   `POST /grant`: [Admin] Grants a permission to a role.
-    -   `DELETE /revoke`: [Admin] Revokes a permission from a role.
-    -   `GET /`: [Admin] Lists all permissions.
-    -   `GET /{role}`: [Admin] Lists permissions for a specific role.
-    -   `POST /assign-role`: [Admin] Assigns a role to a user.
+For a detailed usage guide, please refer to **[USAGE.md](USAGE.md)**.
 
-See the Swagger UI or Postman collection for detailed request/response models.
+---
+
+## 📚 API Documentation
+
+### Swagger UI
+Interactive API documentation is available at:
+> **http://localhost:8080/api/docs/index.html**
+
+### Key Endpoints Overview
+
+| Module | Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- | :--- |
+| **Auth** | `POST` | `/auth/login` | User login (returns JWT) | Public |
+| **Auth** | `POST` | `/auth/refresh` | Refresh access token | Public (Cookie) |
+| **User** | `POST` | `/users/register` | Register new user | Public |
+| **User** | `GET` | `/users/me` | Get current profile | User |
+| **User** | `GET` | `/users` | List all users | Admin |
+| **Role** | `POST` | `/roles` | Create new role | Admin |
+| **Perm** | `POST` | `/permissions/grant` | Grant permission to role | Admin |
+| **Perm** | `POST` | `/permissions/assign-role` | Assign role to user | Admin |
+
+*See [USAGE.md](USAGE.md) for detailed workflows.*
+
+---
+
+## 📂 Project Structure
+
+```
+├── cmd/api/            # Application entry point (main.go)
+├── db/                 # Database artifacts
+│   ├── migrations/     # SQL migration files
+│   └── seeds/          # Initial data seeding
+├── docs/               # Swagger documentation files
+├── internal/
+│   ├── config/         # App configuration & dependency wiring
+│   ├── middleware/     # HTTP Middlewares (Auth, Casbin, CORS)
+│   ├── modules/        # Domain modules (Clean Architecture)
+│   │   ├── auth/       # Authentication logic & JWT handling
+│   │   ├── user/       # User management
+│   │   ├── role/       # Role management
+│   │   ├── permission/ # Permission/Policy management
+│   │   └── access/     # Access Right & Endpoint management
+│   ├── router/         # Gin router configuration
+│   └── utils/          # Shared utilities (Response, Validator, JWT, WebSocket)
+├── Makefile            # Automation scripts
+├── docker-compose.yml  # Docker services definition
+└── go.mod              # Go dependencies
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+1.  Fork the repository.
+2.  Create a feature branch (`git checkout -b feature/amazing-feature`).
+3.  Commit your changes (`git commit -m 'feat: Add amazing feature'`).
+4.  Push to the branch (`git push origin feature/amazing-feature`).
+5.  Open a Pull Request.
+
+---
+
+## 📄 License
+
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
