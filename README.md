@@ -18,7 +18,7 @@ It serves as a solid foundation for building scalable, secure, and maintainable 
     -   **JWT (JSON Web Tokens)**: Stateless access tokens carrying user identity and role.
     -   **Session Management**: Stateful refresh tokens stored in **Redis** for secure token rotation and instant revocation (logout/ban).
 -   **Real-time Notifications**: Integrated WebSocket support to broadcast events (e.g., user login alerts) to connected clients.
--   **Robust Validation**: Centralized request validation using `go-playground/validator` with user-friendly error messages.
+-   **Robust Validation**: Centralized request validation using `go-playground/validator` with user-friendly error messages (HTTP 422).
 -   **Standardized Response**: Unified JSON response structure for success (`data`, `paging`) and errors (`message`, `error`), making frontend integration seamless.
 -   **Database Migrations**: Version-controlled schema management using `golang-migrate`.
 -   **Observability**: Structured logging via `logrus`.
@@ -125,11 +125,11 @@ make test
 
 ### End-to-End Testing (Postman)
 We provide a comprehensive Postman collection to test the entire flow:
-1.  Import `Casbin_API_Full_Flow.postman_collection.json` into Postman.
+1.  Import `postman/Casbin_API_Full_Flow.postman_collection.json` into Postman.
 2.  Set up your environment variables (`baseURL` = `http://localhost:8080`, `apiVersion` = `v1`).
 3.  Run the collection runner to verify Registration -> Login -> RBAC Enforcement -> Cleanup.
 
-For a detailed usage guide, please refer to **[USAGE.md](USAGE.md)**.
+For a detailed usage guide, please refer to **[documentation/USAGE.md](documentation/USAGE.md)**.
 
 ---
 
@@ -152,32 +152,56 @@ Interactive API documentation is available at:
 | **Perm** | `POST` | `/permissions/grant` | Grant permission to role | Admin |
 | **Perm** | `POST` | `/permissions/assign-role` | Assign role to user | Admin |
 
-*See [USAGE.md](USAGE.md) for detailed workflows.*
+*See [documentation/USAGE.md](documentation/USAGE.md) for detailed workflows.*
 
 ---
 
 ## 📂 Project Structure
 
+The project follows a standard Go project layout suitable for scalable microservices or monolithic APIs.
+
 ```
-├── cmd/api/            # Application entry point (main.go)
-├── db/                 # Database artifacts
-│   ├── migrations/     # SQL migration files
-│   └── seeds/          # Initial data seeding
-├── docs/               # Swagger documentation files
-├── internal/
-│   ├── config/         # App configuration & dependency wiring
-│   ├── middleware/     # HTTP Middlewares (Auth, Casbin, CORS)
-│   ├── modules/        # Domain modules (Clean Architecture)
-│   │   ├── auth/       # Authentication logic & JWT handling
-│   │   ├── user/       # User management
-│   │   ├── role/       # Role management
-│   │   ├── permission/ # Permission/Policy management
-│   │   └── access/     # Access Right & Endpoint management
-│   ├── router/         # Gin router configuration
-│   └── utils/          # Shared utilities (Response, Validator, JWT, WebSocket)
-├── Makefile            # Automation scripts
-├── docker-compose.yml  # Docker services definition
-└── go.mod              # Go dependencies
+.
+├── .air.toml           # Configuration for Air (live reloading)
+├── Makefile            # Automation commands (build, test, migrate, run)
+├── README.md           # Main project documentation
+├── docker-compose.yml  # Docker services definition (MySQL, Redis)
+├── go.mod              # Go dependency definitions
+│
+├── cmd/
+│   └── api/            # Application entry point (main.go)
+│
+├── db/
+│   ├── migrations/     # Database schema migration files (.sql)
+│   └── seeds/          # Initial data seeding scripts (e.g. bootstrapping)
+│
+├── docs/               # Auto-generated Swagger/OpenAPI documentation files
+│
+├── documentation/      # Project guides and additional documentation
+│   ├── USAGE.md        # Detailed guide on how to use the API workflow
+│   └── ...
+│
+├── postman/            # Postman collections for testing
+│   ├── Casbin_API_Full_Flow.json  # End-to-end testing collection
+│   └── ...
+│
+└── internal/           # Private application code (not importable by other apps)
+    ├── config/         # Configuration loading & app initialization wiring
+    ├── middleware/     # HTTP Middlewares (Auth, Casbin Enforcer, CORS)
+    ├── router/         # Gin router setup and route registration
+    ├── utils/          # Shared utilities (JWT, Response Helper, Validator, WebSocket)
+    │
+    └── modules/        # Domain-specific modules following Clean Architecture
+        ├── auth/       # Authentication logic & JWT handling
+        ├── user/       # User management (CRUD)
+        ├── role/       # Role management
+        ├── permission/ # Permission/Policy management (Casbin)
+        └── access/     # Access Right & Endpoint management
+            ├── delivery/   # HTTP Handlers (Controller layer)
+            ├── usecase/    # Business Logic layer
+            ├── repository/ # Data Access layer (DB/Redis)
+            ├── model/      # Data structures (DTOs) & Validation structs
+            └── entity/     # Database entities (GORM models)
 ```
 
 ---
