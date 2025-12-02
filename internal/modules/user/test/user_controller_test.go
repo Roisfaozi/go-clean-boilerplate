@@ -84,6 +84,34 @@ func TestUserHandler_RegisterUser_Conflict(t *testing.T) {
 	mockUseCase.AssertExpectations(t)
 }
 
+func TestUserHandler_RegisterUser_ValidationError(t *testing.T) {
+	mockUseCase := new(mocks.MockUserUseCase)
+	handler := newTestUserHandler(mockUseCase)
+	router := setupUserTestRouter()
+	router.POST("/users/register", handler.RegisterUser)
+
+	// Invalid payload: empty username, short password
+	reqBody := &model.RegisterUserRequest{
+		Username: "",
+		Password: "123", 
+		Name:     "Test User",
+		Email:    "test@example.com",
+	}
+
+	// UseCase.Create should NOT be called because validation fails first
+	// No mock setup needed for UseCase
+
+	bodyBytes, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/users/register", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+}
+
 func TestUserHandler_GetCurrentUser_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockUserUseCase)
 	handler := newTestUserHandler(mockUseCase)

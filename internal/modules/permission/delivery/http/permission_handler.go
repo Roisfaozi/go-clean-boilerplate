@@ -7,6 +7,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
+	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -18,14 +19,6 @@ type PermissionHandler struct {
 	log      *logrus.Logger
 }
 
-// NewPermissionHandler creates a new instance of PermissionHandler.
-//
-// It takes the following parameters:
-// - useCase: the IPermissionUseCase implementation.
-// - validate: the validator.Validate implementation.
-// - log: the logrus.Logger implementation.
-//
-// It returns a pointer to the newly created PermissionHandler.
 func NewPermissionHandler(useCase usecase.IPermissionUseCase, validate *validator.Validate, log *logrus.Logger) *PermissionHandler {
 	return &PermissionHandler{
 		useCase:  useCase,
@@ -44,6 +37,7 @@ func NewPermissionHandler(useCase usecase.IPermissionUseCase, validate *validato
 // @Param        request body model.AssignRoleRequest true "Assign Role Request"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Role assigned successfully"
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions/assign-role [post]
 func (h *PermissionHandler) AssignRole(c *gin.Context) {
@@ -54,8 +48,8 @@ func (h *PermissionHandler) AssignRole(c *gin.Context) {
 		return
 	}
 	if err := h.validate.Struct(req); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 
@@ -78,6 +72,7 @@ func (h *PermissionHandler) AssignRole(c *gin.Context) {
 // @Param        request body model.GrantPermissionRequest true "Grant Permission Request"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Permission granted successfully"
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions/grant [post]
 func (h *PermissionHandler) GrantPermission(c *gin.Context) {
@@ -88,8 +83,8 @@ func (h *PermissionHandler) GrantPermission(c *gin.Context) {
 		return
 	}
 	if err := h.validate.Struct(req); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 
@@ -158,6 +153,7 @@ func (h *PermissionHandler) GetPermissionsForRole(c *gin.Context) {
 // @Param        request body model.UpdatePermissionRequest true "Update Permission Request"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Permission updated successfully"
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Policy to update not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions [put]
@@ -168,8 +164,8 @@ func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 		return
 	}
 	if err := h.validate.Struct(req); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 
@@ -197,18 +193,19 @@ func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 // @Param        request body model.GrantPermissionRequest true "Revoke Permission Request"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Permission revoked successfully"
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions/revoke [delete]
 func (h *PermissionHandler) RevokePermission(c *gin.Context) {
 	ctx := c.Request.Context()
-	var req model.GrantPermissionRequest
+	var req model.GrantPermissionRequest // Reuse GrantPermissionRequest as it has Role, Path, Method
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 	if err := h.validate.Struct(req); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 

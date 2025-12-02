@@ -8,6 +8,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
+	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -19,14 +20,6 @@ type RoleHandler struct {
 	validate    *validator.Validate
 }
 
-// NewRoleHandler creates a new RoleHandler instance.
-//
-// It takes the following parameters:
-// - roleUseCase: the RoleUseCase implementation.
-// - log: the logrus.Logger implementation.
-// - validate: the validator.Validate implementation.
-//
-// It returns a pointer to the newly created RoleHandler.
 func NewRoleHandler(roleUseCase usecase.RoleUseCase, log *logrus.Logger, validate *validator.Validate) *RoleHandler {
 	return &RoleHandler{
 		RoleUseCase: roleUseCase,
@@ -45,6 +38,7 @@ func NewRoleHandler(roleUseCase usecase.RoleUseCase, log *logrus.Logger, validat
 // @Param        request body model.CreateRoleRequest true "Role Creation Details"
 // @Success      201  {object}  response.SwaggerRoleResponseWrapper
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      409  {object}  response.SwaggerErrorResponseWrapper "Role already exists"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /roles [post]
@@ -54,13 +48,13 @@ func (h *RoleHandler) Create(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body for create role")
-		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
+		response.BadRequest(c, err, "invalid request body")
 		return
 	}
 
 	if err := h.validate.Struct(req); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
+	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -18,14 +19,6 @@ type AccessHandler struct {
 	log      *logrus.Logger
 }
 
-// NewAccessHandler creates a new instance of AccessHandler.
-//
-// It takes the following parameters:
-// - useCase: the IAccessUseCase implementation.
-// - validate: the validator.Validate implementation.
-// - log: the logrus.Logger implementation.
-//
-// It returns a pointer to the newly created AccessHandler.
 func NewAccessHandler(useCase usecase.IAccessUseCase, validate *validator.Validate, log *logrus.Logger) *AccessHandler {
 	return &AccessHandler{
 		useCase:  useCase,
@@ -43,25 +36,27 @@ func NewAccessHandler(useCase usecase.IAccessUseCase, validate *validator.Valida
 // @Param        request body model.CreateAccessRightRequest true "Create Access Right Request"
 // @Success      201  {object}  response.SwaggerAccessRightResponseWrapper
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /access-rights [post]
 func (h *AccessHandler) CreateAccessRight(c *gin.Context) {
 	var req model.CreateAccessRightRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
+		response.BadRequest(c, err, "invalid request body")
 		return
 	}
 
 	if err := h.validate.Struct(req); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 
 	accessRight, err := h.useCase.CreateAccessRight(c.Request.Context(), req)
 	if err != nil {
 		if _, ok := err.(validator.ValidationErrors); ok {
-			response.ValidationError(c, exception.ErrBadRequest, err.Error())
+			msg := validation.FormatValidationErrors(err)
+			response.ValidationError(c, exception.ErrValidationError, msg)
 			return
 		}
 		h.log.WithError(err).Error("Failed to create access right")
@@ -100,6 +95,7 @@ func (h *AccessHandler) GetAllAccessRights(c *gin.Context) {
 // @Param        request body model.CreateEndpointRequest true "Create Endpoint Request"
 // @Success      201  {object}  response.SwaggerEndpointResponseWrapper
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /endpoints [post]
 func (h *AccessHandler) CreateEndpoint(c *gin.Context) {
@@ -110,15 +106,16 @@ func (h *AccessHandler) CreateEndpoint(c *gin.Context) {
 	}
 
 	if err := h.validate.Struct(req); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 
 	endpoint, err := h.useCase.CreateEndpoint(c.Request.Context(), req)
 	if err != nil {
 		if _, ok := err.(validator.ValidationErrors); ok {
-			response.ValidationError(c, exception.ErrBadRequest, err.Error())
+			msg := validation.FormatValidationErrors(err)
+			response.ValidationError(c, exception.ErrValidationError, msg)
 			return
 		}
 		h.log.WithError(err).Error("Failed to create endpoint")
@@ -138,6 +135,7 @@ func (h *AccessHandler) CreateEndpoint(c *gin.Context) {
 // @Param        request body model.LinkEndpointRequest true "Link Request"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Endpoint linked successfully"
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /access-rights/link [post]
 func (h *AccessHandler) LinkEndpointToAccessRight(c *gin.Context) {
@@ -148,15 +146,16 @@ func (h *AccessHandler) LinkEndpointToAccessRight(c *gin.Context) {
 	}
 
 	if err := h.validate.Struct(req); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 
 	err := h.useCase.LinkEndpointToAccessRight(c.Request.Context(), req)
 	if err != nil {
 		if _, ok := err.(validator.ValidationErrors); ok {
-			response.ValidationError(c, exception.ErrBadRequest, err.Error())
+			msg := validation.FormatValidationErrors(err)
+			response.ValidationError(c, exception.ErrValidationError, msg)
 			return
 		}
 		h.log.WithError(err).Error("Failed to link endpoint to access right")

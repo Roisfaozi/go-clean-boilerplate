@@ -73,6 +73,8 @@ func HandleError(c *gin.Context, err error, message string) {
 		NotFound(c, err, message)
 	case errors.Is(err, exception.ErrConflict):
 		ErrorResponse(c, http.StatusConflict, err, message)
+	case errors.Is(err, exception.ErrValidationError), errors.Is(err, exception.ErrUnprocessableEntity):
+		ValidationError(c, err, message)
 	default:
 		InternalServerError(c, err, message)
 	}

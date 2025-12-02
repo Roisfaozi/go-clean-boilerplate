@@ -39,6 +39,7 @@ go.work
 .idea/**/dictionaries
 .idea/**/shelf
 .idea/**
+/tmp
 
 # AWS User-specific
 .idea/**/aws.xml

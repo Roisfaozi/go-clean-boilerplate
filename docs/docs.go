@@ -95,6 +95,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
@@ -142,6 +148,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
@@ -194,6 +206,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Invalid credentials",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
@@ -318,6 +336,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
@@ -404,6 +428,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
@@ -451,6 +481,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
@@ -506,6 +542,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
@@ -553,6 +595,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
@@ -689,6 +737,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
@@ -749,25 +803,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid query parameters",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -868,6 +922,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
@@ -920,6 +980,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
@@ -963,25 +1029,25 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -1019,25 +1085,25 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any"
+                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -1229,6 +1295,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "role": {
                     "type": "string"
                 },
                 "username": {
@@ -1551,15 +1620,6 @@ const docTemplate = `{
                 "data": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse"
                 },
-                "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
-                }
-            }
-        },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.WebResponseSuccess-any": {
-            "type": "object",
-            "properties": {
-                "data": {},
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
                 }

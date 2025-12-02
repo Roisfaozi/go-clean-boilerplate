@@ -5,7 +5,7 @@ INSERT INTO roles (id, name, description, created_at, updated_at) VALUES
 
 -- Seed Casbin Policies (Permissions)
 -- role:admin can access everything (*) with any method (*)
-INSERT INTO casbin_rule (ptype, v0, v1, v2) VALUES 
+INSERT INTO casbin_rule (ptype, v0, v1, v2) VALUES
 ('p', 'role:superadmin', '*', '*');
 
 -- role:user can only read/update their own profile (handled by logic, but api access is allowed here)

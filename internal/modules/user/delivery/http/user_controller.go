@@ -1,10 +1,14 @@
 package http
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
+	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -33,6 +37,7 @@ func NewUserHandler(userUseCase usecase.UserUseCase, log *logrus.Logger, validat
 // @Param        request body model.RegisterUserRequest true "User Registration Details"
 // @Success      201  {object}  response.SwaggerUserResponseWrapper
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      409  {object}  response.SwaggerErrorResponseWrapper "User with the same ID already exists"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users/register [post]
@@ -42,13 +47,13 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body")
-		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
+		response.BadRequest(c, errors.New("bad request"), fmt.Sprintf("invalid request body: %v", err))
 		return
 	}
 
 	if err := h.validate.Struct(req); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 
@@ -106,6 +111,7 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 // @Param        request body model.UpdateUserRequest true "Fields to update"
 // @Success      200  {object}  response.SwaggerUserResponseWrapper
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "User not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
@@ -122,15 +128,15 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	var req model.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body")
-		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
+		response.BadRequest(c, err, "invalid request body")
 		return
 	}
 
 	req.ID = userID.(string)
 
 	if err := h.validate.Struct(req); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 
@@ -166,7 +172,7 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 
 	if err := c.ShouldBindQuery(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind query parameters")
-		response.BadRequest(c, exception.ErrBadRequest, "invalid query parameters")
+		response.BadRequest(c, err, "invalid query parameters")
 		return
 	}
 

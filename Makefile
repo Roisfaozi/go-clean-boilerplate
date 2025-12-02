@@ -71,7 +71,7 @@ test:
 .PHONY: docs
 docs:
 	@echo "Generating Swagger/OpenAPI documentation..."
-	$(SWAG_CLI) init -g cmd/api/main.go
+	$(SWAG_CLI) init -g cmd/api/main.go --parseDependency --parseInternal --parseDepth 1
 
 # Tidy go.mod and go.sum files
 .PHONY: tidy
@@ -138,5 +138,6 @@ migrate-version: ## Show current migration version
 
 .PHONY: gemini
 gemini: ## Set MySQL environment variables
-	@powershell -Command "$$env:MYSQL_HOST='$(DB_HOST)'; $$env:MYSQL_PORT='$(DB_PORT)'; $$env:MYSQL_DATABASE='$(DB_NAME)'; $$env:MYSQL_USER='$(DB_USER)'; $$env:MYSQL_PASSWORD='$(DB_PASSWORD)'; gemini -m gemini-2.5-pro"
+	@powershell -ExecutionPolicy Bypass -Command "$$env:MYSQL_HOST='$(DB_HOST)'; $$env:MYSQL_PORT='$(DB_PORT)'; $$env:MYSQL_DATABASE='$(DB_NAME)'; $$env:MYSQL_USER='$(DB_USER)'; $$env:MYSQL_PASSWORD='$(DB_PASSWORD)'; gemini"
 
+# -m gemini-2.5-pro
