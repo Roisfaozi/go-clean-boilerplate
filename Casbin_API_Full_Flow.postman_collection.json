@@ -1,0 +1,518 @@
+{
+	"info": {
+		"name": "Casbin API Full Flow",
+		"description": "A comprehensive end-to-end flow testing user registration, authentication, role assignment, and RBAC enforcement using Casbin.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "[SETUP] Admin & Permissions",
+			"item": [
+				{
+					"name": "1. Register Admin User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.id) {",
+									"    pm.environment.set(\"adminUserId\", jsonData.data.id);",
+									"    pm.environment.set(\"adminUsername\", jsonData.data.username);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin_{{$timestamp}}\",\n    \"password\": \"password123\",\n    \"name\": \"Admin User\",\n    \"email\": \"admin_{{$timestamp}}@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/register",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"register"
+							]
+						}
+					}
+				},
+				{
+					"name": "2. Login Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.access_token) {",
+									"    pm.environment.set(\"adminToken\", jsonData.data.access_token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{adminUsername}}\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"auth",
+								"login"
+							]
+						}
+					}
+				},
+				{
+					"name": "3. Assign Admin Role",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{adminUserId}}\",\n    \"role\": \"role:admin\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"permissions",
+								"assign-role"
+							]
+						}
+					}
+				},
+				{
+					"name": "4. Grant Permission (Get All Users)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"role:admin\",\n    \"path\": \"/api/v1/users\",\n    \"method\": \"GET\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/permissions/grant",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"permissions",
+								"grant"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "[FLOW] Normal User",
+			"item": [
+				{
+					"name": "1. Register Normal User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.id) {",
+									"    pm.environment.set(\"normalUserId\", jsonData.data.id);",
+									"    pm.environment.set(\"normalUsername\", jsonData.data.username);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"user_{{$timestamp}}\",\n    \"password\": \"password123\",\n    \"name\": \"Normal User\",\n    \"email\": \"user_{{$timestamp}}@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/register",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"register"
+							]
+						}
+					}
+				},
+				{
+					"name": "2. Login Normal User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.access_token) {",
+									"    pm.environment.set(\"userToken\", jsonData.data.access_token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{normalUsername}}\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"auth",
+								"login"
+							]
+						}
+					}
+				},
+				{
+					"name": "3. Get My Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{userToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/me",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"me"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "[TEST] RBAC Check",
+			"item": [
+				{
+					"name": "1. [Admin] Get All Users (Allowed)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response should be a list\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users"
+							]
+						}
+					}
+				},
+				{
+					"name": "2. [User] Get All Users (Forbidden)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 403 Forbidden\", function () {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{userToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "[CLEANUP]",
+			"item": [
+				{
+					"name": "1. Delete Normal User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/{{normalUserId}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"{{normalUserId}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "2. Delete Admin User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/{{adminUserId}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"{{adminUserId}}"
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+}
