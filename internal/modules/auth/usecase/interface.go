@@ -1,3 +1,4 @@
+//go:generate mockery --name AuthUseCase --output ../test/mocks --outpkg mocks
 package usecase
 
 import (
@@ -6,6 +7,7 @@ import (
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
+	"github.com/Roisfaozi/casbin-db/internal/utils/jwt" // New Import
 )
 
 // Common errors
@@ -16,17 +18,11 @@ var (
 	ErrTokenRevoked       = errors.New("token has been revoked")
 )
 
-// Claims represents the JWT claims
-type Claims struct {
-	UserID    string `json:"user_id"`
-	SessionID string `json:"session_id"`
-}
-
 type AuthUseCase interface {
 	GenerateAccessToken(user *entity.User) (string, error)
 	GenerateRefreshToken(user *entity.User) (string, error)
-	ValidateAccessToken(token string) (*Claims, error)
-	ValidateRefreshToken(token string) (*Claims, error)
+	ValidateAccessToken(token string) (*jwt.Claims, error) // Updated return type
+	ValidateRefreshToken(token string) (*jwt.Claims, error) // Updated return type
 	RevokeToken(ctx context.Context, userID, sessionID string) error
 
 	Login(ctx context.Context, request model.LoginRequest) (*model.LoginResponse, string, error)

@@ -8,6 +8,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
+	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -36,6 +37,7 @@ func NewAuthHandler(authUseCase usecase.AuthUseCase, log *logrus.Logger, validat
 // @Param        loginRequest  body      model.LoginRequest  true  "Login Credentials"
 // @Success      200      {object}  response.SwaggerLoginResponseWrapper
 // @Failure      400      {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422      {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      401      {object}  response.SwaggerErrorResponseWrapper "Invalid credentials"
 // @Failure      500      {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /auth/login [post]
@@ -43,13 +45,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Warn("Login failed: could not bind request")
-		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
+		response.BadRequest(c, err, "invalid request body")
 		return
 	}
 
 	if err := h.validate.Struct(req); err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		response.ValidationError(c, exception.ErrBadRequest, validationErrors.Error())
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 
@@ -119,10 +121,12 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
+	// Clear the refresh token cookie
 	h.setRefreshTokenCookie(c, "")
 	response.Success(c, gin.H{"message": "logged out successfully"})
 }
 
+// handleError centralizes error handling for the auth handler
 func (h *AuthHandler) handleError(c *gin.Context, err error, message string) {
 	h.Log.WithError(err).Error("An error occurred in auth handler")
 	switch {
@@ -130,6 +134,7 @@ func (h *AuthHandler) handleError(c *gin.Context, err error, message string) {
 		response.Unauthorized(c, err, message)
 	case errors.Is(err, usecase.ErrInvalidToken), errors.Is(err, usecase.ErrExpiredToken), errors.Is(err, usecase.ErrTokenRevoked):
 		response.Unauthorized(c, err, message)
+	// Catch validation errors (this requires your validator to be configured to return error)
 	case strings.Contains(err.Error(), "validation"):
 		response.BadRequest(c, err, message)
 	default:
@@ -137,12 +142,13 @@ func (h *AuthHandler) handleError(c *gin.Context, err error, message string) {
 	}
 }
 
+// setRefreshTokenCookie sets or clears the refresh token in an HTTP-only cookie
 func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
 	var maxAge int
 	if token == "" {
-		maxAge = -1
+		maxAge = -1 // Expire immediately
 	} else {
-		maxAge = 3600 * 24 * 7
+		maxAge = 3600 * 24 * 7 // 7 days
 	}
 
 	secure := false
@@ -165,9 +171,9 @@ func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
 		"refresh_token",
 		token,
 		maxAge,
-		"/api/v1/auth/refresh",
-		"",
-		secure,
-		true,
+		"/api/v1/auth/refresh", // Path should be specific to the refresh endpoint
+		"",                     // Domain
+		secure,                 // Secure flag (true in production)
+		true,                   // HttpOnly flag
 	)
 }

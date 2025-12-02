@@ -63,7 +63,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	// 3. Initialize Modules
 	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
 
-	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager)
+	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, enforcer)
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer)
 

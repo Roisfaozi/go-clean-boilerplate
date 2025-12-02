@@ -136,6 +136,43 @@ func (_m *IEnforcer) GetPolicy() ([][]string, error) {
 	return r0, r1
 }
 
+// GetRolesForUser provides a mock function with given fields: name, domain
+func (_m *IEnforcer) GetRolesForUser(name string, domain ...string) ([]string, error) {
+	_va := make([]interface{}, len(domain))
+	for _i := range domain {
+		_va[_i] = domain[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, name)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRolesForUser")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string, ...string) ([]string, error)); ok {
+		return rf(name, domain...)
+	}
+	if rf, ok := ret.Get(0).(func(string, ...string) []string); ok {
+		r0 = rf(name, domain...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string, ...string) error); ok {
+		r1 = rf(name, domain...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // RemovePolicy provides a mock function with given fields: params
 func (_m *IEnforcer) RemovePolicy(params ...interface{}) (bool, error) {
 	var _ca []interface{}

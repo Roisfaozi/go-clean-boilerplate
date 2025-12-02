@@ -4,18 +4,18 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase"
+	authUsecase "github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase" // Alias to avoid conflict with jwt.Claims
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
 type AuthMiddleware struct {
-	AuthUseCase usecase.AuthUseCase
+	AuthUseCase authUsecase.AuthUseCase
 	Log         *logrus.Logger
 }
 
-func NewAuthMiddleware(authUseCase usecase.AuthUseCase, log *logrus.Logger) *AuthMiddleware {
+func NewAuthMiddleware(authUseCase authUsecase.AuthUseCase, log *logrus.Logger) *AuthMiddleware {
 	return &AuthMiddleware{
 		AuthUseCase: authUseCase,
 		Log:         log,
@@ -46,10 +46,9 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 			return
 		}
 
-		claims, err := m.AuthUseCase.ValidateAccessToken(token)
+		claims, err := m.AuthUseCase.ValidateAccessToken(token) // This returns *jwt.Claims from internal/utils/jwt
 		if err != nil {
 			m.Log.WithError(err).Warn("Token validation failed")
-			// We can pass the specific error from the use case directly
 			response.Unauthorized(c, err, "unauthorized")
 			c.Abort()
 			return
@@ -70,9 +69,11 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 			return
 		}
 
-		// Set user and session info in the context for downstream handlers
+		// Set user, session, role, and username info in the context for downstream handlers
 		c.Set("user_id", claims.UserID)
 		c.Set("session_id", claims.SessionID)
+		c.Set("user_role", claims.Role)
+		c.Set("username", claims.Username)
 
 		c.Next()
 	}
@@ -106,4 +107,30 @@ func GetSessionIDFromContext(c *gin.Context) (string, bool) {
 	}
 
 	return sessionIDStr, true
+}
+
+// GetRoleFromContext retrieves the user role from the context
+func GetRoleFromContext(c *gin.Context) (string, bool) {
+	role, exists := c.Get("user_role")
+	if !exists {
+		return "", false
+	}
+	roleStr, ok := role.(string)
+	if !ok || roleStr == "" {
+		return "", false
+	}
+	return roleStr, true
+}
+
+// GetUsernameFromContext retrieves the username from the context
+func GetUsernameFromContext(c *gin.Context) (string, bool) {
+	username, exists := c.Get("username")
+	if !exists {
+		return "", false
+	}
+	usernameStr, ok := username.(string)
+	if !ok || usernameStr == "" {
+		return "", false
+	}
+	return usernameStr, true
 }

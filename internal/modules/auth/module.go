@@ -4,6 +4,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/repository"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase"
+	permissionUseCase "github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase" // New Import
 	userRepository "github.com/Roisfaozi/casbin-db/internal/modules/user/repository"
 	"github.com/Roisfaozi/casbin-db/internal/utils/jwt"
 	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
@@ -26,11 +27,12 @@ func NewAuthModule(
 	validator *validator.Validate,
 	tm tx.WithTransactionManager,
 	wsManager ws.Manager,
+	enforcer permissionUseCase.IEnforcer, // New parameter
 ) *AuthModule {
 	tokenRepository := repository.NewTokenRepositoryRedis(redis, log)
 	userRepo := userRepository.NewUserRepository(db, log)
 
-	authUseCase := usecase.NewAuthUsecase(jwtManager, tokenRepository, userRepo, tm, log, wsManager)
+	authUseCase := usecase.NewAuthUsecase(jwtManager, tokenRepository, userRepo, tm, log, wsManager, enforcer) // Pass enforcer
 
 	authHandler := http.NewAuthHandler(authUseCase, log, validator)
 

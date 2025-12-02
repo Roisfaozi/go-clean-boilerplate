@@ -12,9 +12,10 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
 	userRepository "github.com/Roisfaozi/casbin-db/internal/modules/user/repository"
 	"github.com/Roisfaozi/casbin-db/internal/utils"
-	"github.com/Roisfaozi/casbin-db/internal/utils/jwt"
+	jwt "github.com/Roisfaozi/casbin-db/internal/utils/jwt" // Alias jwt from local package
 	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
 	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
+	permissionUseCase "github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -26,18 +27,9 @@ type Service struct {
 	tm         tx.WithTransactionManager
 	log        *logrus.Logger
 	wsManager  ws.Manager
+	Enforcer   permissionUseCase.IEnforcer
 }
 
-// NewAuthUsecase creates a new instance of the AuthUseCase interface.
-//
-// jwtManager: The JWT manager instance.
-// tokenRepo: The token repository instance.
-// userRepo: The user repository instance.
-// tm: The transaction manager instance.
-// log: The logger instance.
-// wsManager: The WebSocket manager instance.
-//
-// Returns a pointer to the newly created AuthUseCase instance.
 func NewAuthUsecase(
 	jwtManager *jwt.JWTManager,
 	tokenRepo repository.TokenRepository,
@@ -45,6 +37,7 @@ func NewAuthUsecase(
 	tm tx.WithTransactionManager,
 	log *logrus.Logger,
 	wsManager ws.Manager,
+	enforcer permissionUseCase.IEnforcer,
 ) AuthUseCase {
 	return &Service{
 		jwtManager: jwtManager,
@@ -53,13 +46,14 @@ func NewAuthUsecase(
 		tm:         tm,
 		log:        log,
 		wsManager:  wsManager,
+		Enforcer:   enforcer,
 	}
 }
 
-func (s *Service) generateAndStoreTokenPair(user *entity.User) (string, string, error) {
+func (s *Service) generateAndStoreTokenPair(user *entity.User, role, username string) (string, string, error) {
 	sessionID := uuid.New().String()
 
-	accessToken, refreshToken, err := s.jwtManager.GenerateTokenPair(user.ID, sessionID)
+	accessToken, refreshToken, err := s.jwtManager.GenerateTokenPair(user.ID, sessionID, role, username)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate token pair: %w", err)
 	}
@@ -80,7 +74,6 @@ func (s *Service) generateAndStoreTokenPair(user *entity.User) (string, string, 
 	return accessToken, refreshToken, nil
 }
 
-// Login handles user login and returns access and refresh tokens
 func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model.LoginResponse, string, error) {
 	var user *entity.User
 	err := s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
@@ -101,11 +94,20 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		return nil, "", err
 	}
 
-	accessToken, refreshToken, err := s.generateAndStoreTokenPair(user)
+	roles, err := s.Enforcer.GetRolesForUser(user.ID) // Updated to pass domain...
+	if err != nil {
+		s.log.WithError(err).Error("Failed to get roles for user during login")
+		return nil, "", fmt.Errorf("failed to get user roles: %w", err)
+	}
+	userRole := ""
+	if len(roles) > 0 {
+		userRole = roles[0]
+	}
+
+	accessToken, refreshToken, err := s.generateAndStoreTokenPair(user, userRole, user.Username)
 	if err != nil {
 		return nil, "", err
 	}
-	// Broadcast login event via WebSocket
 	notification := map[string]string{
 		"type":    "user_login",
 		"user_id": user.ID,
@@ -122,9 +124,11 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		ExpiresIn:   int64(accessTokenDuration.Seconds()),
 		ExpiresAt:   time.Now().Add(accessTokenDuration),
 		User: model.UserInfo{
-			ID:    user.ID,
-			Name:  user.Name,
-			Email: user.Email,
+			ID:       user.ID,
+			Name:     user.Name,
+			Email:    user.Email,
+			Username: user.Username,
+			Role:     userRole,
 		},
 	}
 
@@ -142,12 +146,21 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 		return nil, "", err
 	}
 
-	// Revoke the old session
+	roles, err := s.Enforcer.GetRolesForUser(user.ID) // Updated to pass domain...
+	if err != nil {
+		s.log.WithError(err).Error("Failed to get roles for user during refresh token")
+		return nil, "", fmt.Errorf("failed to get user roles: %w", err)
+	}
+	userRole := ""
+	if len(roles) > 0 {
+		userRole = roles[0]
+	}
+
 	if err := s.RevokeToken(ctx, claims.UserID, claims.SessionID); err != nil {
 		s.log.WithError(err).Warn("Failed to revoke old session during refresh")
 	}
 
-	newAccessToken, newRefreshToken, err := s.generateAndStoreTokenPair(user)
+	newAccessToken, newRefreshToken, err := s.generateAndStoreTokenPair(user, userRole, user.Username)
 	if err != nil {
 		return nil, "", err
 	}
@@ -160,8 +173,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 	return tokenResponse, newRefreshToken, nil
 }
 
-// ValidateAccessToken validates an access token and returns its claims
-func (s *Service) ValidateAccessToken(tokenString string) (*Claims, error) {
+func (s *Service) ValidateAccessToken(tokenString string) (*jwt.Claims, error) {
 	claims, err := s.jwtManager.ValidateAccessToken(tokenString)
 	if err != nil {
 		return nil, ErrInvalidToken
@@ -169,8 +181,7 @@ func (s *Service) ValidateAccessToken(tokenString string) (*Claims, error) {
 	return s.validateSession(claims, tokenString)
 }
 
-// ValidateRefreshToken validates a refresh token and returns its claims
-func (s *Service) ValidateRefreshToken(tokenString string) (*Claims, error) {
+func (s *Service) ValidateRefreshToken(tokenString string) (*jwt.Claims, error) {
 	claims, err := s.jwtManager.ValidateRefreshToken(tokenString)
 	if err != nil {
 		return nil, ErrInvalidToken
@@ -178,36 +189,25 @@ func (s *Service) ValidateRefreshToken(tokenString string) (*Claims, error) {
 	return s.validateSession(claims, tokenString)
 }
 
-// validateSession checks if the session associated with the token is valid.
-func (s *Service) validateSession(claims *jwt.Claims, tokenString string) (*Claims, error) {
-	// Check if token exists in Redis
+func (s *Service) validateSession(claims *jwt.Claims, tokenString string) (*jwt.Claims, error) {
 	savedSession, err := s.tokenRepo.GetToken(context.Background(), claims.UserID, claims.SessionID)
 	if err != nil {
-		// Considering DB or Redis errors as a reason for revocation check failure
 		return nil, ErrTokenRevoked
 	}
 
-	// If no session is found in Redis, the token is considered revoked or invalid
 	if savedSession == nil {
 		return nil, ErrTokenRevoked
 	}
 
-	// Ensure the token being validated matches the one in the session
 	isAccessToken := savedSession.AccessToken == tokenString
 	isRefreshToken := savedSession.RefreshToken == tokenString
 	if !isAccessToken && !isRefreshToken {
 		return nil, ErrTokenRevoked
 	}
 
-	customClaims := &Claims{
-		UserID:    claims.UserID,
-		SessionID: claims.SessionID,
-	}
-
-	return customClaims, nil
+	return claims, nil
 }
 
-// Verify verifies the user's session
 func (s *Service) Verify(ctx context.Context, userID string, sessionID string) (*model.Auth, error) {
 	return s.tokenRepo.GetToken(ctx, userID, sessionID)
 }
@@ -228,14 +228,30 @@ func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
 	return s.tokenRepo.RevokeAllSessions(ctx, userID)
 }
 
-// GenerateAccessToken generates a new access token for the user
 func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
-	accessToken, _, err := s.jwtManager.GenerateTokenPair(user.ID, uuid.NewString())
+	roles, err := s.Enforcer.GetRolesForUser(user.ID) // Updated to pass domain...
+	if err != nil {
+		s.log.WithError(err).Error("Failed to get roles for user when generating access token")
+		return "", fmt.Errorf("failed to get user roles: %w", err)
+	}
+	userRole := ""
+	if len(roles) > 0 {
+		userRole = roles[0]
+	}
+	accessToken, _, err := s.jwtManager.GenerateTokenPair(user.ID, uuid.NewString(), userRole, user.Username)
 	return accessToken, err
 }
 
-// GenerateRefreshToken generates a new refresh token for the user
 func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
-	_, refreshToken, err := s.jwtManager.GenerateTokenPair(user.ID, uuid.NewString())
+	roles, err := s.Enforcer.GetRolesForUser(user.ID) // Updated to pass domain...
+	if err != nil {
+		s.log.WithError(err).Error("Failed to get roles for user when generating refresh token")
+		return "", fmt.Errorf("failed to get user roles: %w", err)
+	}
+	userRole := ""
+	if len(roles) > 0 {
+		userRole = roles[0]
+	}
+	_, refreshToken, err := s.jwtManager.GenerateTokenPair(user.ID, uuid.NewString(), userRole, user.Username)
 	return refreshToken, err
 }

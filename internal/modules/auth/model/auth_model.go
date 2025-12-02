@@ -40,10 +40,11 @@ type LoginResponse struct {
 }
 
 type UserInfo struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 	Username string `json:"username"`
-	Email    string `json:"email"`
+	Role string `json:"role"`
 }
 
 type RefreshRequest struct {

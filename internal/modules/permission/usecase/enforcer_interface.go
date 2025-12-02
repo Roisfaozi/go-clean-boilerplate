@@ -9,4 +9,5 @@ type IEnforcer interface {
 	GetPolicy() ([][]string, error)
 	GetFilteredPolicy(fieldIndex int, fieldValues ...string) ([][]string, error)
 	UpdatePolicy(oldRule []string, newRule []string) (bool, error)
+	GetRolesForUser(name string, domain ...string) ([]string, error)
 }
