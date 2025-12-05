@@ -138,9 +138,9 @@ migrate-version: ## Show current migration version
 
 # Seed commands
 .PHONY: seed-up
-seed-up: ## Seed initial data into the database
-	@echo "Seeding initial data..."
-	@docker exec -i casbin_mysql_1 mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < db/seeds/01_bootstrap.sql
+seed-up: ## Seed initial data into the database (Go script)
+	@echo "Seeding initial data using Go script..."
+	@go run db/seeds/main.go
 
 .PHONY: seed-down
 seed-down: ## Rollback seeded data (if applicable, be careful!)
