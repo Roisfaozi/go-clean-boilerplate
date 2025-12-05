@@ -136,6 +136,21 @@ migrate-force: ## Force a specific migration version (e.g., make migrate-force v
 migrate-version: ## Show current migration version
 	@migrate -path $(MIGRATIONS_DIR) -database $(DB_URL) version
 
+# Seed commands
+.PHONY: seed-up
+seed-up: ## Seed initial data into the database
+	@echo "Seeding initial data..."
+	@docker exec -i casbin_mysql_1 mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < db/seeds/01_bootstrap.sql
+
+.PHONY: seed-down
+seed-down: ## Rollback seeded data (if applicable, be careful!)
+	@echo "Rolling back seeded data..."
+	# This part needs to be carefully crafted based on your seed script's content
+	# For 01_bootstrap.sql, it's not easily reversible without knowing generated UUIDs.
+	# It's usually better to just re-seed in test environments after clean-up.
+	@echo "Manual rollback may be required for complex seed data."
+
+
 .PHONY: gemini
 gemini: ## Set MySQL environment variables
 	@powershell -ExecutionPolicy Bypass -Command "$$env:MYSQL_HOST='$(DB_HOST)'; $$env:MYSQL_PORT='$(DB_PORT)'; $$env:MYSQL_DATABASE='$(DB_NAME)'; $$env:MYSQL_USER='$(DB_USER)'; $$env:MYSQL_PASSWORD='$(DB_PASSWORD)'; gemini"
