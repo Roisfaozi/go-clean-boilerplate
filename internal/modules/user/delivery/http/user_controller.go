@@ -53,6 +53,7 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 
 	if err := h.validate.Struct(req); err != nil {
 		msg := validation.FormatValidationErrors(err)
+		h.Log.WithError(err).Error(msg)
 		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
