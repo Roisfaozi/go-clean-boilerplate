@@ -32,6 +32,7 @@ func SetupRouter(
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(middleware.SecurityMiddleware())
 	router.Use(middleware.CORSMiddleware())
 
 	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
