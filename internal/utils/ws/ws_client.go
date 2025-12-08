@@ -39,8 +39,14 @@ type ServerMessage struct {
 //
 // Returns a pointer to the newly created client
 func NewWebsocketClient(conn *websocket.Conn, manager Manager, log *logrus.Logger, config *WebSocketConfig) *Client {
+	id, err := uuid.NewV7()
+	if err != nil {
+		log.Errorf("Failed to generate UUID v7 for websocket client: %v", err)
+		panic(err)
+	}
+
 	return &Client{
-		ID:      uuid.New().String(),
+		ID:      id.String(),
 		Conn:    conn,
 		Manager: manager,
 		Send:    make(chan []byte, 256),

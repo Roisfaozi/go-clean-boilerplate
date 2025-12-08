@@ -44,20 +44,23 @@ func NewAuthHandler(authUseCase usecase.AuthUseCase, log *logrus.Logger, validat
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.Log.WithError(err).Warn("Login failed: could not bind request")
+		h.Log.WithError(err).Error("Login failed: could not bind request")
 		response.BadRequest(c, err, "invalid request body")
 		return
 	}
 
 	if err := h.validate.Struct(req); err != nil {
 		msg := validation.FormatValidationErrors(err)
+		h.Log.WithError(err).Error("Login failed: validation error")
 		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 
 	loginResp, refreshToken, err := h.AuthUseCase.Login(c.Request.Context(), req)
 	if err != nil {
-		h.handleError(c, err, "login failed")
+		h.Log.Errorf("Login failed: %+v", req)
+		h.Log.WithError(err).Error("Login failed")
+		h.handleError(c, err, "Wrong password or username")
 		return
 	}
 
@@ -84,6 +87,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	tokenResp, newRefreshToken, err := h.AuthUseCase.RefreshToken(c.Request.Context(), refreshToken)
 	if err != nil {
+		h.Log.WithError(err).Error("Refresh token failed")
 		h.handleError(c, err, "failed to refresh token")
 		return
 	}
@@ -128,7 +132,6 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 // handleError centralizes error handling for the auth handler
 func (h *AuthHandler) handleError(c *gin.Context, err error, message string) {
-	h.Log.WithError(err).Error("An error occurred in auth handler")
 	switch {
 	case errors.Is(err, usecase.ErrInvalidCredentials):
 		response.Unauthorized(c, err, message)

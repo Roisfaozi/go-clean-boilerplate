@@ -3,19 +3,18 @@ package usecase
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/auth/repository"
+	permissionUseCase "github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
 	userRepository "github.com/Roisfaozi/casbin-db/internal/modules/user/repository"
 	"github.com/Roisfaozi/casbin-db/internal/utils"
 	jwt "github.com/Roisfaozi/casbin-db/internal/utils/jwt" // Alias jwt from local package
 	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
 	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
-	permissionUseCase "github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -51,7 +50,11 @@ func NewAuthUsecase(
 }
 
 func (s *Service) generateAndStoreTokenPair(user *entity.User, role, username string) (string, string, error) {
-	sessionID := uuid.New().String()
+	uid, err := uuid.NewV7()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate session id: %w", err)
+	}
+	sessionID := uid.String()
 
 	accessToken, refreshToken, err := s.jwtManager.GenerateTokenPair(user.ID, sessionID, role, username)
 	if err != nil {
@@ -80,11 +83,11 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		var err error
 		user, err = s.userRepo.FindByUsername(txCtx, request.Username)
 		if err != nil {
-			return errors.New("invalid credentials")
+			return ErrInvalidCredentials
 		}
 
 		if !utils.CheckPasswordHash(request.Password, user.Password) {
-			return errors.New("invalid credentials")
+			return ErrInvalidCredentials
 		}
 
 		return nil
@@ -238,7 +241,12 @@ func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
 	if len(roles) > 0 {
 		userRole = roles[0]
 	}
-	accessToken, _, err := s.jwtManager.GenerateTokenPair(user.ID, uuid.NewString(), userRole, user.Username)
+	
+	uid, err := uuid.NewV7()
+	if err != nil {
+		return "", err
+	}
+	accessToken, _, err := s.jwtManager.GenerateTokenPair(user.ID, uid.String(), userRole, user.Username)
 	return accessToken, err
 }
 
@@ -252,6 +260,11 @@ func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
 	if len(roles) > 0 {
 		userRole = roles[0]
 	}
-	_, refreshToken, err := s.jwtManager.GenerateTokenPair(user.ID, uuid.NewString(), userRole, user.Username)
+	
+	uid, err := uuid.NewV7()
+	if err != nil {
+		return "", err
+	}
+	_, refreshToken, err := s.jwtManager.GenerateTokenPair(user.ID, uid.String(), userRole, user.Username)
 	return refreshToken, err
 }

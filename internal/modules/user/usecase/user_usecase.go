@@ -95,13 +95,25 @@ func (c *userUseCase) Create(ctx context.Context, request *model.RegisterUserReq
 			return exception.ErrInternalServer
 		}
 
+		newID, err := uuid.NewV7()
+		if err != nil {
+			c.Log.Errorf("Failed to generate UUID: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		token, err := uuid.NewV7()
+		if err != nil {
+			c.Log.Errorf("Failed to generate UUID: %v", err)
+			return exception.ErrInternalServer
+		}
+
 		newUser := &entity.User{
-			ID:       uuid.NewString(),
+			ID:       newID.String(),
 			Username: request.Username,
 			Email:    request.Email,
 			Password: string(password),
 			Name:     request.Name,
-			Token:    uuid.NewString(),
+			Token:    token.String(),
 		}
 
 		if err := c.UserRepository.Create(txCtx, newUser); err != nil {

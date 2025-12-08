@@ -644,19 +644,19 @@
 											"});",
 											"",
 											"pm.test(\"Response should contain new access token\", function () {",
-											"    const jsonData = pm.response.json();",
-											"    pm.expect(jsonData.data).to.have.property('access_token');",
-											"    pm.environment.set(\"authToken\", jsonData.data.access_token); // Update the auth token",
-											"});",
-											"",
-											"pm.test(\"Should receive a new refresh_token cookie\", function () {",
-											"    pm.expect(pm.response.headers.get('Set-Cookie')).to.include('refresh_token=');",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property('access_token');",
+									"    pm.environment.set(\"authToken\", jsonData.data.access_token); // Update the auth token",
+									"});",
+									"",
+									"pm.test(\"Should receive a new refresh_token cookie\", function () {",
+									"    pm.expect(pm.response.headers.get('Set-Cookie')).to.include('refresh_token=');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+							}
+						],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -681,13 +681,13 @@
 									"script": {
 										"exec": [
 											"pm.test(\"Status should be 401 Unauthorized\", function () {",
-											"    pm.response.to.have.status(401);",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+							}
+						],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -712,27 +712,27 @@
 									"script": {
 										"exec": [
 											"// This script is illustrative. In a real runner environment, you'd manage cookies.",
-											"// For a single request, we can add the header manually.",
-											"pm.request.headers.add({",
-											"    key: 'Cookie',",
-											"    value: 'refresh_token=this-is-an-invalid-token'",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								},
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"pm.test(\"Status should be 401 Unauthorized\", function () {",
-											"    pm.response.to.have.status(401);",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
+									"// For a single request, we can add the header manually.",
+									"pm.request.headers.add({",
+									"    key: 'Cookie',",
+									"    value: 'refresh_token=this-is-an-invalid-token'",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+							},
+							{
+								"listen": "test",
+								"script": {
+									"exec": [
+										"pm.test(\"Status should be 401 Unauthorized\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+							}
+						],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -762,86 +762,59 @@
 									"script": {
 										"exec": [
 											"pm.test(\"Status should be 200 OK\", function () {",
-											"    pm.response.to.have.status(200);",
-											"});",
-											"",
-											"pm.test(\"Should clear the refresh_token cookie\", function () {",
-											"    const cookie = pm.response.headers.get('Set-Cookie');",
-											"    pm.expect(cookie).to.include('refresh_token=;');",
-											"    pm.expect(cookie).to.include('Max-Age=-1');",
-											"});",
-											"",
-											"// Try to use the supposedly revoked token",
-											"pm.sendRequest({",
-											"    url: `${pm.environment.get(\"baseURL\")}/${pm.environment.get(\"apiVersion\")}/users/me`,",
-											"    method: 'GET',",
-											"    header: { 'Authorization': 'Bearer ' + pm.environment.get('authToken') }",
-											"}, function (err, response) {",
-											"    pm.test('Token should be revoked (expect 401)', () => {",
-											"        pm.expect(response.code).to.be.oneOf([401, 403]); // Or 403 depending on implementation",
-											"    });",
-											"});"
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Should clear the refresh_token cookie\", function () {",
+									"    const cookie = pm.response.headers.get('Set-Cookie');",
+									"    pm.expect(cookie).to.include('refresh_token=;');",
+									"    pm.expect(cookie).to.include('Max-Age=-1');",
+									"});",
+									"",
+									"// Try to use the supposedly revoked token",
+									"pm.sendRequest({",
+									"    url: `${pm.environment.get(\"baseURL\")}/${pm.environment.get(\"apiVersion\")}/users/me`,",
+									"    method: 'GET',",
+									"    header: { 'Authorization': 'Bearer ' + pm.environment.get('authToken') }",
+									"}, function (err, response) {",
+									"    pm.test('Token should be revoked (expect 401)', () => {",
+									"        pm.expect(response.code).to.be.oneOf([401, 403]); // Or 403 depending on implementation",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+							},
+							{
+								"name": "[Negative] Logout with No Token",
+								"event": [
+									{
+										"listen": "test",
+										"script": {
+											"exec": [
+												"pm.test(\"Status should be 401 Unauthorized\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
 										],
 										"type": "text/javascript"
 									}
 								}
 							],
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{authToken}}",
-											"type": "string"
-										}
-									]
-								},
-								"method": "POST",
-								"header": [],
-								"url": {
-									"raw": "{{baseURL}}/{{apiVersion}}/auth/logout",
-									"host": [
-										"{{baseURL}}"
-									],
-									"path": [
-										"{{apiVersion}}",
-										"auth",
-										"logout"
-									]
-								}
-						}
-						},
-						{
-							"name": "[Negative] Logout with No Token",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"pm.test(\"Status should be 401 Unauthorized\", function () {",
-											"    pm.response.to.have.status(401);",
-											"});"
+								"request": {
+									"method": "POST",
+									"header": [],
+									"url": {
+										"raw": "{{baseURL}}/{{apiVersion}}/auth/logout",
+										"host": [
+											"{{baseURL}}"
 										],
-										"type": "text/javascript"
+										"path": [
+											"{{apiVersion}}",
+											"auth",
+											"logout"
+										]
 									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [],
-								"url": {
-									"raw": "{{baseURL}}/{{apiVersion}}/auth/logout",
-									"host": [
-										"{{baseURL}}"
-									],
-									"path": [
-										"{{apiVersion}}",
-										"auth",
-										"logout"
-									]
-								}
-						}
+							}
 						}
 					]
 				}
@@ -865,7 +838,8 @@
 									"pm.test(\"Response should have new role data\", function () {",
 									"    pm.expect(jsonData.data.name).to.eql(pm.environment.get(\"newRoleName\"));",
 									"});",
-									"pm.environment.set(\"roleName\", jsonData.data.name);"
+									"pm.environment.set(\"roleName\", jsonData.data.name);",
+									"pm.environment.set(\"roleId\", jsonData.data.id);"
 								],
 								"type": "text/javascript"
 							}
@@ -945,6 +919,47 @@
 							"path": [
 								"{{apiVersion}}",
 								"roles"
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Role",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status should be 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/roles/{{roleId}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"roles",
+								"{{roleId}}"
 							]
 						}
 					}
@@ -1310,17 +1325,17 @@
 									"script": {
 										"exec": [
 											"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
-											"const jsonData = pm.response.json();",
-											"if (jsonData.data && jsonData.data.userId) {",
-											"    pm.environment.set(\"adminUserId\", jsonData.data.userId);",
-											"    const username = pm.variables.get(\"adminUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
-											"    pm.environment.set(\"adminUsernameRegistered\", username);",
+									"const jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.userId) {",
+									"    pm.environment.set(\"adminUserId\", jsonData.data.userId);",
+									"    const username = pm.variables.get(\"adminUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
+									"    pm.environment.set(\"adminUsernameRegistered\", username);",
 									"}"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
+								],
+								"type": "text/javascript"
+							}
+							}
+						],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -1354,15 +1369,15 @@
 									"script": {
 										"exec": [
 											"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-											"const jsonData = pm.response.json();",
-											"if (jsonData.data && jsonData.data.access_token) {",
-											"    pm.environment.set(\"adminToken\", jsonData.data.access_token);",
+									"const jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.access_token) {",
+									"    pm.environment.set(\"adminToken\", jsonData.data.access_token);",
 									"}"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
+								],
+								"type": "text/javascript"
+							}
+							}
+						],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -1396,17 +1411,17 @@
 									"script": {
 										"exec": [
 											"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
-											"const jsonData = pm.response.json();",
-											"if (jsonData.data && jsonData.data.userId) {",
-											"    pm.environment.set(\"editorUserId\", jsonData.data.userId);",
-											"    const username = pm.variables.get(\"editorUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
-											"    pm.environment.set(\"editorUsernameRegistered\", username);",
-									"}"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
+							"const jsonData = pm.response.json();",
+							"if (jsonData.data && jsonData.data.userId) {",
+							"    pm.environment.set(\"editorUserId\", jsonData.data.userId);",
+							"    const username = pm.variables.get(\"editorUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
+							"    pm.environment.set(\"editorUsernameRegistered\", username);",
+							"}"
+								],
+								"type": "text/javascript"
+							}
+							}
+						],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -1440,15 +1455,15 @@
 									"script": {
 										"exec": [
 											"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-											"const jsonData = pm.response.json();",
-											"if (jsonData.data && jsonData.data.access_token) {",
-											"    pm.environment.set(\"editorToken\", jsonData.data.access_token);",
-									"}"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
+							"const jsonData = pm.response.json();",
+							"if (jsonData.data && jsonData.data.access_token) {",
+							"    pm.environment.set(\"editorToken\", jsonData.data.access_token);",
+							"}"
+								],
+								"type": "text/javascript"
+							}
+							}
+						],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -1482,17 +1497,17 @@
 									"script": {
 										"exec": [
 											"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
-											"const jsonData = pm.response.json();",
-											"if (jsonData.data && jsonData.data.userId) {",
-											"    pm.environment.set(\"viewerUserId\", jsonData.data.userId);",
-											"    const username = pm.variables.get(\"viewerUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
-											"    pm.environment.set(\"viewerUsernameRegistered\", username);",
-									"}"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
+							"const jsonData = pm.response.json();",
+							"if (jsonData.data && jsonData.data.id) {",
+							"    pm.environment.set(\"viewerUserId\", jsonData.data.id);",
+							"    const username = pm.variables.get(\"viewerUsername\") + \"-\" + pm.variables.get(\"$timestamp\");",
+							"    pm.environment.set(\"viewerUsernameRegistered\", username);",
+							"}"
+								],
+								"type": "text/javascript"
+							}
+							}
+						],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -1526,15 +1541,15 @@
 									"script": {
 										"exec": [
 											"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-											"const jsonData = pm.response.json();",
-											"if (jsonData.data && jsonData.data.access_token) {",
-											"    pm.environment.set(\"viewerToken\", jsonData.data.access_token);",
-									"}"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
+							"const jsonData = pm.response.json();",
+							"if (jsonData.data && jsonData.data.access_token) {",
+							"    pm.environment.set(\"viewerToken\", jsonData.data.access_token);",
+							"}"
+								],
+								"type": "text/javascript"
+							}
+							}
+						],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -1573,138 +1588,140 @@
 									}
 								}
 							],
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{adminToken}}",
-											"type": "string"
+								"request": {
+									"auth": {
+										"type": "bearer",
+										"bearer": [
+											{
+												"key": "token",
+												"value": "{{adminToken}}",
+												"type": "string"
+											}
+										]
+									},
+									"method": "POST",
+									"header": [],
+									"body": {
+										"mode": "raw",
+										"raw": "{\n    \"user_id\": \"{{adminUserId}}\",\n    \"role\": \"role:admin\"\n}",
+										"options": {
+											"raw": {
+												"language": "json"
+											}
 										}
-									]
-								},
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"user_id\": \"{{adminUserId}}\",\n    \"role\": \"role:admin\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
-									"host": [
-										"{{baseURL}}"
-									],
-									"path": [
-										"{{apiVersion}}",
-										"permissions",
-										"assign-role"
-									]
-								}
-						}
-						},
-						{
-							"name": "[SETUP] Assign Editor Role",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"
+									},
+									"url": {
+										"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
+										"host": [
+											"{{baseURL}}"
 										],
-										"type": "text/javascript"
+										"path": [
+											"{{apiVersion}}",
+											"permissions",
+											"assign-role"
+										]
 									}
 								}
-							],
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{adminToken}}",
-											"type": "string"
-										}
-									]
-								},
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"user_id\": \"{{editorUserId}}\",\n    \"role\": \"role:editor\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
+							},
+							{
+								"name": "[SETUP] Assign Editor Role",
+								"event": [
+									{
+										"listen": "test",
+										"script": {
+											"exec": [
+												"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"
+											],
+											"type": "text/javascript"
 										}
 									}
-								},
-								"url": {
-									"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
-									"host": [
-										"{{baseURL}}"
-									],
-									"path": [
-										"{{apiVersion}}",
-										"permissions",
-										"assign-role"
-									]
-								}
-						}
-						},
-						{
-							"name": "[SETUP] Assign Viewer Role",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{adminToken}}",
-											"type": "string"
+								],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{adminToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"user_id\": \"{{editorUserId}}\",\n    \"role\": \"role:editor\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
+											"host": [
+												"{{baseURL}}"
+											],
+											"path": [
+												"{{apiVersion}}",
+												"permissions",
+												"assign-role"
+											]
 										}
-									]
-								},
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"user_id\": \"{{viewerUserId}}\",\n    \"role\": \"role:viewer\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
+								}
+							},
+							{
+								"name": "[SETUP] Assign Viewer Role",
+								"event": [
+									{
+										"listen": "test",
+										"script": {
+											"exec": [
+												"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"
+											],
+											"type": "text/javascript"
 										}
 									}
-								},
-								"url": {
-									"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
-									"host": [
-										"{{baseURL}}"
-									],
-									"path": [
-										"{{apiVersion}}",
-										"permissions",
-										"assign-role"
-									]
+								],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{adminToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"user_id\": \"{{viewerUserId}}\",\n    \"role\": \"role:viewer\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
+											"host": [
+												"{{baseURL}}"
+											],
+											"path": [
+												"{{apiVersion}}",
+												"permissions",
+												"assign-role"
+											]
+										}
 								}
-						}
-						}
-					]
+							}
+						]
+					}
+				]
 				},
 				{
 					"name": "[SCENARIO] Article Access",
@@ -1722,125 +1739,128 @@
 									}
 								}
 							],
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{viewerToken}}",
-											"type": "string"
-										}
-									]
-								},
-								"method": "GET",
-								"url": {
-									"raw": "{{baseURL}}/{{apiVersion}}/articles",
-									"host": [
-										"{{baseURL}}"
-									],
-									"path": [
-										"{{apiVersion}}",
-										"articles"
-									]
-								}
-						}
-						},
-						{
-							"name": "[VIEWER] POST Article (Should be Forbidden)",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"pm.test(\"Status code should be 403 Forbidden\", () => pm.response.to.have.status(403));"
+								"request": {
+									"auth": {
+										"type": "bearer",
+										"bearer": [
+											{
+												"key": "token",
+												"value": "{{viewerToken}}",
+												"type": "string"
+											}
+										]
+									},
+									"method": "GET",
+									"url": {
+										"raw": "{{baseURL}}/{{apiVersion}}/articles",
+										"host": [
+											"{{baseURL}}"
 										],
-										"type": "text/javascript"
+										"path": [
+											"{{apiVersion}}",
+											"articles"
+										]
 									}
 								}
-							],
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{viewerToken}}",
-											"type": "string"
-										}
-									]
-								},
-								"method": "POST",
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"title\": \"Viewer Article\",\n    \"content\": \"This should not be created.\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
+							},
+							{
+								"name": "[VIEWER] POST Article (Should be Forbidden)",
+								"event": [
+									{
+										"listen": "test",
+										"script": {
+											"exec": [
+												"pm.test(\"Status code should be 403 Forbidden\", () => pm.response.to.have.status(403));"
+											],
+											"type": "text/javascript"
 										}
 									}
-								},
-								"url": {
-									"raw": "{{baseURL}}/{{apiVersion}}/articles",
-									"host": [
-										"{{baseURL}}"
-									],
-									"path": [
-										"{{apiVersion}}",
-										"articles"
-									]
-								}
-						}
-						},
-						{
-							"name": "[EDITOR] POST Article (Should Succeed)",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"pm.test(\"Status code should be 201 Created\", () => pm.response.to.have.status(201));"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{editorToken}}",
-											"type": "string"
+								],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{viewerToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"title\": \"Viewer Article\",\n    \"content\": \"This should not be created.\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseURL}}/{{apiVersion}}/articles",
+											"host": [
+												"{{baseURL}}"
+											],
+											"path": [
+												"{{apiVersion}}",
+												"articles"
+											]
 										}
-									]
-								},
-								"method": "POST",
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"title\": \"Editor Article\",\n    \"content\": \"This should be created.\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
+								}
+							},
+							{
+								"name": "[EDITOR] POST Article (Should Succeed)",
+								"event": [
+									{
+										"listen": "test",
+										"script": {
+											"exec": [
+												"pm.test(\"Status code should be 201 Created\", () => pm.response.to.have.status(201));"
+											],
+											"type": "text/javascript"
 										}
 									}
-								},
-								"url": {
-									"raw": "{{baseURL}}/{{apiVersion}}/articles",
-									"host": [
-										"{{baseURL}}"
-									],
-									"path": [
-										"{{apiVersion}}",
-										"articles"
-									]
+								],
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{editorToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"title\": \"Editor Article\",\n    \"content\": \"This should be created.\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseURL}}/{{apiVersion}}/articles",
+											"host": [
+												"{{baseURL}}"
+											],
+											"path": [
+												"{{apiVersion}}",
+												"articles"
+											]
+										}
 								}
-						}
-						}
-					]
-				}
-			],
+							}
+						]
+					}
+				]
+			},
 			"description": "Test scenarios for accessing protected endpoints with different user roles to verify Casbin middleware."
 		},
 		{
@@ -2058,13 +2078,13 @@
 							"script": {
 								"exec": [
 									"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
-									"const jsonData = pm.response.json();",
-									"pm.environment.set(\"workflowUserId\", jsonData.data.userId);",
-									"const username = pm.variables.get(\"workflowUsernameVar\") + \"-\" + pm.variables.get(\"$timestamp\");",
-									"pm.environment.set(\"workflowUsername\", username);"
-								],
-								"type": "text/javascript"
-							}
+							"const jsonData = pm.response.json();",
+							"pm.environment.set(\"workflowUserId\", jsonData.data.userId);",
+							"const username = pm.variables.get(\"workflowUsernameVar\") + \"-\" + pm.variables.get(\"$timestamp\");",
+							"pm.environment.set(\"workflowUsername\", username);"
+						],
+							"type": "text/javascript"
+						}
 						}
 					],
 					"request": {
@@ -2100,11 +2120,11 @@
 							"script": {
 								"exec": [
 									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-									"const jsonData = pm.response.json();",
-									"pm.environment.set(\"workflowAuthToken\", jsonData.data.access_token);"
-								],
-								"type": "text/javascript"
-							}
+							"const jsonData = pm.response.json();",
+							"pm.environment.set(\"workflowAuthToken\", jsonData.data.access_token);"
+						],
+							"type": "text/javascript"
+						}
 						}
 					],
 					"request": {

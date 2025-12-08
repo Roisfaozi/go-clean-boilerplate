@@ -15,13 +15,11 @@ import (
 )
 
 func main() {
-	// 1. Load Config
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// 2. Connect to DB
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		cfg.Mysql.User,
 		cfg.Mysql.Password,
@@ -37,18 +35,20 @@ func main() {
 
 	log.Println("Database connected. Starting Go seeder...")
 
-	// --- SEED ROLES ---
-	// Ensure 'role:superadmin' exists
 	superAdminRoleName := "role:superadmin"
 	var count int64
 	db.Model(&entity.Role{}).Where("name = ?", superAdminRoleName).Count(&count)
 	if count == 0 {
+		newRoleID, err := uuid.NewV7()
+		if err != nil {
+			log.Fatalf("Failed to generate UUID for role: %v", err)
+		}
 		newRole := entity.Role{
-			ID:          uuid.NewString(),
+			ID:          newRoleID.String(),
 			Name:        superAdminRoleName,
 			Description: "Super Administrator with full access",
-			CreatedAt:   time.Now().UnixMilli(), // Fix: Use int64
-			UpdatedAt:   time.Now().UnixMilli(), // Fix: Use int64
+			CreatedAt:   time.Now().UnixMilli(),
+			UpdatedAt:   time.Now().UnixMilli(),
 		}
 		if err := db.Create(&newRole).Error; err != nil {
 			log.Printf("Error creating role %s: %v", superAdminRoleName, err)
@@ -59,8 +59,6 @@ func main() {
 		log.Printf("Role '%s' already exists.", superAdminRoleName)
 	}
 
-	// --- SEED CASBIN POLICIES ---
-	// Ensure role:superadmin has full access (*)
 	var policyCount int64
 	db.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "p", superAdminRoleName, "*", "*").Count(&policyCount)
 	if policyCount == 0 {
@@ -76,12 +74,10 @@ func main() {
 		}
 	}
 
-	// --- SEED SUPER ADMIN USER ---
 	adminUsername := "superadmin"
 	adminEmail := "superadmin@example.com"
 	adminPassword := "password123"
 
-	// Check if user exists
 	var user userEntity.User
 	result := db.Where("username = ?", adminUsername).First(&user)
 
@@ -89,16 +85,22 @@ func main() {
 
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
-			// Create new user
 			hashedPwd, _ := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
-			userID = uuid.NewString()
+			newUserID, err := uuid.NewV7()
+			if err != nil {
+				log.Fatalf("Failed to generate UUID for user: %v", err)
+			}
+			userID = newUserID.String()
+			
 			newUser := userEntity.User{
-				ID:       userID,
-				Username: adminUsername,
-				Email:    adminEmail,
-				Password: string(hashedPwd),
-				Name:     "Super Admin",
-				Token:    "",
+				ID:        userID,
+				Username:  adminUsername,
+				Email:     adminEmail,
+				Password:  string(hashedPwd),
+				Name:      "Super Admin",
+				Token:     "",
+				CreatedAt: time.Now().UnixMilli(),
+				UpdatedAt: time.Now().UnixMilli(),
 			}
 			if err := db.Create(&newUser).Error; err != nil {
 				log.Fatalf("Failed to create user: %v", err)
@@ -112,8 +114,6 @@ func main() {
 		userID = user.ID
 	}
 
-	// --- ASSIGN ROLE TO USER (Grouping Policy) ---
-	// Check if grouping policy exists
 	var gCount int64
 	db.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v1 = ?", "g", userID, superAdminRoleName).Count(&gCount)
 	if gCount == 0 {
