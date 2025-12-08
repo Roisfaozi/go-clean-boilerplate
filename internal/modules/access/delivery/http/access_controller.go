@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/usecase"
@@ -164,4 +165,64 @@ func (h *AccessHandler) LinkEndpointToAccessRight(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{"message": "Endpoint linked successfully"})
+}
+
+// @Summary      Delete access right
+// @Description  Deletes an access right by ID.
+// @Tags         access-rights
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path      uint  true  "Access Right ID"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Access right deleted successfully"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Access right not found"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /access-rights/{id} [delete]
+func (h *AccessHandler) DeleteAccessRight(c *gin.Context) {
+	ctx := c.Request.Context()
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		response.BadRequest(c, err, "Invalid Access Right ID")
+		return
+	}
+
+	if err := h.useCase.DeleteAccessRight(ctx, uint(id)); err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			response.NotFound(c, err, "Access right not found")
+		} else {
+			response.InternalServerError(c, err, "Failed to delete access right")
+		}
+		return
+	}
+	response.Success(c, gin.H{"message": "Access right deleted successfully"})
+}
+
+// @Summary      Delete endpoint
+// @Description  Deletes an endpoint by ID.
+// @Tags         endpoints
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path      uint  true  "Endpoint ID"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Endpoint deleted successfully"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Endpoint not found"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /endpoints/{id} [delete]
+func (h *AccessHandler) DeleteEndpoint(c *gin.Context) {
+	ctx := c.Request.Context()
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		response.BadRequest(c, err, "Invalid Endpoint ID")
+		return
+	}
+
+	if err := h.useCase.DeleteEndpoint(ctx, uint(id)); err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			response.NotFound(c, err, "Endpoint not found")
+		} else {
+			response.InternalServerError(c, err, "Failed to delete endpoint")
+		}
+		return
+	}
+	response.Success(c, gin.H{"message": "Endpoint deleted successfully"})
 }

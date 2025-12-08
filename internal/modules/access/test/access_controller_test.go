@@ -11,6 +11,7 @@ import (
 	accessHandler "github.com/Roisfaozi/casbin-db/internal/modules/access/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/test/mocks"
+	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -320,5 +321,73 @@ func TestAccessHandler_LinkEndpointToAccessRight_UseCaseError(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestAccessHandler_DeleteAccessRight_Success(t *testing.T) {
+	mockUseCase := new(mocks.IAccessUseCase)
+	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
+	router := setupAccessTestRouter()
+	router.DELETE("/access-rights/:id", handler.DeleteAccessRight)
+
+	accessRightID := uint(1)
+	mockUseCase.On("DeleteAccessRight", mock.Anything, accessRightID).Return(nil)
+
+	req, _ := http.NewRequest(http.MethodDelete, "/access-rights/1", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestAccessHandler_DeleteAccessRight_NotFound(t *testing.T) {
+	mockUseCase := new(mocks.IAccessUseCase)
+	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
+	router := setupAccessTestRouter()
+	router.DELETE("/access-rights/:id", handler.DeleteAccessRight)
+
+	accessRightID := uint(1)
+	mockUseCase.On("DeleteAccessRight", mock.Anything, accessRightID).Return(exception.ErrNotFound)
+
+	req, _ := http.NewRequest(http.MethodDelete, "/access-rights/1", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestAccessHandler_DeleteEndpoint_Success(t *testing.T) {
+	mockUseCase := new(mocks.IAccessUseCase)
+	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
+	router := setupAccessTestRouter()
+	router.DELETE("/endpoints/:id", handler.DeleteEndpoint)
+
+	endpointID := uint(1)
+	mockUseCase.On("DeleteEndpoint", mock.Anything, endpointID).Return(nil)
+
+	req, _ := http.NewRequest(http.MethodDelete, "/endpoints/1", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestAccessHandler_DeleteEndpoint_NotFound(t *testing.T) {
+	mockUseCase := new(mocks.IAccessUseCase)
+	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
+	router := setupAccessTestRouter()
+	router.DELETE("/endpoints/:id", handler.DeleteEndpoint)
+
+	endpointID := uint(1)
+	mockUseCase.On("DeleteEndpoint", mock.Anything, endpointID).Return(exception.ErrNotFound)
+
+	req, _ := http.NewRequest(http.MethodDelete, "/endpoints/1", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
 	mockUseCase.AssertExpectations(t)
 }

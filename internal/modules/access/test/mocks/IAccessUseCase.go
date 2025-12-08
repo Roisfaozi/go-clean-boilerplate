@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/access/model"
+	model "github.com/Roisfaozi/casbin-db/internal/modules/access/model"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -72,6 +72,42 @@ func (_m *IAccessUseCase) CreateEndpoint(ctx context.Context, req model.CreateEn
 	}
 
 	return r0, r1
+}
+
+// DeleteAccessRight provides a mock function with given fields: ctx, id
+func (_m *IAccessUseCase) DeleteAccessRight(ctx context.Context, id uint) error {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAccessRight")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uint) error); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteEndpoint provides a mock function with given fields: ctx, id
+func (_m *IAccessUseCase) DeleteEndpoint(ctx context.Context, id uint) error {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteEndpoint")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uint) error); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // GetAllAccessRights provides a mock function with given fields: ctx

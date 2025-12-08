@@ -24,11 +24,13 @@ func RegisterAccessRoutes(router *gin.RouterGroup, handler *AccessHandler) {
 	{
 		accessGroup.POST("", handler.CreateAccessRight)
 		accessGroup.GET("", handler.GetAllAccessRights)
+		accessGroup.DELETE("/:id", handler.DeleteAccessRight) // NEW
 		accessGroup.POST("/link", handler.LinkEndpointToAccessRight)
 	}
 
 	endpointGroup := router.Group("/endpoints")
 	{
 		endpointGroup.POST("", handler.CreateEndpoint)
+		endpointGroup.DELETE("/:id", handler.DeleteEndpoint) // NEW
 	}
 }

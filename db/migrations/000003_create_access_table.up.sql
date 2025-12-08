@@ -10,6 +10,8 @@ CREATE TABLE endpoints (
                            id INT AUTO_INCREMENT PRIMARY KEY,
                            path VARCHAR(191) NOT NULL,
                            method VARCHAR(10) NOT NULL,
+                           created_at BIGINT NOT NULL,
+                           updated_at BIGINT NOT NULL,
                            deleted_at BIGINT DEFAULT 0,
                            UNIQUE KEY idx_path_method (path, method)
 )Engine=InnoDB;

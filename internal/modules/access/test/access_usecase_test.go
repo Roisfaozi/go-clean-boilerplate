@@ -8,9 +8,11 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/test/mocks"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/usecase"
+	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 )
 
 // nullWriter is used to discard log output during tests.
@@ -21,7 +23,8 @@ func (w *nullWriter) Write(p []byte) (n int, err error) {
 }
 
 func TestCreateAccessRight(t *testing.T) {
-	mockRepo := new(mocks.MockAccessRepository)
+	// Setup
+	mockRepo := new(mocks.IAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
 
@@ -43,7 +46,7 @@ func TestCreateAccessRight(t *testing.T) {
 }
 
 func TestGetAllAccessRights(t *testing.T) {
-	mockRepo := new(mocks.MockAccessRepository)
+	mockRepo := new(mocks.IAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
 	uc := usecase.NewAccessUseCase(mockRepo, log)
@@ -73,7 +76,7 @@ func TestGetAllAccessRights(t *testing.T) {
 }
 
 func TestCreateEndpoint(t *testing.T) {
-	mockRepo := new(mocks.MockAccessRepository)
+	mockRepo := new(mocks.IAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
 	uc := usecase.NewAccessUseCase(mockRepo, log)
@@ -91,7 +94,7 @@ func TestCreateEndpoint(t *testing.T) {
 }
 
 func TestLinkEndpointToAccessRight(t *testing.T) {
-	mockRepo := new(mocks.MockAccessRepository)
+	mockRepo := new(mocks.IAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
 	uc := usecase.NewAccessUseCase(mockRepo, log)
@@ -102,6 +105,53 @@ func TestLinkEndpointToAccessRight(t *testing.T) {
 		mockRepo.On("LinkEndpointToAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(nil).Once()
 		err := uc.LinkEndpointToAccessRight(ctx, req)
 		assert.NoError(t, err)
+		mockRepo.AssertExpectations(t)
+	})
+}
+
+func TestDeleteAccessRight(t *testing.T) {
+	mockRepo := new(mocks.IAccessRepository)
+	log := logrus.New()
+	log.SetOutput(&nullWriter{})
+	uc := usecase.NewAccessUseCase(mockRepo, log)
+	ctx := context.Background()
+	id := uint(1)
+
+	t.Run("Success - Delete Access Right", func(t *testing.T) {
+		mockRepo.On("FindAccessRightByID", ctx, id).Return(&entity.AccessRight{ID: id}, nil).Once()
+		mockRepo.On("DeleteAccessRight", ctx, id).Return(nil).Once()
+		err := uc.DeleteAccessRight(ctx, id)
+		assert.NoError(t, err)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("Error - Not Found", func(t *testing.T) {
+		mockRepo.On("FindAccessRightByID", ctx, id).Return(nil, gorm.ErrRecordNotFound).Once()
+		err := uc.DeleteAccessRight(ctx, id)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
+		mockRepo.AssertExpectations(t)
+	})
+}
+
+func TestDeleteEndpoint(t *testing.T) {
+	mockRepo := new(mocks.IAccessRepository)
+	log := logrus.New()
+	log.SetOutput(&nullWriter{})
+	uc := usecase.NewAccessUseCase(mockRepo, log)
+	ctx := context.Background()
+	id := uint(1)
+
+	t.Run("Success - Delete Endpoint", func(t *testing.T) {
+		mockRepo.On("DeleteEndpoint", ctx, id).Return(nil).Once()
+		err := uc.DeleteEndpoint(ctx, id)
+		assert.NoError(t, err)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("Error - Not Found (GORM delete behavior)", func(t *testing.T) {
+		mockRepo.On("DeleteEndpoint", ctx, id).Return(gorm.ErrRecordNotFound).Once()
+		err := uc.DeleteEndpoint(ctx, id)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		mockRepo.AssertExpectations(t)
 	})
 }

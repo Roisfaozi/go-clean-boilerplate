@@ -32,10 +32,20 @@ func (r *AccessRepository) FindAccessRightByName(ctx context.Context, name strin
 	return &accessRight, err
 }
 
+func (r *AccessRepository) FindAccessRightByID(ctx context.Context, id uint) (*entity.AccessRight, error) {
+	var accessRight entity.AccessRight
+	err := r.db.WithContext(ctx).First(&accessRight, id).Error
+	return &accessRight, err
+}
+
 func (r *AccessRepository) GetAllAccessRights(ctx context.Context) ([]entity.AccessRight, error) {
 	var accessRights []entity.AccessRight
 	err := r.db.WithContext(ctx).Find(&accessRights).Error
 	return accessRights, err
+}
+
+func (r *AccessRepository) DeleteAccessRight(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Delete(&entity.AccessRight{}, id).Error
 }
 
 func (r *AccessRepository) CreateEndpoint(ctx context.Context, endpoint *entity.Endpoint) error {
@@ -46,6 +56,16 @@ func (r *AccessRepository) GetEndpointByPathAndMethod(ctx context.Context, path,
 	var endpoint entity.Endpoint
 	err := r.db.WithContext(ctx).Where("path = ? AND method = ?", path, method).First(&endpoint).Error
 	return &endpoint, err
+}
+
+func (r *AccessRepository) FindEndpointByID(ctx context.Context, id uint) (*entity.Endpoint, error) {
+	var endpoint entity.Endpoint
+	err := r.db.WithContext(ctx).First(&endpoint, id).Error
+	return &endpoint, err
+}
+
+func (r *AccessRepository) DeleteEndpoint(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Delete(&entity.Endpoint{}, id).Error
 }
 
 func (r *AccessRepository) LinkEndpointToAccessRight(ctx context.Context, accessRightID, endpointID uint) error {
