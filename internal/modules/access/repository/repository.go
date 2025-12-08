@@ -1,4 +1,3 @@
-//go:generate mockery --name IAccessRepository --output ../test/mocks --outpkg mocks
 package repository
 
 import (

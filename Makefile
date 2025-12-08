@@ -89,6 +89,12 @@ lint:
 	}
 	golangci-lint run
 
+# Generate mocks
+.PHONY: mocks
+mocks:
+	@echo "Generating mocks using .mockery.yaml..."
+	@mockery
+
 # Clean up build artifacts and generated files
 .PHONY: clean
 clean:

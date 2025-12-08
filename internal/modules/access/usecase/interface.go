@@ -1,4 +1,3 @@
-//go:generate mockery --name IAccessUseCase --output ../test/mocks --outpkg mocks
 package usecase
 
 import (

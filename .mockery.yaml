@@ -1,0 +1,37 @@
+version: "v2"
+with-expectations: true
+outpkg: "mocks"
+filename: "{{.InterfaceName}}.go"
+
+packages:
+  github.com/Roisfaozi/casbin-db/internal/modules/access/repository:
+    config:
+      dir: "internal/modules/access/test/mocks"
+  
+  github.com/Roisfaozi/casbin-db/internal/modules/access/usecase:
+    config:
+      dir: "internal/modules/access/test/mocks"
+
+  github.com/Roisfaozi/casbin-db/internal/modules/auth/repository:
+    config:
+      dir: "internal/modules/auth/test/mocks"
+
+  github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase:
+    config:
+      dir: "internal/modules/auth/test/mocks"
+
+  github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase:
+    config:
+      dir: "internal/modules/permission/test/mocks"
+
+  github.com/Roisfaozi/casbin-db/internal/modules/role/repository:
+    config:
+      dir: "internal/modules/role/test/mocks"
+
+  github.com/Roisfaozi/casbin-db/internal/modules/role/usecase:
+    config:
+      dir: "internal/modules/role/test/mocks"
+
+  github.com/Roisfaozi/casbin-db/internal/modules/user/repository:
+    config:
+      dir: "internal/modules/user/test/mocks"
