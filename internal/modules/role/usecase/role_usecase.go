@@ -42,8 +42,14 @@ func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequ
 			return exception.ErrInternalServer
 		}
 
+		newID, err := uuid.NewV7()
+		if err != nil {
+			uc.Log.Errorf("Failed to generate UUID: %v", err)
+			return exception.ErrInternalServer
+		}
+
 		newRole := &entity.Role{
-			ID:          uuid.New().String(),
+			ID:          newID.String(),
 			Name:        request.Name,
 			Description: request.Description,
 		}
@@ -77,4 +83,31 @@ func (uc *roleUseCase) GetAll(ctx context.Context) ([]model.RoleResponse, error)
 	}
 
 	return converter.RolesToResponse(roles), nil
+}
+
+func (uc *roleUseCase) Delete(ctx context.Context, id string) error {
+	return uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		role, err := uc.RoleRepository.FindByID(txCtx, id)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				uc.Log.Warnf("Role with id %s not found for deletion", id)
+				return exception.ErrNotFound
+			}
+			uc.Log.Errorf("Failed to find role by id: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		// Prevent deleting superadmin role
+		if role.Name == "role:superadmin" {
+			uc.Log.Warn("Attempt to delete superadmin role blocked")
+			return exception.ErrForbidden
+		}
+
+		if err := uc.RoleRepository.Delete(txCtx, id); err != nil {
+			uc.Log.Errorf("Failed to delete role: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		return nil
+	})
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/test/mocks"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -27,7 +28,9 @@ func setupTestRouter() *gin.Engine {
 
 func newTestRoleHandler(mockUseCase *mocks.RoleUseCase) *roleHandler.RoleHandler {
 	v := validator.New()
-	model.RegisterCustomValidations(v)
+	if err := validation.RegisterCustomValidations(v); err != nil {
+		panic(err)
+	}
 	return roleHandler.NewRoleHandler(mockUseCase, logrus.New(), v)
 }
 
@@ -81,7 +84,7 @@ func TestRoleHandler_Create_ValidationError(t *testing.T) {
 	router.POST("/roles", handler.Create)
 
 	reqBody := &model.CreateRoleRequest{
-		Name: "",
+		Name: "", // This will fail validation
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)
@@ -156,5 +159,56 @@ func TestRoleHandler_GetAll_UseCaseError(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_Delete_Success(t *testing.T) {
+	mockUseCase := new(mocks.RoleUseCase)
+	handler := newTestRoleHandler(mockUseCase)
+	router := setupTestRouter()
+	router.DELETE("/roles/:id", handler.Delete)
+
+	roleID := "role-123"
+	mockUseCase.On("Delete", mock.Anything, roleID).Return(nil)
+
+	req, _ := http.NewRequest(http.MethodDelete, "/roles/"+roleID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_Delete_NotFound(t *testing.T) {
+	mockUseCase := new(mocks.RoleUseCase)
+	handler := newTestRoleHandler(mockUseCase)
+	router := setupTestRouter()
+	router.DELETE("/roles/:id", handler.Delete)
+
+	roleID := "non-existent"
+	mockUseCase.On("Delete", mock.Anything, roleID).Return(exception.ErrNotFound)
+
+	req, _ := http.NewRequest(http.MethodDelete, "/roles/"+roleID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_Delete_Forbidden(t *testing.T) {
+	mockUseCase := new(mocks.RoleUseCase)
+	handler := newTestRoleHandler(mockUseCase)
+	router := setupTestRouter()
+	router.DELETE("/roles/:id", handler.Delete)
+
+	roleID := "role-superadmin"
+	mockUseCase.On("Delete", mock.Anything, roleID).Return(exception.ErrForbidden)
+
+	req, _ := http.NewRequest(http.MethodDelete, "/roles/"+roleID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
 	mockUseCase.AssertExpectations(t)
 }

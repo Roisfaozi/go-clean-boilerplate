@@ -88,6 +88,30 @@ func (h *RoleHandler) GetAll(c *gin.Context) {
 	response.Success(c, roles)
 }
 
+// Delete removes a role
+// @Summary      Delete role
+// @Description  Deletes a role by ID. Only superadmin should have access.
+// @Tags         roles
+// @Security     BearerAuth
+// @Param        id   path      string  true  "Role ID"
+// @Produce      json
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Role deleted successfully"
+// @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden (cannot delete superadmin)"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Role not found"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /roles/{id} [delete]
+func (h *RoleHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	if err := h.RoleUseCase.Delete(ctx, id); err != nil {
+		h.handleError(c, err, "failed to delete role")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "Role deleted successfully"})
+}
+
 func (h *RoleHandler) handleError(c *gin.Context, err error, message string) {
 	h.Log.WithError(err).Error(message)
 

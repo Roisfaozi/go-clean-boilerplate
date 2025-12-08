@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/role/model"
+	model "github.com/Roisfaozi/casbin-db/internal/modules/role/model"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -14,9 +14,9 @@ type RoleUseCase struct {
 	mock.Mock
 }
 
-// Create provides a mock function with given fields: ctx, req
-func (_m *RoleUseCase) Create(ctx context.Context, req *model.CreateRoleRequest) (*model.RoleResponse, error) {
-	ret := _m.Called(ctx, req)
+// Create provides a mock function with given fields: ctx, request
+func (_m *RoleUseCase) Create(ctx context.Context, request *model.CreateRoleRequest) (*model.RoleResponse, error) {
+	ret := _m.Called(ctx, request)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Create")
@@ -25,10 +25,10 @@ func (_m *RoleUseCase) Create(ctx context.Context, req *model.CreateRoleRequest)
 	var r0 *model.RoleResponse
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, *model.CreateRoleRequest) (*model.RoleResponse, error)); ok {
-		return rf(ctx, req)
+		return rf(ctx, request)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, *model.CreateRoleRequest) *model.RoleResponse); ok {
-		r0 = rf(ctx, req)
+		r0 = rf(ctx, request)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.RoleResponse)
@@ -36,12 +36,30 @@ func (_m *RoleUseCase) Create(ctx context.Context, req *model.CreateRoleRequest)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, *model.CreateRoleRequest) error); ok {
-		r1 = rf(ctx, req)
+		r1 = rf(ctx, request)
 	} else {
 		r1 = ret.Error(1)
 	}
 
 	return r0, r1
+}
+
+// Delete provides a mock function with given fields: ctx, id
+func (_m *RoleUseCase) Delete(ctx context.Context, id string) error {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Delete")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // GetAll provides a mock function with given fields: ctx

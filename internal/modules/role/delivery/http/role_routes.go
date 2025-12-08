@@ -10,5 +10,6 @@ func RegisterAuthorizedRoutes(router *gin.RouterGroup, roleHandler *RoleHandler)
 	{
 		roleGroup.POST("", roleHandler.Create)
 		roleGroup.GET("", roleHandler.GetAll)
+		roleGroup.DELETE("/:id", roleHandler.Delete)
 	}
 }

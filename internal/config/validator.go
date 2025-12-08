@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -20,6 +21,10 @@ func NewValidator() *validator.Validate {
 		}
 		return name
 	})
+
+	if err := validation.RegisterCustomValidations(validate); err != nil {
+		panic(err)
+	}
 
 	return validate
 }
