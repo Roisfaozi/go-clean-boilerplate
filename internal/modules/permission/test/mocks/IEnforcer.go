@@ -173,6 +173,41 @@ func (_m *IEnforcer) GetRolesForUser(name string, domain ...string) ([]string, e
 	return r0, r1
 }
 
+// RemoveFilteredGroupingPolicy provides a mock function with given fields: fieldIndex, fieldValues
+func (_m *IEnforcer) RemoveFilteredGroupingPolicy(fieldIndex int, fieldValues ...string) (bool, error) {
+	_va := make([]interface{}, len(fieldValues))
+	for _i := range fieldValues {
+		_va[_i] = fieldValues[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, fieldIndex)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveFilteredGroupingPolicy")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int, ...string) (bool, error)); ok {
+		return rf(fieldIndex, fieldValues...)
+	}
+	if rf, ok := ret.Get(0).(func(int, ...string) bool); ok {
+		r0 = rf(fieldIndex, fieldValues...)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(int, ...string) error); ok {
+		r1 = rf(fieldIndex, fieldValues...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // RemovePolicy provides a mock function with given fields: params
 func (_m *IEnforcer) RemovePolicy(params ...interface{}) (bool, error) {
 	var _ca []interface{}

@@ -22,6 +22,7 @@ func TestAssignRoleToUser_Success(t *testing.T) {
 
 	userID, roleName := "user123", "editor"
 	mockRoleRepo.On("FindByName", mock.Anything, roleName).Return(&entity.Role{Name: roleName}, nil)
+	mockEnforcer.On("RemoveFilteredGroupingPolicy", 0, userID).Return(true, nil) // Expectation added
 	mockEnforcer.On("AddGroupingPolicy", userID, roleName).Return(true, nil)
 
 	err := uc.AssignRoleToUser(context.Background(), userID, roleName)
