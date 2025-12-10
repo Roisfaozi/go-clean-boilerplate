@@ -9,6 +9,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/model/converter"
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/repository"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -110,4 +111,23 @@ func (uc *roleUseCase) Delete(ctx context.Context, id string) error {
 
 		return nil
 	})
+}
+
+func (uc *roleUseCase) GetAllRolesDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]model.RoleResponse, error) {
+	var roles []*entity.Role
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		var err error
+		roles, err = uc.RoleRepository.FindAllDynamic(txCtx, filter)
+		if err != nil {
+			uc.Log.Errorf("Failed to find roles dynamically: %v", err)
+			return exception.ErrInternalServer
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return converter.RolesToResponse(roles), nil
 }

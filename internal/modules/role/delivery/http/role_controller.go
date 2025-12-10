@@ -7,6 +7,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
 	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
 	"github.com/gin-gonic/gin"
@@ -110,6 +111,40 @@ func (h *RoleHandler) Delete(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{"message": "Role deleted successfully"})
+}
+
+// GetRolesDynamic retrieves roles based on dynamic filters and sorting via POST request body
+// @Summary      Get roles with dynamic filters
+// @Description  Retrieves a list of roles based on dynamic filter and sort criteria provided in the request body.
+// @Tags         roles
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        filter body querybuilder.DynamicFilter true "Dynamic filter and sort criteria"
+// @Success      200  {object}  response.SwaggerRoleListResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body or filter criteria"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /roles/search [post]
+func (h *RoleHandler) GetRolesDynamic(c *gin.Context) {
+	ctx := c.Request.Context()
+	var filter querybuilder.DynamicFilter
+
+	if err := c.ShouldBindJSON(&filter); err != nil {
+		h.Log.WithError(err).Error("failed to bind dynamic filter request body for roles")
+		response.BadRequest(c, err, "invalid request body for dynamic filter")
+		return
+	}
+
+	roles, err := h.RoleUseCase.GetAllRolesDynamic(ctx, &filter)
+	if err != nil {
+		h.Log.WithError(err).Error("failed to get roles dynamically")
+		h.handleError(c, err, "failed to retrieve roles")
+		return
+	}
+
+	response.Success(c, roles)
 }
 
 func (h *RoleHandler) handleError(c *gin.Context, err error, message string) {
