@@ -21,6 +21,8 @@ func NewRedisConfig(cfg *AppConfig, log *logrus.Logger) *redis.Client {
 		WriteTimeout: cfg.Redis.WriteTimeout,
 	})
 
+	log.Infof("Redis connection established: %s", cfg.Redis.Addr)
+
 	// Ping Redis to check connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
