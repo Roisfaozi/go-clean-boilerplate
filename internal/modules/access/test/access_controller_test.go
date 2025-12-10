@@ -12,6 +12,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/test/mocks"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -26,7 +27,7 @@ func setupAccessTestRouter() *gin.Engine {
 }
 
 func TestAccessHandler_CreateAccessRight_Success(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.POST("/access-rights", handler.CreateAccessRight)
@@ -36,7 +37,7 @@ func TestAccessHandler_CreateAccessRight_Success(t *testing.T) {
 		Description: "A description",
 	}
 	resBody := &model.AccessRightResponse{
-		ID:   1,
+		ID:   "1",
 		Name: "test_access_right",
 	}
 
@@ -54,7 +55,7 @@ func TestAccessHandler_CreateAccessRight_Success(t *testing.T) {
 }
 
 func TestAccessHandler_CreateAccessRight_InvalidBody(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.POST("/access-rights", handler.CreateAccessRight)
@@ -70,7 +71,7 @@ func TestAccessHandler_CreateAccessRight_InvalidBody(t *testing.T) {
 }
 
 func TestAccessHandler_CreateAccessRight_ValidationErrors(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.POST("/access-rights", handler.CreateAccessRight)
@@ -91,7 +92,7 @@ func TestAccessHandler_CreateAccessRight_ValidationErrors(t *testing.T) {
 }
 
 func TestAccessHandler_CreateAccessRight_UseCaseError(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.POST("/access-rights", handler.CreateAccessRight)
@@ -113,15 +114,15 @@ func TestAccessHandler_CreateAccessRight_UseCaseError(t *testing.T) {
 }
 
 func TestAccessHandler_GetAllAccessRights_Success(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.GET("/access-rights", handler.GetAllAccessRights)
 
 	resBody := &model.AccessRightListResponse{
 		Data: []model.AccessRightResponse{
-			{ID: 1, Name: "right1"},
-			{ID: 2, Name: "right2"},
+			{ID: "1", Name: "right1"},
+			{ID: "2", Name: "right2"},
 		},
 	}
 	mockUseCase.On("GetAllAccessRights", mock.Anything).Return(resBody, nil)
@@ -135,7 +136,7 @@ func TestAccessHandler_GetAllAccessRights_Success(t *testing.T) {
 }
 
 func TestAccessHandler_GetAllAccessRights_UseCaseError(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.GET("/access-rights", handler.GetAllAccessRights)
@@ -151,7 +152,7 @@ func TestAccessHandler_GetAllAccessRights_UseCaseError(t *testing.T) {
 }
 
 func TestAccessHandler_CreateEndpoint_Success(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.POST("/endpoints", handler.CreateEndpoint)
@@ -161,7 +162,7 @@ func TestAccessHandler_CreateEndpoint_Success(t *testing.T) {
 		Method: "GET",
 	}
 	resBody := &model.EndpointResponse{
-		ID:     1,
+		ID:     "1",
 		Path:   "/test/path",
 		Method: "GET",
 	}
@@ -180,7 +181,7 @@ func TestAccessHandler_CreateEndpoint_Success(t *testing.T) {
 }
 
 func TestAccessHandler_CreateEndpoint_InvalidBody(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.POST("/endpoints", handler.CreateEndpoint)
@@ -196,7 +197,7 @@ func TestAccessHandler_CreateEndpoint_InvalidBody(t *testing.T) {
 }
 
 func TestAccessHandler_CreateEndpoint_ValidationErrors(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.POST("/endpoints", handler.CreateEndpoint)
@@ -217,7 +218,7 @@ func TestAccessHandler_CreateEndpoint_ValidationErrors(t *testing.T) {
 }
 
 func TestAccessHandler_CreateEndpoint_UseCaseError(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.POST("/endpoints", handler.CreateEndpoint)
@@ -240,14 +241,14 @@ func TestAccessHandler_CreateEndpoint_UseCaseError(t *testing.T) {
 }
 
 func TestAccessHandler_LinkEndpointToAccessRight_Success(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.POST("/access-rights/link", handler.LinkEndpointToAccessRight)
 
 	reqBody := model.LinkEndpointRequest{
-		AccessRightID: 1,
-		EndpointID:    1,
+		AccessRightID: "1",
+		EndpointID:    "1",
 	}
 
 	mockUseCase.On("LinkEndpointToAccessRight", mock.Anything, reqBody).Return(nil)
@@ -264,7 +265,7 @@ func TestAccessHandler_LinkEndpointToAccessRight_Success(t *testing.T) {
 }
 
 func TestAccessHandler_LinkEndpointToAccessRight_InvalidBody(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.POST("/access-rights/link", handler.LinkEndpointToAccessRight)
@@ -280,14 +281,14 @@ func TestAccessHandler_LinkEndpointToAccessRight_InvalidBody(t *testing.T) {
 }
 
 func TestAccessHandler_LinkEndpointToAccessRight_ValidationErrors(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.POST("/access-rights/link", handler.LinkEndpointToAccessRight)
 
 	reqBody := model.LinkEndpointRequest{
-		AccessRightID: 0, // invalid
-		EndpointID:    0, // invalid
+		AccessRightID: "", // invalid
+		EndpointID:    "", // invalid
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)
@@ -302,14 +303,14 @@ func TestAccessHandler_LinkEndpointToAccessRight_ValidationErrors(t *testing.T) 
 }
 
 func TestAccessHandler_LinkEndpointToAccessRight_UseCaseError(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.POST("/access-rights/link", handler.LinkEndpointToAccessRight)
 
 	reqBody := model.LinkEndpointRequest{
-		AccessRightID: 1,
-		EndpointID:    1,
+		AccessRightID: "1",
+		EndpointID:    "1",
 	}
 	mockUseCase.On("LinkEndpointToAccessRight", mock.Anything, reqBody).Return(errors.New("db error"))
 
@@ -325,12 +326,12 @@ func TestAccessHandler_LinkEndpointToAccessRight_UseCaseError(t *testing.T) {
 }
 
 func TestAccessHandler_DeleteAccessRight_Success(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.DELETE("/access-rights/:id", handler.DeleteAccessRight)
 
-	accessRightID := uint(1)
+	accessRightID := "1"
 	mockUseCase.On("DeleteAccessRight", mock.Anything, accessRightID).Return(nil)
 
 	req, _ := http.NewRequest(http.MethodDelete, "/access-rights/1", nil)
@@ -342,12 +343,12 @@ func TestAccessHandler_DeleteAccessRight_Success(t *testing.T) {
 }
 
 func TestAccessHandler_DeleteAccessRight_NotFound(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.DELETE("/access-rights/:id", handler.DeleteAccessRight)
 
-	accessRightID := uint(1)
+	accessRightID := "1"
 	mockUseCase.On("DeleteAccessRight", mock.Anything, accessRightID).Return(exception.ErrNotFound)
 
 	req, _ := http.NewRequest(http.MethodDelete, "/access-rights/1", nil)
@@ -359,12 +360,12 @@ func TestAccessHandler_DeleteAccessRight_NotFound(t *testing.T) {
 }
 
 func TestAccessHandler_DeleteEndpoint_Success(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.DELETE("/endpoints/:id", handler.DeleteEndpoint)
 
-	endpointID := uint(1)
+	endpointID := "1"
 	mockUseCase.On("DeleteEndpoint", mock.Anything, endpointID).Return(nil)
 
 	req, _ := http.NewRequest(http.MethodDelete, "/endpoints/1", nil)
@@ -376,12 +377,12 @@ func TestAccessHandler_DeleteEndpoint_Success(t *testing.T) {
 }
 
 func TestAccessHandler_DeleteEndpoint_NotFound(t *testing.T) {
-	mockUseCase := new(mocks.IAccessUseCase)
+	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
 	router := setupAccessTestRouter()
 	router.DELETE("/endpoints/:id", handler.DeleteEndpoint)
 
-	endpointID := uint(1)
+	endpointID := "1"
 	mockUseCase.On("DeleteEndpoint", mock.Anything, endpointID).Return(exception.ErrNotFound)
 
 	req, _ := http.NewRequest(http.MethodDelete, "/endpoints/1", nil)
@@ -389,5 +390,61 @@ func TestAccessHandler_DeleteEndpoint_NotFound(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestAccessHandler_GetEndpointsDynamic_Success(t *testing.T) {
+	mockUseCase := new(mocks.MockIAccessUseCase)
+	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
+	router := setupAccessTestRouter()
+	router.POST("/endpoints/search", handler.GetEndpointsDynamic)
+
+	filter := querybuilder.DynamicFilter{
+		Filter: map[string]querybuilder.Filter{
+			"Method": {Type: "equals", From: "GET"},
+		},
+	}
+	reqBody, _ := json.Marshal(filter)
+
+	expectedEndpoints := []*model.EndpointResponse{
+		{ID: "1", Path: "/test", Method: "GET"},
+	}
+	mockUseCase.On("GetEndpointsDynamic", mock.Anything, &filter).Return(expectedEndpoints, nil)
+
+	req, _ := http.NewRequest(http.MethodPost, "/endpoints/search", bytes.NewBuffer(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestAccessHandler_GetAccessRightsDynamic_Success(t *testing.T) {
+	mockUseCase := new(mocks.MockIAccessUseCase)
+	handler := accessHandler.NewAccessHandler(mockUseCase, validator.New(), logrus.New())
+	router := setupAccessTestRouter()
+	router.POST("/access-rights/search", handler.GetAccessRightsDynamic)
+
+	filter := querybuilder.DynamicFilter{
+		Filter: map[string]querybuilder.Filter{
+			"Name": {Type: "contains", From: "Manage"},
+		},
+	}
+	reqBody, _ := json.Marshal(filter)
+
+	expectedResponse := &model.AccessRightListResponse{
+		Data: []model.AccessRightResponse{
+			{ID: "1", Name: "Manage Users"},
+		},
+	}
+	mockUseCase.On("GetAccessRightsDynamic", mock.Anything, &filter).Return(expectedResponse, nil)
+
+	req, _ := http.NewRequest(http.MethodPost, "/access-rights/search", bytes.NewBuffer(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
 	mockUseCase.AssertExpectations(t)
 }

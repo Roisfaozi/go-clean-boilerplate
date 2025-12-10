@@ -11,6 +11,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 	permMocks "github.com/Roisfaozi/casbin-db/internal/modules/permission/test/mocks"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -438,6 +439,69 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.True(t, errors.Is(err, context.Canceled))
+		mockTM.AssertExpectations(t)
+	})
+}
+
+func TestUserUseCase_GetAllUsersDynamic(t *testing.T) {
+	t.Run("Success - With Dynamic Filter", func(t *testing.T) {
+		mockRepo, mockTM, _, uc := setupUserTest()
+		mockUsers := []*entity.User{
+			{ID: "user1", Name: "Dynamic User 1"},
+			{ID: "user2", Name: "Dynamic User 2"},
+		}
+		
+		filter := &querybuilder.DynamicFilter{
+			Filter: map[string]querybuilder.Filter{
+				"Name": {Type: "contains", From: "Dynamic"},
+			},
+		}
+
+		mockRepo.On("FindAllDynamic", mock.Anything, filter).Return(mockUsers, nil)
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				fn(context.Background())
+			}).Return(nil)
+
+		result, err := uc.GetAllUsersDynamic(context.Background(), filter)
+
+		assert.NoError(t, err)
+		assert.Len(t, result, 2)
+		assert.Equal(t, "user1", result[0].ID)
+		assert.Equal(t, "Dynamic User 1", result[0].Name)
+
+		mockRepo.AssertExpectations(t)
+		mockTM.AssertExpectations(t)
+	})
+
+	t.Run("Error - Database Error", func(t *testing.T) {
+		mockRepo, mockTM, _, uc := setupUserTest()
+		dbError := errors.New("database error")
+		expectedError := exception.ErrInternalServer
+		
+		filter := &querybuilder.DynamicFilter{
+			Filter: map[string]querybuilder.Filter{
+				"Name": {Type: "contains", From: "Error"},
+			},
+		}
+
+		mockRepo.On("FindAllDynamic", mock.Anything, filter).Return(nil, dbError)
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				err := fn(context.Background())
+				assert.Equal(t, expectedError, err)
+			}).Return(expectedError)
+
+		result, err := uc.GetAllUsersDynamic(context.Background(), filter)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Equal(t, expectedError, err)
+		mockRepo.AssertExpectations(t)
 		mockTM.AssertExpectations(t)
 	})
 }

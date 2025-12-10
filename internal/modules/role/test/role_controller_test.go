@@ -12,6 +12,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/test/mocks"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -26,7 +27,7 @@ func setupTestRouter() *gin.Engine {
 	return router
 }
 
-func newTestRoleHandler(mockUseCase *mocks.RoleUseCase) *roleHandler.RoleHandler {
+func newTestRoleHandler(mockUseCase *mocks.MockRoleUseCase) *roleHandler.RoleHandler {
 	v := validator.New()
 	if err := validation.RegisterCustomValidations(v); err != nil {
 		panic(err)
@@ -35,7 +36,7 @@ func newTestRoleHandler(mockUseCase *mocks.RoleUseCase) *roleHandler.RoleHandler
 }
 
 func TestRoleHandler_Create_Success(t *testing.T) {
-	mockUseCase := new(mocks.RoleUseCase)
+	mockUseCase := new(mocks.MockRoleUseCase)
 	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.POST("/roles", handler.Create)
@@ -62,7 +63,7 @@ func TestRoleHandler_Create_Success(t *testing.T) {
 }
 
 func TestRoleHandler_Create_BindingError(t *testing.T) {
-	mockUseCase := new(mocks.RoleUseCase)
+	mockUseCase := new(mocks.MockRoleUseCase)
 	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.POST("/roles", handler.Create)
@@ -78,7 +79,7 @@ func TestRoleHandler_Create_BindingError(t *testing.T) {
 }
 
 func TestRoleHandler_Create_ValidationError(t *testing.T) {
-	mockUseCase := new(mocks.RoleUseCase)
+	mockUseCase := new(mocks.MockRoleUseCase)
 	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.POST("/roles", handler.Create)
@@ -99,7 +100,7 @@ func TestRoleHandler_Create_ValidationError(t *testing.T) {
 }
 
 func TestRoleHandler_Create_UseCaseError(t *testing.T) {
-	mockUseCase := new(mocks.RoleUseCase)
+	mockUseCase := new(mocks.MockRoleUseCase)
 	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.POST("/roles", handler.Create)
@@ -121,7 +122,7 @@ func TestRoleHandler_Create_UseCaseError(t *testing.T) {
 }
 
 func TestRoleHandler_GetAll_Success(t *testing.T) {
-	mockUseCase := new(mocks.RoleUseCase)
+	mockUseCase := new(mocks.MockRoleUseCase)
 	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.GET("/roles", handler.GetAll)
@@ -147,7 +148,7 @@ func TestRoleHandler_GetAll_Success(t *testing.T) {
 }
 
 func TestRoleHandler_GetAll_UseCaseError(t *testing.T) {
-	mockUseCase := new(mocks.RoleUseCase)
+	mockUseCase := new(mocks.MockRoleUseCase)
 	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.GET("/roles", handler.GetAll)
@@ -163,7 +164,7 @@ func TestRoleHandler_GetAll_UseCaseError(t *testing.T) {
 }
 
 func TestRoleHandler_Delete_Success(t *testing.T) {
-	mockUseCase := new(mocks.RoleUseCase)
+	mockUseCase := new(mocks.MockRoleUseCase)
 	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.DELETE("/roles/:id", handler.Delete)
@@ -180,7 +181,7 @@ func TestRoleHandler_Delete_Success(t *testing.T) {
 }
 
 func TestRoleHandler_Delete_NotFound(t *testing.T) {
-	mockUseCase := new(mocks.RoleUseCase)
+	mockUseCase := new(mocks.MockRoleUseCase)
 	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.DELETE("/roles/:id", handler.Delete)
@@ -197,7 +198,7 @@ func TestRoleHandler_Delete_NotFound(t *testing.T) {
 }
 
 func TestRoleHandler_Delete_Forbidden(t *testing.T) {
-	mockUseCase := new(mocks.RoleUseCase)
+	mockUseCase := new(mocks.MockRoleUseCase)
 	handler := newTestRoleHandler(mockUseCase)
 	router := setupTestRouter()
 	router.DELETE("/roles/:id", handler.Delete)
@@ -210,5 +211,37 @@ func TestRoleHandler_Delete_Forbidden(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_GetRolesDynamic_Success(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	handler := newTestRoleHandler(mockUseCase)
+	router := setupTestRouter()
+	router.POST("/roles/search", handler.GetRolesDynamic)
+
+	filter := querybuilder.DynamicFilter{
+		Filter: map[string]querybuilder.Filter{
+			"Name": {Type: "contains", From: "admin"},
+		},
+	}
+	reqBody, _ := json.Marshal(filter)
+
+	expectedRoles := []model.RoleResponse{
+		{ID: "role-1", Name: "admin"},
+	}
+	mockUseCase.On("GetAllRolesDynamic", mock.Anything, &filter).Return(expectedRoles, nil)
+
+	req, _ := http.NewRequest(http.MethodPost, "/roles/search", bytes.NewBuffer(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var responseBody map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	data, _ := responseBody["data"].([]interface{})
+	assert.Len(t, data, 1)
+
 	mockUseCase.AssertExpectations(t)
 }

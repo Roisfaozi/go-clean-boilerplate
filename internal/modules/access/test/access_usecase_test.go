@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/entity"
@@ -9,6 +10,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/test/mocks"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -24,7 +26,7 @@ func (w *nullWriter) Write(p []byte) (n int, err error) {
 
 func TestCreateAccessRight(t *testing.T) {
 	// Setup
-	mockRepo := new(mocks.IAccessRepository)
+	mockRepo := new(mocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
 
@@ -46,18 +48,18 @@ func TestCreateAccessRight(t *testing.T) {
 }
 
 func TestGetAllAccessRights(t *testing.T) {
-	mockRepo := new(mocks.IAccessRepository)
+	mockRepo := new(mocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
 	uc := usecase.NewAccessUseCase(mockRepo, log)
 	ctx := context.Background()
 
 	t.Run("Success - Has Data", func(t *testing.T) {
-		expectedEntities := []entity.AccessRight{
-			{ID: 1, Name: "view_dashboard"},
-			{ID: 2, Name: "edit_settings"},
+		expectedEntities := []*entity.AccessRight{
+			{ID: "1", Name: "view_dashboard"},
+			{ID: "2", Name: "edit_settings"},
 		}
-		mockRepo.On("GetAllAccessRights", ctx).Return(expectedEntities, nil).Once()
+		mockRepo.On("GetAccessRights", ctx).Return(expectedEntities, nil).Once()
 		results, err := uc.GetAllAccessRights(ctx)
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
@@ -66,7 +68,7 @@ func TestGetAllAccessRights(t *testing.T) {
 	})
 
 	t.Run("Success - No Data", func(t *testing.T) {
-		mockRepo.On("GetAllAccessRights", ctx).Return([]entity.AccessRight{}, nil).Once()
+		mockRepo.On("GetAccessRights", ctx).Return([]*entity.AccessRight{}, nil).Once()
 		results, err := uc.GetAllAccessRights(ctx)
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
@@ -76,7 +78,7 @@ func TestGetAllAccessRights(t *testing.T) {
 }
 
 func TestCreateEndpoint(t *testing.T) {
-	mockRepo := new(mocks.IAccessRepository)
+	mockRepo := new(mocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
 	uc := usecase.NewAccessUseCase(mockRepo, log)
@@ -94,14 +96,14 @@ func TestCreateEndpoint(t *testing.T) {
 }
 
 func TestLinkEndpointToAccessRight(t *testing.T) {
-	mockRepo := new(mocks.IAccessRepository)
+	mockRepo := new(mocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
 	uc := usecase.NewAccessUseCase(mockRepo, log)
 	ctx := context.Background()
 
 	t.Run("Success - Link Valid IDs", func(t *testing.T) {
-		req := model.LinkEndpointRequest{AccessRightID: 1, EndpointID: 2}
+		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
 		mockRepo.On("LinkEndpointToAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(nil).Once()
 		err := uc.LinkEndpointToAccessRight(ctx, req)
 		assert.NoError(t, err)
@@ -110,15 +112,15 @@ func TestLinkEndpointToAccessRight(t *testing.T) {
 }
 
 func TestDeleteAccessRight(t *testing.T) {
-	mockRepo := new(mocks.IAccessRepository)
+	mockRepo := new(mocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
 	uc := usecase.NewAccessUseCase(mockRepo, log)
 	ctx := context.Background()
-	id := uint(1)
+	id := "1"
 
 	t.Run("Success - Delete Access Right", func(t *testing.T) {
-		mockRepo.On("FindAccessRightByID", ctx, id).Return(&entity.AccessRight{ID: id}, nil).Once()
+		mockRepo.On("GetAccessRightByID", ctx, id).Return(&entity.AccessRight{ID: id}, nil).Once()
 		mockRepo.On("DeleteAccessRight", ctx, id).Return(nil).Once()
 		err := uc.DeleteAccessRight(ctx, id)
 		assert.NoError(t, err)
@@ -126,7 +128,7 @@ func TestDeleteAccessRight(t *testing.T) {
 	})
 
 	t.Run("Error - Not Found", func(t *testing.T) {
-		mockRepo.On("FindAccessRightByID", ctx, id).Return(nil, gorm.ErrRecordNotFound).Once()
+		mockRepo.On("GetAccessRightByID", ctx, id).Return(nil, gorm.ErrRecordNotFound).Once()
 		err := uc.DeleteAccessRight(ctx, id)
 		assert.ErrorIs(t, err, exception.ErrNotFound)
 		mockRepo.AssertExpectations(t)
@@ -134,12 +136,12 @@ func TestDeleteAccessRight(t *testing.T) {
 }
 
 func TestDeleteEndpoint(t *testing.T) {
-	mockRepo := new(mocks.IAccessRepository)
+	mockRepo := new(mocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
 	uc := usecase.NewAccessUseCase(mockRepo, log)
 	ctx := context.Background()
-	id := uint(1)
+	id := "1" // Changed to string
 
 	t.Run("Success - Delete Endpoint", func(t *testing.T) {
 		mockRepo.On("DeleteEndpoint", ctx, id).Return(nil).Once()
@@ -152,6 +154,82 @@ func TestDeleteEndpoint(t *testing.T) {
 		mockRepo.On("DeleteEndpoint", ctx, id).Return(gorm.ErrRecordNotFound).Once()
 		err := uc.DeleteEndpoint(ctx, id)
 		assert.ErrorIs(t, err, exception.ErrNotFound)
+		mockRepo.AssertExpectations(t)
+	})
+}
+
+func TestAccessUseCase_GetEndpointsDynamic(t *testing.T) {
+	mockRepo := new(mocks.MockAccessRepository)
+	log := logrus.New()
+	log.SetOutput(&nullWriter{})
+	uc := usecase.NewAccessUseCase(mockRepo, log)
+	ctx := context.Background()
+
+	t.Run("Success - Get Endpoints Dynamically", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{
+			Filter: map[string]querybuilder.Filter{
+				"Method": {Type: "equals", From: "GET"},
+			},
+		}
+		expectedEndpoints := []*entity.Endpoint{
+			{ID: "1", Path: "/api/test", Method: "GET"},
+		}
+		mockRepo.On("FindEndpointsDynamic", ctx, filter).Return(expectedEndpoints, nil).Once()
+
+		results, err := uc.GetEndpointsDynamic(ctx, filter)
+		assert.NoError(t, err)
+		assert.Len(t, results, 1)
+		assert.Equal(t, "GET", results[0].Method)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("Error - Repository Error", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{}
+		repoError := errors.New("repo error")
+		mockRepo.On("FindEndpointsDynamic", ctx, filter).Return(nil, repoError).Once()
+
+		results, err := uc.GetEndpointsDynamic(ctx, filter)
+		assert.Error(t, err)
+		assert.Nil(t, results)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		mockRepo.AssertExpectations(t)
+	})
+}
+
+func TestAccessUseCase_GetAccessRightsDynamic(t *testing.T) {
+	mockRepo := new(mocks.MockAccessRepository)
+	log := logrus.New()
+	log.SetOutput(&nullWriter{})
+	uc := usecase.NewAccessUseCase(mockRepo, log)
+	ctx := context.Background()
+
+	t.Run("Success - Get Access Rights Dynamically", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{
+			Filter: map[string]querybuilder.Filter{
+				"Name": {Type: "contains", From: "Manage"},
+			},
+		}
+		expectedAccessRights := []*entity.AccessRight{
+			{ID: "1", Name: "Manage Users"},
+		}
+		mockRepo.On("FindAccessRightsDynamic", ctx, filter).Return(expectedAccessRights, nil).Once()
+
+		results, err := uc.GetAccessRightsDynamic(ctx, filter)
+		assert.NoError(t, err)
+		assert.Len(t, results.Data, 1)
+		assert.Equal(t, "Manage Users", results.Data[0].Name)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("Error - Repository Error", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{}
+		repoError := errors.New("repo error")
+		mockRepo.On("FindAccessRightsDynamic", ctx, filter).Return(nil, repoError).Once()
+
+		results, err := uc.GetAccessRightsDynamic(ctx, filter)
+		assert.Error(t, err)
+		assert.Nil(t, results)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
 		mockRepo.AssertExpectations(t)
 	})
 }

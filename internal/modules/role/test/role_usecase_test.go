@@ -11,14 +11,15 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/test/mocks"
 	"github.com/Roisfaozi/casbin-db/internal/modules/role/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 )
 
-func setupRoleTest() (*mocks.RoleRepository, *mocking.MockTransactionManager, usecase.RoleUseCase) {
-	mockRepo := new(mocks.RoleRepository)
+func setupRoleTest() (*mocks.MockRoleRepository, *mocking.MockTransactionManager, usecase.RoleUseCase) {
+	mockRepo := new(mocks.MockRoleRepository)
 	mockTM := new(mocking.MockTransactionManager)
 	uc := usecase.NewRoleUseCase(logrus.New(), mockTM, mockRepo)
 	return mockRepo, mockTM, uc
@@ -146,88 +147,299 @@ func TestRoleUseCase_GetAll(t *testing.T) {
 }
 
 func TestRoleUseCase_Delete(t *testing.T) {
+
 	roleID := "role-123"
 
+
+
 	t.Run("Success - Role Deleted", func(t *testing.T) {
+
 		mockRepo, mockTM, uc := setupRoleTest()
 
+
+
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+
 			Return(nil).
+
 			Run(func(args mock.Arguments) {
+
 				fn := args.Get(1).(func(context.Context) error)
+
 				fn(context.Background())
+
 			})
 
+
+
 		mockRepo.On("FindByID", mock.Anything, roleID).Return(&entity.Role{ID: roleID, Name: "editor"}, nil)
+
 		mockRepo.On("Delete", mock.Anything, roleID).Return(nil)
+
+
 
 		err := uc.Delete(context.Background(), roleID)
 
+
+
 		assert.NoError(t, err)
+
 		mockRepo.AssertExpectations(t)
+
 		mockTM.AssertExpectations(t)
+
 	})
 
-	t.Run("Error - Role Not Found", func(t *testing.T) {
+
+
+			t.Run("Error - Role Not Found", func(t *testing.T) {
+
 		mockRepo, mockTM, uc := setupRoleTest()
 
+
+
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+
 			Return(exception.ErrNotFound).
+
 			Run(func(args mock.Arguments) {
+
 				fn := args.Get(1).(func(context.Context) error)
+
 				err := fn(context.Background())
+
 				assert.Equal(t, exception.ErrNotFound, err)
+
 			})
+
+
 
 		mockRepo.On("FindByID", mock.Anything, roleID).Return(nil, gorm.ErrRecordNotFound)
 
+
+
 		err := uc.Delete(context.Background(), roleID)
 
+
+
 		assert.ErrorIs(t, err, exception.ErrNotFound)
+
 		mockRepo.AssertExpectations(t)
+
 		mockTM.AssertExpectations(t)
+
 	})
 
+
+
 	t.Run("Error - Cannot Delete Superadmin", func(t *testing.T) {
+
 		mockRepo, mockTM, uc := setupRoleTest()
 
+
+
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+
 			Return(exception.ErrForbidden).
+
 			Run(func(args mock.Arguments) {
+
 				fn := args.Get(1).(func(context.Context) error)
+
 				err := fn(context.Background())
+
 				assert.Equal(t, exception.ErrForbidden, err)
+
 			})
+
+
 
 		mockRepo.On("FindByID", mock.Anything, roleID).Return(&entity.Role{ID: roleID, Name: "role:superadmin"}, nil)
 
+
+
 		err := uc.Delete(context.Background(), roleID)
+
+
 
 		assert.ErrorIs(t, err, exception.ErrForbidden)
+
 		mockRepo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
+
 		mockRepo.AssertExpectations(t)
+
 		mockTM.AssertExpectations(t)
+
 	})
 
-	t.Run("Error - Database Error During Delete", func(t *testing.T) {
+
+
+			t.Run("Error - Database Error During Delete", func(t *testing.T) {
+
 		mockRepo, mockTM, uc := setupRoleTest()
+
 		dbError := errors.New("database error")
 
+
+
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+
 			Return(exception.ErrInternalServer).
+
 			Run(func(args mock.Arguments) {
+
 				fn := args.Get(1).(func(context.Context) error)
+
 				err := fn(context.Background())
+
 				assert.Equal(t, exception.ErrInternalServer, err)
+
 			})
 
+
+
 		mockRepo.On("FindByID", mock.Anything, roleID).Return(&entity.Role{ID: roleID, Name: "editor"}, nil)
+
 		mockRepo.On("Delete", mock.Anything, roleID).Return(dbError)
+
+
 
 		err := uc.Delete(context.Background(), roleID)
 
+
+
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
+
 		mockRepo.AssertExpectations(t)
+
 		mockTM.AssertExpectations(t)
+
 	})
+
+}
+
+
+
+func TestRoleUseCase_GetAllRolesDynamic(t *testing.T) {
+
+	t.Run("Success - With Dynamic Filter", func(t *testing.T) {
+
+		mockRepo, mockTM, uc := setupRoleTest()
+
+		mockRoles := []*entity.Role{
+
+			{ID: "role1", Name: "Dynamic Role 1"},
+
+			{ID: "role2", Name: "Dynamic Role 2"},
+
+		}
+
+		
+
+		filter := &querybuilder.DynamicFilter{
+
+			Filter: map[string]querybuilder.Filter{
+
+				"Name": {Type: "contains", From: "Dynamic"},
+
+			},
+
+		}
+
+
+
+		mockRepo.On("FindAllDynamic", mock.Anything, filter).Return(mockRoles, nil)
+
+
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+
+			Run(func(args mock.Arguments) {
+
+				fn := args.Get(1).(func(context.Context) error)
+
+				fn(context.Background())
+
+			}).Return(nil)
+
+
+
+		result, err := uc.GetAllRolesDynamic(context.Background(), filter)
+
+
+
+		assert.NoError(t, err)
+
+		assert.Len(t, result, 2)
+
+		assert.Equal(t, "role1", result[0].ID)
+
+		assert.Equal(t, "Dynamic Role 1", result[0].Name)
+
+
+
+		mockRepo.AssertExpectations(t)
+
+		mockTM.AssertExpectations(t)
+
+	})
+
+
+
+	t.Run("Error - Database Error", func(t *testing.T) {
+
+		mockRepo, mockTM, uc := setupRoleTest()
+
+		dbError := errors.New("database error")
+
+		expectedError := exception.ErrInternalServer
+
+		
+
+		filter := &querybuilder.DynamicFilter{
+
+			Filter: map[string]querybuilder.Filter{
+
+				"Name": {Type: "contains", From: "Error"},
+
+			},
+
+		}
+
+
+
+		mockRepo.On("FindAllDynamic", mock.Anything, filter).Return(nil, dbError)
+
+
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+
+			Run(func(args mock.Arguments) {
+
+				fn := args.Get(1).(func(context.Context) error)
+
+				err := fn(context.Background())
+
+				assert.Equal(t, expectedError, err)
+
+			}).Return(expectedError)
+
+
+
+		result, err := uc.GetAllRolesDynamic(context.Background(), filter)
+
+
+
+		assert.Error(t, err)
+
+		assert.Nil(t, result)
+
+		assert.Equal(t, expectedError, err)
+
+		mockRepo.AssertExpectations(t)
+
+		mockTM.AssertExpectations(t)
+
+	})
+
 }
