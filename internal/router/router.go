@@ -12,6 +12,7 @@ import (
 	roleHttp "github.com/Roisfaozi/casbin-db/internal/modules/role/delivery/http"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user"
 	userHttp "github.com/Roisfaozi/casbin-db/internal/modules/user/delivery/http"
+	"github.com/Roisfaozi/casbin-db/internal/utils/sse"
 	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -27,6 +28,7 @@ func SetupRouter(
 	authMiddleware *middleware.AuthMiddleware,
 	casbinMiddleware gin.HandlerFunc,
 	wsController *ws.WebSocketController,
+	sseManager *sse.Manager, // NEW: Add sseManager
 ) *gin.Engine {
 	router := gin.New()
 
@@ -44,6 +46,7 @@ func SetupRouter(
 	})
 
 	router.GET("/ws", wsController.HandleWebSocket)
+	router.GET("/events", sseManager.ServeHTTP()) // NEW: Register SSE endpoint
 
 	apiV1 := router.Group("/api/v1")
 

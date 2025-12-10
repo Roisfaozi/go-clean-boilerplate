@@ -21,7 +21,7 @@ type AccessModule struct {
 //
 // Returns a pointer to the newly created AccessModule instance.
 func NewAccessModule(db *gorm.DB, log *logrus.Logger, validate *validator.Validate) *AccessModule {
-	repo := repository.NewAccessRepository(db)
+	repo := repository.NewAccessRepository(db, log)
 	uc := usecase.NewAccessUseCase(repo, log)
 	handler := http.NewAccessHandler(uc, validate, log)
 

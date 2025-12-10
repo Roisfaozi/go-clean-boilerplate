@@ -37,22 +37,10 @@ func GenerateDynamicQuery[T any](filter *DynamicFilter) (string, []interface{}, 
 	}
 
 	for key, f := range filter.Filter {
-
-		field, found := tType.FieldByName(key)
+		field, found := findField[T](key)
 		if !found {
-
-			var fieldFound bool
-			for i := 0; i < tType.NumField(); i++ {
-				if strings.EqualFold(tType.Field(i).Name, key) {
-					field = tType.Field(i)
-					fieldFound = true
-					break
-				}
-			}
-			if !fieldFound {
-				warnings = append(warnings, fmt.Sprintf("Field '%s' not found in model", key))
-				continue
-			}
+			warnings = append(warnings, fmt.Sprintf("Field '%s' not found in model", key))
+			continue
 		}
 
 		dbCol := GetDBFieldName(field)
@@ -133,20 +121,8 @@ func GenerateDynamicSort[T any](filter *DynamicFilter) (string, error) {
 	}
 
 	for _, s := range *filter.Sort {
-		field, found := tType.FieldByName(s.ColId)
+		field, found := findField[T](s.ColId)
 		if !found {
-			for i := 0; i < tType.NumField(); i++ {
-				if strings.EqualFold(tType.Field(i).Name, s.ColId) {
-					field = tType.Field(i)
-					found = true
-					break
-				}
-			}
-		}
-
-		if !found {
-			// Skip or error? Prefer safe skip or strict error.
-			// Let's error for sort to avoid unexpected ordering.
 			return "", fmt.Errorf("sort field '%s' not found", s.ColId)
 		}
 
@@ -239,4 +215,48 @@ func parseToNumberOrNull(v interface{}) interface{} {
 		return f
 	}
 	return v
+}
+
+// findField attempts to find a struct field by JSON tag, then snake_case name, then case-insensitive name
+func findField[T any](key string) (reflect.StructField, bool) {
+	var zero T
+	tType := reflect.TypeOf(zero)
+	if tType.Kind() == reflect.Ptr {
+		tType = tType.Elem()
+	}
+
+	// 1. Check strict match with JSON tag
+	for i := 0; i < tType.NumField(); i++ {
+		field := tType.Field(i)
+		jsonTag := field.Tag.Get("json")
+		// JSON tag can be "name,omitempty", so we split
+		tagName := strings.Split(jsonTag, ",")[0]
+		if tagName == key {
+			return field, true
+		}
+	}
+
+	// 2. Check if key matches snake_case version of field name
+	for i := 0; i < tType.NumField(); i++ {
+		field := tType.Field(i)
+		snakeName := ToSnakeCase(field.Name)
+		if snakeName == key {
+			return field, true
+		}
+	}
+
+	// 3. Fallback: Case-insensitive match on field Name or JSON tag
+	for i := 0; i < tType.NumField(); i++ {
+		field := tType.Field(i)
+		if strings.EqualFold(field.Name, key) {
+			return field, true
+		}
+		
+		jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]
+		if strings.EqualFold(jsonTag, key) {
+			return field, true
+		}
+	}
+
+	return reflect.StructField{}, false
 }

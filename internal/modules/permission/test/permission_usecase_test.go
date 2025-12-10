@@ -17,7 +17,7 @@ import (
 
 func TestAssignRoleToUser_Success(t *testing.T) {
 	mockEnforcer := new(mocks.IEnforcer)
-	mockRoleRepo := new(roleMocks.RoleRepository)
+	mockRoleRepo := new(roleMocks.MockRoleRepository)
 	uc := usecase.NewPermissionUseCase(mockEnforcer, logrus.New(), mockRoleRepo)
 
 	userID, roleName := "user123", "editor"
@@ -34,7 +34,7 @@ func TestAssignRoleToUser_Success(t *testing.T) {
 
 func TestAssignRoleToUser_RoleNotFound(t *testing.T) {
 	mockEnforcer := new(mocks.IEnforcer)
-	mockRoleRepo := new(roleMocks.RoleRepository)
+	mockRoleRepo := new(roleMocks.MockRoleRepository)
 	uc := usecase.NewPermissionUseCase(mockEnforcer, logrus.New(), mockRoleRepo)
 
 	userID, roleName := "user123", "non_existent_role"
@@ -49,7 +49,7 @@ func TestAssignRoleToUser_RoleNotFound(t *testing.T) {
 
 func TestGrantPermissionToRole_Success(t *testing.T) {
 	mockEnforcer := new(mocks.IEnforcer)
-	mockRoleRepo := new(roleMocks.RoleRepository)
+	mockRoleRepo := new(roleMocks.MockRoleRepository)
 	uc := usecase.NewPermissionUseCase(mockEnforcer, logrus.New(), mockRoleRepo)
 
 	role, path, method := "editor", "/api/v1/articles", "POST"
@@ -65,7 +65,7 @@ func TestGrantPermissionToRole_Success(t *testing.T) {
 
 func TestGrantPermissionToRole_RoleNotFound(t *testing.T) {
 	mockEnforcer := new(mocks.IEnforcer)
-	mockRoleRepo := new(roleMocks.RoleRepository)
+	mockRoleRepo := new(roleMocks.MockRoleRepository)
 	uc := usecase.NewPermissionUseCase(mockEnforcer, logrus.New(), mockRoleRepo)
 
 	role, path, method := "non_existent_role", "/api/v1/articles", "POST"
@@ -80,7 +80,7 @@ func TestGrantPermissionToRole_RoleNotFound(t *testing.T) {
 
 func TestRevokePermissionFromRole_Success(t *testing.T) {
 	mockEnforcer := new(mocks.IEnforcer)
-	mockRoleRepo := new(roleMocks.RoleRepository)
+	mockRoleRepo := new(roleMocks.MockRoleRepository)
 	uc := usecase.NewPermissionUseCase(mockEnforcer, logrus.New(), mockRoleRepo)
 
 	role, path, method := "editor", "/api/v1/articles", "DELETE"
@@ -96,7 +96,7 @@ func TestRevokePermissionFromRole_Success(t *testing.T) {
 
 func TestRevokePermissionFromRole_RoleNotFound(t *testing.T) {
 	mockEnforcer := new(mocks.IEnforcer)
-	mockRoleRepo := new(roleMocks.RoleRepository)
+	mockRoleRepo := new(roleMocks.MockRoleRepository)
 	uc := usecase.NewPermissionUseCase(mockEnforcer, logrus.New(), mockRoleRepo)
 
 	role, path, method := "non_existent_role", "/api/v1/articles", "DELETE"

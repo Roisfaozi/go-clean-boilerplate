@@ -14,6 +14,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/user"
 	"github.com/Roisfaozi/casbin-db/internal/router"
 	"github.com/Roisfaozi/casbin-db/internal/utils/jwt"
+	"github.com/Roisfaozi/casbin-db/internal/utils/sse" // NEW: Import SSE
 	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
 	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
 	"github.com/casbin/casbin/v2"
@@ -54,6 +55,10 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	go wsManager.Run()
 	logger.Info("Shared dependencies initialized.")
 
+	// NEW: Initialize SSE Manager
+	sseManager := sse.NewManager()
+	logger.Info("SSE Manager initialized.")
+
 	// 2. Initialize Casbin (conditionally)
 	enforcer, err := NewCasbinEnforcer(cfg, dbConnection, logger)
 	if err != nil {
@@ -91,6 +96,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		authMiddleware,
 		casbinMiddleware,
 		wsController,
+		sseManager, // NEW: Pass sseManager
 	)
 	logger.Info("Router setup complete.")
 

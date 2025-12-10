@@ -65,7 +65,13 @@ build:
 .PHONY: test
 test:
 	@echo "Running tests..."
-	$(GOTEST) -v ./...
+	CGO_ENABLED=1 $(GOTEST) -v ./...
+
+# Run all tests-windows
+.PHONY: wintest
+wintest:
+	@echo "Running tests..."
+	@powershell -Command "$$env:CGO_ENABLED='1'; go test -v ./..."
 
 # Generate Swagger/OpenAPI documentation
 .PHONY: docs
