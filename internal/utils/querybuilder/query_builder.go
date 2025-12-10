@@ -52,17 +52,17 @@ func GenerateDynamicQuery[T any](filter *DynamicFilter) (string, []interface{}, 
 				queryParts = append(queryParts, fmt.Sprintf("%s LIKE ?", dbCol))
 				args = append(args, "%"+val+"%")
 			}
-		case "notContains":
+		case "notContains", "not_contains":
 			if val, ok := f.From.(string); ok {
 				queryParts = append(queryParts, fmt.Sprintf("%s NOT LIKE ?", dbCol))
 				args = append(args, "%"+val+"%")
 			}
-		case "startsWith":
+		case "startsWith", "starts_with":
 			if val, ok := f.From.(string); ok {
 				queryParts = append(queryParts, fmt.Sprintf("%s LIKE ?", dbCol))
 				args = append(args, val+"%")
 			}
-		case "endsWith":
+		case "endsWith", "ends_with":
 			if val, ok := f.From.(string); ok {
 				queryParts = append(queryParts, fmt.Sprintf("%s LIKE ?", dbCol))
 				args = append(args, "%"+val)
@@ -70,33 +70,33 @@ func GenerateDynamicQuery[T any](filter *DynamicFilter) (string, []interface{}, 
 		case "equals":
 			queryParts = append(queryParts, fmt.Sprintf("%s = ?", dbCol))
 			args = append(args, f.From)
-		case "notEqual":
+		case "notEqual", "not_equal":
 			queryParts = append(queryParts, fmt.Sprintf("%s <> ?", dbCol))
 			args = append(args, f.From)
-		case "lessThan":
+		case "lessThan", "less_than":
 			queryParts = append(queryParts, fmt.Sprintf("%s < ?", dbCol))
 			args = append(args, f.From)
-		case "lessThanOrEqual":
+		case "lessThanOrEqual", "less_than_or_equal":
 			queryParts = append(queryParts, fmt.Sprintf("%s <= ?", dbCol))
 			args = append(args, f.From)
-		case "greaterThan":
+		case "greaterThan", "greater_than":
 			queryParts = append(queryParts, fmt.Sprintf("%s > ?", dbCol))
 			args = append(args, f.From)
-		case "greaterThanOrEqual":
+		case "greaterThanOrEqual", "greater_than_or_equal":
 			queryParts = append(queryParts, fmt.Sprintf("%s >= ?", dbCol))
 			args = append(args, f.From)
-		case "inRange":
+		case "inRange", "in_range":
 			queryParts = append(queryParts, fmt.Sprintf("%s >= ? AND %s <= ?", dbCol, dbCol))
 			args = append(args, f.From, f.To)
 		case "in":
 			queryParts = append(queryParts, fmt.Sprintf("%s IN (?)", dbCol))
 			args = append(args, f.From)
-		case "notIn":
+		case "notIn", "not_in":
 			queryParts = append(queryParts, fmt.Sprintf("%s NOT IN (?)", dbCol))
 			args = append(args, f.From)
-		case "isNull":
+		case "isNull", "is_null":
 			queryParts = append(queryParts, fmt.Sprintf("%s IS NULL", dbCol))
-		case "notNull":
+		case "notNull", "not_null":
 			queryParts = append(queryParts, fmt.Sprintf("%s IS NOT NULL", dbCol))
 		default:
 			warnings = append(warnings, fmt.Sprintf("Operator '%s' not supported for field '%s'", op, key))
