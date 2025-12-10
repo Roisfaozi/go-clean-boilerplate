@@ -1,0 +1,42 @@
+all: true
+dir: '{{.InterfaceDir}}'
+force-file-write: true
+formatter: goimports
+generate: true
+include-auto-generated: false
+log-level: info
+structname: 'Mock{{.InterfaceName}}'
+pkgname: mocks
+recursive: false
+require-template-schema-exists: true
+template: testify
+template-schema: '{{.Template}}.schema.json'
+packages:
+  github.com/Roisfaozi/casbin-db/internal/modules/access/repository:
+    config:
+      dir: internal/modules/access/test/mocks
+      filename: mock_access_repository.go
+  github.com/Roisfaozi/casbin-db/internal/modules/access/usecase:
+    config:
+      dir: internal/modules/access/test/mocks
+      filename: mock_access_usecase.go
+  github.com/Roisfaozi/casbin-db/internal/modules/user/repository:
+    config:
+      dir: internal/modules/user/test/mocks
+      filename: mock_user_repository.go
+  github.com/Roisfaozi/casbin-db/internal/modules/user/usecase:
+    config:
+      dir: internal/modules/user/test/mocks
+      filename: mock_user_usecase.go
+  github.com/Roisfaozi/casbin-db/internal/modules/role/repository:
+    config:
+      dir: internal/modules/role/test/mocks
+      filename: mock_role_repository.go
+  github.com/Roisfaozi/casbin-db/internal/modules/role/usecase:
+    config:
+      dir: internal/modules/role/test/mocks
+      filename: mock_role_usecase.go
+  github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase:
+    config:
+      dir: internal/modules/permission/test/mocks
+      filename: mock_permission_usecase.go
