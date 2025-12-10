@@ -5,6 +5,7 @@ import (
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 )
 
 type UserRepository interface {
@@ -16,4 +17,5 @@ type UserRepository interface {
 	FindByToken(ctx context.Context, token string) (*entity.User, error)
 	Delete(ctx context.Context, id string) error
 	FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, error)
+	FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, error)
 }

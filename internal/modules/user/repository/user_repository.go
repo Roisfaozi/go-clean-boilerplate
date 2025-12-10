@@ -6,6 +6,7 @@ import (
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -114,6 +115,38 @@ func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserL
 
 	if err := query.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
 		r.log.WithError(err).Error("failed to find all users")
+		return nil, err
+	}
+	return users, nil
+}
+
+func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, error) {
+	var users []*entity.User
+	query := r.db.WithContext(ctx)
+
+	where, args, _, err := querybuilder.GenerateDynamicQuery[entity.User](filter)
+	if err != nil {
+		return nil, err
+	}
+	
+	if where != "" {
+		query = query.Where(where, args...)
+	}
+
+	sort, err := querybuilder.GenerateDynamicSort[entity.User](filter)
+	if err != nil {
+		return nil, err
+	}
+	if sort != "" {
+		query = query.Order(sort)
+	}
+
+	// Note: Pagination should be handled separately or added to DynamicFilter if desired.
+	// For this example, we'll assume pagination is handled outside or we can add it later.
+	// Let's just run Find().
+
+	if err := query.Find(&users).Error; err != nil {
+		r.log.WithError(err).Error("failed to find users dynamic")
 		return nil, err
 	}
 	return users, nil

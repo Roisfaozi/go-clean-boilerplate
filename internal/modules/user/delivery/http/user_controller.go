@@ -7,6 +7,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
 	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
 	"github.com/gin-gonic/gin"
@@ -239,3 +240,38 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 	response.Success(c, gin.H{"message": "User deleted successfully"})
 }
+
+// GetUsersDynamic retrieves users based on dynamic filters and sorting via POST request body
+// @Summary      Get users with dynamic filters
+// @Description  Retrieves a list of users based on dynamic filter and sort criteria provided in the request body.
+// @Tags         users
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        filter body querybuilder.DynamicFilter true "Dynamic filter and sort criteria"
+// @Success      200  {object}  response.SwaggerUserListResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body or filter criteria"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /users/search [post]
+func (h *UserHandler) GetUsersDynamic(c *gin.Context) {
+	ctx := c.Request.Context()
+	var filter querybuilder.DynamicFilter
+
+	if err := c.ShouldBindJSON(&filter); err != nil {
+		h.Log.WithError(err).Error("failed to bind dynamic filter request body")
+		response.BadRequest(c, err, "invalid request body for dynamic filter")
+		return
+	}
+
+	users, err := h.UserUseCase.GetAllUsersDynamic(ctx, &filter)
+	if err != nil {
+		h.Log.WithError(err).Error("failed to get users dynamically")
+		response.HandleError(c, err, "failed to retrieve users")
+		return
+	}
+
+	response.Success(c, users)
+}
+

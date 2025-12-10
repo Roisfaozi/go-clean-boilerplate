@@ -11,6 +11,7 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/model/converter"
 	"github.com/Roisfaozi/casbin-db/internal/modules/user/repository"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -236,4 +237,28 @@ func (u *userUseCase) DeleteUser(ctx context.Context, id string) error {
 		}
 		return nil
 	})
+}
+
+func (u *userUseCase) GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, error) {
+	var users []*entity.User
+	err := u.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		var err error
+		users, err = u.UserRepository.FindAllDynamic(txCtx, filter)
+		if err != nil {
+			u.Log.Errorf("Failed to find users dynamically: %v", err)
+			return exception.ErrInternalServer
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []*model.UserResponse
+	for _, user := range users {
+		responses = append(responses, converter.UserToResponse(user))
+	}
+
+	return responses, nil
 }

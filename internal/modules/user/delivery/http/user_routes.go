@@ -33,6 +33,7 @@ func RegisterAuthorizedRoutes(router *gin.RouterGroup, userHandler *UserHandler)
 		userGroup.GET("/me", userHandler.GetCurrentUser)
 		userGroup.PUT("/me", userHandler.UpdateUser)
 		userGroup.GET("/", userHandler.GetAllUsers)
+		userGroup.POST("/search", userHandler.GetUsersDynamic)
 		userGroup.GET("/:id", userHandler.GetUserByID)
 		userGroup.DELETE("/:id", userHandler.DeleteUser)
 	}
