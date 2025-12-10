@@ -24,6 +24,7 @@ func RegisterAccessRoutes(router *gin.RouterGroup, handler *AccessHandler) {
 	{
 		accessGroup.POST("", handler.CreateAccessRight)
 		accessGroup.GET("", handler.GetAllAccessRights)
+		accessGroup.POST("/search", handler.GetAccessRightsDynamic) // New dynamic search endpoint
 		accessGroup.DELETE("/:id", handler.DeleteAccessRight) // NEW
 		accessGroup.POST("/link", handler.LinkEndpointToAccessRight)
 	}
@@ -31,6 +32,7 @@ func RegisterAccessRoutes(router *gin.RouterGroup, handler *AccessHandler) {
 	endpointGroup := router.Group("/endpoints")
 	{
 		endpointGroup.POST("", handler.CreateEndpoint)
+		endpointGroup.POST("/search", handler.GetEndpointsDynamic) // New dynamic search endpoint
 		endpointGroup.DELETE("/:id", handler.DeleteEndpoint) // NEW
 	}
 }

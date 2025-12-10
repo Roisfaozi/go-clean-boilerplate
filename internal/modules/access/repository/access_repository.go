@@ -4,87 +4,125 @@ import (
 	"context"
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/entity"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
-// AccessRepository is the concrete implementation of IAccessRepository
-type AccessRepository struct {
-	db *gorm.DB
+type accessRepository struct {
+	db  *gorm.DB
+	log *logrus.Logger
 }
 
-// NewAccessRepository creates a new AccessRepository instance.
-//
-// Parameters:
-// - db: The database connection.
-//
-// Returns:
-// - IAccessRepository: The newly created AccessRepository instance.
-func NewAccessRepository(db *gorm.DB) IAccessRepository {
-	return &AccessRepository{db: db}
-}
-func (r *AccessRepository) CreateAccessRight(ctx context.Context, accessRight *entity.AccessRight) error {
-	return r.db.WithContext(ctx).Create(accessRight).Error
+func NewAccessRepository(db *gorm.DB, log *logrus.Logger) AccessRepository {
+	return &accessRepository{
+		db:  db,
+		log: log,
+	}
 }
 
-func (r *AccessRepository) FindAccessRightByName(ctx context.Context, name string) (*entity.AccessRight, error) {
-	var accessRight entity.AccessRight
-	err := r.db.WithContext(ctx).Where("name = ?", name).First(&accessRight).Error
-	return &accessRight, err
-}
-
-func (r *AccessRepository) FindAccessRightByID(ctx context.Context, id uint) (*entity.AccessRight, error) {
-	var accessRight entity.AccessRight
-	err := r.db.WithContext(ctx).First(&accessRight, id).Error
-	return &accessRight, err
-}
-
-func (r *AccessRepository) GetAllAccessRights(ctx context.Context) ([]entity.AccessRight, error) {
-	var accessRights []entity.AccessRight
-	err := r.db.WithContext(ctx).Find(&accessRights).Error
-	return accessRights, err
-}
-
-func (r *AccessRepository) DeleteAccessRight(ctx context.Context, id uint) error {
-	return r.db.WithContext(ctx).Delete(&entity.AccessRight{}, id).Error
-}
-
-func (r *AccessRepository) CreateEndpoint(ctx context.Context, endpoint *entity.Endpoint) error {
+// Endpoint Methods
+func (r *accessRepository) CreateEndpoint(ctx context.Context, endpoint *entity.Endpoint) error {
 	return r.db.WithContext(ctx).Create(endpoint).Error
 }
 
-func (r *AccessRepository) GetEndpointByPathAndMethod(ctx context.Context, path, method string) (*entity.Endpoint, error) {
-	var endpoint entity.Endpoint
-	err := r.db.WithContext(ctx).Where("path = ? AND method = ?", path, method).First(&endpoint).Error
-	return &endpoint, err
+func (r *accessRepository) GetEndpoints(ctx context.Context) ([]*entity.Endpoint, error) {
+	var endpoints []*entity.Endpoint
+	if err := r.db.WithContext(ctx).Find(&endpoints).Error; err != nil {
+		return nil, err
+	}
+	return endpoints, nil
 }
 
-func (r *AccessRepository) FindEndpointByID(ctx context.Context, id uint) (*entity.Endpoint, error) {
-	var endpoint entity.Endpoint
-	err := r.db.WithContext(ctx).First(&endpoint, id).Error
-	return &endpoint, err
-}
+func (r *accessRepository) FindEndpointsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.Endpoint, error) {
+	var endpoints []*entity.Endpoint
+	query := r.db.WithContext(ctx)
 
-func (r *AccessRepository) DeleteEndpoint(ctx context.Context, id uint) error {
-	return r.db.WithContext(ctx).Delete(&entity.Endpoint{}, id).Error
-}
-
-func (r *AccessRepository) LinkEndpointToAccessRight(ctx context.Context, accessRightID, endpointID uint) error {
-	accessRight := entity.AccessRight{ID: accessRightID}
-	endpoint := entity.Endpoint{ID: endpointID}
-	return r.db.WithContext(ctx).Model(&accessRight).Association("Endpoints").Append(&endpoint)
-}
-
-func (r *AccessRepository) UnlinkEndpointFromAccessRight(ctx context.Context, accessRightID, endpointID uint) error {
-	accessRight := entity.AccessRight{ID: accessRightID}
-	endpoint := entity.Endpoint{ID: endpointID}
-	return r.db.WithContext(ctx).Model(&accessRight).Association("Endpoints").Delete(&endpoint)
-}
-
-func (r *AccessRepository) GetEndpointsForAccessRight(ctx context.Context, accessRightID uint) ([]entity.Endpoint, error) {
-	var accessRight entity.AccessRight
-	err := r.db.WithContext(ctx).Preload("Endpoints").First(&accessRight, accessRightID).Error
+	where, args, _, err := querybuilder.GenerateDynamicQuery[entity.Endpoint](filter)
 	if err != nil {
 		return nil, err
 	}
-	return accessRight.Endpoints, nil
+	if where != "" {
+		query = query.Where(where, args...)
+	}
+
+	sort, err := querybuilder.GenerateDynamicSort[entity.Endpoint](filter)
+	if err != nil {
+		return nil, err
+	}
+	if sort != "" {
+		query = query.Order(sort)
+	}
+
+	if err := query.Find(&endpoints).Error; err != nil {
+		return nil, err
+	}
+	return endpoints, nil
+}
+
+func (r *accessRepository) GetEndpointByID(ctx context.Context, id string) (*entity.Endpoint, error) {
+	var endpoint entity.Endpoint
+	if err := r.db.WithContext(ctx).First(&endpoint, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &endpoint, nil
+}
+
+func (r *accessRepository) DeleteEndpoint(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&entity.Endpoint{}, "id = ?", id).Error
+}
+
+// AccessRight Methods
+func (r *accessRepository) CreateAccessRight(ctx context.Context, accessRight *entity.AccessRight) error {
+	return r.db.WithContext(ctx).Create(accessRight).Error
+}
+
+func (r *accessRepository) GetAccessRights(ctx context.Context) ([]*entity.AccessRight, error) {
+	var accessRights []*entity.AccessRight
+	if err := r.db.WithContext(ctx).Preload("Endpoints").Find(&accessRights).Error; err != nil {
+		return nil, err
+	}
+	return accessRights, nil
+}
+
+func (r *accessRepository) FindAccessRightsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AccessRight, error) {
+	var accessRights []*entity.AccessRight
+	query := r.db.WithContext(ctx).Preload("Endpoints")
+
+	where, args, _, err := querybuilder.GenerateDynamicQuery[entity.AccessRight](filter)
+	if err != nil {
+		return nil, err
+	}
+	if where != "" {
+		query = query.Where(where, args...)
+	}
+
+	sort, err := querybuilder.GenerateDynamicSort[entity.AccessRight](filter)
+	if err != nil {
+		return nil, err
+	}
+	if sort != "" {
+		query = query.Order(sort)
+	}
+
+	if err := query.Find(&accessRights).Error; err != nil {
+		return nil, err
+	}
+	return accessRights, nil
+}
+
+func (r *accessRepository) GetAccessRightByID(ctx context.Context, id string) (*entity.AccessRight, error) {
+	var accessRight entity.AccessRight
+	if err := r.db.WithContext(ctx).Preload("Endpoints").First(&accessRight, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &accessRight, nil
+}
+
+func (r *accessRepository) DeleteAccessRight(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&entity.AccessRight{}, "id = ?", id).Error
+}
+
+func (r *accessRepository) LinkEndpointToAccessRight(ctx context.Context, accessRightID, endpointID string) error {
+	return r.db.WithContext(ctx).Model(&entity.AccessRight{ID: accessRightID}).Association("Endpoints").Append(&entity.Endpoint{ID: endpointID})
 }

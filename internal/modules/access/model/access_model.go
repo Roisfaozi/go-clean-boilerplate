@@ -15,8 +15,8 @@ type CreateEndpointRequest struct {
 }
 
 type LinkEndpointRequest struct {
-	AccessRightID uint `json:"access_right_id" validate:"required"`
-	EndpointID    uint `json:"endpoint_id" validate:"required"`
+	AccessRightID string `json:"access_right_id" validate:"required"`
+	EndpointID    string `json:"endpoint_id" validate:"required"`
 }
 
 type UpdateAccessRightRequest struct {
@@ -25,11 +25,11 @@ type UpdateAccessRightRequest struct {
 }
 
 type AddEndpointToAccessRightRequest struct {
-	EndpointID uint `json:"endpoint_id" validate:"required"`
+	EndpointID string `json:"endpoint_id" validate:"required"`
 }
 
 type AccessRightResponse struct {
-	ID          uint               `json:"id"`
+	ID          string               `json:"id"`
 	Name        string             `json:"name"`
 	Description string             `json:"description,omitempty"`
 	Endpoints   []EndpointResponse `json:"endpoints,omitempty"`
@@ -38,7 +38,7 @@ type AccessRightResponse struct {
 }
 
 type EndpointResponse struct {
-	ID        uint   `json:"id"`
+	ID        string   `json:"id"`
 	Path      string `json:"path"`
 	Method    string `json:"method"`
 	CreatedAt int64  `json:"created_at"`
@@ -89,14 +89,14 @@ func ConvertAccessRightToResponse(accessRight *entity.AccessRight) *AccessRightR
 	}
 }
 
-// ConvertAccessRightListToResponse converts a slice of entity.AccessRight to AccessRightListResponse
-func ConvertAccessRightListToResponse(accessRights []entity.AccessRight) *AccessRightListResponse {
+// ConvertAccessRightListToResponse converts a slice of entity.AccessRight pointers to AccessRightListResponse
+func ConvertAccessRightListToResponse(accessRights []*entity.AccessRight) *AccessRightListResponse {
 	response := &AccessRightListResponse{
 		Data: make([]AccessRightResponse, 0, len(accessRights)),
 	}
 
 	for _, ar := range accessRights {
-		response.Data = append(response.Data, *ConvertAccessRightToResponse(&ar))
+		response.Data = append(response.Data, *ConvertAccessRightToResponse(ar))
 	}
 
 	response.Meta.Total = len(accessRights)

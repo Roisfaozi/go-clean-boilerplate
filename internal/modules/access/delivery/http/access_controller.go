@@ -2,11 +2,11 @@ package http
 
 import (
 	"errors"
-	"strconv"
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/usecase"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 	"github.com/Roisfaozi/casbin-db/internal/utils/response"
 	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
 	"github.com/gin-gonic/gin"
@@ -172,21 +172,16 @@ func (h *AccessHandler) LinkEndpointToAccessRight(c *gin.Context) {
 // @Tags         access-rights
 // @Security     BearerAuth
 // @Produce      json
-// @Param        id   path      uint  true  "Access Right ID"
+// @Param        id   path      string  true  "Access Right ID"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Access right deleted successfully"
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Access right not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /access-rights/{id} [delete]
 func (h *AccessHandler) DeleteAccessRight(c *gin.Context) {
 	ctx := c.Request.Context()
-	idParam := c.Param("id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
-	if err != nil {
-		response.BadRequest(c, err, "Invalid Access Right ID")
-		return
-	}
+	id := c.Param("id")
 
-	if err := h.useCase.DeleteAccessRight(ctx, uint(id)); err != nil {
+	if err := h.useCase.DeleteAccessRight(ctx, id); err != nil {
 		if errors.Is(err, exception.ErrNotFound) {
 			response.NotFound(c, err, "Access right not found")
 		} else {
@@ -202,21 +197,16 @@ func (h *AccessHandler) DeleteAccessRight(c *gin.Context) {
 // @Tags         endpoints
 // @Security     BearerAuth
 // @Produce      json
-// @Param        id   path      uint  true  "Endpoint ID"
+// @Param        id   path      string  true  "Endpoint ID"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Endpoint deleted successfully"
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Endpoint not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /endpoints/{id} [delete]
 func (h *AccessHandler) DeleteEndpoint(c *gin.Context) {
 	ctx := c.Request.Context()
-	idParam := c.Param("id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
-	if err != nil {
-		response.BadRequest(c, err, "Invalid Endpoint ID")
-		return
-	}
+	id := c.Param("id")
 
-	if err := h.useCase.DeleteEndpoint(ctx, uint(id)); err != nil {
+	if err := h.useCase.DeleteEndpoint(ctx, id); err != nil {
 		if errors.Is(err, exception.ErrNotFound) {
 			response.NotFound(c, err, "Endpoint not found")
 		} else {
@@ -225,4 +215,72 @@ func (h *AccessHandler) DeleteEndpoint(c *gin.Context) {
 		return
 	}
 	response.Success(c, gin.H{"message": "Endpoint deleted successfully"})
+}
+
+// GetEndpointsDynamic retrieves endpoints based on dynamic filters and sorting via POST request body
+// @Summary      Get endpoints with dynamic filters
+// @Description  Retrieves a list of endpoints based on dynamic filter and sort criteria provided in the request body.
+// @Tags         endpoints
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        filter body querybuilder.DynamicFilter true "Dynamic filter and sort criteria"
+// @Success      200  {object}  response.SwaggerEndpointListResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body or filter criteria"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /endpoints/search [post]
+func (h *AccessHandler) GetEndpointsDynamic(c *gin.Context) {
+	ctx := c.Request.Context()
+	var filter querybuilder.DynamicFilter
+
+	if err := c.ShouldBindJSON(&filter); err != nil {
+		h.log.WithError(err).Error("failed to bind dynamic filter request body for endpoints")
+		response.BadRequest(c, err, "invalid request body for dynamic filter")
+		return
+	}
+
+	endpoints, err := h.useCase.GetEndpointsDynamic(ctx, &filter)
+	if err != nil {
+		h.log.WithError(err).Error("failed to get endpoints dynamically")
+		response.InternalServerError(c, err, "failed to retrieve endpoints")
+		return
+	}
+
+	response.Success(c, endpoints)
+}
+
+// GetAccessRightsDynamic retrieves access rights based on dynamic filters and sorting via POST request body
+// @Summary      Get access rights with dynamic filters
+// @Description  Retrieves a list of access rights based on dynamic filter and sort criteria provided in the request body.
+// @Tags         access-rights
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        filter body querybuilder.DynamicFilter true "Dynamic filter and sort criteria"
+// @Success      200  {object}  response.SwaggerAccessRightListResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body or filter criteria"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /access-rights/search [post]
+func (h *AccessHandler) GetAccessRightsDynamic(c *gin.Context) {
+	ctx := c.Request.Context()
+	var filter querybuilder.DynamicFilter
+
+	if err := c.ShouldBindJSON(&filter); err != nil {
+		h.log.WithError(err).Error("failed to bind dynamic filter request body for access rights")
+		response.BadRequest(c, err, "invalid request body for dynamic filter")
+		return
+	}
+
+	accessRights, err := h.useCase.GetAccessRightsDynamic(ctx, &filter)
+	if err != nil {
+		h.log.WithError(err).Error("failed to get access rights dynamically")
+		response.InternalServerError(c, err, "failed to retrieve access rights")
+		return
+	}
+
+	response.Success(c, accessRights)
 }

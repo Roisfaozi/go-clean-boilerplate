@@ -4,19 +4,21 @@ import (
 	"context"
 
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/entity"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 )
 
-type IAccessRepository interface {
-	CreateAccessRight(ctx context.Context, accessRight *entity.AccessRight) error
-	FindAccessRightByName(ctx context.Context, name string) (*entity.AccessRight, error)
-	FindAccessRightByID(ctx context.Context, id uint) (*entity.AccessRight, error) // NEW
-	GetAllAccessRights(ctx context.Context) ([]entity.AccessRight, error)
-	DeleteAccessRight(ctx context.Context, id uint) error
+type AccessRepository interface {
 	CreateEndpoint(ctx context.Context, endpoint *entity.Endpoint) error
-	GetEndpointByPathAndMethod(ctx context.Context, path, method string) (*entity.Endpoint, error)
-	FindEndpointByID(ctx context.Context, id uint) (*entity.Endpoint, error) // NEW
-	DeleteEndpoint(ctx context.Context, id uint) error
-	LinkEndpointToAccessRight(ctx context.Context, accessRightID, endpointID uint) error
-	UnlinkEndpointFromAccessRight(ctx context.Context, accessRightID, endpointID uint) error
-	GetEndpointsForAccessRight(ctx context.Context, accessRightID uint) ([]entity.Endpoint, error)
+	GetEndpoints(ctx context.Context) ([]*entity.Endpoint, error)
+	FindEndpointsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.Endpoint, error)
+	GetEndpointByID(ctx context.Context, id string) (*entity.Endpoint, error)
+	DeleteEndpoint(ctx context.Context, id string) error
+
+	CreateAccessRight(ctx context.Context, accessRight *entity.AccessRight) error
+	GetAccessRights(ctx context.Context) ([]*entity.AccessRight, error)
+	FindAccessRightsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AccessRight, error)
+	GetAccessRightByID(ctx context.Context, id string) (*entity.AccessRight, error)
+	DeleteAccessRight(ctx context.Context, id string) error
+
+	LinkEndpointToAccessRight(ctx context.Context, accessRightID, endpointID string) error
 }

@@ -8,12 +8,13 @@ import (
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/model"
 	"github.com/Roisfaozi/casbin-db/internal/modules/access/repository"
 	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
 type AccessUseCase struct {
-	repo repository.IAccessRepository
+	repo repository.AccessRepository
 	log  *logrus.Logger
 }
 
@@ -25,7 +26,7 @@ type AccessUseCase struct {
 //
 // Returns:
 // - An instance of IAccessUseCase implemented by AccessUseCase.
-func NewAccessUseCase(repo repository.IAccessRepository, log *logrus.Logger) IAccessUseCase {
+func NewAccessUseCase(repo repository.AccessRepository, log *logrus.Logger) IAccessUseCase {
 	return &AccessUseCase{
 		repo: repo,
 		log:  log,
@@ -50,7 +51,7 @@ func (uc *AccessUseCase) CreateAccessRight(ctx context.Context, req model.Create
 
 func (uc *AccessUseCase) GetAllAccessRights(ctx context.Context) (*model.AccessRightListResponse, error) {
 	uc.log.Info("Retrieving all access rights")
-	accessRightEntities, err := uc.repo.GetAllAccessRights(ctx)
+	accessRightEntities, err := uc.repo.GetAccessRights(ctx)
 	if err != nil {
 		uc.log.WithError(err).Error("Failed to get all access rights from repository")
 		return nil, err
@@ -87,49 +88,74 @@ func (uc *AccessUseCase) LinkEndpointToAccessRight(ctx context.Context, req mode
 		return err
 	}
 
-	uc.log.Infof("Successfully linked endpoint %d to access right %d", req.EndpointID, req.AccessRightID)
+	uc.log.Infof("Successfully linked endpoint %s to access right %s", req.EndpointID, req.AccessRightID)
 	return nil
 }
 
-func (uc *AccessUseCase) DeleteAccessRight(ctx context.Context, id uint) error {
-	uc.log.Infof("Attempting to delete access right with ID: %d", id)
+func (uc *AccessUseCase) DeleteAccessRight(ctx context.Context, id string) error {
+	uc.log.Infof("Attempting to delete access right with ID: %s", id)
 	// Check if access right exists before deleting
-	_, err := uc.repo.FindAccessRightByID(ctx, id) // Assuming a FindAccessRightByID exists or needs to be added
+	_, err := uc.repo.GetAccessRightByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			uc.log.Warnf("Access right with ID %d not found for deletion", id)
+			uc.log.Warnf("Access right with ID %s not found for deletion", id)
 			return exception.ErrNotFound
 		}
-		uc.log.WithError(err).Errorf("Failed to find access right with ID %d: %v", id, err)
+		uc.log.WithError(err).Errorf("Failed to find access right with ID %s: %v", id, err)
 		return exception.ErrInternalServer
 	}
 
 	if err := uc.repo.DeleteAccessRight(ctx, id); err != nil {
-		uc.log.WithError(err).Errorf("Failed to delete access right with ID %d: %v", id, err)
+		uc.log.WithError(err).Errorf("Failed to delete access right with ID %s: %v", id, err)
 		return exception.ErrInternalServer
 	}
 
-	uc.log.Infof("Successfully deleted access right with ID: %d", id)
+	uc.log.Infof("Successfully deleted access right with ID: %s", id)
 	return nil
 }
 
-func (uc *AccessUseCase) DeleteEndpoint(ctx context.Context, id uint) error {
-	uc.log.Infof("Attempting to delete endpoint with ID: %d", id)
-	// Check if endpoint exists before deleting (assuming a FindEndpointByID exists or needs to be added)
-	// For now, GORM Delete will just not delete if not found and return no error,
-	// but checking beforehand provides better error messages.
-	// We might need to add FindEndpointByID to the repo interface and implementation.
-	// For simplicity, let's just try to delete and check GORM's error.
+func (uc *AccessUseCase) DeleteEndpoint(ctx context.Context, id string) error {
+	uc.log.Infof("Attempting to delete endpoint with ID: %s", id)
 
 	if err := uc.repo.DeleteEndpoint(ctx, id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) { // GORM Delete with PK returns ErrRecordNotFound if not found
-			uc.log.Warnf("Endpoint with ID %d not found for deletion", id)
+			uc.log.Warnf("Endpoint with ID %s not found for deletion", id)
 			return exception.ErrNotFound
 		}
-		uc.log.WithError(err).Errorf("Failed to delete endpoint with ID %d: %v", id, err)
+		uc.log.WithError(err).Errorf("Failed to delete endpoint with ID %s: %v", id, err)
 		return exception.ErrInternalServer
 	}
 
-	uc.log.Infof("Successfully deleted endpoint with ID: %d", id)
+	uc.log.Infof("Successfully deleted endpoint with ID: %s", id)
 	return nil
+}
+
+func (uc *AccessUseCase) GetEndpointsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.EndpointResponse, error) {
+	uc.log.Info("Retrieving endpoints dynamically")
+	endpointEntities, err := uc.repo.FindEndpointsDynamic(ctx, filter)
+	if err != nil {
+		uc.log.WithError(err).Error("Failed to get endpoints dynamically from repository")
+		return nil, exception.ErrInternalServer
+	}
+
+	var responses []*model.EndpointResponse
+	for _, ep := range endpointEntities {
+		responses = append(responses, &model.EndpointResponse{
+			ID:        ep.ID,
+			Path:      ep.Path,
+			Method:    ep.Method,
+			CreatedAt: ep.CreatedAt,
+		})
+	}
+	return responses, nil
+}
+
+func (uc *AccessUseCase) GetAccessRightsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) (*model.AccessRightListResponse, error) {
+	uc.log.Info("Retrieving access rights dynamically")
+	accessRightEntities, err := uc.repo.FindAccessRightsDynamic(ctx, filter)
+	if err != nil {
+		uc.log.WithError(err).Error("Failed to get access rights dynamically from repository")
+		return nil, exception.ErrInternalServer
+	}
+	return model.ConvertAccessRightListToResponse(accessRightEntities), nil
 }

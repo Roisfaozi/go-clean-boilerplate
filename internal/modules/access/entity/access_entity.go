@@ -1,7 +1,7 @@
 package entity
 
 type AccessRight struct {
-	ID          uint       `gorm:"primaryKey;column:id"`
+	ID          string     `gorm:"primaryKey;column:id"`
 	Name        string     `gorm:"column:name;type:varchar(191);unique;not null"`
 	Description string     `gorm:"column:description;type:text"`
 	Endpoints   []Endpoint `gorm:"many2many:access_right_endpoints;"`
@@ -14,7 +14,7 @@ func (AccessRight) TableName() string {
 }
 
 type Endpoint struct {
-	ID        uint   `gorm:"primaryKey;column:id"`
+	ID        string   `gorm:"primaryKey;column:id"`
 	Path      string `gorm:"column:path;type:varchar(191);not null"`
 	Method    string `gorm:"column:method;type:varchar(10);not null"`
 	CreatedAt int64  `gorm:"column:created_at;autoCreateTime:milli"`
@@ -26,8 +26,8 @@ func (Endpoint) TableName() string {
 }
 
 type AccessRightEndpoint struct {
-	AccessRightID uint `gorm:"primaryKey;column:access_right_id"`
-	EndpointID    uint `gorm:"primaryKey;column:endpoint_id"`
+	AccessRightID string `gorm:"primaryKey;column:access_right_id"`
+	EndpointID    string `gorm:"primaryKey;column:endpoint_id"`
 }
 
 func (AccessRightEndpoint) TableName() string {
