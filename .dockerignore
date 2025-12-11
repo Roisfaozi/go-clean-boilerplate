@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.idea
+tmp/
+bin/
+vendor/
+*.test
+*.log
+Dockerfile
+docker-compose.yml
+README.md
+LICENSE
+documentation/
+postman/
+pkg/timestamp/
