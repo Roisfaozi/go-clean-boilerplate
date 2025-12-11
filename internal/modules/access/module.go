@@ -1,9 +1,9 @@
 package access
 
 import (
-	"github.com/Roisfaozi/casbin-db/internal/modules/access/delivery/http"
-	"github.com/Roisfaozi/casbin-db/internal/modules/access/repository"
-	"github.com/Roisfaozi/casbin-db/internal/modules/access/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/usecase"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"

@@ -1,10 +1,10 @@
 package role
 
 import (
-	"github.com/Roisfaozi/casbin-db/internal/modules/role/delivery/http"
-	roleRepository "github.com/Roisfaozi/casbin-db/internal/modules/role/repository"
-	"github.com/Roisfaozi/casbin-db/internal/modules/role/usecase"
-	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/delivery/http"
+	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"

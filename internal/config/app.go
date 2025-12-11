@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Roisfaozi/casbin-db/internal/middleware"
-	"github.com/Roisfaozi/casbin-db/internal/modules/access"
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth"
-	"github.com/Roisfaozi/casbin-db/internal/modules/permission"
-	"github.com/Roisfaozi/casbin-db/internal/modules/role"
-	roleRepository "github.com/Roisfaozi/casbin-db/internal/modules/role/repository"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user"
-	"github.com/Roisfaozi/casbin-db/internal/router"
-	"github.com/Roisfaozi/casbin-db/internal/utils/jwt"
-	"github.com/Roisfaozi/casbin-db/internal/utils/sse" // NEW: Import SSE
-	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
-	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
+	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/router"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	ws2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/casbin/casbin/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
@@ -50,8 +50,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		cfg.JWT.RefreshTokenDuration,
 	)
 	wsConfig := NewDefaultWebSocketConfig()
-	wsManager := ws.NewWebSocketManager((*ws.WebSocketConfig)(wsConfig), logger)
-	wsController := ws.NewWebSocketController(logger, wsManager)
+	wsManager := ws2.NewWebSocketManager((*ws2.WebSocketConfig)(wsConfig), logger)
+	wsController := ws2.NewWebSocketController(logger, wsManager)
 	go wsManager.Run()
 	logger.Info("Shared dependencies initialized.")
 

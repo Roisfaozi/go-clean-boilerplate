@@ -19,7 +19,7 @@ Ideally, initialize the SSE Manager once in your application setup (e.g., `inter
 ```go
 // cmd/api/main.go or internal/config/app.go
 
-import "github.com/Roisfaozi/casbin-db/internal/utils/sse"
+import "github.com/Roisfaozi/casbin-db/internal/pkg/sse"
 
 func main() {
     // 1. Initialize SSE Manager

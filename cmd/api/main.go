@@ -8,13 +8,13 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/Roisfaozi/casbin-db/docs"
-	"github.com/Roisfaozi/casbin-db/internal/config"
+	_ "github.com/Roisfaozi/go-clean-boilerplate/docs"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
 )
 
-// @title           Modular API with JWT
+// @title           Go Clean Boilerplate API
 // @version         1.0
-// @description     This is a sample server for a modular application with JWT authentication.
+// @description     This is a clean and modular boilerplate for Go REST APIs with JWT authentication.
 // @termsOfService  http://swagger.io/terms/
 
 // @contact.name   API Support

@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/usecase"
-	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
-	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
-	"github.com/Roisfaozi/casbin-db/internal/utils/response"
-	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -274,4 +274,3 @@ func (h *UserHandler) GetUsersDynamic(c *gin.Context) {
 
 	response.Success(c, users)
 }
-

@@ -5,9 +5,9 @@ package mocks
 import (
 	context "context"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
-	jwt "github.com/Roisfaozi/casbin-db/internal/utils/jwt" // Added alias for local jwt package
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	mock "github.com/stretchr/testify/mock"
 )
 

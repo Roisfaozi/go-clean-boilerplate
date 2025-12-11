@@ -1,4 +1,4 @@
-module github.com/Roisfaozi/casbin-db
+module github.com/Roisfaozi/go-clean-boilerplate
 
 go 1.25.2
 

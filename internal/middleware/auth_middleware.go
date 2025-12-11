@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	authUsecase "github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase" // Alias to avoid conflict with jwt.Claims
-	"github.com/Roisfaozi/casbin-db/internal/utils/response"
+	authUsecase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase" // Alias to avoid conflict with jwt.Claims
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -46,7 +46,7 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 			return
 		}
 
-		claims, err := m.AuthUseCase.ValidateAccessToken(token) // This returns *jwt.Claims from internal/utils/jwt
+		claims, err := m.AuthUseCase.ValidateAccessToken(token) // This returns *jwt.Claims from internal/pkg/jwt
 		if err != nil {
 			m.Log.WithError(err).Warn("Token validation failed")
 			response.Unauthorized(c, err, "unauthorized")

@@ -1,9 +1,9 @@
 package permission
 
 import (
-	"github.com/Roisfaozi/casbin-db/internal/modules/permission/delivery/http"
-	"github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase"
-	roleRepository "github.com/Roisfaozi/casbin-db/internal/modules/role/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/casbin/casbin/v2"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"

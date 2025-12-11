@@ -5,14 +5,14 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Roisfaozi/casbin-db/internal/mocking"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/test/mocks"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/usecase"
-	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
-	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
-	permMocks "github.com/Roisfaozi/casbin-db/internal/modules/permission/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
+	permMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -104,7 +104,7 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 	t.Run("Error - SQL Injection Attempt", func(t *testing.T) {
 		mockRepo, mockTM, _, uc := setupUserTest()
 		sqlInjectionID := "1'; DROP TABLE users;--"
-		
+
 		mockRepo.On("FindByID", mock.Anything, sqlInjectionID).Return(nil, gorm.ErrInvalidData)
 
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
@@ -126,7 +126,7 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 		mockRepo, mockTM, _, uc := setupUserTest()
 		dbError := errors.New("database connection failed")
 		expectedError := exception.ErrInternalServer
-		
+
 		mockRepo.On("FindByID", mock.Anything, "db-error").Return(nil, dbError)
 
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
@@ -386,7 +386,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 	t.Run("Error - SQL Injection Attempt", func(t *testing.T) {
 		mockRepo, mockTM, _, uc := setupUserTest()
 		sqlInjectionID := "1'; DROP TABLE users;--"
-		
+
 		mockRepo.On("FindByID", mock.Anything, sqlInjectionID).Return(nil, gorm.ErrInvalidData)
 
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
@@ -406,7 +406,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 	t.Run("Error - Database Error During Delete", func(t *testing.T) {
 		mockRepo, mockTM, _, uc := setupUserTest()
 		dbError := errors.New("database error during delete")
-		
+
 		mockRepo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
 		mockRepo.On("Delete", mock.Anything, userID).Return(dbError)
 
@@ -450,7 +450,7 @@ func TestUserUseCase_GetAllUsersDynamic(t *testing.T) {
 			{ID: "user1", Name: "Dynamic User 1"},
 			{ID: "user2", Name: "Dynamic User 2"},
 		}
-		
+
 		filter := &querybuilder.DynamicFilter{
 			Filter: map[string]querybuilder.Filter{
 				"Name": {Type: "contains", From: "Dynamic"},
@@ -480,7 +480,7 @@ func TestUserUseCase_GetAllUsersDynamic(t *testing.T) {
 		mockRepo, mockTM, _, uc := setupUserTest()
 		dbError := errors.New("database error")
 		expectedError := exception.ErrInternalServer
-		
+
 		filter := &querybuilder.DynamicFilter{
 			Filter: map[string]querybuilder.Filter{
 				"Name": {Type: "contains", From: "Error"},

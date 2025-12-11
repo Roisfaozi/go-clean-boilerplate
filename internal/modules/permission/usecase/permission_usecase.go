@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/role/repository"
-	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )

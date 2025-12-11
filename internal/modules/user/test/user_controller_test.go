@@ -7,11 +7,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	userHandler "github.com/Roisfaozi/casbin-db/internal/modules/user/delivery/http"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/test/mocks"
-	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
-	"github.com/Roisfaozi/casbin-db/internal/utils/response"
+	userHandler "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -93,7 +93,7 @@ func TestUserHandler_RegisterUser_ValidationError(t *testing.T) {
 	// Invalid payload: empty username, short password
 	reqBody := &model.RegisterUserRequest{
 		Username: "",
-		Password: "123", 
+		Password: "123",
 		Name:     "Test User",
 		Email:    "test@example.com",
 	}

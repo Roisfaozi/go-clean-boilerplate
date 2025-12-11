@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
-	"github.com/Roisfaozi/casbin-db/internal/utils/jwt" // New Import
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 )
 
 // Common errors
@@ -20,7 +20,7 @@ var (
 type AuthUseCase interface {
 	GenerateAccessToken(user *entity.User) (string, error)
 	GenerateRefreshToken(user *entity.User) (string, error)
-	ValidateAccessToken(token string) (*jwt.Claims, error) // Updated return type
+	ValidateAccessToken(token string) (*jwt.Claims, error)  // Updated return type
 	ValidateRefreshToken(token string) (*jwt.Claims, error) // Updated return type
 	RevokeToken(ctx context.Context, userID, sessionID string) error
 

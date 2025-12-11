@@ -1,8 +1,8 @@
 package converter
 
 import (
-	"github.com/Roisfaozi/casbin-db/internal/modules/role/entity"
-	"github.com/Roisfaozi/casbin-db/internal/modules/role/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 )
 
 func RoleToResponse(role *entity.Role) *model.RoleResponse {

@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/access/entity"
-	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
+	querybuilder2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -34,11 +34,11 @@ func (r *accessRepository) GetEndpoints(ctx context.Context) ([]*entity.Endpoint
 	return endpoints, nil
 }
 
-func (r *accessRepository) FindEndpointsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.Endpoint, error) {
+func (r *accessRepository) FindEndpointsDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.Endpoint, error) {
 	var endpoints []*entity.Endpoint
 	query := r.db.WithContext(ctx)
 
-	where, args, _, err := querybuilder.GenerateDynamicQuery[entity.Endpoint](filter)
+	where, args, _, err := querybuilder2.GenerateDynamicQuery[entity.Endpoint](filter)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (r *accessRepository) FindEndpointsDynamic(ctx context.Context, filter *que
 		query = query.Where(where, args...)
 	}
 
-	sort, err := querybuilder.GenerateDynamicSort[entity.Endpoint](filter)
+	sort, err := querybuilder2.GenerateDynamicSort[entity.Endpoint](filter)
 	if err != nil {
 		return nil, err
 	}
@@ -85,11 +85,11 @@ func (r *accessRepository) GetAccessRights(ctx context.Context) ([]*entity.Acces
 	return accessRights, nil
 }
 
-func (r *accessRepository) FindAccessRightsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AccessRight, error) {
+func (r *accessRepository) FindAccessRightsDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.AccessRight, error) {
 	var accessRights []*entity.AccessRight
 	query := r.db.WithContext(ctx).Preload("Endpoints")
 
-	where, args, _, err := querybuilder.GenerateDynamicQuery[entity.AccessRight](filter)
+	where, args, _, err := querybuilder2.GenerateDynamicQuery[entity.AccessRight](filter)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (r *accessRepository) FindAccessRightsDynamic(ctx context.Context, filter *
 		query = query.Where(where, args...)
 	}
 
-	sort, err := querybuilder.GenerateDynamicSort[entity.AccessRight](filter)
+	sort, err := querybuilder2.GenerateDynamicSort[entity.AccessRight](filter)
 	if err != nil {
 		return nil, err
 	}

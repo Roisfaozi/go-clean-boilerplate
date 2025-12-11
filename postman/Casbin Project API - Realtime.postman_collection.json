@@ -1,0 +1,46 @@
+{
+	"info": {
+		"_postman_id": "realtime-collection-id",
+		"name": "Casbin Project API - Realtime",
+		"description": "Collection for testing WebSocket and Server-Sent Events (SSE) endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "WebSocket Connection",
+			"description": "Connects to the WebSocket endpoint. Use Postman's built-in WebSocket client to send and receive messages.",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "ws://localhost:8080/ws",
+					"protocol": "ws",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["ws"]
+				}
+			},
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			}
+		},
+		{
+			"name": "Server-Sent Events (SSE) Endpoint",
+			"description": "Connects to the SSE endpoint. 
+
+**IMPORTANT:** Postman's HTTP client is not designed for streaming SSE events in real-time. This request will only show a pending status or a single response after a long delay/timeout. To see the real-time event stream, use `curl` or a web browser console (as described in documentation/SSE_USAGE.md).",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseURL}}/events",
+					"host": ["{{baseURL}}"],
+					"path": ["events"]
+				}
+			},
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			}
+		}
+	]
+}

@@ -1,14 +1,14 @@
 package auth
 
 import (
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/delivery/http"
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/repository"
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase"
-	permissionUseCase "github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase" // New Import
-	userRepository "github.com/Roisfaozi/casbin-db/internal/modules/user/repository"
-	"github.com/Roisfaozi/casbin-db/internal/utils/jwt"
-	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
-	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase" // New Import
+	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"

@@ -7,9 +7,9 @@ package mocks
 import (
 	"context"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
-	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	mock "github.com/stretchr/testify/mock"
 )
 

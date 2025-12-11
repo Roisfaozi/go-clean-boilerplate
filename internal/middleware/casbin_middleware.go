@@ -3,7 +3,7 @@ package middleware
 import (
 	"errors"
 
-	"github.com/Roisfaozi/casbin-db/internal/utils/response"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"

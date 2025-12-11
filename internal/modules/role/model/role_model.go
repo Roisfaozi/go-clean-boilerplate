@@ -3,7 +3,7 @@ package model
 import (
 	"strings"
 
-	"github.com/Roisfaozi/casbin-db/internal/utils/validation"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 )
 
 type RoleResponse struct {

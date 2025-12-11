@@ -1,7 +1,8 @@
-package utils
+package pkg
 
 import (
 	"testing"
+
 	"github.com/stretchr/testify/assert"
 )
 

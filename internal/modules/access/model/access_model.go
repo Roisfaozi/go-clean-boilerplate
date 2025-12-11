@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/Roisfaozi/casbin-db/internal/modules/access/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 )
 
 type CreateAccessRightRequest struct {

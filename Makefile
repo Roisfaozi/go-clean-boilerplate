@@ -28,7 +28,7 @@ DB_URL_STAG = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_PROD)@tcp($(DB_HOST_PROD)
 SWAG_CLI=swag
 
 # Binary name
-BINARY_NAME=casbin-api.exe
+BINARY_NAME=main.exe
 
 # Default target executed when you just run `make`
 .PHONY: all

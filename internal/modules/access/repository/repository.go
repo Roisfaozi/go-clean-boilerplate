@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/access/entity"
-	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 )
 
 type AccessRepository interface {

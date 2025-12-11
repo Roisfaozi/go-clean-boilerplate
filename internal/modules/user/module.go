@@ -1,11 +1,11 @@
 package user
 
 import (
-	permissionUseCase "github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/delivery/http"
-	userRepository "github.com/Roisfaozi/casbin-db/internal/modules/user/repository"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/usecase"
-	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
+	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
+	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"

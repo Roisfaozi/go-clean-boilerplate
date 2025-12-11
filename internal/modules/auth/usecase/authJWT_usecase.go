@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/repository"
-	permissionUseCase "github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
-	userRepository "github.com/Roisfaozi/casbin-db/internal/modules/user/repository"
-	"github.com/Roisfaozi/casbin-db/internal/utils"
-	jwt "github.com/Roisfaozi/casbin-db/internal/utils/jwt" // Alias jwt from local package
-	"github.com/Roisfaozi/casbin-db/internal/utils/tx"
-	"github.com/Roisfaozi/casbin-db/internal/utils/ws"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
+	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -86,7 +86,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 			return ErrInvalidCredentials
 		}
 
-		if !utils.CheckPasswordHash(request.Password, user.Password) {
+		if !pkg.CheckPasswordHash(request.Password, user.Password) {
 			return ErrInvalidCredentials
 		}
 
@@ -241,7 +241,7 @@ func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
 	if len(roles) > 0 {
 		userRole = roles[0]
 	}
-	
+
 	uid, err := uuid.NewV7()
 	if err != nil {
 		return "", err
@@ -260,7 +260,7 @@ func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
 	if len(roles) > 0 {
 		userRole = roles[0]
 	}
-	
+
 	uid, err := uuid.NewV7()
 	if err != nil {
 		return "", err

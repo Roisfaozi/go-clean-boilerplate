@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/repository"
-	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/glebarez/sqlite"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"

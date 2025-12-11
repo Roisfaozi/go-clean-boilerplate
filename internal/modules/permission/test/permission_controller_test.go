@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	permHandler "github.com/Roisfaozi/casbin-db/internal/modules/permission/delivery/http"
-	"github.com/Roisfaozi/casbin-db/internal/modules/permission/model"
-	"github.com/Roisfaozi/casbin-db/internal/modules/permission/test/mocks"
+	permHandler "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"

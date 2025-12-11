@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )

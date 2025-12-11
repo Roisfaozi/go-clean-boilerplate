@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/access/entity"
-	"github.com/Roisfaozi/casbin-db/internal/modules/access/model"
-	"github.com/Roisfaozi/casbin-db/internal/modules/access/repository"
-	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
-	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )

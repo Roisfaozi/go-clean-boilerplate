@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/Roisfaozi/casbin-db/internal/config"
-	"github.com/Roisfaozi/casbin-db/internal/modules/role/entity"
-	userEntity "github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
+	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/mysql"

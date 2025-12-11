@@ -17,7 +17,7 @@ This package provides a secure, reusable dynamic query builder for GORM and Post
 You can use the `DynamicFilter` struct directly or embed it in your request models.
 
 ```go
-import "github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
+import "github.com/Roisfaozi/casbin-db/internal/pkg/querybuilder"
 
 // Example request payload
 filterPayload := &querybuilder.DynamicFilter{
@@ -95,5 +95,5 @@ func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybu
 Run unit tests:
 
 ```bash
-go test ./internal/utils/querybuilder/...
+go test ./internal/pkg/querybuilder/...
 ```

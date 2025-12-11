@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/role/entity"
-	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
+	querybuilder2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -49,11 +49,11 @@ func (r *roleRepository) FindAll(ctx context.Context) ([]*entity.Role, error) {
 	return roles, nil
 }
 
-func (r *roleRepository) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.Role, error) {
+func (r *roleRepository) FindAllDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.Role, error) {
 	var roles []*entity.Role
 	query := r.db.WithContext(ctx)
 
-	where, args, _, err := querybuilder.GenerateDynamicQuery[entity.Role](filter)
+	where, args, _, err := querybuilder2.GenerateDynamicQuery[entity.Role](filter)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (r *roleRepository) FindAllDynamic(ctx context.Context, filter *querybuilde
 		query = query.Where(where, args...)
 	}
 
-	sort, err := querybuilder.GenerateDynamicSort[entity.Role](filter)
+	sort, err := querybuilder2.GenerateDynamicSort[entity.Role](filter)
 	if err != nil {
 		return nil, err
 	}

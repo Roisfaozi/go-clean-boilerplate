@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 )
 
 type TokenRepository interface {

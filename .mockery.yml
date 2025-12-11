@@ -12,31 +12,39 @@ require-template-schema-exists: true
 template: testify
 template-schema: '{{.Template}}.schema.json'
 packages:
-  github.com/Roisfaozi/casbin-db/internal/modules/access/repository:
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository:
     config:
       dir: internal/modules/access/test/mocks
       filename: mock_access_repository.go
-  github.com/Roisfaozi/casbin-db/internal/modules/access/usecase:
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/usecase:
     config:
       dir: internal/modules/access/test/mocks
       filename: mock_access_usecase.go
-  github.com/Roisfaozi/casbin-db/internal/modules/user/repository:
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository:
     config:
       dir: internal/modules/user/test/mocks
       filename: mock_user_repository.go
-  github.com/Roisfaozi/casbin-db/internal/modules/user/usecase:
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase:
     config:
       dir: internal/modules/user/test/mocks
       filename: mock_user_usecase.go
-  github.com/Roisfaozi/casbin-db/internal/modules/role/repository:
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository:
     config:
       dir: internal/modules/role/test/mocks
       filename: mock_role_repository.go
-  github.com/Roisfaozi/casbin-db/internal/modules/role/usecase:
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase:
     config:
       dir: internal/modules/role/test/mocks
       filename: mock_role_usecase.go
-  github.com/Roisfaozi/casbin-db/internal/modules/permission/usecase:
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase:
     config:
       dir: internal/modules/permission/test/mocks
       filename: mock_permission_usecase.go
+  github.com/Roisfaozi/go-clean-boilerplate/pkg/tx: # NEW
+    config:
+      dir: internal/mocking # Location for shared mocks
+      filename: mock_transaction_manager.go
+  github.com/Roisfaozi/go-clean-boilerplate/pkg/ws: # NEW
+    config:
+      dir: internal/mocking # Location for shared mocks
+      filename: mock_websocket_manager.go

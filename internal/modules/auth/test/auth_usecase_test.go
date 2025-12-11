@@ -6,19 +6,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Roisfaozi/casbin-db/internal/mocking"
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
-	"github.com/Roisfaozi/casbin-db/internal/modules/auth/usecase"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
-	"github.com/Roisfaozi/casbin-db/internal/utils/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	mock_auth "github.com/Roisfaozi/casbin-db/internal/modules/auth/test/mocks"
-	mock_permission "github.com/Roisfaozi/casbin-db/internal/modules/permission/test/mocks" // New Import
-	mock_user "github.com/Roisfaozi/casbin-db/internal/modules/user/test/mocks"
+	mock_auth "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
+	mock_permission "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks" // New Import
+	mock_user "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )

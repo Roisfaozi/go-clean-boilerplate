@@ -3,8 +3,8 @@ package usecase
 import (
 	"context"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
-	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 )
 
 type UserUseCase interface {

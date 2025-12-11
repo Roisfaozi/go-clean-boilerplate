@@ -1,0 +1,355 @@
+{
+	"info": {
+		"_postman_id": "80e61a0a-043b-4806-90e7-64a190406c0a",
+		"name": "Casbin Project API - Dynamic Search Tests",
+		"description": "Comprehensive E2E test collection for Dynamic Search endpoints covering Positive, Negative, Edge cases, and Security scenarios.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. User Search",
+			"item": [
+				{
+					"name": "[Positive] Simple: Name Contains",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Response is array\", function () { var jsonData = pm.response.json(); pm.expect(jsonData.data).to.be.an('array'); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"Admin\" }\n    }\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
+							"host": ["{{baseURL}}"],
+							"path": ["{{apiVersion}}", "users", "search"]
+						}
+					}
+				},
+				{
+					"name": "[Positive] List: Username IN",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Response is array\", function () { var jsonData = pm.response.json(); pm.expect(jsonData.data).to.be.an('array'); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filter\": {\n        \"username\": { \"type\": \"in\", \"from\": [\"admin\", \"user\"] }\n    }\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
+							"host": ["{{baseURL}}"],
+							"path": ["{{apiVersion}}", "users", "search"]
+						}
+					}
+				},
+				{
+					"name": "[Negative] Simple: Username Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Response data is empty array\", function () { var jsonData = pm.response.json(); pm.expect(jsonData.data).to.be.an('array').that.is.empty; });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filter\": {\n        \"username\": { \"type\": \"equals\", \"from\": \"non_existent_user_12345\" }\n    }\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
+							"host": ["{{baseURL}}"],
+							"path": ["{{apiVersion}}", "users", "search"]
+						}
+					}
+				},
+				{
+					"name": "[Edge] Range: Future Dates",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Response data is empty array\", function () { var jsonData = pm.response.json(); pm.expect(jsonData.data).to.be.an('array').that.is.empty; });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filter\": {\n        \"created_at\": { \"type\": \"in_range\", \"from\": 4102444800000, \"to\": 4133980800000 }\n    }\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
+							"host": ["{{baseURL}}"],
+							"path": ["{{apiVersion}}", "users", "search"]
+						}
+					}
+				},
+				{
+					"name": "[Security] SQL Injection Attempt (Name)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 (Safe query)\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Response should be empty (no match for injection string)\", function () { var jsonData = pm.response.json(); pm.expect(jsonData.data).to.be.an('array').that.is.empty; });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"' OR '1'='1\" }\n    }\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
+							"host": ["{{baseURL}}"],
+							"path": ["{{apiVersion}}", "users", "search"]
+						}
+					}
+				},
+				{
+					"name": "[Complex] Name AND Email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"Admin\" },\n        \"email\": { \"type\": \"ends_with\", \"from\": \"@example.com\" }\n    }\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
+							"host": ["{{baseURL}}"],
+							"path": ["{{apiVersion}}", "users", "search"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Role Search",
+			"item": [
+				{
+					"name": "[Positive] Simple: Name Contains",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"admin\" }\n    }\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/roles/search",
+							"host": ["{{baseURL}}"],
+							"path": ["{{apiVersion}}", "roles", "search"]
+						}
+					}
+				},
+				{
+					"name": "[Negative] Unknown Role",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Data is empty\", function () { var jsonData = pm.response.json(); pm.expect(jsonData.data).to.be.an('array').that.is.empty; });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"equals\", \"from\": \"super_ultra_mega_admin\" }\n    }\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/roles/search",
+							"host": ["{{baseURL}}"],
+							"path": ["{{apiVersion}}", "roles", "search"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Endpoint Search",
+			"item": [
+				{
+					"name": "[Positive] Simple: Method Equals",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filter\": {\n        \"method\": { \"type\": \"equals\", \"from\": \"GET\" }\n    }\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/endpoints/search",
+							"host": ["{{baseURL}}"],
+							"path": ["{{apiVersion}}", "endpoints", "search"]
+						}
+					}
+				},
+				{
+					"name": "[Edge] Invalid Method Search",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Data empty\", function () { var jsonData = pm.response.json(); pm.expect(jsonData.data).to.be.empty; });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filter\": {\n        \"method\": { \"type\": \"equals\", \"from\": \"INVALID_METHOD\" }\n    }\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/endpoints/search",
+							"host": ["{{baseURL}}"],
+							"path": ["{{apiVersion}}", "endpoints", "search"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Access Right Search",
+			"item": [
+				{
+					"name": "[Positive] Simple: Name Contains",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"User\" }\n    }\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/access-rights/search",
+							"host": ["{{baseURL}}"],
+							"path": ["{{apiVersion}}", "access-rights", "search"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{authToken}}",
+				"type": "string"
+			}
+		]
+	}
+}

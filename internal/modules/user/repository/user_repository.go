@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/entity"
-	"github.com/Roisfaozi/casbin-db/internal/modules/user/model"
-	"github.com/Roisfaozi/casbin-db/internal/utils/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
+	querybuilder2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -120,20 +120,20 @@ func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserL
 	return users, nil
 }
 
-func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, error) {
+func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.User, error) {
 	var users []*entity.User
 	query := r.db.WithContext(ctx)
 
-	where, args, _, err := querybuilder.GenerateDynamicQuery[entity.User](filter)
+	where, args, _, err := querybuilder2.GenerateDynamicQuery[entity.User](filter)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if where != "" {
 		query = query.Where(where, args...)
 	}
 
-	sort, err := querybuilder.GenerateDynamicSort[entity.User](filter)
+	sort, err := querybuilder2.GenerateDynamicSort[entity.User](filter)
 	if err != nil {
 		return nil, err
 	}
