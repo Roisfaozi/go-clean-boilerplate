@@ -1,10 +1,10 @@
 package response
 
 import (
-	accessModel "github.com/Roisfaozi/casbin-db/internal/modules/access/model"
-	authModel "github.com/Roisfaozi/casbin-db/internal/modules/auth/model"
-	roleModel "github.com/Roisfaozi/casbin-db/internal/modules/role/model"
-	userModel "github.com/Roisfaozi/casbin-db/internal/modules/user/model"
+	accessModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
+	authModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
+	roleModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
+	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 )
 
 // SwaggerUserResponseWrapper wraps the UserResponse for Swagger documentation (Success).

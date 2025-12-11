@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/Roisfaozi/casbin-db/internal/utils/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/utils/exception"
 	"github.com/gin-gonic/gin"
 )
 

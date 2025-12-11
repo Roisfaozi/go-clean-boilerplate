@@ -1,12 +1,14 @@
-# Casbin DB - Go Modular REST API
+# Go Clean Boilerplate - Go Modular REST API
 
 ![Go Version](https://img.shields.io/badge/Go-1.21%2B-blue)
 ![License](https://img.shields.io/badge/License-Apache%202.0-green)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20%26%20Modular-orange)
+![Dynamic Search](https://img.shields.io/badge/Dynamic%20Search-Enabled-blueviolet)
+![Realtime](https://img.shields.io/badge/Realtime-SSE%20%26%20WS-ff69b4)
 
 This project is a production-ready, modular, **Role-Based Access Control (RBAC)** REST API built with Go. It leverages **Gin** for high-performance HTTP handling, **GORM** for database interactions, **Casbin** for robust authorization policy enforcement, and **Redis** for secure session management.
 
-It serves as a solid foundation for building scalable, secure, and maintainable backend services.
+It serves as a solid foundation for building scalable, secure, and maintainable backend services with advanced querying and real-time capabilities.
 
 ---
 
@@ -17,7 +19,14 @@ It serves as a solid foundation for building scalable, secure, and maintainable 
 -   **Secure Authentication**:
     -   **JWT (JSON Web Tokens)**: Stateless access tokens carrying user identity and role.
     -   **Session Management**: Stateful refresh tokens stored in **Redis** for secure token rotation and instant revocation (logout/ban).
--   **Real-time Notifications**: Integrated WebSocket support to broadcast events (e.g., user login alerts) to connected clients.
+-   **Dynamic Search & Filtering**:
+    -   Powerful, reusable, and secure query builder.
+    -   Supports complex `WHERE` clauses with various operators (`contains`, `in_range`, `equals`, `is_null`, etc.).
+    -   Dynamic sorting on any field.
+    -   Automatically handles `snake_case` or `json` tags for flexible client requests.
+-   **Real-time Communication**:
+    -   **WebSocket (WS)**: Integrated support for bidirectional communication.
+    -   **Server-Sent Events (SSE)**: Generic, reusable manager for one-way server-to-client event streaming (e.g., live notifications, dashboards).
 -   **Robust Validation**: Centralized request validation using `go-playground/validator` with user-friendly error messages (HTTP 422).
 -   **Standardized Response**: Unified JSON response structure for success (`data`, `paging`) and errors (`message`, `error`), making frontend integration seamless.
 -   **Database Migrations**: Version-controlled schema management using `golang-migrate`.
@@ -25,11 +34,11 @@ It serves as a solid foundation for building scalable, secure, and maintainable 
 -   **Developer Experience**:
     -   **Swagger/OpenAPI**: Auto-generated interactive API documentation.
     -   **Hot Reload**: Development made easy with `air`.
-    -   **Postman Collection**: Ready-to-use collection for end-to-end testing.
+    -   **Postman Collections**: Ready-to-use collections for end-to-end testing and feature exploration.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
 | Category | Technology | Description |
 | :--- | :--- | :--- |
@@ -40,9 +49,12 @@ It serves as a solid foundation for building scalable, secure, and maintainable 
 | **Cache/Session** | [Redis](https://redis.io/) | Session storage and token management |
 | **Authorization** | [Casbin](https://casbin.org/) | Authorization library (RBAC model) |
 | **Authentication** | [golang-jwt/jwt/v5](https://github.com/golang-jwt/jwt) | JWT implementation |
+| **Realtime** | [Gorilla WebSocket](https://github.com/gorilla/websocket) | WebSocket implementation |
+| **Realtime** | Custom SSE Manager | Server-Sent Events implementation |
 | **Migrations** | [golang-migrate](https://github.com/golang-migrate/migrate) | Database schema migrations |
 | **Docs** | [Swaggo](https://github.com/swaggo/swag) | Swagger documentation generator |
 | **Test** | [Testify](https://github.com/stretchr/testify) | Assertion and mocking toolkit |
+| **Test** | [Mockery](https://vektra.github.io/mockery/) | Automatic mock generation |
 
 ---
 
@@ -62,6 +74,7 @@ Ensure you have the following installed on your system:
     go install github.com/swaggo/swag/cmd/swag@latest
     ```
 6.  **Golang Migrate** (Optional): If you want to run migrations manually without the Makefile helper.
+7.  **C/C++ Compiler (GCC/MinGW-w64)**: Required for running repository tests that use SQLite (due to CGO). Ensure `gcc` is in your system's PATH.
 
 ---
 
@@ -104,55 +117,60 @@ air
 go run cmd/api/main.go
 ```
 
-**Production Build:**
-```bash
-make build
-./bin/api
-```
-
 The server will start on **http://localhost:8080** (or the port defined in your `.env`).
+
+---
+
+## 📖 API Usage Guides
+
+### Accessing API Documentation (Swagger UI)
+Interactive API documentation is available at:
+> **http://localhost:8080/api/docs/index.html**
+
+### Postman Collections
+Import the Postman collections from the `postman/` directory to explore and test the API:
+-   `Casbin Project API.postman_collection.json`: Main collection for core CRUD, Auth, and RBAC flows.
+-   `Casbin Project API - Dynamic Search.postman_collection.json`: Dedicated collection for testing all dynamic search endpoints with various filter/sort scenarios.
+-   `Casbin Project API - Realtime.postman_collection.json`: Examples for WebSocket and Server-Sent Events (SSE).
+
+### Key Features & Endpoints
+
+| Feature | Method | Endpoint | Description | Access | Documentation |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Auth** | `POST` | `/auth/login` | User login (returns JWT) | Public | |
+| **Auth** | `POST` | `/auth/refresh` | Refresh access token | Public (Cookie) | |
+| **User** | `POST` | `/users/register` | Register new user | Public | |
+| **User** | `GET` | `/users/me` | Get current profile | User | |
+| **User** | `GET` | `/users` | List all users (basic filtering) | Admin | [GET vs Dynamic Search](#perbedaan-antara-findall-http-get-dan-dynamic-search-http-post-search) |
+| **User** | `POST` | `/users/search` | Dynamic search & filter for users | Admin | [Dynamic Search Examples](#dynamic-search-api-examples-curl) |
+| **Role** | `GET` | `/roles` | List all roles | Admin | [GET vs Dynamic Search](#perbedaan-antara-findall-http-get-dan-dynamic-search-http-post-search) |
+| **Role** | `POST` | `/roles/search` | Dynamic search & filter for roles | Admin | [Dynamic Search Examples](#dynamic-search-api-examples-curl) |
+| **Access** | `POST` | `/endpoints/search` | Dynamic search & filter for endpoints | Admin | [Dynamic Search Examples](#dynamic-search-api-examples-curl) |
+| **Access** | `POST` | `/access-rights/search` | Dynamic search & filter for access rights | Admin | [Dynamic Search Examples](#dynamic-search-api-examples-curl) |
+| **SSE** | `GET` | `/events` | Server-Sent Events stream | Public | [SSE Usage Guide](#server-sent-events-sse-usage-guide) |
+| **WebSocket** | `GET` | `/ws` | WebSocket connection | Public | |
+
+### Detailed Usage Guides
+-   **Dynamic Search Examples**: See `documentation/DYNAMIC_SEARCH_EXAMPLES.md` for `curl` examples covering various filter types and scenarios.
+-   **SSE Usage Guide**: See `documentation/SSE_USAGE.md` for implementation details and frontend client examples for Server-Sent Events.
+-   **GET vs. Dynamic Search**: See `documentation/GET_VS_DYNAMIC_SEARCH.md` for a clear breakdown on when to use each search approach.
 
 ---
 
 ## 🧪 Testing
 
-### Unit Tests
-Run the full suite of unit tests to ensure system integrity.
+### Unit & Integration Tests
+Run the full suite of unit and integration tests to ensure system integrity.
 ```bash
 make test
 ```
-*Note: This runs `go test ./...` covering all modules.*
+*Note: Repository tests use `gorm.io/driver/sqlite` which requires a C/C++ compiler (like GCC/MinGW-w64) installed and in your system's PATH, with `CGO_ENABLED=1` during compilation/testing.*
 
-### End-to-End Testing (Postman)
-We provide a comprehensive Postman collection to test the entire flow:
-1.  Import `postman/Casbin_API_Full_Flow.postman_collection.json` into Postman.
-2.  Set up your environment variables (`baseURL` = `http://localhost:8080`, `apiVersion` = `v1`).
-3.  Run the collection runner to verify Registration -> Login -> RBAC Enforcement -> Cleanup.
-
-For a detailed usage guide, please refer to **[documentation/USAGE.md](documentation/USAGE.md)**.
-
----
-
-## 📚 API Documentation
-
-### Swagger UI
-Interactive API documentation is available at:
-> **http://localhost:8080/api/docs/index.html**
-
-### Key Endpoints Overview
-
-| Module | Method | Endpoint | Description | Access |
-| :--- | :--- | :--- | :--- | :--- |
-| **Auth** | `POST` | `/auth/login` | User login (returns JWT) | Public |
-| **Auth** | `POST` | `/auth/refresh` | Refresh access token | Public (Cookie) |
-| **User** | `POST` | `/users/register` | Register new user | Public |
-| **User** | `GET` | `/users/me` | Get current profile | User |
-| **User** | `GET` | `/users` | List all users | Admin |
-| **Role** | `POST` | `/roles` | Create new role | Admin |
-| **Perm** | `POST` | `/permissions/grant` | Grant permission to role | Admin |
-| **Perm** | `POST` | `/permissions/assign-role` | Assign role to user | Admin |
-
-*See [documentation/USAGE.md](documentation/USAGE.md) for detailed workflows.*
+### Mock Generation
+If you modify an interface, remember to regenerate its mock:
+```bash
+make mocks
+```
 
 ---
 
@@ -163,7 +181,7 @@ The project follows a standard Go project layout suitable for scalable microserv
 ```
 .
 ├── .air.toml           # Configuration for Air (live reloading)
-├── Makefile            # Automation commands (build, test, migrate, run)
+├── Makefile            # Automation commands (build, test, migrate, run, mocks)
 ├── README.md           # Main project documentation
 ├── docker-compose.yml  # Docker services definition (MySQL, Redis)
 ├── go.mod              # Go dependency definitions
@@ -178,18 +196,22 @@ The project follows a standard Go project layout suitable for scalable microserv
 ├── docs/               # Auto-generated Swagger/OpenAPI documentation files
 │
 ├── documentation/      # Project guides and additional documentation
-│   ├── USAGE.md        # Detailed guide on how to use the API workflow
-│   └── ...
+│   ├── USAGE.md                        # Detailed guide on how to use the API workflow
+│   ├── DYNAMIC_SEARCH_EXAMPLES.md      # Curl examples for dynamic search
+│   └── GET_VS_DYNAMIC_SEARCH.md        # Explains GET vs POST search approaches
+│   └── SSE_USAGE.md                    # Guide for Server-Sent Events (SSE)
 │
 ├── postman/            # Postman collections for testing
-│   ├── Casbin_API_Full_Flow.json  # End-to-end testing collection
+│   ├── Casbin Project API.postman_collection.json         # Main collection
+│   ├── Casbin Project API - Dynamic Search.postman_collection.json # Dynamic search tests
+│   ├── Casbin Project API - Realtime.postman_collection.json # Realtime features (WS, SSE)
 │   └── ...
 │
 └── internal/           # Private application code (not importable by other apps)
     ├── config/         # Configuration loading & app initialization wiring
     ├── middleware/     # HTTP Middlewares (Auth, Casbin Enforcer, CORS)
     ├── router/         # Gin router setup and route registration
-    ├── utils/          # Shared utilities (JWT, Response Helper, Validator, WebSocket)
+    ├── utils/          # Shared utilities (JWT, Response Helper, Validator, WebSocket, SSE, QueryBuilder)
     │
     └── modules/        # Domain-specific modules following Clean Architecture
         ├── auth/       # Authentication logic & JWT handling
