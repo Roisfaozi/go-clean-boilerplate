@@ -14,7 +14,7 @@ It serves as a solid foundation for building scalable, secure, and maintainable 
 
 ## 🚀 Key Features
 
--   **Modular & Clean Architecture**: Codebase is strictly organized by feature modules (`user`, `auth`, `role`, `permission`, `access`) and layers (`Handler` -> `UseCase` -> `Repository`), ensuring scalability and testability.
+-   **Modular & Clean Architecture**: Codebase is strictly organized by feature modules (`user`, `auth`, `role`, `permission`, `access`) and layers (`Controller` -> `UseCase` -> `Repository`), ensuring scalability and testability.
 -   **Advanced RBAC Authorization**: Fine-grained access control using [Casbin](https://casbin.org/). Policies are persisted in the database, allowing dynamic permission updates without restarting the server.
 -   **Secure Authentication**:
     -   **JWT (JSON Web Tokens)**: Stateless access tokens carrying user identity and role.
@@ -82,8 +82,8 @@ Ensure you have the following installed on your system:
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/yourusername/casbin-db.git
-cd casbin-db
+git clone https://github.com/Roisfaozi/go-clean-boilerplate.git
+cd go-clean-boilerplate
 ```
 
 ### 2. Environment Configuration
