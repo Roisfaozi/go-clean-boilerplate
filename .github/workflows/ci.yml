@@ -3,6 +3,7 @@ name: CI (Integration & Quality)
 on:
   push:
     branches: [ "**" ] # Run on all branches
+    tags: [ "v*" ]     # Run on version tags
   pull_request:
     branches: [ "**" ] # Run on all PRs
 
@@ -69,7 +70,6 @@ jobs:
           cache: true
 
       - name: Run Benchmarks
-        # Runs benchmarks matching '.' (all), allocs stats, 1s duration
         run: go test -run=^$ -bench=. -benchmem -benchtime=1s ./...
 
   build-check:
@@ -88,5 +88,4 @@ jobs:
           cache: true
 
       - name: Dry Run Build
-        # Ensures the code compiles successfully without producing output artifact
         run: go build -v -o /dev/null ./cmd/api/main.go

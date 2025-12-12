@@ -1,12 +1,10 @@
 name: CD (Build & Deploy)
 
 on:
-  push:
-    branches:
-      - main
-      - staging
-    tags:
-      - 'v*.*.*'
+  workflow_run:
+    workflows: ["CI (Integration & Quality)"]
+    types:
+      - completed
 
 env:
   REGISTRY: ghcr.io
@@ -16,12 +14,23 @@ jobs:
   docker:
     name: Build & Push Docker
     runs-on: ubuntu-latest
+    # Only run if CI succeeded AND branch is main/staging or it's a tag
+    if: >
+      ${{ github.event.workflow_run.conclusion == 'success' }} &&
+      (
+        github.event.workflow_run.head_branch == 'main' ||
+        github.event.workflow_run.head_branch == 'staging' ||
+        startsWith(github.event.workflow_run.head_branch, 'v')
+      )
     permissions:
       contents: read
       packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Checkout the exact commit that triggered the CI run
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -36,14 +45,10 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
+            type=raw,value=latest,enable=${{ github.event.workflow_run.head_branch == 'main' }}
+            type=raw,value=staging,enable=${{ github.event.workflow_run.head_branch == 'staging' }}
+            type=semver,pattern={{version}},value=${{ github.event.workflow_run.head_branch }}
             type=sha,format=long
-            # Tag 'staging' for pushes to staging branch
-            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/staging' }}
-            # Tag 'latest' for pushes to main branch
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -57,7 +62,7 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     needs: docker
-    if: github.ref == 'refs/heads/staging'
+    if: ${{ github.event.workflow_run.head_branch == 'staging' }}
     environment: staging
     runs-on: ubuntu-latest
     steps:
@@ -69,22 +74,15 @@ jobs:
           key: ${{ secrets.STAGING_KEY }}
           script: |
             echo "🚀 Deploying to Staging..."
-            # Assumes the repo is cloned at /app/staging and docker-compose is set up
             cd /app/staging
-            
-            # Update code/config
             git pull origin staging
-            
-            # Pull new image specifically tagged 'staging'
             docker compose -f docker-compose.prod.yml pull
-            
-            # Execute Blue-Green Deploy script
             bash deploy/scripts/deploy.sh
 
   deploy-production:
     name: Deploy to Production
     needs: docker
-    if: github.ref == 'refs/heads/main'
+    if: ${{ github.event.workflow_run.head_branch == 'main' }}
     environment: production
     runs-on: ubuntu-latest
     steps:
@@ -96,28 +94,24 @@ jobs:
           key: ${{ secrets.PROD_KEY }}
           script: |
             echo "🚀 Deploying to Production..."
-            # Assumes the repo is cloned at /app/production
             cd /app/production
-            
-            # Update code
             git pull origin main
-            
-            # Pull latest image
             docker compose -f docker-compose.prod.yml pull
-            
-            # Execute Blue-Green Deploy script
             bash deploy/scripts/deploy.sh
 
   release:
     name: Create GitHub Release
     needs: docker
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Check if the branch name starts with 'v' (tags are passed as head_branch in workflow_run context for tags)
+    if: startsWith(github.event.workflow_run.head_branch, 'v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -132,6 +126,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          # We need to explicitly set the tag_name because we are running in workflow_run context (default branch)
+          tag_name: ${{ github.event.workflow_run.head_branch }}
           files: dist/api
           draft: false
           prerelease: false
