@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # Load Balancer / Gateway
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Mount the upstream config as read-write so we can update it from host (if using bind mount)
+      # Or usually, we update it via a shared volume or script. 
+      # Here we mount it so Nginx sees the change.
+      - ./deploy/nginx/upstream.conf:/etc/nginx/conf.d/upstream.conf
+    depends_on:
+      - app-blue
+      - app-green
+    networks:
+      - app_network
+
+  # Blue Instance (Active by default)
+  app-blue:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    container_name: app-blue
+    environment:
+      - APP_ENV=production
+      - INSTANCE_ID=blue
+      - MYSQL_HOST=mysql_prod
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=gin_starter
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+      - REDIS_HOST=redis_prod:6379
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Green Instance (Standby)
+  app-green:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    container_name: app-green
+    environment:
+      - APP_ENV=production
+      - INSTANCE_ID=green
+      - MYSQL_HOST=mysql_prod
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=gin_starter
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+      - REDIS_HOST=redis_prod:6379
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Database & Cache (In real prod, use Managed Services like RDS/ElastiCache)
+  mysql_prod:
+    image: mysql:8.0
+    container_name: mysql_prod
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: gin_starter
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+    networks:
+      - app_network
+
+  redis_prod:
+    image: redis:alpine
+    container_name: redis_prod
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  mysql_data_prod:

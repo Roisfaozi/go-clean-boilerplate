@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.dev
+    container_name: api_dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    environment:
+      - MYSQL_HOST=mysql_dev
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=gin_starter
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+      - REDIS_HOST=redis_dev:6379
+      - REDIS_PASSWORD=
+      - APP_ENV=development
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - app_network
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_dev
+    ports:
+      - "3307:3306" # Mapped to 3307 to avoid conflict with local mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: gin_starter
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - mysql_data_dev:/var/lib/mysql
+    networks:
+      - app_network
+
+  redis:
+    image: redis:alpine
+    container_name: redis_dev
+    ports:
+      - "6379:6379"
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  mysql_data_dev:
