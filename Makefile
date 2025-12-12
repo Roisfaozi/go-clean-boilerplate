@@ -5,6 +5,8 @@ GOBUILD=$(GOCMD) build
 GOTEST=$(GOCMD) test
 GOCLEAN=$(GOCMD) clean
 GOMOD=$(GOCMD) mod
+BENCHTIME=1s
+BENCHMEM=true
 
 # Database
 # Migration variables
@@ -43,6 +45,12 @@ help:
 	@echo "  run          - Generate docs and run the main application."
 	@echo "  build        - Build the application binary (output: $(BINARY_NAME))."
 	@echo "  test         - Run all tests."
+	@echo "  test-race    - Run tests with race detector."
+	@echo "  test-cover   - Run tests with coverage analysis."
+	@echo "  bench        - Run benchmarks."
+	@echo "  bench-race   - Run benchmarks with race detector.
+	@echo "  bench-cpu     - Run benchmarks with CPU profiling.
+	@echo "  bench-mem     - Run benchmarks with memory profiling."
 	@echo "  docs         - Generate Swagger/OpenAPI documentation."
 	@echo "  tidy         - Tidy go.mod and go.sum files."
 	@echo "  clean        - Remove build artifacts and generated documentation."
@@ -61,11 +69,41 @@ build:
 	@echo "Building the application binary..."
 	$(GOBUILD) -o $(BINARY_NAME) ./cmd/api/main.go
 
-# Run all tests
+# Run tests with race detector
+.PHONY: test-race
+test-race:
+	$(GOTEST) -race -v ./...
+
+# Run tests with coverage
+.PHONY: test-cover
+test-cover:
+	$(GOTEST) -coverprofile=coverage.txt -covermode=atomic -v ./...
+	$(GOCMD) tool cover -html=coverage.txt -o coverage.html
+
+# Run tests
 .PHONY: test
 test:
-	@echo "Running tests..."
-	CGO_ENABLED=1 $(GOTEST) -v ./...
+	$(GOTEST) -v ./...
+
+# Run benchmarks
+.PHONY: bench
+bench:
+	$(GOTEST) -run=^$$ -bench=. -benchmem -benchtime=$(BENCHTIME) -count=5 ./...
+
+# Run benchmarks with race detector
+.PHONY: bench-race
+bench-race:
+	$(GOTEST) -race -run=^$$ -bench=. -benchmem -benchtime=$(BENCHTIME) -count=5 ./...
+
+# Run benchmarks with CPU profiling
+.PHONY: bench-cpu
+bench-cpu:
+	$(GOTEST) -run=^$$ -bench=. -benchmem -benchtime=$(BENCHTIME) -cpuprofile=cpu.pprof ./...
+
+# Run benchmarks with memory profiling
+.PHONY: bench-mem
+bench-mem:
+	$(GOTEST) -run=^$$ -bench=. -benchmem -benchtime=$(BENCHTIME) -memprofile=mem.pprof ./...
 
 # Run all tests-windows
 .PHONY: wintest

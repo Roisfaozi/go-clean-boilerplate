@@ -21,6 +21,7 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+**coverage**
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
@@ -169,5 +170,6 @@ _ttd_log_
 # Ignore all local history of files
 .history
 .ionide
+casbin.json
 
 # End of https://www.toptal.com/developers/gitignore/api/go,goland,visualstudiocode,nodechakratimetraveldebug

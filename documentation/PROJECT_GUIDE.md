@@ -153,7 +153,7 @@ Struktur folder mencerminkan prinsip-prinsip Clean Architecture dan konvensi pro
         │   └── entity/     # (Entities) Representasi entitas domain/database.
         ├── <nama_module_2>/
         └── ...
-
+```
 **Penjelasan `pkg/` vs `internal/`:**
 *   **`pkg/`**: Direktori ini berisi kode-kode yang dapat **digunakan kembali secara luas** di dalam proyek ini, dan **dapat diimpor oleh proyek Go eksternal lainnya** jika modul ini dijadikan library (meskipun saat ini belum). Ini adalah utilitas generik yang tidak terikat pada satu domain bisnis tertentu.
 *   **`internal/`**: Sesuai dengan konvensi Go, kode di dalam direktori `internal/` **tidak dapat diimpor oleh proyek Go di luar modul ini**. Ini digunakan untuk fungsionalitas inti proyek yang bersifat pribadi dan tidak dimaksudkan untuk diekspos. Modul bisnis utama ditempatkan di sini untuk menjaga agar implementasi internal domain bisnis tetap tersembunyi dari dunia luar.
