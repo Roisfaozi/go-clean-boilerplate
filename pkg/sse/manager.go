@@ -4,53 +4,59 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
-// Event represents the data structure of an SSE event
 type Event struct {
-	Name string      `json:"name"` // Event name (e.g., "message", "update")
-	Data interface{} `json:"data"` // Payload
+	Name string      `json:"name"`
+	Data interface{} `json:"data"`
 }
 
-// Client represents a single connection
 type Client struct {
 	Channel chan Event
 }
 
-// Manager handles the connected clients and broadcasting
 type Manager struct {
 	clients    map[*Client]bool
 	register   chan *Client
 	unregister chan *Client
 	broadcast  chan Event
 	mutex      sync.Mutex
+	log        *logrus.Logger
+	stopChan   chan struct{}
 }
 
-// NewManager creates a new SSE Manager instance
 func NewManager() *Manager {
 	m := &Manager{
 		clients:    make(map[*Client]bool),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		broadcast:  make(chan Event),
+		log:        logrus.New(),
+		stopChan:   make(chan struct{}),
 	}
+	m.log.SetOutput(io.Discard)
 	go m.run()
 	return m
 }
 
-// run is the main loop that handles channels safely
+func (m *Manager) SetLogger(logger *logrus.Logger) {
+	m.log = logger
+}
+
 func (m *Manager) run() {
 	for {
 		select {
+		case <-m.stopChan:
+			return
 		case client := <-m.register:
 			m.mutex.Lock()
 			m.clients[client] = true
 			m.mutex.Unlock()
-			log.Println("SSE: New client connected")
+			m.log.Println("SSE: New client connected")
 
 		case client := <-m.unregister:
 			m.mutex.Lock()
@@ -59,7 +65,7 @@ func (m *Manager) run() {
 				close(client.Channel)
 			}
 			m.mutex.Unlock()
-			log.Println("SSE: Client disconnected")
+			m.log.Println("SSE: Client disconnected")
 
 		case event := <-m.broadcast:
 			m.mutex.Lock()
@@ -67,7 +73,7 @@ func (m *Manager) run() {
 				select {
 				case client.Channel <- event:
 				default:
-					// If channel is blocked/full, remove client to prevent deadlock
+
 					delete(m.clients, client)
 					close(client.Channel)
 				}
@@ -77,7 +83,6 @@ func (m *Manager) run() {
 	}
 }
 
-// Broadcast sends an event to all connected clients
 func (m *Manager) Broadcast(eventName string, data interface{}) {
 	m.broadcast <- Event{
 		Name: eventName,
@@ -85,51 +90,66 @@ func (m *Manager) Broadcast(eventName string, data interface{}) {
 	}
 }
 
+func (m *Manager) ClientCount() int {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return len(m.clients)
+}
+
+// Stop gracefully stops the manager's run loop.
+func (m *Manager) Stop() {
+	close(m.stopChan)
+}
+
+// RegisterClient registers a new client (wrapper for channel send).
+func (m *Manager) RegisterClient(client *Client) {
+	m.register <- client
+}
+
+// UnregisterClient unregisters a client (wrapper for channel send).
+func (m *Manager) UnregisterClient(client *Client) {
+	m.unregister <- client
+}
+
 // ServeHTTP is the Gin handler to stream events to the client
 func (m *Manager) ServeHTTP() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Set headers for SSE
+
 		c.Writer.Header().Set("Content-Type", "text/event-stream")
 		c.Writer.Header().Set("Cache-Control", "no-cache")
 		c.Writer.Header().Set("Connection", "keep-alive")
 		c.Writer.Header().Set("Transfer-Encoding", "chunked")
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 
-		// Create a new client channel
 		clientChan := make(chan Event)
 		client := &Client{Channel: clientChan}
 
-		// Register client
 		m.register <- client
 
-		// Listen for connection close
-		// Ideally use c.Request.Context().Done()
 		defer func() {
 			m.unregister <- client
 		}()
 
-		// Stream events
 		c.Stream(func(w io.Writer) bool {
 			select {
 			case <-c.Request.Context().Done():
-				return false // Client disconnected
+				return false
 			case event, ok := <-clientChan:
 				if !ok {
-					return false // Channel closed
+					return false
 				}
-				// Format: 
-			// event: <event_name>\n
-				// data: <json_data>\n\n
+
 				c.Writer.Write([]byte(fmt.Sprintf("event: %s\n", event.Name)))
-				
+
 				jsonData, err := json.Marshal(event.Data)
 				if err != nil {
-					// Fallback for string
+
+					m.log.Errorf("Failed to marshal SSE event data: %v", err)
 					c.Writer.Write([]byte(fmt.Sprintf("data: %v\n\n", event.Data)))
 				} else {
 					c.Writer.Write([]byte(fmt.Sprintf("data: %s\n\n", jsonData)))
 				}
-				
+
 				c.Writer.Flush()
 				return true
 			}
