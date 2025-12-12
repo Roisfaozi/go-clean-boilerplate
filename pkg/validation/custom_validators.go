@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	htmlTagRegex = regexp.MustCompile(`<[^>]*>`)
+	// Matches any HTML tag: starts with <, followed by optional /, then tag name, then anything until >
+	htmlTagRegex = regexp.MustCompile(`<[a-zA-Z/][^>]*>`)
 )
 
 // RegisterCustomValidations registers custom validation tags to the provided validator instance.
@@ -30,15 +31,23 @@ func validateXSS(fl validator.FieldLevel) bool {
 	safeTags := []string{"b", "i", "em", "strong", "u"}
 	desc := fl.Field().String()
 
+	// Remove safe tags first
 	temp := desc
 	for _, tag := range safeTags {
-		temp = regexp.MustCompile(fmt.Sprintf("<[/]?%s[^>]*>", tag)).ReplaceAllString(temp, "")
+		// Case insensitive replacement for safe tags is tricky with simple regex without flag
+		// For simplicity, we assume lowercase safe tags or handle basic variations
+		// Better approach: use a proper HTML sanitizer library like bluemonday
+		re := regexp.MustCompile(fmt.Sprintf(`(?i)<[/]?%s\b[^>]*>`, tag))
+		temp = re.ReplaceAllString(temp, "")
 	}
 
+	// Check if any HTML tags remain
 	return !htmlTagRegex.MatchString(temp)
 }
 
-// SanitizeString removes HTML tags from a string.
+// SanitizeString removes ALL HTML tags from a string.
 func SanitizeString(s string) string {
+	// Simple regex-based strip tags. 
+	// Note: This is not secure against all XSS vectors but sufficient for basic cleanup.
 	return htmlTagRegex.ReplaceAllString(s, "")
 }
