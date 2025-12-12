@@ -18,9 +18,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupRoleTest() (*mocks.MockRoleRepository, *mocking.MockTransactionManager, usecase.RoleUseCase) {
+func setupRoleTest() (*mocks.MockRoleRepository, *mocking.MockWithTransactionManager, usecase.RoleUseCase) {
 	mockRepo := new(mocks.MockRoleRepository)
-	mockTM := new(mocking.MockTransactionManager)
+	mockTM := new(mocking.MockWithTransactionManager)
 	uc := usecase.NewRoleUseCase(logrus.New(), mockTM, mockRepo)
 	return mockRepo, mockTM, uc
 }

@@ -3,10 +3,11 @@ package test
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 	"time"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
+	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
@@ -17,7 +18,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	mock_auth "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
-	mock_permission "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks" // New Import
+	mock_permission "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	mock_user "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -36,9 +37,9 @@ type testDependencies struct {
 	jwtManager *jwt.JWTManager
 	tokenRepo  *mock_auth.MockTokenRepository
 	userRepo   *mock_user.MockUserRepository
-	tm         *mocking.MockTransactionManager
-	wsManager  *mocking.MockWebSocketManager
-	enforcer   *mock_permission.IEnforcer // New
+	tm         *mocking.MockWithTransactionManager
+	wsManager  *mocking.MockManager
+	enforcer   *mock_permission.IEnforcer
 	validate   *validator.Validate
 	log        *logrus.Logger
 }
@@ -51,14 +52,14 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		jwtManager: jwtManager,
 		tokenRepo:  new(mock_auth.MockTokenRepository),
 		userRepo:   new(mock_user.MockUserRepository),
-		tm:         new(mocking.MockTransactionManager),
-		wsManager:  new(mocking.MockWebSocketManager),
-		enforcer:   new(mock_permission.IEnforcer), // New
+		tm:         new(mocking.MockWithTransactionManager),
+		wsManager:  new(mocking.MockManager),
+		enforcer:   new(mock_permission.IEnforcer),
 		validate:   validator.New(),
 		log:        logrus.New(),
 	}
 
-	deps.log.SetOutput(&mocking.NoOpWriter{})
+	deps.log.SetOutput(io.Discard)
 
 	authService := usecase.NewAuthUsecase(
 		deps.jwtManager,
@@ -67,7 +68,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		deps.tm,
 		deps.log,
 		deps.wsManager,
-		deps.enforcer, // New
+		deps.enforcer,
 	)
 
 	return authService, deps
@@ -97,7 +98,7 @@ func TestLogin_Success(t *testing.T) {
 			fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil) // New mock for enforcer
+	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
 
@@ -126,8 +127,8 @@ func TestLogin_Failure_UserNotFound(t *testing.T) {
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
-			fn(context.Background())
-		}).Return(nil)
+			_ = fn(context.Background())
+		}).Return(usecase.ErrInvalidCredentials) // Simulate transaction returning error
 	deps.userRepo.On("FindByUsername", mock.Anything, "nonexistent").Return(nil, gorm.ErrRecordNotFound)
 
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
@@ -147,8 +148,8 @@ func TestLogin_Failure_InvalidPassword(t *testing.T) {
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
-			fn(context.Background())
-		}).Return(nil)
+			_ = fn(context.Background())
+		}).Return(usecase.ErrInvalidCredentials) // Simulate transaction returning error
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
@@ -172,7 +173,7 @@ func TestLogin_Failure_StoreTokenError(t *testing.T) {
 			fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil) // New mock for enforcer
+	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(storeErr)
 
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
@@ -196,7 +197,7 @@ func TestRefreshToken_Success(t *testing.T) {
 	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: oldRefreshToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil) // New mock for enforcer
+	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
 	deps.tokenRepo.On("DeleteToken", mock.Anything, user.ID, "session-1").Return(nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 

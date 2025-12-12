@@ -19,9 +19,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupUserTest() (*mocks.MockUserRepository, *mocking.MockTransactionManager, *permMocks.IEnforcer, usecase.UserUseCase) {
+func setupUserTest() (*mocks.MockUserRepository, *mocking.MockWithTransactionManager, *permMocks.IEnforcer, usecase.UserUseCase) {
 	mockRepo := new(mocks.MockUserRepository)
-	mockTM := new(mocking.MockTransactionManager)
+	mockTM := new(mocking.MockWithTransactionManager)
 	mockEnforcer := new(permMocks.IEnforcer)
 	uc := usecase.NewUserUseCase(logrus.New(), mockTM, mockRepo, mockEnforcer)
 	return mockRepo, mockTM, mockEnforcer, uc
@@ -305,7 +305,10 @@ func TestUserUseCase_Update(t *testing.T) {
 		})).Return(nil)
 
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
-			Return(nil)
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				fn(context.Background())
+			}).Return(nil)
 
 		result, err := uc.Update(context.Background(), request)
 
