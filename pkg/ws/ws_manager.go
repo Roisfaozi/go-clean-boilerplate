@@ -37,6 +37,8 @@ type WebSocketManager struct {
 	log *logrus.Logger
 
 	config *WebSocketConfig
+
+	stopChan chan struct{} // Added for graceful shutdown
 }
 
 type BroadcastMessage struct {
@@ -73,6 +75,7 @@ func NewWebSocketManager(config *WebSocketConfig, log *logrus.Logger) *WebSocket
 		unsubscribe: make(chan *SubscriptionRequest, 256),
 		log:         log,
 		config:      config,
+		stopChan:    make(chan struct{}),
 	}
 }
 
@@ -81,6 +84,10 @@ func (m *WebSocketManager) Run() {
 
 	for {
 		select {
+		case <-m.stopChan:
+			m.log.Info("WebSocket Manager stopped")
+			return
+
 		case client := <-m.register:
 			m.handleRegister(client)
 
@@ -183,32 +190,58 @@ func (m *WebSocketManager) handleUnsubscribe(req *SubscriptionRequest) {
 	}
 }
 
+// RegisterClient registers a client with a timeout to prevent deadlocks
 func (m *WebSocketManager) RegisterClient(client *Client) {
-	m.register <- client
+	select {
+	case m.register <- client:
+	case <-time.After(100 * time.Millisecond):
+		m.log.Warn("RegisterClient timed out")
+	case <-m.stopChan:
+		m.log.Warn("RegisterClient called on stopped manager")
+	}
 }
 
+// UnregisterClient unregisters a client with a timeout
 func (m *WebSocketManager) UnregisterClient(client *Client) {
-	m.unregister <- client
+	select {
+	case m.unregister <- client:
+	case <-time.After(100 * time.Millisecond):
+		m.log.Warn("UnregisterClient timed out")
+	case <-m.stopChan:
+		m.log.Warn("UnregisterClient called on stopped manager")
+	}
 }
 
+// BroadcastToChannel sends a message to a channel with a timeout
 func (m *WebSocketManager) BroadcastToChannel(channel string, message []byte) {
-	m.broadcast <- &BroadcastMessage{
-		Channel: channel,
-		Message: message,
+	select {
+	case m.broadcast <- &BroadcastMessage{Channel: channel, Message: message}:
+	case <-time.After(100 * time.Millisecond):
+		m.log.Warn("BroadcastToChannel timed out")
+	case <-m.stopChan:
+		m.log.Warn("BroadcastToChannel called on stopped manager")
 	}
 }
 
+// SubscribeToChannel subscribes a client to a channel with a timeout
 func (m *WebSocketManager) SubscribeToChannel(client *Client, channel string) {
-	m.subscribe <- &SubscriptionRequest{
-		Client:  client,
-		Channel: channel,
+	select {
+	case m.subscribe <- &SubscriptionRequest{Client: client, Channel: channel}:
+	case <-time.After(100 * time.Millisecond):
+		m.log.Warn("SubscribeToChannel timed out")
+	case <-m.stopChan:
+		m.log.Warn("SubscribeToChannel called on stopped manager")
 	}
 }
 
+// UnsubscribeFromChannel unsubscribes a client from a channel with a timeout
 func (m *WebSocketManager) UnsubscribeFromChannel(client *Client, channel string) {
-	m.unsubscribe <- &SubscriptionRequest{
-		Client:  client,
-		Channel: channel,
+	select {
+	case m.unsubscribe <- &SubscriptionRequest{Client: client, Channel: channel}:
+	case <-time.After(100 * time.Millisecond):
+		m.log.Warn("UnsubscribeFromChannel timed out")
+	case <-m.stopChan:
+		m.log.Warn("UnsubscribeFromChannel called on stopped manager")
 	}
 }
 
@@ -220,4 +253,31 @@ func (m *WebSocketManager) GetChannelClients(channel string) int {
 		return len(clients)
 	}
 	return 0
+}
+
+// ClientCount returns the total number of registered clients.
+// This is for testing purposes only.
+func (m *WebSocketManager) ClientCount() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return len(m.clients)
+}
+
+// Channels returns the current map of channels and their subscribers.
+// This is for testing purposes only.
+func (m *WebSocketManager) Channels() map[string]map[*Client]bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.channels
+}
+
+// Stop sends a signal to stop the manager's run loop.
+// This is for testing purposes only.
+func (m *WebSocketManager) Stop() {
+	select {
+	case <-m.stopChan:
+		// Already closed
+	default:
+		close(m.stopChan)
+	}
 }
