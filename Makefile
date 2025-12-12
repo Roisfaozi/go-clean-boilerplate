@@ -55,6 +55,10 @@ help:
 	@echo "  tidy         - Tidy go.mod and go.sum files."
 	@echo "  clean        - Remove build artifacts and generated documentation."
 	@echo "  lint         - Run the static analysis linter (requires golangci-lint)."
+	@echo "  docker-dev   - Start the development environment with Docker Compose."
+	@echo "  docker-prod  - Start the production environment (initial setup) with Docker Compose."
+	@echo "  docker-down  - Stop and remove all Docker containers, networks, and volumes."
+	@echo "  deploy       - Run the Blue-Green deployment script."
 
 
 # Generate docs and run the application
@@ -110,6 +114,28 @@ bench-mem:
 wintest:
 	@echo "Running tests..."
 	@powershell -Command "$$env:CGO_ENABLED='1'; go test -v ./..."
+
+# Docker commands
+.PHONY: docker-dev
+docker-dev: ## Start development environment
+	@echo "Starting development environment..."
+	docker compose -f docker-compose.dev.yml up --build
+
+.PHONY: docker-prod
+docker-prod: ## Start production environment (initial)
+	@echo "Starting production environment (initial setup)..."
+	docker compose -f docker-compose.prod.yml up -d --build
+
+.PHONY: docker-down
+docker-down: ## Stop all containers
+	@echo "Stopping all containers..."
+	docker compose -f docker-compose.dev.yml down
+	docker compose -f docker-compose.prod.yml down
+
+.PHONY: deploy
+deploy: ## Run Blue-Green deployment
+	@echo "Running Blue-Green deployment..."
+	@bash deploy/scripts/deploy.sh
 
 # Generate Swagger/OpenAPI documentation
 .PHONY: docs
