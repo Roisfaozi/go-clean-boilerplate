@@ -7,12 +7,19 @@ on:
   pull_request:
     branches: [ "master", "main" ]
 
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+  GO_VERSION: '1.23' # Matches Dockerfile
+
 jobs:
-  lint-and-test:
+  test:
     name: Lint and Test
     runs-on: ubuntu-latest
     env:
-      CGO_ENABLED: 0 # Matches local environment setup where tests pass without CGO
+      CGO_ENABLED: 0
 
     steps:
     - name: Checkout code
@@ -21,7 +28,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ env.GO_VERSION }}
         cache: true
 
     - name: Install dependencies
@@ -39,37 +46,83 @@ jobs:
     - name: Run Tests
       run: go test -v ./...
 
-  build:
-    name: Build Binary
+  docker:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    needs: lint-and-test
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
-    env:
-      CGO_ENABLED: 0
+    needs: test
+    permissions:
+      contents: read
+      packages: write
+    # Only push on main/master or tags, skip on PRs to save resources/storage
+    if: github.event_name != 'pull_request'
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version-file: 'go.mod'
-        cache: true
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build API
-      run: go build -v -o dist/api ./cmd/api/main.go
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: api-binary
-        path: dist/api
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: docker
+    # Only run on pushes to main/master, or tags
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # port: ${{ secrets.SSH_PORT }} # Optional, defaults to 22
+          script: |
+            # Ensure the project directory exists
+            # mkdir -p /path/to/your/app
+            # cd /path/to/your/app
+            
+            # Pull the latest code (Deploy script relies on docker-compose files)
+            # git pull origin master # or main
+            
+            # Run the deployment script
+            # This triggers the Blue-Green deployment defined in Makefile/deploy.sh
+            # make deploy
+            
+            echo "Deployment triggered via SSH. (Uncomment script lines in ci.yml to enable)"
+            echo "Make sure secrets SSH_HOST, SSH_USER, SSH_PRIVATE_KEY are set in GitHub Repository Settings."
 
   release:
-    name: Create Release
+    name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [lint-and-test, build]
+    needs: test
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
@@ -78,11 +131,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Download Artifact
-      uses: actions/download-artifact@v4
+    - name: Set up Go
+      uses: actions/setup-go@v5
       with:
-        name: api-binary
-        path: dist
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Build API
+      env:
+        CGO_ENABLED: 0
+      run: go build -v -o dist/api ./cmd/api/main.go
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
