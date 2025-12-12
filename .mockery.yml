@@ -40,11 +40,15 @@ packages:
     config:
       dir: internal/modules/permission/test/mocks
       filename: mock_permission_usecase.go
-  github.com/Roisfaozi/go-clean-boilerplate/pkg/tx: # NEW
+  github.com/Roisfaozi/go-clean-boilerplate/pkg/tx:
     config:
-      dir: internal/mocking # Location for shared mocks
+      dir: internal/mocking
       filename: mock_transaction_manager.go
-  github.com/Roisfaozi/go-clean-boilerplate/pkg/ws: # NEW
+      pkgname: mocks
+
+  github.com/Roisfaozi/go-clean-boilerplate/pkg/ws:
     config:
-      dir: internal/mocking # Location for shared mocks
+      dir: internal/mocking
       filename: mock_websocket_manager.go
+      pkgname: mocks
+
