@@ -1,4 +1,4 @@
-name: CD (Build & Deploy)
+name: CD Production
 
 on:
   workflow_run:
@@ -11,15 +11,14 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  docker:
-    name: Build & Push Docker
+  build-push-production:
+    name: Build & Push Production
     runs-on: ubuntu-latest
-    # Only run if CI succeeded AND branch is main/staging or it's a tag
+    # Run if CI success AND branch is main OR it's a tag (v*)
     if: >
       ${{ github.event.workflow_run.conclusion == 'success' }} &&
       (
-        github.event.workflow_run.head_branch == 'main' ||
-        github.event.workflow_run.head_branch == 'staging' ||
+        ${{ github.event.workflow_run.head_branch == 'main' }} ||
         startsWith(github.event.workflow_run.head_branch, 'v')
       )
     permissions:
@@ -29,7 +28,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # Checkout the exact commit that triggered the CI run
           ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Log in to the Container registry
@@ -39,14 +37,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels)
+      - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest,enable=${{ github.event.workflow_run.head_branch == 'main' }}
-            type=raw,value=staging,enable=${{ github.event.workflow_run.head_branch == 'staging' }}
             type=semver,pattern={{version}},value=${{ github.event.workflow_run.head_branch }}
             type=sha,format=long
 
@@ -59,29 +56,10 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  deploy-staging:
-    name: Deploy to Staging
-    needs: docker
-    if: ${{ github.event.workflow_run.head_branch == 'staging' }}
-    environment: staging
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USER }}
-          key: ${{ secrets.STAGING_KEY }}
-          script: |
-            echo "🚀 Deploying to Staging..."
-            cd /app/staging
-            git pull origin staging
-            docker compose -f docker-compose.prod.yml pull
-            bash deploy/scripts/deploy.sh
-
   deploy-production:
-    name: Deploy to Production
-    needs: docker
+    name: Deploy to Production Server
+    needs: build-push-production
+    # Only deploy if it's main branch (tags create releases but don't auto-deploy to prod usually, or adjust as needed)
     if: ${{ github.event.workflow_run.head_branch == 'main' }}
     environment: production
     runs-on: ubuntu-latest
@@ -101,8 +79,8 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: docker
-    # Check if the branch name starts with 'v' (tags are passed as head_branch in workflow_run context for tags)
+    needs: build-push-production
+    # Only run for tags starting with 'v'
     if: startsWith(github.event.workflow_run.head_branch, 'v')
     runs-on: ubuntu-latest
     permissions:
@@ -126,7 +104,6 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          # We need to explicitly set the tag_name because we are running in workflow_run context (default branch)
           tag_name: ${{ github.event.workflow_run.head_branch }}
           files: dist/api
           draft: false
