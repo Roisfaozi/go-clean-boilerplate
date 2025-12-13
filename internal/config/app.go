@@ -96,7 +96,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		authMiddleware,
 		casbinMiddleware,
 		wsController,
-		sseManager, // NEW: Pass sseManager
+		sseManager,
+		logger, // NEW: Pass logger
 	)
 	logger.Info("Router setup complete.")
 

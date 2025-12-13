@@ -15,6 +15,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -28,12 +29,13 @@ func SetupRouter(
 	authMiddleware *middleware.AuthMiddleware,
 	casbinMiddleware gin.HandlerFunc,
 	wsController *ws.WebSocketController,
-	sseManager *sse.Manager, // NEW: Add sseManager
+	sseManager *sse.Manager,
+	logger *logrus.Logger, // NEW: Accept logger
 ) *gin.Engine {
 	router := gin.New()
 
-	router.Use(gin.Logger())
-	router.Use(gin.Recovery())
+	router.Use(middleware.RequestLogger(logger)) // Use structured logger
+	router.Use(middleware.RecoveryMiddleware(logger)) // Use structured recovery
 	router.Use(middleware.SecurityMiddleware())
 	router.Use(middleware.CORSMiddleware())
 
