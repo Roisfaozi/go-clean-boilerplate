@@ -11,8 +11,11 @@ import (
 	"gorm.io/gorm"
 )
 
-// NewCasbinEnforcer initializes and returns a Casbin enforcer based on the application configuration.
-// It returns nil if Casbin is disabled in the configuration.
+// NewCasbinEnforcer creates a new Casbin enforcer with the given configuration,
+// database connection, and logger. If Casbin is disabled in the configuration,
+// it returns nil without an error. If the Casbin watcher is enabled in the
+// configuration, it also sets the watcher for the enforcer. It returns the
+// enforcer and any error encountered.
 func NewCasbinEnforcer(cfg *AppConfig, db *gorm.DB, log *logrus.Logger) (*casbin.Enforcer, error) {
 	if !cfg.Casbin.Enabled {
 		log.Info("Casbin is disabled.")
@@ -29,7 +32,6 @@ func NewCasbinEnforcer(cfg *AppConfig, db *gorm.DB, log *logrus.Logger) (*casbin
 		return nil, fmt.Errorf("failed to create casbin enforcer: %w", err)
 	}
 
-	// Initialize Watcher if enabled
 	if cfg.Casbin.Watcher.Enabled {
 		watcher, err := rediswatcher.NewWatcher(cfg.Redis.Addr, rediswatcher.WatcherOptions{
 			Channel: cfg.Casbin.Watcher.Channel,

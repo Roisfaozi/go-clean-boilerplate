@@ -13,11 +13,9 @@ func NewServer(config *AppConfig, log *logrus.Logger) *gin.Engine {
 	}
 	router := gin.New()
 
-	// Use Custom Structured Logger
 	router.Use(middleware.RequestLogger(log))
 	router.Use(gin.Recovery())
 
-	// Basic CORS setup (can be refined later)
 	router.Use(cors.Default())
 
 	return router

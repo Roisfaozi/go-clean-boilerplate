@@ -9,35 +9,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// RequestLogger middleware handles structured logging for HTTP requests
 func RequestLogger(log *logrus.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 1. Generate Request ID
 		requestID := c.GetHeader("X-Request-ID")
 		if requestID == "" {
 			requestID = uuid.New().String()
 		}
 		c.Header("X-Request-ID", requestID)
-		
-		// Set request_id in Gin context
+
 		c.Set("request_id", requestID)
 
-		// Inject request_id into standard context.Context
-		// This ensures it travels down to UseCase and Repository layers
 		ctx := context.WithValue(c.Request.Context(), "request_id", requestID)
 		c.Request = c.Request.WithContext(ctx)
 
-		// 2. Start Timer
 		startTime := time.Now()
 
-		// 3. Process Request
 		c.Next()
 
-		// 4. Calculate Latency
 		endTime := time.Now()
 		latency := endTime.Sub(startTime)
 
-		// 5. Get Request Details
 		statusCode := c.Writer.Status()
 		clientIP := c.ClientIP()
 		method := c.Request.Method
@@ -49,7 +40,6 @@ func RequestLogger(log *logrus.Logger) gin.HandlerFunc {
 			dataLength = 0
 		}
 
-		// 6. Structured Logging
 		entry := log.WithFields(logrus.Fields{
 			"type":        "http_request",
 			"request_id":  requestID,
@@ -63,12 +53,10 @@ func RequestLogger(log *logrus.Logger) gin.HandlerFunc {
 			"data_length": dataLength,
 		})
 
-		// Retrieve user_id if authenticated (from AuthMiddleware)
 		if userID, exists := c.Get("user_id"); exists {
 			entry = entry.WithField("user_id", userID)
 		}
 
-		// Log based on status code
 		if len(c.Errors) > 0 {
 			entry.Error(c.Errors.String())
 		} else {

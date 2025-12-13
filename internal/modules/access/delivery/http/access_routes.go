@@ -19,20 +19,20 @@ import "github.com/gin-gonic/gin"
 // Parameters:
 //   - router: the *gin.RouterGroup to add routes to
 //   - handler: the *AccessHandler to handle requests
-func RegisterAccessRoutes(router *gin.RouterGroup, handler *AccessHandler) {
+func RegisterAccessRoutes(router *gin.RouterGroup, controller *AccessHandler) {
 	accessGroup := router.Group("/access-rights")
 	{
-		accessGroup.POST("", handler.CreateAccessRight)
-		accessGroup.GET("", handler.GetAllAccessRights)
-		accessGroup.POST("/search", handler.GetAccessRightsDynamic) // New dynamic search endpoint
-		accessGroup.DELETE("/:id", handler.DeleteAccessRight) // NEW
-		accessGroup.POST("/link", handler.LinkEndpointToAccessRight)
+		accessGroup.POST("", controller.CreateAccessRight)
+		accessGroup.GET("", controller.GetAllAccessRights)
+		accessGroup.POST("/search", controller.GetAccessRightsDynamic)
+		accessGroup.DELETE("/:id", controller.DeleteAccessRight)
+		accessGroup.POST("/link", controller.LinkEndpointToAccessRight)
 	}
 
 	endpointGroup := router.Group("/endpoints")
 	{
-		endpointGroup.POST("", handler.CreateEndpoint)
-		endpointGroup.POST("/search", handler.GetEndpointsDynamic) // New dynamic search endpoint
-		endpointGroup.DELETE("/:id", handler.DeleteEndpoint) // NEW
+		endpointGroup.POST("", controller.CreateEndpoint)
+		endpointGroup.POST("/search", controller.GetEndpointsDynamic)
+		endpointGroup.DELETE("/:id", controller.DeleteEndpoint)
 	}
 }

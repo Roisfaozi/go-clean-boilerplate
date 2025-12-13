@@ -52,20 +52,15 @@ type logrusWriter struct {
 }
 
 func (l *logrusWriter) Printf(message string, args ...interface{}) {
-	// Skip if no logger is set
 	if l.Logger == nil {
 		return
 	}
 
-	// Format the message with arguments
 	msg := fmt.Sprintf(message, args...)
 
-	// Log with appropriate level
 	if len(args) > 0 {
-		// This is an error or slow query
 		l.Logger.Debugf("GORM: %s", msg)
 	} else {
-		// This is a regular SQL query
 		l.Logger.Debugf("GORM: %s", msg)
 	}
 

@@ -46,7 +46,6 @@ func (tm *TransactionManager) WithinTransaction(ctx context.Context, fn func(ctx
 			if err := tx.Rollback().Error; err != nil {
 				tm.Log.Errorf("failed to rollback transaction: %v", err)
 			}
-			// re-panic after logging and attempting rollback
 			panic(r)
 		}
 	}()

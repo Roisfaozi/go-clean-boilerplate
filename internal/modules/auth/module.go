@@ -27,7 +27,7 @@ func NewAuthModule(
 	validator *validator.Validate,
 	tm tx.WithTransactionManager,
 	wsManager ws.Manager,
-	enforcer permissionUseCase.IEnforcer, // New parameter
+	enforcer permissionUseCase.IEnforcer,
 ) *AuthModule {
 	tokenRepository := repository.NewTokenRepositoryRedis(redis, log)
 	userRepo := userRepository.NewUserRepository(db, log)

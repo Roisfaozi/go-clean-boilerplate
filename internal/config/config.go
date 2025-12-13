@@ -109,7 +109,6 @@ func NewConfig() (*AppConfig, error) {
 		return nil, err
 	}
 
-	// Manually load secrets as Unmarshal can be unreliable for env vars without defaults
 	//JWT
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")

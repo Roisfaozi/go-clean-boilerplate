@@ -137,7 +137,6 @@ func (h *AuthHandler) handleError(c *gin.Context, err error, message string) {
 		response.Unauthorized(c, err, message)
 	case errors.Is(err, usecase.ErrInvalidToken), errors.Is(err, usecase.ErrExpiredToken), errors.Is(err, usecase.ErrTokenRevoked):
 		response.Unauthorized(c, err, message)
-	// Catch validation errors (this requires your validator to be configured to return error)
 	case strings.Contains(err.Error(), "validation"):
 		response.BadRequest(c, err, message)
 	default:
@@ -145,13 +144,12 @@ func (h *AuthHandler) handleError(c *gin.Context, err error, message string) {
 	}
 }
 
-// setRefreshTokenCookie sets or clears the refresh token in an HTTP-only cookie
 func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
 	var maxAge int
 	if token == "" {
-		maxAge = -1 // Expire immediately
+		maxAge = -1
 	} else {
-		maxAge = 3600 * 24 * 7 // 7 days
+		maxAge = 3600 * 24 * 7
 	}
 
 	secure := false
@@ -174,9 +172,9 @@ func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
 		"refresh_token",
 		token,
 		maxAge,
-		"/api/v1/auth/refresh", // Path should be specific to the refresh endpoint
-		"",                     // Domain
-		secure,                 // Secure flag (true in production)
-		true,                   // HttpOnly flag
+		"/api/v1/auth/refresh",
+		"",
+		secure,
+		true,
 	)
 }

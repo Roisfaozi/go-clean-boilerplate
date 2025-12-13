@@ -15,7 +15,6 @@ var (
 
 // RegisterCustomValidations registers custom validation tags to the provided validator instance.
 func RegisterCustomValidations(v *validator.Validate) error {
-	// Register 'xss' validation
 	if err := v.RegisterValidation("xss", validateXSS); err != nil {
 		return err
 	}
@@ -31,7 +30,6 @@ func validateXSS(fl validator.FieldLevel) bool {
 	safeTags := []string{"b", "i", "em", "strong", "u"}
 	desc := fl.Field().String()
 
-	// Remove safe tags first
 	temp := desc
 	for _, tag := range safeTags {
 		// Case insensitive replacement for safe tags is tricky with simple regex without flag
@@ -41,13 +39,11 @@ func validateXSS(fl validator.FieldLevel) bool {
 		temp = re.ReplaceAllString(temp, "")
 	}
 
-	// Check if any HTML tags remain
 	return !htmlTagRegex.MatchString(temp)
 }
 
-// SanitizeString removes ALL HTML tags from a string.
 func SanitizeString(s string) string {
-	// Simple regex-based strip tags. 
+	// Simple regex-based strip tags.
 	// Note: This is not secure against all XSS vectors but sufficient for basic cleanup.
 	return htmlTagRegex.ReplaceAllString(s, "")
 }

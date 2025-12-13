@@ -60,7 +60,6 @@ func ValidationError(c *gin.Context, err error, msg string) {
 	ErrorResponse(c, http.StatusUnprocessableEntity, err, msg)
 }
 
-// HandleError determines the appropriate HTTP status code based on the error type and sends a JSON response.
 func HandleError(c *gin.Context, err error, message string) {
 	switch {
 	case errors.Is(err, exception.ErrBadRequest):

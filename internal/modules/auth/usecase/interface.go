@@ -9,7 +9,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 )
 
-// Common errors
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrInvalidToken       = errors.New("invalid or expired token")

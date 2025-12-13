@@ -1,5 +1,5 @@
 package usecase
-// IEnforcer defines an interface for the casbin enforcer to make it mockable.
+
 type IEnforcer interface {
 	AddGroupingPolicy(params ...interface{}) (bool, error)
 	AddPolicy(params ...interface{}) (bool, error)

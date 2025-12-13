@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	authUsecase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase" // Alias to avoid conflict with jwt.Claims
+	authUsecase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -22,7 +22,6 @@ func NewAuthMiddleware(authUseCase authUsecase.AuthUseCase, log *logrus.Logger) 
 	}
 }
 
-// ValidateToken validates the JWT token from the Authorization header
 func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -46,7 +45,7 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 			return
 		}
 
-		claims, err := m.AuthUseCase.ValidateAccessToken(token) // This returns *jwt.Claims from internal/pkg/jwt
+		claims, err := m.AuthUseCase.ValidateAccessToken(token)
 		if err != nil {
 			m.Log.WithError(err).Warn("Token validation failed")
 			response.Unauthorized(c, err, "unauthorized")
@@ -54,7 +53,6 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 			return
 		}
 
-		// Verify session is still valid in the repository
 		session, err := m.AuthUseCase.Verify(c.Request.Context(), claims.UserID, claims.SessionID)
 		if err != nil {
 			m.Log.WithError(err).Warn("Session verification failed with database/redis error")
@@ -69,7 +67,6 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 			return
 		}
 
-		// Set user, session, role, and username info in the context for downstream handlers
 		c.Set("user_id", claims.UserID)
 		c.Set("session_id", claims.SessionID)
 		c.Set("user_role", claims.Role)
@@ -79,7 +76,6 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 	}
 }
 
-// GetUserIDFromContext retrieves the user ID from the context
 func GetUserIDFromContext(c *gin.Context) (string, bool) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -94,7 +90,6 @@ func GetUserIDFromContext(c *gin.Context) (string, bool) {
 	return userIDStr, true
 }
 
-// GetSessionIDFromContext retrieves the session ID from the context
 func GetSessionIDFromContext(c *gin.Context) (string, bool) {
 	sessionID, exists := c.Get("session_id")
 	if !exists {
@@ -109,7 +104,6 @@ func GetSessionIDFromContext(c *gin.Context) (string, bool) {
 	return sessionIDStr, true
 }
 
-// GetRoleFromContext retrieves the user role from the context
 func GetRoleFromContext(c *gin.Context) (string, bool) {
 	role, exists := c.Get("user_role")
 	if !exists {
@@ -122,7 +116,6 @@ func GetRoleFromContext(c *gin.Context) (string, bool) {
 	return roleStr, true
 }
 
-// GetUsernameFromContext retrieves the username from the context
 func GetUsernameFromContext(c *gin.Context) (string, bool) {
 	username, exists := c.Get("username")
 	if !exists {

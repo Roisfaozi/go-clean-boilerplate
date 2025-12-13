@@ -17,10 +17,7 @@ func FormatValidationErrors(err error) string {
 			if i > 0 {
 				sb.WriteString("; ")
 			}
-			
-			// Use Field() which returns the struct field name. 
-			// Note: To use JSON tag names instead, we'd need to register a custom TagNameFunc with the validator instance,
-			// but using the Struct Field Name is usually sufficient and standard.
+
 			field := e.Field()
 
 			switch e.Tag() {
@@ -45,6 +42,5 @@ func FormatValidationErrors(err error) string {
 		return sb.String()
 	}
 
-	// If it's not a validation error, return the default error string
 	return err.Error()
 }

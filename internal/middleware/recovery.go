@@ -9,12 +9,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// RecoveryMiddleware captures panics and logs them structuredly
 func RecoveryMiddleware(log *logrus.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				// Capture stack trace
 				stack := string(debug.Stack())
 
 				requestID := c.GetString("request_id")
@@ -31,7 +29,6 @@ func RecoveryMiddleware(log *logrus.Logger) gin.HandlerFunc {
 					"method":      c.Request.Method,
 				}).Error("Panic recovered")
 
-				// Return 500 to client
 				response.InternalServerError(c, fmt.Errorf("internal server error"), "Something went wrong")
 				c.Abort()
 			}
