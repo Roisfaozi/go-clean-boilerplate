@@ -33,7 +33,7 @@ func TestRoleUseCase_Create(t *testing.T) {
 		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 			Run(func(args mock.Arguments) {
 				fn := args.Get(1).(func(context.Context) error)
-				fn(context.Background())
+				_ = fn(context.Background())
 			}).Return(nil)
 
 		mockRepo.On("FindByName", mock.Anything, "new_role").Return((*entity.Role)(nil), gorm.ErrRecordNotFound)
@@ -107,7 +107,7 @@ func TestRoleUseCase_GetAll(t *testing.T) {
 			Return(nil).
 			Run(func(args mock.Arguments) {
 				fn := args.Get(1).(func(context.Context) error)
-				fn(context.Background())
+				_ = fn(context.Background())
 			})
 
 		mockRepo.On("FindAll", mock.Anything).
@@ -160,7 +160,7 @@ func TestRoleUseCase_Delete(t *testing.T) {
 
 				fn := args.Get(1).(func(context.Context) error)
 
-				fn(context.Background())
+				_ = fn(context.Background())
 
 			})
 
@@ -298,7 +298,7 @@ func TestRoleUseCase_GetAllRolesDynamic(t *testing.T) {
 
 				fn := args.Get(1).(func(context.Context) error)
 
-				fn(context.Background())
+				_ = fn(context.Background())
 
 			}).Return(nil)
 

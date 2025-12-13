@@ -62,7 +62,9 @@ func connectClient(url string) (*websocket.Conn, error) {
 }
 
 func waitForMessage(conn *websocket.Conn, msgType string, channel string) (*ws.ServerMessage, error) {
-	conn.SetReadDeadline(time.Now().Add(5 * time.Second)) // Increased timeout
+	if err := conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil { // Check error
+		return nil, err
+	}
 	for {
 		var msg ws.ServerMessage
 		err := conn.ReadJSON(&msg)
@@ -115,7 +117,7 @@ func TestWebSocketManager_Integration(t *testing.T) {
 		Channel: "test-channel",
 		Data:    map[string]string{"event": "hello"},
 	}
-	broadcastBytes, _ := json.Marshal(broadcastContent)
+	broadcastBytes, _ := json.Marshal(broadcastContent) // No error check needed for marshal in test
 	manager.BroadcastToChannel("test-channel", broadcastBytes)
 
 	// Wait for broadcast message
@@ -135,7 +137,7 @@ func TestBroadcastToChannel(t *testing.T) {
 	c1, err := connectClient(server.URL)
 	require.NoError(t, err)
 	defer c1.Close()
-	c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel1"})
+	require.NoError(t, c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel1"})) // Check error
 	_, err = waitForMessage(c1, "info", "channel1")
 	require.NoError(t, err)
 
@@ -143,7 +145,7 @@ func TestBroadcastToChannel(t *testing.T) {
 	c2, err := connectClient(server.URL)
 	require.NoError(t, err)
 	defer c2.Close()
-	c2.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel1"})
+	require.NoError(t, c2.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel1"})) // Check error
 	_, err = waitForMessage(c2, "info", "channel1")
 	require.NoError(t, err)
 
@@ -151,7 +153,7 @@ func TestBroadcastToChannel(t *testing.T) {
 	c3, err := connectClient(server.URL)
 	require.NoError(t, err)
 	defer c3.Close()
-	c3.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel2"})
+	require.NoError(t, c3.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel2"})) // Check error
 	_, err = waitForMessage(c3, "info", "channel2")
 	require.NoError(t, err)
 
@@ -173,8 +175,9 @@ func TestBroadcastToChannel(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify c3 did NOT receive
-	err = c3.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
-	assert.NoError(t, err)
+	if err := c3.SetReadDeadline(time.Now().Add(100 * time.Millisecond)); err != nil { // Check error
+		t.Fatalf("Failed to set read deadline for c3: %v", err)
+	}
 	var msg ws.ServerMessage
 	err = c3.ReadJSON(&msg)
 	assert.Error(t, err) // Should timeout or EOF
