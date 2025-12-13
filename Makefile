@@ -48,8 +48,8 @@ help:
 	@echo "  test-race    - Run tests with race detector."
 	@echo "  test-cover   - Run tests with coverage analysis."
 	@echo "  bench        - Run benchmarks."
-	@echo "  bench-race   - Run benchmarks with race detector.
-	@echo "  bench-cpu     - Run benchmarks with CPU profiling.
+	@echo "  bench-race   - Run benchmarks with race detector."s
+	@echo "  bench-cpu     - Run benchmarks with CPU profiling."
 	@echo "  bench-mem     - Run benchmarks with memory profiling."
 	@echo "  docs         - Generate Swagger/OpenAPI documentation."
 	@echo "  tidy         - Tidy go.mod and go.sum files."
@@ -154,6 +154,16 @@ tidy:
 lint:
 	@echo "Running linter..."
 	@powershell -Command "if (-not (Get-Command golangci-lint -ErrorAction SilentlyContinue)) { echo 'golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/'; exit 1; } else { golangci-lint run }"
+
+.PHONY: lint-fix
+lint-fix:
+	@echo "Running linter with auto-fix..."
+	@powershell -Command "if (-not (Get-Command golangci-lint -ErrorAction SilentlyContinue)) { echo 'golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/'; exit 1; } else { golangci-lint run --fix }"
+
+.PHONY: vulcek
+vulcek:
+	@echo "Running vulnerability check with govulncheck ./..."
+	govulncheck ./...
 
 # Generate mocks
 .PHONY: mocks
