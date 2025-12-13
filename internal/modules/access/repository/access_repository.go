@@ -36,22 +36,16 @@ func (r *accessRepository) GetEndpoints(ctx context.Context) ([]*entity.Endpoint
 
 func (r *accessRepository) FindEndpointsDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.Endpoint, error) {
 	var endpoints []*entity.Endpoint
-	query := r.db.WithContext(ctx)
+	query := r.db.WithContext(ctx).Model(&entity.Endpoint{})
 
-	where, args, _, err := querybuilder2.GenerateDynamicQuery[entity.Endpoint](filter)
+	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.Endpoint{}, filter)
 	if err != nil {
 		return nil, err
 	}
-	if where != "" {
-		query = query.Where(where, args...)
-	}
 
-	sort, err := querybuilder2.GenerateDynamicSort[entity.Endpoint](filter)
+	query, err = querybuilder2.GenerateDynamicSort(query, &entity.Endpoint{}, filter)
 	if err != nil {
 		return nil, err
-	}
-	if sort != "" {
-		query = query.Order(sort)
 	}
 
 	if err := query.Find(&endpoints).Error; err != nil {
@@ -87,22 +81,16 @@ func (r *accessRepository) GetAccessRights(ctx context.Context) ([]*entity.Acces
 
 func (r *accessRepository) FindAccessRightsDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.AccessRight, error) {
 	var accessRights []*entity.AccessRight
-	query := r.db.WithContext(ctx).Preload("Endpoints")
+	query := r.db.WithContext(ctx).Model(&entity.AccessRight{}).Preload("Endpoints")
 
-	where, args, _, err := querybuilder2.GenerateDynamicQuery[entity.AccessRight](filter)
+	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.AccessRight{}, filter)
 	if err != nil {
 		return nil, err
 	}
-	if where != "" {
-		query = query.Where(where, args...)
-	}
 
-	sort, err := querybuilder2.GenerateDynamicSort[entity.AccessRight](filter)
+	query, err = querybuilder2.GenerateDynamicSort(query, &entity.AccessRight{}, filter)
 	if err != nil {
 		return nil, err
-	}
-	if sort != "" {
-		query = query.Order(sort)
 	}
 
 	if err := query.Find(&accessRights).Error; err != nil {

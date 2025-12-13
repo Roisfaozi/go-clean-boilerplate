@@ -3,6 +3,7 @@ package querybuilder
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"gorm.io/gorm"
@@ -87,11 +88,24 @@ func GenerateDynamicSort(db *gorm.DB, model interface{}, filter *DynamicFilter) 
 	return db, nil
 }
 
-// GetDBFieldName extracts the database column name from a struct field, prioritizing 'gorm' tag, then 'json' tag, then snake_case of the field name.
+// GetDBFieldName extracts the database column name from a struct field.
+// It prioritizes 'gorm' tag, then 'json' tag, then snake_case of the field name.
+// It supports case-insensitive field name matching.
 func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 	field, found := tType.FieldByName(fieldName)
 	if !found {
-		return "", false
+		// Try case-insensitive lookup
+		for i := 0; i < tType.NumField(); i++ {
+			f := tType.Field(i)
+			if strings.EqualFold(f.Name, fieldName) {
+				field = f
+				found = true
+				break
+			}
+		}
+		if !found {
+			return "", false
+		}
 	}
 
 	// Check 'gorm' tag
@@ -110,12 +124,10 @@ func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 		}
 	}
 
-	// Default to snake_case
-	return ToSnakeCase(fieldName), true
+	// Default to snake_case of the struct field name
+	return ToSnakeCase(field.Name), true
 }
 
-// extractColumnNameFromGormTag parses the 'gorm' tag to find the column name.
-// e.g., "column:user_name;type:varchar(100);uniqueIndex" -> "user_name"
 func extractColumnNameFromGormTag(tag string) string {
 	parts := strings.Split(tag, ";")
 	for _, part := range parts {
@@ -126,8 +138,6 @@ func extractColumnNameFromGormTag(tag string) string {
 	return ""
 }
 
-// extractColumnNameFromJsonTag parses the 'json' tag to find the column name.
-// e.g., "user_name,omitempty" -> "user_name"
 func extractColumnNameFromJsonTag(tag string) string {
 	parts := strings.Split(tag, ",")
 	if len(parts) > 0 {
@@ -136,14 +146,12 @@ func extractColumnNameFromJsonTag(tag string) string {
 	return ""
 }
 
+var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
+
 // ToSnakeCase converts a string to snake_case.
-func ToSnakeCase(input string) string {
-	var result []rune
-	for i, r := range input {
-		if i > 0 && 'A' <= r && r <= 'Z' {
-			result = append(result, '_')
-		}
-		result = append(result, r)
-	}
-	return strings.ToLower(string(result))
+func ToSnakeCase(str string) string {
+	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
+	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
+	return strings.ToLower(snake)
 }

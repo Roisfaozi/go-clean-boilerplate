@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -11,9 +10,13 @@ import (
 
 func NewRedisConfig(cfg *AppConfig, log *logrus.Logger) *redis.Client {
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s", cfg.Redis.Addr),
-		Password: cfg.Redis.Password,
-		DB:       0,
+		Addr:         cfg.Redis.Addr,
+		Password:     cfg.Redis.Password,
+		DB:           cfg.Redis.DB,
+		PoolSize:     cfg.Redis.PoolSize,
+		DialTimeout:  cfg.Redis.DialTimeout,
+		ReadTimeout:  cfg.Redis.ReadTimeout,
+		WriteTimeout: cfg.Redis.WriteTimeout,
 	})
 
 	log.Infof("Redis connection established: %s", cfg.Redis.Addr)

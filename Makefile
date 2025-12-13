@@ -153,11 +153,7 @@ tidy:
 .PHONY: lint
 lint:
 	@echo "Running linter..."
-	@if (-not (Get-Command golangci-lint -ErrorAction SilentlyContinue)) { \
-		echo "golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/"; \
-		exit 1; \
-	}
-	golangci-lint run
+	@powershell -Command "if (-not (Get-Command golangci-lint -ErrorAction SilentlyContinue)) { echo 'golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/'; exit 1; } else { golangci-lint run }"
 
 # Generate mocks
 .PHONY: mocks

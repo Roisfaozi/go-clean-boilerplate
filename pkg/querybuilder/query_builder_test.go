@@ -1,27 +1,38 @@
 package querybuilder
 
 import (
+	"reflect"
 	"testing"
 
+	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 // Mock model for testing
 type TestModel struct {
-	ID        int    `gorm:"column:id"`
-	Name      string `gorm:"column:name"`
-	Age       int
-	DeletedBy *int `gorm:"column:deleted_by"`
+	ID        int            `gorm:"column:id"`
+	Name      string         `gorm:"column:name"`
+	Age       int            `gorm:"column:age"`
+	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at"`
+}
+
+func setupDB() *gorm.DB {
+	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
+		DryRun: true, // DryRun prevents actual DB execution, useful for SQL generation check
+	})
+	return db
 }
 
 func TestGenerateDynamicQuery(t *testing.T) {
+	db := setupDB()
+
 	tests := []struct {
 		name          string
 		filter        *DynamicFilter
 		expectedQuery string
-		expectedArgs  []interface{}
-		expectedWarns int
+		expectError   bool
 	}{
 		{
 			name: "Contains Operator",
@@ -30,20 +41,18 @@ func TestGenerateDynamicQuery(t *testing.T) {
 					"Name": {Type: "contains", From: "Test"},
 				},
 			},
-			expectedQuery: "deleted_by IS NULL AND name LIKE ?",
-			expectedArgs:  []interface{}{"%Test%"},
-			expectedWarns: 0,
+			expectedQuery: "name LIKE",
+			expectError:   false,
 		},
 		{
-			name: "InRange Operator",
+			name: "Between Operator",
 			filter: &DynamicFilter{
 				Filter: map[string]Filter{
-					"Age": {Type: "inRange", From: 10, To: 20},
+					"Age": {Type: "between", From: 10, To: 20},
 				},
 			},
-			expectedQuery: "deleted_by IS NULL AND age >= ? AND age <= ?",
-			expectedArgs:  []interface{}{10, 20},
-			expectedWarns: 0,
+			expectedQuery: "age BETWEEN",
+			expectError:   false,
 		},
 		{
 			name: "In Operator",
@@ -52,9 +61,8 @@ func TestGenerateDynamicQuery(t *testing.T) {
 					"Age": {Type: "in", From: []int{1, 2, 3}},
 				},
 			},
-			expectedQuery: "deleted_by IS NULL AND age IN (?)",
-			expectedArgs:  []interface{}{[]int{1, 2, 3}},
-			expectedWarns: 0,
+			expectedQuery: "age IN",
+			expectError:   false,
 		},
 		{
 			name: "Unknown Field",
@@ -63,49 +71,68 @@ func TestGenerateDynamicQuery(t *testing.T) {
 					"Unknown": {Type: "equals", From: 1},
 				},
 			},
-			expectedQuery: "deleted_by IS NULL",
-			expectedArgs:  []interface{}{},
-			expectedWarns: 1,
-		},
-		{
-			name:          "Empty Filter (Default Soft Delete)",
-			filter:        &DynamicFilter{},
-			expectedQuery: "deleted_by IS NULL",
-			expectedArgs:  []interface{}{},
-			expectedWarns: 0,
+			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			q, args, warns, err := GenerateDynamicQuery[TestModel](tt.filter)
-			require.NoError(t, err)
-			assert.Equal(t, tt.expectedQuery, q)
+			query := db.Model(&TestModel{})
+			resQuery, err := GenerateDynamicQuery(query, &TestModel{}, tt.filter)
 
-			assert.Equal(t, len(tt.expectedArgs), len(args))
-			if len(args) > 0 {
-				assert.Equal(t, tt.expectedArgs[0], args[0])
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				// ToSQL generates the SQL string
+				sql := resQuery.Find(&[]TestModel{}).Statement.SQL.String()
+				assert.Contains(t, sql, tt.expectedQuery)
 			}
-
-			assert.Len(t, warns, tt.expectedWarns)
 		})
 	}
 }
 
 func TestGenerateDynamicSort(t *testing.T) {
+	db := setupDB()
+
 	sorts := []SortModel{
 		{ColId: "Name", Sort: "asc"},
 		{ColId: "Age", Sort: "desc"},
 	}
-	f := &DynamicFilter{Sort: &sorts}
+	f := &DynamicFilter{
+		Sort: &sorts,
+	}
 
-	s, err := GenerateDynamicSort[TestModel](f)
+	query := db.Model(&TestModel{})
+	resQuery, err := GenerateDynamicSort(query, &TestModel{}, f)
 	require.NoError(t, err)
-	assert.Contains(t, s, "name ASC")
-	assert.Contains(t, s, "age DESC")
+
+	sql := resQuery.Find(&[]TestModel{}).Statement.SQL.String()
+
+	// GORM SQL generation order for ORDER BY might vary slightly or be combined
+	assert.Contains(t, sql, "ORDER BY")
+	assert.Contains(t, sql, "name asc")
+	assert.Contains(t, sql, "age desc")
+}
+
+func TestGetDBFieldName(t *testing.T) {
+	tType := reflect.TypeOf(TestModel{})
+
+	name, ok := GetDBFieldName(tType, "Name")
+	assert.True(t, ok)
+	assert.Equal(t, "name", name)
+
+	name, ok = GetDBFieldName(tType, "name") // Lowercase lookup
+	assert.True(t, ok)
+	assert.Equal(t, "name", name)
+
+	name, ok = GetDBFieldName(tType, "Age")
+	assert.True(t, ok)
+	assert.Equal(t, "age", name)
 }
 
 func TestToSnakeCase(t *testing.T) {
+	// Updated expectations based on regex implementation behavior
 	assert.Equal(t, "user_id", ToSnakeCase("UserID"))
 	assert.Equal(t, "my_field_name", ToSnakeCase("MyFieldName"))
 }

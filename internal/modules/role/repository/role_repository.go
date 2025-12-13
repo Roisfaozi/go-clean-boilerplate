@@ -51,23 +51,18 @@ func (r *roleRepository) FindAll(ctx context.Context) ([]*entity.Role, error) {
 
 func (r *roleRepository) FindAllDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.Role, error) {
 	var roles []*entity.Role
-	query := r.db.WithContext(ctx)
+	query := r.db.WithContext(ctx).Model(&entity.Role{})
 
-	where, args, _, err := querybuilder2.GenerateDynamicQuery[entity.Role](filter)
+	// Apply Dynamic Filter
+	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.Role{}, filter)
 	if err != nil {
 		return nil, err
 	}
 
-	if where != "" {
-		query = query.Where(where, args...)
-	}
-
-	sort, err := querybuilder2.GenerateDynamicSort[entity.Role](filter)
+	// Apply Dynamic Sort
+	query, err = querybuilder2.GenerateDynamicSort(query, &entity.Role{}, filter)
 	if err != nil {
 		return nil, err
-	}
-	if sort != "" {
-		query = query.Order(sort)
 	}
 
 	if err := query.Find(&roles).Error; err != nil {

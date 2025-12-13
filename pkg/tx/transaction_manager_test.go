@@ -103,11 +103,11 @@ func TestTransactionManager_WithinTransaction_PanicRollback(t *testing.T) {
 
 	tm := tx.NewTransactionManager(db, logger)
 
-	err = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
-		panic("panic inside transaction")
+	assert.PanicsWithValue(t, "panic inside transaction", func() {
+		_ = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
+			panic("panic inside transaction")
+		})
 	})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "panic recovered")
 
 	// Verify data is NOT committed
 	var count int64

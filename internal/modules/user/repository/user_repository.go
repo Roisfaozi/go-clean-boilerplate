@@ -122,28 +122,19 @@ func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserL
 
 func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.User, error) {
 	var users []*entity.User
-	query := r.db.WithContext(ctx)
+	query := r.db.WithContext(ctx).Model(&entity.User{})
 
-	where, args, _, err := querybuilder2.GenerateDynamicQuery[entity.User](filter)
+	// Apply Dynamic Filter
+	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.User{}, filter)
 	if err != nil {
 		return nil, err
 	}
 
-	if where != "" {
-		query = query.Where(where, args...)
-	}
-
-	sort, err := querybuilder2.GenerateDynamicSort[entity.User](filter)
+	// Apply Dynamic Sort
+	query, err = querybuilder2.GenerateDynamicSort(query, &entity.User{}, filter)
 	if err != nil {
 		return nil, err
 	}
-	if sort != "" {
-		query = query.Order(sort)
-	}
-
-	// Note: Pagination should be handled separately or added to DynamicFilter if desired.
-	// For this example, we'll assume pagination is handled outside or we can add it later.
-	// Let's just run Find().
 
 	if err := query.Find(&users).Error; err != nil {
 		r.log.WithError(err).Error("failed to find users dynamic")

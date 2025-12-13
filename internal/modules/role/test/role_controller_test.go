@@ -15,6 +15,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation" // Import validation pkg
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -37,13 +38,17 @@ func (w *NoOpWriter) Levels() []logrus.Level {
 func setupRouter(uc usecase.RoleUseCase) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
-	handler := roleHttp.NewRoleHandler(uc, logrus.New(), validator.New()) // Inject validator
+
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v) // Register custom validations like 'xss'
+
+	handler := roleHttp.NewRoleHandler(uc, logrus.New(), v)
 	apiV1 := router.Group("/api/v1")
 	{
 		apiV1.POST("/roles", handler.Create)
 		apiV1.GET("/roles", handler.GetAll)
 		apiV1.DELETE("/roles/:id", handler.Delete)
-		apiV1.POST("/roles/search", handler.GetRolesDynamic) // Correct handler method name
+		apiV1.POST("/roles/search", handler.GetRolesDynamic)
 	}
 	return router
 }
@@ -76,7 +81,7 @@ func TestRoleHandler_Create_BindingError(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "failed to bind request body for create role")
+	assert.Contains(t, w.Body.String(), "invalid request body")
 	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
 }
 
@@ -93,7 +98,7 @@ func TestRoleHandler_Create_ValidationError(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-	assert.Contains(t, w.Body.String(), "Validation Error")
+	assert.Contains(t, w.Body.String(), "validation error")
 	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
 }
 
@@ -119,7 +124,8 @@ func TestRoleHandler_GetAll_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
 	router := setupRouter(mockUseCase)
 
-	expectedRoles := []*model.RoleResponse{
+	// Adjust mock return type to slice of values (not pointers) based on panic message
+	expectedRoles := []model.RoleResponse{
 		{ID: "1", Name: "admin"},
 		{ID: "2", Name: "user"},
 	}
@@ -130,12 +136,10 @@ func TestRoleHandler_GetAll_Success(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	
-	// Correct response struct
-	var responseBody response.WebResponseSuccess[[]*model.RoleResponse]
+
+	var responseBody response.WebResponseSuccess[[]model.RoleResponse]
 	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.NoError(t, err)
-	// WebResponseSuccess struct has no Success bool field, existence of Data implies success or we check HTTP code
 	assert.Len(t, responseBody.Data, 2)
 	mockUseCase.AssertExpectations(t)
 }
@@ -210,7 +214,8 @@ func TestRoleHandler_GetAllRolesDynamic_Success(t *testing.T) {
 	}
 	requestBody, _ := json.Marshal(dynamicFilter)
 
-	expectedRoles := []*model.RoleResponse{
+	// Adjust mock return type to slice of values based on panic message
+	expectedRoles := []model.RoleResponse{
 		{ID: "1", Name: "test_role"},
 	}
 	mockUseCase.On("GetAllRolesDynamic", mock.Anything, dynamicFilter).Return(expectedRoles, nil)
@@ -221,9 +226,8 @@ func TestRoleHandler_GetAllRolesDynamic_Success(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	
-	// Correct response struct
-	var responseBody response.WebResponseSuccess[[]*model.RoleResponse]
+
+	var responseBody response.WebResponseSuccess[[]model.RoleResponse]
 	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.NoError(t, err)
 	assert.Len(t, responseBody.Data, 1)
