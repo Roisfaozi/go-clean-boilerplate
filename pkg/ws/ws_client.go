@@ -171,7 +171,7 @@ func (c *Client) handleMessage(message []byte) {
 		return
 	}
 
-	sswitch clientMsg.Type {
+	switch clientMsg.Type {
 	case "subscribe":
 		c.Manager.SubscribeToChannel(c, clientMsg.Channel)
 		c.sendInfo(clientMsg.Channel, fmt.Sprintf("Subscribed to channel: %s", clientMsg.Channel))

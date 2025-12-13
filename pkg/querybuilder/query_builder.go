@@ -4,31 +4,9 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
 	"gorm.io/gorm"
 )
-
-// DynamicFilter struct for filtering
-type DynamicFilter struct {
-	Filter map[string]Filter `json:"filter"`
-	Sort   []Sort            `json:"sort"`
-	Page   int               `json:"page"`
-	Limit  int               `json:"limit"`
-}
-
-// Filter struct for individual filter conditions
-type Filter struct {
-	Type string      `json:"type"` // "equals", "contains", "in", "between", "gt", "gte", "lt", "lte", "ne"
-	From interface{} `json:"from"`
-	To   interface{} `json:"to"`
-}
-
-// Sort struct for sorting conditions
-type Sort struct {
-	Field string `json:"field"`
-	Order string `json:"order"` // "asc", "desc"
-}
 
 // GenerateDynamicQuery constructs a GORM query based on dynamic filters.
 func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter) (*gorm.DB, error) {
