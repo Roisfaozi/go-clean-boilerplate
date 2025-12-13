@@ -30,12 +30,13 @@ func SetupRouter(
 	casbinMiddleware gin.HandlerFunc,
 	wsController *ws.WebSocketController,
 	sseManager *sse.Manager,
-	logger *logrus.Logger, // NEW: Accept logger
+	logger *logrus.Logger,
 ) *gin.Engine {
 	router := gin.New()
 
-	router.Use(middleware.RequestLogger(logger)) // Use structured logger
-	router.Use(middleware.RecoveryMiddleware(logger)) // Use structured recovery
+	router.Use(gin.Recovery())
+	router.Use(middleware.RequestLogger(logger))
+	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.SecurityMiddleware())
 	router.Use(middleware.CORSMiddleware())
 
@@ -48,7 +49,7 @@ func SetupRouter(
 	})
 
 	router.GET("/ws", wsController.HandleWebSocket)
-	router.GET("/events", sseManager.ServeHTTP()) // NEW: Register SSE endpoint
+	router.GET("/events", sseManager.ServeHTTP())
 
 	apiV1 := router.Group("/api/v1")
 
