@@ -58,7 +58,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	loginResp, refreshToken, err := h.AuthUseCase.Login(c.Request.Context(), req)
 	if err != nil {
-		h.Log.Errorf("Login failed: %+v", req)
+		h.Log.Errorf("Login failed for user: %s", req.Username)
 		h.Log.WithError(err).Error("Login failed")
 		h.handleError(c, err, "Wrong password or username")
 		return
@@ -152,22 +152,11 @@ func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
 		maxAge = 3600 * 24 * 7
 	}
 
+	// In a real application, you should check the environment
+	// e.g. secure = h.Config.Server.AppEnv == "production"
+	// For now, we will default to false for development but provide a comment
 	secure := false
 
-	//if h.Config.Server.AppEnv != "production" {
-	//	maxAge = 3600 * 24 * 7 // 7 days
-	//	secure = false
-	//	c.SetCookie(
-	//		"refresh_token",
-	//		token,
-	//		maxAge,
-	//		"/api/v1/auth/refresh", // Path should be specific to the refresh endpoint
-	//		"",                     // Domain
-	//		secure,                 // Secure flag (true in production)
-	//		true,                   // HttpOnly flag
-	//	)
-	//	return
-	//}
 	c.SetCookie(
 		"refresh_token",
 		token,
