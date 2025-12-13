@@ -91,7 +91,7 @@ func TestWebSocketManager_Integration(t *testing.T) {
 
 	conn, err := connectClient(server.URL)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }() // Ignore close error
 
 	// Wait for registration
 	for i := 0; i < 10; i++ {
@@ -136,7 +136,7 @@ func TestBroadcastToChannel(t *testing.T) {
 	// Client 1 -> channel1
 	c1, err := connectClient(server.URL)
 	require.NoError(t, err)
-	defer c1.Close()
+	defer func() { _ = c1.Close() }() // Ignore close error
 	require.NoError(t, c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel1"})) // Check error
 	_, err = waitForMessage(c1, "info", "channel1")
 	require.NoError(t, err)
@@ -144,7 +144,7 @@ func TestBroadcastToChannel(t *testing.T) {
 	// Client 2 -> channel1
 	c2, err := connectClient(server.URL)
 	require.NoError(t, err)
-	defer c2.Close()
+	defer func() { _ = c2.Close() }() // Ignore close error
 	require.NoError(t, c2.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel1"})) // Check error
 	_, err = waitForMessage(c2, "info", "channel1")
 	require.NoError(t, err)
@@ -152,7 +152,7 @@ func TestBroadcastToChannel(t *testing.T) {
 	// Client 3 -> channel2
 	c3, err := connectClient(server.URL)
 	require.NoError(t, err)
-	defer c3.Close()
+	defer func() { _ = c3.Close() }() // Ignore close error
 	require.NoError(t, c3.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel2"})) // Check error
 	_, err = waitForMessage(c3, "info", "channel2")
 	require.NoError(t, err)

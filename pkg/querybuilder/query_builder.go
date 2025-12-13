@@ -62,7 +62,7 @@ func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter)
 
 // GenerateDynamicSort applies sorting conditions to a GORM query.
 func GenerateDynamicSort(db *gorm.DB, model interface{}, filter *DynamicFilter) (*gorm.DB, error) {
-	if filter == nil || len(filter.Sort) == 0 {
+	if filter == nil || filter.Sort == nil || len(*filter.Sort) == 0 {
 		return db, nil
 	}
 
@@ -71,14 +71,14 @@ func GenerateDynamicSort(db *gorm.DB, model interface{}, filter *DynamicFilter) 
 		tType = tType.Elem()
 	}
 
-	for _, sort := range filter.Sort {
-		dbFieldName, ok := GetDBFieldName(tType, sort.Field)
+	for _, sort := range *filter.Sort {
+		dbFieldName, ok := GetDBFieldName(tType, sort.ColId)
 		if !ok {
-			return nil, fmt.Errorf("invalid field for sorting: %s", sort.Field)
+			return nil, fmt.Errorf("invalid field for sorting: %s", sort.ColId)
 		}
 
 		order := "asc"
-		if strings.ToLower(sort.Order) == "desc" {
+		if strings.ToLower(sort.Sort) == "desc" {
 			order = "desc"
 		}
 		db = db.Order(fmt.Sprintf("%s %s", dbFieldName, order))

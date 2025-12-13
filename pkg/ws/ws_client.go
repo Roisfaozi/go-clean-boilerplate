@@ -66,10 +66,7 @@ func (c *Client) ReadPump() {
 			c.Log.Warnf("Error closing connection for client %s: %v", c.ID, err)
 		}
 	}()
-	if err := c.Conn.SetReadLimit(c.Config.MaxMessageSize); err != nil {
-		c.Log.Errorf("Client %s: SetReadLimit failed: %v", c.ID, err)
-		return
-	}
+	c.Conn.SetReadLimit(c.Config.MaxMessageSize)
 	if err := c.Conn.SetReadDeadline(time.Now().Add(c.Config.PongWait)); err != nil {
 		c.Log.Errorf("Client %s: SetReadDeadline failed: %v", c.ID, err)
 		return

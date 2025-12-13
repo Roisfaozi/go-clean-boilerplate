@@ -8,12 +8,15 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	roleHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -34,13 +37,13 @@ func (w *NoOpWriter) Levels() []logrus.Level {
 func setupRouter(uc usecase.RoleUseCase) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
-	handler := roleHttp.NewRoleHandler(uc, logrus.New()) // Assuming NewRoleHandler needs a logger
+	handler := roleHttp.NewRoleHandler(uc, logrus.New(), validator.New()) // Inject validator
 	apiV1 := router.Group("/api/v1")
 	{
 		apiV1.POST("/roles", handler.Create)
 		apiV1.GET("/roles", handler.GetAll)
 		apiV1.DELETE("/roles/:id", handler.Delete)
-		apiV1.POST("/roles/search", handler.GetAllRolesDynamic)
+		apiV1.POST("/roles/search", handler.GetRolesDynamic) // Correct handler method name
 	}
 	return router
 }
@@ -127,11 +130,13 @@ func TestRoleHandler_GetAll_Success(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var responseBody response.WebResponse[[]*model.RoleResponse]
+	
+	// Correct response struct
+	var responseBody response.WebResponseSuccess[[]*model.RoleResponse]
 	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.NoError(t, err)
-	assert.True(t, responseBody.Success)
-	assert.Len(t, *responseBody.Data, 2)
+	// WebResponseSuccess struct has no Success bool field, existence of Data implies success or we check HTTP code
+	assert.Len(t, responseBody.Data, 2)
 	mockUseCase.AssertExpectations(t)
 }
 
@@ -216,10 +221,11 @@ func TestRoleHandler_GetAllRolesDynamic_Success(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var responseBody response.WebResponse[[]*model.RoleResponse]
+	
+	// Correct response struct
+	var responseBody response.WebResponseSuccess[[]*model.RoleResponse]
 	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.NoError(t, err)
-	assert.True(t, responseBody.Success)
-	assert.Len(t, *responseBody.Data, 1)
+	assert.Len(t, responseBody.Data, 1)
 	mockUseCase.AssertExpectations(t)
 }
