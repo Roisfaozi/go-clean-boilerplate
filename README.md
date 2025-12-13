@@ -1,6 +1,6 @@
 # Go Clean Boilerplate - Go Modular REST API
 
-![Go Version](https://img.shields.io/badge/Go-1.21%2B-blue)
+![Go Version](https://img.shields.io/badge/Go-1.25.5%2B-blue)
 ![License](https://img.shields.io/badge/License-Apache%202.0-green)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20%26%20Modular-orange)
 ![Dynamic Search](https://img.shields.io/badge/Dynamic%20Search-Enabled-blueviolet)
@@ -62,7 +62,7 @@ It serves as a solid foundation for building scalable, secure, and maintainable 
 
 Ensure you have the following installed on your system:
 
-1.  **Go**: Version 1.21 or higher.
+1.  **Go**: Version 1.25.5 or higher.
 2.  **Docker & Docker Compose**: For running MySQL and Redis services easily.
 3.  **Make**: For running automation commands defined in `Makefile`.
 4.  **Air** (Optional): For live reloading during development.

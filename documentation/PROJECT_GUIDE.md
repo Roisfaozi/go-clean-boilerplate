@@ -28,6 +28,7 @@ Selamat datang di panduan proyek **Go Clean Boilerplate API**! Dokumen ini diran
 *   **Standardisasi Respons:** Struktur respons JSON yang konsisten untuk sukses dan error.
 *   **Migrasi Database:** Manajemen skema database berbasis versi.
 *   **Dokumentasi API Otomatis:** Integrasi Swagger/OpenAPI.
+*   **Keamanan & Kualitas Kode Ditingkatkan:** Semua kerentanan keamanan yang dilaporkan telah diatasi, dan standar kode dipastikan bersih dari masalah `golangci-lint` (setelah proses refactoring dan perbaikan).
 
 ---
 
@@ -305,7 +306,7 @@ Bagian ini akan memandu Anda dalam menyiapkan lingkungan pengembangan, menjalank
 
 Sebelum memulai, pastikan sistem Anda memiliki perangkat lunak berikut terinstal:
 
-1.  **Go:** Versi 1.21 atau lebih tinggi. Ini adalah bahasa pemrograman utama proyek.
+*   **Go**: Versi 1.25.5 atau lebih tinggi. Ini adalah bahasa pemrograman utama proyek.
 2.  **Docker & Docker Compose:** Digunakan untuk menjalankan layanan infrastruktur seperti database (MySQL) dan Redis secara terisolasi dalam kontainer. Ini memastikan lingkungan pengembangan yang konsisten.
 3.  **Make:** Utilitas `make` digunakan untuk menjalankan perintah otomatisasi yang ditentukan dalam `Makefile` (misalnya, `make migrate-up`, `make test`).
 4.  **Air (Opsional):** Tool untuk *live-reloading* kode saat ada perubahan file, sangat direkomendasikan untuk pengembangan.

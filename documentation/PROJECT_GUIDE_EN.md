@@ -28,6 +28,7 @@ Welcome to the **Go Clean Boilerplate API** project guide! This document is spec
 *   **Standardized Responses:** Consistent JSON response structure for success and errors.
 *   **Database Migrations:** Version-controlled database schema management.
 *   **Automated API Documentation:** Swagger/OpenAPI integration.
+*   **Enhanced Security & Code Quality:** All reported security vulnerabilities have been addressed, and code standards are ensured to be free of `golangci-lint` issues (following the refactoring and fixing process).
 
 ---
 
@@ -627,7 +628,7 @@ This section will guide you through setting up the development environment, runn
 
 Before you begin, ensure your system has the following software installed:
 
-1.  **Go:** Version 1.21 or higher. This is the primary programming language of the project.
+*   **Go**: Version 1.25.5 or higher. This is the primary programming language of the project.
 2.  **Docker & Docker Compose:** Used to run infrastructure services like the database (MySQL) and Redis in isolated containers. This ensures a consistent development environment.
 3.  **Make:** The `make` utility is used to run automation commands defined in the `Makefile` (e.g., `make migrate-up`, `make test`).
 4.  **Air (Optional):** A tool for *live-reloading* code upon file changes, highly recommended for development.
