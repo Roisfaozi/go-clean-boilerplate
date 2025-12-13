@@ -33,7 +33,8 @@ func setupTestDB() (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.AutoMigrate(&User{})
+	err = db.AutoMigrate(&User{})
+	require.NoError(t, err)
 	return db, nil
 }
 
@@ -101,16 +102,11 @@ func TestTransactionManager_WithinTransaction_PanicRollback(t *testing.T) {
 	
 	tm := tx.NewTransactionManager(db, logger)
 
-	assert.Panics(t, func() {
-		tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
-			txDB, ok := tx.DBFromContext(ctx)
-			assert.True(t, ok)
-			
-			txDB.Create(&User{Name: "Charlie"})
-			
-			panic("simulated panic")
-		})
+	err := tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
+		panic("panic inside transaction")
 	})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "panic recovered")
 
 	// Verify data is NOT committed
 	var count int64

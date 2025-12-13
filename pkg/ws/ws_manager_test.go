@@ -173,7 +173,8 @@ func TestBroadcastToChannel(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify c3 did NOT receive
-	c3.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+	err = c3.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+	assert.NoError(t, err)
 	var msg ws.ServerMessage
 	err = c3.ReadJSON(&msg)
 	assert.Error(t, err) // Should timeout or EOF

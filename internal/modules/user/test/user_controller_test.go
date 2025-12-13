@@ -137,7 +137,8 @@ func TestUserHandler_GetCurrentUser_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	var responseBody map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+	assert.NoError(t, err)
 
 	data, _ := responseBody["data"].(map[string]interface{})
 	assert.Equal(t, userID, data["id"])

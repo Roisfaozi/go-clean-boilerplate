@@ -9,16 +9,10 @@ import (
 )
 
 func NewRedisConfig(cfg *AppConfig, log *logrus.Logger) *redis.Client {
-	var redisClient *redis.Client
-
-	redisClient = redis.NewClient(&redis.Options{
-		Addr:         cfg.Redis.Addr,
-		Password:     cfg.Redis.Password,
-		DB:           cfg.Redis.DB,
-		PoolSize:     cfg.Redis.PoolSize,
-		DialTimeout:  cfg.Redis.DialTimeout,
-		ReadTimeout:  cfg.Redis.ReadTimeout,
-		WriteTimeout: cfg.Redis.WriteTimeout,
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", config.Redis.Host, config.Redis.Port),
+		Password: config.Redis.Password,
+		DB:       0,
 	})
 
 	log.Infof("Redis connection established: %s", cfg.Redis.Addr)

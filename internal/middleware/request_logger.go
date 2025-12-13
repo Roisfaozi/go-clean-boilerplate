@@ -4,22 +4,28 @@ import (
 	"context"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/constants"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
+// RequestLogger middleware handles structured logging for HTTP requests
 func RequestLogger(log *logrus.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 1. Generate Request ID
 		requestID := c.GetHeader("X-Request-ID")
 		if requestID == "" {
 			requestID = uuid.New().String()
 		}
 		c.Header("X-Request-ID", requestID)
-
+		
+		// Set request_id in Gin context
 		c.Set("request_id", requestID)
 
-		ctx := context.WithValue(c.Request.Context(), "request_id", requestID)
+		// Inject request_id into standard context.Context
+		// This ensures it travels down to UseCase and Repository layers
+		ctx := context.WithValue(c.Request.Context(), constants.RequestIDKey, requestID)
 		c.Request = c.Request.WithContext(ctx)
 
 		startTime := time.Now()

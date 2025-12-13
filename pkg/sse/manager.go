@@ -139,15 +139,20 @@ func (m *Manager) ServeHTTP() gin.HandlerFunc {
 					return false
 				}
 
-				c.Writer.Write([]byte(fmt.Sprintf("event: %s\n", event.Name)))
+				if _, err := c.Writer.Write([]byte(fmt.Sprintf("event: %s\n", event.Name))); err != nil {
+					return false
+				}
 
 				jsonData, err := json.Marshal(event.Data)
 				if err != nil {
-
 					m.log.Errorf("Failed to marshal SSE event data: %v", err)
-					c.Writer.Write([]byte(fmt.Sprintf("data: %v\n\n", event.Data)))
+					if _, err := c.Writer.Write([]byte(fmt.Sprintf("data: %v\n\n", event.Data))); err != nil {
+						return false
+					}
 				} else {
-					c.Writer.Write([]byte(fmt.Sprintf("data: %s\n\n", jsonData)))
+					if _, err := c.Writer.Write([]byte(fmt.Sprintf("data: %s\n\n", jsonData))); err != nil {
+						return false
+					}
 				}
 
 				c.Writer.Flush()

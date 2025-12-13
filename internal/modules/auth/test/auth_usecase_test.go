@@ -95,7 +95,7 @@ func TestLogin_Success(t *testing.T) {
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
-			fn(context.Background())
+			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
@@ -170,7 +170,7 @@ func TestLogin_Failure_StoreTokenError(t *testing.T) {
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
-			fn(context.Background())
+			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)

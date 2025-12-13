@@ -15,7 +15,8 @@ type TestStruct struct {
 
 func TestValidateXSS(t *testing.T) {
 	v := validator.New()
-	validation.RegisterCustomValidations(v) // Register the custom 'xss' validation
+	err := validation.RegisterCustomValidations(v) // Register the custom 'xss' validation
+	assert.NoError(t, err)
 
 	tests := []struct {
 		name     string
