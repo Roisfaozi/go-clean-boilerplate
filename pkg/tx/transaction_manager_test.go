@@ -9,6 +9,7 @@ import (
 	"github.com/glebarez/sqlite" // Pure Go SQLite
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
 
@@ -28,7 +29,7 @@ type User struct {
 	Name string
 }
 
-func setupTestDB() (*gorm.DB, error) {
+func setupTestDB(t *testing.T) (*gorm.DB, error) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		return nil, err
@@ -39,18 +40,18 @@ func setupTestDB() (*gorm.DB, error) {
 }
 
 func TestTransactionManager_WithinTransaction_Commit(t *testing.T) {
-	db, err := setupTestDB()
+	db, err := setupTestDB(t)
 	assert.NoError(t, err)
-	
+
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
-	
+
 	tm := tx.NewTransactionManager(db, logger)
 
 	err = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
 		txDB, ok := tx.DBFromContext(ctx)
 		assert.True(t, ok)
-		
+
 		// Create user within transaction
 		if err := txDB.Create(&User{Name: "Alice"}).Error; err != nil {
 			return err
@@ -67,20 +68,20 @@ func TestTransactionManager_WithinTransaction_Commit(t *testing.T) {
 }
 
 func TestTransactionManager_WithinTransaction_Rollback(t *testing.T) {
-	db, err := setupTestDB()
+	db, err := setupTestDB(t)
 	assert.NoError(t, err)
-	
+
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
-	
+
 	tm := tx.NewTransactionManager(db, logger)
 
 	err = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
 		txDB, ok := tx.DBFromContext(ctx)
 		assert.True(t, ok)
-		
+
 		txDB.Create(&User{Name: "Bob"})
-		
+
 		// Return error to trigger rollback
 		return errors.New("simulated error")
 	})
@@ -94,15 +95,15 @@ func TestTransactionManager_WithinTransaction_Rollback(t *testing.T) {
 }
 
 func TestTransactionManager_WithinTransaction_PanicRollback(t *testing.T) {
-	db, err := setupTestDB()
+	db, err := setupTestDB(t)
 	assert.NoError(t, err)
-	
+
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
-	
+
 	tm := tx.NewTransactionManager(db, logger)
 
-	err := tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
+	err = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
 		panic("panic inside transaction")
 	})
 	assert.Error(t, err)

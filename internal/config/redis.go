@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -10,8 +11,8 @@ import (
 
 func NewRedisConfig(cfg *AppConfig, log *logrus.Logger) *redis.Client {
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", config.Redis.Host, config.Redis.Port),
-		Password: config.Redis.Password,
+		Addr:     fmt.Sprintf("%s", cfg.Redis.Addr),
+		Password: cfg.Redis.Password,
 		DB:       0,
 	})
 

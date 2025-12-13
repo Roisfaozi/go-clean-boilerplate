@@ -21,7 +21,7 @@ func NewDatabase(config *AppConfig, log *logrus.Logger) *gorm.DB {
 	maxLifeTimeConnection := config.Mysql.MaxLifeTimeConnection
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", username, password, host, port, database)
-	log.Errorf("DSN: %s", dsn)
+	log.Debugf("DSN: %s", dsn)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.New(&logrusWriter{Logger: log}, logger.Config{
 			SlowThreshold:             time.Second * 5,
