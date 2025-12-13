@@ -30,15 +30,19 @@ func TestCasbinMiddleware_Authorized(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/users", nil)
 	c.Request = req
 
-	// Set user info in context
-	c.Set("x-user-role", "role:admin")
+	// Set user info in context (user_id is the key AuthMiddleware sets)
+	// For testing, we simulate that the user_id (UUID) maps to "role:admin" in Casbin via grouping policy
+	// But Enforce takes the SUBJECT, which is what we pass from middleware.
+	// Our middleware passes `user_id`.
+	userID := "user-uuid-123"
+	c.Set("user_id", userID)
 
 	mockEnforcer := new(MockCasbinEnforcer)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
 	// Simulate Casbin Enforce (subject, object, action)
-	mockEnforcer.On("Enforce", "role:admin", "/api/v1/users", "GET").Return(true, nil)
+	mockEnforcer.On("Enforce", userID, "/api/v1/users", "GET").Return(true, nil)
 
 	casbinMiddleware := middleware.CasbinMiddleware(mockEnforcer, logger)
 
@@ -55,13 +59,14 @@ func TestCasbinMiddleware_Unauthorized(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/users", nil)
 	c.Request = req
 
-	c.Set("x-user-role", "role:user")
+	userID := "user-uuid-456"
+	c.Set("user_id", userID)
 
 	mockEnforcer := new(MockCasbinEnforcer)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	mockEnforcer.On("Enforce", "role:user", "/api/v1/users", "POST").Return(false, nil)
+	mockEnforcer.On("Enforce", userID, "/api/v1/users", "POST").Return(false, nil)
 
 	casbinMiddleware := middleware.CasbinMiddleware(mockEnforcer, logger)
 
@@ -79,13 +84,14 @@ func TestCasbinMiddleware_EnforcerError(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/users", nil)
 	c.Request = req
 
-	c.Set("x-user-role", "role:admin")
+	userID := "user-uuid-789"
+	c.Set("user_id", userID)
 
 	mockEnforcer := new(MockCasbinEnforcer)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	mockEnforcer.On("Enforce", "role:admin", "/api/v1/users", "GET").Return(false, errors.New("casbin error"))
+	mockEnforcer.On("Enforce", userID, "/api/v1/users", "GET").Return(false, errors.New("casbin error"))
 
 	casbinMiddleware := middleware.CasbinMiddleware(mockEnforcer, logger)
 

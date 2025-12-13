@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -33,11 +34,16 @@ func (c *WebSocketConfig) GetUpgrader() *websocket.Upgrader {
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 		CheckOrigin: func(r *http.Request) bool {
-			// In a production environment, you should implement a proper origin check.
-			// For example:
+			// SECURITY: In a production environment, you MUST implement a proper origin check
+			// to prevent Cross-Site WebSocket Hijacking (CSWSH).
+			// Example:
 			// origin := r.Header.Get("Origin")
 			// return origin == "https://your-allowed-domain.com"
-			return true // Allow all origins for development purposes
+
+			// For this boilerplate/demo, we log a warning but allow it.
+			// TODO: Configure allowed origins via config.
+			log.Println("WARNING: WebSocket CheckOrigin is permitting all origins. This is unsafe for production.")
+			return true
 		},
 	}
 }

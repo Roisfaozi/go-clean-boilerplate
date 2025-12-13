@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
@@ -76,7 +77,13 @@ func main() {
 
 	adminUsername := "superadmin"
 	adminEmail := "superadmin@example.com"
-	adminPassword := "password123"
+
+	// Check for environment variable for password, else default (warn about this)
+	adminPassword := os.Getenv("SUPERADMIN_PASSWORD")
+	if adminPassword == "" {
+		adminPassword = "password123"
+		log.Println("WARNING: Using default password 'password123' for superadmin. Set SUPERADMIN_PASSWORD env var to change.")
+	}
 
 	var user userEntity.User
 	result := db.Where("username = ?", adminUsername).First(&user)
