@@ -81,7 +81,15 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	logger.Info("Middleware initialized.")
 
+	routerConfig := router.RouterConfig{
+		AllowedOrigins:   cfg.CORS.AllowedOrigins,
+		RateLimitEnabled: cfg.RateLimit.Enabled,
+		RateLimitRPS:     cfg.RateLimit.RPS,
+		RateLimitBurst:   cfg.RateLimit.Burst,
+	}
+
 	ginRouter := router.SetupRouter(
+		routerConfig,
 		authModule,
 		userModule,
 		permissionModule,

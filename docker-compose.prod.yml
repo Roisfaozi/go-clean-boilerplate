@@ -30,10 +30,13 @@ services:
       - INSTANCE_ID=blue
       - MYSQL_HOST=mysql_prod
       - MYSQL_PORT=3306
-      - MYSQL_DATABASE=gin_starter
-      - MYSQL_USER=user
-      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=${MYSQL_DBNAME}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - REDIS_HOST=redis_prod:6379
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - SUPERADMIN_PASSWORD=${SUPERADMIN_PASSWORD}
     networks:
       - app_network
     healthcheck:
@@ -53,10 +56,13 @@ services:
       - INSTANCE_ID=green
       - MYSQL_HOST=mysql_prod
       - MYSQL_PORT=3306
-      - MYSQL_DATABASE=gin_starter
-      - MYSQL_USER=user
-      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=${MYSQL_DBNAME}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - REDIS_HOST=redis_prod:6379
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - SUPERADMIN_PASSWORD=${SUPERADMIN_PASSWORD}
     networks:
       - app_network
     healthcheck:
@@ -70,10 +76,10 @@ services:
     image: mysql:8.0
     container_name: mysql_prod
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: gin_starter
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DBNAME}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql_data_prod:/var/lib/mysql
     networks:
@@ -82,6 +88,7 @@ services:
   redis_prod:
     image: redis:alpine
     container_name: redis_prod
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     networks:
       - app_network
 
