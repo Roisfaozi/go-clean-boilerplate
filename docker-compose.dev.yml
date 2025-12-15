@@ -12,7 +12,7 @@ services:
       - .:/app
     environment:
       - MYSQL_HOST=mysql_dev
-      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_PORT=3306
       - MYSQL_DATABASE=${MYSQL_DBNAME}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}

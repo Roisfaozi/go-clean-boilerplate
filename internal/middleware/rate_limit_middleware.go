@@ -11,9 +11,14 @@ import (
 	"golang.org/x/time/rate"
 )
 
+type clientLimiter struct {
+	limiter  *rate.Limiter
+	lastSeen time.Time
+}
+
 // IPRateLimiter holds a map of limiters for each IP address.
 type IPRateLimiter struct {
-	ips    map[string]*rate.Limiter
+	ips    map[string]*clientLimiter
 	mu     *sync.RWMutex
 	r      rate.Limit
 	b      int
@@ -23,7 +28,7 @@ type IPRateLimiter struct {
 // r is the rate (requests per second), b is the burst size.
 func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
 	return &IPRateLimiter{
-		ips: make(map[string]*rate.Limiter),
+		ips: make(map[string]*clientLimiter),
 		mu:  &sync.RWMutex{},
 		r:   r,
 		b:   b,
@@ -36,28 +41,33 @@ func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	limiter, exists := i.ips[ip]
+	entry, exists := i.ips[ip]
 	if !exists {
-		limiter = rate.NewLimiter(i.r, i.b)
-		i.ips[ip] = limiter
+		entry = &clientLimiter{
+			limiter: rate.NewLimiter(i.r, i.b),
+		}
+		i.ips[ip] = entry
 	}
+	entry.lastSeen = time.Now()
 
-	return limiter
+	return entry.limiter
 }
 
 // RateLimitMiddleware creates a middleware for rate limiting based on IP address.
 func RateLimitMiddleware(rps float64, burst int) gin.HandlerFunc {
 	limiter := NewIPRateLimiter(rate.Limit(rps), burst)
 
-	// Start a cleanup routine to remove old IPs (simple implementation)
-	// In a real production app with high traffic, use Redis.
+	// Start a cleanup routine to remove old IPs
 	go func() {
 		for {
-			time.Sleep(10 * time.Minute)
+			time.Sleep(1 * time.Minute)
 			limiter.mu.Lock()
-			// Reset map every 10 mins to avoid memory leak for now
-			// A better approach would be to track last seen time
-			limiter.ips = make(map[string]*rate.Limiter)
+			for ip, client := range limiter.ips {
+				// Remove IPs that haven't been seen in the last 3 minutes
+				if time.Since(client.lastSeen) > 3*time.Minute {
+					delete(limiter.ips, ip)
+				}
+			}
 			limiter.mu.Unlock()
 		}
 	}()

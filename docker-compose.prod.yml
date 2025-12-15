@@ -29,7 +29,7 @@ services:
       - APP_ENV=production
       - INSTANCE_ID=blue
       - MYSQL_HOST=mysql_prod
-      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_PORT=3306
       - MYSQL_DATABASE=${MYSQL_DBNAME}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
@@ -55,7 +55,7 @@ services:
       - APP_ENV=production
       - INSTANCE_ID=green
       - MYSQL_HOST=mysql_prod
-      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_PORT=3306
       - MYSQL_DATABASE=${MYSQL_DBNAME}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}

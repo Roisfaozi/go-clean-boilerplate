@@ -130,7 +130,11 @@ func NewConfig() (*AppConfig, error) {
 
 	// Parse CORS allowed origins from comma-separated string if provided as env var
 	if corsOrigins := v.GetString("cors.allowed_origins"); corsOrigins != "" {
-		cfg.CORS.AllowedOrigins = strings.Split(corsOrigins, ",")
+		origins := strings.Split(corsOrigins, ",")
+		for i := range origins {
+			origins[i] = strings.TrimSpace(origins[i])
+		}
+		cfg.CORS.AllowedOrigins = origins
 	}
 
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")

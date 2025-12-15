@@ -119,9 +119,10 @@ func (m *Manager) ServeHTTP() gin.HandlerFunc {
 		c.Writer.Header().Set("Cache-Control", "no-cache")
 		c.Writer.Header().Set("Connection", "keep-alive")
 		c.Writer.Header().Set("Transfer-Encoding", "chunked")
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		// Access-Control-Allow-Origin is handled by the global CORS middleware
 
-		clientChan := make(chan Event)
+		// Use a buffered channel to prevent blocking the manager if the client is slow to read
+		clientChan := make(chan Event, 10)
 		client := &Client{Channel: clientChan}
 
 		m.register <- client
