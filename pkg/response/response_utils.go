@@ -53,7 +53,12 @@ func NotFound(c *gin.Context, err error, msg string) {
 }
 
 func InternalServerError(c *gin.Context, err error, msg string) {
-	ErrorResponse(c, http.StatusInternalServerError, err, msg)
+	// SECURITY: Do not expose internal error details to the client
+	// We return a generic "Internal Server Error" message
+	c.JSON(http.StatusInternalServerError, WebResponseError[any]{
+		Error:   "Internal Server Error",
+		Message: msg,
+	})
 }
 
 func ValidationError(c *gin.Context, err error, msg string) {
