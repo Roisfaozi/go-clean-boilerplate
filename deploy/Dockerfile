@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Install dependencies needed for build (e.g. gcc for cgo if needed, though we try to avoid it)
 RUN apk add --no-cache git make build-base
@@ -22,10 +22,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main ./cmd/api/main.go
 FROM alpine:latest
 
 # Install necessary runtime dependencies (e.g., certificates, timezone)
-RUN apk --no-cache add ca-certificates tzdata shadow
+RUN apk --no-cache add ca-certificates tzdata
 
 # Create a non-root user
-RUN useradd -m -u 1000 -s /bin/sh appuser
+RUN adduser -D -u 1000 appuser
 
 WORKDIR /app
 

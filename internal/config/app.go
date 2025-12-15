@@ -34,7 +34,6 @@ type Application struct {
 
 // NewApplication initializes and wires up all application components.
 func NewApplication(cfg *AppConfig) (*Application, error) {
-	// 1. Initialize Shared Dependencies
 	logger := NewLogrus(cfg)
 	validate := NewValidator()
 	dbConnection := NewDatabase(cfg, logger)
@@ -55,17 +54,14 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	go wsManager.Run()
 	logger.Info("Shared dependencies initialized.")
 
-	// NEW: Initialize SSE Manager
 	sseManager := sse.NewManager()
 	logger.Info("SSE Manager initialized.")
 
-	// 2. Initialize Casbin (conditionally)
 	enforcer, err := NewCasbinEnforcer(cfg, dbConnection, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	// 3. Initialize Modules
 	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
 
 	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, enforcer)
@@ -80,13 +76,11 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	logger.Info("Application modules initialized.")
 
-	// 4. Initialize Middleware
 	authUseCase := authModule.AuthHandler().AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger)
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	logger.Info("Middleware initialized.")
 
-	// 5. Setup Router
 	ginRouter := router.SetupRouter(
 		authModule,
 		userModule,
@@ -97,11 +91,10 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		casbinMiddleware,
 		wsController,
 		sseManager,
-		logger, // NEW: Pass logger
+		logger,
 	)
 	logger.Info("Router setup complete.")
 
-	// 6. Create HTTP Server
 	serverPort := fmt.Sprintf(":%d", cfg.Server.Port)
 	httpServer := &http.Server{
 		Addr:    serverPort,

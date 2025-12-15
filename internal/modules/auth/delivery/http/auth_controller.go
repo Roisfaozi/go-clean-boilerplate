@@ -125,12 +125,10 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	// Clear the refresh token cookie
 	h.setRefreshTokenCookie(c, "")
 	response.Success(c, gin.H{"message": "logged out successfully"})
 }
 
-// handleError centralizes error handling for the auth handler
 func (h *AuthHandler) handleError(c *gin.Context, err error, message string) {
 	switch {
 	case errors.Is(err, usecase.ErrInvalidCredentials):
@@ -152,11 +150,8 @@ func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
 		maxAge = 3600 * 24 * 7
 	}
 
-	// In a real application, you should check the environment
-	// e.g. secure = h.Config.Server.AppEnv == "production"
-	// For now, we will default to false for development but provide a comment
-	secure := false
-
+	// Automatically set Secure flag in Release mode (Production)
+	secure := gin.Mode() == gin.ReleaseMode
 	c.SetCookie(
 		"refresh_token",
 		token,

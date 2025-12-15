@@ -89,7 +89,6 @@ func NewConfig() (*AppConfig, error) {
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	// Set default values
 	v.SetDefault("server.port", 8080)
 	v.SetDefault("server.read_timeout", "30s")
 	v.SetDefault("server.write_timeout", "30s")
@@ -109,27 +108,22 @@ func NewConfig() (*AppConfig, error) {
 		return nil, err
 	}
 
-	//JWT
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")
 
-	//redis
 	cfg.Redis.Addr = v.GetString("redis.addr")
 	cfg.Redis.Password = v.GetString("redis.password")
 	cfg.Redis.DB = v.GetInt("redis.db")
 	cfg.Redis.PoolSize = v.GetInt("redis.pool_size")
 
-	//server
 	cfg.Server.Port = v.GetInt("server.port")
 	cfg.Server.AppEnv = v.GetString("server.app_env")
 	cfg.Server.AppName = v.GetString("server.app_name")
 	cfg.Server.ReadTimeout = v.GetDuration("server.read_timeout")
 	cfg.Server.WriteTimeout = v.GetDuration("server.write_timeout")
 
-	//log
 	cfg.Log.Level = v.GetString("log.level")
 
-	//mysql
 	cfg.Mysql.Host = v.GetString("mysql.host")
 	cfg.Mysql.Port = v.GetInt("mysql.port")
 	cfg.Mysql.User = v.GetString("mysql.user")
@@ -139,7 +133,6 @@ func NewConfig() (*AppConfig, error) {
 	cfg.Mysql.MaxConnection = v.GetInt("mysql.max_connection")
 	cfg.Mysql.MaxLifeTimeConnection = v.GetInt("mysql.max_life_time_connection")
 
-	//casbin
 	cfg.Casbin.Enabled = v.GetBool("casbin.enabled")
 	cfg.Casbin.Model = v.GetString("casbin.model")
 	cfg.Casbin.Watcher.Enabled = v.GetBool("casbin.watcher.enabled")

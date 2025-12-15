@@ -19,8 +19,8 @@ var (
 type AuthUseCase interface {
 	GenerateAccessToken(user *entity.User) (string, error)
 	GenerateRefreshToken(user *entity.User) (string, error)
-	ValidateAccessToken(token string) (*jwt.Claims, error)  // Updated return type
-	ValidateRefreshToken(token string) (*jwt.Claims, error) // Updated return type
+	ValidateAccessToken(token string) (*jwt.Claims, error)
+	ValidateRefreshToken(token string) (*jwt.Claims, error)
 	RevokeToken(ctx context.Context, userID, sessionID string) error
 
 	Login(ctx context.Context, request model.LoginRequest) (*model.LoginResponse, string, error)

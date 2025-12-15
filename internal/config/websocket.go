@@ -18,13 +18,12 @@ type WebSocketConfig struct {
 
 // NewDefaultWebSocketConfig creates a WebSocket configuration with default values
 func NewDefaultWebSocketConfig() *WebSocketConfig {
-	// The PingPeriod must be less than the PongWait.
 	pongWait := 60 * time.Second
 	return &WebSocketConfig{
 		WriteWait:      10 * time.Second,
 		PongWait:       pongWait,
-		PingPeriod:     (pongWait * 9) / 10, // Recommended to be less than PongWait
-		MaxMessageSize: 512 * 1024,          // 512KB
+		PingPeriod:     (pongWait * 9) / 10,
+		MaxMessageSize: 512 * 1024,
 	}
 }
 

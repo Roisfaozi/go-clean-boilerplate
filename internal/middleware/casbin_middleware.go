@@ -23,7 +23,6 @@ func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFu
 			return
 		}
 
-		// AuthMiddleware ensures user_id is set in the context
 		userID, exists := c.Get("user_id")
 		if !exists {
 			log.Error("Casbin middleware: user identity not found in context (AuthMiddleware missing?)")
