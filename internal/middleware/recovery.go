@@ -29,6 +29,9 @@ func RecoveryMiddleware(log *logrus.Logger) gin.HandlerFunc {
 					"method":      c.Request.Method,
 				}).Error("Panic recovered")
 
+				// In production, we don't want to expose the detailed error.
+				// For now, we just pass a generic error message.
+				// The actual error is logged above.
 				response.InternalServerError(c, fmt.Errorf("internal server error"), "Something went wrong")
 				c.Abort()
 			}

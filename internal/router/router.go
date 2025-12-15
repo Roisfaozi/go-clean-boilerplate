@@ -20,7 +20,15 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+type RouterConfig struct {
+	AllowedOrigins   []string
+	RateLimitEnabled bool
+	RateLimitRPS     float64
+	RateLimitBurst   int
+}
+
 func SetupRouter(
+	cfg RouterConfig,
 	authModule *auth.AuthModule,
 	userModule *user.UserModule,
 	permissionModule *permission.PermissionModule,
@@ -38,7 +46,11 @@ func SetupRouter(
 	router.Use(middleware.RequestLogger(logger))
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.SecurityMiddleware())
-	router.Use(middleware.CORSMiddleware())
+	router.Use(middleware.CORSMiddleware(cfg.AllowedOrigins))
+
+	if cfg.RateLimitEnabled {
+		router.Use(middleware.RateLimitMiddleware(cfg.RateLimitRPS, cfg.RateLimitBurst))
+	}
 
 	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

@@ -18,6 +18,8 @@ type AppConfig struct {
 	Log       LoggerConfig    `mapstructure:"log"`
 	WebSocket WebSocketConfig `mapstructure:"websocket"`
 	Casbin    CasbinConfig    `mapstructure:"casbin"`
+	CORS      CORSConfig      `mapstructure:"cors"`
+	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 }
 
 // ServerConfig holds server-specific configuration.
@@ -27,6 +29,18 @@ type ServerConfig struct {
 	WriteTimeout time.Duration `mapstructure:"write_timeout"`
 	AppName      string        `mapstructure:"app_name"`
 	AppEnv       string        `mapstructure:"app_env"`
+}
+
+// RateLimitConfig holds rate limiting configuration.
+type RateLimitConfig struct {
+	Enabled bool    `mapstructure:"enabled"`
+	RPS     float64 `mapstructure:"rps"`
+	Burst   int     `mapstructure:"burst"`
+}
+
+// CORSConfig holds CORS-related configuration.
+type CORSConfig struct {
+	AllowedOrigins []string `mapstructure:"allowed_origins"`
 }
 
 // MySqlConfig holds PostgreSQL database connection details.
@@ -103,9 +117,20 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("casbin.watcher.enabled", false)
 	v.SetDefault("casbin.watcher.channel", "/casbin")
 
+	v.SetDefault("cors.allowed_origins", []string{"*"})
+
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
+	}
+
+	v.SetDefault("rate_limit.enabled", true)
+	v.SetDefault("rate_limit.rps", 10.0)
+	v.SetDefault("rate_limit.burst", 20)
+
+	// Parse CORS allowed origins from comma-separated string if provided as env var
+	if corsOrigins := v.GetString("cors.allowed_origins"); corsOrigins != "" {
+		cfg.CORS.AllowedOrigins = strings.Split(corsOrigins, ",")
 	}
 
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
