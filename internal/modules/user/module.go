@@ -12,7 +12,7 @@ import (
 )
 
 type UserModule struct {
-	userHandler *http.UserHandler
+	userController *http.UserController
 }
 
 // NewUserModule creates a new UserModule instance with the given dependencies.
@@ -29,13 +29,13 @@ func NewUserModule(db *gorm.DB, log *logrus.Logger, validator *validator.Validat
 
 	userUseCase := usecase.NewUserUseCase(log, tm, userRepository, enforcer)
 
-	userHandler := http.NewUserHandler(userUseCase, log, validator)
+	userController := http.NewUserController(userUseCase, log, validator)
 
 	return &UserModule{
-		userHandler: userHandler,
+		userController: userController,
 	}
 }
 
-func (m *UserModule) UserHandler() *http.UserHandler {
-	return m.userHandler
+func (m *UserModule) UserController() *http.UserController {
+	return m.userController
 }

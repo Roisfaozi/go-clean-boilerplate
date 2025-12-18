@@ -26,7 +26,7 @@ func setupTestRouter() *gin.Engine {
 
 func TestGrantPermission_Success(t *testing.T) {
 	mockUseCase := new(mocks.IPermissionUseCase)
-	handler := permHandler.NewPermissionHandler(mockUseCase, validator.New(), logrus.New())
+	handler := permHandler.NewPermissionController(mockUseCase, validator.New(), logrus.New())
 	router := setupTestRouter()
 	router.POST("/permissions/grant", handler.GrantPermission)
 
@@ -58,7 +58,7 @@ func TestGrantPermission_Success(t *testing.T) {
 
 func TestGrantPermission_InvalidBody(t *testing.T) {
 	mockUseCase := new(mocks.IPermissionUseCase)
-	handler := permHandler.NewPermissionHandler(mockUseCase, validator.New(), logrus.New())
+	handler := permHandler.NewPermissionController(mockUseCase, validator.New(), logrus.New())
 	router := setupTestRouter()
 	router.POST("/permissions/grant", handler.GrantPermission)
 
@@ -74,7 +74,7 @@ func TestGrantPermission_InvalidBody(t *testing.T) {
 
 func TestGrantPermission_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.IPermissionUseCase)
-	handler := permHandler.NewPermissionHandler(mockUseCase, validator.New(), logrus.New())
+	handler := permHandler.NewPermissionController(mockUseCase, validator.New(), logrus.New())
 	router := setupTestRouter()
 	router.POST("/permissions/grant", handler.GrantPermission)
 

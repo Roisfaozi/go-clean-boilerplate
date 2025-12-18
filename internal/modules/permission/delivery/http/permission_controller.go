@@ -13,14 +13,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type PermissionHandler struct {
+type PermissionController struct {
 	useCase  usecase.IPermissionUseCase
 	validate *validator.Validate
 	log      *logrus.Logger
 }
 
-func NewPermissionHandler(useCase usecase.IPermissionUseCase, validate *validator.Validate, log *logrus.Logger) *PermissionHandler {
-	return &PermissionHandler{
+func NewPermissionController(useCase usecase.IPermissionUseCase, validate *validator.Validate, log *logrus.Logger) *PermissionController {
+	return &PermissionController{
 		useCase:  useCase,
 		validate: validate,
 		log:      log,
@@ -40,7 +40,7 @@ func NewPermissionHandler(useCase usecase.IPermissionUseCase, validate *validato
 // @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions/assign-role [post]
-func (h *PermissionHandler) AssignRole(c *gin.Context) {
+func (h *PermissionController) AssignRole(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.AssignRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -75,7 +75,7 @@ func (h *PermissionHandler) AssignRole(c *gin.Context) {
 // @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions/grant [post]
-func (h *PermissionHandler) GrantPermission(c *gin.Context) {
+func (h *PermissionController) GrantPermission(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -106,7 +106,7 @@ func (h *PermissionHandler) GrantPermission(c *gin.Context) {
 // @Success      200  {object}  response.SwaggerPermissionListResponseWrapper
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions [get]
-func (h *PermissionHandler) GetAllPermissions(c *gin.Context) {
+func (h *PermissionController) GetAllPermissions(c *gin.Context) {
 	permissions, err := h.useCase.GetAllPermissions()
 	if err != nil {
 		h.log.WithError(err).Error("Failed to get all permissions")
@@ -127,7 +127,7 @@ func (h *PermissionHandler) GetAllPermissions(c *gin.Context) {
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Role parameter required"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions/{role} [get]
-func (h *PermissionHandler) GetPermissionsForRole(c *gin.Context) {
+func (h *PermissionController) GetPermissionsForRole(c *gin.Context) {
 	role := c.Param("role")
 	if role == "" {
 		response.BadRequest(c, exception.ErrBadRequest, "role parameter is required")
@@ -157,7 +157,7 @@ func (h *PermissionHandler) GetPermissionsForRole(c *gin.Context) {
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Policy to update not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions [put]
-func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
+func (h *PermissionController) UpdatePermission(c *gin.Context) {
 	var req model.UpdatePermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
@@ -196,7 +196,7 @@ func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 // @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /permissions/revoke [delete]
-func (h *PermissionHandler) RevokePermission(c *gin.Context) {
+func (h *PermissionController) RevokePermission(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.GrantPermissionRequest // Reuse GrantPermissionRequest as it has Role, Path, Method
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -10,7 +10,7 @@ import (
 )
 
 type PermissionModule struct {
-	permissionHandler *http.PermissionHandler
+	permissionController *http.PermissionController
 }
 
 // NewPermissionModule creates a new instance of PermissionModule.
@@ -26,13 +26,13 @@ func NewPermissionModule(enforcer *casbin.Enforcer, validate *validator.Validate
 
 	permissionUseCase := usecase.NewPermissionUseCase(enforcer, log, roleRepo)
 
-	permissionHandler := http.NewPermissionHandler(permissionUseCase, validate, log)
+	permissionController := http.NewPermissionController(permissionUseCase, validate, log)
 
 	return &PermissionModule{
-		permissionHandler: permissionHandler,
+		permissionController: permissionController,
 	}
 }
 
-func (m *PermissionModule) PermissionHandler() *http.PermissionHandler {
-	return m.permissionHandler
+func (m *PermissionModule) PermissionController() *http.PermissionController {
+	return m.permissionController
 }

@@ -8,7 +8,7 @@ import (
 //
 // router: the router group to register the routes on.
 // userHandler: the handler for the user routes.
-func RegisterPublicRoutes(router *gin.RouterGroup, userHandler *UserHandler) {
+func RegisterPublicRoutes(router *gin.RouterGroup, userHandler *UserController) {
 	userGroup := router.Group("/users")
 	{
 		// register the route for user registration
@@ -27,7 +27,7 @@ func RegisterPublicRoutes(router *gin.RouterGroup, userHandler *UserHandler) {
 //
 // router: the router group to register the routes on.
 // userHandler: the handler for the user routes.
-func RegisterAuthorizedRoutes(router *gin.RouterGroup, userHandler *UserHandler) {
+func RegisterAuthorizedRoutes(router *gin.RouterGroup, userHandler *UserController) {
 	userGroup := router.Group("/users")
 	{
 		userGroup.GET("/me", userHandler.GetCurrentUser)

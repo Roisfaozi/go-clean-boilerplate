@@ -98,7 +98,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		permissionModule,
 		accessModule,
 		roleModule,
-		auditModule, // Add Audit Module
+		auditModule,
 		authMiddleware,
 		casbinMiddleware,
 		wsController,

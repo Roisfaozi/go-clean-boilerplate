@@ -40,7 +40,7 @@ func setupRouter(uc usecase.RoleUseCase) *gin.Engine {
 	v := validator.New()
 	_ = validation.RegisterCustomValidations(v)
 
-	handler := roleHttp.NewRoleHandler(uc, logrus.New(), v)
+	handler := roleHttp.NewRoleController(uc, logrus.New(), v)
 	apiV1 := router.Group("/api/v1")
 	{
 		apiV1.POST("/roles", handler.Create)

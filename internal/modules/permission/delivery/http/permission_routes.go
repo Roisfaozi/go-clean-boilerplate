@@ -9,8 +9,8 @@ import (
 // RegisterPermissionRoutes sets up the routes for assigning roles, granting
 // permissions, retrieving permissions, updating permissions, and revoking
 // permissions. It takes a *gin.RouterGroup as the first argument and a
-// *PermissionHandler as the second argument. The *gin.RouterGroup is used to
-// add routes to a specific group of routes, and the *PermissionHandler is used
+// *PermissionController as the second argument. The *gin.RouterGroup is used to
+// add routes to a specific group of routes, and the *PermissionController is used
 // to handle the requests to those routes.
 //
 // The routes registered by this function are:
@@ -20,7 +20,7 @@ import (
 //   - GET /permissions/:role: retrieves permissions for a specific role
 //   - PUT /permissions: updates a permission
 //   - DELETE /permissions/revoke: revokes a permission from a role
-func RegisterPermissionRoutes(router *gin.RouterGroup, handler *PermissionHandler) {
+func RegisterPermissionRoutes(router *gin.RouterGroup, handler *PermissionController) {
 	permissionGroup := router.Group("/permissions")
 	{
 		permissionGroup.POST("/assign-role", handler.AssignRole)

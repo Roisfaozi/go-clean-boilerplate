@@ -8,20 +8,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type AuditHandler struct {
+type AuditController struct {
 	UseCase usecase.AuditUseCase
 	Log     *logrus.Logger
 }
 
-func NewAuditHandler(uc usecase.AuditUseCase, log *logrus.Logger) *AuditHandler {
-	return &AuditHandler{
+func NewAuditController(uc usecase.AuditUseCase, log *logrus.Logger) *AuditController {
+	return &AuditController{
 		UseCase: uc,
 		Log:     log,
 	}
 }
 
 // GetLogsDynamic handles dynamic search for audit logs
-func (h *AuditHandler) GetLogsDynamic(c *gin.Context) {
+func (h *AuditController) GetLogsDynamic(c *gin.Context) {
 	var filter querybuilder.DynamicFilter
 	if err := c.ShouldBindJSON(&filter); err != nil {
 		response.BadRequest(c, err, "Invalid filter format")

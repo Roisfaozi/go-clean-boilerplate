@@ -10,7 +10,7 @@ import (
 )
 
 type AccessModule struct {
-	accessHandler *http.AccessHandler
+	accessController *http.AccessController
 }
 
 // NewAccessModule creates a new AccessModule instance with the given dependencies.
@@ -23,13 +23,13 @@ type AccessModule struct {
 func NewAccessModule(db *gorm.DB, log *logrus.Logger, validate *validator.Validate) *AccessModule {
 	repo := repository.NewAccessRepository(db, log)
 	uc := usecase.NewAccessUseCase(repo, log)
-	handler := http.NewAccessHandler(uc, validate, log)
+	handler := http.NewAccessController(uc, validate, log)
 
 	return &AccessModule{
-		accessHandler: handler,
+		accessController: handler,
 	}
 }
 
-func (m *AccessModule) AccessHandler() *http.AccessHandler {
-	return m.accessHandler
+func (m *AccessModule) AccessController() *http.AccessController {
+	return m.accessController
 }

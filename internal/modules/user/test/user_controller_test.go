@@ -25,8 +25,8 @@ func setupUserTestRouter() *gin.Engine {
 	return router
 }
 
-func newTestUserHandler(mockUseCase *mocks.MockUserUseCase) *userHandler.UserHandler {
-	return userHandler.NewUserHandler(mockUseCase, logrus.New(), validator.New())
+func newTestUserHandler(mockUseCase *mocks.MockUserUseCase) *userHandler.UserController {
+	return userHandler.NewUserController(mockUseCase, logrus.New(), validator.New())
 }
 
 func TestUserHandler_RegisterUser_Success(t *testing.T) {

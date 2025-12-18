@@ -82,7 +82,7 @@ func SetupRouter(
 	public := apiV1.Group("")
 	{
 		authHttp.RegisterPublicRoutes(public, authModule.AuthHandler())
-		userHttp.RegisterPublicRoutes(public, userModule.UserHandler())
+		userHttp.RegisterPublicRoutes(public, userModule.UserController())
 	}
 
 	authenticated := apiV1.Group("")
@@ -95,11 +95,11 @@ func SetupRouter(
 	authorized.Use(authMiddleware.ValidateToken())
 	authorized.Use(casbinMiddleware)
 	{
-		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserHandler())
-		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionHandler())
-		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessHandler())
-		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleHandler())
-		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditHandler)
+		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController())
+		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController())
+		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController())
+		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController())
+		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController())
 	}
 
 	return router
