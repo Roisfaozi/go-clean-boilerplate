@@ -1,4 +1,4 @@
-package repository_test
+package test_test
 
 import (
 	"context"
@@ -118,7 +118,7 @@ func TestAuditRepository_Create(t *testing.T) {
 
 		err := repo.Create(ctx, log)
 		assert.NoError(t, err) // SQLite usually allows this unless STRICT table.
-		
+
 		var storedLog entity.AuditLog
 		db.First(&storedLog, "id = ?", log.ID)
 		// Verifying it stored the long value (showing GORM/SQLite flexibility)
