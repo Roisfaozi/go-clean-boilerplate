@@ -24,7 +24,7 @@ jobs:
       - name: Run Linter
         uses: golangci/golangci-lint-action@v9.2.0
         with:
-          args: --timeout=5m
+          args: --timeout=5m --fix
 
   test-coverage:
     name: Unit Test & Coverage
