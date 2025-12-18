@@ -25,8 +25,8 @@ func setupAuthTestRouter() *gin.Engine {
 	return router
 }
 
-func newTestAuthHandler(mockUseCase *mocks.MockAuthUseCase) *authHandler.AuthHandler {
-	return authHandler.NewAuthHandler(mockUseCase, logrus.New(), validator.New())
+func newTestAuthHandler(mockUseCase *mocks.MockAuthUseCase) *authHandler.AuthController {
+	return authHandler.NewAuthController(mockUseCase, logrus.New(), validator.New())
 }
 
 func TestAuthHandler_Login_Success(t *testing.T) {

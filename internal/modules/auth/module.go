@@ -15,8 +15,8 @@ import (
 	"gorm.io/gorm"
 )
 
-type AuthModule struct {
-	handler *http.AuthHandler
+type AuthController struct {
+	authController *http.AuthController
 }
 
 func NewAuthModule(
@@ -28,19 +28,19 @@ func NewAuthModule(
 	tm tx.WithTransactionManager,
 	wsManager ws.Manager,
 	enforcer permissionUseCase.IEnforcer,
-) *AuthModule {
+) *AuthController {
 	tokenRepository := repository.NewTokenRepositoryRedis(redis, log)
 	userRepo := userRepository.NewUserRepository(db, log)
 
 	authUseCase := usecase.NewAuthUsecase(jwtManager, tokenRepository, userRepo, tm, log, wsManager, enforcer) // Pass enforcer
 
-	authHandler := http.NewAuthHandler(authUseCase, log, validator)
+	authHandler := http.NewAuthController(authUseCase, log, validator)
 
-	return &AuthModule{
-		handler: authHandler,
+	return &AuthController{
+		authController: authHandler,
 	}
 }
 
-func (m *AuthModule) AuthHandler() *http.AuthHandler {
-	return m.handler
+func (m *AuthController) AuthController() *http.AuthController {
+	return m.authController
 }

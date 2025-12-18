@@ -80,7 +80,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	logger.Info("Application modules initialized.")
 
-	authUseCase := authModule.AuthHandler().AuthUseCase
+	authUseCase := authModule.AuthController().AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger)
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	logger.Info("Middleware initialized.")

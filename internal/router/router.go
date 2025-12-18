@@ -33,7 +33,7 @@ type RouterConfig struct {
 
 func SetupRouter(
 	cfg RouterConfig,
-	authModule *auth.AuthModule,
+	authModule *auth.AuthController,
 	userModule *user.UserModule,
 	permissionModule *permission.PermissionModule,
 	accessModule *access.AccessModule,
@@ -81,14 +81,14 @@ func SetupRouter(
 
 	public := apiV1.Group("")
 	{
-		authHttp.RegisterPublicRoutes(public, authModule.AuthHandler())
+		authHttp.RegisterPublicRoutes(public, authModule.AuthController())
 		userHttp.RegisterPublicRoutes(public, userModule.UserController())
 	}
 
 	authenticated := apiV1.Group("")
 	authenticated.Use(authMiddleware.ValidateToken())
 	{
-		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthHandler())
+		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController())
 	}
 
 	authorized := apiV1.Group("")
