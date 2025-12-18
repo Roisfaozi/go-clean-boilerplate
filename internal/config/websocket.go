@@ -8,7 +8,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// WebSocketConfig holds WebSocket configuration
 type WebSocketConfig struct {
 	WriteWait      time.Duration `mapstructure:"write_wait"`
 	PongWait       time.Duration `mapstructure:"pong_wait"`
@@ -16,7 +15,6 @@ type WebSocketConfig struct {
 	MaxMessageSize int64         `mapstructure:"max_message_size"`
 }
 
-// NewDefaultWebSocketConfig creates a WebSocket configuration with default values
 func NewDefaultWebSocketConfig() *WebSocketConfig {
 	pongWait := 60 * time.Second
 	return &WebSocketConfig{
@@ -27,7 +25,6 @@ func NewDefaultWebSocketConfig() *WebSocketConfig {
 	}
 }
 
-// GetUpgrader returns a configured WebSocket upgrader
 func (c *WebSocketConfig) GetUpgrader() *websocket.Upgrader {
 	return &websocket.Upgrader{
 		ReadBufferSize:  1024,

@@ -26,7 +26,7 @@ type RouterConfig struct {
 	RateLimitEnabled bool
 	RateLimitRPS     float64
 	RateLimitBurst   int
-	RateLimitStore   string // "memory" or "redis"
+	RateLimitStore   string
 }
 
 func SetupRouter(
@@ -53,12 +53,9 @@ func SetupRouter(
 
 	if cfg.RateLimitEnabled {
 		if cfg.RateLimitStore == "redis" {
-			// Use Redis-based rate limiter (Distributed)
-			// Redis limiter uses a simple fixed window, ignoring 'Burst' for now, relying on RPS -> count/minute
 			router.Use(middleware.RateLimitMiddlewareRedis(redisClient, logger, cfg.RateLimitRPS))
 			logger.Info("Rate Limiter enabled: Redis store")
 		} else {
-			// Use In-Memory rate limiter (Local)
 			router.Use(middleware.RateLimitMiddlewareMemory(cfg.RateLimitRPS, cfg.RateLimitBurst))
 			logger.Info("Rate Limiter enabled: Memory store")
 		}

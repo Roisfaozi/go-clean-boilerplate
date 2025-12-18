@@ -158,7 +158,6 @@ func TestTokenRepository_DeleteToken_RedisError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-// NoOpWriter reuse
 type NoOpWriter struct{}
 
 func (w *NoOpWriter) Write([]byte) (int, error) { return 0, nil }

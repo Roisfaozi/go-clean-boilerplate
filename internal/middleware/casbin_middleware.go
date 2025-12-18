@@ -34,8 +34,6 @@ func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFu
 		obj := c.Request.URL.Path
 		act := c.Request.Method
 
-		// The policy checks if the user (userID) has permission on obj/act.
-		// Grouping policies (g) map userID to roles.
 		ok, err := enforcer.Enforce(userID.(string), obj, act)
 		if err != nil {
 			log.WithError(err).Error("Casbin enforce error")

@@ -77,7 +77,7 @@ func TestAccessHandler_CreateAccessRight_ValidationErrors(t *testing.T) {
 	router.POST("/access-rights", handler.CreateAccessRight)
 
 	reqBody := model.CreateAccessRightRequest{
-		Name: "", // invalid
+		Name: "",
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)
@@ -203,7 +203,7 @@ func TestAccessHandler_CreateEndpoint_ValidationErrors(t *testing.T) {
 	router.POST("/endpoints", handler.CreateEndpoint)
 
 	reqBody := model.CreateEndpointRequest{
-		Path: "", // invalid
+		Path: "",
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)
@@ -214,7 +214,7 @@ func TestAccessHandler_CreateEndpoint_ValidationErrors(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-	mockUseCase.AssertNotCalled(t, "CreateEndpoint", mock.Anything, mock.Anything) // Use case should not be called
+	mockUseCase.AssertNotCalled(t, "CreateEndpoint", mock.Anything, mock.Anything)
 }
 
 func TestAccessHandler_CreateEndpoint_UseCaseError(t *testing.T) {
@@ -270,7 +270,7 @@ func TestAccessHandler_LinkEndpointToAccessRight_InvalidBody(t *testing.T) {
 	router := setupAccessTestRouter()
 	router.POST("/access-rights/link", handler.LinkEndpointToAccessRight)
 
-	req, _ := http.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBufferString(`{"access_right_id":`)) // Malformed JSON
+	req, _ := http.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBufferString(`{"access_right_id":`))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
@@ -287,8 +287,8 @@ func TestAccessHandler_LinkEndpointToAccessRight_ValidationErrors(t *testing.T) 
 	router.POST("/access-rights/link", handler.LinkEndpointToAccessRight)
 
 	reqBody := model.LinkEndpointRequest{
-		AccessRightID: "", // invalid
-		EndpointID:    "", // invalid
+		AccessRightID: "",
+		EndpointID:    "",
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)

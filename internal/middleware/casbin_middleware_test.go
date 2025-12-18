@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockCasbinEnforcer is a mock for middleware.CasbinEnforcer interface
 type MockCasbinEnforcer struct {
 	mock.Mock
 }
@@ -41,7 +40,6 @@ func TestCasbinMiddleware_Authorized(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	// Simulate Casbin Enforce (subject, object, action)
 	mockEnforcer.On("Enforce", userID, "/api/v1/users", "GET").Return(true, nil)
 
 	casbinMiddleware := middleware.CasbinMiddleware(mockEnforcer, logger)

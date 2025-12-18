@@ -32,7 +32,6 @@ const (
 	TestRole          = "role:user"
 )
 
-// Mock dependencies
 type testDependencies struct {
 	jwtManager *jwt.JWTManager
 	tokenRepo  *mock_auth.MockTokenRepository
@@ -44,7 +43,6 @@ type testDependencies struct {
 	log        *logrus.Logger
 }
 
-// setupTest initializes all dependencies for the test
 func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 	jwtManager := jwt.NewJWTManager(TestAccessSecret, TestRefreshSecret, 15*time.Minute, 24*time.Hour)
 
@@ -84,8 +82,6 @@ func createTestUser(password string) (*entity.User, string) {
 		Email:    "test@example.com",
 	}, password
 }
-
-// --- LOGIN TESTS ---
 
 func TestLogin_Success(t *testing.T) {
 	authService, deps := setupTest(t)
@@ -128,7 +124,7 @@ func TestLogin_Failure_UserNotFound(t *testing.T) {
 		Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
 			_ = fn(context.Background())
-		}).Return(usecase.ErrInvalidCredentials) // Simulate transaction returning error
+		}).Return(usecase.ErrInvalidCredentials)
 	deps.userRepo.On("FindByUsername", mock.Anything, "nonexistent").Return(nil, gorm.ErrRecordNotFound)
 
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
@@ -149,7 +145,7 @@ func TestLogin_Failure_InvalidPassword(t *testing.T) {
 		Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
 			_ = fn(context.Background())
-		}).Return(usecase.ErrInvalidCredentials) // Simulate transaction returning error
+		}).Return(usecase.ErrInvalidCredentials)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
@@ -184,8 +180,6 @@ func TestLogin_Failure_StoreTokenError(t *testing.T) {
 	assert.Empty(t, refreshToken)
 	deps.tokenRepo.AssertExpectations(t)
 }
-
-// --- REFRESH TOKEN TESTS ---
 
 func TestRefreshToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
@@ -240,8 +234,6 @@ func TestRefreshToken_Failure_UserNotFound(t *testing.T) {
 	deps.userRepo.AssertExpectations(t)
 }
 
-// --- VALIDATE TOKEN TESTS ---
-
 func TestValidateAccessToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
@@ -292,8 +284,6 @@ func TestValidateAccessToken_Failure_TokenRevoked(t *testing.T) {
 	assert.Nil(t, claims)
 	deps.tokenRepo.AssertExpectations(t)
 }
-
-// --- REVOKE TOKEN TESTS ---
 
 func TestRevokeToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)

@@ -59,6 +59,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	enforcer, err := NewCasbinEnforcer(cfg, dbConnection, logger)
 	if err != nil {
+		logger.Errorf("Error initializing casbin enforcer: %v", err)
 		return nil, err
 	}
 

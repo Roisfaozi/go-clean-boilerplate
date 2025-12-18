@@ -17,7 +17,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// nullWriter is used to discard log output during tests.
 type nullWriter struct{}
 
 func (w *nullWriter) Write(p []byte) (n int, err error) {
@@ -25,7 +24,6 @@ func (w *nullWriter) Write(p []byte) (n int, err error) {
 }
 
 func TestCreateAccessRight(t *testing.T) {
-	// Setup
 	mockRepo := new(mocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(&nullWriter{})
@@ -141,7 +139,7 @@ func TestDeleteEndpoint(t *testing.T) {
 	log.SetOutput(&nullWriter{})
 	uc := usecase.NewAccessUseCase(mockRepo, log)
 	ctx := context.Background()
-	id := "1" // Changed to string
+	id := "1"
 
 	t.Run("Success - Delete Endpoint", func(t *testing.T) {
 		mockRepo.On("DeleteEndpoint", ctx, id).Return(nil).Once()

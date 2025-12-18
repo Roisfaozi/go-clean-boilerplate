@@ -16,16 +16,13 @@ type clientLimiter struct {
 	lastSeen time.Time
 }
 
-// IPRateLimiter holds a map of limiters for each IP address.
 type IPRateLimiter struct {
-	ips    map[string]*clientLimiter
-	mu     *sync.RWMutex
-	r      rate.Limit
-	b      int
+	ips map[string]*clientLimiter
+	mu  *sync.RWMutex
+	r   rate.Limit
+	b   int
 }
 
-// NewIPRateLimiter creates a new rate limiter.
-// r is the rate (requests per second), b is the burst size.
 func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
 	return &IPRateLimiter{
 		ips: make(map[string]*clientLimiter),
@@ -35,8 +32,6 @@ func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
 	}
 }
 
-// GetLimiter returns the rate limiter for the provided IP address if it exists.
-// Otherwise, it creates a new one and returns it.
 func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
 	i.mu.Lock()
 	defer i.mu.Unlock()
@@ -53,17 +48,14 @@ func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
 	return entry.limiter
 }
 
-// RateLimitMiddlewareMemory creates an in-memory middleware for rate limiting based on IP address.
 func RateLimitMiddlewareMemory(rps float64, burst int) gin.HandlerFunc {
 	limiter := NewIPRateLimiter(rate.Limit(rps), burst)
 
-	// Start a cleanup routine to remove old IPs
 	go func() {
 		for {
 			time.Sleep(1 * time.Minute)
 			limiter.mu.Lock()
 			for ip, client := range limiter.ips {
-				// Remove IPs that haven't been seen in the last 3 minutes
 				if time.Since(client.lastSeen) > 3*time.Minute {
 					delete(limiter.ips, ip)
 				}

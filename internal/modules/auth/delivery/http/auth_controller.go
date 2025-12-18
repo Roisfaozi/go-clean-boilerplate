@@ -150,7 +150,6 @@ func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
 		maxAge = 3600 * 24 * 7
 	}
 
-	// Automatically set Secure flag in Release mode (Production)
 	secure := gin.Mode() == gin.ReleaseMode
 	c.SetCookie(
 		"refresh_token",

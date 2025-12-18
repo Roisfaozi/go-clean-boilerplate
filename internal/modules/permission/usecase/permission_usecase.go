@@ -48,7 +48,6 @@ func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role 
 
 	uc.log.Infof("Role validated. Removing existing roles and assigning role '%s' to user '%s'", role, userID)
 
-	// Remove all existing roles for the user to ensure single role per user
 	_, err = uc.enforcer.RemoveFilteredGroupingPolicy(0, userID)
 	if err != nil {
 		uc.log.Errorf("Failed to remove existing roles: %v", err)

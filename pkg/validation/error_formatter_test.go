@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Test cases using a dummy struct
 type TestValidationStruct struct {
 	Name     string `json:"name" validate:"required,min=3"`
 	Email    string `json:"email" validate:"required,email"`
@@ -19,9 +18,8 @@ type TestValidationStruct struct {
 
 func TestFormatValidationErrors_SingleError(t *testing.T) {
 	v := validator.New()
-	// Populate other fields to avoid other validation errors
 	s := TestValidationStruct{
-		Name:     "", // Target error
+		Name:     "",
 		Email:    "test@example.com",
 		Password: "password123",
 		Age:      20,
@@ -37,8 +35,8 @@ func TestFormatValidationErrors_SingleError(t *testing.T) {
 func TestFormatValidationErrors_MultipleErrors(t *testing.T) {
 	v := validator.New()
 	s := TestValidationStruct{
-		Name:     "ab",            // Error: min
-		Email:    "invalid-email", // Error: email
+		Name:     "ab",
+		Email:    "invalid-email",
 		Password: "password123",
 		Age:      20,
 	}
@@ -51,11 +49,10 @@ func TestFormatValidationErrors_MultipleErrors(t *testing.T) {
 		"Name must be at least 3 characters long",
 		"Email must be a valid email address",
 	}
-	// The order of errors might vary, so check for containment
 	for _, expected := range expectedErrors {
 		assert.Contains(t, formattedError, expected)
 	}
-	assert.Contains(t, formattedError, "; ") // Check if errors are joined
+	assert.Contains(t, formattedError, "; ")
 }
 
 func TestFormatValidationErrors_NonValidationError(t *testing.T) {
@@ -68,7 +65,7 @@ func TestFormatValidationErrors_EmailError(t *testing.T) {
 	v := validator.New()
 	s := TestValidationStruct{
 		Name:     "Valid Name",
-		Email:    "not-an-email", // Target error
+		Email:    "not-an-email",
 		Password: "password123",
 		Age:      20,
 	}
@@ -85,7 +82,7 @@ func TestFormatValidationErrors_MinMaxErrors(t *testing.T) {
 	s := TestValidationStruct{
 		Name:     "Valid Name",
 		Email:    "test@example.com",
-		Password: "short", // Password min length
+		Password: "short",
 		Age:      20,
 	}
 	err := v.Struct(s)
@@ -96,7 +93,7 @@ func TestFormatValidationErrors_MinMaxErrors(t *testing.T) {
 	s = TestValidationStruct{
 		Name:     "Valid Name",
 		Email:    "test@example.com",
-		Password: "averylongpasswordthatisovertwentycharacters", // Password max length
+		Password: "averylongpasswordthatisovertwentycharacters",
 		Age:      20,
 	}
 	err = v.Struct(s)
@@ -104,4 +101,3 @@ func TestFormatValidationErrors_MinMaxErrors(t *testing.T) {
 	formattedError = validation.FormatValidationErrors(err)
 	assert.Equal(t, "Password must be at most 20 characters long", formattedError)
 }
-

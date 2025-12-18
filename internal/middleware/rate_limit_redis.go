@@ -15,7 +15,6 @@ import (
 // RateLimitMiddlewareRedis implements a simple fixed window rate limiter using Redis.
 // It converts the RPS (Requests Per Second) config into a 1-minute fixed window limit.
 func RateLimitMiddlewareRedis(redisClient *redis.Client, log *logrus.Logger, rps float64) gin.HandlerFunc {
-	// Convert RPS to requests per minute
 	limit := int64(rps * 60)
 	if limit < 1 {
 		limit = 1
@@ -31,20 +30,16 @@ func RateLimitMiddlewareRedis(redisClient *redis.Client, log *logrus.Logger, rps
 		clientIP := c.ClientIP()
 		key := fmt.Sprintf("rate_limit:%s", clientIP)
 
-		// Increment the counter
 		count, err := redisClient.Incr(c.Request.Context(), key).Result()
 		if err != nil {
 			log.Errorf("Rate limit redis error: %v", err)
-			// Fail open: allow request if Redis is down
 			c.Next()
 			return
 		}
 
-		// Set expiration on first request in the window if no TTL exists
 		if count == 1 {
 			redisClient.Expire(c.Request.Context(), key, window)
 		} else {
-			// Ensure TTL is set (handle edge case where Incr happens but Expire failed previously)
 			ttl, _ := redisClient.TTL(c.Request.Context(), key).Result()
 			if ttl == -1 {
 				redisClient.Expire(c.Request.Context(), key, window)

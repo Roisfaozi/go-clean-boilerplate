@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// AppConfig holds all configuration for the application, loaded from environment variables.
 type AppConfig struct {
 	Server    ServerConfig    `mapstructure:"server"`
 	Mysql     MySqlConfig     `mapstructure:"mysql"`
@@ -22,7 +21,6 @@ type AppConfig struct {
 	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 }
 
-// ServerConfig holds server-specific configuration.
 type ServerConfig struct {
 	Port         int           `mapstructure:"port"`
 	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
@@ -31,20 +29,17 @@ type ServerConfig struct {
 	AppEnv       string        `mapstructure:"app_env"`
 }
 
-// RateLimitConfig holds rate limiting configuration.
 type RateLimitConfig struct {
 	Enabled bool    `mapstructure:"enabled"`
 	RPS     float64 `mapstructure:"rps"`
 	Burst   int     `mapstructure:"burst"`
-	Store   string  `mapstructure:"store"` // "memory" or "redis"
+	Store   string  `mapstructure:"store"`
 }
 
-// CORSConfig holds CORS-related configuration.
 type CORSConfig struct {
 	AllowedOrigins []string `mapstructure:"allowed_origins"`
 }
 
-// MySqlConfig holds PostgreSQL database connection details.
 type MySqlConfig struct {
 	Host                  string `mapstructure:"host"`
 	Port                  int    `mapstructure:"port"`
@@ -56,7 +51,6 @@ type MySqlConfig struct {
 	MaxLifeTimeConnection int    `mapstructure:"max_life_time_connection"`
 }
 
-// RedisConfig holds Redis connection details.
 type RedisConfig struct {
 	Addr         string        `mapstructure:"addr"`
 	Password     string        `mapstructure:"password"`
@@ -67,7 +61,6 @@ type RedisConfig struct {
 	WriteTimeout time.Duration `mapstructure:"write_timeout"`
 }
 
-// JWTConfig holds JWT-related configuration.
 type JWTConfig struct {
 	AccessTokenSecret    string        `mapstructure:"access_secret"`
 	RefreshTokenSecret   string        `mapstructure:"refresh_secret"`
@@ -75,26 +68,21 @@ type JWTConfig struct {
 	RefreshTokenDuration time.Duration `mapstructure:"refresh_duration"`
 }
 
-// LoggerConfig holds logging level configuration.
 type LoggerConfig struct {
 	Level string `mapstructure:"level"`
 }
 
-// CasbinConfig holds Casbin-related configuration.
 type CasbinConfig struct {
 	Enabled bool          `mapstructure:"enabled"`
 	Model   string        `mapstructure:"model"`
 	Watcher WatcherConfig `mapstructure:"watcher"`
 }
 
-// WatcherConfig holds Casbin Redis watcher configuration.
 type WatcherConfig struct {
 	Enabled bool   `mapstructure:"enabled"`
 	Channel string `mapstructure:"channel"`
 }
 
-// NewConfig initializes and returns the application's configuration by reading from
-// a .env file and environment variables.
 func NewConfig() (*AppConfig, error) {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, reading configuration from environment variables")
@@ -118,10 +106,6 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("casbin.watcher.enabled", false)
 	v.SetDefault("casbin.watcher.channel", "/casbin")
 
-	// CORS Defaults
-	v.SetDefault("cors.allowed_origins", "*")
-
-	// Rate Limit Defaults
 	v.SetDefault("rate_limit.enabled", true)
 	v.SetDefault("rate_limit.rps", 10.0)
 	v.SetDefault("rate_limit.burst", 20)
@@ -132,8 +116,6 @@ func NewConfig() (*AppConfig, error) {
 		return nil, err
 	}
 
-	// Parse CORS allowed origins from comma-separated string if needed
-	// Note: viper unmarshal might handle slice if env var is list, but comma-string is safer for .env
 	if corsStr := v.GetString("cors.allowed_origins"); corsStr != "" && len(cfg.CORS.AllowedOrigins) == 0 {
 		origins := strings.Split(corsStr, ",")
 		for i := range origins {
@@ -142,7 +124,6 @@ func NewConfig() (*AppConfig, error) {
 		cfg.CORS.AllowedOrigins = origins
 	}
 
-	// Manual overrides if needed (viper unmarshal should cover most)
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")
 
@@ -173,7 +154,6 @@ func NewConfig() (*AppConfig, error) {
 	cfg.Casbin.Watcher.Enabled = v.GetBool("casbin.watcher.enabled")
 	cfg.Casbin.Watcher.Channel = v.GetString("casbin.watcher.channel")
 
-	//Rate Limit Defaults
 	cfg.RateLimit.Enabled = v.GetBool("rate_limit.enabled")
 	cfg.RateLimit.RPS = v.GetFloat64("rate_limit.rps")
 	cfg.RateLimit.Burst = v.GetInt("rate_limit.burst")

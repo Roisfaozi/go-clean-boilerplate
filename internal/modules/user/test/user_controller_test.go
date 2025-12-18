@@ -90,16 +90,12 @@ func TestUserHandler_RegisterUser_ValidationError(t *testing.T) {
 	router := setupUserTestRouter()
 	router.POST("/users/register", handler.RegisterUser)
 
-	// Invalid payload: empty username, short password
 	reqBody := &model.RegisterUserRequest{
 		Username: "",
 		Password: "123",
 		Name:     "Test User",
 		Email:    "test@example.com",
 	}
-
-	// UseCase.Create should NOT be called because validation fails first
-	// No mock setup needed for UseCase
 
 	bodyBytes, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/users/register", bytes.NewBuffer(bodyBytes))

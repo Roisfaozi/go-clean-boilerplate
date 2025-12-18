@@ -15,7 +15,7 @@ func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter)
 		return db, nil
 	}
 
-	db = db.Where("deleted_at IS NULL") // Default soft delete
+	db = db.Where("deleted_at IS NULL")
 
 	tType := reflect.TypeOf(model)
 	if tType.Kind() == reflect.Ptr {
@@ -34,7 +34,6 @@ func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter)
 		case "contains":
 			db = db.Where(fmt.Sprintf("%s LIKE ?", dbFieldName), fmt.Sprintf("%%%v%%", condition.From))
 		case "in":
-			// Ensure condition.From is a slice/array
 			val := reflect.ValueOf(condition.From)
 			if val.Kind() == reflect.Slice || val.Kind() == reflect.Array {
 				db = db.Where(fmt.Sprintf("%s IN (?)", dbFieldName), condition.From)
@@ -94,7 +93,6 @@ func GenerateDynamicSort(db *gorm.DB, model interface{}, filter *DynamicFilter) 
 func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 	field, found := tType.FieldByName(fieldName)
 	if !found {
-		// Try case-insensitive lookup
 		for i := 0; i < tType.NumField(); i++ {
 			f := tType.Field(i)
 			if strings.EqualFold(f.Name, fieldName) {
@@ -108,7 +106,6 @@ func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 		}
 	}
 
-	// Check 'gorm' tag
 	gormTag := field.Tag.Get("gorm")
 	if gormTag != "" {
 		if colName := extractColumnNameFromGormTag(gormTag); colName != "" {
@@ -116,7 +113,6 @@ func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 		}
 	}
 
-	// Check 'json' tag
 	jsonTag := field.Tag.Get("json")
 	if jsonTag != "" {
 		if colName := extractColumnNameFromJsonTag(jsonTag); colName != "" {
@@ -124,7 +120,6 @@ func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 		}
 	}
 
-	// Default to snake_case of the struct field name
 	return ToSnakeCase(field.Name), true
 }
 
@@ -149,7 +144,6 @@ func extractColumnNameFromJsonTag(tag string) string {
 var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
 var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
 
-// ToSnakeCase converts a string to snake_case.
 func ToSnakeCase(str string) string {
 	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
 	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
