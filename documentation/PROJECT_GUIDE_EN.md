@@ -28,6 +28,7 @@ Welcome to the **Go Clean Boilerplate API** project guide! This document is spec
 *   **Standardized Responses:** Consistent JSON response structure for success and errors.
 *   **Database Migrations:** Version-controlled database schema management.
 *   **Automated API Documentation:** Swagger/OpenAPI integration.
+*   **Rate Limiting:** Protection against Brute Force/DoS attacks with configurable strategies (In-Memory or Redis).
 *   **Enhanced Security & Code Quality:** All reported security vulnerabilities have been addressed, and code standards are ensured to be free of `golangci-lint` issues (following the refactoring and fixing process).
 
 ---
@@ -617,6 +618,34 @@ WebSocket provides *bidirectional* and *full-duplex* communication channels over
 *   **Differences with SSE:**
     *   **SSE:** One-way (server-to-client), HTTP-based, simpler. Ideal for notifications or data streams that don't require direct client responses.
     *   **WebSocket:** Two-way (server-to-client and client-to-server), full-duplex, separate protocol. Ideal for chat, games, or applications requiring intensive real-time interaction from both sides.
+
+### 4.6 Security and System Stability
+
+The project has been hardened with multiple layers of security and stability features for production readiness.
+
+*   **Rate Limiter:**
+    *   Prevents *Brute Force* and *DoS* attacks by limiting the number of requests per IP.
+    *   **Flexible Strategy:** Supports two configurable storage modes via `.env`:
+        *   `memory`: Uses an in-memory map with automatic cleanup (TTL-based). Suitable for single-instance deployments.
+        *   `redis`: Uses Redis to store counters. Mandatory for horizontally scaled applications (multiple instances) to ensure distributed limit enforcement.
+    *   **Configuration:** Managed via `RATE_LIMIT_ENABLED`, `RATE_LIMIT_RPS`, `RATE_LIMIT_BURST`, and `RATE_LIMIT_STORE`.
+
+*   **CORS (Cross-Origin Resource Sharing):**
+    *   No longer allows all origins (`*`) by default in production.
+    *   Allowed origins are configured via the `CORS_ALLOWED_ORIGINS` environment variable (comma-separated list), providing strict control over who can access the API.
+
+*   **Security Headers:**
+    *   The `SecurityMiddleware` automatically injects standard HTTP security headers into every response:
+        *   `Strict-Transport-Security` (HSTS): Enforces HTTPS.
+        *   `X-Content-Type-Options`: Prevents MIME-sniffing.
+        *   `X-Frame-Options`: Prevents Clickjacking.
+        *   `X-XSS-Protection`: Browser XSS protection.
+
+*   **Information Leakage Prevention (Error Masking):**
+    *   In production mode (`APP_ENV=production` or `GIN_MODE=release`), the system automatically masks internal error details (like SQL database errors) in HTTP 500 responses. Clients receive a generic "Internal Server Error" message, while the original details are logged securely on the server for debugging.
+
+*   **Secrets Management:**
+    *   All sensitive credentials (database passwords, JWT secret keys) must be loaded from environment variables. Unsafe hardcoded default values have been removed from the source code.
 
 ---
 
