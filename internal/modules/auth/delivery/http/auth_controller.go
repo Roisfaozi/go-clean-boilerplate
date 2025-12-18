@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	stdhttp "net/http"
 	"strings"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
@@ -151,6 +152,7 @@ func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
 	}
 
 	secure := gin.Mode() == gin.ReleaseMode
+	c.SetSameSite(stdhttp.SameSiteStrictMode)
 	c.SetCookie(
 		"refresh_token",
 		token,
