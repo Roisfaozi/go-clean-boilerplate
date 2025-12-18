@@ -7,6 +7,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
@@ -75,6 +76,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	accessModule := access.NewAccessModule(dbConnection, logger, validate)
 
+	auditModule := audit.NewAuditModule(dbConnection, logger)
+
 	logger.Info("Application modules initialized.")
 
 	authUseCase := authModule.AuthHandler().AuthUseCase
@@ -95,6 +98,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		permissionModule,
 		accessModule,
 		roleModule,
+		auditModule, // Add Audit Module
 		authMiddleware,
 		casbinMiddleware,
 		wsController,

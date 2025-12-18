@@ -4,6 +4,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
 	accessHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
+	auditHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
 	authHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
@@ -26,7 +28,7 @@ type RouterConfig struct {
 	RateLimitEnabled bool
 	RateLimitRPS     float64
 	RateLimitBurst   int
-	RateLimitStore   string
+	RateLimitStore   string // "memory" or "redis"
 }
 
 func SetupRouter(
@@ -36,6 +38,7 @@ func SetupRouter(
 	permissionModule *permission.PermissionModule,
 	accessModule *access.AccessModule,
 	roleModule *role.RoleModule,
+	auditModule *audit.AuditModule,
 	authMiddleware *middleware.AuthMiddleware,
 	casbinMiddleware gin.HandlerFunc,
 	wsController *ws.WebSocketController,
@@ -53,9 +56,11 @@ func SetupRouter(
 
 	if cfg.RateLimitEnabled {
 		if cfg.RateLimitStore == "redis" {
+			// Use Redis-based rate limiter (Distributed)
 			router.Use(middleware.RateLimitMiddlewareRedis(redisClient, logger, cfg.RateLimitRPS))
 			logger.Info("Rate Limiter enabled: Redis store")
 		} else {
+			// Use In-Memory rate limiter (Local)
 			router.Use(middleware.RateLimitMiddlewareMemory(cfg.RateLimitRPS, cfg.RateLimitBurst))
 			logger.Info("Rate Limiter enabled: Memory store")
 		}
@@ -94,6 +99,7 @@ func SetupRouter(
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionHandler())
 		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessHandler())
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleHandler())
+		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditHandler)
 	}
 
 	return router
