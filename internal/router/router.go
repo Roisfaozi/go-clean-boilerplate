@@ -15,6 +15,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -25,6 +26,7 @@ type RouterConfig struct {
 	RateLimitEnabled bool
 	RateLimitRPS     float64
 	RateLimitBurst   int
+	RateLimitStore   string // "memory" or "redis"
 }
 
 func SetupRouter(
@@ -38,6 +40,7 @@ func SetupRouter(
 	casbinMiddleware gin.HandlerFunc,
 	wsController *ws.WebSocketController,
 	sseManager *sse.Manager,
+	redisClient *redis.Client,
 	logger *logrus.Logger,
 ) *gin.Engine {
 	router := gin.New()
@@ -49,7 +52,16 @@ func SetupRouter(
 	router.Use(middleware.CORSMiddleware(cfg.AllowedOrigins))
 
 	if cfg.RateLimitEnabled {
-		router.Use(middleware.RateLimitMiddleware(cfg.RateLimitRPS, cfg.RateLimitBurst))
+		if cfg.RateLimitStore == "redis" {
+			// Use Redis-based rate limiter (Distributed)
+			// Redis limiter uses a simple fixed window, ignoring 'Burst' for now, relying on RPS -> count/minute
+			router.Use(middleware.RateLimitMiddlewareRedis(redisClient, logger, cfg.RateLimitRPS))
+			logger.Info("Rate Limiter enabled: Redis store")
+		} else {
+			// Use In-Memory rate limiter (Local)
+			router.Use(middleware.RateLimitMiddlewareMemory(cfg.RateLimitRPS, cfg.RateLimitBurst))
+			logger.Info("Rate Limiter enabled: Memory store")
+		}
 	}
 
 	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

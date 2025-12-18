@@ -36,6 +36,7 @@ type RateLimitConfig struct {
 	Enabled bool    `mapstructure:"enabled"`
 	RPS     float64 `mapstructure:"rps"`
 	Burst   int     `mapstructure:"burst"`
+	Store   string  `mapstructure:"store"` // "memory" or "redis"
 }
 
 // CORSConfig holds CORS-related configuration.
@@ -117,26 +118,31 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("casbin.watcher.enabled", false)
 	v.SetDefault("casbin.watcher.channel", "/casbin")
 
-	v.SetDefault("cors.allowed_origins", []string{"*"})
+	// CORS Defaults
+	v.SetDefault("cors.allowed_origins", "*")
+
+	// Rate Limit Defaults
+	v.SetDefault("rate_limit.enabled", true)
+	v.SetDefault("rate_limit.rps", 10.0)
+	v.SetDefault("rate_limit.burst", 20)
+	v.SetDefault("rate_limit.store", "memory")
 
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
 
-	v.SetDefault("rate_limit.enabled", true)
-	v.SetDefault("rate_limit.rps", 10.0)
-	v.SetDefault("rate_limit.burst", 20)
-
-	// Parse CORS allowed origins from comma-separated string if provided as env var
-	if corsOrigins := v.GetString("cors.allowed_origins"); corsOrigins != "" {
-		origins := strings.Split(corsOrigins, ",")
+	// Parse CORS allowed origins from comma-separated string if needed
+	// Note: viper unmarshal might handle slice if env var is list, but comma-string is safer for .env
+	if corsStr := v.GetString("cors.allowed_origins"); corsStr != "" && len(cfg.CORS.AllowedOrigins) == 0 {
+		origins := strings.Split(corsStr, ",")
 		for i := range origins {
 			origins[i] = strings.TrimSpace(origins[i])
 		}
 		cfg.CORS.AllowedOrigins = origins
 	}
 
+	// Manual overrides if needed (viper unmarshal should cover most)
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")
 
@@ -166,5 +172,12 @@ func NewConfig() (*AppConfig, error) {
 	cfg.Casbin.Model = v.GetString("casbin.model")
 	cfg.Casbin.Watcher.Enabled = v.GetBool("casbin.watcher.enabled")
 	cfg.Casbin.Watcher.Channel = v.GetString("casbin.watcher.channel")
+
+	//Rate Limit Defaults
+	cfg.RateLimit.Enabled = v.GetBool("rate_limit.enabled")
+	cfg.RateLimit.RPS = v.GetFloat64("rate_limit.rps")
+	cfg.RateLimit.Burst = v.GetInt("rate_limit.burst")
+	cfg.RateLimit.Store = v.GetString("rate_limit.store")
+
 	return &cfg, nil
 }

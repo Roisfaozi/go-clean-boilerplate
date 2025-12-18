@@ -53,8 +53,8 @@ func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
 	return entry.limiter
 }
 
-// RateLimitMiddleware creates a middleware for rate limiting based on IP address.
-func RateLimitMiddleware(rps float64, burst int) gin.HandlerFunc {
+// RateLimitMiddlewareMemory creates an in-memory middleware for rate limiting based on IP address.
+func RateLimitMiddlewareMemory(rps float64, burst int) gin.HandlerFunc {
 	limiter := NewIPRateLimiter(rate.Limit(rps), burst)
 
 	// Start a cleanup routine to remove old IPs

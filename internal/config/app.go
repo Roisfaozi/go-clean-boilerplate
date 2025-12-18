@@ -81,15 +81,14 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	logger.Info("Middleware initialized.")
 
-	routerConfig := router.RouterConfig{
-		AllowedOrigins:   cfg.CORS.AllowedOrigins,
-		RateLimitEnabled: cfg.RateLimit.Enabled,
-		RateLimitRPS:     cfg.RateLimit.RPS,
-		RateLimitBurst:   cfg.RateLimit.Burst,
-	}
-
 	ginRouter := router.SetupRouter(
-		routerConfig,
+		router.RouterConfig{
+			AllowedOrigins:   cfg.CORS.AllowedOrigins,
+			RateLimitEnabled: cfg.RateLimit.Enabled,
+			RateLimitRPS:     cfg.RateLimit.RPS,
+			RateLimitBurst:   cfg.RateLimit.Burst,
+			RateLimitStore:   cfg.RateLimit.Store,
+		},
 		authModule,
 		userModule,
 		permissionModule,
@@ -99,6 +98,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		casbinMiddleware,
 		wsController,
 		sseManager,
+		redisClient,
 		logger,
 	)
 	logger.Info("Router setup complete.")
