@@ -28,6 +28,11 @@ It serves as a solid foundation for building scalable, secure, and maintainable 
     -   **WebSocket (WS)**: Integrated support for bidirectional communication.
     -   **Server-Sent Events (SSE)**: Generic, reusable manager for one-way server-to-client event streaming (e.g., live notifications, dashboards).
 -   **Robust Validation**: Centralized request validation using `go-playground/validator` with user-friendly error messages (HTTP 422).
+-   **Enhanced Security Headers**: Automatic injection of HTTP security headers (HSTS, X-Content-Type-Options, X-Frame-Options, X-XSS-Protection).
+-   **Configurable CORS**: Flexible Cross-Origin Resource Sharing policy via environment variables.
+-   **Rate Limiting**: Protects against Brute Force/DoS attacks with configurable In-Memory or Redis-based strategies.
+-   **Improved Error Handling**: Masking of sensitive internal error details in production environments.
+-   **Secure Secrets Management**: All sensitive credentials loaded from environment variables, removing hardcoded defaults.
 -   **Standardized Response**: Unified JSON response structure for success (`data`, `paging`) and errors (`message`, `error`), making frontend integration seamless.
 -   **Database Migrations**: Version-controlled schema management using `golang-migrate`.
 -   **Observability**: Structured logging via `logrus`.
