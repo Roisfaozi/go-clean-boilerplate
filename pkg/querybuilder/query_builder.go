@@ -9,17 +9,18 @@ import (
 	"gorm.io/gorm"
 )
 
-// GenerateDynamicQuery constructs a GORM query based on dynamic filters.
 func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter) (*gorm.DB, error) {
 	if filter == nil {
 		return db, nil
 	}
 
-	db = db.Where("deleted_at IS NULL")
-
 	tType := reflect.TypeOf(model)
 	if tType.Kind() == reflect.Ptr {
 		tType = tType.Elem()
+	}
+
+	if hasSoftDeleteField(tType) {
+		db = db.Where("deleted_at IS NULL")
 	}
 
 	for fieldName, condition := range filter.Filter {
@@ -60,7 +61,6 @@ func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter)
 	return db, nil
 }
 
-// GenerateDynamicSort applies sorting conditions to a GORM query.
 func GenerateDynamicSort(db *gorm.DB, model interface{}, filter *DynamicFilter) (*gorm.DB, error) {
 	if filter == nil || filter.Sort == nil || len(*filter.Sort) == 0 {
 		return db, nil
@@ -87,9 +87,14 @@ func GenerateDynamicSort(db *gorm.DB, model interface{}, filter *DynamicFilter) 
 	return db, nil
 }
 
-// GetDBFieldName extracts the database column name from a struct field.
-// It prioritizes 'gorm' tag, then 'json' tag, then snake_case of the field name.
-// It supports case-insensitive field name matching.
+func hasSoftDeleteField(tType reflect.Type) bool {
+	if tType.Kind() == reflect.Ptr {
+		tType = tType.Elem()
+	}
+	_, found := tType.FieldByName("DeletedAt")
+	return found
+}
+
 func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 	field, found := tType.FieldByName(fieldName)
 	if !found {
