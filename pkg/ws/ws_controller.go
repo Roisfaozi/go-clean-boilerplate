@@ -19,16 +19,34 @@ type WebSocketController struct {
 //
 // log: The logger to log WebSocket events.
 // manager: The WebSocket manager to handle WebSocket events.
+// allowedOrigins: A list of allowed origins for CORS. Use "*" to allow all.
 //
 // Returns a pointer to the newly created WebSocketController.
-func NewWebSocketController(log *logrus.Logger, manager Manager) *WebSocketController {
+func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins []string) *WebSocketController {
 	upgrader := &websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 		CheckOrigin: func(r *http.Request) bool {
-			// Allow all origins in development
-			// In production, you should validate the origin
-			return true
+			// SECURITY: Validate origin to prevent Cross-Site WebSocket Hijacking (CSWSH)
+			origin := r.Header.Get("Origin")
+
+			// Check if all origins are allowed
+			for _, allowed := range allowedOrigins {
+				if allowed == "*" {
+					if len(allowedOrigins) == 1 {
+						// Only log warning if * is the ONLY allowed origin, to avoid spamming if * is mixed with others for some reason
+						// But usually * implies dev mode.
+						// log.Warn("WebSocket CheckOrigin is permitting all origins (*). This is unsafe for production.")
+					}
+					return true
+				}
+				if allowed == origin {
+					return true
+				}
+			}
+
+			log.Warnf("WebSocket connection rejected from disallowed origin: %s", origin)
+			return false
 		},
 	}
 
