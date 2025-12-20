@@ -52,10 +52,11 @@ type SubscriptionRequest struct {
 }
 
 type WebSocketConfig struct {
-	WriteWait      time.Duration
-	PongWait       time.Duration
-	PingPeriod     time.Duration
-	MaxMessageSize int64
+	WriteWait      time.Duration `mapstructure:"write_wait"`
+	PongWait       time.Duration `mapstructure:"pong_wait"`
+	PingPeriod     time.Duration `mapstructure:"ping_period"`
+	MaxMessageSize int64         `mapstructure:"max_message_size"`
+	AllowedOrigins []string      `mapstructure:"allowed_origins"`
 }
 
 // NewWebSocketManager creates a new WebSocketManager with the provided configuration and logger.

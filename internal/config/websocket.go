@@ -13,6 +13,7 @@ type WebSocketConfig struct {
 	PongWait       time.Duration `mapstructure:"pong_wait"`
 	PingPeriod     time.Duration `mapstructure:"ping_period"`
 	MaxMessageSize int64         `mapstructure:"max_message_size"`
+	AllowedOrigins []string      `mapstructure:"allowed_origins"`
 }
 
 func NewDefaultWebSocketConfig() *WebSocketConfig {
