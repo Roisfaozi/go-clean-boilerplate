@@ -51,7 +51,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	)
 	wsConfig := NewDefaultWebSocketConfig()
 	wsManager := ws2.NewWebSocketManager((*ws2.WebSocketConfig)(wsConfig), logger)
-	wsController := ws2.NewWebSocketController(logger, wsManager)
+	wsController := ws2.NewWebSocketController(logger, wsManager, cfg.CORS.AllowedOrigins)
 	go wsManager.Run()
 	logger.Info("Shared dependencies initialized.")
 

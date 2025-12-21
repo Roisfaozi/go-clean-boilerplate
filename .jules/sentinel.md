@@ -1,0 +1,4 @@
+## 2024-05-23 - WebSocket Origin Validation
+**Vulnerability:** The WebSocket controller was allowing connections from any origin (`CheckOrigin: func(r *http.Request) bool { return true }`). This enables Cross-Site WebSocket Hijacking (CSWSH), where a malicious site can connect to the WebSocket endpoint using the victim's credentials (cookies/auth headers).
+**Learning:** `gorilla/websocket`'s `CheckOrigin` function is the primary defense against CSWSH. Returning `true` indiscriminately bypasses this protection. The safe default (checking Origin == Host) is disabled when `CheckOrigin` is set to a custom function that returns `true`.
+**Prevention:** Always validate the `Origin` header against a whitelist of allowed origins. Use the same `AllowedOrigins` configuration as the REST API CORS settings. If the list is empty, default to strict same-origin checks.
