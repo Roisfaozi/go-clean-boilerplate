@@ -50,7 +50,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		cfg.JWT.RefreshTokenDuration,
 	)
 	wsConfig := NewDefaultWebSocketConfig()
-	wsManager := ws2.NewWebSocketManager((*ws2.WebSocketConfig)(wsConfig), logger)
+	// Pass redisClient to wsManager for distributed scaling
+	wsManager := ws2.NewWebSocketManager((*ws2.WebSocketConfig)(wsConfig), logger, redisClient)
 	wsController := ws2.NewWebSocketController(logger, wsManager)
 	go wsManager.Run()
 	logger.Info("Shared dependencies initialized.")
@@ -66,9 +67,12 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
 
-	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, enforcer)
+	// Audit Module (Initialize early to inject into others)
+	auditModule := audit.NewAuditModule(dbConnection, logger)
 
-	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer)
+	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, enforcer, auditModule)
+
+	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule)
 
 	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo)
 
@@ -76,11 +80,10 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	accessModule := access.NewAccessModule(dbConnection, logger, validate)
 
-	auditModule := audit.NewAuditModule(dbConnection, logger)
-
 	logger.Info("Application modules initialized.")
 
-	authUseCase := authModule.AuthController().AuthUseCase
+	// Access AuthUseCase via AuthController
+	authUseCase := authModule.AuthController.AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger)
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	logger.Info("Middleware initialized.")

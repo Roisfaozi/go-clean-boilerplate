@@ -33,7 +33,7 @@ type RouterConfig struct {
 
 func SetupRouter(
 	cfg RouterConfig,
-	authModule *auth.AuthController,
+	authModule *auth.AuthModule,
 	userModule *user.UserModule,
 	permissionModule *permission.PermissionModule,
 	accessModule *access.AccessModule,
@@ -81,25 +81,25 @@ func SetupRouter(
 
 	public := apiV1.Group("")
 	{
-		authHttp.RegisterPublicRoutes(public, authModule.AuthController())
-		userHttp.RegisterPublicRoutes(public, userModule.UserController())
+		authHttp.RegisterPublicRoutes(public, authModule.AuthController)
+		userHttp.RegisterPublicRoutes(public, userModule.UserController)
 	}
 
 	authenticated := apiV1.Group("")
 	authenticated.Use(authMiddleware.ValidateToken())
 	{
-		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController())
+		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController)
 	}
 
 	authorized := apiV1.Group("")
 	authorized.Use(authMiddleware.ValidateToken())
 	authorized.Use(casbinMiddleware)
 	{
-		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController())
-		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController())
-		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController())
-		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController())
-		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController())
+		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
+		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
+		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)
+		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
+		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
 	}
 
 	return router
