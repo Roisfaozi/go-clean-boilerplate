@@ -16,8 +16,8 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/mysql"
 	redisContainer "github.com/testcontainers/testcontainers-go/modules/redis"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"gorm.io/gorm"
 	mysqlDriver "gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 // Singleton instances
@@ -51,8 +51,8 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 		var err error
 		logger.Info("🐳 Starting Shared Integration Containers...")
 
-		mysqlC, err = mysql.RunContainer(ctx,
-			testcontainers.WithImage("mysql:8.0"),
+		mysqlC, err = mysql.Run(ctx,
+			"mysql:lts",
 			mysql.WithDatabase("test_db"),
 			mysql.WithUsername("test"),
 			mysql.WithPassword("test"),
@@ -65,8 +65,8 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 			panic(fmt.Sprintf("Failed to start MySQL: %v", err))
 		}
 
-		redisC, err = redisContainer.RunContainer(ctx,
-			testcontainers.WithImage("redis:7-alpine"),
+		redisC, err = redisContainer.Run(ctx,
+			"redis:8.4-alpine",
 			testcontainers.WithWaitStrategy(
 				wait.ForLog("Ready to accept connections").
 					WithStartupTimeout(30*time.Second),

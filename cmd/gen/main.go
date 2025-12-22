@@ -127,7 +127,7 @@ func generateFiles(cfg Config) {
 		defer func(f *os.File) {
 			err := f.Close()
 			if err != nil {
-
+				fmt.Printf("Warning: failed to close file: %v\n", err)
 			}
 		}(f)
 

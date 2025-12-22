@@ -124,7 +124,9 @@ func (m *WebSocketManager) listenToRedis() {
 
 	// Use pattern-based subscribe to listen to all ws_broadcast channels
 	pubsub := m.redisClient.PSubscribe(ctx, prefix+"*")
-	defer pubsub.Close()
+	defer func() {
+		_ = pubsub.Close()
+	}()
 
 	ch := pubsub.Channel()
 	m.log.Infof("Listening to Redis Pub/Sub pattern: %s*", prefix)

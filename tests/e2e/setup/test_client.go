@@ -91,7 +91,7 @@ type Response struct {
 
 func NewResponse(resp *http.Response) *Response {
 	bodyBytes, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	return &Response{
 		Response:  resp,
 		BodyBytes: bodyBytes,
