@@ -59,6 +59,10 @@ func (h *UserController) RegisterUser(c *gin.Context) {
 		return
 	}
 
+	// Capture Audit Data
+	req.IPAddress = c.ClientIP()
+	req.UserAgent = c.Request.UserAgent()
+
 	user, err := h.UserUseCase.Create(ctx, &req)
 	if err != nil {
 		h.Log.WithError(err).Error("failed to create user")
@@ -141,6 +145,10 @@ func (h *UserController) UpdateUser(c *gin.Context) {
 		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
+
+	// Capture Audit Data
+	req.IPAddress = c.ClientIP()
+	req.UserAgent = c.Request.UserAgent()
 
 	user, err := h.UserUseCase.Update(ctx, &req)
 	if err != nil {
@@ -229,9 +237,19 @@ func (h *UserController) GetUserByID(c *gin.Context) {
 // @Router       /users/{id} [delete]
 func (h *UserController) DeleteUser(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID := c.Param("id")
+	// Get actor's UserID from context
+	actorUserID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, exception.ErrUnauthorized, "unauthorized")
+		return
+	}
 
-	err := h.UserUseCase.DeleteUser(ctx, userID)
+	var req model.DeleteUserRequest
+	req.ID = c.Param("id")
+	req.IPAddress = c.ClientIP()
+	req.UserAgent = c.Request.UserAgent()
+
+	err := h.UserUseCase.DeleteUser(ctx, actorUserID.(string), &req)
 	if err != nil {
 		h.Log.WithError(err).Error("failed to delete user")
 		response.HandleError(c, err, "failed to delete user")

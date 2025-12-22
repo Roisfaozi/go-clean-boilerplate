@@ -7,8 +7,10 @@ import (
 )
 
 type LoginRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=50"`
-	Password string `json:"password" validate:"required,min=8"`
+	Username  string `json:"username" validate:"required,min=3,max=50"`
+	Password  string `json:"password" validate:"required,min=8"`
+	IPAddress string `json:"-"` // Filled by controller
+	UserAgent string `json:"-"` // Filled by controller
 }
 
 type Auth struct {
@@ -40,11 +42,11 @@ type LoginResponse struct {
 }
 
 type UserInfo struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
 	Username string `json:"username"`
-	Role string `json:"role"`
+	Role     string `json:"role"`
 }
 
 type RefreshRequest struct {
