@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
@@ -23,6 +24,11 @@ func NewAuditUseCase(repo AuditRepository, log *logrus.Logger) AuditUseCase {
 }
 
 func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLogRequest) error {
+	// Validation: Ensure mandatory fields are present
+	if req.UserID == "" || req.Action == "" || req.Entity == "" {
+		return fmt.Errorf("missing required fields for audit log: UserID, Action, and Entity are mandatory")
+	}
+
 	oldValJSON, _ := json.Marshal(req.OldValues)
 	newValJSON, _ := json.Marshal(req.NewValues)
 

@@ -9,7 +9,9 @@ import (
 )
 
 type AuditModule struct {
-	auditController *http.AuditController
+	AuditController *http.AuditController
+	AuditUseCase    usecase.AuditUseCase
+	AuditRepo       usecase.AuditRepository
 }
 
 // NewAuditModule creates a new instance of AuditModule.
@@ -24,10 +26,10 @@ func NewAuditModule(db *gorm.DB, log *logrus.Logger) *AuditModule {
 	controller := http.NewAuditController(uc, log)
 
 	return &AuditModule{
-		auditController: controller,
+		AuditController: controller,
 	}
 }
 
-func (m *AuditModule) AuditController() *http.AuditController {
-	return m.auditController
+func (m *AuditModule) Controller() *http.AuditController {
+	return m.AuditController
 }

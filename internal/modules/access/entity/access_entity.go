@@ -1,6 +1,9 @@
 package entity
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type AccessRight struct {
 	ID          string         `gorm:"primaryKey;column:id"`
@@ -10,6 +13,13 @@ type AccessRight struct {
 	CreatedAt   int64          `gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt   int64          `gorm:"column:updated_at;autoCreateTime:milli;autoUpdateTime:milli"`
 	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at;index"`
+}
+
+func (a *AccessRight) BeforeCreate(tx *gorm.DB) error {
+	if a.ID == "" {
+		a.ID = uuid.NewString()
+	}
+	return nil
 }
 
 func (AccessRight) TableName() string {
@@ -23,6 +33,13 @@ type Endpoint struct {
 	CreatedAt int64          `gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt int64          `gorm:"column:updated_at;autoCreateTime:milli;autoUpdateTime:milli"`
 	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;index"`
+}
+
+func (e *Endpoint) BeforeCreate(tx *gorm.DB) error {
+	if e.ID == "" {
+		e.ID = uuid.NewString()
+	}
+	return nil
 }
 
 func (Endpoint) TableName() string {
