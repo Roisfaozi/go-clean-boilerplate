@@ -173,3 +173,24 @@ Ini adalah langkah yang mengaktifkan akses di level **Casbin**. Tanpa langkah in
     ```
 
 Sekarang, semua pengguna yang memiliki peran `role:editor` dapat mengakses endpoint `GET /api/v1/sales/reports`.
+
+---
+
+## 4. Melihat Jejak Audit (Audit Logs)
+
+Sistem secara otomatis mencatat aktivitas penting seperti Login, Register, dan perubahan User.
+
+*   **Endpoint:** `POST /api/v1/audit-logs/search`
+*   **Akses:** Superadmin
+*   **Contoh Filter (Mencari aksi LOGIN):**
+    ```json
+    {
+      "filter": {
+        "action": { "type": "equals", "from": "LOGIN" }
+      },
+      "sort": [
+        { "colId": "created_at", "sort": "desc" }
+      ]
+    }
+    ```
+

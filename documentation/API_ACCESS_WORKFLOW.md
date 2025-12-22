@@ -107,10 +107,18 @@ Requires a valid JWT Access Token and Casbin RBAC authorization.
 | `GET`  | `/access-rights`           | List All Access Rights                         |
 | `POST` | `/access-rights/search`    | Dynamic Search and Filter for Access Rights    |
 | `DELETE`|`/access-rights/:id`       | Delete an Access Right by ID                   |
-| `POST` | `/access-rights/link`      | Link an API Endpoint to an Access Right        |
-| `POST` | `/endpoints`               | Create a New API Endpoint (e.g., `/users GET`) |
-| `POST` | `/endpoints/search`        | Dynamic Search and Filter for Endpoints        |
-| `DELETE`|`/endpoints/:id`           | Delete an Endpoint by ID                       |
+| POST | `/access-rights/link`      | Link an API Endpoint to an Access Right        |
+| POST | `/endpoints`               | Create a New API Endpoint (e.g., `/users GET`) |
+| POST | `/endpoints/search`        | Dynamic Search and Filter for Endpoints        |
+| DELETE|`/endpoints/:id`           | Delete an Endpoint by ID                       |
+
+### Audit Module
+
+Requires a valid JWT Access Token and Casbin RBAC authorization (usually restricted to `superadmin`).
+
+| Method | Path                  | Description                               |
+| :----- | :-------------------- | :---------------------------------------- |
+| `POST` | `/audit-logs/search`  | Dynamic Search and Filter for Audit Logs  |
 
 ---
 
