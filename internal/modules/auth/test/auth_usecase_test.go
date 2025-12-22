@@ -8,6 +8,8 @@ import (
 	"time"
 
 	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
+	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
+	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
@@ -41,6 +43,7 @@ type testDependencies struct {
 	enforcer   *mock_permission.IEnforcer
 	validate   *validator.Validate
 	log        *logrus.Logger
+	auditUC    *auditMocks.MockAuditUseCase // Added MockAuditUseCase
 }
 
 func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
@@ -55,6 +58,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		enforcer:   new(mock_permission.IEnforcer),
 		validate:   validator.New(),
 		log:        logrus.New(),
+		auditUC:    new(auditMocks.MockAuditUseCase), // Initialize mock audit usecase
 	}
 
 	deps.log.SetOutput(io.Discard)
@@ -67,6 +71,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		deps.log,
 		deps.wsManager,
 		deps.enforcer,
+		deps.auditUC, // Pass mock audit usecase
 	)
 
 	return authService, deps
@@ -86,7 +91,7 @@ func createTestUser(password string) (*entity.User, string) {
 func TestLogin_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, password := createTestUser("password123")
-	loginReq := model.LoginRequest{Username: user.Username, Password: password}
+	loginReq := model.LoginRequest{Username: user.Username, Password: password, IPAddress: "127.0.0.1", UserAgent: "TestAgent"}
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -97,6 +102,11 @@ func TestLogin_Success(t *testing.T) {
 	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	
+	// Expect LogActivity with a Matcher
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.UserID == user.ID && req.Action == "LOGIN" && req.Entity == "Auth" && req.IPAddress == loginReq.IPAddress
+	})).Return(nil)
 
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
 
@@ -114,6 +124,7 @@ func TestLogin_Success(t *testing.T) {
 	deps.enforcer.AssertExpectations(t)
 	deps.tokenRepo.AssertExpectations(t)
 	deps.wsManager.AssertExpectations(t)
+	deps.auditUC.AssertExpectations(t) // Assert audit log call
 }
 
 func TestLogin_Failure_UserNotFound(t *testing.T) {
@@ -134,6 +145,7 @@ func TestLogin_Failure_UserNotFound(t *testing.T) {
 	assert.Nil(t, loginResp)
 	assert.Empty(t, refreshToken)
 	deps.userRepo.AssertExpectations(t)
+	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything) // Should not log on failure
 }
 
 func TestLogin_Failure_InvalidPassword(t *testing.T) {
@@ -155,6 +167,7 @@ func TestLogin_Failure_InvalidPassword(t *testing.T) {
 	assert.Nil(t, loginResp)
 	assert.Empty(t, refreshToken)
 	deps.userRepo.AssertExpectations(t)
+	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything) // Should not log on failure
 }
 
 func TestLogin_Failure_StoreTokenError(t *testing.T) {
@@ -179,6 +192,7 @@ func TestLogin_Failure_StoreTokenError(t *testing.T) {
 	assert.Nil(t, loginResp)
 	assert.Empty(t, refreshToken)
 	deps.tokenRepo.AssertExpectations(t)
+	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything) // Should not log on StoreToken failure
 }
 
 func TestRefreshToken_Success(t *testing.T) {
@@ -194,6 +208,11 @@ func TestRefreshToken_Success(t *testing.T) {
 	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
 	deps.tokenRepo.On("DeleteToken", mock.Anything, user.ID, "session-1").Return(nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
+	
+	// Expect LogActivity because RevokeToken is called
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.UserID == user.ID && req.Action == "LOGOUT" && req.Entity == "Auth" && req.EntityID == "session-1" // sessionID needs to be verified
+	})).Return(nil) // audit log is called by RevokeToken
 
 	tokenResp, newRefreshToken, err := authService.RefreshToken(context.Background(), oldRefreshToken)
 
@@ -205,15 +224,17 @@ func TestRefreshToken_Success(t *testing.T) {
 	deps.tokenRepo.AssertExpectations(t)
 	deps.userRepo.AssertExpectations(t)
 	deps.enforcer.AssertExpectations(t)
+	deps.auditUC.AssertExpectations(t) // Audit log for RevokeToken within RefreshToken flow
 }
 
 func TestRefreshToken_Failure_InvalidToken(t *testing.T) {
-	authService, _ := setupTest(t)
+	authService, deps := setupTest(t) // Always declare both
 
 	_, _, err := authService.RefreshToken(context.Background(), "this.is.an.invalid.token")
 
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, usecase.ErrInvalidToken))
+	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
 }
 
 func TestRefreshToken_Failure_UserNotFound(t *testing.T) {
@@ -226,6 +247,8 @@ func TestRefreshToken_Failure_UserNotFound(t *testing.T) {
 	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: refreshToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(nil, gorm.ErrRecordNotFound)
+	
+	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything) // Audit log should not be called if user not found before RevokeToken is called
 
 	_, _, err = authService.RefreshToken(context.Background(), refreshToken)
 
@@ -253,10 +276,12 @@ func TestValidateAccessToken_Success(t *testing.T) {
 	assert.Equal(t, TestRole, claims.Role)
 	assert.Equal(t, user.Username, claims.Username)
 	deps.tokenRepo.AssertExpectations(t)
+	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything) // No audit log for validation
 }
 
 func TestValidateAccessToken_Failure_Expired(t *testing.T) {
-	authService, _ := setupTest(t)
+	authService, _ := setupTest(t) // Fix unused
+	// Removed the shadowing `_ = authService` since the initial declaration is now `authService, _`.
 
 	expiredToken, err := jwt.GenerateTestToken("user-id", "session-1", TestRole, TestUsername, TestAccessSecret, -1*time.Hour)
 	assert.NoError(t, err)
@@ -283,6 +308,7 @@ func TestValidateAccessToken_Failure_TokenRevoked(t *testing.T) {
 	assert.True(t, errors.Is(err, usecase.ErrTokenRevoked))
 	assert.Nil(t, claims)
 	deps.tokenRepo.AssertExpectations(t)
+	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything) // No audit log for validation
 }
 
 func TestRevokeToken_Success(t *testing.T) {
@@ -290,11 +316,15 @@ func TestRevokeToken_Success(t *testing.T) {
 	userID, sessionID := "user-1", "session-1"
 
 	deps.tokenRepo.On("DeleteToken", mock.Anything, userID, sessionID).Return(nil)
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.UserID == userID && req.Action == "LOGOUT" && req.Entity == "Auth" && req.EntityID == sessionID
+	})).Return(nil)
 
 	err := authService.RevokeToken(context.Background(), userID, sessionID)
 
 	assert.NoError(t, err)
 	deps.tokenRepo.AssertExpectations(t)
+	deps.auditUC.AssertExpectations(t) // Assert audit log call
 }
 
 func TestRevokeToken_Failure(t *testing.T) {
@@ -303,10 +333,15 @@ func TestRevokeToken_Failure(t *testing.T) {
 	revokeErr := errors.New("failed to delete")
 
 	deps.tokenRepo.On("DeleteToken", mock.Anything, userID, sessionID).Return(revokeErr)
+	// Audit log should be called even if DeleteToken fails, to log the attempt to revoke.
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.UserID == userID && req.Action == "LOGOUT" && req.Entity == "Auth" && req.EntityID == sessionID
+	})).Return(nil)
 
 	err := authService.RevokeToken(context.Background(), userID, sessionID)
 
 	assert.Error(t, err)
 	assert.Equal(t, revokeErr, err)
 	deps.tokenRepo.AssertExpectations(t)
+	deps.auditUC.AssertExpectations(t) // Assert audit log call
 }

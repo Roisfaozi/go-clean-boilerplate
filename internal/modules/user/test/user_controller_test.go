@@ -251,25 +251,40 @@ func TestUserHandler_DeleteUser(t *testing.T) {
 	router := setupUserTestRouter()
 	router.DELETE("/users/:id", handler.DeleteUser)
 
+	actorUserID := "admin-id"
+	userID := "user-to-delete"
+
 	t.Run("Success", func(t *testing.T) {
-		userID := "user-to-delete"
-		mockUseCase.On("DeleteUser", mock.Anything, userID).Return(nil).Once()
+		mockUseCase.On("DeleteUser", mock.Anything, actorUserID, mock.MatchedBy(func(req *model.DeleteUserRequest) bool {
+			return req.ID == userID
+		})).Return(nil).Once()
 
 		req, _ := http.NewRequest(http.MethodDelete, "/users/"+userID, nil)
 		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Params = []gin.Param{{Key: "id", Value: userID}}
+		c.Set("user_id", actorUserID)
+
+		handler.DeleteUser(c)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		mockUseCase.AssertExpectations(t)
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-		userID := "not-found-id"
-		mockUseCase.On("DeleteUser", mock.Anything, userID).Return(exception.ErrNotFound).Once()
+		mockUseCase.On("DeleteUser", mock.Anything, actorUserID, mock.MatchedBy(func(req *model.DeleteUserRequest) bool {
+			return req.ID == userID
+		})).Return(exception.ErrNotFound).Once()
 
 		req, _ := http.NewRequest(http.MethodDelete, "/users/"+userID, nil)
 		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Params = []gin.Param{{Key: "id", Value: userID}}
+		c.Set("user_id", actorUserID)
+
+		handler.DeleteUser(c)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
 		mockUseCase.AssertExpectations(t)

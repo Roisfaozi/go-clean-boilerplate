@@ -176,16 +176,16 @@ func (_c *MockUserUseCase_Current_Call) RunAndReturn(run func(ctx context.Contex
 }
 
 // DeleteUser provides a mock function for the type MockUserUseCase
-func (_mock *MockUserUseCase) DeleteUser(ctx context.Context, id string) error {
-	ret := _mock.Called(ctx, id)
+func (_mock *MockUserUseCase) DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error {
+	ret := _mock.Called(ctx, actorUserID, request)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteUser")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *model.DeleteUserRequest) error); ok {
+		r0 = returnFunc(ctx, actorUserID, request)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -199,12 +199,13 @@ type MockUserUseCase_DeleteUser_Call struct {
 
 // DeleteUser is a helper method to define mock.On call
 //   - ctx context.Context
-//   - id string
-func (_e *MockUserUseCase_Expecter) DeleteUser(ctx interface{}, id interface{}) *MockUserUseCase_DeleteUser_Call {
-	return &MockUserUseCase_DeleteUser_Call{Call: _e.mock.On("DeleteUser", ctx, id)}
+//   - actorUserID string
+//   - request *model.DeleteUserRequest
+func (_e *MockUserUseCase_Expecter) DeleteUser(ctx interface{}, actorUserID interface{}, request interface{}) *MockUserUseCase_DeleteUser_Call {
+	return &MockUserUseCase_DeleteUser_Call{Call: _e.mock.On("DeleteUser", ctx, actorUserID, request)}
 }
 
-func (_c *MockUserUseCase_DeleteUser_Call) Run(run func(ctx context.Context, id string)) *MockUserUseCase_DeleteUser_Call {
+func (_c *MockUserUseCase_DeleteUser_Call) Run(run func(ctx context.Context, actorUserID string, request *model.DeleteUserRequest)) *MockUserUseCase_DeleteUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -214,9 +215,14 @@ func (_c *MockUserUseCase_DeleteUser_Call) Run(run func(ctx context.Context, id 
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 *model.DeleteUserRequest
+		if args[2] != nil {
+			arg2 = args[2].(*model.DeleteUserRequest)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -227,7 +233,7 @@ func (_c *MockUserUseCase_DeleteUser_Call) Return(err error) *MockUserUseCase_De
 	return _c
 }
 
-func (_c *MockUserUseCase_DeleteUser_Call) RunAndReturn(run func(ctx context.Context, id string) error) *MockUserUseCase_DeleteUser_Call {
+func (_c *MockUserUseCase_DeleteUser_Call) RunAndReturn(run func(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error) *MockUserUseCase_DeleteUser_Call {
 	_c.Call.Return(run)
 	return _c
 }
