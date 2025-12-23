@@ -3,7 +3,6 @@ package middleware
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
@@ -12,6 +11,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// rateLimitScript is a Lua script to atomically increment and set expiry if needed.
+// KEYS[1]: rate limit key
+// ARGV[1]: window in seconds
+var rateLimitScript = redis.NewScript(`
+	local current = redis.call("INCR", KEYS[1])
+	if current == 1 then
+		redis.call("EXPIRE", KEYS[1], ARGV[1])
+	end
+	return current
+`)
+
 // RateLimitMiddlewareRedis implements a simple fixed window rate limiter using Redis.
 // It converts the RPS (Requests Per Second) config into a 1-minute fixed window limit.
 func RateLimitMiddlewareRedis(redisClient *redis.Client, log *logrus.Logger, rps float64) gin.HandlerFunc {
@@ -19,7 +29,8 @@ func RateLimitMiddlewareRedis(redisClient *redis.Client, log *logrus.Logger, rps
 	if limit < 1 {
 		limit = 1
 	}
-	window := 1 * time.Minute
+	// Window is 60 seconds
+	windowSeconds := 60
 
 	return func(c *gin.Context) {
 		if redisClient == nil {
@@ -30,20 +41,12 @@ func RateLimitMiddlewareRedis(redisClient *redis.Client, log *logrus.Logger, rps
 		clientIP := c.ClientIP()
 		key := fmt.Sprintf("rate_limit:%s", clientIP)
 
-		count, err := redisClient.Incr(c.Request.Context(), key).Result()
+		// Execute Lua script
+		count, err := rateLimitScript.Run(c.Request.Context(), redisClient, []string{key}, windowSeconds).Int64()
 		if err != nil {
 			log.Errorf("Rate limit redis error: %v", err)
 			c.Next()
 			return
-		}
-
-		if count == 1 {
-			redisClient.Expire(c.Request.Context(), key, window)
-		} else {
-			ttl, _ := redisClient.TTL(c.Request.Context(), key).Result()
-			if ttl == -1 {
-				redisClient.Expire(c.Request.Context(), key, window)
-			}
 		}
 
 		if count > limit {
