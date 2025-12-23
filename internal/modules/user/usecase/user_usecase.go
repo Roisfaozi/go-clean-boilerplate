@@ -47,17 +47,17 @@ func NewUserUseCase(logger *logrus.Logger, tm tx.WithTransactionManager,
 	}
 }
 
-func (uc *userUseCase) GetUserByID(ctx context.Context, id string) (*model.UserResponse, error) {
+func (c *userUseCase) GetUserByID(ctx context.Context, id string) (*model.UserResponse, error) {
 	var user *entity.User
-	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error
-		user, err = uc.UserRepository.FindByID(txCtx, id)
+		user, err = c.UserRepository.FindByID(txCtx, id)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				uc.Log.Warnf("User with id %s not found", id)
+				c.Log.Warnf("User with id %s not found", id)
 				return exception.ErrNotFound
 			}
-			uc.Log.Errorf("Failed to find user by id %s: %v", id, err)
+			c.Log.Errorf("Failed to find user by id %s: %v", id, err)
 			return exception.ErrInternalServer
 		}
 		return nil
@@ -106,7 +106,10 @@ func (c *userUseCase) Create(ctx context.Context, request *model.RegisterUserReq
 		}
 
 		if err := c.UserRepository.Create(txCtx, newUser); err != nil {
+
+			c.Log.Errorf("Failed create new user: %v", err)
 			return exception.ErrInternalServer
+
 		}
 
 		_, _ = c.Enforcer.AddGroupingPolicy(newUser.ID, "role:user")
@@ -138,7 +141,14 @@ func (c *userUseCase) Current(ctx context.Context, request *model.GetUserRequest
 	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		user, err := c.UserRepository.FindByID(txCtx, request.ID)
 		if err != nil {
-			return exception.ErrNotFound
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.Log.Warnf("User with id %s not found", request.ID)
+				return exception.ErrNotFound
+			}
+
+			c.Log.Errorf("Failed to find user by id %s: %v", request.ID, err)
+			return exception.ErrInternalServer
+
 		}
 		response = converter.UserToResponse(user)
 		return nil
@@ -151,21 +161,40 @@ func (c *userUseCase) Update(ctx context.Context, request *model.UpdateUserReque
 	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		user, err := c.UserRepository.FindByID(txCtx, request.ID)
 		if err != nil {
-			return exception.ErrNotFound
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.Log.Warnf("User with id %s not found", request.ID)
+				return exception.ErrNotFound
+			}
+
+			c.Log.Errorf("Failed to find user by id %s: %v", request.ID, err)
+			return exception.ErrInternalServer
+
 		}
 
 		oldUserMap := map[string]interface{}{"name": user.Name, "email": user.Email}
 
 		if len(request.Password) > 0 {
-			if len(request.Password) < 8 { return fmt.Errorf("password too weak") }
-			if len(request.Password) > 72 { return fmt.Errorf("password too long") }
+			if len(request.Password) < 8 {
+				return fmt.Errorf("password too weak")
+			}
+			if len(request.Password) > 72 {
+				return fmt.Errorf("password too long")
+			}
 			password, _ := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 			user.Password = string(password)
 		}
 
-		if len(request.Name) > 0 { user.Name = request.Name }
+		if len(request.Name) > 0 {
+			user.Name = request.Name
+		}
 
 		if err := c.UserRepository.Update(txCtx, user); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.Log.Warnf("User with id %s not found", user.ID)
+				return exception.ErrNotFound
+			}
+
+			c.Log.Errorf("Failed to find user by id %s: %v", user.ID, err)
 			return exception.ErrInternalServer
 		}
 
@@ -193,29 +222,48 @@ func (u *userUseCase) GetAllUsers(ctx context.Context, request *model.GetUserLis
 	err := u.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error
 		users, err = u.UserRepository.FindAll(txCtx, request)
-		return err
+		if err != nil {
+			u.Log.Errorf("Failed to find all users: %v", err)
+			return exception.ErrInternalServer
+		}
+		return nil
 	})
-	if err != nil { return nil, err }
+
+	if err != nil {
+		return nil, err
+	}
+
 	var responses []*model.UserResponse
-	for _, user := range users { responses = append(responses, converter.UserToResponse(user)) }
+	for _, user := range users {
+		responses = append(responses, converter.UserToResponse(user))
+	}
+
 	return responses, nil
 }
 
-func (u *userUseCase) DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error {
-	return u.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
-		userToDelete, err := u.UserRepository.FindByID(txCtx, request.ID)
-		if err != nil { return exception.ErrNotFound }
+func (c *userUseCase) DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error {
+	return c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		userToDelete, err := c.UserRepository.FindByID(txCtx, request.ID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.Log.Warnf("User with id %s not found", request.ID)
+				return exception.ErrNotFound
+			}
 
-		if err := u.UserRepository.Delete(txCtx, request.ID); err != nil {
+			c.Log.Errorf("Failed to find user by id %s: %v", request.ID, err)
 			return exception.ErrInternalServer
 		}
 
-		if u.auditUC != nil {
-			_ = u.auditUC.LogActivity(context.Background(), auditModel.CreateAuditLogRequest{
-				UserID:   actorUserID,
-				Action:   "DELETE",
-				Entity:   "User",
-				EntityID: request.ID,
+		if err := c.UserRepository.Delete(txCtx, request.ID); err != nil {
+			return exception.ErrInternalServer
+		}
+
+		if c.auditUC != nil {
+			_ = c.auditUC.LogActivity(context.Background(), auditModel.CreateAuditLogRequest{
+				UserID:    actorUserID,
+				Action:    "DELETE",
+				Entity:    "User",
+				EntityID:  request.ID,
 				OldValues: map[string]interface{}{"username": userToDelete.Username},
 				IPAddress: request.IPAddress,
 				UserAgent: request.UserAgent,
@@ -225,15 +273,26 @@ func (u *userUseCase) DeleteUser(ctx context.Context, actorUserID string, reques
 	})
 }
 
-func (u *userUseCase) GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, error) {
+func (c *userUseCase) GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, error) {
 	var users []*entity.User
-	err := u.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error
-		users, err = u.UserRepository.FindAllDynamic(txCtx, filter)
-		return err
+		users, err = c.UserRepository.FindAllDynamic(txCtx, filter)
+		if err != nil {
+			c.Log.Errorf("Failed to find users dynamically: %v", err)
+			return exception.ErrInternalServer
+		}
+		return nil
 	})
-	if err != nil { return nil, err }
+
+	if err != nil {
+		return nil, err
+	}
+
 	var responses []*model.UserResponse
-	for _, user := range users { responses = append(responses, converter.UserToResponse(user)) }
+	for _, user := range users {
+		responses = append(responses, converter.UserToResponse(user))
+	}
+
 	return responses, nil
 }
