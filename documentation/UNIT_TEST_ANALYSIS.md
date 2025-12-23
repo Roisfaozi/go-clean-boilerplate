@@ -1,90 +1,30 @@
-# 🧪 Unit Testing Analysis & Strategy
+# [ARCHIVED] Unit Test Analysis
 
-**Date:** 2025-12-19  
-**Status:** ✅ **Optimized**
-
----
-
-## 1. Unit Testing Philosophy
-
-In this project, Unit Tests are designed to be **fast, isolated, and deterministic**. They focus on the business logic layer (UseCases) and utility functions, mocking all external dependencies (Database, Redis, etc.).
-
-### Key Characteristics:
-*   **Location:** Inside each module, e.g., `internal/modules/auth/test/`.
-*   **Dependencies:** None. All external calls are mocked using `testify/mock`.
-*   **Execution Time:** Very fast (< 1s for the entire suite).
-*   **Scope:** Logic verification, error handling, edge cases within a single function.
+> **Status**: Completed
+> **Date**: December 2025
+> **Note**: This analysis guided the unit testing strategy. The project now has 100% unit test pass rate using Mockery.
 
 ---
 
-## 2. Current Coverage & State
+## 1. Philosophy
+Unit tests should validation business logic **without** external dependencies (DB, Redis, Network).
 
-### Core Modules
-| Module | Component | Status | Description |
-| :--- | :--- | :--- | :--- |
-| **Auth** | UseCase | ✅ | Covers Login, Refresh, Logout logic. Mocks JWT and Redis interactions. |
-| **User** | UseCase | ✅ | Covers CRUD logic, password hashing, and validations. Mocks DB repository. |
-| **User** | Controller | ✅ | Covers HTTP status codes, JSON binding, and response formats. |
-| **Access** | UseCase | 🔄 | Partially covered via integration tests, but benefits from more unit isolation. |
-| **Role** | UseCase | 🔄 | Partially covered. |
+## 2. Tools
+-   **Testify**: Assertions (`assert.Equal`, `require.NoError`).
+-   **Mockery**: Generates mocks for interfaces (`Repository`, `UseCase`).
 
-### Utility Packages (`pkg/`)
-| Package | Status | Description |
-| :--- | :--- | :--- |
-| `pkg/jwt` | ✅ | Token generation and validation fully tested. |
-| `pkg/querybuilder` | ✅ | SQL generation logic fully tested. |
-| `pkg/response` | ✅ | Standardized response formats verified. |
-| `pkg/validation` | ✅ | XSS sanitization and input validation logic verified. |
-| `pkg/ws` | ✅ | WebSocket manager logic (channels, clients) verified. |
+## 3. Mocking Strategy (Implemented)
 
----
+### Repository Layer
+-   **Interface**: `UserRepository`
+-   **Mock**: `MockUserRepository`
+-   **Usage**: Inject into `UserUseCase` tests.
 
-## 3. Makefile Commands
+### Transaction Manager
+-   **Mock**: `MockTransactionManager`
+-   **Behavior**: Simply executes the callback function immediately.
 
-The `Makefile` has been updated to provide granular control over test execution:
-
-### 🟢 Run Unit Tests (Fast)
-```bash
-make test
-# OR
-make test-unit
-```
-*   **Target:** `./internal/...` and `./pkg/...`
-*   **Excludes:** `tests/integration` and `tests/e2e`
-*   **Use Case:** Pre-commit checks, CI fast feedback loop.
-
-### 🟡 Run Integration Tests (Requires Docker)
-```bash
-make test-integration
-```
-*   **Target:** `./tests/integration/...`
-*   **Build Tag:** `-tags=integration`
-*   **Use Case:** Verifying DB queries, Redis interactions, and transaction logic.
-
-### 🔵 Run E2E Tests (Requires Docker)
-```bash
-make test-e2e
-```
-*   **Target:** `./tests/e2e/...`
-*   **Build Tag:** `-tags=e2e`
-*   **Use Case:** Verifying full API workflows (HTTP Request -> DB -> HTTP Response).
-
-### 🟣 Run Everything
-```bash
-make test-all
-```
-*   **Description:** Runs Unit, Integration, and E2E tests sequentially.
-
-### 📊 Coverage Report
-```bash
-make test-coverage      # Unit tests only
-make test-coverage-all  # All tests
-```
-
----
-
-## 4. Recommendations
-
-1.  **Maintain Strict Separation:** Ensure `internal/` code never imports `tests/` packages to avoid circular dependencies and keep production code clean.
-2.  **Mock Generation:** Use `make mocks` to regenerate mocks whenever interfaces in `usecase` or `repository` change.
-3.  **CI Pipeline:** Configure the CI pipeline to run `make test` on every push, and `make test-integration` only on Pull Requests or nightly builds to save resources.
+## 4. Coverage Requirements
+-   **UseCase**: 100% coverage of all branching logic (if/else).
+-   **Delivery (Controller)**: Tested via E2E tests, but unit tests can check input validation logic.
+-   **Repository**: Not unit tested (use Integration Tests instead).
