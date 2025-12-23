@@ -91,6 +91,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	ginRouter := router.SetupRouter(
 		router.RouterConfig{
 			AllowedOrigins:   cfg.CORS.AllowedOrigins,
+			TrustedProxies:   cfg.Server.TrustedProxies,
 			RateLimitEnabled: cfg.RateLimit.Enabled,
 			RateLimitRPS:     cfg.RateLimit.RPS,
 			RateLimitBurst:   cfg.RateLimit.Burst,

@@ -24,11 +24,12 @@ type AppConfig struct {
 }
 
 type ServerConfig struct {
-	Port         int           `mapstructure:"port" validate:"required"`
-	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout time.Duration `mapstructure:"write_timeout"`
-	AppName      string        `mapstructure:"app_name"`
-	AppEnv       string        `mapstructure:"app_env"`
+	Port           int           `mapstructure:"port" validate:"required"`
+	ReadTimeout    time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout   time.Duration `mapstructure:"write_timeout"`
+	AppName        string        `mapstructure:"app_name"`
+	AppEnv         string        `mapstructure:"app_env"`
+	TrustedProxies []string      `mapstructure:"trusted_proxies"`
 }
 
 type RateLimitConfig struct {
@@ -136,6 +137,13 @@ func NewConfig() (*AppConfig, error) {
 	cfg.Server.AppName = v.GetString("server.app_name")
 	cfg.Server.ReadTimeout = v.GetDuration("server.read_timeout")
 	cfg.Server.WriteTimeout = v.GetDuration("server.write_timeout")
+	if trustedProxiesStr := v.GetString("server.trusted_proxies"); trustedProxiesStr != "" && len(cfg.Server.TrustedProxies) == 0 {
+		proxies := strings.Split(trustedProxiesStr, ",")
+		for i := range proxies {
+			proxies[i] = strings.TrimSpace(proxies[i])
+		}
+		cfg.Server.TrustedProxies = proxies
+	}
 
 	cfg.Log.Level = v.GetString("log.level")
 
