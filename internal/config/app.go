@@ -50,9 +50,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		cfg.JWT.RefreshTokenDuration,
 	)
 	wsConfig := NewDefaultWebSocketConfig()
-	// Pass redisClient to wsManager for distributed scaling
-	wsManager := ws2.NewWebSocketManager((*ws2.WebSocketConfig)(wsConfig), logger, redisClient)
-	wsController := ws2.NewWebSocketController(logger, wsManager)
+	wsManager := ws2.NewWebSocketManager((*ws2.WebSocketConfig)(wsConfig), logger)
+	wsController := ws2.NewWebSocketController(logger, wsManager, cfg.CORS.AllowedOrigins)
 	go wsManager.Run()
 	logger.Info("Shared dependencies initialized.")
 
