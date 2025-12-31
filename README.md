@@ -4,7 +4,6 @@
 ![License](https://img.shields.io/badge/License-Apache%202.0-green)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20%26%20Modular-orange)
 ![Testing](https://img.shields.io/badge/Testing-Unit%2C%20Integration%2C%20E2E-success)
-![Dynamic Search](https://img.shields.io/badge/Dynamic%20Search-Enabled-blueviolet)
 ![Realtime](https://img.shields.io/badge/Realtime-Distributed%20WS%20%26%20SSE-ff69b4)
 
 Enterprise-ready Go boilerplate implementing Clean Architecture, RBAC with Casbin, Modular Audit Logging, and Distributed WebSocket scaling.
@@ -31,6 +30,36 @@ Enterprise-ready Go boilerplate implementing Clean Architecture, RBAC with Casbi
 
 ---
 
+## 🎛️ Toggleable Features & Configuration
+
+This project is designed with high flexibility. Many core features can be enabled/disabled via environment variables (`.env`).
+
+### Core Features
+
+| Feature | Env Variable | Default | Description |
+| :--- | :--- | :---: | :--- |
+| **RBAC Authorization** | `CASBIN_ENABLED` | `false` | Enables Casbin authorization checks. If `false`, authorization is bypassed. |
+| **Casbin Sync** | `CASBIN_WATCHER_ENABLED` | `false` | Enables policy sync across instances via Redis. Required for multi-replica setups. |
+| **Rate Limiter** | `RATE_LIMIT_ENABLED` | `true` | Limits requests per second (RPS) per IP to prevent DoS/Brute Force. |
+| **Distributed WS** | `WEBSOCKET_DISTRIBUTED_ENABLED` | `false` | Enables WebSocket message sync via Redis Pub/Sub. Required for horizontal scaling. |
+
+### Security & Network
+
+| Configuration | Env Variable | Default | Description |
+| :--- | :--- | :---: | :--- |
+| **Trusted Proxies** | `SERVER_TRUSTED_PROXIES` | *Empty* | Comma-separated list of trusted Load Balancer IPs/CIDRs. Prevents IP Spoofing. |
+| **CORS Origins** | `CORS_ALLOWED_ORIGINS` | `*` | Allowed domains for CORS. Use specific domains in production. |
+| **JWT Secrets** | `JWT_ACCESS_SECRET`<br>`JWT_REFRESH_SECRET` | - | **Critical**: Must be random strings (min 32 chars). |
+
+### Performance
+
+| Configuration | Env Variable | Default | Description |
+| :--- | :--- | :---: | :--- |
+| **Rate Limit Store** | `RATE_LIMIT_STORE` | `memory` | Counter storage: `memory` (single instance) or `redis` (distributed). |
+| **WS Ping Period** | `WEBSOCKET_PING_PERIOD` | *Auto* | Keep-alive ping interval (default: 90% of Pong Wait). |
+
+---
+
 ## 🛠️ Technology Stack
 
 | Category | Technology | Description |
@@ -42,17 +71,12 @@ Enterprise-ready Go boilerplate implementing Clean Architecture, RBAC with Casbi
 | **Authorization** | [Casbin](https://casbin.org/) | RBAC model & Policy enforcement |
 | **Migrations** | [golang-migrate](https://github.com/golang-migrate/migrate) | Database schema management |
 | **Testing** | [Testcontainers](https://testcontainers.com/) | Real instances for integration tests |
-| **Authentication** | [golang-jwt/jwt/v5](https://github.com/golang-jwt/jwt) | JWT implementation |
-| **Realtime** | [Gorilla WebSocket](https://github.com/gorilla/websocket) | WebSocket implementation |
-| **Realtime** | Custom SSE Manager | Server-Sent Events implementation |
+
 ---
 
 ## 🏁 Getting Started
 
-### ⚙️ Prerequisites
-
-Ensure you have the following installed on your system:
-
+### Prerequisites
 1.  **Go**: Version 1.25.5 or higher.
 2.  **Docker & Docker Compose**: For running MySQL and Redis services easily.
 3.  **Make**: For running automation commands defined in `Makefile`.
@@ -65,7 +89,6 @@ Ensure you have the following installed on your system:
     go install github.com/swaggo/swag/cmd/swag@latest
     ```
 6.  **Golang Migrate** (Optional): If you want to run migrations manually without the Makefile helper.
-7.  **C/C++ Compiler (GCC/MinGW-w64)**: Required for running repository tests that use SQLite (due to CGO). Ensure `gcc` is in your system's PATH.
 
 
 ### Installation
@@ -87,46 +110,6 @@ Ensure you have the following installed on your system:
     ```bash
     make run
     ```
-
----
-
-
-
-## 📖 API Usage Guides
-
-### Accessing API Documentation (Swagger UI)
-Interactive API documentation is available at:
-> **http://localhost:8080/api/docs/index.html**
-
-### Postman Collections
-Import the Postman collections from the `postman/` directory to explore and test the API:
--   `Casbin Project API.postman_collection.json`: Main collection for core CRUD, Auth, and RBAC flows.
--   `Casbin Project API - Dynamic Search.postman_collection.json`: Dedicated collection for testing all dynamic search endpoints with various filter/sort scenarios.
--   `Casbin Project API - Realtime.postman_collection.json`: Examples for WebSocket and Server-Sent Events (SSE).
-
-### Key Features & Endpoints
-
-| Feature | Method | Endpoint | Description | Access | Documentation |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Auth** | `POST` | `/auth/login` | User login (returns JWT) | Public | |
-| **Auth** | `POST` | `/auth/refresh` | Refresh access token | Public (Cookie) | |
-| **User** | `POST` | `/users/register` | Register new user | Public | |
-| **User** | `GET` | `/users/me` | Get current profile | User | |
-| **User** | `GET` | `/users` | List all users (basic filtering) | Admin | [GET vs Dynamic Search](#perbedaan-antara-findall-http-get-dan-dynamic-search-http-post-search) |
-| **User** | `POST` | `/users/search` | Dynamic search & filter for users | Admin | [Dynamic Search Examples](#dynamic-search-api-examples-curl) |
-| **Role** | `GET` | `/roles` | List all roles | Admin | [GET vs Dynamic Search](#perbedaan-antara-findall-http-get-dan-dynamic-search-http-post-search) |
-| **Role** | `POST` | `/roles/search` | Dynamic search & filter for roles | Admin | [Dynamic Search Examples](#dynamic-search-api-examples-curl) |
-| **Access** | `POST` | `/endpoints/search` | Dynamic search & filter for endpoints | Admin | [Dynamic Search Examples](#dynamic-search-api-examples-curl) |
-| **Access** | `POST` | `/access-rights/search` | Dynamic search & filter for access rights | Admin | [Dynamic Search Examples](#dynamic-search-api-examples-curl) |
-| **SSE** | `GET` | `/events` | Server-Sent Events stream | Public | [SSE Usage Guide](#server-sent-events-sse-usage-guide) |
-| **WebSocket** | `GET` | `/ws` | WebSocket connection | Public | |
-
-### Detailed Usage Guides
--   **Dynamic Search Examples**: See `documentation/DYNAMIC_SEARCH_EXAMPLES.md` for `curl` examples covering various filter types and scenarios.
--   **SSE Usage Guide**: See `documentation/SSE_USAGE.md` for implementation details and frontend client examples for Server-Sent Events.
--   **GET vs. Dynamic Search**: See `documentation/GET_VS_DYNAMIC_SEARCH.md` for a clear breakdown on when to use each search approach.
-
-
 
 ---
 
@@ -206,17 +189,6 @@ The project follows a standard Go project layout suitable for scalable microserv
 - [Distributed WebSocket Usage](./documentation/WEBSOCKET_USAGE.md)
 - [API Access Workflow](./documentation/API_ACCESS_WORKFLOW.md)
 - [Technical Debt Status](./documentation/TECHNICAL_DEBT_STATUS.md)
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-1.  Fork the repository.
-2.  Create a feature branch (`git checkout -b feature/amazing-feature`).
-3.  Commit your changes (`git commit -m 'feat: Add amazing feature'`).
-4.  Push to the branch (`git push origin feature/amazing-feature`).
-5.  Open a Pull Request.
 
 ---
 
