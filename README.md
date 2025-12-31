@@ -1,45 +1,33 @@
-# Go Clean Boilerplate - Go Modular REST API
+# Go Clean Boilerplate - Enterprise Modular REST API
 
 ![Go Version](https://img.shields.io/badge/Go-1.25.5%2B-blue)
 ![License](https://img.shields.io/badge/License-Apache%202.0-green)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20%26%20Modular-orange)
+![Testing](https://img.shields.io/badge/Testing-Unit%2C%20Integration%2C%20E2E-success)
 ![Dynamic Search](https://img.shields.io/badge/Dynamic%20Search-Enabled-blueviolet)
-![Realtime](https://img.shields.io/badge/Realtime-SSE%20%26%20WS-ff69b4)
+![Realtime](https://img.shields.io/badge/Realtime-Distributed%20WS%20%26%20SSE-ff69b4)
 
-This project is a production-ready, modular, **Role-Based Access Control (RBAC)** REST API built with Go. It leverages **Gin** for high-performance HTTP handling, **GORM** for database interactions, **Casbin** for robust authorization policy enforcement, and **Redis** for secure session management.
-
-It serves as a solid foundation for building scalable, secure, and maintainable backend services with advanced querying and real-time capabilities.
+Enterprise-ready Go boilerplate implementing Clean Architecture, RBAC with Casbin, Modular Audit Logging, and Distributed WebSocket scaling.
 
 ---
 
-## 🚀 Key Features
+## 🚀 Core Features
 
--   **Modular & Clean Architecture**: Codebase is strictly organized by feature modules (`user`, `auth`, `role`, `permission`, `access`) and layers (`Controller` -> `UseCase` -> `Repository`), ensuring scalability and testability.
--   **Advanced RBAC Authorization**: Fine-grained access control using [Casbin](https://casbin.org/). Policies are persisted in the database, allowing dynamic permission updates without restarting the server.
--   **Secure Authentication**:
-    -   **JWT (JSON Web Tokens)**: Stateless access tokens carrying user identity and role.
-    -   **Session Management**: Stateful refresh tokens stored in **Redis** for secure token rotation and instant revocation (logout/ban).
--   **Dynamic Search & Filtering**:
-    -   Powerful, reusable, and secure query builder.
-    -   Supports complex `WHERE` clauses with various operators (`contains`, `in_range`, `equals`, `is_null`, etc.).
-    -   Dynamic sorting on any field.
-    -   Automatically handles `snake_case` or `json` tags for flexible client requests.
--   **Real-time Communication**:
-    -   **WebSocket (WS)**: Integrated support for bidirectional communication.
-    -   **Server-Sent Events (SSE)**: Generic, reusable manager for one-way server-to-client event streaming (e.g., live notifications, dashboards).
--   **Robust Validation**: Centralized request validation using `go-playground/validator` with user-friendly error messages (HTTP 422).
--   **Enhanced Security Headers**: Automatic injection of HTTP security headers (HSTS, X-Content-Type-Options, X-Frame-Options, X-XSS-Protection).
--   **Configurable CORS**: Flexible Cross-Origin Resource Sharing policy via environment variables.
--   **Rate Limiting**: Protects against Brute Force/DoS attacks with configurable In-Memory or Redis-based strategies.
--   **Improved Error Handling**: Masking of sensitive internal error details in production environments.
--   **Secure Secrets Management**: All sensitive credentials loaded from environment variables, removing hardcoded defaults.
--   **Standardized Response**: Unified JSON response structure for success (`data`, `paging`) and errors (`message`, `error`), making frontend integration seamless.
--   **Database Migrations**: Version-controlled schema management using `golang-migrate`.
--   **Observability**: Structured logging via `logrus`.
--   **Developer Experience**:
-    -   **Swagger/OpenAPI**: Auto-generated interactive API documentation.
-    -   **Hot Reload**: Development made easy with `air`.
-    -   **Postman Collections**: Ready-to-use collections for end-to-end testing and feature exploration.
+-   **Clean Architecture**: Strict separation of concerns (Delivery, UseCase, Repository, Entity).
+-   **Advanced RBAC with Casbin**: Fine-grained access control using GORM adapter. Policies are stored in the database for dynamic updates.
+-   **Distributed WebSockets**: Scalable WebSocket management using **Redis Pub/Sub** backplane, allowing multi-node synchronization.
+-   **Modular Audit Logging**: Synchronous activity tracking (LOGIN, REGISTER, UPDATE, DELETE) integrated directly into business UseCases.
+-   **Dynamic Search & Filtering**: Secure, reusable query builder supporting complex clauses, range filters, and dynamic sorting.
+-   **Secure Authentication**: JWT-based auth with stateful session management in Redis for instant token revocation.
+-   **Real-time SSE**: Server-Sent Events manager for live one-way data streaming.
+-   **Hardened Security**: 
+    -   UseCase-level validation (Regex email, password strength).
+    -   Automatic HTTP security headers.
+    -   Go 1.25.5 for critical security fixes.
+-   **Comprehensive Testing**:
+    -   **Unit Tests**: Fast, mock-based verification of logic.
+    -   **Integration Tests**: Lightweight testing using **Singleton Testcontainers** pattern.
+    -   **E2E Tests**: Full HTTP lifecycle validation.
 
 ---
 
@@ -47,23 +35,21 @@ It serves as a solid foundation for building scalable, secure, and maintainable 
 
 | Category | Technology | Description |
 | :--- | :--- | :--- |
-| **Language** | [Go (Golang)](https://go.dev/) | Core programming language |
-| **Framework** | [Gin](https://github.com/gin-gonic/gin) | High-performance HTTP web framework |
-| **Database** | [MySQL](https://www.mysql.com/) | Primary relational database |
-| **ORM** | [GORM](https://gorm.io/) | Data access and relationship management |
-| **Cache/Session** | [Redis](https://redis.io/) | Session storage and token management |
-| **Authorization** | [Casbin](https://casbin.org/) | Authorization library (RBAC model) |
+| **Language** | [Go 1.25.5+](https://go.dev/) | Core programming language |
+| **Framework** | [Gin Gonic](https://github.com/gin-gonic/gin) | High-performance HTTP framework |
+| **Database** | [MySQL 8.0](https://www.mysql.com/) | Primary relational database |
+| **Cache/Session** | [Redis 7](https://redis.io/) | Session storage & WS Pub/Sub backplane |
+| **Authorization** | [Casbin](https://casbin.org/) | RBAC model & Policy enforcement |
+| **Migrations** | [golang-migrate](https://github.com/golang-migrate/migrate) | Database schema management |
+| **Testing** | [Testcontainers](https://testcontainers.com/) | Real instances for integration tests |
 | **Authentication** | [golang-jwt/jwt/v5](https://github.com/golang-jwt/jwt) | JWT implementation |
 | **Realtime** | [Gorilla WebSocket](https://github.com/gorilla/websocket) | WebSocket implementation |
 | **Realtime** | Custom SSE Manager | Server-Sent Events implementation |
-| **Migrations** | [golang-migrate](https://github.com/golang-migrate/migrate) | Database schema migrations |
-| **Docs** | [Swaggo](https://github.com/swaggo/swag) | Swagger documentation generator |
-| **Test** | [Testify](https://github.com/stretchr/testify) | Assertion and mocking toolkit |
-| **Test** | [Mockery](https://vektra.github.io/mockery/) | Automatic mock generation |
-
 ---
 
-## ⚙️ Prerequisites
+## 🏁 Getting Started
+
+### ⚙️ Prerequisites
 
 Ensure you have the following installed on your system:
 
@@ -81,50 +67,30 @@ Ensure you have the following installed on your system:
 6.  **Golang Migrate** (Optional): If you want to run migrations manually without the Makefile helper.
 7.  **C/C++ Compiler (GCC/MinGW-w64)**: Required for running repository tests that use SQLite (due to CGO). Ensure `gcc` is in your system's PATH.
 
----
 
-## 🚀 Getting Started
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/Roisfaozi/go-clean-boilerplate.git
-cd go-clean-boilerplate
-```
-
-### 2. Environment Configuration
-Copy the example environment file and configure it according to your setup.
-```bash
-cp .env.example .env
-```
-*Tip: The default values in `.env.example` usually work out-of-the-box with the provided `docker-compose.yml`.*
-
-### 3. Start Infrastructure (Database & Redis)
-Use Docker Compose to spin up MySQL and Redis containers.
-```bash
-docker-compose up -d
-```
-
-### 4. Run Database Migrations
-Apply the database schema and seed default data (like `role:admin` and `role:user`).
-```bash
-make migrate-up
-```
-
-### 5. Run the Application
-You can run the application in development mode (with hot reload) or standard mode.
-
-**Development Mode (Recommended):**
-```bash
-air
-```
-*Or if you don't have `air` installed:*
-```bash
-go run cmd/api/main.go
-```
-
-The server will start on **http://localhost:8080** (or the port defined in your `.env`).
+### Installation
+1.  **Clone & Configure**:
+    ```bash
+    git clone https://github.com/Roisfaozi/go-clean-boilerplate.git
+    cd go-clean-boilerplate
+    cp .env.example .env
+    ```
+2.  **Start Infrastructure**:
+    ```bash
+    docker-compose up -d
+    ```
+3.  **Run Migrations & Seeding**:
+    ```bash
+    make migrate-up
+    ```
+4.  **Run Application**:
+    ```bash
+    make run
+    ```
 
 ---
+
+
 
 ## 📖 API Usage Guides
 
@@ -160,22 +126,23 @@ Import the Postman collections from the `postman/` directory to explore and test
 -   **SSE Usage Guide**: See `documentation/SSE_USAGE.md` for implementation details and frontend client examples for Server-Sent Events.
 -   **GET vs. Dynamic Search**: See `documentation/GET_VS_DYNAMIC_SEARCH.md` for a clear breakdown on when to use each search approach.
 
+
+
 ---
 
-## 🧪 Testing
+## 🧪 Testing Strategy
 
-### Unit & Integration Tests
-Run the full suite of unit and integration tests to ensure system integrity.
-```bash
-make test
-```
-*Note: Repository tests use `gorm.io/driver/sqlite` which requires a C/C++ compiler (like GCC/MinGW-w64) installed and in your system's PATH, with `CGO_ENABLED=1` during compilation/testing.*
+We use a layered testing strategy optimized for both speed and reliability.
 
-### Mock Generation
-If you modify an interface, remember to regenerate its mock:
-```bash
-make mocks
-```
+| Command | Type | Description |
+| :--- | :--- | :--- |
+| `make test-unit` | **Unit** | Runs mock-based tests for internal/pkg logic. |
+| `make test-integration` | **Integration** | Uses **Singleton Containers** for DB/Redis logic. |
+| `make test-e2e` | **E2E** | Validates full HTTP request/response flows. |
+| `make test-all` | **Full Suite** | Executes all test layers sequentially. |
+| `make test-coverage` | **Coverage** | Generates an interactive HTML coverage report. |
+
+> **Note**: Integration and E2E tests require Docker. We use a **Singleton Container Pattern** to reuse a single database/redis instance across the entire suite, drastically reducing execution time and resource usage.
 
 ---
 
@@ -230,6 +197,15 @@ The project follows a standard Go project layout suitable for scalable microserv
             ├── model/      # Data structures (DTOs) & Validation structs
             └── entity/     # Database entities (GORM models)
 ```
+---
+
+## 📜 Documentation Links
+
+- [Testing Strategy](./documentation/TESTING_STRATEGY.md)
+- [Integration Testing Guide](./documentation/INTEGRATION_TESTING_GUIDE.md)
+- [Distributed WebSocket Usage](./documentation/WEBSOCKET_USAGE.md)
+- [API Access Workflow](./documentation/API_ACCESS_WORKFLOW.md)
+- [Technical Debt Status](./documentation/TECHNICAL_DEBT_STATUS.md)
 
 ---
 

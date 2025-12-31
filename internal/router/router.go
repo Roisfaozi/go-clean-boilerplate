@@ -25,6 +25,7 @@ import (
 
 type RouterConfig struct {
 	AllowedOrigins   []string
+	TrustedProxies   []string
 	RateLimitEnabled bool
 	RateLimitRPS     float64
 	RateLimitBurst   int
@@ -33,7 +34,7 @@ type RouterConfig struct {
 
 func SetupRouter(
 	cfg RouterConfig,
-	authModule *auth.AuthController,
+	authModule *auth.AuthModule,
 	userModule *user.UserModule,
 	permissionModule *permission.PermissionModule,
 	accessModule *access.AccessModule,
@@ -53,6 +54,22 @@ func SetupRouter(
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.SecurityMiddleware())
 	router.Use(middleware.CORSMiddleware(cfg.AllowedOrigins))
+
+	if len(cfg.TrustedProxies) > 0 {
+		if err := router.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+			logger.Errorf("Failed to set trusted proxies: %v", err)
+		} else {
+			logger.Infof("Trusted proxies set to: %v", cfg.TrustedProxies)
+		}
+	} else {
+		// Secure default: trust no proxies if not configured.
+		// However, in development (non-release), Gin might trust all or warn.
+		// We explicitly set to nil (trust none) to be safe and avoid warnings.
+		// NOTE: If you are behind a load balancer and don't set this, ClientIP() will return the LB IP (safe from spoofing, but rate limit will share one IP).
+		if err := router.SetTrustedProxies(nil); err != nil {
+			logger.Errorf("Failed to disable trusted proxies: %v", err)
+		}
+	}
 
 	if cfg.RateLimitEnabled {
 		if cfg.RateLimitStore == "redis" {
@@ -81,25 +98,25 @@ func SetupRouter(
 
 	public := apiV1.Group("")
 	{
-		authHttp.RegisterPublicRoutes(public, authModule.AuthController())
-		userHttp.RegisterPublicRoutes(public, userModule.UserController())
+		authHttp.RegisterPublicRoutes(public, authModule.AuthController)
+		userHttp.RegisterPublicRoutes(public, userModule.UserController)
 	}
 
 	authenticated := apiV1.Group("")
 	authenticated.Use(authMiddleware.ValidateToken())
 	{
-		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController())
+		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController)
 	}
 
 	authorized := apiV1.Group("")
 	authorized.Use(authMiddleware.ValidateToken())
 	authorized.Use(casbinMiddleware)
 	{
-		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController())
-		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController())
-		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController())
-		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController())
-		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController())
+		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
+		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
+		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)
+		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
+		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
 	}
 
 	return router

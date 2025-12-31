@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
+	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
@@ -27,6 +29,7 @@ type Service struct {
 	log        *logrus.Logger
 	wsManager  ws.Manager
 	Enforcer   permissionUseCase.IEnforcer
+	auditUC    auditUseCase.AuditUseCase
 }
 
 func NewAuthUsecase(
@@ -37,6 +40,7 @@ func NewAuthUsecase(
 	log *logrus.Logger,
 	wsManager ws.Manager,
 	enforcer permissionUseCase.IEnforcer,
+	auditUC auditUseCase.AuditUseCase,
 ) AuthUseCase {
 	return &Service{
 		jwtManager: jwtManager,
@@ -46,19 +50,20 @@ func NewAuthUsecase(
 		log:        log,
 		wsManager:  wsManager,
 		Enforcer:   enforcer,
+		auditUC:    auditUC,
 	}
 }
 
-func (s *Service) generateAndStoreTokenPair(user *entity.User, role, username string) (string, string, error) {
+func (s *Service) generateAndStoreTokenPair(user *entity.User, role, username string) (string, string, string, error) {
 	uid, err := uuid.NewV7()
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate session id: %w", err)
+		return "", "", "", fmt.Errorf("failed to generate session id: %w", err)
 	}
 	sessionID := uid.String()
 
 	accessToken, refreshToken, err := s.jwtManager.GenerateTokenPair(user.ID, sessionID, role, username)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate token pair: %w", err)
+		return "", "", "", fmt.Errorf("failed to generate token pair: %w", err)
 	}
 
 	session := &model.Auth{
@@ -71,10 +76,10 @@ func (s *Service) generateAndStoreTokenPair(user *entity.User, role, username st
 
 	if err := s.tokenRepo.StoreToken(context.Background(), session); err != nil {
 		s.log.WithError(err).Error("Failed to store session in Redis")
-		return "", "", fmt.Errorf("failed to store session: %w", err)
+		return "", "", "", fmt.Errorf("failed to store session: %w", err)
 	}
 
-	return accessToken, refreshToken, nil
+	return accessToken, refreshToken, sessionID, nil
 }
 
 func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model.LoginResponse, string, error) {
@@ -107,10 +112,23 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		userRole = roles[0]
 	}
 
-	accessToken, refreshToken, err := s.generateAndStoreTokenPair(user, userRole, user.Username)
+	accessToken, refreshToken, sessionID, err := s.generateAndStoreTokenPair(user, userRole, user.Username)
 	if err != nil {
 		return nil, "", err
 	}
+	
+	// Audit Log: Login (Synchronous)
+	if s.auditUC != nil {
+		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			UserID:    user.ID,
+			Action:    "LOGIN",
+			Entity:    "Auth",
+			EntityID:  sessionID,
+			IPAddress: request.IPAddress,
+			UserAgent: request.UserAgent,
+		})
+	}
+
 	notification := map[string]string{
 		"type":    "user_login",
 		"user_id": user.ID,
@@ -118,7 +136,9 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		"time":    time.Now().Format(time.RFC3339),
 	}
 	notificationJSON, _ := json.Marshal(notification)
-	s.wsManager.BroadcastToChannel("global_notifications", notificationJSON)
+	if s.wsManager != nil {
+		s.wsManager.BroadcastToChannel("global_notifications", notificationJSON)
+	}
 
 	accessTokenDuration := s.jwtManager.GetAccessTokenDuration()
 	loginResponse := &model.LoginResponse{
@@ -163,7 +183,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 		s.log.WithError(err).Warn("Failed to revoke old session during refresh")
 	}
 
-	newAccessToken, newRefreshToken, err := s.generateAndStoreTokenPair(user, userRole, user.Username)
+	newAccessToken, newRefreshToken, _, err := s.generateAndStoreTokenPair(user, userRole, user.Username)
 	if err != nil {
 		return nil, "", err
 	}
@@ -217,6 +237,17 @@ func (s *Service) Verify(ctx context.Context, userID string, sessionID string) (
 
 func (s *Service) RevokeToken(ctx context.Context, userID, sessionID string) error {
 	s.log.Infof("Revoking token for user %s with session %s", userID, sessionID)
+	
+	// Audit Log: Logout (Revoke) (Synchronous)
+	if s.auditUC != nil {
+		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			UserID:   userID,
+			Action:   "LOGOUT",
+			Entity:   "Auth",
+			EntityID: sessionID,
+		})
+	}
+
 	return s.tokenRepo.DeleteToken(ctx, userID, sessionID)
 }
 
@@ -228,6 +259,17 @@ func (s *Service) GetUserSessions(ctx context.Context, userID string) ([]*model.
 
 func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
 	s.log.Infof("Revoking all sessions for user %s", userID)
+	
+	// Audit Log: Revoke All (Synchronous)
+	if s.auditUC != nil {
+		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			UserID:   userID,
+			Action:   "REVOKE_ALL_SESSIONS",
+			Entity:   "Auth",
+			EntityID: userID,
+		})
+	}
+
 	return s.tokenRepo.RevokeAllSessions(ctx, userID)
 }
 

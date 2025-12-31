@@ -13,12 +13,12 @@ import (
 //
 // Parameters:
 //   - router: the *gin.RouterGroup to add routes to
-//   - handler: the *AuthController to handle requests
-func RegisterPublicRoutes(router *gin.RouterGroup, handler *AuthController) {
+//   - controller: the *AuthController to handle requests
+func RegisterPublicRoutes(router *gin.RouterGroup, controller *AuthController) {
 	authGroup := router.Group("/auth")
 	{
-		authGroup.POST("/login", handler.Login)
-		authGroup.POST("/refresh", handler.RefreshToken)
+		authGroup.POST("/login", controller.Login)
+		authGroup.POST("/refresh", controller.RefreshToken)
 	}
 }
 
@@ -30,10 +30,10 @@ func RegisterPublicRoutes(router *gin.RouterGroup, handler *AuthController) {
 //
 // Parameters:
 //   - router: the *gin.RouterGroup to add routes to
-//   - authHandler: the *AuthController to handle requests
-func RegisterAuthenticatedRoutes(router *gin.RouterGroup, authHandler *AuthController) {
+//   - controller: the *AuthController to handle requests
+func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *AuthController) {
 	authGroup := router.Group("/auth")
 	{
-		authGroup.POST("/logout", authHandler.Logout)
+		authGroup.POST("/logout", controller.Logout)
 	}
 }

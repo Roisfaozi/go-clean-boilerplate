@@ -53,7 +53,8 @@ func TestGetLogsDynamicController(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var webResp response.WebResponseSuccess[[]model.AuditLogResponse]
-		json.Unmarshal(w.Body.Bytes(), &webResp)
+		err := json.Unmarshal(w.Body.Bytes(), &webResp)
+		assert.NoError(t, err, "Failed to unmarshal response")
 		assert.Len(t, webResp.Data, 1)
 		mockUC.AssertExpectations(t)
 	})

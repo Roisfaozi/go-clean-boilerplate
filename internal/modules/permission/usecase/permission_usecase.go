@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
@@ -36,6 +37,10 @@ func NewPermissionUseCase(enforcer IEnforcer, log *logrus.Logger, roleRepo repos
 func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role string) error {
 	uc.log.Infof("Attempting to assign role '%s' to user '%s'", role, userID)
 
+	if userID == "" || role == "" {
+		return fmt.Errorf("userID and role are required")
+	}
+
 	_, err := uc.RoleRepo.FindByName(ctx, role)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -65,6 +70,10 @@ func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role 
 func (uc *PermissionUseCase) GrantPermissionToRole(ctx context.Context, role, path, method string) error {
 	uc.log.Infof("Attempting to grant permission to role '%s'", role)
 
+	if role == "" || path == "" || method == "" {
+		return fmt.Errorf("role, path, and method are required")
+	}
+
 	_, err := uc.RoleRepo.FindByName(ctx, role)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -86,6 +95,10 @@ func (uc *PermissionUseCase) GrantPermissionToRole(ctx context.Context, role, pa
 
 func (uc *PermissionUseCase) RevokePermissionFromRole(ctx context.Context, role, path, method string) error {
 	uc.log.Infof("Attempting to revoke permission from role '%s'", role)
+
+	if role == "" || path == "" || method == "" {
+		return fmt.Errorf("role, path, and method are required")
+	}
 
 	_, err := uc.RoleRepo.FindByName(ctx, role)
 	if err != nil {

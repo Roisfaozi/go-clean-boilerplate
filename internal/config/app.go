@@ -66,9 +66,12 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
 
-	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, enforcer)
+	// Audit Module (Initialize early to inject into others)
+	auditModule := audit.NewAuditModule(dbConnection, logger)
 
-	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer)
+	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, enforcer, auditModule)
+
+	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule)
 
 	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo)
 
@@ -76,11 +79,10 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	accessModule := access.NewAccessModule(dbConnection, logger, validate)
 
-	auditModule := audit.NewAuditModule(dbConnection, logger)
-
 	logger.Info("Application modules initialized.")
 
-	authUseCase := authModule.AuthController().AuthUseCase
+	// Access AuthUseCase via AuthController
+	authUseCase := authModule.AuthController.AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger)
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	logger.Info("Middleware initialized.")
@@ -88,6 +90,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	ginRouter := router.SetupRouter(
 		router.RouterConfig{
 			AllowedOrigins:   cfg.CORS.AllowedOrigins,
+			TrustedProxies:   cfg.Server.TrustedProxies,
 			RateLimitEnabled: cfg.RateLimit.Enabled,
 			RateLimitRPS:     cfg.RateLimit.RPS,
 			RateLimitBurst:   cfg.RateLimit.Burst,

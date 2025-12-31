@@ -20,14 +20,14 @@ import (
 //   - GET /permissions/:role: retrieves permissions for a specific role
 //   - PUT /permissions: updates a permission
 //   - DELETE /permissions/revoke: revokes a permission from a role
-func RegisterPermissionRoutes(router *gin.RouterGroup, handler *PermissionController) {
+func RegisterPermissionRoutes(router *gin.RouterGroup, controller *PermissionController) {
 	permissionGroup := router.Group("/permissions")
 	{
-		permissionGroup.POST("/assign-role", handler.AssignRole)
-		permissionGroup.POST("/grant", handler.GrantPermission)
-		permissionGroup.GET("", handler.GetAllPermissions)
-		permissionGroup.GET("/:role", handler.GetPermissionsForRole)
-		permissionGroup.PUT("", handler.UpdatePermission)
-		permissionGroup.DELETE("/revoke", handler.RevokePermission)
+		permissionGroup.POST("/assign-role", controller.AssignRole)
+		permissionGroup.POST("/grant", controller.GrantPermission)
+		permissionGroup.GET("", controller.GetAllPermissions)
+		permissionGroup.GET("/:role", controller.GetPermissionsForRole)
+		permissionGroup.PUT("", controller.UpdatePermission)
+		permissionGroup.DELETE("/revoke", controller.RevokePermission)
 	}
 }

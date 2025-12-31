@@ -24,11 +24,12 @@ type AppConfig struct {
 }
 
 type ServerConfig struct {
-	Port         int           `mapstructure:"port" validate:"required"`
-	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout time.Duration `mapstructure:"write_timeout"`
-	AppName      string        `mapstructure:"app_name"`
-	AppEnv       string        `mapstructure:"app_env"`
+	Port           int           `mapstructure:"port" validate:"required"`
+	ReadTimeout    time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout   time.Duration `mapstructure:"write_timeout"`
+	AppName        string        `mapstructure:"app_name"`
+	AppEnv         string        `mapstructure:"app_env"`
+	TrustedProxies []string      `mapstructure:"trusted_proxies"`
 }
 
 type RateLimitConfig struct {
@@ -112,11 +113,53 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("rate_limit.rps", 10.0)
 	v.SetDefault("rate_limit.burst", 20)
 	v.SetDefault("rate_limit.store", "memory")
+	v.SetDefault("websocket.distributed_enabled", false)
+	v.SetDefault("websocket.redis_prefix", "ws_broadcast:")
 
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
+
+	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
+	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")
+
+	cfg.Redis.Addr = v.GetString("redis.addr")
+	cfg.Redis.Password = v.GetString("redis.password")
+	cfg.Redis.DB = v.GetInt("redis.db")
+	cfg.Redis.PoolSize = v.GetInt("redis.pool_size")
+
+	cfg.WebSocket.DistributedEnabled = v.GetBool("websocket.distributed_enabled")
+	cfg.WebSocket.RedisPrefix = v.GetString("websocket.redis_prefix")
+
+	cfg.Server.Port = v.GetInt("server.port")
+	cfg.Server.AppEnv = v.GetString("server.app_env")
+	cfg.Server.AppName = v.GetString("server.app_name")
+	cfg.Server.ReadTimeout = v.GetDuration("server.read_timeout")
+	cfg.Server.WriteTimeout = v.GetDuration("server.write_timeout")
+	if trustedProxiesStr := v.GetString("server.trusted_proxies"); trustedProxiesStr != "" && len(cfg.Server.TrustedProxies) == 0 {
+		proxies := strings.Split(trustedProxiesStr, ",")
+		for i := range proxies {
+			proxies[i] = strings.TrimSpace(proxies[i])
+		}
+		cfg.Server.TrustedProxies = proxies
+	}
+
+	cfg.Log.Level = v.GetString("log.level")
+
+	cfg.Mysql.Host = v.GetString("mysql.host")
+	cfg.Mysql.Port = v.GetInt("mysql.port")
+	cfg.Mysql.User = v.GetString("mysql.user")
+	cfg.Mysql.Password = v.GetString("mysql.password")
+	cfg.Mysql.DBName = v.GetString("mysql.dbname")
+	cfg.Mysql.IdleConnection = v.GetInt("mysql.idle_connection")
+	cfg.Mysql.MaxConnection = v.GetInt("mysql.max_connection")
+	cfg.Mysql.MaxLifeTimeConnection = v.GetInt("mysql.max_life_time_connection")
+
+	cfg.Casbin.Enabled = v.GetBool("casbin.enabled")
+	cfg.Casbin.Model = v.GetString("casbin.model")
+	cfg.Casbin.Watcher.Enabled = v.GetBool("casbin.watcher.enabled")
+	cfg.Casbin.Watcher.Channel = v.GetString("casbin.watcher.channel")
 
 	if corsStr := v.GetString("cors.allowed_origins"); corsStr != "" && len(cfg.CORS.AllowedOrigins) == 0 {
 		origins := strings.Split(corsStr, ",")

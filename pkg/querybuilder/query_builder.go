@@ -96,11 +96,20 @@ func hasSoftDeleteField(tType reflect.Type) bool {
 }
 
 func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
+	// SECURITY: Block sorting/filtering by sensitive fields
+	if isSensitiveField(fieldName) {
+		return "", false
+	}
+
 	field, found := tType.FieldByName(fieldName)
 	if !found {
 		for i := 0; i < tType.NumField(); i++ {
 			f := tType.Field(i)
 			if strings.EqualFold(f.Name, fieldName) {
+				// SECURITY: Check matched field name too
+				if isSensitiveField(f.Name) {
+					return "", false
+				}
 				field = f
 				found = true
 				break
@@ -153,4 +162,15 @@ func ToSnakeCase(str string) string {
 	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
 	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
 	return strings.ToLower(snake)
+}
+
+func isSensitiveField(fieldName string) bool {
+	sensitiveFields := map[string]bool{
+		"Password": true,
+		"Token":    true,
+		"Secret":   true,
+		"Key":      true,
+		"Salt":     true,
+	}
+	return sensitiveFields[fieldName]
 }

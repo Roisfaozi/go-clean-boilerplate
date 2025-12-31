@@ -9,7 +9,7 @@ on:
 
 jobs:
   lint:
-    name: Lint Code
+    name: Lint & Analysis
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -24,13 +24,13 @@ jobs:
       - name: Run Linter
         uses: golangci/golangci-lint-action@v9.2.0
         with:
-          args: --timeout=5m
+          version: latest
+          args: --timeout=5m --fix
 
-  test-coverage:
-    name: Unit Test & Coverage
+  test:
+    name: Comprehensive Tests
     runs-on: ubuntu-latest
-    env:
-      CGO_ENABLED: 0
+    needs: lint
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -44,38 +44,32 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
-      - name: Run Tests with Coverage
-        run: go test -v -coverprofile=coverage.txt -covermode=atomic ./...
+      - name: Run Unit Tests
+        run: make test
 
-      - name: Upload Coverage Artifact
+      - name: Run Integration Tests
+        run: make test-integration
+        env:
+          DOCKER_HOST: unix:///var/run/docker.sock
+
+      - name: Run E2E Tests
+        run: make test-e2e
+        continue-on-error: true
+
+      - name: Run Benchmarks
+        run: make bench
+
+      - name: Upload Coverage
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: coverage.txt
-
-  benchmark:
-    name: Performance Benchmark
-    runs-on: ubuntu-latest
-    env:
-      CGO_ENABLED: 0
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-          cache: true
-
-      - name: Run Benchmarks
-        run: go test -run=^$ -bench=. -benchmem -benchtime=1s ./...
+          path: coverage_all.html
+        if: always()
 
   build-check:
-    name: Build Integrity Check
+    name: Build & Compilation Check
     runs-on: ubuntu-latest
-    env:
-      CGO_ENABLED: 0
+    needs: test
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

@@ -2,7 +2,6 @@ package http
 
 import (
 	"errors"
-	stdhttp "net/http"
 	"strings"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
@@ -56,6 +55,10 @@ func (h *AuthController) Login(c *gin.Context) {
 		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
+
+	// Capture Audit Data
+	req.IPAddress = c.ClientIP()
+	req.UserAgent = c.Request.UserAgent()
 
 	loginResp, refreshToken, err := h.AuthUseCase.Login(c.Request.Context(), req)
 	if err != nil {
@@ -151,8 +154,8 @@ func (h *AuthController) setRefreshTokenCookie(c *gin.Context, token string) {
 		maxAge = 3600 * 24 * 7
 	}
 
+	// Automatically set Secure flag in Release mode (Production)
 	secure := gin.Mode() == gin.ReleaseMode
-	c.SetSameSite(stdhttp.SameSiteStrictMode)
 	c.SetCookie(
 		"refresh_token",
 		token,

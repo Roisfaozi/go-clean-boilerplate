@@ -1,10 +1,11 @@
 package auth
 
 import (
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
-	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase" // New Import
+	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
@@ -15,8 +16,8 @@ import (
 	"gorm.io/gorm"
 )
 
-type AuthController struct {
-	authController *http.AuthController
+type AuthModule struct {
+	AuthController *http.AuthController
 }
 
 func NewAuthModule(
@@ -28,19 +29,29 @@ func NewAuthModule(
 	tm tx.WithTransactionManager,
 	wsManager ws.Manager,
 	enforcer permissionUseCase.IEnforcer,
-) *AuthController {
+	auditModule *audit.AuditModule,
+) *AuthModule {
 	tokenRepository := repository.NewTokenRepositoryRedis(redis, log)
 	userRepo := userRepository.NewUserRepository(db, log)
 
-	authUseCase := usecase.NewAuthUsecase(jwtManager, tokenRepository, userRepo, tm, log, wsManager, enforcer) // Pass enforcer
+	authUseCase := usecase.NewAuthUsecase(
+		jwtManager, 
+		tokenRepository, 
+		userRepo, 
+		tm, 
+		log, 
+		wsManager, 
+		enforcer, 
+		auditModule.AuditUseCase,
+	)
 
-	authHandler := http.NewAuthController(authUseCase, log, validator)
+	authController := http.NewAuthController(authUseCase, log, validator)
 
-	return &AuthController{
-		authController: authHandler,
+	return &AuthModule{
+		AuthController: authController,
 	}
 }
 
-func (m *AuthController) AuthController() *http.AuthController {
-	return m.authController
+func (m *AuthModule) Controller() *http.AuthController {
+	return m.AuthController
 }
