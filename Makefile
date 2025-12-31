@@ -89,13 +89,13 @@ test-unit: test
 .PHONY: test-integration
 test-integration:
 	@echo "Running integration tests..."
-	$(GOTEST) -v ./tests/integration/... -tags=integration -timeout=10m
+	$(GOTEST) -v ./tests/integration/... -tags=integration -p 1 -timeout=10m
 
 # Run E2E tests (requires Docker)
 .PHONY: test-e2e
 test-e2e:
 	@echo "Running E2E tests..."
-	$(GOTEST) -v ./tests/e2e/... -tags=e2e -timeout=15m
+	$(GOTEST) -v ./tests/e2e/... -tags=e2e -p 1 -timeout=15m
 
 # Run all tests (unit + integration + e2e)
 .PHONY: test-all
@@ -109,11 +109,11 @@ test-coverage:
 	$(GOCMD) tool cover -html=coverage_unit.out -o coverage_unit.html
 	@echo "Unit test coverage report: coverage_unit.html"
 
-# Run all tests with coverage
+# Run all tests with coverage (Sequential to avoid singleton DB race conditions)
 .PHONY: test-coverage-all
 test-coverage-all:
 	@echo "Running all tests coverage..."
-	$(GOTEST) -coverprofile=coverage_all.out -covermode=atomic -v ./... -tags=integration,e2e -timeout=20m
+	$(GOTEST) -p 1 -coverprofile=coverage_all.out -covermode=atomic -v ./... -tags=integration,e2e -timeout=20m
 	$(GOCMD) tool cover -html=coverage_all.out -o coverage_all.html
 	@echo "Full coverage report: coverage_all.html"
 
