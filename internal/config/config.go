@@ -1,15 +1,16 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
-// AppConfig holds all configuration for the application, loaded from environment variables.
 type AppConfig struct {
 	Server    ServerConfig    `mapstructure:"server"`
 	Mysql     MySqlConfig     `mapstructure:"mysql"`
@@ -18,32 +19,43 @@ type AppConfig struct {
 	Log       LoggerConfig    `mapstructure:"log"`
 	WebSocket WebSocketConfig `mapstructure:"websocket"`
 	Casbin    CasbinConfig    `mapstructure:"casbin"`
+	CORS      CORSConfig      `mapstructure:"cors"`
+	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 }
 
-// ServerConfig holds server-specific configuration.
 type ServerConfig struct {
-	Port         int           `mapstructure:"port"`
-	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout time.Duration `mapstructure:"write_timeout"`
-	AppName      string        `mapstructure:"app_name"`
-	AppEnv       string        `mapstructure:"app_env"`
+	Port           int           `mapstructure:"port" validate:"required"`
+	ReadTimeout    time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout   time.Duration `mapstructure:"write_timeout"`
+	AppName        string        `mapstructure:"app_name"`
+	AppEnv         string        `mapstructure:"app_env"`
+	TrustedProxies []string      `mapstructure:"trusted_proxies"`
 }
 
-// MySqlConfig holds PostgreSQL database connection details.
+type RateLimitConfig struct {
+	Enabled bool    `mapstructure:"enabled"`
+	RPS     float64 `mapstructure:"rps"`
+	Burst   int     `mapstructure:"burst"`
+	Store   string  `mapstructure:"store"` // "memory" or "redis"
+}
+
+type CORSConfig struct {
+	AllowedOrigins []string `mapstructure:"allowed_origins"`
+}
+
 type MySqlConfig struct {
-	Host                  string `mapstructure:"host"`
-	Port                  int    `mapstructure:"port"`
-	User                  string `mapstructure:"user"`
-	Password              string `mapstructure:"password"`
-	DBName                string `mapstructure:"dbname"`
+	Host                  string `mapstructure:"host" validate:"required"`
+	Port                  int    `mapstructure:"port" validate:"required"`
+	User                  string `mapstructure:"user" validate:"required"`
+	Password              string `mapstructure:"password" validate:"required"`
+	DBName                string `mapstructure:"dbname" validate:"required"`
 	IdleConnection        int    `mapstructure:"idle_connection"`
 	MaxConnection         int    `mapstructure:"max_connection"`
 	MaxLifeTimeConnection int    `mapstructure:"max_life_time_connection"`
 }
 
-// RedisConfig holds Redis connection details.
 type RedisConfig struct {
-	Addr         string        `mapstructure:"addr"`
+	Addr         string        `mapstructure:"addr" validate:"required"`
 	Password     string        `mapstructure:"password"`
 	DB           int           `mapstructure:"db"`
 	PoolSize     int           `mapstructure:"pool_size"`
@@ -52,34 +64,28 @@ type RedisConfig struct {
 	WriteTimeout time.Duration `mapstructure:"write_timeout"`
 }
 
-// JWTConfig holds JWT-related configuration.
 type JWTConfig struct {
-	AccessTokenSecret    string        `mapstructure:"access_secret"`
-	RefreshTokenSecret   string        `mapstructure:"refresh_secret"`
+	AccessTokenSecret    string        `mapstructure:"access_secret" validate:"required,min=32"`
+	RefreshTokenSecret   string        `mapstructure:"refresh_secret" validate:"required,min=32"`
 	AccessTokenDuration  time.Duration `mapstructure:"access_duration"`
 	RefreshTokenDuration time.Duration `mapstructure:"refresh_duration"`
 }
 
-// LoggerConfig holds logging level configuration.
 type LoggerConfig struct {
 	Level string `mapstructure:"level"`
 }
 
-// CasbinConfig holds Casbin-related configuration.
 type CasbinConfig struct {
 	Enabled bool          `mapstructure:"enabled"`
 	Model   string        `mapstructure:"model"`
 	Watcher WatcherConfig `mapstructure:"watcher"`
 }
 
-// WatcherConfig holds Casbin Redis watcher configuration.
 type WatcherConfig struct {
 	Enabled bool   `mapstructure:"enabled"`
 	Channel string `mapstructure:"channel"`
 }
 
-// NewConfig initializes and returns the application's configuration by reading from
-// a .env file and environment variables.
 func NewConfig() (*AppConfig, error) {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, reading configuration from environment variables")
@@ -89,13 +95,12 @@ func NewConfig() (*AppConfig, error) {
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	// Set default values
 	v.SetDefault("server.port", 8080)
 	v.SetDefault("server.read_timeout", "30s")
 	v.SetDefault("server.write_timeout", "30s")
 	v.SetDefault("log.level", "info")
-	v.SetDefault("postgres.host", "localhost")
-	v.SetDefault("postgres.port", 5432)
+	v.SetDefault("mysql.host", "localhost")
+	v.SetDefault("mysql.port", 3306)
 	v.SetDefault("redis.addr", "localhost:6379")
 	v.SetDefault("jwt.access_duration", "15m")
 	v.SetDefault("jwt.refresh_duration", "720h")
@@ -103,33 +108,45 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("casbin.model", "internal/config/casbin_model.conf")
 	v.SetDefault("casbin.watcher.enabled", false)
 	v.SetDefault("casbin.watcher.channel", "/casbin")
+	v.SetDefault("cors.allowed_origins", "*")
+	v.SetDefault("rate_limit.enabled", true)
+	v.SetDefault("rate_limit.rps", 10.0)
+	v.SetDefault("rate_limit.burst", 20)
+	v.SetDefault("rate_limit.store", "memory")
+	v.SetDefault("websocket.distributed_enabled", false)
+	v.SetDefault("websocket.redis_prefix", "ws_broadcast:")
 
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
 
-	//JWT
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")
 
-	//redis
 	cfg.Redis.Addr = v.GetString("redis.addr")
 	cfg.Redis.Password = v.GetString("redis.password")
 	cfg.Redis.DB = v.GetInt("redis.db")
 	cfg.Redis.PoolSize = v.GetInt("redis.pool_size")
 
-	//server
+	cfg.WebSocket.DistributedEnabled = v.GetBool("websocket.distributed_enabled")
+	cfg.WebSocket.RedisPrefix = v.GetString("websocket.redis_prefix")
+
 	cfg.Server.Port = v.GetInt("server.port")
 	cfg.Server.AppEnv = v.GetString("server.app_env")
 	cfg.Server.AppName = v.GetString("server.app_name")
 	cfg.Server.ReadTimeout = v.GetDuration("server.read_timeout")
 	cfg.Server.WriteTimeout = v.GetDuration("server.write_timeout")
+	if trustedProxiesStr := v.GetString("server.trusted_proxies"); trustedProxiesStr != "" && len(cfg.Server.TrustedProxies) == 0 {
+		proxies := strings.Split(trustedProxiesStr, ",")
+		for i := range proxies {
+			proxies[i] = strings.TrimSpace(proxies[i])
+		}
+		cfg.Server.TrustedProxies = proxies
+	}
 
-	//log
 	cfg.Log.Level = v.GetString("log.level")
 
-	//mysql
 	cfg.Mysql.Host = v.GetString("mysql.host")
 	cfg.Mysql.Port = v.GetInt("mysql.port")
 	cfg.Mysql.User = v.GetString("mysql.user")
@@ -139,10 +156,23 @@ func NewConfig() (*AppConfig, error) {
 	cfg.Mysql.MaxConnection = v.GetInt("mysql.max_connection")
 	cfg.Mysql.MaxLifeTimeConnection = v.GetInt("mysql.max_life_time_connection")
 
-	//casbin
 	cfg.Casbin.Enabled = v.GetBool("casbin.enabled")
 	cfg.Casbin.Model = v.GetString("casbin.model")
 	cfg.Casbin.Watcher.Enabled = v.GetBool("casbin.watcher.enabled")
 	cfg.Casbin.Watcher.Channel = v.GetString("casbin.watcher.channel")
+
+	if corsStr := v.GetString("cors.allowed_origins"); corsStr != "" && len(cfg.CORS.AllowedOrigins) == 0 {
+		origins := strings.Split(corsStr, ",")
+		for i := range origins {
+			origins[i] = strings.TrimSpace(origins[i])
+		}
+		cfg.CORS.AllowedOrigins = origins
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(&cfg); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
 	return &cfg, nil
 }

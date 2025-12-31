@@ -13,18 +13,14 @@ import (
 // RequestLogger middleware handles structured logging for HTTP requests
 func RequestLogger(log *logrus.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 1. Generate Request ID
 		requestID := c.GetHeader("X-Request-ID")
 		if requestID == "" {
 			requestID = uuid.New().String()
 		}
 		c.Header("X-Request-ID", requestID)
-		
-		// Set request_id in Gin context
+
 		c.Set("request_id", requestID)
 
-		// Inject request_id into standard context.Context
-		// This ensures it travels down to UseCase and Repository layers
 		ctx := context.WithValue(c.Request.Context(), constants.RequestIDKey, requestID)
 		c.Request = c.Request.WithContext(ctx)
 
@@ -53,7 +49,7 @@ func RequestLogger(log *logrus.Logger) gin.HandlerFunc {
 			"path":        path,
 			"status":      statusCode,
 			"latency_ns":  latency.Nanoseconds(),
-			"latency_ms":  float64(latency.Nanoseconds()) / 1e6, // Human readable
+			"latency_ms":  float64(latency.Nanoseconds()) / 1e6,
 			"client_ip":   clientIP,
 			"user_agent":  userAgent,
 			"data_length": dataLength,

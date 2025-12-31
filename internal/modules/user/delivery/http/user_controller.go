@@ -15,14 +15,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type UserHandler struct {
+type UserController struct {
 	UserUseCase usecase.UserUseCase
 	Log         *logrus.Logger
 	validate    *validator.Validate
 }
 
-func NewUserHandler(userUseCase usecase.UserUseCase, log *logrus.Logger, validate *validator.Validate) *UserHandler {
-	return &UserHandler{
+func NewUserController(userUseCase usecase.UserUseCase, log *logrus.Logger, validate *validator.Validate) *UserController {
+	return &UserController{
 		UserUseCase: userUseCase,
 		Log:         log,
 		validate:    validate,
@@ -42,7 +42,7 @@ func NewUserHandler(userUseCase usecase.UserUseCase, log *logrus.Logger, validat
 // @Failure      409  {object}  response.SwaggerErrorResponseWrapper "User with the same ID already exists"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users/register [post]
-func (h *UserHandler) RegisterUser(c *gin.Context) {
+func (h *UserController) RegisterUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.RegisterUserRequest
 
@@ -58,6 +58,10 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
+
+	// Capture Audit Data
+	req.IPAddress = c.ClientIP()
+	req.UserAgent = c.Request.UserAgent()
 
 	user, err := h.UserUseCase.Create(ctx, &req)
 	if err != nil {
@@ -80,7 +84,7 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "User not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users/me [get]
-func (h *UserHandler) GetCurrentUser(c *gin.Context) {
+func (h *UserController) GetCurrentUser(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	userID, exists := c.Get("user_id")
@@ -118,7 +122,7 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "User not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users/me [put]
-func (h *UserHandler) UpdateUser(c *gin.Context) {
+func (h *UserController) UpdateUser(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	userID, exists := c.Get("user_id")
@@ -141,6 +145,10 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
+
+	// Capture Audit Data
+	req.IPAddress = c.ClientIP()
+	req.UserAgent = c.Request.UserAgent()
 
 	user, err := h.UserUseCase.Update(ctx, &req)
 	if err != nil {
@@ -168,7 +176,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 // @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users [get]
-func (h *UserHandler) GetAllUsers(c *gin.Context) {
+func (h *UserController) GetAllUsers(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.GetUserListRequest
 
@@ -201,7 +209,7 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "User not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users/{id} [get]
-func (h *UserHandler) GetUserByID(c *gin.Context) {
+func (h *UserController) GetUserByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID := c.Param("id")
 
@@ -227,11 +235,21 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "User not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users/{id} [delete]
-func (h *UserHandler) DeleteUser(c *gin.Context) {
+func (h *UserController) DeleteUser(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID := c.Param("id")
+	// Get actor's UserID from context
+	actorUserID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, exception.ErrUnauthorized, "Please login to perform this action")
+		return
+	}
 
-	err := h.UserUseCase.DeleteUser(ctx, userID)
+	var req model.DeleteUserRequest
+	req.ID = c.Param("id")
+	req.IPAddress = c.ClientIP()
+	req.UserAgent = c.Request.UserAgent()
+
+	err := h.UserUseCase.DeleteUser(ctx, actorUserID.(string), &req)
 	if err != nil {
 		h.Log.WithError(err).Error("failed to delete user")
 		response.HandleError(c, err, "failed to delete user")
@@ -255,7 +273,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 // @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /users/search [post]
-func (h *UserHandler) GetUsersDynamic(c *gin.Context) {
+func (h *UserController) GetUsersDynamic(c *gin.Context) {
 	ctx := c.Request.Context()
 	var filter querybuilder.DynamicFilter
 

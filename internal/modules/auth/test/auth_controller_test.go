@@ -25,12 +25,10 @@ func setupAuthTestRouter() *gin.Engine {
 	return router
 }
 
-// Helper to create a new handler instance
-func newTestAuthHandler(mockUseCase *mocks.MockAuthUseCase) *authHandler.AuthHandler {
-	return authHandler.NewAuthHandler(mockUseCase, logrus.New(), validator.New())
+func newTestAuthHandler(mockUseCase *mocks.MockAuthUseCase) *authHandler.AuthController {
+	return authHandler.NewAuthController(mockUseCase, logrus.New(), validator.New())
 }
 
-// --- Login Handler Tests ---
 func TestAuthHandler_Login_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
 	handler := newTestAuthHandler(mockUseCase)
@@ -51,7 +49,6 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	// Check if refresh token cookie is set
 	assert.Contains(t, w.Header().Get("Set-Cookie"), "refresh_token=refresh_token")
 	mockUseCase.AssertExpectations(t)
 }
@@ -78,7 +75,7 @@ func TestAuthHandler_Login_ValidationError(t *testing.T) {
 	router := setupAuthTestRouter()
 	router.POST("/auth/login", handler.Login)
 
-	reqBody := model.LoginRequest{Username: "", Password: "password123"} // Invalid username
+	reqBody := model.LoginRequest{Username: "", Password: "password123"}
 
 	bodyBytes, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(bodyBytes))
@@ -202,7 +199,6 @@ func TestAuthHandler_Logout_Success(t *testing.T) {
 	mockUseCase.On("RevokeToken", mock.Anything, userID, sessionID).Return(nil)
 
 	req, _ := http.NewRequest(http.MethodPost, "/auth/logout", nil)
-	// Set context values manually
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
@@ -212,7 +208,7 @@ func TestAuthHandler_Logout_Success(t *testing.T) {
 	handler.Logout(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Header().Get("Set-Cookie"), "refresh_token=") // Cookie should be cleared
+	assert.Contains(t, w.Header().Get("Set-Cookie"), "refresh_token=")
 	mockUseCase.AssertExpectations(t)
 }
 
@@ -222,12 +218,11 @@ func TestAuthHandler_Logout_NoUserIDInContext(t *testing.T) {
 	router := setupAuthTestRouter()
 	router.POST("/auth/logout", handler.Logout)
 
-	// No user_id in context
 	req, _ := http.NewRequest(http.MethodPost, "/auth/logout", nil)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
-	c.Set("session_id", "session-abc") // Only session_id set
+	c.Set("session_id", "session-abc")
 
 	handler.Logout(c)
 

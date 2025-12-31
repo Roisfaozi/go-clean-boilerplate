@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Mock model for testing
 type TestModel struct {
 	ID        int            `gorm:"column:id"`
 	Name      string         `gorm:"column:name"`
@@ -18,9 +17,14 @@ type TestModel struct {
 	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at"`
 }
 
+type TestModelNoDelete struct {
+	ID   int    `gorm:"column:id"`
+	Name string `gorm:"column:name"`
+}
+
 func setupDB() *gorm.DB {
 	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
-		DryRun: true, // DryRun prevents actual DB execution, useful for SQL generation check
+		DryRun: true,
 	})
 	return db
 }
@@ -87,9 +91,28 @@ func TestGenerateDynamicQuery(t *testing.T) {
 				// ToSQL generates the SQL string
 				sql := resQuery.Find(&[]TestModel{}).Statement.SQL.String()
 				assert.Contains(t, sql, tt.expectedQuery)
+				// TestModel has DeletedAt, so it SHOULD contain the check
+				assert.Contains(t, sql, "deleted_at IS NULL")
 			}
 		})
 	}
+}
+
+func TestGenerateDynamicQuery_NoSoftDelete(t *testing.T) {
+	db := setupDB()
+	filter := &DynamicFilter{
+		Filter: map[string]Filter{
+			"Name": {Type: "equals", From: "Test"},
+		},
+	}
+
+	query := db.Model(&TestModelNoDelete{})
+	resQuery, err := GenerateDynamicQuery(query, &TestModelNoDelete{}, filter)
+	require.NoError(t, err)
+
+	sql := resQuery.Find(&[]TestModelNoDelete{}).Statement.SQL.String()
+	assert.Contains(t, sql, "name =")
+	assert.NotContains(t, sql, "deleted_at IS NULL", "Should not include soft delete check for model without DeletedAt")
 }
 
 func TestGenerateDynamicSort(t *testing.T) {
@@ -109,7 +132,6 @@ func TestGenerateDynamicSort(t *testing.T) {
 
 	sql := resQuery.Find(&[]TestModel{}).Statement.SQL.String()
 
-	// GORM SQL generation order for ORDER BY might vary slightly or be combined
 	assert.Contains(t, sql, "ORDER BY")
 	assert.Contains(t, sql, "name asc")
 	assert.Contains(t, sql, "age desc")
@@ -122,7 +144,7 @@ func TestGetDBFieldName(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "name", name)
 
-	name, ok = GetDBFieldName(tType, "name") // Lowercase lookup
+	name, ok = GetDBFieldName(tType, "name")
 	assert.True(t, ok)
 	assert.Equal(t, "name", name)
 
@@ -132,7 +154,6 @@ func TestGetDBFieldName(t *testing.T) {
 }
 
 func TestToSnakeCase(t *testing.T) {
-	// Updated expectations based on regex implementation behavior
 	assert.Equal(t, "user_id", ToSnakeCase("UserID"))
 	assert.Equal(t, "my_field_name", ToSnakeCase("MyFieldName"))
 }

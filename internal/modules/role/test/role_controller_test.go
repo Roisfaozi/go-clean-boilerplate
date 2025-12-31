@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// NoOpWriter is a logrus.Hook that discards all log entries.
 type NoOpWriter struct{}
 
 func (w *NoOpWriter) Write([]byte) (int, error) {
@@ -34,15 +33,14 @@ func (w *NoOpWriter) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
-// setupRouter sets up a Gin router with the RoleHandler
 func setupRouter(uc usecase.RoleUseCase) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
 
 	v := validator.New()
-	_ = validation.RegisterCustomValidations(v) // Register custom validations like 'xss'
+	_ = validation.RegisterCustomValidations(v)
 
-	handler := roleHttp.NewRoleHandler(uc, logrus.New(), v)
+	handler := roleHttp.NewRoleController(uc, logrus.New(), v)
 	apiV1 := router.Group("/api/v1")
 	{
 		apiV1.POST("/roles", handler.Create)
@@ -124,7 +122,6 @@ func TestRoleHandler_GetAll_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
 	router := setupRouter(mockUseCase)
 
-	// Adjust mock return type to slice of values (not pointers) based on panic message
 	expectedRoles := []model.RoleResponse{
 		{ID: "1", Name: "admin"},
 		{ID: "2", Name: "user"},
@@ -214,7 +211,6 @@ func TestRoleHandler_GetAllRolesDynamic_Success(t *testing.T) {
 	}
 	requestBody, _ := json.Marshal(dynamicFilter)
 
-	// Adjust mock return type to slice of values based on panic message
 	expectedRoles := []model.RoleResponse{
 		{ID: "1", Name: "test_role"},
 	}

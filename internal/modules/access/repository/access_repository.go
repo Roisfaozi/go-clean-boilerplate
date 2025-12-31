@@ -21,7 +21,6 @@ func NewAccessRepository(db *gorm.DB, log *logrus.Logger) AccessRepository {
 	}
 }
 
-// Endpoint Methods
 func (r *accessRepository) CreateEndpoint(ctx context.Context, endpoint *entity.Endpoint) error {
 	return r.db.WithContext(ctx).Create(endpoint).Error
 }
@@ -66,7 +65,6 @@ func (r *accessRepository) DeleteEndpoint(ctx context.Context, id string) error 
 	return r.db.WithContext(ctx).Delete(&entity.Endpoint{}, "id = ?", id).Error
 }
 
-// AccessRight Methods
 func (r *accessRepository) CreateAccessRight(ctx context.Context, accessRight *entity.AccessRight) error {
 	return r.db.WithContext(ctx).Create(accessRight).Error
 }

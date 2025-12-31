@@ -14,13 +14,13 @@ MIGRATIONS_DIR = ./db/migrations
 DB_DRIVER = mysql
 DB_USER = root
 DB_PASSWORD = Password0!
-DB_PASSWORD_PROD =
+DB_PASSWORD_PROD = 
 DB_HOST = localhost
-DB_HOST_PROD =
+DB_HOST_PROD = 
 DB_PORT = 3307
 DB_PORT_PROD = 3307
 DB_NAME = gin_starter
-DB_NAME_PROD =
+DB_NAME_PROD = 
 DB_URL = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@tcp($(DB_HOST):$(DB_PORT))/$(DB_NAME)"
 DB_URL_PROD = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_PROD)@tcp($(DB_HOST_PROD):$(DB_PORT_PROD))/$(DB_NAME_PROD)"
 DB_URL_STAG = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_PROD)@tcp($(DB_HOST_PROD):$(DB_PORT_PROD))/$(DB_NAME)"
@@ -42,23 +42,24 @@ help:
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "Targets:"
-	@echo "  run          - Generate docs and run the main application."
-	@echo "  build        - Build the application binary (output: $(BINARY_NAME))."
-	@echo "  test         - Run all tests."
-	@echo "  test-race    - Run tests with race detector."
-	@echo "  test-cover   - Run tests with coverage analysis."
-	@echo "  bench        - Run benchmarks."
-	@echo "  bench-race   - Run benchmarks with race detector.
-	@echo "  bench-cpu     - Run benchmarks with CPU profiling.
-	@echo "  bench-mem     - Run benchmarks with memory profiling."
-	@echo "  docs         - Generate Swagger/OpenAPI documentation."
-	@echo "  tidy         - Tidy go.mod and go.sum files."
-	@echo "  clean        - Remove build artifacts and generated documentation."
-	@echo "  lint         - Run the static analysis linter (requires golangci-lint)."
-	@echo "  docker-dev   - Start the development environment with Docker Compose."
-	@echo "  docker-prod  - Start the production environment (initial setup) with Docker Compose."
-	@echo "  docker-down  - Stop and remove all Docker containers, networks, and volumes."
-	@echo "  deploy       - Run the Blue-Green deployment script."
+	@echo "  run               - Generate docs and run the main application."
+	@echo "  build             - Build the application binary (output: $(BINARY_NAME))."
+	@echo "  test              - Run unit tests only (fast, mocks only)."
+	@echo "  test-unit         - Alias for test."
+	@echo "  test-integration  - Run integration tests (requires Docker)."
+	@echo "  test-e2e          - Run E2E tests (requires Docker)."
+	@echo "  test-all          - Run all tests (unit + integration + e2e)."
+	@echo "  test-coverage     - Run unit tests with coverage report."
+	@echo "  test-coverage-all - Run all tests with coverage report."
+	@echo "  test-race         - Run tests with race detector."
+	@echo "  test-clean        - Clean test cache."
+	@echo "  bench             - Run benchmarks."
+	@echo "  docs              - Generate Swagger/OpenAPI documentation."
+	@echo "  tidy              - Tidy go.mod and go.sum files."
+	@echo "  clean             - Remove build artifacts and generated documentation."
+	@echo "  lint              - Run the static analysis linter."
+	@echo "  docker-dev        - Start the development environment with Docker Compose."
+	@echo "  gen-module        - Generate boilerplate code for a new module."
 
 
 # Generate docs and run the application
@@ -73,21 +74,60 @@ build:
 	@echo "Building the application binary..."
 	$(GOBUILD) -o $(BINARY_NAME) ./cmd/api/main.go
 
+# --- TESTING ---
+
+# Run unit tests only (exclude integration and e2e folders)
+.PHONY: test
+test:
+	@echo "Running unit tests (internal and pkg)..."
+	$(GOTEST) -v ./internal/... ./pkg/...
+
+.PHONY: test-unit
+test-unit: test
+
+# Run integration tests (requires Docker)
+.PHONY: test-integration
+test-integration:
+	@echo "Running integration tests..."
+	$(GOTEST) -v ./tests/integration/... -tags=integration -p 1 -timeout=10m
+
+# Run E2E tests (requires Docker)
+.PHONY: test-e2e
+test-e2e:
+	@echo "Running E2E tests..."
+	$(GOTEST) -v ./tests/e2e/... -tags=e2e -p 1 -timeout=15m
+
+# Run all tests (unit + integration + e2e)
+.PHONY: test-all
+test-all: test test-integration test-e2e
+
+# Run unit tests with coverage
+.PHONY: test-coverage
+test-coverage:
+	@echo "Running unit tests coverage..."
+	$(GOTEST) -coverprofile=coverage_unit.out -covermode=atomic -v ./internal/... ./pkg/...
+	$(GOCMD) tool cover -html=coverage_unit.out -o coverage_unit.html
+	@echo "Unit test coverage report: coverage_unit.html"
+
+# Run all tests with coverage (Sequential to avoid singleton DB race conditions)
+.PHONY: test-coverage-all
+test-coverage-all:
+	@echo "Running all tests coverage..."
+	$(GOTEST) -p 1 -coverprofile=coverage_all.out -covermode=atomic -v ./... -tags=integration,e2e -timeout=20m
+	$(GOCMD) tool cover -html=coverage_all.out -o coverage_all.html
+	@echo "Full coverage report: coverage_all.html"
+
 # Run tests with race detector
 .PHONY: test-race
 test-race:
 	$(GOTEST) -race -v ./...
 
-# Run tests with coverage
-.PHONY: test-cover
-test-cover:
-	$(GOTEST) -coverprofile=coverage.txt -covermode=atomic -v ./...
-	$(GOCMD) tool cover -html=coverage.txt -o coverage.html
+# Clean test cache
+.PHONY: test-clean
+test-clean:
+	$(GOCLEAN) -testcache
 
-# Run tests
-.PHONY: test
-test:
-	$(GOTEST) -v ./...
+# --- BENCHMARKING ---
 
 # Run benchmarks
 .PHONY: bench
@@ -99,23 +139,8 @@ bench:
 bench-race:
 	$(GOTEST) -race -run=^$$ -bench=. -benchmem -benchtime=$(BENCHTIME) -count=5 ./...
 
-# Run benchmarks with CPU profiling
-.PHONY: bench-cpu
-bench-cpu:
-	$(GOTEST) -run=^$$ -bench=. -benchmem -benchtime=$(BENCHTIME) -cpuprofile=cpu.pprof ./...
+# --- DOCKER ---
 
-# Run benchmarks with memory profiling
-.PHONY: bench-mem
-bench-mem:
-	$(GOTEST) -run=^$$ -bench=. -benchmem -benchtime=$(BENCHTIME) -memprofile=mem.pprof ./...
-
-# Run all tests-windows
-.PHONY: wintest
-wintest:
-	@echo "Running tests..."
-	@powershell -Command "$$env:CGO_ENABLED='1'; go test -v ./..."
-
-# Docker commands
 .PHONY: docker-dev
 docker-dev: ## Start development environment
 	@echo "Starting development environment..."
@@ -137,6 +162,8 @@ deploy: ## Run Blue-Green deployment
 	@echo "Running Blue-Green deployment..."
 	@bash deploy/scripts/deploy.sh
 
+# --- TOOLS ---
+
 # Generate Swagger/OpenAPI documentation
 .PHONY: docs
 docs:
@@ -155,6 +182,16 @@ lint:
 	@echo "Running linter..."
 	@powershell -Command "if (-not (Get-Command golangci-lint -ErrorAction SilentlyContinue)) { echo 'golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/'; exit 1; } else { golangci-lint run }"
 
+.PHONY: lint-fix
+lint-fix:
+	@echo "Running linter with auto-fix..."
+	@powershell -Command "if (-not (Get-Command golangci-lint -ErrorAction SilentlyContinue)) { echo 'golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/'; exit 1; } else { golangci-lint run --fix }"
+
+.PHONY: vulcek
+vulcek:
+	@echo "Running vulnerability check with govulncheck ./..."
+	govulncheck ./...
+
 # Generate mocks
 .PHONY: mocks
 mocks:
@@ -167,7 +204,7 @@ clean:
 	@echo "Cleaning up..."
 	@if (Test-Path $(BINARY_NAME)) { Remove-Item -Force $(BINARY_NAME) }
 	@if (Test-Path ./docs) { Remove-Item -Recurse -Force ./docs }
-	$(GOCLEAN)
+	$(GOCLEAN) 
 
 
 # Migration commands
@@ -227,4 +264,9 @@ seed-down: ## Rollback seeded data (if applicable, be careful!)
 gemini: ## Set MySQL environment variables
 	@powershell -ExecutionPolicy Bypass -Command "$$env:MYSQL_HOST='$(DB_HOST)'; $$env:MYSQL_PORT='$(DB_PORT)'; $$env:MYSQL_DATABASE='$(DB_NAME)'; $$env:MYSQL_USER='$(DB_USER)'; $$env:MYSQL_PASSWORD='$(DB_PASSWORD)'; gemini"
 
-# -m gemini-2.5-pro
+# Generate new module boilerplate
+.PHONY: gen-module
+gen-module:
+	@echo "Enter module name (e.g. product): "
+	@read module; \
+	$(GORUN) cmd/gen/main.go -name $$module

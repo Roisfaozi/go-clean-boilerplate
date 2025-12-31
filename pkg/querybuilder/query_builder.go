@@ -9,17 +9,18 @@ import (
 	"gorm.io/gorm"
 )
 
-// GenerateDynamicQuery constructs a GORM query based on dynamic filters.
 func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter) (*gorm.DB, error) {
 	if filter == nil {
 		return db, nil
 	}
 
-	db = db.Where("deleted_at IS NULL") // Default soft delete
-
 	tType := reflect.TypeOf(model)
 	if tType.Kind() == reflect.Ptr {
 		tType = tType.Elem()
+	}
+
+	if hasSoftDeleteField(tType) {
+		db = db.Where("deleted_at IS NULL")
 	}
 
 	for fieldName, condition := range filter.Filter {
@@ -34,7 +35,6 @@ func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter)
 		case "contains":
 			db = db.Where(fmt.Sprintf("%s LIKE ?", dbFieldName), fmt.Sprintf("%%%v%%", condition.From))
 		case "in":
-			// Ensure condition.From is a slice/array
 			val := reflect.ValueOf(condition.From)
 			if val.Kind() == reflect.Slice || val.Kind() == reflect.Array {
 				db = db.Where(fmt.Sprintf("%s IN (?)", dbFieldName), condition.From)
@@ -61,7 +61,6 @@ func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter)
 	return db, nil
 }
 
-// GenerateDynamicSort applies sorting conditions to a GORM query.
 func GenerateDynamicSort(db *gorm.DB, model interface{}, filter *DynamicFilter) (*gorm.DB, error) {
 	if filter == nil || filter.Sort == nil || len(*filter.Sort) == 0 {
 		return db, nil
@@ -88,16 +87,29 @@ func GenerateDynamicSort(db *gorm.DB, model interface{}, filter *DynamicFilter) 
 	return db, nil
 }
 
-// GetDBFieldName extracts the database column name from a struct field.
-// It prioritizes 'gorm' tag, then 'json' tag, then snake_case of the field name.
-// It supports case-insensitive field name matching.
+func hasSoftDeleteField(tType reflect.Type) bool {
+	if tType.Kind() == reflect.Ptr {
+		tType = tType.Elem()
+	}
+	_, found := tType.FieldByName("DeletedAt")
+	return found
+}
+
 func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
+	// SECURITY: Block sorting/filtering by sensitive fields
+	if isSensitiveField(fieldName) {
+		return "", false
+	}
+
 	field, found := tType.FieldByName(fieldName)
 	if !found {
-		// Try case-insensitive lookup
 		for i := 0; i < tType.NumField(); i++ {
 			f := tType.Field(i)
 			if strings.EqualFold(f.Name, fieldName) {
+				// SECURITY: Check matched field name too
+				if isSensitiveField(f.Name) {
+					return "", false
+				}
 				field = f
 				found = true
 				break
@@ -108,7 +120,6 @@ func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 		}
 	}
 
-	// Check 'gorm' tag
 	gormTag := field.Tag.Get("gorm")
 	if gormTag != "" {
 		if colName := extractColumnNameFromGormTag(gormTag); colName != "" {
@@ -116,7 +127,6 @@ func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 		}
 	}
 
-	// Check 'json' tag
 	jsonTag := field.Tag.Get("json")
 	if jsonTag != "" {
 		if colName := extractColumnNameFromJsonTag(jsonTag); colName != "" {
@@ -124,7 +134,6 @@ func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 		}
 	}
 
-	// Default to snake_case of the struct field name
 	return ToSnakeCase(field.Name), true
 }
 
@@ -149,9 +158,19 @@ func extractColumnNameFromJsonTag(tag string) string {
 var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
 var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
 
-// ToSnakeCase converts a string to snake_case.
 func ToSnakeCase(str string) string {
 	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
 	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
 	return strings.ToLower(snake)
+}
+
+func isSensitiveField(fieldName string) bool {
+	sensitiveFields := map[string]bool{
+		"Password": true,
+		"Token":    true,
+		"Secret":   true,
+		"Key":      true,
+		"Salt":     true,
+	}
+	return sensitiveFields[fieldName]
 }

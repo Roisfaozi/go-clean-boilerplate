@@ -28,6 +28,8 @@ Selamat datang di panduan proyek **Go Clean Boilerplate API**! Dokumen ini diran
 *   **Standardisasi Respons:** Struktur respons JSON yang konsisten untuk sukses dan error.
 *   **Migrasi Database:** Manajemen skema database berbasis versi.
 *   **Dokumentasi API Otomatis:** Integrasi Swagger/OpenAPI.
+*   **Rate Limiting:** Perlindungan terhadap Brute Force/DoS dengan strategi yang dapat dikonfigurasi (In-Memory atau Redis).
+*   **Keamanan & Kualitas Kode Ditingkatkan:** Semua kerentanan keamanan yang dilaporkan telah diatasi, dan standar kode dipastikan bersih dari masalah `golangci-lint` (setelah proses refactoring dan perbaikan).
 
 ---
 
@@ -295,6 +297,34 @@ WebSocket menyediakan saluran komunikasi *bidireksional* dan *full-duplex* di at
     *   **SSE:** Satu arah (server ke client), berbasis HTTP, lebih sederhana. Ideal untuk notifikasi atau stream data yang tidak memerlukan respons client secara langsung.
     *   **WebSocket:** Dua arah (server ke client dan client ke server), full-duplex, protokol terpisah. Ideal untuk chat, game, atau aplikasi yang membutuhkan interaksi real-time yang intensif dari kedua belah pihak.
 
+### 4.6 Keamanan dan Stabilitas Sistem
+
+Proyek ini telah diperkeras (hardened) dengan berbagai lapisan keamanan dan stabilitas untuk siap produksi.
+
+*   **Rate Limiter (Pembatasan Laju):**
+    *   Mencegah serangan *Brute Force* dan *DoS* dengan membatasi jumlah request per IP.
+    *   **Strategi Fleksibel:** Mendukung dua mode penyimpanan yang dapat dikonfigurasi lewat `.env`:
+        *   `memory`: Menggunakan map in-memory dengan pembersihan otomatis (TTL-based). Cocok untuk single-instance deployment.
+        *   `redis`: Menggunakan Redis untuk menyimpan counter. Wajib digunakan jika aplikasi di-scale horizontal (multiple instance) agar limit terdistribusi dengan benar.
+    *   **Konfigurasi:** Diatur lewat `RATE_LIMIT_ENABLED`, `RATE_LIMIT_RPS`, `RATE_LIMIT_BURST`, dan `RATE_LIMIT_STORE`.
+
+*   **CORS (Cross-Origin Resource Sharing):**
+    *   Tidak lagi mengizinkan semua origin (`*`) secara hardcoded.
+    *   Origin yang diizinkan dikonfigurasi lewat environment variable `CORS_ALLOWED_ORIGINS` (comma-separated list), memberikan kontrol ketat terhadap siapa yang boleh mengakses API.
+
+*   **Security Headers:**
+    *   Middleware `SecurityMiddleware` secara otomatis menyuntikkan header keamanan standar HTTP pada setiap respons:
+        *   `Strict-Transport-Security` (HSTS): Memaksa HTTPS.
+        *   `X-Content-Type-Options`: Mencegah MIME-sniffing.
+        *   `X-Frame-Options`: Mencegah Clickjacking.
+        *   `X-XSS-Protection`: Perlindungan XSS browser.
+
+*   **Pencegahan Kebocoran Informasi (Error Masking):**
+    *   Dalam mode produksi (`APP_ENV=production` atau `GIN_MODE=release`), sistem secara otomatis menyembunyikan detail error internal (seperti error database SQL) pada respons HTTP 500. Klien hanya akan menerima pesan generik "Internal Server Error", sementara detail asli tetap dicatat di log server untuk debugging.
+
+*   **Secrets Management:**
+    *   Semua kredensial sensitif (password database, secret key JWT) wajib diambil dari environment variable dan tidak ada nilai default (hardcoded) yang tidak aman di kode sumber.
+
 ---
 
 ## 5. Memulai dan Mengembangkan (Getting Started & Development)
@@ -305,7 +335,7 @@ Bagian ini akan memandu Anda dalam menyiapkan lingkungan pengembangan, menjalank
 
 Sebelum memulai, pastikan sistem Anda memiliki perangkat lunak berikut terinstal:
 
-1.  **Go:** Versi 1.21 atau lebih tinggi. Ini adalah bahasa pemrograman utama proyek.
+*   **Go**: Versi 1.25.5 atau lebih tinggi. Ini adalah bahasa pemrograman utama proyek.
 2.  **Docker & Docker Compose:** Digunakan untuk menjalankan layanan infrastruktur seperti database (MySQL) dan Redis secara terisolasi dalam kontainer. Ini memastikan lingkungan pengembangan yang konsisten.
 3.  **Make:** Utilitas `make` digunakan untuk menjalankan perintah otomatisasi yang ditentukan dalam `Makefile` (misalnya, `make migrate-up`, `make test`).
 4.  **Air (Opsional):** Tool untuk *live-reloading* kode saat ada perubahan file, sangat direkomendasikan untuk pengembangan.

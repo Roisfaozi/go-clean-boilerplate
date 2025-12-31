@@ -59,7 +59,6 @@ func (r *roleRepository) FindAllDynamic(ctx context.Context, filter *querybuilde
 		return nil, err
 	}
 
-	// Apply Dynamic Sort
 	query, err = querybuilder2.GenerateDynamicSort(query, &entity.Role{}, filter)
 	if err != nil {
 		return nil, err

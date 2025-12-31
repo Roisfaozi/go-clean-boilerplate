@@ -6,121 +6,90 @@ import (
 	"path"
 	"runtime"
 
-		"github.com/Roisfaozi/go-clean-boilerplate/pkg/constants"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/constants"
 
-		"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
+)
 
-	)
+func NewLogrus(config *AppConfig) *logrus.Logger {
 
-	
+	logger := logrus.New()
 
-	// NewLogrus creates a new Logrus logger instance based on the application configuration.
+	level, err := logrus.ParseLevel(config.Log.Level)
 
-	func NewLogrus(config *AppConfig) *logrus.Logger {
+	if err != nil {
 
-		logger := logrus.New()
+		logger.SetLevel(logrus.InfoLevel)
 
-		level, err := logrus.ParseLevel(config.Log.Level)
+		logger.Warnf("Invalid log level '%s'. Defaulting to 'info'.", config.Log.Level)
 
-		if err != nil {
+	} else {
 
-			logger.SetLevel(logrus.InfoLevel)
-
-			logger.Warnf("Invalid log level '%s'. Defaulting to 'info'.", config.Log.Level)
-
-		} else {
-
-			logger.SetLevel(level)
-
-		}
-
-		
-
-		// Add report caller to see file and line number where log was called
-
-		logger.SetReportCaller(true)
-
-		
-
-		// Use TextFormatter for development environment, JSONFormatter for others
-
-		if config.Server.AppEnv == "development" {
-
-			logger.SetFormatter(&logrus.TextFormatter{
-
-				ForceColors:   true,
-
-				FullTimestamp: true,
-
-				TimestampFormat: "2006-01-02 15:04:05.000",
-
-				CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-
-					// Shorten file path to just filename:line
-
-					filename := path.Base(f.File)
-
-					return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("%s:%d", filename, f.Line)
-
-				},
-
-			})
-
-		} else {
-
-			logger.SetFormatter(&logrus.JSONFormatter{
-
-				TimestampFormat: "2006-01-02 15:04:05.000",
-
-				CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-
-					// Shorten file path
-
-					filename := path.Base(f.File)
-
-					return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("%s:%d", filename, f.Line)
-
-				},
-
-			})
-
-		}
-
-		
-
-		return logger
+		logger.SetLevel(level)
 
 	}
 
-	
+	logger.SetReportCaller(true)
 
-	// LogWithContext extracts the Request ID from context (if available) and returns a logger entry.
+	if config.Server.AppEnv == "development" {
 
-	func LogWithContext(ctx context.Context, logger *logrus.Logger) *logrus.Entry {
+		logger.SetFormatter(&logrus.TextFormatter{
 
-		entry := logrus.NewEntry(logger)
+			ForceColors: true,
 
-		
+			FullTimestamp: true,
 
-		if reqID, ok := ctx.Value(constants.RequestIDKey).(string); ok {
+			TimestampFormat: "2006-01-02 15:04:05.000",
 
-			entry = entry.WithField("request_id", reqID)
+			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 
-		}
+				filename := path.Base(f.File)
 
-	
+				return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("%s:%d", filename, f.Line)
 
-		if userID, ok := ctx.Value(constants.UserIDKey).(string); ok {
+			},
+		})
 
-			entry = entry.WithField("user_id", userID)
+	} else {
 
-		}
+		logger.SetFormatter(&logrus.JSONFormatter{
 
-	
+			TimestampFormat: "2006-01-02 15:04:05.000",
 
-		return entry
+			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+
+				filename := path.Base(f.File)
+
+				return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("%s:%d", filename, f.Line)
+
+			},
+		})
 
 	}
+
+	return logger
+
+}
+
+func LogWithContext(ctx context.Context, logger *logrus.Logger) *logrus.Entry {
+
+	entry := logrus.NewEntry(logger)
+
+	if reqID, ok := ctx.Value(constants.RequestIDKey).(string); ok {
+
+		entry = entry.WithField("request_id", reqID)
+
+	}
+
+	if userID, ok := ctx.Value(constants.UserIDKey).(string); ok {
+
+		entry = entry.WithField("user_id", userID)
+
+	}
+
+	return entry
+
+}
 
 func LogError(ctx context.Context, logger *logrus.Logger, err error, message string) {
 	entry := LogWithContext(ctx, logger)

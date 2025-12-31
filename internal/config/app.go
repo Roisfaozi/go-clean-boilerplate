@@ -7,6 +7,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
@@ -34,7 +35,6 @@ type Application struct {
 
 // NewApplication initializes and wires up all application components.
 func NewApplication(cfg *AppConfig) (*Application, error) {
-	// 1. Initialize Shared Dependencies
 	logger := NewLogrus(cfg)
 	validate := NewValidator()
 	dbConnection := NewDatabase(cfg, logger)
@@ -50,27 +50,28 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		cfg.JWT.RefreshTokenDuration,
 	)
 	wsConfig := NewDefaultWebSocketConfig()
-	wsManager := ws2.NewWebSocketManager((*ws2.WebSocketConfig)(wsConfig), logger)
-	wsController := ws2.NewWebSocketController(logger, wsManager)
+	wsManager := ws2.NewWebSocketManager(wsConfig.ToPkgConfig(), logger, redisClient)
+	wsController := ws2.NewWebSocketController(logger, wsManager, cfg.CORS.AllowedOrigins)
 	go wsManager.Run()
 	logger.Info("Shared dependencies initialized.")
 
-	// NEW: Initialize SSE Manager
 	sseManager := sse.NewManager()
 	logger.Info("SSE Manager initialized.")
 
-	// 2. Initialize Casbin (conditionally)
 	enforcer, err := NewCasbinEnforcer(cfg, dbConnection, logger)
 	if err != nil {
+		logger.Errorf("Error initializing casbin enforcer: %v", err)
 		return nil, err
 	}
 
-	// 3. Initialize Modules
 	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
 
-	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, enforcer)
+	// Audit Module (Initialize early to inject into others)
+	auditModule := audit.NewAuditModule(dbConnection, logger)
 
-	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer)
+	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, enforcer, auditModule)
+
+	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule)
 
 	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo)
 
@@ -80,28 +81,36 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	logger.Info("Application modules initialized.")
 
-	// 4. Initialize Middleware
-	authUseCase := authModule.AuthHandler().AuthUseCase
+	// Access AuthUseCase via AuthController
+	authUseCase := authModule.AuthController.AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger)
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	logger.Info("Middleware initialized.")
 
-	// 5. Setup Router
 	ginRouter := router.SetupRouter(
+		router.RouterConfig{
+			AllowedOrigins:   cfg.CORS.AllowedOrigins,
+			TrustedProxies:   cfg.Server.TrustedProxies,
+			RateLimitEnabled: cfg.RateLimit.Enabled,
+			RateLimitRPS:     cfg.RateLimit.RPS,
+			RateLimitBurst:   cfg.RateLimit.Burst,
+			RateLimitStore:   cfg.RateLimit.Store,
+		},
 		authModule,
 		userModule,
 		permissionModule,
 		accessModule,
 		roleModule,
+		auditModule,
 		authMiddleware,
 		casbinMiddleware,
 		wsController,
 		sseManager,
-		logger, // NEW: Pass logger
+		redisClient,
+		logger,
 	)
 	logger.Info("Router setup complete.")
 
-	// 6. Create HTTP Server
 	serverPort := fmt.Sprintf(":%d", cfg.Server.Port)
 	httpServer := &http.Server{
 		Addr:    serverPort,

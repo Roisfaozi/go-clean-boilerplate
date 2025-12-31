@@ -1,6 +1,7 @@
 package user
 
 import (
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
@@ -12,30 +13,29 @@ import (
 )
 
 type UserModule struct {
-	userHandler *http.UserHandler
+	UserController *http.UserController
 }
 
 // NewUserModule creates a new UserModule instance with the given dependencies.
-//
-// db: The GORM database connection.
-// log: The logger instance.
-// validator: The validator instance.
-// tm: The transaction manager instance.
-// enforcer: The Casbin enforcer instance.
-//
-// Returns a pointer to the newly created UserModule instance.
-func NewUserModule(db *gorm.DB, log *logrus.Logger, validator *validator.Validate, tm tx.WithTransactionManager, enforcer permissionUseCase.IEnforcer) *UserModule {
+func NewUserModule(
+	db *gorm.DB,
+	log *logrus.Logger,
+	validator *validator.Validate,
+	tm tx.WithTransactionManager,
+	enforcer permissionUseCase.IEnforcer,
+	auditModule *audit.AuditModule,
+) *UserModule {
 	userRepository := userRepository.NewUserRepository(db, log)
 
-	userUseCase := usecase.NewUserUseCase(log, tm, userRepository, enforcer)
+	userUseCase := usecase.NewUserUseCase(log, tm, userRepository, enforcer, auditModule.AuditUseCase)
 
-	userHandler := http.NewUserHandler(userUseCase, log, validator)
+	userController := http.NewUserController(userUseCase, log, validator)
 
 	return &UserModule{
-		userHandler: userHandler,
+		UserController: userController,
 	}
 }
 
-func (m *UserModule) UserHandler() *http.UserHandler {
-	return m.userHandler
+func (m *UserModule) Controller() *http.UserController {
+	return m.UserController
 }

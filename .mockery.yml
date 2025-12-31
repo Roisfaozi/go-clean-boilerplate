@@ -44,11 +44,11 @@ packages:
     config:
       dir: internal/mocking
       filename: mock_transaction_manager.go
-      pkgname: mocks
+      pkgname: mocking
 
   github.com/Roisfaozi/go-clean-boilerplate/pkg/ws:
     config:
       dir: internal/mocking
       filename: mock_websocket_manager.go
-      pkgname: mocks
+      pkgname: mocking
 

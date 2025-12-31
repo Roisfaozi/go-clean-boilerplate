@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// NoOpWriter is a logrus.Hook that discards all log entries.
 type NoOpWriter struct{}
 
 func (w *NoOpWriter) Write([]byte) (int, error) {
@@ -28,7 +27,6 @@ func (w *NoOpWriter) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
-// MockAuthUseCase for middleware testing
 type MockAuthUseCase struct {
 	mock.Mock
 }

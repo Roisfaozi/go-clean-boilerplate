@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterAuthorizedRoutes(router *gin.RouterGroup, roleHandler *RoleHandler) {
+func RegisterAuthorizedRoutes(router *gin.RouterGroup, roleHandler *RoleController) {
 	roleGroup := router.Group("/roles")
 	{
 		roleGroup.POST("", roleHandler.Create)

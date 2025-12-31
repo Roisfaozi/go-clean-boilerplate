@@ -14,14 +14,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type AuthHandler struct {
+type AuthController struct {
 	AuthUseCase usecase.AuthUseCase
 	Log         *logrus.Logger
 	validate    *validator.Validate
 }
 
-func NewAuthHandler(authUseCase usecase.AuthUseCase, log *logrus.Logger, validate *validator.Validate) *AuthHandler {
-	return &AuthHandler{
+func NewAuthController(authUseCase usecase.AuthUseCase, log *logrus.Logger, validate *validator.Validate) *AuthController {
+	return &AuthController{
 		AuthUseCase: authUseCase,
 		Log:         log,
 		validate:    validate,
@@ -41,7 +41,7 @@ func NewAuthHandler(authUseCase usecase.AuthUseCase, log *logrus.Logger, validat
 // @Failure      401      {object}  response.SwaggerErrorResponseWrapper "Invalid credentials"
 // @Failure      500      {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /auth/login [post]
-func (h *AuthHandler) Login(c *gin.Context) {
+func (h *AuthController) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("Login failed: could not bind request")
@@ -56,9 +56,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	// Capture Audit Data
+	req.IPAddress = c.ClientIP()
+	req.UserAgent = c.Request.UserAgent()
+
 	loginResp, refreshToken, err := h.AuthUseCase.Login(c.Request.Context(), req)
 	if err != nil {
-		h.Log.Errorf("Login failed: %+v", req)
+		h.Log.Errorf("Login failed for user: %s", req.Username)
 		h.Log.WithError(err).Error("Login failed")
 		h.handleError(c, err, "Wrong password or username")
 		return
@@ -77,7 +81,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Refresh token not found or invalid"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /auth/refresh [post]
-func (h *AuthHandler) RefreshToken(c *gin.Context) {
+func (h *AuthController) RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
 		h.Log.Warn("Refresh token not found in cookie")
@@ -106,7 +110,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "User not authenticated or invalid session"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /auth/logout [post]
-func (h *AuthHandler) Logout(c *gin.Context) {
+func (h *AuthController) Logout(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
 		response.Unauthorized(c, exception.ErrUnauthorized, "unauthorized")
@@ -125,13 +129,11 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	// Clear the refresh token cookie
 	h.setRefreshTokenCookie(c, "")
 	response.Success(c, gin.H{"message": "logged out successfully"})
 }
 
-// handleError centralizes error handling for the auth handler
-func (h *AuthHandler) handleError(c *gin.Context, err error, message string) {
+func (h *AuthController) handleError(c *gin.Context, err error, message string) {
 	switch {
 	case errors.Is(err, usecase.ErrInvalidCredentials):
 		response.Unauthorized(c, err, message)
@@ -144,7 +146,7 @@ func (h *AuthHandler) handleError(c *gin.Context, err error, message string) {
 	}
 }
 
-func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
+func (h *AuthController) setRefreshTokenCookie(c *gin.Context, token string) {
 	var maxAge int
 	if token == "" {
 		maxAge = -1
@@ -152,22 +154,8 @@ func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
 		maxAge = 3600 * 24 * 7
 	}
 
-	secure := false
-
-	//if h.Config.Server.AppEnv != "production" {
-	//	maxAge = 3600 * 24 * 7 // 7 days
-	//	secure = false
-	//	c.SetCookie(
-	//		"refresh_token",
-	//		token,
-	//		maxAge,
-	//		"/api/v1/auth/refresh", // Path should be specific to the refresh endpoint
-	//		"",                     // Domain
-	//		secure,                 // Secure flag (true in production)
-	//		true,                   // HttpOnly flag
-	//	)
-	//	return
-	//}
+	// Automatically set Secure flag in Release mode (Production)
+	secure := gin.Mode() == gin.ReleaseMode
 	c.SetCookie(
 		"refresh_token",
 		token,

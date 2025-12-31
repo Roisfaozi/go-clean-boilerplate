@@ -12,7 +12,7 @@ Koleksi ini dibagi menjadi beberapa folder utama berdasarkan modul fungsionalita
 2.  **Authentication**: Login, refresh token, dan logout.
 3.  **Roles**: Manajemen peran pengguna (Role-Based Access Control).
 4.  **Permissions (Casbin Policies)**: Manajemen kebijakan akses granular menggunakan Casbin.
-5.  **Access Scenarios (Protected Routes)**: Skenario pengujian hak akses untuk berbagai peran (Admin, Editor, Viewer).
+5.  **Access Scenarios[POSTMAN_TEST_CASES.md](POSTMAN_TEST_CASES.md) (Protected Routes)**: Skenario pengujian hak akses untuk berbagai peran (Admin, Editor, Viewer).
 6.  **Endpoints**: Manajemen metadata endpoint API.
 7.  **Access Rights**: Manajemen hak akses abstrak dan penghubungannya ke endpoint.
 8.  **Happy Path Workflow**: Alur kerja lengkap pengguna dari pendaftaran hingga akses fitur.

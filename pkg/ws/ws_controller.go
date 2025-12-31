@@ -19,17 +19,30 @@ type WebSocketController struct {
 //
 // log: The logger to log WebSocket events.
 // manager: The WebSocket manager to handle WebSocket events.
+// allowedOrigins: List of allowed origins for WebSocket connections.
 //
 // Returns a pointer to the newly created WebSocketController.
-func NewWebSocketController(log *logrus.Logger, manager Manager) *WebSocketController {
+func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins []string) *WebSocketController {
+	checkOrigin := func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		for _, o := range allowedOrigins {
+			if o == "*" || o == origin {
+				return true
+			}
+		}
+		return false
+	}
+
 	upgrader := &websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			// Allow all origins in development
-			// In production, you should validate the origin
-			return true
-		},
+		CheckOrigin:     checkOrigin,
+	}
+
+	// If allowedOrigins is empty, we fall back to the safe default (Same Origin policy)
+	// by setting CheckOrigin to nil, which gorilla/websocket handles automatically.
+	if len(allowedOrigins) == 0 {
+		upgrader.CheckOrigin = nil
 	}
 
 	return &WebSocketController{

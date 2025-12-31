@@ -15,14 +15,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type RoleHandler struct {
+type RoleController struct {
 	RoleUseCase usecase.RoleUseCase
 	Log         *logrus.Logger
 	validate    *validator.Validate
 }
 
-func NewRoleHandler(roleUseCase usecase.RoleUseCase, log *logrus.Logger, validate *validator.Validate) *RoleHandler {
-	return &RoleHandler{
+func NewRoleController(roleUseCase usecase.RoleUseCase, log *logrus.Logger, validate *validator.Validate) *RoleController {
+	return &RoleController{
 		RoleUseCase: roleUseCase,
 		Log:         log,
 		validate:    validate,
@@ -43,7 +43,7 @@ func NewRoleHandler(roleUseCase usecase.RoleUseCase, log *logrus.Logger, validat
 // @Failure      409  {object}  response.SwaggerErrorResponseWrapper "Role already exists"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /roles [post]
-func (h *RoleHandler) Create(c *gin.Context) {
+func (h *RoleController) Create(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.CreateRoleRequest
 
@@ -77,7 +77,7 @@ func (h *RoleHandler) Create(c *gin.Context) {
 // @Success      200  {object}  response.SwaggerRoleListResponseWrapper
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /roles [get]
-func (h *RoleHandler) GetAll(c *gin.Context) {
+func (h *RoleController) GetAll(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	roles, err := h.RoleUseCase.GetAll(ctx)
@@ -101,7 +101,7 @@ func (h *RoleHandler) GetAll(c *gin.Context) {
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Role not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /roles/{id} [delete]
-func (h *RoleHandler) Delete(c *gin.Context) {
+func (h *RoleController) Delete(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
@@ -127,7 +127,7 @@ func (h *RoleHandler) Delete(c *gin.Context) {
 // @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /roles/search [post]
-func (h *RoleHandler) GetRolesDynamic(c *gin.Context) {
+func (h *RoleController) GetRolesDynamic(c *gin.Context) {
 	ctx := c.Request.Context()
 	var filter querybuilder.DynamicFilter
 
@@ -147,7 +147,7 @@ func (h *RoleHandler) GetRolesDynamic(c *gin.Context) {
 	response.Success(c, roles)
 }
 
-func (h *RoleHandler) handleError(c *gin.Context, err error, message string) {
+func (h *RoleController) handleError(c *gin.Context, err error, message string) {
 	h.Log.WithError(err).Error(message)
 
 	switch {

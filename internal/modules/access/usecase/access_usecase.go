@@ -94,7 +94,6 @@ func (uc *AccessUseCase) LinkEndpointToAccessRight(ctx context.Context, req mode
 
 func (uc *AccessUseCase) DeleteAccessRight(ctx context.Context, id string) error {
 	uc.log.Infof("Attempting to delete access right with ID: %s", id)
-	// Check if access right exists before deleting
 	_, err := uc.repo.GetAccessRightByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -118,7 +117,7 @@ func (uc *AccessUseCase) DeleteEndpoint(ctx context.Context, id string) error {
 	uc.log.Infof("Attempting to delete endpoint with ID: %s", id)
 
 	if err := uc.repo.DeleteEndpoint(ctx, id); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) { // GORM Delete with PK returns ErrRecordNotFound if not found
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			uc.log.Warnf("Endpoint with ID %s not found for deletion", id)
 			return exception.ErrNotFound
 		}

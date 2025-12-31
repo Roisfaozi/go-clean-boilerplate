@@ -13,4 +13,5 @@ README.md
 LICENSE
 documentation/
 postman/
-pkg/timestamp/
+deploy/
+.github/

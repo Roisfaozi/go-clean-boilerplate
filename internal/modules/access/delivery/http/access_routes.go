@@ -6,8 +6,8 @@ import "github.com/gin-gonic/gin"
 //
 // RegisterAccessRoutes sets up the routes for creating access rights and
 // endpoints. It takes a *gin.RouterGroup as the first argument and an
-// *AccessHandler as the second argument. The *gin.RouterGroup is used to add
-// routes to a specific group of routes, and the *AccessHandler is used to
+// *AccessController as the second argument. The *gin.RouterGroup is used to add
+// routes to a specific group of routes, and the *AccessController is used to
 // handle the requests to those routes.
 //
 // The routes registered by this function are:
@@ -18,8 +18,8 @@ import "github.com/gin-gonic/gin"
 //
 // Parameters:
 //   - router: the *gin.RouterGroup to add routes to
-//   - handler: the *AccessHandler to handle requests
-func RegisterAccessRoutes(router *gin.RouterGroup, controller *AccessHandler) {
+//   - handler: the *AccessController to handle requests
+func RegisterAccessRoutes(router *gin.RouterGroup, controller *AccessController) {
 	accessGroup := router.Group("/access-rights")
 	{
 		accessGroup.POST("", controller.CreateAccessRight)
