@@ -1,12 +1,9 @@
 package config
 
 import (
-	"log"
-	"net/http"
 	"time"
 
 	wsPkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
-	"github.com/gorilla/websocket"
 )
 
 type WebSocketConfig struct {
@@ -39,16 +36,5 @@ func (c *WebSocketConfig) ToPkgConfig() *wsPkg.WebSocketConfig {
 		MaxMessageSize:     c.MaxMessageSize,
 		DistributedEnabled: c.DistributedEnabled,
 		RedisPrefix:        c.RedisPrefix,
-	}
-}
-
-func (c *WebSocketConfig) GetUpgrader() *websocket.Upgrader {
-	return &websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			log.Println("WARNING: WebSocket CheckOrigin is permitting all origins. This is unsafe for production.")
-			return true
-		},
 	}
 }
