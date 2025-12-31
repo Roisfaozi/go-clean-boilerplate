@@ -102,14 +102,16 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		return nil, "", err
 	}
 
-	roles, err := s.Enforcer.GetRolesForUser(user.ID)
-	if err != nil {
-		s.log.WithError(err).Error("Failed to get roles for user during login")
-		return nil, "", fmt.Errorf("failed to get user roles: %w", err)
-	}
-	userRole := ""
-	if len(roles) > 0 {
-		userRole = roles[0]
+	var userRole string
+	if s.Enforcer != nil {
+		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		if err != nil {
+			s.log.WithError(err).Error("Failed to get roles for user during login")
+			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
+		}
+		if len(roles) > 0 {
+			userRole = roles[0]
+		}
 	}
 
 	accessToken, refreshToken, sessionID, err := s.generateAndStoreTokenPair(user, userRole, user.Username)
@@ -169,14 +171,16 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 		return nil, "", err
 	}
 
-	roles, err := s.Enforcer.GetRolesForUser(user.ID)
-	if err != nil {
-		s.log.WithError(err).Error("Failed to get roles for user during refresh token")
-		return nil, "", fmt.Errorf("failed to get user roles: %w", err)
-	}
-	userRole := ""
-	if len(roles) > 0 {
-		userRole = roles[0]
+	var userRole string
+	if s.Enforcer != nil {
+		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		if err != nil {
+			s.log.WithError(err).Error("Failed to get roles for user during refresh token")
+			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
+		}
+		if len(roles) > 0 {
+			userRole = roles[0]
+		}
 	}
 
 	if err := s.RevokeToken(ctx, claims.UserID, claims.SessionID); err != nil {
@@ -274,14 +278,16 @@ func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
 }
 
 func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
-	roles, err := s.Enforcer.GetRolesForUser(user.ID)
-	if err != nil {
-		s.log.WithError(err).Error("Failed to get roles for user when generating access token")
-		return "", fmt.Errorf("failed to get user roles: %w", err)
-	}
-	userRole := ""
-	if len(roles) > 0 {
-		userRole = roles[0]
+	var userRole string
+	if s.Enforcer != nil {
+		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		if err != nil {
+			s.log.WithError(err).Error("Failed to get roles for user when generating access token")
+			return "", fmt.Errorf("failed to get user roles: %w", err)
+		}
+		if len(roles) > 0 {
+			userRole = roles[0]
+		}
 	}
 
 	uid, err := uuid.NewV7()
@@ -293,14 +299,16 @@ func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
 }
 
 func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
-	roles, err := s.Enforcer.GetRolesForUser(user.ID)
-	if err != nil {
-		s.log.WithError(err).Error("Failed to get roles for user when generating refresh token")
-		return "", fmt.Errorf("failed to get user roles: %w", err)
-	}
-	userRole := ""
-	if len(roles) > 0 {
-		userRole = roles[0]
+	var userRole string
+	if s.Enforcer != nil {
+		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		if err != nil {
+			s.log.WithError(err).Error("Failed to get roles for user when generating refresh token")
+			return "", fmt.Errorf("failed to get user roles: %w", err)
+		}
+		if len(roles) > 0 {
+			userRole = roles[0]
+		}
 	}
 
 	uid, err := uuid.NewV7()
