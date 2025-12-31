@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	wsPkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gorilla/websocket"
 )
 
@@ -24,8 +25,20 @@ func NewDefaultWebSocketConfig() *WebSocketConfig {
 		PongWait:           pongWait,
 		PingPeriod:         (pongWait * 9) / 10,
 		MaxMessageSize:     512 * 1024,
-		DistributedEnabled: false, // Disabled by default
+		DistributedEnabled: false,
 		RedisPrefix:        "ws_broadcast:",
+	}
+}
+
+// ToPkgConfig maps internal config to package-level config safely.
+func (c *WebSocketConfig) ToPkgConfig() *wsPkg.WebSocketConfig {
+	return &wsPkg.WebSocketConfig{
+		WriteWait:          c.WriteWait,
+		PongWait:           c.PongWait,
+		PingPeriod:         c.PingPeriod,
+		MaxMessageSize:     c.MaxMessageSize,
+		DistributedEnabled: c.DistributedEnabled,
+		RedisPrefix:        c.RedisPrefix,
 	}
 }
 
