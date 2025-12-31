@@ -60,6 +60,35 @@ This project is designed with high flexibility. Many core features can be enable
 
 ---
 
+## 📦 Deployment Scenarios
+
+Choose the configuration that matches your infrastructure scale.
+
+### 1. Single Instance (Monolith)
+Suitable for development, small VPS, or simple deployments.
+
+```env
+# No need for distributed sync
+RATE_LIMIT_STORE=memory
+WEBSOCKET_DISTRIBUTED_ENABLED=false
+CASBIN_WATCHER_ENABLED=false
+```
+
+### 2. Distributed Cluster (Kubernetes/Load Balanced)
+Suitable for high-availability setups with multiple API replicas. Requires a shared Redis instance.
+
+```env
+# Sync state via Redis
+RATE_LIMIT_STORE=redis
+WEBSOCKET_DISTRIBUTED_ENABLED=true
+CASBIN_WATCHER_ENABLED=true
+
+# Security behind Load Balancer
+SERVER_TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12  # IPs of your LB/Ingress
+```
+
+---
+
 ## 🛠️ Technology Stack
 
 | Category | Technology | Description |

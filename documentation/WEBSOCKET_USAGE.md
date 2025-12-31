@@ -24,6 +24,26 @@ graph TD
 2.  **Redis Broadcaster**: Subscribes to a global Redis channel (`ws_broadcast:global_notifications`) and forwards messages to local WebSocket clients.
 3.  **Client (`pkg/ws/ws_client.go`)**: Represents a single connected user.
 
+## 📦 Deployment Modes
+
+### 1. Single Instance Mode
+If running a single server instance (e.g., local dev), you can disable Redis Pub/Sub to save resources. Messages are broadcasted directly in-memory.
+
+**Config:**
+```env
+WEBSOCKET_DISTRIBUTED_ENABLED=false
+```
+
+### 2. Distributed Mode
+If running multiple replicas (e.g., Kubernetes), you **MUST** enable this. Without it, a message sent from Server A will NOT reach clients connected to Server B.
+
+**Config:**
+```env
+WEBSOCKET_DISTRIBUTED_ENABLED=true
+# Ensure all instances connect to the same Redis
+REDIS_ADDR=shared-redis:6379
+```
+
 ## 🚀 How to Use
 
 ### 1. Connecting (Frontend)
