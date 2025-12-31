@@ -240,7 +240,7 @@ func (h *UserController) DeleteUser(c *gin.Context) {
 	// Get actor's UserID from context
 	actorUserID, exists := c.Get("user_id")
 	if !exists {
-		response.Unauthorized(c, exception.ErrUnauthorized, "unauthorized")
+		response.Unauthorized(c, exception.ErrUnauthorized, "Please login to perform this action")
 		return
 	}
 
