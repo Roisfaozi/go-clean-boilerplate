@@ -3,7 +3,9 @@ package test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"strings"
 	"testing"
 
 	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
@@ -35,35 +37,126 @@ func setupUserTest() (*mocks.MockUserRepository, *mocking.MockWithTransactionMan
 	return mockRepo, mockTM, mockEnforcer, mockAuditUC, uc
 }
 
-func TestUserUseCase_Create_Success(t *testing.T) {
-	mockRepo, mockTM, mockEnforcer, mockAuditUC, uc := setupUserTest()
+func TestUserUseCase_Create(t *testing.T) {
+	t.Run("Success - Valid User", func(t *testing.T) {
+		mockRepo, mockTM, mockEnforcer, mockAuditUC, uc := setupUserTest()
 
-	testReq := &model.RegisterUserRequest{
-		Username: "testuser", Email: "test@example.com", Name: "Test User", Password: "password123",
-		IPAddress: "127.0.0.1", UserAgent: "TestAgent",
-	}
+		testReq := &model.RegisterUserRequest{
+			Username: "testuser", Email: "test@example.com", Name: "Test User", Password: "password123",
+			IPAddress: "127.0.0.1", UserAgent: "TestAgent",
+		}
 
-	mockRepo.On("FindByUsername", mock.Anything, "testuser").Return(nil, gorm.ErrRecordNotFound)
-	mockRepo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, gorm.ErrRecordNotFound)
-	mockRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
-	mockEnforcer.On("AddGroupingPolicy", mock.AnythingOfType("string"), "role:user").Return(true, nil)
-	mockAuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+		mockRepo.On("FindByUsername", mock.Anything, "testuser").Return(nil, gorm.ErrRecordNotFound)
+		mockRepo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, gorm.ErrRecordNotFound)
+		mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+			return u.Username == "testuser" && u.Email == "test@example.com"
+		})).Return(nil)
+		mockEnforcer.On("AddGroupingPolicy", mock.AnythingOfType("string"), "role:user").Return(true, nil)
+		mockAuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
-	mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
-		Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(context.Background())
-		}).
-		Return(nil)
+		mockTM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				_ = fn(context.Background())
+			}).
+			Return(nil)
 
-	result, err := uc.Create(context.Background(), testReq)
+		result, err := uc.Create(context.Background(), testReq)
 
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
-	mockRepo.AssertExpectations(t)
-	mockTM.AssertExpectations(t)
-	mockEnforcer.AssertExpectations(t)
-	mockAuditUC.AssertExpectations(t)
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "testuser", result.Username)
+
+		mockRepo.AssertExpectations(t)
+		mockTM.AssertExpectations(t)
+		mockEnforcer.AssertExpectations(t)
+		mockAuditUC.AssertExpectations(t)
+	})
+
+	t.Run("Negative - Invalid Email Format", func(t *testing.T) {
+		_, _, _, _, uc := setupUserTest()
+		req := &model.RegisterUserRequest{Username: "test", Email: "invalid-email", Password: "password123"}
+		resp, err := uc.Create(context.Background(), req)
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+		assert.Contains(t, err.Error(), "invalid email format")
+	})
+
+	t.Run("Negative - Password Too Weak", func(t *testing.T) {
+		_, _, _, _, uc := setupUserTest()
+		req := &model.RegisterUserRequest{Username: "test", Email: "test@example.com", Password: "weak"}
+		resp, err := uc.Create(context.Background(), req)
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+		assert.Contains(t, err.Error(), "password too weak")
+	})
+
+	t.Run("Negative - Password Too Long", func(t *testing.T) {
+		_, _, _, _, uc := setupUserTest()
+		longPass := strings.Repeat("a", 73)
+		req := &model.RegisterUserRequest{Username: "test", Email: "test@example.com", Password: longPass}
+		resp, err := uc.Create(context.Background(), req)
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+		assert.Contains(t, err.Error(), "password too long")
+	})
+
+	t.Run("Conflict - Username Exists", func(t *testing.T) {
+		mockRepo, mockTM, _, _, uc := setupUserTest()
+		req := &model.RegisterUserRequest{Username: "existing", Email: "new@example.com", Password: "password123"}
+
+		mockRepo.On("FindByUsername", mock.Anything, "existing").Return(&entity.User{}, nil)
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				err := fn(context.Background())
+				assert.Equal(t, exception.ErrConflict, err)
+			}).Return(exception.ErrConflict)
+
+		resp, err := uc.Create(context.Background(), req)
+		assert.ErrorIs(t, err, exception.ErrConflict)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("Conflict - Email Exists", func(t *testing.T) {
+		mockRepo, mockTM, _, _, uc := setupUserTest()
+		req := &model.RegisterUserRequest{Username: "newuser", Email: "existing@example.com", Password: "password123"}
+
+		mockRepo.On("FindByUsername", mock.Anything, "newuser").Return(nil, gorm.ErrRecordNotFound)
+		mockRepo.On("FindByEmail", mock.Anything, "existing@example.com").Return(&entity.User{}, nil)
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				err := fn(context.Background())
+				assert.Equal(t, exception.ErrConflict, err)
+			}).Return(exception.ErrConflict)
+
+		resp, err := uc.Create(context.Background(), req)
+		assert.ErrorIs(t, err, exception.ErrConflict)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("Error - Create Failed", func(t *testing.T) {
+		mockRepo, mockTM, _, _, uc := setupUserTest()
+		req := &model.RegisterUserRequest{Username: "test", Email: "test@example.com", Password: "password123"}
+
+		mockRepo.On("FindByUsername", mock.Anything, "test").Return(nil, gorm.ErrRecordNotFound)
+		mockRepo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, gorm.ErrRecordNotFound)
+		mockRepo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error"))
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				err := fn(context.Background())
+				assert.Equal(t, exception.ErrInternalServer, err)
+			}).Return(exception.ErrInternalServer)
+
+		resp, err := uc.Create(context.Background(), req)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		assert.Nil(t, resp)
+	})
 }
 
 func TestUserUseCase_GetUserByID(t *testing.T) {
@@ -330,6 +423,70 @@ func TestUserUseCase_Update(t *testing.T) {
 		mockTM.AssertExpectations(t)
 		mockAuditUC.AssertExpectations(t)
 	})
+
+	t.Run("Success - Password Update", func(t *testing.T) {
+		mockRepo, mockTM, _, mockAuditUC, uc := setupUserTest()
+		request := &model.UpdateUserRequest{
+			ID:       "user123", Password: "newPassword123",
+			IPAddress: "127.0.0.1", UserAgent: "TestAgent",
+		}
+
+		existingUser := &entity.User{ID: "user123", Password: "oldHash"}
+
+		mockRepo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+			// In real test we can't check hash easily, but we know it changed
+			return u.ID == "user123" && u.Password != "oldHash"
+		})).Return(nil)
+		mockAuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				_ = fn(context.Background())
+			}).Return(nil)
+
+		result, err := uc.Update(context.Background(), request)
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+	})
+
+	t.Run("Negative - Password Too Weak During Update", func(t *testing.T) {
+		mockRepo, mockTM, _, _, uc := setupUserTest()
+		request := &model.UpdateUserRequest{ID: "user123", Password: "weak"}
+
+		existingUser := &entity.User{ID: "user123"}
+		mockRepo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				err := fn(context.Background())
+				assert.EqualError(t, err, "password too weak")
+			}).Return(fmt.Errorf("password too weak"))
+
+		_, err := uc.Update(context.Background(), request)
+		assert.ErrorContains(t, err, "password too weak")
+	})
+
+	t.Run("Negative - Password Too Long During Update", func(t *testing.T) {
+		mockRepo, mockTM, _, _, uc := setupUserTest()
+		request := &model.UpdateUserRequest{ID: "user123", Password: strings.Repeat("a", 73)}
+
+		existingUser := &entity.User{ID: "user123"}
+		mockRepo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				err := fn(context.Background())
+				assert.EqualError(t, err, "password too long")
+			}).Return(fmt.Errorf("password too long"))
+
+		_, err := uc.Update(context.Background(), request)
+		assert.ErrorContains(t, err, "password too long")
+	})
+
 	t.Run("Error - User Not Found", func(t *testing.T) {
 		mockRepo, mockTM, _, mockAuditUC, uc := setupUserTest()
 		updateReq := &model.UpdateUserRequest{
@@ -353,6 +510,44 @@ func TestUserUseCase_Update(t *testing.T) {
 		mockRepo.AssertExpectations(t)
 		mockTM.AssertExpectations(t)
 		mockAuditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
+	})
+
+	t.Run("Error - Update Failed", func(t *testing.T) {
+		mockRepo, mockTM, _, _, uc := setupUserTest()
+		req := &model.UpdateUserRequest{ID: "user123", Name: "New Name"}
+		existingUser := &entity.User{ID: "user123"}
+
+		mockRepo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		mockRepo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error"))
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				err := fn(context.Background())
+				assert.Equal(t, exception.ErrInternalServer, err)
+			}).Return(exception.ErrInternalServer)
+
+		_, err := uc.Update(context.Background(), req)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+	})
+
+	t.Run("Error - Update Concurrency (RecordNotFound during update)", func(t *testing.T) {
+		mockRepo, mockTM, _, _, uc := setupUserTest()
+		req := &model.UpdateUserRequest{ID: "user123", Name: "New Name"}
+		existingUser := &entity.User{ID: "user123"}
+
+		mockRepo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		mockRepo.On("Update", mock.Anything, mock.Anything).Return(gorm.ErrRecordNotFound)
+
+		mockTM.On("WithinTransaction", mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				err := fn(context.Background())
+				assert.Equal(t, exception.ErrNotFound, err)
+			}).Return(exception.ErrNotFound)
+
+		_, err := uc.Update(context.Background(), req)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 	})
 }
 
@@ -436,12 +631,12 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 				fn := args.Get(1).(func(context.Context) error)
 				err := fn(context.Background())
 				assert.Error(t, err)
-			}).Return(dbError)
+			}).Return(exception.ErrInternalServer)
 
 		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
 
 		assert.Error(t, err)
-		assert.Equal(t, dbError, err)
+		assert.Equal(t, exception.ErrInternalServer, err)
 		mockRepo.AssertExpectations(t)
 		mockTM.AssertExpectations(t)
 		mockAuditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
