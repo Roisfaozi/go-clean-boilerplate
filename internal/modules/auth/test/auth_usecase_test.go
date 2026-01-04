@@ -373,6 +373,24 @@ func TestValidateAccessToken_Failure_Mismatch(t *testing.T) {
 	deps.tokenRepo.AssertExpectations(t)
 }
 
+func TestValidateAccessToken_Failure_SessionNotFound(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	token, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, TestAccessSecret, 15*time.Minute)
+	assert.NoError(t, err)
+
+	// Return nil session (not found/revoked)
+	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(nil, nil)
+
+	claims, err := authService.ValidateAccessToken(token)
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrTokenRevoked))
+	assert.Nil(t, claims)
+	deps.tokenRepo.AssertExpectations(t)
+}
+
 func TestRevokeToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	userID, sessionID := "user-1", "session-1"

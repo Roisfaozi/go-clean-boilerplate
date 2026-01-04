@@ -91,6 +91,20 @@ func TestUserUseCase_Create_ValidationErrors(t *testing.T) {
 		assert.Error(t, err)
 		assert.Equal(t, "password too long", err.Error())
 	})
+
+	t.Run("Empty Email", func(t *testing.T) {
+		req := &model.RegisterUserRequest{Email: "", Password: "password123"}
+		_, err := uc.Create(context.Background(), req)
+		assert.Error(t, err)
+		assert.Equal(t, "invalid email format", err.Error())
+	})
+
+	t.Run("Email with Dot Dot", func(t *testing.T) {
+		req := &model.RegisterUserRequest{Email: "user..name@example.com", Password: "password123"}
+		_, err := uc.Create(context.Background(), req)
+		assert.Error(t, err)
+		assert.Equal(t, "invalid email format", err.Error())
+	})
 }
 
 func TestUserUseCase_Create_Conflict(t *testing.T) {
