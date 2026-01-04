@@ -43,6 +43,17 @@ func TestCreateAccessRight(t *testing.T) {
 		assert.Equal(t, req.Name, createdAccessRight.Name)
 		mockRepo.AssertExpectations(t)
 	})
+
+	t.Run("Error - Repository Create Fails", func(t *testing.T) {
+		req := model.CreateAccessRightRequest{Name: "error_right"}
+		repoErr := errors.New("db error")
+		mockRepo.On("CreateAccessRight", ctx, mock.AnythingOfType("*entity.AccessRight")).Return(repoErr).Once()
+
+		_, err := uc.CreateAccessRight(ctx, req)
+		assert.Error(t, err)
+		assert.Equal(t, repoErr, err)
+		mockRepo.AssertExpectations(t)
+	})
 }
 
 func TestGetAllAccessRights(t *testing.T) {
@@ -73,6 +84,17 @@ func TestGetAllAccessRights(t *testing.T) {
 		assert.Len(t, results.Data, 0)
 		mockRepo.AssertExpectations(t)
 	})
+
+	t.Run("Error - Repository Fails", func(t *testing.T) {
+		repoErr := errors.New("db error")
+		mockRepo.On("GetAccessRights", ctx).Return(nil, repoErr).Once()
+
+		results, err := uc.GetAllAccessRights(ctx)
+		assert.Error(t, err)
+		assert.Nil(t, results)
+		assert.Equal(t, repoErr, err)
+		mockRepo.AssertExpectations(t)
+	})
 }
 
 func TestCreateEndpoint(t *testing.T) {
@@ -91,6 +113,17 @@ func TestCreateEndpoint(t *testing.T) {
 		assert.Equal(t, req.Path, createdEndpoint.Path)
 		mockRepo.AssertExpectations(t)
 	})
+
+	t.Run("Error - Repository Create Fails", func(t *testing.T) {
+		req := model.CreateEndpointRequest{Path: "/error", Method: "POST"}
+		repoErr := errors.New("db error")
+		mockRepo.On("CreateEndpoint", ctx, mock.AnythingOfType("*entity.Endpoint")).Return(repoErr).Once()
+
+		_, err := uc.CreateEndpoint(ctx, req)
+		assert.Error(t, err)
+		assert.Equal(t, repoErr, err)
+		mockRepo.AssertExpectations(t)
+	})
 }
 
 func TestLinkEndpointToAccessRight(t *testing.T) {
@@ -105,6 +138,17 @@ func TestLinkEndpointToAccessRight(t *testing.T) {
 		mockRepo.On("LinkEndpointToAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(nil).Once()
 		err := uc.LinkEndpointToAccessRight(ctx, req)
 		assert.NoError(t, err)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("Error - Repository Fails", func(t *testing.T) {
+		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
+		repoErr := errors.New("db error")
+		mockRepo.On("LinkEndpointToAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(repoErr).Once()
+
+		err := uc.LinkEndpointToAccessRight(ctx, req)
+		assert.Error(t, err)
+		assert.Equal(t, repoErr, err)
 		mockRepo.AssertExpectations(t)
 	})
 }
