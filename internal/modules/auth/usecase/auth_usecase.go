@@ -338,7 +338,9 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 
 	// Generate 32-char hex token
 	b := make([]byte, 16)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Errorf("failed to generate random token: %w", err)
+	}
 	token := hex.EncodeToString(b)
 
 	resetToken := &authEntity.PasswordResetToken{

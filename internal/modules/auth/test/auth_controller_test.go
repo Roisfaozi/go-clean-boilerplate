@@ -68,7 +68,8 @@ func TestAuthHandler_ForgotPassword_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	var responseBody map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &responseBody)
+	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+	assert.NoError(t, err)
 	assert.Contains(t, responseBody["data"].(map[string]interface{})["message"], "reset link will be sent")
 }
 
@@ -171,7 +172,7 @@ func TestAuthHandler_ResetPassword_ValidationError(t *testing.T) {
 	router.POST("/auth/reset-password", handler.ResetPassword)
 
 	reqBody := model.ResetPasswordRequest{
-		Token:       "",     // Empty token
+		Token:       "",      // Empty token
 		NewPassword: "short", // Too short
 	}
 	bodyBytes, _ := json.Marshal(reqBody)

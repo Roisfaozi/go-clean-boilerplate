@@ -145,7 +145,7 @@ func TestLogin_Failure_UserNotFound(t *testing.T) {
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
 
 	assert.Error(t, err)
-	assert.Equal(t, "invalid credentials", err.Error())
+	assert.True(t, errors.Is(err, usecase.ErrInvalidCredentials)) // Use errors.Is
 	assert.Nil(t, loginResp)
 	assert.Empty(t, refreshToken)
 	deps.userRepo.AssertExpectations(t)
@@ -166,7 +166,7 @@ func TestLogin_Failure_InvalidPassword(t *testing.T) {
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
 
 	assert.Error(t, err)
-	assert.Equal(t, "invalid credentials", err.Error())
+	assert.True(t, errors.Is(err, usecase.ErrInvalidCredentials)) // Use errors.Is
 	assert.Nil(t, loginResp)
 	assert.Empty(t, refreshToken)
 	deps.userRepo.AssertExpectations(t)
@@ -486,6 +486,24 @@ func TestForgotPassword_UserNotFound_Security_EnumPrevention(t *testing.T) {
 	deps.taskDistributor.AssertNotCalled(t, "DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything)
 }
 
+func TestForgotPassword_Failure_RepositoryError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
+	// Simulate DB error when saving token
+	deps.tokenRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.PasswordResetToken")).Return(errors.New("db save error"))
+
+	err := authService.ForgotPassword(context.Background(), user.Email)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "db save error")
+	deps.userRepo.AssertExpectations(t)
+	deps.tokenRepo.AssertExpectations(t)
+	// Audit log should NOT be called if save fails
+	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
+}
+
 func TestResetPassword_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
@@ -515,6 +533,36 @@ func TestResetPassword_Success(t *testing.T) {
 	deps.tokenRepo.AssertExpectations(t)
 	deps.userRepo.AssertExpectations(t)
 	deps.auditUC.AssertExpectations(t)
+}
+
+func TestResetPassword_Failure_TransactionError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+	token := "valid-token"
+	resetToken := &authEntity.PasswordResetToken{
+		Email:     user.Email,
+		Token:     token,
+		ExpiresAt: time.Now().Add(1 * time.Hour),
+	}
+
+	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
+	
+	// Simulate Transaction Failure
+	dbErr := errors.New("update failed")
+	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(context.Background())
+		}).Return(dbErr)
+	
+	deps.userRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.User")).Return(dbErr)
+
+	err := authService.ResetPassword(context.Background(), token, "new-strong-password-123")
+
+	assert.Error(t, err)
+	assert.Equal(t, dbErr, err)
+	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
 }
 
 func TestResetPassword_Failure_InvalidToken(t *testing.T) {
