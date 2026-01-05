@@ -89,6 +89,10 @@ func createTestUser(password string) (*entity.User, string) {
 	}, password
 }
 
+// ... (Existing Tests: Login, RefreshToken, Validate, etc.) ...
+// For brevity, I am keeping the existing tests but ensuring the new ones are added at the end.
+// To avoid overwriting with truncation, I will include ALL previous tests + new ones.
+
 func TestLogin_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, password := createTestUser("password123")
@@ -443,6 +447,8 @@ func TestGenerateRefreshToken_Success(t *testing.T) {
 	assert.NotEmpty(t, token)
 }
 
+// --- FORGOT & RESET PASSWORD TESTS (Updated with Edge Cases) ---
+
 func TestForgotPassword_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
@@ -461,6 +467,25 @@ func TestForgotPassword_Success(t *testing.T) {
 	deps.auditUC.AssertExpectations(t)
 }
 
+// SECURITY TEST: Ensure we don't reveal if email exists
+func TestForgotPassword_UserNotFound_Security_EnumPrevention(t *testing.T) {
+	authService, deps := setupTest(t)
+	email := "notfound@example.com"
+
+	// Mock UserRepo returning error (NotFound)
+	deps.userRepo.On("FindByEmail", mock.Anything, email).Return(nil, errors.New("user not found"))
+
+	// DO NOT expect TokenRepo.Save to be called (security)
+	// DO NOT expect AuditLog (because user is unknown/nil)
+
+	err := authService.ForgotPassword(context.Background(), email)
+
+	// Assertion: NO ERROR returned to caller
+	assert.NoError(t, err)
+	deps.userRepo.AssertExpectations(t)
+	deps.tokenRepo.AssertNotCalled(t, "Save", mock.Anything, mock.Anything)
+}
+
 func TestResetPassword_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
@@ -468,7 +493,7 @@ func TestResetPassword_Success(t *testing.T) {
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     user.Email,
 		Token:     token,
-		ExpiresAt: time.Now().Add(1 * time.Hour),
+		ExpiresAt: time.Now().Add(1 * time.Hour), // Not expired
 	}
 
 	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
@@ -490,4 +515,57 @@ func TestResetPassword_Success(t *testing.T) {
 	deps.tokenRepo.AssertExpectations(t)
 	deps.userRepo.AssertExpectations(t)
 	deps.auditUC.AssertExpectations(t)
+}
+
+func TestResetPassword_Failure_InvalidToken(t *testing.T) {
+	authService, deps := setupTest(t)
+	token := "invalid-token"
+
+	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(nil, errors.New("token not found"))
+
+	err := authService.ResetPassword(context.Background(), token, "new-password")
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrInvalidResetToken))
+	deps.tokenRepo.AssertExpectations(t)
+	deps.userRepo.AssertNotCalled(t, "FindByEmail", mock.Anything, mock.Anything)
+}
+
+func TestResetPassword_Failure_ExpiredToken(t *testing.T) {
+	authService, deps := setupTest(t)
+	token := "expired-token"
+	resetToken := &authEntity.PasswordResetToken{
+		Email:     "test@example.com",
+		Token:     token,
+		ExpiresAt: time.Now().Add(-1 * time.Hour), // Expired 1 hour ago
+	}
+
+	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+	deps.tokenRepo.On("DeleteByEmail", mock.Anything, resetToken.Email).Return(nil) // Should cleanup expired token
+
+	err := authService.ResetPassword(context.Background(), token, "new-password")
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrInvalidResetToken))
+	deps.tokenRepo.AssertExpectations(t)
+	deps.userRepo.AssertNotCalled(t, "FindByEmail", mock.Anything, mock.Anything)
+}
+
+func TestResetPassword_Failure_UserDeleted(t *testing.T) {
+	authService, deps := setupTest(t)
+	token := "valid-token"
+	resetToken := &authEntity.PasswordResetToken{
+		Email:     "deleted@example.com",
+		Token:     token,
+		ExpiresAt: time.Now().Add(1 * time.Hour),
+	}
+
+	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+	deps.userRepo.On("FindByEmail", mock.Anything, resetToken.Email).Return(nil, errors.New("user not found"))
+
+	err := authService.ResetPassword(context.Background(), token, "new-password")
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrInvalidResetToken))
+	deps.userRepo.AssertExpectations(t)
 }
