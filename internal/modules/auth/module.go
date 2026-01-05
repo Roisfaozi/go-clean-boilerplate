@@ -6,6 +6,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
@@ -30,11 +31,12 @@ func NewAuthModule(
 	wsManager ws.Manager,
 	enforcer *casbin.Enforcer,
 	auditModule *audit.AuditModule,
+	taskDistributor worker.TaskDistributor,
 ) *AuthModule {
 	tokenRepo := repository.NewTokenRepositoryRedis(redisClient, log, db)
 	userRepository := userRepo.NewUserRepository(db, log)
 
-	authUseCase := usecase.NewAuthUsecase(jwtManager, tokenRepo, userRepository, tm, log, wsManager, enforcer, auditModule.AuditController.UseCase)
+	authUseCase := usecase.NewAuthUsecase(jwtManager, tokenRepo, userRepository, tm, log, wsManager, enforcer, auditModule.AuditController.UseCase, taskDistributor)
 	authController := http.NewAuthController(authUseCase, log, validate)
 
 	return &AuthModule{

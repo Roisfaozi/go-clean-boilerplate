@@ -5,6 +5,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 	auditEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
+	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/google/uuid"
@@ -20,6 +21,7 @@ func RunMigrations(t *testing.T, db *gorm.DB) {
 		&entity.Endpoint{},
 		&entity.AccessRight{},
 		&auditEntity.AuditLog{},
+		&authEntity.PasswordResetToken{},
 	)
 	if t != nil {
 		require.NoError(t, err, "Failed to run migrations")
@@ -74,6 +76,7 @@ func CleanupDatabase(t *testing.T, db *gorm.DB) {
 		"casbin_rule",
 		"users",
 		"roles",
+		"password_reset_tokens",
 	}
 
 	db.Exec("SET FOREIGN_KEY_CHECKS = 0")

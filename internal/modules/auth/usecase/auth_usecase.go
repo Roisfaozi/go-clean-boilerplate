@@ -16,6 +16,8 @@ import (
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
@@ -26,14 +28,15 @@ import (
 )
 
 type Service struct {
-	jwtManager *jwt.JWTManager
-	tokenRepo  repository.TokenRepository
-	userRepo   userRepository.UserRepository
-	tm         tx.WithTransactionManager
-	log        *logrus.Logger
-	wsManager  ws.Manager
-	Enforcer   permissionUseCase.IEnforcer
-	auditUC    auditUseCase.AuditUseCase
+	jwtManager      *jwt.JWTManager
+	tokenRepo       repository.TokenRepository
+	userRepo        userRepository.UserRepository
+	tm              tx.WithTransactionManager
+	log             *logrus.Logger
+	wsManager       ws.Manager
+	Enforcer        permissionUseCase.IEnforcer
+	auditUC         auditUseCase.AuditUseCase
+	taskDistributor worker.TaskDistributor
 }
 
 func NewAuthUsecase(
@@ -45,16 +48,18 @@ func NewAuthUsecase(
 	wsManager ws.Manager,
 	enforcer permissionUseCase.IEnforcer,
 	auditUC auditUseCase.AuditUseCase,
+	taskDistributor worker.TaskDistributor,
 ) AuthUseCase {
 	return &Service{
-		jwtManager: jwtManager,
-		tokenRepo:  tokenRepo,
-		userRepo:   userRepo,
-		tm:         tm,
-		log:        log,
-		wsManager:  wsManager,
-		Enforcer:   enforcer,
-		auditUC:    auditUC,
+		jwtManager:      jwtManager,
+		tokenRepo:       tokenRepo,
+		userRepo:        userRepo,
+		tm:              tm,
+		log:             log,
+		wsManager:       wsManager,
+		Enforcer:        enforcer,
+		auditUC:         auditUC,
+		taskDistributor: taskDistributor,
 	}
 }
 
@@ -346,8 +351,21 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 		return err
 	}
 
-	// TODO: Integrate with Email Service
-	s.log.WithContext(ctx).Infof("PASSWORD RESET TOKEN for %s: %s (Expires in 15m)", email, token)
+	// Send Email Async
+	if s.taskDistributor != nil {
+		taskPayload := &tasks.SendEmailPayload{
+			To:      email,
+			Subject: "Password Reset Request",
+			Body:    fmt.Sprintf("Your password reset token is: %s. It expires in 15 minutes.", token),
+		}
+		if err := s.taskDistributor.DistributeTaskSendEmail(ctx, taskPayload); err != nil {
+			s.log.WithContext(ctx).WithError(err).Error("Failed to enqueue email task")
+			// We log the error but don't fail the request, allowing manual fallback if needed
+		}
+	} else {
+		// Fallback logging if distributor is not configured
+		s.log.WithContext(ctx).Infof("PASSWORD RESET TOKEN for %s: %s (Expires in 15m)", email, token)
+	}
 
 	if s.auditUC != nil {
 		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{

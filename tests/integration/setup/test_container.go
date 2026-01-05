@@ -80,6 +80,8 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 		if err != nil {
 			panic(err)
 		}
+		// Ensure parseTime=true is added to DSN
+		mysqlAddr = mysqlAddr + "?parseTime=true"
 		globalDB, err = connectWithRetry(mysqlAddr, 5)
 		if err != nil {
 			panic(err)

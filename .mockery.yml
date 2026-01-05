@@ -48,6 +48,11 @@ packages:
     config:
       dir: internal/modules/auth/test/mocks
       filename: mock_auth_usecase.go
+  github.com/Roisfaozi/go-clean-boilerplate/internal/worker:
+    config:
+      dir: internal/mocking
+      filename: mock_task_distributor.go
+      pkgname: mocking
   github.com/Roisfaozi/go-clean-boilerplate/pkg/tx:
     config:
       dir: internal/mocking

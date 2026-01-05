@@ -80,8 +80,8 @@ func (h *AuthController) RefreshToken(c *gin.Context) {
 
 // Logout handles user logout
 func (h *AuthController) Logout(c *gin.Context) {
-	userID, _ := c.Get("userID")
-	sessionID, _ := c.Get("sessionID")
+	userID, _ := c.Get("user_id")
+	sessionID, _ := c.Get("session_id")
 
 	if userID == nil || sessionID == nil {
 		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")

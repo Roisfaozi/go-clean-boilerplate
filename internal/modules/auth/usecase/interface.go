@@ -2,19 +2,19 @@ package usecase
 
 import (
 	"context"
-	"errors"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 )
 
 var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrInvalidToken       = errors.New("invalid or expired token")
-	ErrExpiredToken       = errors.New("token has expired")
-	ErrTokenRevoked       = errors.New("token has been revoked")
-	ErrInvalidResetToken  = errors.New("invalid or expired password reset token")
+	ErrInvalidCredentials = exception.ErrUnauthorized
+	ErrInvalidToken       = exception.ErrUnauthorized
+	ErrExpiredToken       = exception.ErrUnauthorized
+	ErrTokenRevoked       = exception.ErrUnauthorized
+	ErrInvalidResetToken  = exception.ErrBadRequest
 )
 
 type AuthUseCase interface {

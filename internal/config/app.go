@@ -14,11 +14,13 @@ import (
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/router"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	ws2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/casbin/casbin/v2"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -26,11 +28,13 @@ import (
 
 // Application holds all major application components.
 type Application struct {
-	Server   *http.Server
-	DB       *gorm.DB
-	Redis    *redis.Client
-	Log      *logrus.Logger
-	Enforcer *casbin.Enforcer
+	Server        *http.Server
+	DB            *gorm.DB
+	Redis         *redis.Client
+	Log           *logrus.Logger
+	Enforcer      *casbin.Enforcer
+	TaskDistributor worker.TaskDistributor
+	TaskProcessor   worker.TaskProcessor
 }
 
 // NewApplication initializes and wires up all application components.
@@ -40,6 +44,16 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	dbConnection := NewDatabase(cfg, logger)
 
 	redisClient := NewRedisConfig(cfg, logger)
+
+	// Redis Option for Asynq
+	redisOpt := asynq.RedisClientOpt{
+		Addr:     cfg.Redis.Addr,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	}
+
+	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger)
 
 	tm := tx.NewTransactionManager(dbConnection, logger)
 
@@ -69,7 +83,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	// Audit Module (Initialize early to inject into others)
 	auditModule := audit.NewAuditModule(dbConnection, logger)
 
-	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, enforcer, auditModule)
+	// Inject TaskDistributor to AuthModule
+	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, enforcer, auditModule, taskDistributor)
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule)
 
@@ -123,12 +138,22 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 	logger.Infof("Server configured to run on port %s", serverPort)
 
+	// Start Worker Processor in Goroutine
+	go func() {
+		logger.Info("Starting Background Worker Processor...")
+		if err := taskProcessor.Start(); err != nil {
+			logger.Fatalf("Failed to start worker processor: %v", err)
+		}
+	}()
+
 	app := &Application{
-		Server:   httpServer,
-		DB:       dbConnection,
-		Redis:    redisClient,
-		Log:      logger,
-		Enforcer: enforcer,
+		Server:          httpServer,
+		DB:              dbConnection,
+		Redis:           redisClient,
+		Log:             logger,
+		Enforcer:        enforcer,
+		TaskDistributor: taskDistributor,
+		TaskProcessor:   taskProcessor,
 	}
 
 	return app, nil
@@ -140,6 +165,9 @@ func (app *Application) Shutdown(ctx context.Context) error {
 	if err := app.Server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("server forced to shutdown: %w", err)
 	}
+
+	app.Log.Info("Shutting down Worker Processor...")
+	app.TaskProcessor.Shutdown()
 
 	if app.Redis != nil {
 		app.Log.Info("Closing Redis connection...")

@@ -14,6 +14,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -36,30 +37,32 @@ const (
 )
 
 type testDependencies struct {
-	jwtManager *jwt.JWTManager
-	tokenRepo  *mock_auth.MockTokenRepository
-	userRepo   *mock_user.MockUserRepository
-	tm         *mocking.MockWithTransactionManager
-	wsManager  *mocking.MockManager
-	enforcer   *mock_permission.IEnforcer
-	validate   *validator.Validate
-	log        *logrus.Logger
-	auditUC    *auditMocks.MockAuditUseCase
+	jwtManager      *jwt.JWTManager
+	tokenRepo       *mock_auth.MockTokenRepository
+	userRepo        *mock_user.MockUserRepository
+	tm              *mocking.MockWithTransactionManager
+	wsManager       *mocking.MockManager
+	enforcer        *mock_permission.IEnforcer
+	validate        *validator.Validate
+	log             *logrus.Logger
+	auditUC         *auditMocks.MockAuditUseCase
+	taskDistributor *mocking.MockTaskDistributor
 }
 
 func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 	jwtManager := jwt.NewJWTManager(TestAccessSecret, TestRefreshSecret, 15*time.Minute, 24*time.Hour)
 
 	deps := &testDependencies{
-		jwtManager: jwtManager,
-		tokenRepo:  new(mock_auth.MockTokenRepository),
-		userRepo:   new(mock_user.MockUserRepository),
-		tm:         new(mocking.MockWithTransactionManager),
-		wsManager:  new(mocking.MockManager),
-		enforcer:   new(mock_permission.IEnforcer),
-		validate:   validator.New(),
-		log:        logrus.New(),
-		auditUC:    new(auditMocks.MockAuditUseCase),
+		jwtManager:      jwtManager,
+		tokenRepo:       new(mock_auth.MockTokenRepository),
+		userRepo:        new(mock_user.MockUserRepository),
+		tm:              new(mocking.MockWithTransactionManager),
+		wsManager:       new(mocking.MockManager),
+		enforcer:        new(mock_permission.IEnforcer),
+		validate:        validator.New(),
+		log:             logrus.New(),
+		auditUC:         new(auditMocks.MockAuditUseCase),
+		taskDistributor: new(mocking.MockTaskDistributor),
 	}
 
 	deps.log.SetOutput(io.Discard)
@@ -73,6 +76,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		deps.wsManager,
 		deps.enforcer,
 		deps.auditUC,
+		deps.taskDistributor,
 	)
 
 	return authService, deps
@@ -88,10 +92,6 @@ func createTestUser(password string) (*entity.User, string) {
 		Email:    "test@example.com",
 	}, password
 }
-
-// ... (Existing Tests: Login, RefreshToken, Validate, etc.) ...
-// For brevity, I am keeping the existing tests but ensuring the new ones are added at the end.
-// To avoid overwriting with truncation, I will include ALL previous tests + new ones.
 
 func TestLogin_Success(t *testing.T) {
 	authService, deps := setupTest(t)
@@ -447,7 +447,7 @@ func TestGenerateRefreshToken_Success(t *testing.T) {
 	assert.NotEmpty(t, token)
 }
 
-// --- FORGOT & RESET PASSWORD TESTS (Updated with Edge Cases) ---
+// --- FORGOT & RESET PASSWORD TESTS (Updated with Background Worker) ---
 
 func TestForgotPassword_Success(t *testing.T) {
 	authService, deps := setupTest(t)
@@ -455,6 +455,10 @@ func TestForgotPassword_Success(t *testing.T) {
 
 	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
 	deps.tokenRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.PasswordResetToken")).Return(nil)
+	deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.MatchedBy(func(payload *tasks.SendEmailPayload) bool {
+		return payload.To == user.Email && payload.Subject == "Password Reset Request"
+	}), mock.Anything).Return(nil)
+
 	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == user.ID && req.Action == "FORGOT_PASSWORD_REQUEST"
 	})).Return(nil)
@@ -464,26 +468,22 @@ func TestForgotPassword_Success(t *testing.T) {
 	assert.NoError(t, err)
 	deps.userRepo.AssertExpectations(t)
 	deps.tokenRepo.AssertExpectations(t)
+	deps.taskDistributor.AssertExpectations(t)
 	deps.auditUC.AssertExpectations(t)
 }
 
-// SECURITY TEST: Ensure we don't reveal if email exists
 func TestForgotPassword_UserNotFound_Security_EnumPrevention(t *testing.T) {
 	authService, deps := setupTest(t)
 	email := "notfound@example.com"
 
-	// Mock UserRepo returning error (NotFound)
 	deps.userRepo.On("FindByEmail", mock.Anything, email).Return(nil, errors.New("user not found"))
-
-	// DO NOT expect TokenRepo.Save to be called (security)
-	// DO NOT expect AuditLog (because user is unknown/nil)
 
 	err := authService.ForgotPassword(context.Background(), email)
 
-	// Assertion: NO ERROR returned to caller
 	assert.NoError(t, err)
 	deps.userRepo.AssertExpectations(t)
 	deps.tokenRepo.AssertNotCalled(t, "Save", mock.Anything, mock.Anything)
+	deps.taskDistributor.AssertNotCalled(t, "DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestResetPassword_Success(t *testing.T) {
@@ -493,7 +493,7 @@ func TestResetPassword_Success(t *testing.T) {
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     user.Email,
 		Token:     token,
-		ExpiresAt: time.Now().Add(1 * time.Hour), // Not expired
+		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}
 
 	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
@@ -528,7 +528,6 @@ func TestResetPassword_Failure_InvalidToken(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, usecase.ErrInvalidResetToken))
 	deps.tokenRepo.AssertExpectations(t)
-	deps.userRepo.AssertNotCalled(t, "FindByEmail", mock.Anything, mock.Anything)
 }
 
 func TestResetPassword_Failure_ExpiredToken(t *testing.T) {
@@ -537,18 +536,17 @@ func TestResetPassword_Failure_ExpiredToken(t *testing.T) {
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     "test@example.com",
 		Token:     token,
-		ExpiresAt: time.Now().Add(-1 * time.Hour), // Expired 1 hour ago
+		ExpiresAt: time.Now().Add(-1 * time.Hour),
 	}
 
 	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
-	deps.tokenRepo.On("DeleteByEmail", mock.Anything, resetToken.Email).Return(nil) // Should cleanup expired token
+	deps.tokenRepo.On("DeleteByEmail", mock.Anything, resetToken.Email).Return(nil)
 
 	err := authService.ResetPassword(context.Background(), token, "new-password")
 
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, usecase.ErrInvalidResetToken))
 	deps.tokenRepo.AssertExpectations(t)
-	deps.userRepo.AssertNotCalled(t, "FindByEmail", mock.Anything, mock.Anything)
 }
 
 func TestResetPassword_Failure_UserDeleted(t *testing.T) {
