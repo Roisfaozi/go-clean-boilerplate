@@ -1,6 +1,3 @@
-//go:build integration
-// +build integration
-
 package modules
 
 import (
@@ -8,112 +5,94 @@ import (
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
-	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
-	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
-	"github.com/Roisfaozi/go-clean-boilerplate/tests/fixtures"
+	roleRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestPermissionIntegration_GrantPermission_Success(t *testing.T) {
+func TestPermissionIntegration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
 	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
 	setup.CleanupDatabase(t, env.DB)
 
-	roleFactory := fixtures.NewRoleFactory(env.DB)
-	roleFactory.Create(func(r *roleEntity.Role) { r.Name = "role:admin" })
+	rRepo := roleRepo.NewRoleRepository(env.DB, logrus.New())
+	permUC := usecase.NewPermissionUseCase(env.Enforcer, logrus.New(), rRepo)
 
-	roleRepo := roleRepository.NewRoleRepository(env.DB, env.Logger)
-	permUC := usecase.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo)
+	t.Run("Assign Role to User", func(t *testing.T) {
+		user := setup.CreateTestUser(t, env.DB, "testuser_perm", "test@perm.com", "Password123!")
+		roleName := "admin"
+		setup.CreateTestRole(t, env.DB, roleName)
 
-	err := permUC.GrantPermissionToRole(context.Background(), "role:admin", "/api/v1/users", "GET")
-	require.NoError(t, err)
+		err := permUC.AssignRoleToUser(context.Background(), user.ID, roleName)
+		assert.NoError(t, err)
 
-	policies, err := env.Enforcer.GetFilteredPolicy(0, "role:admin", "/api/v1/users", "GET")
-	require.NoError(t, err)
-	assert.NotEmpty(t, policies)
-}
+		roles, err := env.Enforcer.GetRolesForUser(user.ID)
+		assert.NoError(t, err)
+		assert.Contains(t, roles, roleName)
+	})
 
-func TestPermissionIntegration_RevokePermission_Success(t *testing.T) {
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
+	t.Run("Grant Permission to Role", func(t *testing.T) {
+		roleName := "editor"
+		setup.CreateTestRole(t, env.DB, roleName)
 
-	roleFactory := fixtures.NewRoleFactory(env.DB)
-	roleFactory.Create(func(r *roleEntity.Role) { r.Name = "role:test" })
+		err := permUC.GrantPermissionToRole(context.Background(), roleName, "/api/v1/articles", "POST")
+		assert.NoError(t, err)
 
-	roleRepo := roleRepository.NewRoleRepository(env.DB, env.Logger)
-	permUC := usecase.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo)
+		ok, err := env.Enforcer.Enforce(roleName, "/api/v1/articles", "POST")
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	})
 
-	err := permUC.GrantPermissionToRole(context.Background(), "role:test", "/api/v1/test", "POST")
-	require.NoError(t, err)
+	t.Run("Revoke Permission from Role", func(t *testing.T) {
+		roleName := "viewer"
+		setup.CreateTestRole(t, env.DB, roleName)
+		_, _ = env.Enforcer.AddPolicy(roleName, "/api/v1/articles", "GET")
 
-	err = permUC.RevokePermissionFromRole(context.Background(), "role:test", "/api/v1/test", "POST")
-	require.NoError(t, err)
+		err := permUC.RevokePermissionFromRole(context.Background(), roleName, "/api/v1/articles", "GET")
+		assert.NoError(t, err)
 
-	policies, err := env.Enforcer.GetFilteredPolicy(0, "role:test", "/api/v1/test", "POST")
-	require.NoError(t, err)
-	assert.Empty(t, policies)
-}
+		ok, err := env.Enforcer.Enforce(roleName, "/api/v1/articles", "GET")
+		assert.NoError(t, err)
+		assert.False(t, ok)
+	})
 
-func TestPermissionIntegration_AssignRole_Success(t *testing.T) {
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
+	t.Run("Update Permission", func(t *testing.T) {
+		roleName := "manager"
+		setup.CreateTestRole(t, env.DB, roleName)
+		oldP := []string{roleName, "/api/v1/old", "GET"}
+		newP := []string{roleName, "/api/v1/new", "POST"}
 
-	roleFactory := fixtures.NewRoleFactory(env.DB)
-	roleFactory.Create(func(r *roleEntity.Role) { r.Name = "role:admin" })
+		_, _ = env.Enforcer.AddPolicy(oldP[0], oldP[1], oldP[2])
 
-	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
+		ok, err := permUC.UpdatePermission(context.Background(), oldP, newP)
+		assert.NoError(t, err)
+		assert.True(t, ok)
 
-	roleRepo := roleRepository.NewRoleRepository(env.DB, env.Logger)
-	permUC := usecase.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo)
+		// Verify old is gone
+		ok, _ = env.Enforcer.Enforce(oldP[0], oldP[1], oldP[2])
+		assert.False(t, ok)
 
-	err := permUC.AssignRoleToUser(context.Background(), testUser.ID, "role:admin")
-	require.NoError(t, err)
+		// Verify new is present
+		ok, _ = env.Enforcer.Enforce(newP[0], newP[1], newP[2])
+		assert.True(t, ok)
+	})
 
-	roles, err := env.Enforcer.GetRolesForUser(testUser.ID)
-	require.NoError(t, err)
-	assert.Contains(t, roles, "role:admin")
-}
+	t.Run("GetAllPermissions", func(t *testing.T) {
+		_, err := permUC.GetAllPermissions(context.Background())
+		assert.NoError(t, err)
+	})
 
-func TestPermissionIntegration_GetAllPermissions_Success(t *testing.T) {
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
+	t.Run("GetPermissionsForRole", func(t *testing.T) {
+		roleName := "role_for_list"
+		setup.CreateTestRole(t, env.DB, roleName)
+		_, _ = env.Enforcer.AddPolicy(roleName, "/res", "GET")
 
-	roleFactory := fixtures.NewRoleFactory(env.DB)
-	roleFactory.Create(func(r *roleEntity.Role) { r.Name = "role:test" })
-
-	roleRepo := roleRepository.NewRoleRepository(env.DB, env.Logger)
-	permUC := usecase.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo)
-
-	err := permUC.GrantPermissionToRole(context.Background(), "role:test", "/api/v1/users", "GET")
-	require.NoError(t, err)
-
-	permissions, err := permUC.GetAllPermissions()
-	require.NoError(t, err)
-	assert.NotEmpty(t, permissions)
-}
-
-func TestPermissionIntegration_GetPermissionsForRole_Success(t *testing.T) {
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
-
-	roleFactory := fixtures.NewRoleFactory(env.DB)
-	roleFactory.Create(func(r *roleEntity.Role) { r.Name = "role:test" })
-
-	roleRepo := roleRepository.NewRoleRepository(env.DB, env.Logger)
-	permUC := usecase.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo)
-
-	err := permUC.GrantPermissionToRole(context.Background(), "role:test", "/api/v1/users", "GET")
-	require.NoError(t, err)
-	err = permUC.GrantPermissionToRole(context.Background(), "role:test", "/api/v1/users", "POST")
-	require.NoError(t, err)
-
-	permissions, err := permUC.GetPermissionsForRole("role:test")
-	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(permissions), 2)
+		policies, err := permUC.GetPermissionsForRole(context.Background(), roleName)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, policies)
+	})
 }

@@ -100,3 +100,18 @@ func CreateTestUser(t *testing.T, db *gorm.DB, username, email, password string)
 
 	return user
 }
+
+func CreateTestRole(t *testing.T, db *gorm.DB, name string) *roleEntity.Role {
+	role := &roleEntity.Role{
+		ID:          uuid.New().String(),
+		Name:        name,
+		Description: "Test role " + name,
+	}
+
+	err := db.Create(role).Error
+	if t != nil {
+		require.NoError(t, err, "Failed to create test role")
+	}
+
+	return role
+}
