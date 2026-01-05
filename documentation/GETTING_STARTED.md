@@ -8,7 +8,7 @@ This guide provides step-by-step instructions to set up and run the Casbin DB pr
 
 Before you begin, ensure you have the following installed on your system:
 
-*   **Go**: Version 1.21 or higher.
+*   **Go**: Version 1.25.5 or higher.
 *   **Docker** & **Docker Compose**: Essential for running the database (MySQL) and cache (Redis) services.
 *   **Make**: The `Makefile` simplifies common development tasks.
 *   **Git**: For cloning the repository.
@@ -20,6 +20,11 @@ Before you begin, ensure you have the following installed on your system:
     ```bash
     go install github.com/swaggo/swag/cmd/swag@latest
     ```
+*   **Golang Migrate** (Optional): If you want to run migrations manually without the Makefile helper.
+    ```bash
+    go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+    ```
+*   **C/C++ Compiler (GCC/MinGW-w64)**: Required for running repository tests that use SQLite (due to CGO). Ensure `gcc` is in your system's PATH.
 
 ---
 
@@ -32,8 +37,8 @@ Follow these steps to get your project up and running:
 If you haven't already, clone the project repository:
 
 ```bash
-git clone https://github.com/yourusername/casbin-db.git # Replace with your repo URL
-cd casbin-db
+git clone https://github.com/Roisfaozi/go-clean-boilerplate.git
+cd go-clean-boilerplate
 ```
 
 ### Step 2.2: Configure Environment Variables

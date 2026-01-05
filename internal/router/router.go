@@ -49,8 +49,10 @@ func SetupRouter(
 ) *gin.Engine {
 	router := gin.New()
 
+	// Global Middlewares (Order Matters!)
 	router.Use(gin.Recovery())
-	router.Use(middleware.RequestLogger(logger))
+	router.Use(middleware.RequestIDMiddleware()) // 1. Generate Request ID First
+	router.Use(middleware.RequestLogger(logger)) // 2. Log request (now with ID)
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.SecurityMiddleware())
 	router.Use(middleware.CORSMiddleware(cfg.AllowedOrigins))
