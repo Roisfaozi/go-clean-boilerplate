@@ -18,7 +18,8 @@ func NewPermissionModule(enforcer *casbin.Enforcer, validate *validator.Validate
 
 	permissionUseCase := usecase.NewPermissionUseCase(enforcer, log, roleRepo)
 
-	permissionController := http.NewPermissionController(permissionUseCase, validate, log)
+	// Fixed argument order: (useCase, log, validate)
+	permissionController := http.NewPermissionController(permissionUseCase, log, validate)
 
 	return &PermissionModule{
 		PermissionController: permissionController,

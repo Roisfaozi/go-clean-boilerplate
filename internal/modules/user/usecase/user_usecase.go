@@ -47,17 +47,17 @@ func NewUserUseCase(logger *logrus.Logger, tm tx.WithTransactionManager,
 	}
 }
 
-func (c *userUseCase) GetUserByID(ctx context.Context, id string) (*model.UserResponse, error) {
+func (uc *userUseCase) GetUserByID(ctx context.Context, id string) (*model.UserResponse, error) {
 	var user *entity.User
-	err := c.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error
-		user, err = c.UserRepository.FindByID(txCtx, id)
+		user, err = uc.UserRepository.FindByID(txCtx, id)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				c.Log.Warnf("User with id %s not found", id)
+				uc.Log.WithContext(txCtx).Warnf("User with id %s not found", id)
 				return exception.ErrNotFound
 			}
-			c.Log.Errorf("Failed to find user by id %s: %v", id, err)
+			uc.Log.WithContext(txCtx).Errorf("Failed to find user by id %s: %v", id, err)
 			return exception.ErrInternalServer
 		}
 		return nil
@@ -106,16 +106,14 @@ func (c *userUseCase) Create(ctx context.Context, request *model.RegisterUserReq
 		}
 
 		if err := c.UserRepository.Create(txCtx, newUser); err != nil {
-
-			c.Log.Errorf("Failed create new user: %v", err)
+			c.Log.WithContext(txCtx).Errorf("Failed create new user: %v", err)
 			return exception.ErrInternalServer
-
 		}
 
 		_, _ = c.Enforcer.AddGroupingPolicy(newUser.ID, "role:user")
 
 		if c.auditUC != nil {
-			_ = c.auditUC.LogActivity(context.Background(), auditModel.CreateAuditLogRequest{
+			_ = c.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
 				UserID:   newUser.ID,
 				Action:   "REGISTER",
 				Entity:   "User",
@@ -142,13 +140,12 @@ func (c *userUseCase) Current(ctx context.Context, request *model.GetUserRequest
 		user, err := c.UserRepository.FindByID(txCtx, request.ID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				c.Log.Warnf("User with id %s not found", request.ID)
+				c.Log.WithContext(txCtx).Warnf("User with id %s not found", request.ID)
 				return exception.ErrNotFound
 			}
 
-			c.Log.Errorf("Failed to find user by id %s: %v", request.ID, err)
+			c.Log.WithContext(txCtx).Errorf("Failed to find user by id %s: %v", request.ID, err)
 			return exception.ErrInternalServer
-
 		}
 		response = converter.UserToResponse(user)
 		return nil
@@ -162,13 +159,12 @@ func (c *userUseCase) Update(ctx context.Context, request *model.UpdateUserReque
 		user, err := c.UserRepository.FindByID(txCtx, request.ID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				c.Log.Warnf("User with id %s not found", request.ID)
+				c.Log.WithContext(txCtx).Warnf("User with id %s not found", request.ID)
 				return exception.ErrNotFound
 			}
 
-			c.Log.Errorf("Failed to find user by id %s: %v", request.ID, err)
+			c.Log.WithContext(txCtx).Errorf("Failed to find user by id %s: %v", request.ID, err)
 			return exception.ErrInternalServer
-
 		}
 
 		oldUserMap := map[string]interface{}{"name": user.Name, "email": user.Email}
@@ -190,16 +186,16 @@ func (c *userUseCase) Update(ctx context.Context, request *model.UpdateUserReque
 
 		if err := c.UserRepository.Update(txCtx, user); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				c.Log.Warnf("User with id %s not found", user.ID)
+				c.Log.WithContext(txCtx).Warnf("User with id %s not found", user.ID)
 				return exception.ErrNotFound
 			}
 
-			c.Log.Errorf("Failed to find user by id %s: %v", user.ID, err)
+			c.Log.WithContext(txCtx).Errorf("Failed to find user by id %s: %v", user.ID, err)
 			return exception.ErrInternalServer
 		}
 
 		if c.auditUC != nil {
-			_ = c.auditUC.LogActivity(context.Background(), auditModel.CreateAuditLogRequest{
+			_ = c.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
 				UserID:    user.ID,
 				Action:    "UPDATE",
 				Entity:    "User",
@@ -223,7 +219,7 @@ func (u *userUseCase) GetAllUsers(ctx context.Context, request *model.GetUserLis
 		var err error
 		users, err = u.UserRepository.FindAll(txCtx, request)
 		if err != nil {
-			u.Log.Errorf("Failed to find all users: %v", err)
+			u.Log.WithContext(txCtx).Errorf("Failed to find all users: %v", err)
 			return exception.ErrInternalServer
 		}
 		return nil
@@ -246,11 +242,11 @@ func (c *userUseCase) DeleteUser(ctx context.Context, actorUserID string, reques
 		userToDelete, err := c.UserRepository.FindByID(txCtx, request.ID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				c.Log.Warnf("User with id %s not found", request.ID)
+				c.Log.WithContext(txCtx).Warnf("User with id %s not found", request.ID)
 				return exception.ErrNotFound
 			}
 
-			c.Log.Errorf("Failed to find user by id %s: %v", request.ID, err)
+			c.Log.WithContext(txCtx).Errorf("Failed to find user by id %s: %v", request.ID, err)
 			return exception.ErrInternalServer
 		}
 
@@ -259,7 +255,7 @@ func (c *userUseCase) DeleteUser(ctx context.Context, actorUserID string, reques
 		}
 
 		if c.auditUC != nil {
-			_ = c.auditUC.LogActivity(context.Background(), auditModel.CreateAuditLogRequest{
+			_ = c.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
 				UserID:    actorUserID,
 				Action:    "DELETE",
 				Entity:    "User",
@@ -279,7 +275,7 @@ func (c *userUseCase) GetAllUsersDynamic(ctx context.Context, filter *querybuild
 		var err error
 		users, err = c.UserRepository.FindAllDynamic(txCtx, filter)
 		if err != nil {
-			c.Log.Errorf("Failed to find users dynamically: %v", err)
+			c.Log.WithContext(txCtx).Errorf("Failed to find users dynamically: %v", err)
 			return exception.ErrInternalServer
 		}
 		return nil

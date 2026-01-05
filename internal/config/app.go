@@ -106,6 +106,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		casbinMiddleware,
 		wsController,
 		sseManager,
+		dbConnection,
 		redisClient,
 		logger,
 	)

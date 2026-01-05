@@ -1,6 +1,8 @@
 package router
 
 import (
+	"net/http"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
 	accessHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/delivery/http"
@@ -21,6 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"gorm.io/gorm"
 )
 
 type RouterConfig struct {
@@ -44,6 +47,7 @@ func SetupRouter(
 	casbinMiddleware gin.HandlerFunc,
 	wsController *ws.WebSocketController,
 	sseManager *sse.Manager,
+	db *gorm.DB,
 	redisClient *redis.Client,
 	logger *logrus.Logger,
 ) *gin.Engine {
@@ -87,8 +91,36 @@ func SetupRouter(
 	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.GET("/api/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "OK",
+		status := "OK"
+		details := make(map[string]string)
+
+		// Check MySQL
+		if db != nil {
+			sqlDB, err := db.DB()
+			if err != nil {
+				status = "DEGRADED"
+				details["mysql"] = "CONNECTION_ERROR"
+			} else if err := sqlDB.Ping(); err != nil {
+				status = "DEGRADED"
+				details["mysql"] = "DOWN"
+			} else {
+				details["mysql"] = "UP"
+			}
+		}
+
+		// Check Redis
+		if redisClient != nil {
+			if err := redisClient.Ping(c.Request.Context()).Err(); err != nil {
+				status = "DEGRADED"
+				details["redis"] = "DOWN"
+			} else {
+				details["redis"] = "UP"
+			}
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status":  status,
+			"details": details,
 		})
 	})
 

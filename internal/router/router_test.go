@@ -5,13 +5,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
@@ -35,7 +35,8 @@ func createTestRouter(cfg RouterConfig) *gin.Engine {
 		func(c *gin.Context) { c.Next() }, // Dummy Casbin Middleware
 		&ws.WebSocketController{},
 		sse.NewManager(),
-		&redis.Client{},
+		nil,            // db
+		&redis.Client{}, // redisClient
 		logrus.New(),
 	)
 }

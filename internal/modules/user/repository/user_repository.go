@@ -33,7 +33,7 @@ func NewUserRepository(db *gorm.DB, log *logrus.Logger) UserRepository {
 
 func (r *userRepositoryData) Create(ctx context.Context, user *entity.User) error {
 	if err := r.db.WithContext(ctx).Create(user).Error; err != nil {
-		r.log.WithError(err).Error("failed to create user")
+		r.log.WithContext(ctx).WithError(err).Error("failed to create user")
 		return err
 	}
 	return nil
@@ -41,7 +41,7 @@ func (r *userRepositoryData) Create(ctx context.Context, user *entity.User) erro
 
 func (r *userRepositoryData) Update(ctx context.Context, user *entity.User) error {
 	if err := r.db.WithContext(ctx).Save(user).Error; err != nil {
-		r.log.WithError(err).Error("failed to update user")
+		r.log.WithContext(ctx).WithError(err).Error("failed to update user")
 		return err
 	}
 	return nil
@@ -53,7 +53,7 @@ func (r *userRepositoryData) FindByID(ctx context.Context, id string) (*entity.U
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
 		}
-		r.log.WithError(err).Error("failed to find user by ID")
+		r.log.WithContext(ctx).WithError(err).Error("failed to find user by ID")
 		return nil, err
 	}
 	return &user, nil
@@ -65,7 +65,7 @@ func (r *userRepositoryData) FindByEmail(ctx context.Context, email string) (*en
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, gorm.ErrRecordNotFound
 		}
-		r.log.WithError(err).Error("failed to find user by email")
+		r.log.WithContext(ctx).WithError(err).Error("failed to find user by email")
 		return nil, err
 	}
 	return &user, nil
@@ -77,7 +77,7 @@ func (r *userRepositoryData) FindByToken(ctx context.Context, token string) (*en
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
 		}
-		r.log.WithError(err).Error("failed to find user by token")
+		r.log.WithContext(ctx).WithError(err).Error("failed to find user by token")
 		return nil, err
 	}
 	return &user, nil
@@ -85,7 +85,7 @@ func (r *userRepositoryData) FindByToken(ctx context.Context, token string) (*en
 
 func (r *userRepositoryData) Delete(ctx context.Context, id string) error {
 	if err := r.db.WithContext(ctx).Delete(&entity.User{}, "id = ?", id).Error; err != nil {
-		r.log.WithError(err).Error("failed to delete user")
+		r.log.WithContext(ctx).WithError(err).Error("failed to delete user")
 		return err
 	}
 	return nil
@@ -114,7 +114,7 @@ func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserL
 	offset := (page - 1) * limit
 
 	if err := query.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
-		r.log.WithError(err).Error("failed to find all users")
+		r.log.WithContext(ctx).WithError(err).Error("failed to find all users")
 		return nil, err
 	}
 	return users, nil
@@ -137,7 +137,7 @@ func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybu
 	}
 
 	if err := query.Find(&users).Error; err != nil {
-		r.log.WithError(err).Error("failed to find users dynamic")
+		r.log.WithContext(ctx).WithError(err).Error("failed to find users dynamic")
 		return nil, err
 	}
 	return users, nil

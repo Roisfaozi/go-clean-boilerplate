@@ -685,8 +685,8 @@ func (_c *MockIPermissionUseCase_AssignRoleToUser_Call) RunAndReturn(run func(ct
 }
 
 // GetAllPermissions provides a mock function for the type MockIPermissionUseCase
-func (_mock *MockIPermissionUseCase) GetAllPermissions() ([][]string, error) {
-	ret := _mock.Called()
+func (_mock *MockIPermissionUseCase) GetAllPermissions(ctx context.Context) ([][]string, error) {
+	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAllPermissions")
@@ -694,18 +694,18 @@ func (_mock *MockIPermissionUseCase) GetAllPermissions() ([][]string, error) {
 
 	var r0 [][]string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func() ([][]string, error)); ok {
-		return returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) ([][]string, error)); ok {
+		return returnFunc(ctx)
 	}
-	if returnFunc, ok := ret.Get(0).(func() [][]string); ok {
-		r0 = returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) [][]string); ok {
+		r0 = returnFunc(ctx)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([][]string)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func() error); ok {
-		r1 = returnFunc()
+	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = returnFunc(ctx)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -718,13 +718,20 @@ type MockIPermissionUseCase_GetAllPermissions_Call struct {
 }
 
 // GetAllPermissions is a helper method to define mock.On call
-func (_e *MockIPermissionUseCase_Expecter) GetAllPermissions() *MockIPermissionUseCase_GetAllPermissions_Call {
-	return &MockIPermissionUseCase_GetAllPermissions_Call{Call: _e.mock.On("GetAllPermissions")}
+//   - ctx context.Context
+func (_e *MockIPermissionUseCase_Expecter) GetAllPermissions(ctx interface{}) *MockIPermissionUseCase_GetAllPermissions_Call {
+	return &MockIPermissionUseCase_GetAllPermissions_Call{Call: _e.mock.On("GetAllPermissions", ctx)}
 }
 
-func (_c *MockIPermissionUseCase_GetAllPermissions_Call) Run(run func()) *MockIPermissionUseCase_GetAllPermissions_Call {
+func (_c *MockIPermissionUseCase_GetAllPermissions_Call) Run(run func(ctx context.Context)) *MockIPermissionUseCase_GetAllPermissions_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -734,14 +741,14 @@ func (_c *MockIPermissionUseCase_GetAllPermissions_Call) Return(stringss [][]str
 	return _c
 }
 
-func (_c *MockIPermissionUseCase_GetAllPermissions_Call) RunAndReturn(run func() ([][]string, error)) *MockIPermissionUseCase_GetAllPermissions_Call {
+func (_c *MockIPermissionUseCase_GetAllPermissions_Call) RunAndReturn(run func(ctx context.Context) ([][]string, error)) *MockIPermissionUseCase_GetAllPermissions_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetPermissionsForRole provides a mock function for the type MockIPermissionUseCase
-func (_mock *MockIPermissionUseCase) GetPermissionsForRole(role string) ([][]string, error) {
-	ret := _mock.Called(role)
+func (_mock *MockIPermissionUseCase) GetPermissionsForRole(ctx context.Context, role string) ([][]string, error) {
+	ret := _mock.Called(ctx, role)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetPermissionsForRole")
@@ -749,18 +756,18 @@ func (_mock *MockIPermissionUseCase) GetPermissionsForRole(role string) ([][]str
 
 	var r0 [][]string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(string) ([][]string, error)); ok {
-		return returnFunc(role)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([][]string, error)); ok {
+		return returnFunc(ctx, role)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string) [][]string); ok {
-		r0 = returnFunc(role)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) [][]string); ok {
+		r0 = returnFunc(ctx, role)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([][]string)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
-		r1 = returnFunc(role)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, role)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -773,19 +780,25 @@ type MockIPermissionUseCase_GetPermissionsForRole_Call struct {
 }
 
 // GetPermissionsForRole is a helper method to define mock.On call
+//   - ctx context.Context
 //   - role string
-func (_e *MockIPermissionUseCase_Expecter) GetPermissionsForRole(role interface{}) *MockIPermissionUseCase_GetPermissionsForRole_Call {
-	return &MockIPermissionUseCase_GetPermissionsForRole_Call{Call: _e.mock.On("GetPermissionsForRole", role)}
+func (_e *MockIPermissionUseCase_Expecter) GetPermissionsForRole(ctx interface{}, role interface{}) *MockIPermissionUseCase_GetPermissionsForRole_Call {
+	return &MockIPermissionUseCase_GetPermissionsForRole_Call{Call: _e.mock.On("GetPermissionsForRole", ctx, role)}
 }
 
-func (_c *MockIPermissionUseCase_GetPermissionsForRole_Call) Run(run func(role string)) *MockIPermissionUseCase_GetPermissionsForRole_Call {
+func (_c *MockIPermissionUseCase_GetPermissionsForRole_Call) Run(run func(ctx context.Context, role string)) *MockIPermissionUseCase_GetPermissionsForRole_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -796,7 +809,7 @@ func (_c *MockIPermissionUseCase_GetPermissionsForRole_Call) Return(stringss [][
 	return _c
 }
 
-func (_c *MockIPermissionUseCase_GetPermissionsForRole_Call) RunAndReturn(run func(role string) ([][]string, error)) *MockIPermissionUseCase_GetPermissionsForRole_Call {
+func (_c *MockIPermissionUseCase_GetPermissionsForRole_Call) RunAndReturn(run func(ctx context.Context, role string) ([][]string, error)) *MockIPermissionUseCase_GetPermissionsForRole_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -940,8 +953,8 @@ func (_c *MockIPermissionUseCase_RevokePermissionFromRole_Call) RunAndReturn(run
 }
 
 // UpdatePermission provides a mock function for the type MockIPermissionUseCase
-func (_mock *MockIPermissionUseCase) UpdatePermission(oldPermission []string, newPermission []string) (bool, error) {
-	ret := _mock.Called(oldPermission, newPermission)
+func (_mock *MockIPermissionUseCase) UpdatePermission(ctx context.Context, oldPermission []string, newPermission []string) (bool, error) {
+	ret := _mock.Called(ctx, oldPermission, newPermission)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdatePermission")
@@ -949,16 +962,16 @@ func (_mock *MockIPermissionUseCase) UpdatePermission(oldPermission []string, ne
 
 	var r0 bool
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func([]string, []string) (bool, error)); ok {
-		return returnFunc(oldPermission, newPermission)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string, []string) (bool, error)); ok {
+		return returnFunc(ctx, oldPermission, newPermission)
 	}
-	if returnFunc, ok := ret.Get(0).(func([]string, []string) bool); ok {
-		r0 = returnFunc(oldPermission, newPermission)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string, []string) bool); ok {
+		r0 = returnFunc(ctx, oldPermission, newPermission)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func([]string, []string) error); ok {
-		r1 = returnFunc(oldPermission, newPermission)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []string, []string) error); ok {
+		r1 = returnFunc(ctx, oldPermission, newPermission)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -971,25 +984,31 @@ type MockIPermissionUseCase_UpdatePermission_Call struct {
 }
 
 // UpdatePermission is a helper method to define mock.On call
+//   - ctx context.Context
 //   - oldPermission []string
 //   - newPermission []string
-func (_e *MockIPermissionUseCase_Expecter) UpdatePermission(oldPermission interface{}, newPermission interface{}) *MockIPermissionUseCase_UpdatePermission_Call {
-	return &MockIPermissionUseCase_UpdatePermission_Call{Call: _e.mock.On("UpdatePermission", oldPermission, newPermission)}
+func (_e *MockIPermissionUseCase_Expecter) UpdatePermission(ctx interface{}, oldPermission interface{}, newPermission interface{}) *MockIPermissionUseCase_UpdatePermission_Call {
+	return &MockIPermissionUseCase_UpdatePermission_Call{Call: _e.mock.On("UpdatePermission", ctx, oldPermission, newPermission)}
 }
 
-func (_c *MockIPermissionUseCase_UpdatePermission_Call) Run(run func(oldPermission []string, newPermission []string)) *MockIPermissionUseCase_UpdatePermission_Call {
+func (_c *MockIPermissionUseCase_UpdatePermission_Call) Run(run func(ctx context.Context, oldPermission []string, newPermission []string)) *MockIPermissionUseCase_UpdatePermission_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 []string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].([]string)
+			arg0 = args[0].(context.Context)
 		}
 		var arg1 []string
 		if args[1] != nil {
 			arg1 = args[1].([]string)
 		}
+		var arg2 []string
+		if args[2] != nil {
+			arg2 = args[2].([]string)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -1000,7 +1019,7 @@ func (_c *MockIPermissionUseCase_UpdatePermission_Call) Return(b bool, err error
 	return _c
 }
 
-func (_c *MockIPermissionUseCase_UpdatePermission_Call) RunAndReturn(run func(oldPermission []string, newPermission []string) (bool, error)) *MockIPermissionUseCase_UpdatePermission_Call {
+func (_c *MockIPermissionUseCase_UpdatePermission_Call) RunAndReturn(run func(ctx context.Context, oldPermission []string, newPermission []string) (bool, error)) *MockIPermissionUseCase_UpdatePermission_Call {
 	_c.Call.Return(run)
 	return _c
 }
