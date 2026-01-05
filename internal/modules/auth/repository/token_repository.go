@@ -6,23 +6,45 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type tokenRepositoryRedis struct {
 	client *redis.Client
 	log    *logrus.Logger
+	db     *gorm.DB
+}
+
+func (r *tokenRepositoryRedis) Save(ctx context.Context, token *entity.PasswordResetToken) error {
+	return r.db.WithContext(ctx).Save(token).Error
+}
+
+func (r *tokenRepositoryRedis) FindByToken(ctx context.Context, token string) (*entity.PasswordResetToken, error) {
+	var resetToken entity.PasswordResetToken
+	err := r.db.WithContext(ctx).Where("token = ?", token).First(&resetToken).Error
+	if err != nil {
+		return nil, err
+	}
+	return &resetToken, nil
+}
+
+func (r *tokenRepositoryRedis) DeleteByEmail(ctx context.Context, email string) error {
+	return r.db.WithContext(ctx).Where("email = ?", email).Delete(&entity.PasswordResetToken{}).Error
+
 }
 
 // NewTokenRepositoryRedis creates a new instance of tokenRepositoryRedis
 // It takes a redis client and a logger as parameters
 // and returns a TokenRepository interface
-func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger) TokenRepository {
+func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger, db *gorm.DB) TokenRepository {
 	return &tokenRepositoryRedis{
 		client: client,
 		log:    log,
+		db:     db,
 	}
 }
 

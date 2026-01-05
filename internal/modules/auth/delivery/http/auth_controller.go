@@ -2,7 +2,6 @@ package http
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
@@ -16,153 +15,132 @@ import (
 
 type AuthController struct {
 	AuthUseCase usecase.AuthUseCase
-	Log         *logrus.Logger
+	log         *logrus.Logger
 	validate    *validator.Validate
 }
 
-func NewAuthController(authUseCase usecase.AuthUseCase, log *logrus.Logger, validate *validator.Validate) *AuthController {
+func NewAuthController(useCase usecase.AuthUseCase, log *logrus.Logger, validate *validator.Validate) *AuthController {
 	return &AuthController{
-		AuthUseCase: authUseCase,
-		Log:         log,
+		AuthUseCase: useCase,
+		log:         log,
 		validate:    validate,
 	}
 }
 
 // Login handles user login
-// @Summary      User Login
-// @Description  Logs in a user by validating credentials and returns an access token and a refresh token cookie.
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Param        loginRequest  body      model.LoginRequest  true  "Login Credentials"
-// @Success      200      {object}  response.SwaggerLoginResponseWrapper
-// @Failure      400      {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
-// @Failure      422      {object}  response.SwaggerErrorResponseWrapper "Validation Error"
-// @Failure      401      {object}  response.SwaggerErrorResponseWrapper "Invalid credentials"
-// @Failure      500      {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/login [post]
 func (h *AuthController) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.Log.WithError(err).Error("Login failed: could not bind request")
+		h.log.WithContext(c.Request.Context()).WithError(err).Error("Login failed: could not bind request")
+		response.BadRequest(c, err, "could not bind request")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		h.log.WithContext(c.Request.Context()).WithError(err).Error("Login failed: validation error")
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, errors.New("validation error"), msg)
+		return
+	}
+
+	req.IPAddress = c.ClientIP()
+	req.UserAgent = c.Request.UserAgent()
+
+	res, refreshToken, err := h.AuthUseCase.Login(c.Request.Context(), req)
+	if err != nil {
+		h.log.WithContext(c.Request.Context()).Errorf("Login failed for user: %s", req.Username)
+		response.HandleError(c, err, "Login failed")
+		return
+	}
+
+	// Set refresh token in HttpOnly cookie
+	c.SetCookie("refresh_token", refreshToken, 3600*24*30, "/", "", false, true)
+
+	response.Success(c, res)
+}
+
+// RefreshToken handles token refresh
+func (h *AuthController) RefreshToken(c *gin.Context) {
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		h.log.WithContext(c.Request.Context()).Warn("Refresh token not found in cookie")
+		response.Unauthorized(c, exception.ErrUnauthorized, "refresh token not found")
+		return
+	}
+
+	res, newRefreshToken, err := h.AuthUseCase.RefreshToken(c.Request.Context(), refreshToken)
+	if err != nil {
+		response.HandleError(c, err, "Refresh token failed")
+		return
+	}
+
+	c.SetCookie("refresh_token", newRefreshToken, 3600*24*30, "/", "", false, true)
+	response.Success(c, res)
+}
+
+// Logout handles user logout
+func (h *AuthController) Logout(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	sessionID, _ := c.Get("sessionID")
+
+	if userID == nil || sessionID == nil {
+		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+
+	err := h.AuthUseCase.RevokeToken(c.Request.Context(), userID.(string), sessionID.(string))
+	if err != nil {
+		response.HandleError(c, err, "Logout failed")
+		return
+	}
+
+	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
+	response.Success(c, gin.H{"message": "logged out successfully"})
+}
+
+// ForgotPassword handles forgot password request
+func (h *AuthController) ForgotPassword(c *gin.Context) {
+	var req model.ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err, "invalid request body")
 		return
 	}
 
 	if err := h.validate.Struct(req); err != nil {
 		msg := validation.FormatValidationErrors(err)
-		h.Log.WithError(err).Error("Login failed: validation error")
-		response.ValidationError(c, exception.ErrValidationError, msg)
+		response.ValidationError(c, errors.New("validation failed"), msg)
 		return
 	}
 
-	// Capture Audit Data
-	req.IPAddress = c.ClientIP()
-	req.UserAgent = c.Request.UserAgent()
-
-	loginResp, refreshToken, err := h.AuthUseCase.Login(c.Request.Context(), req)
+	err := h.AuthUseCase.ForgotPassword(c.Request.Context(), req.Email)
 	if err != nil {
-		h.Log.Errorf("Login failed for user: %s", req.Username)
-		h.Log.WithError(err).Error("Login failed")
-		h.handleError(c, err, "Wrong password or username")
+		response.HandleError(c, err, "failed to process forgot password request")
 		return
 	}
 
-	h.setRefreshTokenCookie(c, refreshToken)
-	response.Success(c, loginResp)
+	// Always return success for security reasons (don't reveal if email exists)
+	response.Success(c, gin.H{"message": "If the email is registered, a reset link will be sent shortly."})
 }
 
-// RefreshToken handles token refresh
-// @Summary      Refresh Access Token
-// @Description  Refreshes an access token using a valid refresh token provided in an HTTP-only cookie.
-// @Tags         auth
-// @Produce      json
-// @Success      200  {object}  response.SwaggerTokenResponseWrapper
-// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Refresh token not found or invalid"
-// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/refresh [post]
-func (h *AuthController) RefreshToken(c *gin.Context) {
-	refreshToken, err := c.Cookie("refresh_token")
+// ResetPassword handles password reset using token
+func (h *AuthController) ResetPassword(c *gin.Context) {
+	var req model.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, errors.New("validation failed"), msg)
+		return
+	}
+
+	err := h.AuthUseCase.ResetPassword(c.Request.Context(), req.Token, req.NewPassword)
 	if err != nil {
-		h.Log.Warn("Refresh token not found in cookie")
-		response.Unauthorized(c, exception.ErrUnauthorized, "refresh token not found")
+		response.HandleError(c, err, "failed to reset password")
 		return
 	}
 
-	tokenResp, newRefreshToken, err := h.AuthUseCase.RefreshToken(c.Request.Context(), refreshToken)
-	if err != nil {
-		h.Log.WithError(err).Error("Refresh token failed")
-		h.handleError(c, err, "failed to refresh token")
-		return
-	}
-
-	h.setRefreshTokenCookie(c, newRefreshToken)
-	response.Success(c, tokenResp)
-}
-
-// Logout handles user logout
-// @Summary      User Logout
-// @Description  Logs out the current user by revoking their session.
-// @Tags         auth
-// @Security     BearerAuth
-// @Produce      json
-// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "message: logged out successfully"
-// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "User not authenticated or invalid session"
-// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/logout [post]
-func (h *AuthController) Logout(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		response.Unauthorized(c, exception.ErrUnauthorized, "unauthorized")
-		return
-	}
-
-	sessionID, exists := c.Get("session_id")
-	if !exists {
-		response.Unauthorized(c, exception.ErrUnauthorized, "invalid session")
-		return
-	}
-
-	err := h.AuthUseCase.RevokeToken(c.Request.Context(), userID.(string), sessionID.(string))
-	if err != nil {
-		h.handleError(c, err, "failed to revoke token")
-		return
-	}
-
-	h.setRefreshTokenCookie(c, "")
-	response.Success(c, gin.H{"message": "logged out successfully"})
-}
-
-func (h *AuthController) handleError(c *gin.Context, err error, message string) {
-	switch {
-	case errors.Is(err, usecase.ErrInvalidCredentials):
-		response.Unauthorized(c, err, message)
-	case errors.Is(err, usecase.ErrInvalidToken), errors.Is(err, usecase.ErrExpiredToken), errors.Is(err, usecase.ErrTokenRevoked):
-		response.Unauthorized(c, err, message)
-	case strings.Contains(err.Error(), "validation"):
-		response.BadRequest(c, err, message)
-	default:
-		response.InternalServerError(c, err, message)
-	}
-}
-
-func (h *AuthController) setRefreshTokenCookie(c *gin.Context, token string) {
-	var maxAge int
-	if token == "" {
-		maxAge = -1
-	} else {
-		maxAge = 3600 * 24 * 7
-	}
-
-	// Automatically set Secure flag in Release mode (Production)
-	secure := gin.Mode() == gin.ReleaseMode
-	c.SetCookie(
-		"refresh_token",
-		token,
-		maxAge,
-		"/api/v1/auth/refresh",
-		"",
-		secure,
-		true,
-	)
+	response.Success(c, gin.H{"message": "password reset successfully"})
 }

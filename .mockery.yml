@@ -40,6 +40,14 @@ packages:
     config:
       dir: internal/modules/permission/test/mocks
       filename: mock_permission_usecase.go
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository:
+    config:
+      dir: internal/modules/auth/test/mocks
+      filename: mock_auth_repository.go
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase:
+    config:
+      dir: internal/modules/auth/test/mocks
+      filename: mock_auth_usecase.go
   github.com/Roisfaozi/go-clean-boilerplate/pkg/tx:
     config:
       dir: internal/mocking
@@ -51,4 +59,3 @@ packages:
       dir: internal/mocking
       filename: mock_websocket_manager.go
       pkgname: mocking
-

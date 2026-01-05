@@ -31,7 +31,8 @@ func TestTokenRepository_StoreToken_RedisError(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger)
+	// Added nil for gorm.DB
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
 
 	authData := &model.Auth{
 		ID:           "session123",
@@ -42,13 +43,6 @@ func TestTokenRepository_StoreToken_RedisError(t *testing.T) {
 	key := getSessionKey(authData.UserID, authData.ID)
 	redisErr := errors.New("redis connection failed")
 
-	// We can use a custom matcher if we really want, but for error case,
-	// redismock still matches arguments.
-	// Since we can't match args easily, we might skip this too or try to construct exact same JSON.
-	// Let's try to construct exact same JSON by updating CreatedAt/UpdatedAt manually before call?
-	// No, StoreToken overrides them.
-
-	// So we skip StoreToken RedisError test too to avoid flakiness.
 	_ = key
 	_ = repo
 	_ = redisErr
@@ -59,7 +53,7 @@ func TestTokenRepository_GetToken(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
 
 	userID := "user456"
 	sessionID := "session123"
@@ -86,7 +80,7 @@ func TestTokenRepository_GetToken_NotFound(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
 
 	userID := "user456"
 	sessionID := "nonexistent_session"
@@ -105,7 +99,7 @@ func TestTokenRepository_GetToken_RedisError(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
 
 	userID := "user456"
 	sessionID := "session123"
@@ -125,7 +119,7 @@ func TestTokenRepository_DeleteToken(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
 
 	userID := "user456"
 	sessionID := "session123"
@@ -143,7 +137,7 @@ func TestTokenRepository_DeleteToken_RedisError(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
 
 	userID := "user456"
 	sessionID := "session123"

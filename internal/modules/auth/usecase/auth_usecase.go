@@ -2,12 +2,15 @@ package usecase
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"time"
 
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
+	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
@@ -19,6 +22,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Service struct {
@@ -118,7 +122,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	if err != nil {
 		return nil, "", err
 	}
-	
+
 	// Audit Log: Login (Synchronous)
 	if s.auditUC != nil {
 		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
@@ -241,7 +245,7 @@ func (s *Service) Verify(ctx context.Context, userID string, sessionID string) (
 
 func (s *Service) RevokeToken(ctx context.Context, userID, sessionID string) error {
 	s.log.WithContext(ctx).Infof("Revoking token for user %s with session %s", userID, sessionID)
-	
+
 	// Audit Log: Logout (Revoke) (Synchronous)
 	if s.auditUC != nil {
 		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
@@ -263,7 +267,7 @@ func (s *Service) GetUserSessions(ctx context.Context, userID string) ([]*model.
 
 func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
 	s.log.WithContext(ctx).Infof("Revoking all sessions for user %s", userID)
-	
+
 	// Audit Log: Revoke All (Synchronous)
 	if s.auditUC != nil {
 		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
@@ -317,4 +321,84 @@ func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
 	}
 	_, refreshToken, err := s.jwtManager.GenerateTokenPair(user.ID, uid.String(), userRole, user.Username)
 	return refreshToken, err
+}
+
+func (s *Service) ForgotPassword(ctx context.Context, email string) error {
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		// Security: Don't reveal if email exists
+		s.log.WithContext(ctx).Warnf("Forgot password attempt for non-existent email: %s", email)
+		return nil
+	}
+
+	// Generate 32-char hex token
+	b := make([]byte, 16)
+	rand.Read(b)
+	token := hex.EncodeToString(b)
+
+	resetToken := &authEntity.PasswordResetToken{
+		Email:     email,
+		Token:     token,
+		ExpiresAt: time.Now().Add(15 * time.Minute),
+	}
+
+	if err := s.tokenRepo.Save(ctx, resetToken); err != nil {
+		return err
+	}
+
+	// TODO: Integrate with Email Service
+	s.log.WithContext(ctx).Infof("PASSWORD RESET TOKEN for %s: %s (Expires in 15m)", email, token)
+
+	if s.auditUC != nil {
+		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			UserID:   user.ID,
+			Action:   "FORGOT_PASSWORD_REQUEST",
+			Entity:   "User",
+			EntityID: user.ID,
+		})
+	}
+
+	return nil
+}
+
+func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
+	resetToken, err := s.tokenRepo.FindByToken(ctx, token)
+	if err != nil {
+		return ErrInvalidResetToken
+	}
+
+	if time.Now().After(resetToken.ExpiresAt) {
+		_ = s.tokenRepo.DeleteByEmail(ctx, resetToken.Email)
+		return ErrInvalidResetToken
+	}
+
+	user, err := s.userRepo.FindByEmail(ctx, resetToken.Email)
+	if err != nil {
+		return ErrInvalidResetToken
+	}
+
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	user.Password = string(hashedPassword)
+
+	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := s.userRepo.Update(txCtx, user); err != nil {
+			return err
+		}
+		return s.tokenRepo.DeleteByEmail(txCtx, resetToken.Email)
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if s.auditUC != nil {
+		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			UserID:   user.ID,
+			Action:   "PASSWORD_RESET_SUCCESS",
+			Entity:   "User",
+			EntityID: user.ID,
+		})
+	}
+
+	return nil
 }

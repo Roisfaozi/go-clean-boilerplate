@@ -14,6 +14,7 @@ var (
 	ErrInvalidToken       = errors.New("invalid or expired token")
 	ErrExpiredToken       = errors.New("token has expired")
 	ErrTokenRevoked       = errors.New("token has been revoked")
+	ErrInvalidResetToken  = errors.New("invalid or expired password reset token")
 )
 
 type AuthUseCase interface {
@@ -29,4 +30,8 @@ type AuthUseCase interface {
 
 	GetUserSessions(ctx context.Context, userID string) ([]*model.Auth, error)
 	RevokeAllSessions(ctx context.Context, userID string) error
+
+	// Password Recovery
+	ForgotPassword(ctx context.Context, email string) error
+	ResetPassword(ctx context.Context, token, newPassword string) error
 }
