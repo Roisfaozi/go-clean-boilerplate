@@ -19,6 +19,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
@@ -33,6 +34,10 @@ type RouterConfig struct {
 	RateLimitRPS     float64
 	RateLimitBurst   int
 	RateLimitStore   string // "memory" or "redis"
+	MetricsEnabled   bool
+	MetricsAuth      bool
+	MetricsUser      string
+	MetricsPass      string
 }
 
 func SetupRouter(
@@ -56,21 +61,24 @@ func SetupRouter(
 	// Global Middlewares (Order Matters!)
 	router.Use(gin.Recovery())
 	router.Use(middleware.RequestIDMiddleware()) // 1. Generate Request ID First
-	router.Use(middleware.RequestLogger(logger)) // 2. Log request (now with ID)
+	
+	// 2. Metrics Middleware
+	if cfg.MetricsEnabled {
+		router.Use(middleware.PrometheusMiddleware())
+	}
+
+	router.Use(middleware.RequestLogger(logger)) // 3. Log request (now with ID)
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.SecurityMiddleware())
 	router.Use(middleware.CORSMiddleware(cfg.AllowedOrigins))
 
 	if len(cfg.TrustedProxies) > 0 {
-		// CRITICAL: If setting trusted proxies fails (e.g. invalid CIDR), we must fail fast.
-		// Continuing with invalid security config is dangerous.
 		if err := router.SetTrustedProxies(cfg.TrustedProxies); err != nil {
 			logger.Fatalf("Failed to set trusted proxies (invalid CIDR?): %v", err)
 		} else {
 			logger.Infof("Trusted proxies set to: %v", cfg.TrustedProxies)
 		}
 	} else {
-		// Secure default: trust no proxies if not configured.
 		if err := router.SetTrustedProxies(nil); err != nil {
 			logger.Fatalf("Failed to disable trusted proxies: %v", err)
 		}
@@ -78,11 +86,9 @@ func SetupRouter(
 
 	if cfg.RateLimitEnabled {
 		if cfg.RateLimitStore == "redis" {
-			// Use Redis-based rate limiter (Distributed)
 			router.Use(middleware.RateLimitMiddlewareRedis(redisClient, logger, cfg.RateLimitRPS))
 			logger.Info("Rate Limiter enabled: Redis store")
 		} else {
-			// Use In-Memory rate limiter (Local)
 			router.Use(middleware.RateLimitMiddlewareMemory(cfg.RateLimitRPS, cfg.RateLimitBurst))
 			logger.Info("Rate Limiter enabled: Memory store")
 		}
@@ -94,7 +100,6 @@ func SetupRouter(
 		status := "OK"
 		details := make(map[string]string)
 
-		// Check MySQL
 		if db != nil {
 			sqlDB, err := db.DB()
 			if err != nil {
@@ -108,7 +113,6 @@ func SetupRouter(
 			}
 		}
 
-		// Check Redis
 		if redisClient != nil {
 			if err := redisClient.Ping(c.Request.Context()).Err(); err != nil {
 				status = "DEGRADED"
@@ -123,6 +127,16 @@ func SetupRouter(
 			"details": details,
 		})
 	})
+
+	if cfg.MetricsEnabled {
+		metricsGroup := router.Group("/metrics")
+		if cfg.MetricsAuth {
+			metricsGroup.Use(gin.BasicAuth(gin.Accounts{
+				cfg.MetricsUser: cfg.MetricsPass,
+			}))
+		}
+		metricsGroup.GET("", gin.WrapH(promhttp.Handler()))
+	}
 
 	router.GET("/ws", wsController.HandleWebSocket)
 	router.GET("/events", sseManager.ServeHTTP())

@@ -21,6 +21,7 @@ type AppConfig struct {
 	Casbin    CasbinConfig    `mapstructure:"casbin"`
 	CORS      CORSConfig      `mapstructure:"cors"`
 	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+	Metrics   MetricsConfig   `mapstructure:"metrics"`
 }
 
 type ServerConfig struct {
@@ -30,6 +31,13 @@ type ServerConfig struct {
 	AppName        string        `mapstructure:"app_name"`
 	AppEnv         string        `mapstructure:"app_env"`
 	TrustedProxies []string      `mapstructure:"trusted_proxies"`
+}
+
+type MetricsConfig struct {
+	Enabled     bool   `mapstructure:"enabled"`
+	AuthEnabled bool   `mapstructure:"auth_enabled"`
+	Username    string `mapstructure:"username"`
+	Password    string `mapstructure:"password"`
 }
 
 type RateLimitConfig struct {
@@ -115,6 +123,10 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("rate_limit.store", "memory")
 	v.SetDefault("websocket.distributed_enabled", false)
 	v.SetDefault("websocket.redis_prefix", "ws_broadcast:")
+	v.SetDefault("metrics.enabled", true)
+	v.SetDefault("metrics.auth_enabled", false)
+	v.SetDefault("metrics.username", "admin")
+	v.SetDefault("metrics.password", "metrics123")
 
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
@@ -160,6 +172,11 @@ func NewConfig() (*AppConfig, error) {
 	cfg.Casbin.Model = v.GetString("casbin.model")
 	cfg.Casbin.Watcher.Enabled = v.GetBool("casbin.watcher.enabled")
 	cfg.Casbin.Watcher.Channel = v.GetString("casbin.watcher.channel")
+
+	cfg.Metrics.Enabled = v.GetBool("metrics.enabled")
+	cfg.Metrics.AuthEnabled = v.GetBool("metrics.auth_enabled")
+	cfg.Metrics.Username = v.GetString("metrics.username")
+	cfg.Metrics.Password = v.GetString("metrics.password")
 
 	if corsStr := v.GetString("cors.allowed_origins"); corsStr != "" && len(cfg.CORS.AllowedOrigins) == 0 {
 		origins := strings.Split(corsStr, ",")
