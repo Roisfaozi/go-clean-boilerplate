@@ -195,6 +195,30 @@ func TestLogin_Failure_StoreTokenError(t *testing.T) {
 	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything) // Should not log on StoreToken failure
 }
 
+func TestLogin_EnforcerError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, password := createTestUser("password123")
+	loginReq := model.LoginRequest{Username: user.Username, Password: password}
+
+	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(context.Background())
+		}).Return(nil)
+	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
+	// Enforcer returns error
+	deps.enforcer.On("GetRolesForUser", user.ID).Return(nil, errors.New("casbin error"))
+
+	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get user roles")
+	assert.Nil(t, loginResp)
+	assert.Empty(t, refreshToken)
+	deps.enforcer.AssertExpectations(t)
+}
+
+
 func TestRefreshToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
@@ -226,6 +250,25 @@ func TestRefreshToken_Success(t *testing.T) {
 	deps.enforcer.AssertExpectations(t)
 	deps.auditUC.AssertExpectations(t) // Audit log for RevokeToken within RefreshToken flow
 }
+
+func TestRefreshToken_EnforcerError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	oldRefreshToken, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, TestRefreshSecret, 24*time.Hour)
+	assert.NoError(t, err)
+
+	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: oldRefreshToken}
+	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
+	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID).Return(nil, errors.New("casbin error"))
+
+	_, _, err = authService.RefreshToken(context.Background(), oldRefreshToken)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get user roles")
+}
+
 
 func TestRefreshToken_Failure_InvalidToken(t *testing.T) {
 	authService, deps := setupTest(t) // Always declare both
@@ -311,6 +354,43 @@ func TestValidateAccessToken_Failure_TokenRevoked(t *testing.T) {
 	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything) // No audit log for validation
 }
 
+func TestValidateAccessToken_Failure_Mismatch(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	token, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, TestAccessSecret, 15*time.Minute)
+	assert.NoError(t, err)
+
+	// Return a session where access token doesn't match
+	session := &model.Auth{ID: "session-1", UserID: user.ID, AccessToken: "different-token"}
+	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
+
+	claims, err := authService.ValidateAccessToken(token)
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrTokenRevoked))
+	assert.Nil(t, claims)
+	deps.tokenRepo.AssertExpectations(t)
+}
+
+func TestValidateAccessToken_Failure_SessionNotFound(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	token, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, TestAccessSecret, 15*time.Minute)
+	assert.NoError(t, err)
+
+	// Return nil session (not found/revoked)
+	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(nil, nil)
+
+	claims, err := authService.ValidateAccessToken(token)
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrTokenRevoked))
+	assert.Nil(t, claims)
+	deps.tokenRepo.AssertExpectations(t)
+}
+
 func TestRevokeToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	userID, sessionID := "user-1", "session-1"
@@ -344,4 +424,100 @@ func TestRevokeToken_Failure(t *testing.T) {
 	assert.Equal(t, revokeErr, err)
 	deps.tokenRepo.AssertExpectations(t)
 	deps.auditUC.AssertExpectations(t) // Assert audit log call
+}
+
+func TestVerify_Success(t *testing.T) {
+	authService, deps := setupTest(t)
+	userID, sessionID := "user-1", "session-1"
+	expectedSession := &model.Auth{ID: sessionID, UserID: userID}
+
+	deps.tokenRepo.On("GetToken", mock.Anything, userID, sessionID).Return(expectedSession, nil)
+
+	session, err := authService.Verify(context.Background(), userID, sessionID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expectedSession, session)
+	deps.tokenRepo.AssertExpectations(t)
+}
+
+func TestGetUserSessions_Success(t *testing.T) {
+	authService, deps := setupTest(t)
+	userID := "user-1"
+	expectedSessions := []*model.Auth{{ID: "session-1", UserID: userID}}
+
+	deps.tokenRepo.On("GetUserSessions", mock.Anything, userID).Return(expectedSessions, nil)
+
+	sessions, err := authService.GetUserSessions(context.Background(), userID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expectedSessions, sessions)
+	deps.tokenRepo.AssertExpectations(t)
+}
+
+func TestRevokeAllSessions_Success(t *testing.T) {
+	authService, deps := setupTest(t)
+	userID := "user-1"
+
+	deps.tokenRepo.On("RevokeAllSessions", mock.Anything, userID).Return(nil)
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.UserID == userID && req.Action == "REVOKE_ALL_SESSIONS" && req.Entity == "Auth" && req.EntityID == userID
+	})).Return(nil)
+
+	err := authService.RevokeAllSessions(context.Background(), userID)
+
+	assert.NoError(t, err)
+	deps.tokenRepo.AssertExpectations(t)
+	deps.auditUC.AssertExpectations(t)
+}
+
+func TestGenerateAccessToken_Success(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
+
+	token, err := authService.GenerateAccessToken(user)
+
+	assert.NoError(t, err)
+	assert.NotEmpty(t, token)
+	deps.enforcer.AssertExpectations(t)
+}
+
+func TestGenerateAccessToken_EnforcerError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	deps.enforcer.On("GetRolesForUser", user.ID).Return(nil, errors.New("casbin error"))
+
+	token, err := authService.GenerateAccessToken(user)
+
+	assert.Error(t, err)
+	assert.Empty(t, token)
+	deps.enforcer.AssertExpectations(t)
+}
+
+func TestGenerateRefreshToken_Success(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
+
+	token, err := authService.GenerateRefreshToken(user)
+
+	assert.NoError(t, err)
+	assert.NotEmpty(t, token)
+	deps.enforcer.AssertExpectations(t)
+}
+
+func TestGenerateRefreshToken_EnforcerError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	deps.enforcer.On("GetRolesForUser", user.ID).Return(nil, errors.New("casbin error"))
+
+	token, err := authService.GenerateRefreshToken(user)
+
+	assert.Error(t, err)
+	assert.Empty(t, token)
+	deps.enforcer.AssertExpectations(t)
 }
