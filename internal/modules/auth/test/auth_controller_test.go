@@ -205,12 +205,8 @@ func TestAuthHandler_ResetPassword_UseCaseError(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	// Controller uses HandleError which maps ErrInvalidResetToken to internal server error?
-	// Let's check exception mapping. It might be mapped to 400 or 401 if we defined it.
-	// But usually generic errors are 500 unless specifically handled.
-	// Actually, ErrInvalidResetToken is exported from usecase package.
-	// We'll assert 500 for now as it's the default HandleError behavior for unknown errors.
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	// Controller uses HandleError which maps ErrInvalidResetToken (aliased to ErrBadRequest)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 	mockUseCase.AssertExpectations(t)
 }
 
@@ -226,8 +222,9 @@ func TestAuthHandler_Logout_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request, _ = http.NewRequest(http.MethodPost, "/auth/logout", nil)
-	c.Set("userID", userID)
-	c.Set("sessionID", sessionID)
+	// The controller expects "user_id" and "session_id" (snake_case) not "userID" and "sessionID"
+	c.Set("user_id", userID)
+	c.Set("session_id", sessionID)
 
 	handler.Logout(c)
 

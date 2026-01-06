@@ -36,7 +36,7 @@ func TestCompleteUserLifecycle(t *testing.T) {
 	roleFactory.Create(func(r *roleEntity.Role) { r.Name = "role:moderator" })
 
 	jwtManager := jwt.NewJWTManager("test-access-secret", "test-refresh-secret", 15*time.Minute, 24*time.Hour)
-	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger)
+	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	roleRepo := roleRepository.NewRoleRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
@@ -44,7 +44,7 @@ func TestCompleteUserLifecycle(t *testing.T) {
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
 
 	uUC := userUseCase.NewUserUseCase(env.Logger, tm, userRepo, env.Enforcer, auditUC)
-	aUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC)
+	aUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC, nil)
 	pUC := permissionUseCase.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo)
 
 	// 1. Register User
