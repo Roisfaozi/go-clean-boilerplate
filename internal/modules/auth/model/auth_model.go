@@ -8,7 +8,7 @@ import (
 
 type LoginRequest struct {
 	Username  string `json:"username" validate:"required,min=3,max=50"`
-	Password  string `json:"password" validate:"required,min=8"`
+	Password  string `json:"password" validate:"required,min=8,max=72"`
 	IPAddress string `json:"-"` // Filled by controller
 	UserAgent string `json:"-"` // Filled by controller
 }
@@ -50,7 +50,7 @@ type UserInfo struct {
 }
 
 type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token" validate:"required"`
+	RefreshToken string `json:"refresh_token" validate:"required,max=500"`
 }
 
 type ForgotPasswordRequest struct {
