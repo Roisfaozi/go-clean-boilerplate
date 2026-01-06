@@ -16,6 +16,7 @@ import (
 	roleHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	userHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
+	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
@@ -94,6 +95,9 @@ func SetupRouter(
 		}
 	}
 
+	// ---------------------------------
+	// PUBLIC UTILITY ENDPOINTS
+	// ---------------------------------
 	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.GET("/api/health", func(c *gin.Context) {
@@ -128,6 +132,7 @@ func SetupRouter(
 		})
 	})
 
+	// PROMETHEUS METRICS ENDPOINT
 	if cfg.MetricsEnabled {
 		metricsGroup := router.Group("/metrics")
 		if cfg.MetricsAuth {
@@ -149,17 +154,25 @@ func SetupRouter(
 		userHttp.RegisterPublicRoutes(public, userModule.UserController)
 	}
 
+	// AUTHENTICATED Group: Token is valid, but user might be banned
+	// Useful for viewing profile/status even if banned
 	authenticated := apiV1.Group("")
 	authenticated.Use(authMiddleware.ValidateToken())
 	{
 		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController)
+		userHttp.RegisterAuthorizedRoutes(authenticated, userModule.UserController) // Access /me
 	}
 
+	// AUTHORIZED Group: Token is valid AND user is Active AND has permission
 	authorized := apiV1.Group("")
 	authorized.Use(authMiddleware.ValidateToken())
+	
+	// Check User Status (Active?)
+	userRepo := userRepository.NewUserRepository(db, logger)
+	authorized.Use(middleware.UserStatusMiddleware(userRepo, logger))
+	
 	authorized.Use(casbinMiddleware)
 	{
-		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
 		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)

@@ -6,31 +6,42 @@ package modules
 import (
 	"context"
 	"testing"
+	"time"
 
 	auditRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository"
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
+	authRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
+	authUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestUserIntegration_Create_Success(t *testing.T) {
-
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
-
-	setup.CleanupDatabase(t, env.DB)
-
+func setupTestDependencies(env *setup.TestEnvironment) (usecase.UserUseCase, repository.UserRepository) {
 	userRepo := repository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
+	
+	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)
+	
+	authUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC, nil)
 
-	userUC := usecase.NewUserUseCase(env.Logger, tm, userRepo, env.Enforcer, auditUC)
+	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC), userRepo
+}
+
+func TestUserIntegration_Create_Success(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	userUC, userRepo := setupTestDependencies(env)
 
 	req := &model.RegisterUserRequest{
 		Username:  "newuser",
@@ -59,20 +70,13 @@ func TestUserIntegration_Create_Success(t *testing.T) {
 }
 
 func TestUserIntegration_Create_DuplicateUsername(t *testing.T) {
-
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-
 	setup.CleanupDatabase(t, env.DB)
 
 	setup.CreateTestUser(t, env.DB, "existinguser", "existing@example.com", "password123")
 
-	userRepo := repository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
-
-	userUC := usecase.NewUserUseCase(env.Logger, tm, userRepo, env.Enforcer, auditUC)
+	userUC, _ := setupTestDependencies(env)
 
 	req := &model.RegisterUserRequest{
 		Username:  "existinguser",
@@ -90,20 +94,13 @@ func TestUserIntegration_Create_DuplicateUsername(t *testing.T) {
 }
 
 func TestUserIntegration_Update_Success(t *testing.T) {
-
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-
 	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
 
-	userRepo := repository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
-
-	userUC := usecase.NewUserUseCase(env.Logger, tm, userRepo, env.Enforcer, auditUC)
+	userUC, userRepo := setupTestDependencies(env)
 
 	updateReq := &model.UpdateUserRequest{
 		ID:        testUser.ID,
@@ -124,20 +121,13 @@ func TestUserIntegration_Update_Success(t *testing.T) {
 }
 
 func TestUserIntegration_Delete_Success(t *testing.T) {
-
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-
 	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
 
-	userRepo := repository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
-
-	userUC := usecase.NewUserUseCase(env.Logger, tm, userRepo, env.Enforcer, auditUC)
+	userUC, userRepo := setupTestDependencies(env)
 
 	deleteReq := &model.DeleteUserRequest{
 		ID:        testUser.ID,
@@ -153,20 +143,13 @@ func TestUserIntegration_Delete_Success(t *testing.T) {
 }
 
 func TestUserIntegration_GetByID_Success(t *testing.T) {
-
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-
 	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
 
-	userRepo := repository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
-
-	userUC := usecase.NewUserUseCase(env.Logger, tm, userRepo, env.Enforcer, auditUC)
+	userUC, _ := setupTestDependencies(env)
 
 	result, err := userUC.GetUserByID(context.Background(), testUser.ID)
 

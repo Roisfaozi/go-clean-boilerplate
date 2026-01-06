@@ -19,6 +19,7 @@ import (
 
 type AuthModule struct {
 	AuthController *http.AuthController
+	AuthUseCase    usecase.AuthUseCase
 }
 
 func NewAuthModule(
@@ -41,5 +42,10 @@ func NewAuthModule(
 
 	return &AuthModule{
 		AuthController: authController,
+		AuthUseCase:    authUseCase,
 	}
+}
+
+func (m *AuthModule) Controller() *http.AuthController {
+	return m.AuthController
 }
