@@ -422,11 +422,11 @@ func setupAuthUseCase(t *testing.T, env *setup.TestEnvironment) usecase.AuthUseC
 }
 
 func setupAuthUseCaseWithJWT(t *testing.T, env *setup.TestEnvironment, jwtManager *jwt.JWTManager) usecase.AuthUseCase {
-	tokenRepo := repository.NewTokenRepositoryRedis(env.Redis, env.Logger)
+	tokenRepo := repository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
 
-	return usecase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC)
+	return usecase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC, nil)
 }
