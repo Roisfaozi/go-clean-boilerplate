@@ -1,8 +1,6 @@
 module github.com/Roisfaozi/go-clean-boilerplate
 
-go 1.24.0
-
-toolchain go1.24.3
+go 1.25.5
 
 require (
 	github.com/casbin/casbin/v2 v2.132.0
