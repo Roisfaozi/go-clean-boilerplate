@@ -180,12 +180,20 @@ tidy:
 .PHONY: lint
 lint:
 	@echo "Running linter..."
-	@powershell -Command "if (-not (Get-Command golangci-lint -ErrorAction SilentlyContinue)) { echo 'golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/'; exit 1; } else { golangci-lint run }"
+	@if ! command -v golangci-lint > /dev/null; then \
+		echo "golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/"; \
+		exit 1; \
+	fi
+	@golangci-lint run
 
 .PHONY: lint-fix
 lint-fix:
 	@echo "Running linter with auto-fix..."
-	@powershell -Command "if (-not (Get-Command golangci-lint -ErrorAction SilentlyContinue)) { echo 'golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/'; exit 1; } else { golangci-lint run --fix }"
+	@if ! command -v golangci-lint > /dev/null; then \
+		echo "golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/"; \
+		exit 1; \
+	fi
+	@golangci-lint run --fix
 
 .PHONY: vulcek
 vulcek:
