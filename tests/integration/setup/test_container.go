@@ -3,6 +3,7 @@ package setup
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync"
 	"testing"
 	"time"
@@ -41,8 +42,22 @@ type TestEnvironment struct {
 	RedisAddr string
 }
 
+func checkDockerSocket() bool {
+	conn, err := net.Dial("unix", "/var/run/docker.sock")
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
+}
+
 // SetupIntegrationEnvironment initializes the shared containers once using singleton pattern.
 func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
+	if !checkDockerSocket() {
+		t.Skip("Docker socket not accessible, skipping integration test")
+		return nil
+	}
+
 	ctx := context.Background()
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)

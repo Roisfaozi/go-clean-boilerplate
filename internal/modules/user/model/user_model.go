@@ -19,7 +19,7 @@ type RegisterUserRequest struct {
 	Username  string `json:"username" validate:"required,min=6,max=100"`
 	Password  string `json:"password" validate:"required,min=8,max=72"`
 	Name      string `json:"fullname" validate:"required,min=3,max=100"`
-	Email     string `json:"email" validate:"email"`
+	Email     string `json:"email" validate:"required,email,max=100"`
 	IPAddress string `json:"-"`
 	UserAgent string `json:"-"`
 }
@@ -50,8 +50,8 @@ type GetUserRequest struct {
 type GetUserListRequest struct {
 	Page     int    `form:"page" json:"page"`
 	Limit    int    `form:"limit" json:"limit"`
-	Username string `form:"username" json:"username"`
-	Email    string `form:"email" json:"email"`
+	Username string `form:"username" json:"username" validate:"max=100"`
+	Email    string `form:"email" json:"email" validate:"max=100"`
 }
 
 type DeleteUserRequest struct {
