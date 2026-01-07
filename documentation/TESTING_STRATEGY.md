@@ -1,190 +1,178 @@
 # Comprehensive Testing Strategy Guide
 
-This document provides a detailed guide on the testing strategy implemented in the Go Clean Boilerplate. We use a **Testing Pyramid** approach to ensure high code quality, security, and reliability.
+This document defines the **official testing standards** for the Go Clean Boilerplate project. It reflects the consolidated and refactored testing architecture currently in place.
 
 ---
 
-## 🏗️ 1. Unit Testing
-**Goal:** Verify business logic in isolation. Fast execution, no external dependencies.
+## 🏗️ 1. Unit Testing (Isolated Logic)
+**Goal:** Verify business logic in isolation with **zero** external dependencies.
 
-*   **Scope:** `internal/modules/*/usecase`
-*   **Tools:** `testify/assert`, `mockery`
-*   **Dependencies:** All external calls (DB, Redis, API) are **Mocked**.
+*   **Scope:** `internal/modules/<module>/test/`
+*   **Naming Convention:** `usecase_test.go`, `controller_test.go`
+*   **Key Pattern:** **Dependency Struct Pattern** for UseCases.
 
-### How to Write a Unit Test
-1.  **Generate Mocks**: Run `make mocks` to update mocks in `mocks/`.
-2.  **Setup Test**: Initialize the UseCase with mocked dependencies.
-3.  **Define Expectations**: Use `.On("MethodName", args).Return(results)`.
+### Standard: UseCase Test Structure
+Every UseCase test file MUST define a dependency struct and a setup helper to keep tests clean.
 
-### Code Example: `UserUseCase.Create`
 ```go
 // internal/modules/user/test/use_case_test.go
 
-func TestUserUseCase_Create_Success(t *testing.T) {
-    // 1. Setup Mocks
-    mockRepo := new(mocks.MockUserRepository)
-    mockEnforcer := new(mocks.MockEnforcer)
-    mockAudit := new(mocks.MockAuditUseCase)
-    mockTM := new(MockTransactionManager) // Custom mock that runs callback immediately
+// 1. Define Dependencies Struct
+type userTestDeps struct {
+    Repo     *mocks.MockUserRepository
+    Enforcer *permMocks.IEnforcer
+    AuditUC  *auditMocks.MockAuditUseCase
+    // ... other mocks
+}
 
-    // 2. Initialize UseCase
-    uc := usecase.NewUserUseCase(logger, mockTM, mockRepo, mockEnforcer, mockAudit)
-
-    // 3. Define Input
-    req := &model.RegisterUserRequest{
-        Username: "testuser",
-        Email:    "test@example.com",
-        Password: "StrongPassword123!",
+// 2. Define Setup Helper
+func setupUserTest() (*userTestDeps, usecase.UserUseCase) {
+    deps := &userTestDeps{
+        Repo:     new(mocks.MockUserRepository),
+        Enforcer: new(permMocks.IEnforcer),
+        AuditUC:  new(auditMocks.MockAuditUseCase),
     }
+    // Initialize UseCase with Mocks
+    uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC)
+    return deps, uc
+}
 
-    // 4. Set Expectations
-    mockRepo.On("FindByUsername", mock.Anything, req.Username).Return(nil, gorm.ErrRecordNotFound)
-    mockRepo.On("FindByEmail", mock.Anything, req.Email).Return(nil, gorm.ErrRecordNotFound)
-    mockRepo.On("Create", mock.Anything, mock.Anything).Return(nil)
-    mockEnforcer.On("AddGroupingPolicy", mock.Anything, "role:user").Return(true, nil)
-    mockAudit.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+// 3. Write Clean Tests
+func TestUserUseCase_Create_Success(t *testing.T) {
+    // Clean Setup
+    deps, uc := setupUserTest()
 
-    // 5. Execute & Assert
-    resp, err := uc.Create(context.Background(), req)
-    
+    // Clear Expectations
+    deps.Repo.On("FindByUsername", mock.Anything, "newuser").Return(nil, gorm.ErrRecordNotFound)
+    deps.Repo.On("Create", mock.Anything, mock.Anything).Return(nil)
+
+    // Execute
+    resp, err := uc.Create(context.Background(), &model.RegisterUserRequest{...})
+
+    // Assert
     assert.NoError(t, err)
-    assert.NotNil(t, resp)
-    assert.Equal(t, req.Username, resp.Username)
-    
-    // 6. Verify Mocks
-    mockRepo.AssertExpectations(t)
+    deps.Repo.AssertExpectations(t)
+}
+```
+
+### Standard: Controller Test Structure
+Use `setup<Module>TestRouter` and `newTest<Module>Controller` helpers.
+
+```go
+func TestUserHandler_Register_Success(t *testing.T) {
+    mockUseCase := new(mocks.MockUserUseCase)
+    handler := newTestUserController(mockUseCase) // Factory helper
+    router := setupUserTestRouter()               // Router helper (gin.New)
+    router.POST("/users", handler.Register)
+
+    // ... expectations and execution ...
 }
 ```
 
 ---
 
-## 🔗 2. Integration Testing
-**Goal:** Verify data integrity and interaction with real infrastructure (MySQL, Redis).
+## 🔗 2. Integration Testing (Real Infrastructure)
+**Goal:** Verify interaction with real MySQL and Redis instances using **Singleton Containers**.
 
-*   **Scope:** `internal/modules/*/repository`, `internal/modules/*/usecase` (integrated)
-*   **Tools:** `testcontainers-go`
-*   **Strategy:** **Singleton Container Pattern**. One DB/Redis instance is shared across all tests to save time. Data is cleaned via `TRUNCATE` between tests.
+*   **Scope:** `tests/integration/modules/`
+*   **Naming Convention:** `<module>_integration_test.go` (Single file per module, NO `_comprehensive` suffixes).
+*   **Key Pattern:** **Module Setup Helper** injection.
 
-### How to Write an Integration Test
-1.  **Setup Env**: Call `setup.SetupIntegrationEnvironment(t)`.
-2.  **Seed Data**: Use `fixtures` to create necessary data (e.g., Roles).
-3.  **Run Logic**: Call the Repository or UseCase directly.
-4.  **Assert DB State**: Check if data is actually persisted.
+### Standard: Integration Test Structure
 
-### Code Example: `Auth UseCase (Login)`
+Every module integration test MUST use a setup helper that initializes the real Repository and UseCase using the shared `TestEnvironment`.
+
 ```go
 // tests/integration/modules/auth_integration_test.go
 
-func TestAuthIntegration_Login_Success(t *testing.T) {
-    // 1. Setup Singleton Environment (Starts Docker if not running)
-    env := setup.SetupIntegrationEnvironment(t)
-    defer env.Cleanup() // Truncates tables, doesn't kill container
-    setup.CleanupDatabase(t, env.DB) // Ensure clean slate
-
-    // 2. Seed Data
-    user := setup.CreateTestUser(t, env.DB, "validuser", "valid@test.com", "Password123!")
-    env.Enforcer.AddGroupingPolicy(user.ID, "role:user")
-
-    // 3. Initialize Real UseCase
-    authUC := usecase.NewAuthUsecase(..., env.Redis, env.DB, ...)
-
-    // 4. Execute Logic
-    req := model.LoginRequest{Username: "validuser", Password: "Password123!"}
-    resp, token, err := authUC.Login(context.Background(), req)
-
-    // 5. Assertions
-    require.NoError(t, err)
-    assert.NotEmpty(t, resp.AccessToken)
+// 1. Define Module Helper
+func setupAuthIntegration(env *setup.TestEnvironment) usecase.AuthUseCase {
+    tokenRepo := repository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+    userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
+    // ... init other real repos ...
     
-    // 6. Verify Side Effects (Redis Session)
-    keys, _ := env.Redis.Keys(context.Background(), "session:*").Result()
-    assert.NotEmpty(t, keys)
+    return usecase.NewAuthUsecase(..., tokenRepo, userRepo, ...)
+}
+
+// 2. Write Granular Tests
+func TestAuthIntegration_Login_Success(t *testing.T) {
+    // Setup Singleton Env (Starts Docker only once)
+    env := setup.SetupIntegrationEnvironment(t)
+    defer env.Cleanup() // Truncates tables
+    setup.CleanupDatabase(t, env.DB)
+
+    // Init Module
+    authUC := setupAuthIntegration(env)
+
+    // Seed Data
+    setup.CreateTestUser(t, env.DB, "validuser", "pass")
+
+    // Execute Logic
+    resp, token, err := authUC.Login(context.Background(), loginReq)
+
+    // Assert
+    require.NoError(t, err)
+    assert.NotEmpty(t, token)
 }
 ```
 
 ---
 
-## 🌍 3. End-to-End (E2E) Testing
-**Goal:** Verify the complete system flow from HTTP Request to Database.
+## 🌍 3. End-to-End (E2E) Testing (Full Flow)
+**Goal:** Verify the complete HTTP request-response cycle from the client's perspective.
 
-*   **Scope:** `internal/router`, `Middleware`, `Controller`
-*   **Tools:** `net/http/httptest`
-*   **Strategy:** Spins up the actual Gin router connected to the Integration Test containers.
+*   **Scope:** `tests/e2e/api/`
+*   **Key Pattern:** `TestServer` wrapper with `TestClient`.
 
-### How to Write an E2E Test
-1.  **Setup Server**: Call `setup.SetupTestServer(t)`.
-2.  **Create Client**: Use `server.Client` to send requests.
-3.  **Assert Response**: Check HTTP Status Code and JSON Body.
+### Standard: E2E Test Structure
 
-### Code Example: `Protected Route Access`
+Use `setup.SetupTestServer(t)` which automatically connects the Gin Engine to the Singleton Integration Containers.
+
 ```go
 // tests/e2e/api/auth_e2e_test.go
 
 func TestAuthFlow_E2E(t *testing.T) {
+    // 1. Start Server & Client
     server := setup.SetupTestServer(t)
     defer server.Cleanup()
-    client := server.Client
+    client := server.Client // Wrapper for http.Client
 
-    // 1. Register (Public)
-    regPayload := map[string]any{
-        "username": "e2euser",
-        "email":    "e2e@test.com",
-        "password": "Password123!",
-        "fullname": "E2E Test User",
+    // 2. Perform Request
+    loginPayload := map[string]interface{}{
+        "username": "admin",
+        "password": "password",
     }
-    client.POST("/api/v1/users/register", regPayload)
-
-    // 2. Login (Public)
-    loginPayload := map[string]any{"username": "e2euser", "password": "Password123!"}
     resp := client.POST("/api/v1/auth/login", loginPayload)
+
+    // 3. Assert Response
     assert.Equal(t, 200, resp.StatusCode)
     
-    // Extract Token
-    var body struct { Data struct { AccessToken string `json:"access_token"` } }
-    resp.JSON(&body)
-    token := body.Data.AccessToken
-
-    // 3. Get Profile (Protected)
-    // Using helper WithAuth to inject Bearer token
+    // 4. Chain Requests (Use Token)
+    token := client.ExtractToken(resp)
     profileResp := client.GET("/api/v1/users/me", setup.WithAuth(token))
-    
     assert.Equal(t, 200, profileResp.StatusCode)
-    var profile struct { Data struct { Username string } }
-    profileResp.JSON(&profile)
-    assert.Equal(t, "e2euser", profile.Data.Username)
 }
 ```
 
 ---
 
-## 🛡️ Security Testing Scope
+## 🛡️ Security Testing Standard
+Tests MUST explicitly cover security vulnerabilities. These are integrated into the main test files, not separated.
 
-We explicitly test for common vulnerabilities in the **Integration** and **E2E** layers:
-
-| Vulnerability | Testing Method | File Example |
-| :--- | :--- | :--- |
-| **SQL Injection** | Inject payloads like `' OR '1'='1` into login/search fields. | `auth_integration_comprehensive_test.go` |
-| **XSS** | Inject `<script>` tags into profile names. | `user_integration_comprehensive_test.go` |
-| **Brute Force** | Loop login attempts and verify 429/401 response. | `auth_e2e_comprehensive_test.go` |
-| **Privilege Escalation** | Try accessing Admin APIs with a User token. | `rbac_e2e_test.go` |
-| **Weak Passwords** | Attempt registration with short/common passwords. | `user_integration_test.go` |
+*   **SQL Injection**: `Test<Module>_Security_SQLInjection`
+*   **XSS**: `Test<Module>_Security_XSS`
+*   **Auth Bypass**: `Test<Module>_Security_Unauthorized`
 
 ---
 
-## 🏃 Running the Tests
-
-Use the `Makefile` for easy execution:
+## 🏃 Running Tests
 
 ```bash
-# 1. Run EVERYTHING (Recommended for CI)
+# Run ALL tests (Sequential execution to prevent DB race conditions)
 make test-all
 
-# 2. Run Fast Unit Tests (Dev loop)
+# Run specific layer
 make test-unit
-
-# 3. Run Integration Tests (Requires Docker)
 make test-integration
-
-# 4. Run E2E Tests (Requires Docker)
 make test-e2e
 ```

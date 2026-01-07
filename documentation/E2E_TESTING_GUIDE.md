@@ -35,12 +35,7 @@ func SetupTestServer(t *testing.T) *TestServer {
     
     // 2. Initialize App Config with container addresses
     cfg := &config.AppConfig{
-        // ...
-        Mysql: config.MySqlConfig{
-            Host: host, 
-            Port: port,
-            // ...
-        },
+        // ... config pointing to test containers ...
     }
     
     // 3. Start App & Test Server
@@ -72,17 +67,17 @@ func TestAuthFlow_E2E(t *testing.T) {
     client := server.Client
     
     // 1. Register
-    registerReq := map[string]interface{}{
+    registerReq := map[string]any{
         "username": "testuser",
         "email":    "test@example.com",
         "password": "SecurePass123!",
-        "fullname": "Test User", // Note: JSON tag is "fullname"
+        "fullname": "Test User",
     }
     resp := client.POST("/api/v1/users/register", registerReq)
     assert.Equal(t, 201, resp.StatusCode)
     
     // 2. Login
-    loginReq := map[string]interface{}{
+    loginReq := map[string]any{
         "username": "testuser",
         "password": "SecurePass123!",
     }
@@ -109,7 +104,7 @@ func TestAuthFlow_E2E(t *testing.T) {
 ```go
 func TestRBAC_E2E(t *testing.T) {
     server := setup.SetupTestServer(t)
-    // ... setup admin & user ...
+    // ... helper to create admin & user ...
     
     t.Run("User Cannot Access Admin Route", func(t *testing.T) {
         resp := client.GET("/api/v1/users", setup.WithAuth(userToken))
@@ -127,16 +122,16 @@ func TestRBAC_E2E(t *testing.T) {
 
 ## 🔧 Best Practices
 
-1.  **Use Helper Functions**: Create helpers like `createUserAndLogin(t, server)` to avoid repetition.
+1.  **Use Helper Functions**: Create helpers like `createUserAndLogin(t, server)` to avoid repetition in complex flows.
 2.  **Verify Status Codes**: Always assert `resp.StatusCode` first.
-3.  **Check Response Body**: For success cases, verify returned data. For errors, verify the error message.
-4.  **Clean State**: The database is shared but truncated between integration test runs. However, E2E tests runs in the same process, so be mindful of data collision if running in parallel (which we currently avoid by running sequentially).
+3.  **Check Response Body**: For success cases, verify returned data structure. For errors, verify the error message.
+4.  **Sequential Execution**: E2E tests run in the same process against shared containers. Avoid `t.Parallel()` to prevent data collision.
 
 ## 🐛 Troubleshooting
 
 | Issue | Potential Cause |
 | :--- | :--- |
-| **401 Unauthorized** | Token expired (check `test_server.go` duration) or Redis session missing. |
+| **401 Unauthorized** | Token expired (check `test_server.go` config) or Redis session missing. |
 | **403 Forbidden** | User role lacks Casbin policy for the endpoint/method. |
 | **422 Unprocessable** | Invalid request payload (e.g., incorrect JSON field name, weak password). |
 | **Connection Refused** | Docker containers not running or healthy. |
