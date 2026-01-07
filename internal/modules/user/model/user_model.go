@@ -1,11 +1,12 @@
 package model
 
 type UserResponse struct {
-	ID        string `json:"id,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Username  string `json:"username,omitempty"`
-	Email     string `json:"email,omitempty"`
-	Token     string `json:"token,omitempty"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Token     string `json:"token"`
+	Status    string `json:"status"`
 	CreatedAt int64  `json:"created_at,omitempty"`
 	UpdatedAt int64  `json:"updated_at,omitempty"`
 }
@@ -26,6 +27,7 @@ type RegisterUserRequest struct {
 type UpdateUserRequest struct {
 	ID        string `json:"-" validate:"required,max=100"`
 	Password  string `json:"password,omitempty" validate:"max=72"`
+	Username  string `json:"username" validate:"required,min=6,max=100"`
 	Name      string `json:"name,omitempty" validate:"max=100"`
 	IPAddress string `json:"-"` // Filled by controller
 	UserAgent string `json:"-"` // Filled by controller
@@ -55,4 +57,8 @@ type DeleteUserRequest struct {
 	ID        string `json:"-" validate:"required"`
 	IPAddress string `json:"-"` // Filled by controller
 	UserAgent string `json:"-"` // Filled by controller
+}
+
+type UpdateUserStatusRequest struct {
+	Status string `json:"status" validate:"required,oneof=active suspended banned"`
 }

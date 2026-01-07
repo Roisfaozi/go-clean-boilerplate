@@ -509,3 +509,66 @@ func (_c *MockUserUseCase_Update_Call) RunAndReturn(run func(ctx context.Context
 	_c.Call.Return(run)
 	return _c
 }
+
+// UpdateStatus provides a mock function for the type MockUserUseCase
+func (_mock *MockUserUseCase) UpdateStatus(ctx context.Context, userID string, status string) error {
+	ret := _mock.Called(ctx, userID, status)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateStatus")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = returnFunc(ctx, userID, status)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserUseCase_UpdateStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateStatus'
+type MockUserUseCase_UpdateStatus_Call struct {
+	*mock.Call
+}
+
+// UpdateStatus is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - status string
+func (_e *MockUserUseCase_Expecter) UpdateStatus(ctx interface{}, userID interface{}, status interface{}) *MockUserUseCase_UpdateStatus_Call {
+	return &MockUserUseCase_UpdateStatus_Call{Call: _e.mock.On("UpdateStatus", ctx, userID, status)}
+}
+
+func (_c *MockUserUseCase_UpdateStatus_Call) Run(run func(ctx context.Context, userID string, status string)) *MockUserUseCase_UpdateStatus_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserUseCase_UpdateStatus_Call) Return(err error) *MockUserUseCase_UpdateStatus_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserUseCase_UpdateStatus_Call) RunAndReturn(run func(ctx context.Context, userID string, status string) error) *MockUserUseCase_UpdateStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}

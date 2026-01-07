@@ -2,6 +2,7 @@ package user
 
 import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
@@ -24,10 +25,11 @@ func NewUserModule(
 	tm tx.WithTransactionManager,
 	enforcer permissionUseCase.IEnforcer,
 	auditModule *audit.AuditModule,
+	authModule *auth.AuthModule,
 ) *UserModule {
 	userRepository := userRepository.NewUserRepository(db, log)
 
-	userUseCase := usecase.NewUserUseCase(log, tm, userRepository, enforcer, auditModule.AuditUseCase)
+	userUseCase := usecase.NewUserUseCase(tm, log, userRepository, enforcer, auditModule.AuditUseCase, authModule.AuthUseCase,)
 
 	userController := http.NewUserController(userUseCase, log, validator)
 

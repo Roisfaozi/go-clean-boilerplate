@@ -180,20 +180,12 @@ tidy:
 .PHONY: lint
 lint:
 	@echo "Running linter..."
-	@if ! command -v golangci-lint > /dev/null; then \
-		echo "golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/"; \
-		exit 1; \
-	fi
-	@golangci-lint run
+	golangci-lint run
 
 .PHONY: lint-fix
 lint-fix:
 	@echo "Running linter with auto-fix..."
-	@if ! command -v golangci-lint > /dev/null; then \
-		echo "golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/"; \
-		exit 1; \
-	fi
-	@golangci-lint run --fix
+	golangci-lint run --fix
 
 .PHONY: vulcek
 vulcek:

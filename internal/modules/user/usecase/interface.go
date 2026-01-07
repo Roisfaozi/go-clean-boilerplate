@@ -14,5 +14,6 @@ type UserUseCase interface {
 	GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, error)
 	Current(ctx context.Context, request *model.GetUserRequest) (*model.UserResponse, error)
 	Update(ctx context.Context, request *model.UpdateUserRequest) (*model.UserResponse, error)
-	DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error // Updated signature
+	UpdateStatus(ctx context.Context, userID, status string) error
+	DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error
 }

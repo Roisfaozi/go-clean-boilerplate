@@ -59,7 +59,6 @@ func (h *UserController) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	// Capture Audit Data
 	req.IPAddress = c.ClientIP()
 	req.UserAgent = c.Request.UserAgent()
 
@@ -158,6 +157,50 @@ func (h *UserController) UpdateUser(c *gin.Context) {
 	}
 
 	response.Success(c, user)
+}
+
+// UpdateUserStatus updates user status (active, suspended, banned)
+// @Summary      Update user status
+// @Description  Updates the status of a specific user. Accessible only by admins/superadmins.
+// @Tags         users
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id     path      string  true  "User ID"
+// @Param        request body model.UpdateUserStatusRequest true "New Status"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "User not found"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /users/{id}/status [patch]
+func (h *UserController) UpdateUserStatus(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID := c.Param("id")
+
+	var req model.UpdateUserStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.Log.WithError(err).Error("failed to bind request body")
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
+		return
+	}
+
+	err := h.UserUseCase.UpdateStatus(ctx, userID, req.Status)
+	if err != nil {
+		h.Log.WithError(err).Error("failed to update user status")
+		response.HandleError(c, err, "failed to update user status")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "User status updated successfully"})
 }
 
 // GetAllUsers retrieves all users with pagination and filtering

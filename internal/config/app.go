@@ -86,7 +86,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	// Inject TaskDistributor to AuthModule
 	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, enforcer, auditModule, taskDistributor)
 
-	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule)
+	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule)
 
 	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo)
 
@@ -102,8 +102,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	logger.Info("Middleware initialized.")
 
-	ginRouter := router.SetupRouter(
-		router.RouterConfig{
+	 configRouter :=router.RouterConfig{
 			AllowedOrigins:   cfg.CORS.AllowedOrigins,
 			TrustedProxies:   cfg.Server.TrustedProxies,
 			RateLimitEnabled: cfg.RateLimit.Enabled,
@@ -114,7 +113,10 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 			MetricsAuth:      cfg.Metrics.AuthEnabled,
 			MetricsUser:      cfg.Metrics.Username,
 			MetricsPass:      cfg.Metrics.Password,
-		},
+		}
+
+	ginRouter := router.SetupRouter(
+		configRouter,
 		authModule,
 		userModule,
 		permissionModule,

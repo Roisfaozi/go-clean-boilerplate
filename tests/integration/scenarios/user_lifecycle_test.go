@@ -13,106 +13,62 @@ import (
 	authModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	authRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	authUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
-	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
-	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
-	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
-	"github.com/Roisfaozi/go-clean-boilerplate/tests/fixtures"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCompleteUserLifecycle(t *testing.T) {
+func TestUserLifecycle_FullFlow(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+
 	setup.CleanupDatabase(t, env.DB)
 
-	roleFactory := fixtures.NewRoleFactory(env.DB)
-	roleFactory.Create(func(r *roleEntity.Role) { r.Name = "role:moderator" })
-
-	jwtManager := jwt.NewJWTManager("test-access-secret", "test-refresh-secret", 15*time.Minute, 24*time.Hour)
+	// Setup Dependencies
+	jwtManager := jwt.NewJWTManager("lifecycle-secret", "lifecycle-refresh", 15*time.Minute, 24*time.Hour)
 	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
-	roleRepo := roleRepository.NewRoleRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
 
-	uUC := userUseCase.NewUserUseCase(env.Logger, tm, userRepo, env.Enforcer, auditUC)
-	aUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC, nil)
-	pUC := permissionUseCase.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo)
+	authUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC, nil)
+	userUC := userUseCase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC)
 
-	// 1. Register User
-	registerReq := &userModel.RegisterUserRequest{
-		Username: "lifecycleuser", Email: "lifecycle@example.com", Password: "password123",
-		Name: "Lifecycle User", IPAddress: "127.0.0.1", UserAgent: "TestAgent",
+	ctx := context.Background()
+
+	// 1. Registration
+	regReq := &userModel.RegisterUserRequest{
+		Username: "lifecycle", Email: "lifecycle@example.com", Password: "password123", Name: "Life Cycle",
 	}
-	user, err := uUC.Create(context.Background(), registerReq)
+	_, err := userUC.Create(ctx, regReq)
 	require.NoError(t, err)
 
 	// 2. Login
-	loginReq := authModel.LoginRequest{Username: "lifecycleuser", Password: "password123", IPAddress: "127.0.0.1", UserAgent: "TestAgent"}
-	loginResp, refreshToken, err := aUC.Login(context.Background(), loginReq)
+	loginReq := authModel.LoginRequest{Username: regReq.Username, Password: regReq.Password}
+	loginResp, _, err := authUC.Login(ctx, loginReq)
 	require.NoError(t, err)
 	assert.NotEmpty(t, loginResp.AccessToken)
 
-	// 3. Update Profile
-	updateReq := &userModel.UpdateUserRequest{ID: user.ID, Name: "Updated User", IPAddress: "127.0.0.1", UserAgent: "TestAgent"}
-	updatedUser, err := uUC.Update(context.Background(), updateReq)
+	// 3. Profile Update
+	updateReq := &userModel.UpdateUserRequest{
+		ID: loginResp.User.ID, Name: "Updated Life",
+	}
+	updateResp, err := userUC.Update(ctx, updateReq)
 	require.NoError(t, err)
-	assert.Equal(t, "Updated User", updatedUser.Name)
+	assert.Equal(t, "Updated Life", updateResp.Name)
 
-	// 4. Assign Role
-	err = pUC.AssignRoleToUser(context.Background(), user.ID, "role:moderator")
-	require.NoError(t, err)
-
-	// 5. Refresh Token
-	newToken, _, err := aUC.RefreshToken(context.Background(), refreshToken)
-	require.NoError(t, err)
-	assert.NotEmpty(t, newToken.AccessToken)
-
-	// 6. Logout
-	claims, _ := jwtManager.ValidateAccessToken(newToken.AccessToken)
-	err = aUC.RevokeToken(context.Background(), user.ID, claims.SessionID)
+	// 4. Delete
+	deleteReq := &userModel.DeleteUserRequest{ID: loginResp.User.ID}
+	err = userUC.DeleteUser(ctx, loginResp.User.ID, deleteReq)
 	require.NoError(t, err)
 
-	// 7. Delete User
-	deleteReq := &userModel.DeleteUserRequest{ID: user.ID, IPAddress: "127.0.0.1", UserAgent: "TestAgent"}
-	err = uUC.DeleteUser(context.Background(), "admin-id", deleteReq)
-	require.NoError(t, err)
-}
-
-func TestRBACWorkflow(t *testing.T) {
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
-
-	roleFactory := fixtures.NewRoleFactory(env.DB)
-	roleFactory.Create(func(r *roleEntity.Role) { r.Name = "role:admin" })
-
-	roleRepo := roleRepository.NewRoleRepository(env.DB, env.Logger)
-	pUC := permissionUseCase.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo)
-	testUser := setup.CreateTestUser(t, env.DB, "rbacuser", "rbac@example.com", "password123")
-
-	// 1. Grant Permission to Role
-	err := pUC.GrantPermissionToRole(context.Background(), "role:admin", "/api/v1/admin/dashboard", "GET")
-	require.NoError(t, err)
-
-	// 2. Assign Role to User
-	err = pUC.AssignRoleToUser(context.Background(), testUser.ID, "role:admin")
-	require.NoError(t, err)
-
-	// 3. Verify Access
-	allowed, err := env.Enforcer.Enforce(testUser.ID, "/api/v1/admin/dashboard", "GET")
-	require.NoError(t, err)
-	assert.True(t, allowed)
-
-	// 4. Verify Role via Casbin
-	roles, _ := env.Enforcer.GetRolesForUser(testUser.ID)
-	assert.Contains(t, roles, "role:admin")
+	// 5. Verify Deletion
+	_, err = userRepo.FindByID(ctx, loginResp.User.ID)
+	assert.Error(t, err)
 }

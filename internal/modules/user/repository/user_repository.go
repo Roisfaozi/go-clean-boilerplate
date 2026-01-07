@@ -17,13 +17,6 @@ type userRepositoryData struct {
 }
 
 // NewUserRepository creates a new instance of UserRepository.
-//
-// Parameters:
-// - db: The GORM database connection.
-// - log: The logger instance.
-//
-// Returns:
-// - A pointer to the newly created UserRepository instance.
 func NewUserRepository(db *gorm.DB, log *logrus.Logger) UserRepository {
 	return &userRepositoryData{
 		db:  db,
@@ -42,6 +35,14 @@ func (r *userRepositoryData) Create(ctx context.Context, user *entity.User) erro
 func (r *userRepositoryData) Update(ctx context.Context, user *entity.User) error {
 	if err := r.db.WithContext(ctx).Save(user).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("failed to update user")
+		return err
+	}
+	return nil
+}
+
+func (r *userRepositoryData) UpdateStatus(ctx context.Context, userID, status string) error {
+	if err := r.db.WithContext(ctx).Model(&entity.User{}).Where("id = ?", userID).Update("status", status).Error; err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("failed to update user status")
 		return err
 	}
 	return nil
@@ -146,5 +147,11 @@ func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybu
 func (r *userRepositoryData) FindByUsername(ctx context.Context, username string) (*entity.User, error) {
 	var user entity.User
 	err := r.db.WithContext(ctx).Where("username = ?", username).First(&user).Error
-	return &user, err
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, gorm.ErrRecordNotFound
+		}
+		return nil, err
+	}
+	return &user, nil
 }
