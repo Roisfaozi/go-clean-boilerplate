@@ -24,9 +24,15 @@ func setupTestRouter() *gin.Engine {
 	return router
 }
 
+func newTestUserController(mockUseCase *mocks.MockIPermissionUseCase) *permHandler.PermissionController {
+	log := logrus.New()
+	log.SetLevel(logrus.PanicLevel) // Suppress logs during tests
+	return permHandler.NewPermissionController(mockUseCase, log, validator.New())
+}
+
 func TestGrantPermission_Success(t *testing.T) {
-	mockUseCase := new(mocks.MockIPermissionUseCase) // Use the correctly named mock
-	handler := permHandler.NewPermissionController(mockUseCase, logrus.New(), validator.New())
+	mockUseCase := new(mocks.MockIPermissionUseCase)
+	handler := newTestUserController(mockUseCase)
 	router := setupTestRouter()
 	router.POST("/permissions/grant", handler.GrantPermission)
 
@@ -58,7 +64,7 @@ func TestGrantPermission_Success(t *testing.T) {
 
 func TestGrantPermission_InvalidBody(t *testing.T) {
 	mockUseCase := new(mocks.MockIPermissionUseCase)
-	handler := permHandler.NewPermissionController(mockUseCase, logrus.New(), validator.New())
+	handler := newTestUserController(mockUseCase)
 	router := setupTestRouter()
 	router.POST("/permissions/grant", handler.GrantPermission)
 
@@ -73,7 +79,7 @@ func TestGrantPermission_InvalidBody(t *testing.T) {
 
 func TestGrantPermission_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockIPermissionUseCase)
-	handler := permHandler.NewPermissionController(mockUseCase, logrus.New(), validator.New())
+	handler := newTestUserController(mockUseCase)
 	router := setupTestRouter()
 	router.POST("/permissions/grant", handler.GrantPermission)
 
