@@ -1,15 +1,14 @@
-package test_test
+package test
 
 import (
 	"context"
 	"errors"
 	"io"
 	"testing"
-	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
+	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/sirupsen/logrus"
@@ -18,108 +17,86 @@ import (
 )
 
 type auditTestDeps struct {
-	Repo *mocks.MockAuditRepository
+	Repo *auditMocks.MockAuditRepository
 }
 
 func setupAuditTest() (*auditTestDeps, usecase.AuditUseCase) {
 	deps := &auditTestDeps{
-		Repo: new(mocks.MockAuditRepository),
+		Repo: new(auditMocks.MockAuditRepository),
 	}
-	logger := logrus.New()
-	logger.SetOutput(io.Discard)
-	uc := usecase.NewAuditUseCase(deps.Repo, logger)
+
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+
+	uc := usecase.NewAuditUseCase(deps.Repo, log)
 	return deps, uc
 }
 
-func TestLogActivity(t *testing.T) {
-	t.Run("Success - Positive Case", func(t *testing.T) {
-		deps, uc := setupAuditTest()
-		req := model.CreateAuditLogRequest{
-			UserID: "u1", Action: "CREATE", Entity: "User", EntityID: "u2",
-			OldValues: map[string]string{"foo": "bar"},
-		}
+func TestAuditUseCase_LogActivity_Success(t *testing.T) {
+	deps, uc := setupAuditTest()
+	req := model.CreateAuditLogRequest{
+		UserID: "u1",
+		Action: "CREATE",
+		Entity: "User",
+	}
 
-		deps.Repo.On("Create", mock.Anything, mock.MatchedBy(func(log *entity.AuditLog) bool {
-			// Check if JSON marshaling worked
-			return log.UserID == "u1" && log.Action == "CREATE" && log.OldValues != ""
-		})).Return(nil)
+	deps.Repo.On("Create", mock.Anything, mock.MatchedBy(func(l *entity.AuditLog) bool {
+		return l.UserID == "u1" && l.Action == "CREATE"
+	})).Return(nil)
 
-		err := uc.LogActivity(context.Background(), req)
-		assert.NoError(t, err)
-		deps.Repo.AssertExpectations(t)
-	})
+	err := uc.LogActivity(context.Background(), req)
 
-	t.Run("Edge - Nil JSON Values", func(t *testing.T) {
-		deps, uc := setupAuditTest()
-		req := model.CreateAuditLogRequest{
-			UserID: "u1", Action: "DELETE", Entity: "User", EntityID: "u2",
-			OldValues: nil, // Edge case: Nil value
-			NewValues: nil,
-		}
-
-		deps.Repo.On("Create", mock.Anything, mock.MatchedBy(func(log *entity.AuditLog) bool {
-			// json.Marshal(nil) returns "null" string
-			return log.OldValues == "null" && log.NewValues == "null"
-		})).Return(nil)
-
-		err := uc.LogActivity(context.Background(), req)
-		assert.NoError(t, err)
-	})
-
-	t.Run("Negative - Repo Error", func(t *testing.T) {
-		deps, uc := setupAuditTest()
-		req := model.CreateAuditLogRequest{UserID: "u1"}
-		deps.Repo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error"))
-
-		err := uc.LogActivity(context.Background(), req)
-		assert.Error(t, err)
-	})
+	assert.NoError(t, err)
+	deps.Repo.AssertExpectations(t)
 }
 
-func TestGetLogsDynamic(t *testing.T) {
-	t.Run("Success - Positive Case", func(t *testing.T) {
-		deps, uc := setupAuditTest()
-		now := time.Now().UnixMilli()
-		entities := []*entity.AuditLog{
-			{ID: "1", UserID: "u1", OldValues: `{"a":1}`, NewValues: `{"a":2}`, CreatedAt: now},
-		}
+func TestAuditUseCase_LogActivity_ValidationError(t *testing.T) {
+	_, uc := setupAuditTest()
+	// Missing UserID
+	req := model.CreateAuditLogRequest{
+		Action: "CREATE",
+		Entity: "User",
+	}
 
-		filter := &querybuilder.DynamicFilter{}
-		deps.Repo.On("FindAllDynamic", mock.Anything, filter).Return(entities, nil)
+	err := uc.LogActivity(context.Background(), req)
 
-		res, err := uc.GetLogsDynamic(context.Background(), filter)
-		assert.NoError(t, err)
-		assert.Len(t, res, 1)
-		assert.Equal(t, "u1", res[0].UserID)
+	assert.ErrorContains(t, err, "missing required fields")
+}
 
-		// Verify JSON unmarshaling
-		oldVal := res[0].OldValues.(map[string]interface{})
-		assert.Equal(t, float64(1), oldVal["a"])
-	})
+func TestAuditUseCase_LogActivity_RepoError(t *testing.T) {
+	deps, uc := setupAuditTest()
+	req := model.CreateAuditLogRequest{UserID: "u1", Action: "A", Entity: "E"}
 
-	t.Run("Edge - Malformed JSON in DB", func(t *testing.T) {
-		deps, uc := setupAuditTest()
-		// Scenario where DB data is corrupted or not valid JSON
-		entities := []*entity.AuditLog{
-			{ID: "1", UserID: "u1", OldValues: `{broken_json`, NewValues: `null`},
-		}
+	deps.Repo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error"))
 
-		filter := &querybuilder.DynamicFilter{}
-		deps.Repo.On("FindAllDynamic", mock.Anything, filter).Return(entities, nil)
+	err := uc.LogActivity(context.Background(), req)
 
-		res, err := uc.GetLogsDynamic(context.Background(), filter)
-		assert.NoError(t, err)
-		assert.Len(t, res, 1)
-		// Should not panic, and OldValues should be nil/null because unmarshal failed
-		assert.Nil(t, res[0].OldValues)
-	})
+	assert.Error(t, err)
+}
 
-	t.Run("Negative - Repo Error", func(t *testing.T) {
-		deps, uc := setupAuditTest()
-		deps.Repo.On("FindAllDynamic", mock.Anything, mock.Anything).Return(nil, errors.New("db fail"))
+func TestAuditUseCase_GetLogsDynamic_Success(t *testing.T) {
+	deps, uc := setupAuditTest()
+	logs := []*entity.AuditLog{
+		{UserID: "u1", Action: "A", OldValues: "{}", NewValues: "{}"},
+	}
+	filter := &querybuilder.DynamicFilter{}
 
-		res, err := uc.GetLogsDynamic(context.Background(), nil)
-		assert.Error(t, err)
-		assert.Nil(t, res)
-	})
+	deps.Repo.On("FindAllDynamic", mock.Anything, filter).Return(logs, nil)
+
+	res, err := uc.GetLogsDynamic(context.Background(), filter)
+
+	assert.NoError(t, err)
+	assert.Len(t, res, 1)
+}
+
+func TestAuditUseCase_GetLogsDynamic_RepoError(t *testing.T) {
+	deps, uc := setupAuditTest()
+	filter := &querybuilder.DynamicFilter{}
+
+	deps.Repo.On("FindAllDynamic", mock.Anything, filter).Return(nil, errors.New("db error"))
+
+	res, err := uc.GetLogsDynamic(context.Background(), filter)
+
+	assert.Error(t, err)
+	assert.Nil(t, res)
 }

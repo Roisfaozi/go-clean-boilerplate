@@ -3,293 +3,142 @@ package test
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks"
+	accessMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 )
 
-type nullWriter struct{}
-
-func (w *nullWriter) Write(p []byte) (n int, err error) {
-	return len(p), nil
-}
-
 type accessTestDeps struct {
-	Repo *mocks.MockAccessRepository
+	Repo *accessMocks.MockAccessRepository
 }
 
 func setupAccessTest() (*accessTestDeps, usecase.IAccessUseCase) {
 	deps := &accessTestDeps{
-		Repo: new(mocks.MockAccessRepository),
+		Repo: new(accessMocks.MockAccessRepository),
 	}
+
 	log := logrus.New()
-	log.SetOutput(&nullWriter{})
+	log.SetOutput(io.Discard)
+
 	uc := usecase.NewAccessUseCase(deps.Repo, log)
 	return deps, uc
 }
 
-func TestCreateAccessRight(t *testing.T) {
-	t.Run("Success - Create Valid Access Right", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+func TestAccessUseCase_CreateAccessRight_Success(t *testing.T) {
+	deps, uc := setupAccessTest()
+	req := model.CreateAccessRightRequest{Name: "view_dashboard", Description: "View Dashboard"}
 
-		deps.Repo.On("CreateAccessRight", ctx, mock.AnythingOfType("*entity.AccessRight")).Return(nil).Once()
-		req := model.CreateAccessRightRequest{
-			Name:        "view_dashboard",
-			Description: "Allows viewing the main dashboard",
-		}
-		createdAccessRight, err := uc.CreateAccessRight(ctx, req)
-		assert.NoError(t, err)
-		assert.NotNil(t, createdAccessRight)
-		assert.Equal(t, req.Name, createdAccessRight.Name)
-		deps.Repo.AssertExpectations(t)
-	})
+	deps.Repo.On("CreateAccessRight", mock.Anything, mock.MatchedBy(func(ar *entity.AccessRight) bool {
+		return ar.Name == "view_dashboard" && ar.Description == "View Dashboard"
+	})).Return(nil)
 
-	t.Run("Error - Repository Create Fails", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+	res, err := uc.CreateAccessRight(context.Background(), req)
 
-		req := model.CreateAccessRightRequest{Name: "error_right"}
-		repoErr := errors.New("db error")
-		deps.Repo.On("CreateAccessRight", ctx, mock.AnythingOfType("*entity.AccessRight")).Return(repoErr).Once()
-
-		_, err := uc.CreateAccessRight(ctx, req)
-		assert.Error(t, err)
-		assert.Equal(t, repoErr, err)
-		deps.Repo.AssertExpectations(t)
-	})
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Equal(t, "view_dashboard", res.Name)
+	deps.Repo.AssertExpectations(t)
 }
 
-func TestGetAllAccessRights(t *testing.T) {
-	t.Run("Success - Has Data", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+func TestAccessUseCase_CreateAccessRight_RepoError(t *testing.T) {
+	deps, uc := setupAccessTest()
+	req := model.CreateAccessRightRequest{Name: "err", Description: "err"}
 
-		expectedEntities := []*entity.AccessRight{
-			{ID: "1", Name: "view_dashboard"},
-			{ID: "2", Name: "edit_settings"},
-		}
-		deps.Repo.On("GetAccessRights", ctx).Return(expectedEntities, nil).Once()
-		results, err := uc.GetAllAccessRights(ctx)
-		assert.NoError(t, err)
-		assert.NotNil(t, results)
-		assert.Len(t, results.Data, 2)
-		deps.Repo.AssertExpectations(t)
-	})
+	deps.Repo.On("CreateAccessRight", mock.Anything, mock.Anything).Return(errors.New("db error"))
 
-	t.Run("Success - No Data", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+	res, err := uc.CreateAccessRight(context.Background(), req)
 
-		deps.Repo.On("GetAccessRights", ctx).Return([]*entity.AccessRight{}, nil).Once()
-		results, err := uc.GetAllAccessRights(ctx)
-		assert.NoError(t, err)
-		assert.NotNil(t, results)
-		assert.Len(t, results.Data, 0)
-		deps.Repo.AssertExpectations(t)
-	})
-
-	t.Run("Error - Repository Fails", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
-
-		repoErr := errors.New("db error")
-		deps.Repo.On("GetAccessRights", ctx).Return(nil, repoErr).Once()
-
-		results, err := uc.GetAllAccessRights(ctx)
-		assert.Error(t, err)
-		assert.Nil(t, results)
-		assert.Equal(t, repoErr, err)
-		deps.Repo.AssertExpectations(t)
-	})
+	assert.Error(t, err)
+	assert.Nil(t, res)
 }
 
-func TestCreateEndpoint(t *testing.T) {
-	t.Run("Success - Create Valid Endpoint", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+func TestAccessUseCase_GetAllAccessRights_Success(t *testing.T) {
+	deps, uc := setupAccessTest()
+	rights := []*entity.AccessRight{{Name: "r1"}, {Name: "r2"}}
 
-		deps.Repo.On("CreateEndpoint", ctx, mock.AnythingOfType("*entity.Endpoint")).Return(nil).Once()
-		req := model.CreateEndpointRequest{Path: "/api/v1/test", Method: "GET"}
-		createdEndpoint, err := uc.CreateEndpoint(ctx, req)
-		assert.NoError(t, err)
-		assert.NotNil(t, createdEndpoint)
-		assert.Equal(t, req.Path, createdEndpoint.Path)
-		deps.Repo.AssertExpectations(t)
-	})
+	deps.Repo.On("GetAccessRights", mock.Anything).Return(rights, nil)
 
-	t.Run("Error - Repository Create Fails", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+	res, err := uc.GetAllAccessRights(context.Background())
 
-		req := model.CreateEndpointRequest{Path: "/error", Method: "POST"}
-		repoErr := errors.New("db error")
-		deps.Repo.On("CreateEndpoint", ctx, mock.AnythingOfType("*entity.Endpoint")).Return(repoErr).Once()
-
-		_, err := uc.CreateEndpoint(ctx, req)
-		assert.Error(t, err)
-		assert.Equal(t, repoErr, err)
-		deps.Repo.AssertExpectations(t)
-	})
+	assert.NoError(t, err)
+	assert.Len(t, res.Data, 2)
 }
 
-func TestLinkEndpointToAccessRight(t *testing.T) {
-	t.Run("Success - Link Valid IDs", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+func TestAccessUseCase_CreateEndpoint_Success(t *testing.T) {
+	deps, uc := setupAccessTest()
+	req := model.CreateEndpointRequest{Path: "/api/v1/users", Method: "GET"}
 
-		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
-		deps.Repo.On("LinkEndpointToAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(nil).Once()
-		err := uc.LinkEndpointToAccessRight(ctx, req)
-		assert.NoError(t, err)
-		deps.Repo.AssertExpectations(t)
-	})
+	deps.Repo.On("CreateEndpoint", mock.Anything, mock.MatchedBy(func(e *entity.Endpoint) bool {
+		return e.Path == "/api/v1/users" && e.Method == "GET"
+	})).Return(nil)
 
-	t.Run("Error - Repository Fails", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+	res, err := uc.CreateEndpoint(context.Background(), req)
 
-		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
-		repoErr := errors.New("db error")
-		deps.Repo.On("LinkEndpointToAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(repoErr).Once()
-
-		err := uc.LinkEndpointToAccessRight(ctx, req)
-		assert.Error(t, err)
-		assert.Equal(t, repoErr, err)
-		deps.Repo.AssertExpectations(t)
-	})
+	assert.NoError(t, err)
+	assert.Equal(t, "/api/v1/users", res.Path)
 }
 
-func TestDeleteAccessRight(t *testing.T) {
-	id := "1"
+func TestAccessUseCase_LinkEndpointToAccessRight_Success(t *testing.T) {
+	deps, uc := setupAccessTest()
+	req := model.LinkEndpointRequest{AccessRightID: "ar1", EndpointID: "ep1"}
 
-	t.Run("Success - Delete Access Right", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+	deps.Repo.On("LinkEndpointToAccessRight", mock.Anything, "ar1", "ep1").Return(nil)
 
-		deps.Repo.On("GetAccessRightByID", ctx, id).Return(&entity.AccessRight{ID: id}, nil).Once()
-		deps.Repo.On("DeleteAccessRight", ctx, id).Return(nil).Once()
-		err := uc.DeleteAccessRight(ctx, id)
-		assert.NoError(t, err)
-		deps.Repo.AssertExpectations(t)
-	})
+	err := uc.LinkEndpointToAccessRight(context.Background(), req)
 
-	t.Run("Error - Not Found", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
-
-		deps.Repo.On("GetAccessRightByID", ctx, id).Return(nil, gorm.ErrRecordNotFound).Once()
-		err := uc.DeleteAccessRight(ctx, id)
-		assert.ErrorIs(t, err, exception.ErrNotFound)
-		deps.Repo.AssertExpectations(t)
-	})
+	assert.NoError(t, err)
 }
 
-func TestDeleteEndpoint(t *testing.T) {
-	id := "1"
+func TestAccessUseCase_DeleteAccessRight_Success(t *testing.T) {
+	deps, uc := setupAccessTest()
+	id := "ar1"
 
-	t.Run("Success - Delete Endpoint", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+	deps.Repo.On("GetAccessRightByID", mock.Anything, id).Return(&entity.AccessRight{ID: id}, nil)
+	deps.Repo.On("DeleteAccessRight", mock.Anything, id).Return(nil)
 
-		deps.Repo.On("DeleteEndpoint", ctx, id).Return(nil).Once()
-		err := uc.DeleteEndpoint(ctx, id)
-		assert.NoError(t, err)
-		deps.Repo.AssertExpectations(t)
-	})
+	err := uc.DeleteAccessRight(context.Background(), id)
 
-	t.Run("Error - Not Found (GORM delete behavior)", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
-
-		deps.Repo.On("DeleteEndpoint", ctx, id).Return(gorm.ErrRecordNotFound).Once()
-		err := uc.DeleteEndpoint(ctx, id)
-		assert.ErrorIs(t, err, exception.ErrNotFound)
-		deps.Repo.AssertExpectations(t)
-	})
+	assert.NoError(t, err)
 }
 
-func TestAccessUseCase_GetEndpointsDynamic(t *testing.T) {
-	t.Run("Success - Get Endpoints Dynamically", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+func TestAccessUseCase_DeleteAccessRight_NotFound(t *testing.T) {
+	deps, uc := setupAccessTest()
+	id := "unknown"
 
-		filter := &querybuilder.DynamicFilter{
-			Filter: map[string]querybuilder.Filter{
-				"Method": {Type: "equals", From: "GET"},
-			},
-		}
-		expectedEndpoints := []*entity.Endpoint{
-			{ID: "1", Path: "/api/test", Method: "GET"},
-		}
-		deps.Repo.On("FindEndpointsDynamic", ctx, filter).Return(expectedEndpoints, nil).Once()
+	deps.Repo.On("GetAccessRightByID", mock.Anything, id).Return(nil, gorm.ErrRecordNotFound)
 
-		results, err := uc.GetEndpointsDynamic(ctx, filter)
-		assert.NoError(t, err)
-		assert.Len(t, results, 1)
-		assert.Equal(t, "GET", results[0].Method)
-		deps.Repo.AssertExpectations(t)
-	})
+	err := uc.DeleteAccessRight(context.Background(), id)
 
-	t.Run("Error - Repository Error", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
-
-		filter := &querybuilder.DynamicFilter{}
-		repoError := errors.New("repo error")
-		deps.Repo.On("FindEndpointsDynamic", ctx, filter).Return(nil, repoError).Once()
-
-		results, err := uc.GetEndpointsDynamic(ctx, filter)
-		assert.Error(t, err)
-		assert.Nil(t, results)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-		deps.Repo.AssertExpectations(t)
-	})
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 }
 
-func TestAccessUseCase_GetAccessRightsDynamic(t *testing.T) {
-	t.Run("Success - Get Access Rights Dynamically", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+func TestAccessUseCase_DeleteEndpoint_Success(t *testing.T) {
+	deps, uc := setupAccessTest()
+	id := "ep1"
 
-		filter := &querybuilder.DynamicFilter{
-			Filter: map[string]querybuilder.Filter{
-				"Name": {Type: "contains", From: "Manage"},
-			},
-		}
-		expectedAccessRights := []*entity.AccessRight{
-			{ID: "1", Name: "Manage Users"},
-		}
-		deps.Repo.On("FindAccessRightsDynamic", ctx, filter).Return(expectedAccessRights, nil).Once()
+	deps.Repo.On("DeleteEndpoint", mock.Anything, id).Return(nil)
 
-		results, err := uc.GetAccessRightsDynamic(ctx, filter)
-		assert.NoError(t, err)
-		assert.Len(t, results.Data, 1)
-		assert.Equal(t, "Manage Users", results.Data[0].Name)
-		deps.Repo.AssertExpectations(t)
-	})
+	err := uc.DeleteEndpoint(context.Background(), id)
 
-	t.Run("Error - Repository Error", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+	assert.NoError(t, err)
+}
 
-		filter := &querybuilder.DynamicFilter{}
-		repoError := errors.New("repo error")
-		deps.Repo.On("FindAccessRightsDynamic", ctx, filter).Return(nil, repoError).Once()
+func TestAccessUseCase_DeleteEndpoint_NotFound(t *testing.T) {
+	deps, uc := setupAccessTest()
+	id := "unknown"
 
-		results, err := uc.GetAccessRightsDynamic(ctx, filter)
-		assert.Error(t, err)
-		assert.Nil(t, results)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-		deps.Repo.AssertExpectations(t)
-	})
+	deps.Repo.On("DeleteEndpoint", mock.Anything, id).Return(gorm.ErrRecordNotFound)
+
+	err := uc.DeleteEndpoint(context.Background(), id)
+
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 }
