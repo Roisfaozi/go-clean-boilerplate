@@ -160,7 +160,7 @@ func SetupRouter(
 	authenticated.Use(authMiddleware.ValidateToken())
 	{
 		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController)
-		userHttp.RegisterAuthorizedRoutes(authenticated, userModule.UserController) // Access /me
+		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController) // Access /me
 	}
 
 	// AUTHORIZED Group: Token is valid AND user is Active AND has permission
@@ -173,6 +173,7 @@ func SetupRouter(
 	
 	authorized.Use(casbinMiddleware)
 	{
+		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController) // Access Admin User Routes
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
 		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
