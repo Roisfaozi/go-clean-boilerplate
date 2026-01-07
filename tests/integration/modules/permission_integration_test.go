@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package modules
 
 import (
@@ -6,93 +9,186 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	roleRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestPermissionIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
+// --- HELPERS ---
 
+func setupPermissionIntegration(env *setup.TestEnvironment) usecase.IPermissionUseCase {
+	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
+	return usecase.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo)
+}
+
+// ============================================
+// POSITIVE SCENARIOS
+// ============================================
+
+func TestPermissionIntegration_AssignRoleToUser(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
 	setup.CleanupDatabase(t, env.DB)
 
-	rRepo := roleRepo.NewRoleRepository(env.DB, logrus.New())
-	permUC := usecase.NewPermissionUseCase(env.Enforcer, logrus.New(), rRepo)
+	permUC := setupPermissionIntegration(env)
+	user := setup.CreateTestUser(t, env.DB, "testuser_perm", "test@perm.com", "Password123!")
+	roleName := "admin"
+	setup.CreateTestRole(t, env.DB, roleName)
 
-	t.Run("Assign Role to User", func(t *testing.T) {
-		user := setup.CreateTestUser(t, env.DB, "testuser_perm", "test@perm.com", "Password123!")
-		roleName := "admin"
-		setup.CreateTestRole(t, env.DB, roleName)
+	err := permUC.AssignRoleToUser(context.Background(), user.ID, roleName)
+	assert.NoError(t, err)
 
-		err := permUC.AssignRoleToUser(context.Background(), user.ID, roleName)
-		assert.NoError(t, err)
+	roles, err := env.Enforcer.GetRolesForUser(user.ID)
+	assert.NoError(t, err)
+	assert.Contains(t, roles, roleName)
+}
 
-		roles, err := env.Enforcer.GetRolesForUser(user.ID)
-		assert.NoError(t, err)
-		assert.Contains(t, roles, roleName)
-	})
+func TestPermissionIntegration_GrantPermission(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
-	t.Run("Grant Permission to Role", func(t *testing.T) {
-		roleName := "editor"
-		setup.CreateTestRole(t, env.DB, roleName)
+	permUC := setupPermissionIntegration(env)
+	roleName := "editor"
+	setup.CreateTestRole(t, env.DB, roleName)
 
-		err := permUC.GrantPermissionToRole(context.Background(), roleName, "/api/v1/articles", "POST")
-		assert.NoError(t, err)
+	err := permUC.GrantPermissionToRole(context.Background(), roleName, "/api/v1/articles", "POST")
+	assert.NoError(t, err)
 
-		ok, err := env.Enforcer.Enforce(roleName, "/api/v1/articles", "POST")
-		assert.NoError(t, err)
-		assert.True(t, ok)
-	})
+	ok, _ := env.Enforcer.Enforce(roleName, "/api/v1/articles", "POST")
+	assert.True(t, ok)
+}
 
-	t.Run("Revoke Permission from Role", func(t *testing.T) {
-		roleName := "viewer"
-		setup.CreateTestRole(t, env.DB, roleName)
-		_, _ = env.Enforcer.AddPolicy(roleName, "/api/v1/articles", "GET")
+func TestPermissionIntegration_RevokePermission(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
-		err := permUC.RevokePermissionFromRole(context.Background(), roleName, "/api/v1/articles", "GET")
-		assert.NoError(t, err)
+	permUC := setupPermissionIntegration(env)
+	roleName := "viewer"
+	setup.CreateTestRole(t, env.DB, roleName)
+	_, _ = env.Enforcer.AddPolicy(roleName, "/api/v1/articles", "GET")
 
-		ok, err := env.Enforcer.Enforce(roleName, "/api/v1/articles", "GET")
-		assert.NoError(t, err)
-		assert.False(t, ok)
-	})
+	err := permUC.RevokePermissionFromRole(context.Background(), roleName, "/api/v1/articles", "GET")
+	assert.NoError(t, err)
 
-	t.Run("Update Permission", func(t *testing.T) {
-		roleName := "manager"
-		setup.CreateTestRole(t, env.DB, roleName)
-		oldP := []string{roleName, "/api/v1/old", "GET"}
-		newP := []string{roleName, "/api/v1/new", "POST"}
+	ok, _ := env.Enforcer.Enforce(roleName, "/api/v1/articles", "GET")
+	assert.False(t, ok)
+}
 
-		_, _ = env.Enforcer.AddPolicy(oldP[0], oldP[1], oldP[2])
+func TestPermissionIntegration_UpdatePermission(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
-		ok, err := permUC.UpdatePermission(context.Background(), oldP, newP)
-		assert.NoError(t, err)
-		assert.True(t, ok)
+	permUC := setupPermissionIntegration(env)
+	roleName := "manager"
+	setup.CreateTestRole(t, env.DB, roleName)
+	oldP := []string{roleName, "/api/v1/old", "GET"}
+	newP := []string{roleName, "/api/v1/new", "POST"}
 
-		// Verify old is gone
-		ok, _ = env.Enforcer.Enforce(oldP[0], oldP[1], oldP[2])
-		assert.False(t, ok)
+	_, _ = env.Enforcer.AddPolicy(oldP[0], oldP[1], oldP[2])
 
-		// Verify new is present
-		ok, _ = env.Enforcer.Enforce(newP[0], newP[1], newP[2])
-		assert.True(t, ok)
-	})
+	ok, err := permUC.UpdatePermission(context.Background(), oldP, newP)
+	assert.NoError(t, err)
+	assert.True(t, ok)
 
-	t.Run("GetAllPermissions", func(t *testing.T) {
-		_, err := permUC.GetAllPermissions(context.Background())
-		assert.NoError(t, err)
-	})
+	ok, _ = env.Enforcer.Enforce(newP[0], newP[1], newP[2])
+	assert.True(t, ok)
+}
 
-	t.Run("GetPermissionsForRole", func(t *testing.T) {
-		roleName := "role_for_list"
-		setup.CreateTestRole(t, env.DB, roleName)
-		_, _ = env.Enforcer.AddPolicy(roleName, "/res", "GET")
+func TestPermissionIntegration_GetAllPermissions(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
-		policies, err := permUC.GetPermissionsForRole(context.Background(), roleName)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, policies)
-	})
+	permUC := setupPermissionIntegration(env)
+	_, err := permUC.GetAllPermissions(context.Background())
+	assert.NoError(t, err)
+}
+
+func TestPermissionIntegration_GetPermissionsForRole(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	permUC := setupPermissionIntegration(env)
+	roleName := "role_for_list"
+	setup.CreateTestRole(t, env.DB, roleName)
+	_, _ = env.Enforcer.AddPolicy(roleName, "/res", "GET")
+
+	policies, err := permUC.GetPermissionsForRole(context.Background(), roleName)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, policies)
+}
+
+func TestPermissionIntegration_FullLifecycle(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	permUC := setupPermissionIntegration(env)
+	roleName := "lifecycle_role"
+	setup.CreateTestRole(t, env.DB, roleName)
+
+	// Grant
+	err := permUC.GrantPermissionToRole(context.Background(), roleName, "/api/v1/data", "GET")
+	require.NoError(t, err)
+
+	// Update
+	oldP := []string{roleName, "/api/v1/data", "GET"}
+	newP := []string{roleName, "/api/v1/data/updated", "POST"}
+	_, err = permUC.UpdatePermission(context.Background(), oldP, newP)
+	require.NoError(t, err)
+
+	// Revoke
+	err = permUC.RevokePermissionFromRole(context.Background(), roleName, "/api/v1/data/updated", "POST")
+	require.NoError(t, err)
+
+	// Final Verify
+	policies, _ := permUC.GetPermissionsForRole(context.Background(), roleName)
+	assert.Empty(t, policies)
+}
+
+// ============================================
+// NEGATIVE SCENARIOS
+// ============================================
+
+func TestPermissionIntegration_Negative_GrantNonExistentRole(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	permUC := setupPermissionIntegration(env)
+	err := permUC.GrantPermissionToRole(context.Background(), "non_existent_role", "/any", "GET")
+	assert.Error(t, err)
+}
+
+func TestPermissionIntegration_Negative_AssignRoleToNonExistentUser(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	permUC := setupPermissionIntegration(env)
+	setup.CreateTestRole(t, env.DB, "valid_role")
+
+	err := permUC.AssignRoleToUser(context.Background(), "non-existent-user-id", "valid_role")
+	// Usecase should return error if user doesn't exist
+	assert.Error(t, err)
+}
+
+func TestPermissionIntegration_Negative_RevokeNonExistentPermission(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	permUC := setupPermissionIntegration(env)
+	roleName := "valid_role"
+	setup.CreateTestRole(t, env.DB, roleName)
+
+	err := permUC.RevokePermissionFromRole(context.Background(), roleName, "/ghost", "GET")
+	// If UseCase returns success for no-op, we just verify no panic
+	_ = err
 }

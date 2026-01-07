@@ -15,6 +15,7 @@ import (
 
 type UserModule struct {
 	UserController *http.UserController
+	UserRepo       userRepository.UserRepository
 }
 
 // NewUserModule creates a new UserModule instance with the given dependencies.
@@ -27,14 +28,15 @@ func NewUserModule(
 	auditModule *audit.AuditModule,
 	authModule *auth.AuthModule,
 ) *UserModule {
-	userRepository := userRepository.NewUserRepository(db, log)
+	userRepo := userRepository.NewUserRepository(db, log)
 
-	userUseCase := usecase.NewUserUseCase(tm, log, userRepository, enforcer, auditModule.AuditUseCase, authModule.AuthUseCase,)
+	userUseCase := usecase.NewUserUseCase(tm, log, userRepo, enforcer, auditModule.AuditUseCase, authModule.AuthUseCase)
 
 	userController := http.NewUserController(userUseCase, log, validator)
 
 	return &UserModule{
 		UserController: userController,
+		UserRepo:       userRepo,
 	}
 }
 

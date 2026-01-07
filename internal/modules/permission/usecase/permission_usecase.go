@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -23,14 +24,16 @@ type IPermissionUseCase interface {
 type PermissionUseCase struct {
 	enforcer IEnforcer
 	log      *logrus.Logger
-	RoleRepo repository.RoleRepository
+	RoleRepo roleRepository.RoleRepository
+	UserRepo userRepository.UserRepository
 }
 
-func NewPermissionUseCase(enforcer IEnforcer, log *logrus.Logger, roleRepo repository.RoleRepository) IPermissionUseCase {
+func NewPermissionUseCase(enforcer IEnforcer, log *logrus.Logger, roleRepo roleRepository.RoleRepository, userRepo userRepository.UserRepository) IPermissionUseCase {
 	return &PermissionUseCase{
 		enforcer: enforcer,
 		log:      log,
 		RoleRepo: roleRepo,
+		UserRepo: userRepo,
 	}
 }
 
@@ -41,7 +44,19 @@ func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role 
 		return fmt.Errorf("userID and role are required")
 	}
 
-	_, err := uc.RoleRepo.FindByName(ctx, role)
+	// 1. Validate User
+	_, err := uc.UserRepo.FindByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			uc.log.WithContext(ctx).Warnf("Assign role failed: user '%s' does not exist.", userID)
+			return exception.ErrNotFound
+		}
+		uc.log.WithContext(ctx).Errorf("Failed to query user repository: %v", err)
+		return exception.ErrInternalServer
+	}
+
+	// 2. Validate Role
+	_, err = uc.RoleRepo.FindByName(ctx, role)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			uc.log.WithContext(ctx).Warnf("Assign role failed: role '%s' does not exist.", role)
@@ -51,7 +66,7 @@ func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role 
 		return exception.ErrInternalServer
 	}
 
-	uc.log.WithContext(ctx).Infof("Role validated. Removing existing roles and assigning role '%s' to user '%s'", role, userID)
+	uc.log.WithContext(ctx).Infof("User and Role validated. Removing existing roles and assigning role '%s' to user '%s'", role, userID)
 
 	_, err = uc.enforcer.RemoveFilteredGroupingPolicy(0, userID)
 	if err != nil {

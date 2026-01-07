@@ -28,11 +28,11 @@ import (
 
 // Application holds all major application components.
 type Application struct {
-	Server        *http.Server
-	DB            *gorm.DB
-	Redis         *redis.Client
-	Log           *logrus.Logger
-	Enforcer      *casbin.Enforcer
+	Server          *http.Server
+	DB              *gorm.DB
+	Redis           *redis.Client
+	Log             *logrus.Logger
+	Enforcer        *casbin.Enforcer
 	TaskDistributor worker.TaskDistributor
 	TaskProcessor   worker.TaskProcessor
 }
@@ -88,7 +88,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule)
 
-	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo)
+	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo, userModule.UserRepo)
 
 	roleModule := role.NewRoleModule(dbConnection, logger, validate, tm)
 
@@ -102,18 +102,18 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	logger.Info("Middleware initialized.")
 
-	 configRouter :=router.RouterConfig{
-			AllowedOrigins:   cfg.CORS.AllowedOrigins,
-			TrustedProxies:   cfg.Server.TrustedProxies,
-			RateLimitEnabled: cfg.RateLimit.Enabled,
-			RateLimitRPS:     cfg.RateLimit.RPS,
-			RateLimitBurst:   cfg.RateLimit.Burst,
-			RateLimitStore:   cfg.RateLimit.Store,
-			MetricsEnabled:   cfg.Metrics.Enabled,
-			MetricsAuth:      cfg.Metrics.AuthEnabled,
-			MetricsUser:      cfg.Metrics.Username,
-			MetricsPass:      cfg.Metrics.Password,
-		}
+	configRouter := router.RouterConfig{
+		AllowedOrigins:   cfg.CORS.AllowedOrigins,
+		TrustedProxies:   cfg.Server.TrustedProxies,
+		RateLimitEnabled: cfg.RateLimit.Enabled,
+		RateLimitRPS:     cfg.RateLimit.RPS,
+		RateLimitBurst:   cfg.RateLimit.Burst,
+		RateLimitStore:   cfg.RateLimit.Store,
+		MetricsEnabled:   cfg.Metrics.Enabled,
+		MetricsAuth:      cfg.Metrics.AuthEnabled,
+		MetricsUser:      cfg.Metrics.Username,
+		MetricsPass:      cfg.Metrics.Password,
+	}
 
 	ginRouter := router.SetupRouter(
 		configRouter,
