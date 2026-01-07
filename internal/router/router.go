@@ -16,7 +16,6 @@ import (
 	roleHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	userHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
-	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
@@ -62,7 +61,7 @@ func SetupRouter(
 	// Global Middlewares (Order Matters!)
 	router.Use(gin.Recovery())
 	router.Use(middleware.RequestIDMiddleware()) // 1. Generate Request ID First
-	
+
 	// 2. Metrics Middleware
 	if cfg.MetricsEnabled {
 		router.Use(middleware.PrometheusMiddleware())
@@ -160,22 +159,22 @@ func SetupRouter(
 	authenticated.Use(authMiddleware.ValidateToken())
 	{
 		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController)
-		userHttp.RegisterAuthorizedRoutes(authenticated, userModule.UserController) // Access /me
+		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController) // Access /me
 	}
 
 	// AUTHORIZED Group: Token is valid AND user is Active AND has permission
 	authorized := apiV1.Group("")
 	authorized.Use(authMiddleware.ValidateToken())
-	
+
 	// Check User Status (Active?)
-	userRepo := userRepository.NewUserRepository(db, logger)
-	authorized.Use(middleware.UserStatusMiddleware(userRepo, logger))
-	
+	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
+
 	authorized.Use(casbinMiddleware)
 	{
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
 		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
+		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController) // Access Admin/Management Endpoints
 		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
 	}
 

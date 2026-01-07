@@ -20,8 +20,8 @@ type RegisterUserRequest struct {
 	Password  string `json:"password" validate:"required,min=8,max=100"`
 	Name      string `json:"fullname" validate:"required,min=3,max=100"`
 	Email     string `json:"email" validate:"email"`
-	IPAddress string `json:"-"` // Filled by controller
-	UserAgent string `json:"-"` // Filled by controller
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
 }
 
 type UpdateUserRequest struct {
@@ -29,17 +29,8 @@ type UpdateUserRequest struct {
 	Username  string `json:"username" validate:"required,min=6,max=100"`
 	Password  string `json:"password,omitempty" validate:"max=100"`
 	Name      string `json:"name,omitempty" validate:"max=100"`
-	IPAddress string `json:"-"` // Filled by controller
-	UserAgent string `json:"-"` // Filled by controller
-}
-
-type LoginUserRequest struct {
-	ID       string `json:"id" validate:"required,max=100"`
-	Password string `json:"password" validate:"required,max=100"`
-}
-
-type LogoutUserRequest struct {
-	ID string `json:"id" validate:"required,max=100"`
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
 }
 
 type GetUserRequest struct {
@@ -55,8 +46,8 @@ type GetUserListRequest struct {
 
 type DeleteUserRequest struct {
 	ID        string `json:"-" validate:"required"`
-	IPAddress string `json:"-"` // Filled by controller
-	UserAgent string `json:"-"` // Filled by controller
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
 }
 
 type UpdateUserStatusRequest struct {
