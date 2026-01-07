@@ -20,19 +20,23 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func setupRouter(handler *auditHttp.AuditController) *gin.Engine {
+func setupAuditTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	r := gin.Default()
-	r.POST("/audit-logs/search", handler.GetLogsDynamic)
+	r := gin.New()
 	return r
+}
+
+func newTestAuditController(mockUC *mocks.MockAuditUseCase) *auditHttp.AuditController {
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	return auditHttp.NewAuditController(mockUC, logger)
 }
 
 func TestGetLogsDynamicController(t *testing.T) {
 	mockUC := new(mocks.MockAuditUseCase)
-	logger := logrus.New()
-	logger.SetOutput(io.Discard)
-	handler := auditHttp.NewAuditController(mockUC, logger)
-	router := setupRouter(handler)
+	handler := newTestAuditController(mockUC)
+	router := setupAuditTestRouter()
+	router.POST("/audit-logs/search", handler.GetLogsDynamic)
 
 	t.Run("Success", func(t *testing.T) {
 		filter := querybuilder.DynamicFilter{

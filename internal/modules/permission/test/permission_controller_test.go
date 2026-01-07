@@ -18,13 +18,13 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func setupTestRouter() *gin.Engine {
+func setupPermissionTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	return router
 }
 
-func newTestUserController(mockUseCase *mocks.MockIPermissionUseCase) *permHandler.PermissionController {
+func newTestPermissionController(mockUseCase *mocks.MockIPermissionUseCase) *permHandler.PermissionController {
 	log := logrus.New()
 	log.SetLevel(logrus.PanicLevel) // Suppress logs during tests
 	return permHandler.NewPermissionController(mockUseCase, log, validator.New())
@@ -32,8 +32,8 @@ func newTestUserController(mockUseCase *mocks.MockIPermissionUseCase) *permHandl
 
 func TestGrantPermission_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockIPermissionUseCase)
-	handler := newTestUserController(mockUseCase)
-	router := setupTestRouter()
+	handler := newTestPermissionController(mockUseCase)
+	router := setupPermissionTestRouter()
 	router.POST("/permissions/grant", handler.GrantPermission)
 
 	reqBody := model.GrantPermissionRequest{
@@ -64,8 +64,8 @@ func TestGrantPermission_Success(t *testing.T) {
 
 func TestGrantPermission_InvalidBody(t *testing.T) {
 	mockUseCase := new(mocks.MockIPermissionUseCase)
-	handler := newTestUserController(mockUseCase)
-	router := setupTestRouter()
+	handler := newTestPermissionController(mockUseCase)
+	router := setupPermissionTestRouter()
 	router.POST("/permissions/grant", handler.GrantPermission)
 
 	req, _ := http.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBufferString(`{"role": "editor",`))
@@ -79,8 +79,8 @@ func TestGrantPermission_InvalidBody(t *testing.T) {
 
 func TestGrantPermission_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockIPermissionUseCase)
-	handler := newTestUserController(mockUseCase)
-	router := setupTestRouter()
+	handler := newTestPermissionController(mockUseCase)
+	router := setupPermissionTestRouter()
 	router.POST("/permissions/grant", handler.GrantPermission)
 
 	reqBody := model.GrantPermissionRequest{

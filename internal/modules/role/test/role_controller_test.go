@@ -33,9 +33,9 @@ func (w *NoOpWriter) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
-func setupRouter(uc usecase.RoleUseCase) *gin.Engine {
+func setupRoleTestRouter(uc usecase.RoleUseCase) *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	router := gin.Default()
+	router := gin.New()
 
 	v := validator.New()
 	_ = validation.RegisterCustomValidations(v)
@@ -51,9 +51,17 @@ func setupRouter(uc usecase.RoleUseCase) *gin.Engine {
 	return router
 }
 
+func newTestRoleController(uc usecase.RoleUseCase) *roleHttp.RoleController {
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v)
+	log := logrus.New()
+	log.SetLevel(logrus.PanicLevel)
+	return roleHttp.NewRoleController(uc, log, v)
+}
+
 func TestRoleHandler_Create_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	createRequest := model.CreateRoleRequest{Name: "admin", Description: "Administrator role"}
 	requestBody, _ := json.Marshal(createRequest)
@@ -71,7 +79,7 @@ func TestRoleHandler_Create_Success(t *testing.T) {
 
 func TestRoleHandler_Create_BindingError(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/roles", bytes.NewBufferString("invalid json"))
@@ -85,7 +93,7 @@ func TestRoleHandler_Create_BindingError(t *testing.T) {
 
 func TestRoleHandler_Create_ValidationError(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	createRequest := model.CreateRoleRequest{Name: "", Description: "Administrator role"} // Invalid name
 	requestBody, _ := json.Marshal(createRequest)
@@ -102,7 +110,7 @@ func TestRoleHandler_Create_ValidationError(t *testing.T) {
 
 func TestRoleHandler_Create_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	createRequest := model.CreateRoleRequest{Name: "existing", Description: "Existing role"}
 	requestBody, _ := json.Marshal(createRequest)
@@ -120,7 +128,7 @@ func TestRoleHandler_Create_UseCaseError(t *testing.T) {
 
 func TestRoleHandler_GetAll_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	expectedRoles := []model.RoleResponse{
 		{ID: "1", Name: "admin"},
@@ -143,7 +151,7 @@ func TestRoleHandler_GetAll_Success(t *testing.T) {
 
 func TestRoleHandler_GetAll_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	mockUseCase.On("GetAll", mock.Anything).Return(nil, errors.New("some database error"))
 
@@ -157,7 +165,7 @@ func TestRoleHandler_GetAll_UseCaseError(t *testing.T) {
 
 func TestRoleHandler_Delete_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	roleID := "test-uuid"
 	mockUseCase.On("Delete", mock.Anything, roleID).Return(nil)
@@ -172,7 +180,7 @@ func TestRoleHandler_Delete_Success(t *testing.T) {
 
 func TestRoleHandler_Delete_NotFound(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	roleID := "non-existent-uuid"
 	mockUseCase.On("Delete", mock.Anything, roleID).Return(exception.ErrNotFound)
@@ -187,7 +195,7 @@ func TestRoleHandler_Delete_NotFound(t *testing.T) {
 
 func TestRoleHandler_Delete_Forbidden(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	roleID := "superadmin-uuid"
 	mockUseCase.On("Delete", mock.Anything, roleID).Return(exception.ErrForbidden)
@@ -202,7 +210,7 @@ func TestRoleHandler_Delete_Forbidden(t *testing.T) {
 
 func TestRoleHandler_GetAllRolesDynamic_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	dynamicFilter := &querybuilder.DynamicFilter{
 		Filter: map[string]querybuilder.Filter{
