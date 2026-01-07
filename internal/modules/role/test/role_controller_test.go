@@ -51,14 +51,6 @@ func setupRoleTestRouter(uc usecase.RoleUseCase) *gin.Engine {
 	return router
 }
 
-func newTestRoleController(uc usecase.RoleUseCase) *roleHttp.RoleController {
-	v := validator.New()
-	_ = validation.RegisterCustomValidations(v)
-	log := logrus.New()
-	log.SetLevel(logrus.PanicLevel)
-	return roleHttp.NewRoleController(uc, log, v)
-}
-
 func TestRoleHandler_Create_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
 	router := setupRoleTestRouter(mockUseCase)
