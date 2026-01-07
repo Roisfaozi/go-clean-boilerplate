@@ -17,7 +17,7 @@ type VerifyUserRequest struct {
 
 type RegisterUserRequest struct {
 	Username  string `json:"username" validate:"required,min=6,max=100"`
-	Password  string `json:"password" validate:"required,min=8,max=100"`
+	Password  string `json:"password" validate:"required,min=8,max=72"`
 	Name      string `json:"fullname" validate:"required,min=3,max=100"`
 	Email     string `json:"email" validate:"email"`
 	IPAddress string `json:"-"` // Filled by controller
@@ -26,8 +26,8 @@ type RegisterUserRequest struct {
 
 type UpdateUserRequest struct {
 	ID        string `json:"-" validate:"required,max=100"`
+	Password  string `json:"password,omitempty" validate:"max=72"`
 	Username  string `json:"username" validate:"required,min=6,max=100"`
-	Password  string `json:"password,omitempty" validate:"max=100"`
 	Name      string `json:"name,omitempty" validate:"max=100"`
 	IPAddress string `json:"-"` // Filled by controller
 	UserAgent string `json:"-"` // Filled by controller
@@ -35,7 +35,7 @@ type UpdateUserRequest struct {
 
 type LoginUserRequest struct {
 	ID       string `json:"id" validate:"required,max=100"`
-	Password string `json:"password" validate:"required,max=100"`
+	Password string `json:"password" validate:"required,max=72"`
 }
 
 type LogoutUserRequest struct {
