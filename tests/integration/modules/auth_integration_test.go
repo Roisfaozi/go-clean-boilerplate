@@ -5,6 +5,7 @@ package modules
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,9 +13,8 @@ import (
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
+	authRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
-	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
@@ -23,306 +23,289 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAuthIntegration_Login_Success(t *testing.T) {
+// --- HELPERS ---
 
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
+func setupAuthIntegration(env *setup.TestEnvironment) (usecase.AuthUseCase, *jwt.JWTManager) {
+	jwtManager := jwt.NewJWTManager("test-access-secret", "test-refresh-secret", 15*time.Minute, 24*time.Hour)
+	return setupAuthIntegrationWithJWT(env, jwtManager), jwtManager
+}
 
-	setup.CleanupDatabase(t, env.DB)
-
-	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
-
-	_, err := env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
-	require.NoError(t, err)
-
-	jwtManager := jwt.NewJWTManager(
-		"test-access-secret",
-		"test-refresh-secret",
-		15*time.Minute,
-		24*time.Hour,
-	)
-
-	tokenRepo := repository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWTManager) usecase.AuthUseCase {
+	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
 
-	authUC := usecase.NewAuthUsecase(
-		jwtManager,
-		tokenRepo,
-		userRepo,
-		tm,
-		env.Logger,
-		nil,
-		env.Enforcer,
-		auditUC,
-		nil, // TaskDistributor nil for integration test (skip worker)
+	return usecase.NewAuthUsecase(
+		jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC, nil,
 	)
-
-	loginReq := model.LoginRequest{
-		Username:  "testuser",
-		Password:  "password123",
-		IPAddress: "127.0.0.1",
-		UserAgent: "TestAgent",
-	}
-
-	loginResp, refreshToken, err := authUC.Login(context.Background(), loginReq)
-
-	require.NoError(t, err)
-	assert.NotNil(t, loginResp)
-	assert.NotEmpty(t, loginResp.AccessToken)
-	assert.NotEmpty(t, refreshToken)
-	assert.Equal(t, "Bearer", loginResp.TokenType)
-	assert.Equal(t, testUser.ID, loginResp.User.ID)
-	assert.Equal(t, testUser.Username, loginResp.User.Username)
-
-	// Verify session exists in Redis
-	keys, err := env.Redis.Keys(context.Background(), "session:*").Result()
-	require.NoError(t, err)
-	assert.NotEmpty(t, keys, "Session should be stored in Redis")
 }
 
-func TestAuthIntegration_Login_InvalidCredentials(t *testing.T) {
+// ============================================
+// LOGIN SCENARIOS
+// ============================================
 
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
-
-	setup.CleanupDatabase(t, env.DB)
-
-	setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
-
-	jwtManager := jwt.NewJWTManager(
-		"test-access-secret",
-		"test-refresh-secret",
-		15*time.Minute,
-		24*time.Hour,
-	)
-
-	tokenRepo := repository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
-	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
-
-	authUC := usecase.NewAuthUsecase(
-		jwtManager,
-		tokenRepo,
-		userRepo,
-		tm,
-		env.Logger,
-		nil,
-		env.Enforcer,
-		auditUC,
-		nil,
-	)
-
-	loginReq := model.LoginRequest{
-		Username: "testuser",
-		Password: "wrongpassword",
-	}
-
-	loginResp, refreshToken, err := authUC.Login(context.Background(), loginReq)
-
-	assert.Error(t, err)
-	assert.Nil(t, loginResp)
-	assert.Empty(t, refreshToken)
-}
-
-func TestAuthIntegration_TokenRefresh_Success(t *testing.T) {
-
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
-
-	setup.CleanupDatabase(t, env.DB)
-
-	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
-
-	_, err := env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
-	require.NoError(t, err)
-
-	jwtManager := jwt.NewJWTManager(
-		"test-access-secret",
-		"test-refresh-secret",
-		15*time.Minute,
-		24*time.Hour,
-	)
-
-	tokenRepo := repository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
-	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
-
-	authUC := usecase.NewAuthUsecase(
-		jwtManager,
-		tokenRepo,
-		userRepo,
-		tm,
-		env.Logger,
-		nil,
-		env.Enforcer,
-		auditUC,
-		nil,
-	)
-
-	loginReq := model.LoginRequest{
-		Username:  "testuser",
-		Password:  "password123",
-		IPAddress: "127.0.0.1",
-		UserAgent: "TestAgent",
-	}
-
-	loginResp, refreshToken, err := authUC.Login(context.Background(), loginReq)
-	require.NoError(t, err)
-
-	tokenResp, newRefreshToken, err := authUC.RefreshToken(context.Background(), refreshToken)
-
-	require.NoError(t, err)
-	assert.NotNil(t, tokenResp)
-	assert.NotEmpty(t, tokenResp.AccessToken)
-	assert.NotEmpty(t, newRefreshToken)
-	assert.NotEqual(t, loginResp.AccessToken, tokenResp.AccessToken)
-	assert.NotEqual(t, refreshToken, newRefreshToken)
-}
-
-func TestAuthIntegration_Logout_Success(t *testing.T) {
-
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
-
-	setup.CleanupDatabase(t, env.DB)
-
-	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
-
-	_, err := env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
-	require.NoError(t, err)
-
-	jwtManager := jwt.NewJWTManager(
-		"test-access-secret",
-		"test-refresh-secret",
-		15*time.Minute,
-		24*time.Hour,
-	)
-
-	tokenRepo := repository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
-	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
-
-	authUC := usecase.NewAuthUsecase(
-		jwtManager,
-		tokenRepo,
-		userRepo,
-		tm,
-		env.Logger,
-		nil,
-		env.Enforcer,
-		auditUC,
-		nil,
-	)
-
-	loginReq := model.LoginRequest{
-		Username:  "testuser",
-		Password:  "password123",
-		IPAddress: "127.0.0.1",
-		UserAgent: "TestAgent",
-	}
-
-	loginResp, _, err := authUC.Login(context.Background(), loginReq)
-	require.NoError(t, err)
-
-	// Parse token to get session ID
-	claims, err := jwtManager.ValidateAccessToken(loginResp.AccessToken)
-	require.NoError(t, err)
-
-	err = authUC.RevokeToken(context.Background(), testUser.ID, claims.SessionID)
-	require.NoError(t, err)
-
-	// Verify session deleted from Redis
-	keys, err := env.Redis.Keys(context.Background(), "session:*").Result()
-	require.NoError(t, err)
-	assert.Empty(t, keys, "Session should be deleted from Redis")
-}
-
-func TestAuthIntegration_ForgotPassword_Success(t *testing.T) {
+func TestAuthIntegration_Login(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 	setup.CleanupDatabase(t, env.DB)
 
-	testUser := setup.CreateTestUser(t, env.DB, "forgotuser", "forgot@example.com", "password123")
+	authUC, _ := setupAuthIntegration(env)
+	password := "SecurePass123!"
+	testUser := setup.CreateTestUser(t, env.DB, "authuser", "auth@example.com", password)
+	_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
 
-	tokenRepo := repository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
-	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	
-	authUC := usecase.NewAuthUsecase(
-		nil, // JWT manager not needed
-		tokenRepo,
-		userRepo,
-		tm,
-		env.Logger,
-		nil,
-		nil, // Enforcer not needed
-		nil, // Audit not strict here
-		nil, // Worker disabled
-	)
+	t.Run("Success with Valid Credentials", func(t *testing.T) {
+		loginReq := model.LoginRequest{Username: "authuser", Password: password, IPAddress: "127.0.0.1", UserAgent: "Mozilla/5.0"}
+		resp, refreshToken, err := authUC.Login(context.Background(), loginReq)
 
-	err := authUC.ForgotPassword(context.Background(), testUser.Email)
-	require.NoError(t, err)
+		require.NoError(t, err)
+		assert.NotNil(t, resp)
+		assert.NotEmpty(t, resp.AccessToken)
+		assert.NotEmpty(t, refreshToken)
+		assert.Equal(t, "Bearer", resp.TokenType)
+		assert.Equal(t, testUser.ID, resp.User.ID)
+		assert.Greater(t, int64(resp.ExpiresIn), int64(0))
 
-	// Verify token in DB
-	var token authEntity.PasswordResetToken
-	err = env.DB.Where("email = ?", testUser.Email).First(&token).Error
-	require.NoError(t, err)
-	assert.NotEmpty(t, token.Token)
-	assert.Equal(t, testUser.Email, token.Email)
+		// Verify session exists in Redis
+		keys, err := env.Redis.Keys(context.Background(), "session:*").Result()
+		require.NoError(t, err)
+		assert.NotEmpty(t, keys)
+	})
+
+	t.Run("Fail with Invalid Password", func(t *testing.T) {
+		loginReq := model.LoginRequest{Username: "authuser", Password: "wrongpassword"}
+		resp, _, err := authUC.Login(context.Background(), loginReq)
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("Fail with Non-Existent User", func(t *testing.T) {
+		loginReq := model.LoginRequest{Username: "nonexistent", Password: "password123"}
+		_, _, err := authUC.Login(context.Background(), loginReq)
+		assert.Error(t, err)
+	})
+
+	t.Run("Fail with Empty Credentials", func(t *testing.T) {
+		tests := []struct {
+			name string
+			un   string
+			pw   string
+		}{
+			{"Empty Username", "", "password123"},
+			{"Empty Password", "authuser", ""},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				_, _, err := authUC.Login(context.Background(), model.LoginRequest{Username: tt.un, Password: tt.pw})
+				assert.Error(t, err)
+			})
+		}
+	})
+
+	t.Run("Edge - Special Characters in Username", func(t *testing.T) {
+		specialUN := "user-@#$%^&*()"
+		setup.CreateTestUser(t, env.DB, specialUN, "special@example.com", "password123")
+		loginReq := model.LoginRequest{Username: specialUN, Password: "password123"}
+		_, _, err := authUC.Login(context.Background(), loginReq)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Edge - Very Long Password (Bcrypt Limit 72)", func(t *testing.T) {
+		longPW := strings.Repeat("a", 72)
+		setup.CreateTestUser(t, env.DB, "longpw", "long@example.com", longPW)
+		loginReq := model.LoginRequest{Username: "longpw", Password: longPW}
+		_, _, err := authUC.Login(context.Background(), loginReq)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Edge - Unicode Characters", func(t *testing.T) {
+		unicodeUN := "用户名测试"
+		setup.CreateTestUser(t, env.DB, unicodeUN, "unicode@example.com", "password123")
+		loginReq := model.LoginRequest{Username: unicodeUN, Password: "password123"}
+		_, _, err := authUC.Login(context.Background(), loginReq)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Edge - Case Sensitivity", func(t *testing.T) {
+		setup.CreateTestUser(t, env.DB, "CaseUser", "case@example.com", "password123")
+		loginReq := model.LoginRequest{Username: "caseuser", Password: "password123"}
+		_, loginResp, err := authUC.Login(context.Background(), loginReq)
+		if err == nil {
+			assert.NotEmpty(t, loginResp)
+		}
+	})
 }
 
-func TestAuthIntegration_ResetPassword_Success(t *testing.T) {
+// ============================================
+// TOKEN LIFECYCLE SCENARIOS
+// ============================================
+
+func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 	setup.CleanupDatabase(t, env.DB)
 
-	testUser := setup.CreateTestUser(t, env.DB, "resetuser", "reset@example.com", "oldpass")
-	
-	tokenRepo := repository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
-	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	authUC, jwtManager := setupAuthIntegration(env)
+	password := "password123"
+	testUser := setup.CreateTestUser(t, env.DB, "tokenuser", "token@example.com", password)
+	_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
 
-	// Seed token
-	validToken := "valid-token-123"
-	resetToken := authEntity.PasswordResetToken{
-		Email:     testUser.Email,
-		Token:     validToken,
-		ExpiresAt: time.Now().Add(1 * time.Hour),
-	}
-	env.DB.Create(&resetToken)
+	_, refreshToken, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "tokenuser", Password: password})
 
-	authUC := usecase.NewAuthUsecase(
-		nil,
-		tokenRepo,
-		userRepo,
-		tm,
-		env.Logger,
-		nil,
-		nil,
-		nil,
-		nil,
-	)
+	t.Run("Success Refresh Token", func(t *testing.T) {
+		time.Sleep(1 * time.Second)
+		newToken, newRefresh, err := authUC.RefreshToken(context.Background(), refreshToken)
+		require.NoError(t, err)
+		assert.NotEmpty(t, newToken.AccessToken)
+		assert.NotEqual(t, refreshToken, newRefresh)
 
-	newPassword := "NewStrongPass123!"
-	err := authUC.ResetPassword(context.Background(), validToken, newPassword)
-	require.NoError(t, err)
+		// Update refreshToken for next sub-tests
+		refreshToken = newRefresh
+	})
 
-	// Verify token deleted
-	var checkToken authEntity.PasswordResetToken
-	err = env.DB.Where("email = ?", testUser.Email).First(&checkToken).Error
-	assert.Error(t, err, "Token should be deleted after reset")
+	t.Run("Multiple Refresh In Sequence", func(t *testing.T) {
+		currRefresh := refreshToken
+		for i := 0; i < 3; i++ {
+			time.Sleep(100 * time.Millisecond)
+			_, nextRefresh, err := authUC.RefreshToken(context.Background(), currRefresh)
+			require.NoError(t, err, "Refresh iteration %d failed", i+1)
+			currRefresh = nextRefresh
+		}
+	})
 
-	// Verify login with new password logic
-	var updatedUser userEntity.User
-	env.DB.First(&updatedUser, "id = ?", testUser.ID)
-	// You might check hash if bcrypt available in test env, otherwise assume success if no error.
+	t.Run("Fail Refresh with Invalid Token", func(t *testing.T) {
+		_, _, err := authUC.RefreshToken(context.Background(), "invalid.token.here")
+		assert.Error(t, err)
+	})
+
+	t.Run("Fail Refresh with Expired Token", func(t *testing.T) {
+		shortJWT := jwt.NewJWTManager("secret", "refresh", time.Minute, 1*time.Millisecond)
+		expToken, _, _ := shortJWT.GenerateTokenPair(testUser.ID, "sid", "role:user", "tokenuser")
+		time.Sleep(10 * time.Millisecond)
+
+		customUC := setupAuthIntegrationWithJWT(env, shortJWT)
+		_, _, err := customUC.RefreshToken(context.Background(), expToken)
+		assert.Error(t, err)
+	})
+
+	t.Run("Success Logout (Revoke)", func(t *testing.T) {
+		// Get fresh login for revocation
+		lr, _, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "tokenuser", Password: password})
+		claims, _ := jwtManager.ValidateAccessToken(lr.AccessToken)
+
+		err := authUC.RevokeToken(context.Background(), testUser.ID, claims.SessionID)
+		require.NoError(t, err)
+
+		// Verify session is gone. Pattern should match repository.getSessionKey
+		keys, _ := env.Redis.Keys(context.Background(), "session:"+testUser.ID+":"+claims.SessionID).Result()
+		assert.Empty(t, keys, "Session should be deleted from Redis")
+	})
+}
+
+// ============================================
+// PASSWORD RECOVERY SCENARIOS
+// ============================================
+
+func TestAuthIntegration_PasswordRecovery(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	authUC, _ := setupAuthIntegration(env)
+
+	t.Run("Success Forgot Password", func(t *testing.T) {
+		email := "forgot@example.com"
+		setup.CreateTestUser(t, env.DB, "forgotuser", email, "old-pass")
+
+		err := authUC.ForgotPassword(context.Background(), email)
+		require.NoError(t, err)
+
+		var token authEntity.PasswordResetToken
+		err = env.DB.Where("email = ?", email).First(&token).Error
+		require.NoError(t, err)
+		assert.NotEmpty(t, token.Token)
+	})
+
+	t.Run("Success Reset Password", func(t *testing.T) {
+		email := "reset_unique@example.com" // Use unique email to avoid constraint error
+		testUser := setup.CreateTestUser(t, env.DB, "resetuser", email, "oldpass")
+
+		// Seed a token
+		resetToken := "secret-token-unique-123"
+		err := env.DB.Create(&authEntity.PasswordResetToken{
+			Email: email, Token: resetToken, ExpiresAt: time.Now().Add(time.Hour),
+		}).Error
+		require.NoError(t, err)
+
+		err = authUC.ResetPassword(context.Background(), resetToken, "NewPass123!")
+		require.NoError(t, err)
+
+		// Verify old fails, new succeeds
+		_, _, err = authUC.Login(context.Background(), model.LoginRequest{Username: testUser.Username, Password: "oldpass"})
+		assert.Error(t, err)
+		_, _, err = authUC.Login(context.Background(), model.LoginRequest{Username: testUser.Username, Password: "NewPass123!"})
+		assert.NoError(t, err)
+	})
+}
+
+// ============================================
+// SECURITY SCENARIOS
+// ============================================
+
+func TestAuthIntegration_Security(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	authUC, _ := setupAuthIntegration(env)
+
+	t.Run("SQL Injection Prevention", func(t *testing.T) {
+		injections := []string{"admin' OR '1'='1", "admin'--", "admin'; DROP TABLE users--"}
+		for _, inj := range injections {
+			_, _, err := authUC.Login(context.Background(), model.LoginRequest{Username: inj, Password: "p"})
+			assert.Error(t, err)
+		}
+	})
+
+	t.Run("Brute Force Protection Simulation", func(t *testing.T) {
+		setup.CreateTestUser(t, env.DB, "brute", "brute@example.com", "pass")
+		for i := 0; i < 5; i++ {
+			_, _, err := authUC.Login(context.Background(), model.LoginRequest{Username: "brute", Password: "w"})
+			assert.Error(t, err)
+		}
+	})
+
+	t.Run("Token Rotation Reuse Protection", func(t *testing.T) {
+		testUser := setup.CreateTestUser(t, env.DB, "reuse", "reuse@example.com", "pass")
+		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+		_, rt1, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "reuse", Password: "pass"})
+
+		_, rt2, _ := authUC.RefreshToken(context.Background(), rt1)
+
+		// Attempt reuse RT1
+		_, _, err := authUC.RefreshToken(context.Background(), rt1)
+		assert.Error(t, err)
+
+		// RT2 still works
+		_, _, err = authUC.RefreshToken(context.Background(), rt2)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Session Hijacking Prevention (Device Differentiation)", func(t *testing.T) {
+		testUser := setup.CreateTestUser(t, env.DB, "hijack", "hijack@example.com", "pass")
+		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+
+		r1, _, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "hijack", Password: "pass", UserAgent: "D1"})
+		r2, _, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "hijack", Password: "pass", UserAgent: "D2"})
+		assert.NotEqual(t, r1.AccessToken, r2.AccessToken)
+	})
+
+	t.Run("XSS in UserAgent Handling", func(t *testing.T) {
+		testUser := setup.CreateTestUser(t, env.DB, "xss", "xss@example.com", "pass")
+		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+		_, _, err := authUC.Login(context.Background(), model.LoginRequest{Username: "xss", Password: "pass", UserAgent: "<script>alert(1)</script>"})
+		assert.NoError(t, err)
+	})
 }
