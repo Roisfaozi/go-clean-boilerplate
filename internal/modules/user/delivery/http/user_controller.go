@@ -229,6 +229,13 @@ func (h *UserController) GetAllUsers(c *gin.Context) {
 		return
 	}
 
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		h.Log.WithError(err).Error(msg)
+		response.ValidationError(c, exception.ErrValidationError, msg)
+		return
+	}
+
 	users, err := h.UserUseCase.GetAllUsers(ctx, &req)
 	if err != nil {
 		h.Log.WithError(err).Error("failed to get all users")
