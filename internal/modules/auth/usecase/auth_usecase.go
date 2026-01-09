@@ -130,14 +130,16 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 
 	// Audit Log: Login (Synchronous)
 	if s.auditUC != nil {
-		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:    user.ID,
 			Action:    "LOGIN",
 			Entity:    "Auth",
 			EntityID:  sessionID,
 			IPAddress: request.IPAddress,
 			UserAgent: request.UserAgent,
-		})
+		}); err != nil {
+			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
+		}
 	}
 
 	notification := map[string]string{
@@ -253,12 +255,14 @@ func (s *Service) RevokeToken(ctx context.Context, userID, sessionID string) err
 
 	// Audit Log: Logout (Revoke) (Synchronous)
 	if s.auditUC != nil {
-		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   userID,
 			Action:   "LOGOUT",
 			Entity:   "Auth",
 			EntityID: sessionID,
-		})
+		}); err != nil {
+			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
+		}
 	}
 
 	return s.tokenRepo.DeleteToken(ctx, userID, sessionID)
@@ -275,12 +279,14 @@ func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
 
 	// Audit Log: Revoke All (Synchronous)
 	if s.auditUC != nil {
-		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   userID,
 			Action:   "REVOKE_ALL_SESSIONS",
 			Entity:   "Auth",
 			EntityID: userID,
-		})
+		}); err != nil {
+			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
+		}
 	}
 
 	return s.tokenRepo.RevokeAllSessions(ctx, userID)
@@ -370,12 +376,14 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 	}
 
 	if s.auditUC != nil {
-		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   user.ID,
 			Action:   "FORGOT_PASSWORD_REQUEST",
 			Entity:   "User",
 			EntityID: user.ID,
-		})
+		}); err != nil {
+			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
+		}
 	}
 
 	return nil
@@ -412,12 +420,14 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 	}
 
 	if s.auditUC != nil {
-		_ = s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   user.ID,
 			Action:   "PASSWORD_RESET_SUCCESS",
 			Entity:   "User",
 			EntityID: user.ID,
-		})
+		}); err != nil {
+			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
+		}
 	}
 
 	return nil
