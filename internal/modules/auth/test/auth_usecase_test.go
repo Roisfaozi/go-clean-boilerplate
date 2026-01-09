@@ -435,6 +435,19 @@ func TestGenerateAccessToken_Success(t *testing.T) {
 	assert.NotEmpty(t, token)
 }
 
+func TestGenerateAccessToken_EnforcerError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	deps.enforcer.On("GetRolesForUser", user.ID).Return(nil, errors.New("casbin error"))
+
+	_, err := authService.GenerateAccessToken(user)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get user roles")
+	deps.enforcer.AssertExpectations(t)
+}
+
 func TestGenerateRefreshToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
@@ -445,6 +458,19 @@ func TestGenerateRefreshToken_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, token)
+}
+
+func TestGenerateRefreshToken_EnforcerError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	deps.enforcer.On("GetRolesForUser", user.ID).Return(nil, errors.New("casbin error"))
+
+	_, err := authService.GenerateRefreshToken(user)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get user roles")
+	deps.enforcer.AssertExpectations(t)
 }
 
 // --- FORGOT & RESET PASSWORD TESTS (Updated with Background Worker) ---
@@ -502,6 +528,26 @@ func TestForgotPassword_Failure_RepositoryError(t *testing.T) {
 	deps.tokenRepo.AssertExpectations(t)
 	// Audit log should NOT be called if save fails
 	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
+}
+
+func TestForgotPassword_DistributeTaskError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
+	deps.tokenRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.PasswordResetToken")).Return(nil)
+	deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("task queue error"))
+
+	deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+	err := authService.ForgotPassword(context.Background(), user.Email)
+
+	// We expect NO error because email sending failure is logged but doesn't fail the request
+	assert.NoError(t, err)
+	deps.userRepo.AssertExpectations(t)
+	deps.tokenRepo.AssertExpectations(t)
+	deps.taskDistributor.AssertExpectations(t)
+	deps.auditUC.AssertExpectations(t)
 }
 
 func TestResetPassword_Success(t *testing.T) {
