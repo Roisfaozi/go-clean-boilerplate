@@ -54,7 +54,7 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 
 		// Pre-check if Docker is available to avoid panic in testcontainers
 		if !isDockerAvailable() {
-			err = fmt.Errorf("docker not available")
+			_ = fmt.Errorf("docker not available")
 			return
 		}
 
