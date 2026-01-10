@@ -75,12 +75,15 @@ func (s *Service) generateAndStoreTokenPair(ctx context.Context, user *entity.Us
 		return "", "", "", fmt.Errorf("failed to generate token pair: %w", err)
 	}
 
+	now := time.Now()
 	session := &model.Auth{
 		ID:           sessionID,
 		UserID:       user.ID,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		ExpiresAt:    time.Now().Add(s.jwtManager.GetRefreshTokenDuration()),
+		CreatedAt:    now,
+		UpdatedAt:    now,
+		ExpiresAt:    now.Add(s.jwtManager.GetRefreshTokenDuration()),
 	}
 
 	if err := s.tokenRepo.StoreToken(ctx, session); err != nil {

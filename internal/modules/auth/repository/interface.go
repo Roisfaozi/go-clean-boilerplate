@@ -8,6 +8,9 @@ import (
 )
 
 type TokenRepository interface {
+	// StoreToken stores the session in Redis.
+	// The session.CreatedAt and session.UpdatedAt fields must be set by the caller.
+	// The session.ExpiresAt field determines the TTL.
 	StoreToken(ctx context.Context, session *model.Auth) error
 	GetToken(ctx context.Context, userID, sessionID string) (*model.Auth, error)
 	DeleteToken(ctx context.Context, userID, sessionID string) error
