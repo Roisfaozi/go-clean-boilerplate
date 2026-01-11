@@ -166,3 +166,123 @@ func TestPermissionE2E_BatchCheck(t *testing.T) {
 	assert.False(t, checkRes.Data.Results["/news:DELETE"])
 	assert.False(t, checkRes.Data.Results["/admin:GET"])
 }
+
+func TestPermissionE2E_RevokeRole(t *testing.T) {
+	server := setup.SetupTestServer(t)
+	defer server.Cleanup()
+	client := server.Client
+
+	f := fixtures.NewUserFactory(server.DB)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("StrongPass123!"), bcrypt.DefaultCost)
+	passHash := string(hash)
+
+	admin := f.Create(func(u *userEntity.User) {
+		u.Username = "revoke_admin"
+		u.Email = "revoke@admin.com"
+		u.Password = passHash
+	})
+
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
+	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
+	server.Enforcer.SavePolicy()
+
+	resp := client.POST("/api/v1/auth/login", map[string]any{"username": admin.Username, "password": "StrongPass123!"})
+	require.Equal(t, 200, resp.StatusCode)
+	var loginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		} `json:"data"`
+	}
+	resp.JSON(&loginRes)
+	adminToken := loginRes.Data.AccessToken
+
+	// Create role and user
+	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "RevokeTestRole"})
+	user := f.Create(func(u *userEntity.User) { u.Username = "revoke_user"; u.Password = passHash })
+
+	// Assign role
+	resp = client.POST("/api/v1/permissions/assign-role", map[string]any{
+		"user_id": user.ID,
+		"role":    "RevokeTestRole",
+	}, setup.WithAuth(adminToken))
+	require.Equal(t, 200, resp.StatusCode)
+
+	// Verify role assigned
+	roles, _ := server.Enforcer.GetRolesForUser(user.ID)
+	assert.Contains(t, roles, "role:RevokeTestRole")
+
+	t.Run("Success - Revoke Role", func(t *testing.T) {
+		resp := client.DELETE("/api/v1/permissions/revoke-role", map[string]any{
+			"user_id": user.ID,
+			"role":    "RevokeTestRole",
+		}, setup.WithAuth(adminToken))
+		assert.Equal(t, 200, resp.StatusCode)
+
+		// Verify role revoked
+		rolesAfter, _ := server.Enforcer.GetRolesForUser(user.ID)
+		assert.NotContains(t, rolesAfter, "role:RevokeTestRole")
+	})
+}
+
+func TestPermissionE2E_RemoveInheritance(t *testing.T) {
+	server := setup.SetupTestServer(t)
+	defer server.Cleanup()
+	client := server.Client
+
+	f := fixtures.NewUserFactory(server.DB)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("StrongPass123!"), bcrypt.DefaultCost)
+	passHash := string(hash)
+
+	admin := f.Create(func(u *userEntity.User) {
+		u.Username = "remove_inherit_admin"
+		u.Email = "remove_inherit@admin.com"
+		u.Password = passHash
+	})
+
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
+	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
+	server.Enforcer.SavePolicy()
+
+	resp := client.POST("/api/v1/auth/login", map[string]any{"username": admin.Username, "password": "StrongPass123!"})
+	require.Equal(t, 200, resp.StatusCode)
+	var loginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		} `json:"data"`
+	}
+	resp.JSON(&loginRes)
+	adminToken := loginRes.Data.AccessToken
+
+	// Create roles
+	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "ParentRole"})
+	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "ChildRole"})
+
+	// Grant permission to child
+	client.POST("/api/v1/permissions/grant", map[string]any{
+		"role": "ChildRole", "path": "/api/v1/inherited", "method": "GET",
+	}, setup.WithAuth(adminToken))
+
+	// Add inheritance - Parent inherits from Child
+	resp = client.POST("/api/v1/permissions/inheritance", map[string]any{
+		"child_role":  "ParentRole",
+		"parent_role": "ChildRole",
+	}, setup.WithAuth(adminToken))
+	require.Equal(t, 200, resp.StatusCode)
+
+	// Verify inheritance
+	ok, _ := server.Enforcer.Enforce("role:ParentRole", "/api/v1/inherited", "GET")
+	assert.True(t, ok, "Parent should have access via inheritance")
+
+	t.Run("Success - Remove Inheritance", func(t *testing.T) {
+		resp := client.DELETE("/api/v1/permissions/inheritance", map[string]any{
+			"child_role":  "ParentRole",
+			"parent_role": "ChildRole",
+		}, setup.WithAuth(adminToken))
+		assert.Equal(t, 200, resp.StatusCode)
+
+		// Verify inheritance removed
+		ok, _ := server.Enforcer.Enforce("role:ParentRole", "/api/v1/inherited", "GET")
+		assert.False(t, ok, "Parent should NOT have access after inheritance removed")
+	})
+}
+
