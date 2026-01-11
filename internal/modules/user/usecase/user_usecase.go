@@ -80,27 +80,25 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 		Status:   entity.UserStatusActive,
 	}
 
-	// Use Transaction for Atomicity (User Creation + Role Assignment)
 	err = u.DB.WithinTransaction(ctx, func(txCtx context.Context) error {
 		if err := u.Repo.Create(txCtx, user); err != nil {
 			u.Log.Errorf("Failed to create user: %v", err)
 			return exception.ErrInternalServer
 		}
 
-		// RBAC: Assign default role
 		roleAdded := false
 		if u.Enforcer != nil {
 			_, err := u.Enforcer.AddGroupingPolicy(user.ID, "role:user")
 			if err != nil {
 				u.Log.Errorf("Failed to assign default role: %v", err)
-				// Return error to trigger rollback
+
 				return exception.ErrInternalServer
 			}
 			roleAdded = true
 		}
 
 		if u.AuditUC != nil {
-			// Audit log must succeed for strict compliance/integrity.
+
 			err := u.AuditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
 				UserID:    user.ID,
 				Action:    "CREATE",
@@ -110,7 +108,7 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 			})
 			if err != nil {
 				u.Log.Errorf("Failed to create audit log (rollback triggered): %v", err)
-				// Compensation: Undo Casbin change
+
 				if roleAdded && u.Enforcer != nil {
 					if _, errComp := u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID); errComp != nil {
 						u.Log.Errorf("Failed to rollback Casbin policy: %v", errComp)
@@ -146,11 +144,11 @@ func (u *userUseCaseImpl) GetUserByID(ctx context.Context, id string) (*model.Us
 	return converter.UserToResponse(user), nil
 }
 
-func (u *userUseCaseImpl) GetAllUsers(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, error) {
-	users, err := u.Repo.FindAll(ctx, request)
+func (u *userUseCaseImpl) GetAllUsers(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, int64, error) {
+	users, total, err := u.Repo.FindAll(ctx, request)
 	if err != nil {
 		u.Log.Errorf("Failed to get all users: %v", err)
-		return nil, exception.ErrInternalServer
+		return nil, 0, exception.ErrInternalServer
 	}
 
 	var userResponses []*model.UserResponse
@@ -158,14 +156,14 @@ func (u *userUseCaseImpl) GetAllUsers(ctx context.Context, request *model.GetUse
 		userResponses = append(userResponses, converter.UserToResponse(user))
 	}
 
-	return userResponses, nil
+	return userResponses, total, nil
 }
 
-func (u *userUseCaseImpl) GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, error) {
-	users, err := u.Repo.FindAllDynamic(ctx, filter)
+func (u *userUseCaseImpl) GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, int64, error) {
+	users, total, err := u.Repo.FindAllDynamic(ctx, filter)
 	if err != nil {
 		u.Log.Errorf("Failed to find users dynamically: %v", err)
-		return nil, exception.ErrInternalServer
+		return nil, 0, exception.ErrInternalServer
 	}
 
 	var userResponses []*model.UserResponse
@@ -173,7 +171,7 @@ func (u *userUseCaseImpl) GetAllUsersDynamic(ctx context.Context, filter *queryb
 		userResponses = append(userResponses, converter.UserToResponse(user))
 	}
 
-	return userResponses, nil
+	return userResponses, total, nil
 }
 
 func (u *userUseCaseImpl) Current(ctx context.Context, request *model.GetUserRequest) (*model.UserResponse, error) {
@@ -292,14 +290,13 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 
 		var oldRoles []string
 		if u.Enforcer != nil {
-			// Backup roles for compensation
+
 			var err error
 			oldRoles, err = u.Enforcer.GetRolesForUser(user.ID)
 			if err != nil {
 				u.Log.Warnf("Failed to fetch roles for backup in delete: %v", err)
 			}
 
-			// Remove all grouping policies (roles) associated with this user
 			_, err = u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID)
 			if err != nil {
 				u.Log.Errorf("Failed to remove user policies: %v", err)
@@ -321,7 +318,6 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 			if err != nil {
 				u.Log.Errorf("Failed to log audit for delete (rollback triggered): %v", err)
 
-				// COMPENSATE CASBIN: Restore Roles
 				if u.Enforcer != nil && len(oldRoles) > 0 {
 					for _, role := range oldRoles {
 						if _, errComp := u.Enforcer.AddGroupingPolicy(user.ID, role); errComp != nil {

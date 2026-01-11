@@ -18,7 +18,6 @@ type UserModule struct {
 	UserRepo       userRepository.UserRepository
 }
 
-// NewUserModule creates a new UserModule instance with the given dependencies.
 func NewUserModule(
 	db *gorm.DB,
 	log *logrus.Logger,

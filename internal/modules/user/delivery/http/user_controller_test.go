@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockUserUseCase is a mock implementation of usecase.UserUseCase
 type MockUserUseCase struct {
 	mock.Mock
 }
@@ -38,20 +37,20 @@ func (m *MockUserUseCase) GetUserByID(ctx context.Context, id string) (*model.Us
 	return args.Get(0).(*model.UserResponse), args.Error(1)
 }
 
-func (m *MockUserUseCase) GetAllUsers(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, error) {
+func (m *MockUserUseCase) GetAllUsers(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, int64, error) {
 	args := m.Called(ctx, request)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, 0, args.Error(2)
 	}
-	return args.Get(0).([]*model.UserResponse), args.Error(1)
+	return args.Get(0).([]*model.UserResponse), args.Get(1).(int64), args.Error(2)
 }
 
-func (m *MockUserUseCase) GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, error) {
+func (m *MockUserUseCase) GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, int64, error) {
 	args := m.Called(ctx, filter)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, 0, args.Error(2)
 	}
-	return args.Get(0).([]*model.UserResponse), args.Error(1)
+	return args.Get(0).([]*model.UserResponse), args.Get(1).(int64), args.Error(2)
 }
 
 func (m *MockUserUseCase) Current(ctx context.Context, request *model.GetUserRequest) (*model.UserResponse, error) {

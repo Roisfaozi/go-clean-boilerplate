@@ -155,7 +155,7 @@ func (_c *MockUserRepository_Delete_Call) RunAndReturn(run func(ctx context.Cont
 }
 
 // FindAll provides a mock function for the type MockUserRepository
-func (_mock *MockUserRepository) FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, error) {
+func (_mock *MockUserRepository) FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, int64, error) {
 	ret := _mock.Called(ctx, filter)
 
 	if len(ret) == 0 {
@@ -163,8 +163,9 @@ func (_mock *MockUserRepository) FindAll(ctx context.Context, filter *model.GetU
 	}
 
 	var r0 []*entity.User
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) ([]*entity.User, error)); ok {
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) ([]*entity.User, int64, error)); ok {
 		return returnFunc(ctx, filter)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) []*entity.User); ok {
@@ -174,12 +175,17 @@ func (_mock *MockUserRepository) FindAll(ctx context.Context, filter *model.GetU
 			r0 = ret.Get(0).([]*entity.User)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *model.GetUserListRequest) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *model.GetUserListRequest) int64); ok {
 		r1 = returnFunc(ctx, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, *model.GetUserListRequest) error); ok {
+		r2 = returnFunc(ctx, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockUserRepository_FindAll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindAll'
@@ -212,18 +218,18 @@ func (_c *MockUserRepository_FindAll_Call) Run(run func(ctx context.Context, fil
 	return _c
 }
 
-func (_c *MockUserRepository_FindAll_Call) Return(users []*entity.User, err error) *MockUserRepository_FindAll_Call {
-	_c.Call.Return(users, err)
+func (_c *MockUserRepository_FindAll_Call) Return(users []*entity.User, n int64, err error) *MockUserRepository_FindAll_Call {
+	_c.Call.Return(users, n, err)
 	return _c
 }
 
-func (_c *MockUserRepository_FindAll_Call) RunAndReturn(run func(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, error)) *MockUserRepository_FindAll_Call {
+func (_c *MockUserRepository_FindAll_Call) RunAndReturn(run func(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, int64, error)) *MockUserRepository_FindAll_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // FindAllDynamic provides a mock function for the type MockUserRepository
-func (_mock *MockUserRepository) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, error) {
+func (_mock *MockUserRepository) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, int64, error) {
 	ret := _mock.Called(ctx, filter)
 
 	if len(ret) == 0 {
@@ -231,8 +237,9 @@ func (_mock *MockUserRepository) FindAllDynamic(ctx context.Context, filter *que
 	}
 
 	var r0 []*entity.User
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*entity.User, error)); ok {
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*entity.User, int64, error)); ok {
 		return returnFunc(ctx, filter)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) []*entity.User); ok {
@@ -242,12 +249,17 @@ func (_mock *MockUserRepository) FindAllDynamic(ctx context.Context, filter *que
 			r0 = ret.Get(0).([]*entity.User)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) int64); ok {
 		r1 = returnFunc(ctx, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+		r2 = returnFunc(ctx, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockUserRepository_FindAllDynamic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindAllDynamic'
@@ -280,12 +292,12 @@ func (_c *MockUserRepository_FindAllDynamic_Call) Run(run func(ctx context.Conte
 	return _c
 }
 
-func (_c *MockUserRepository_FindAllDynamic_Call) Return(users []*entity.User, err error) *MockUserRepository_FindAllDynamic_Call {
-	_c.Call.Return(users, err)
+func (_c *MockUserRepository_FindAllDynamic_Call) Return(users []*entity.User, n int64, err error) *MockUserRepository_FindAllDynamic_Call {
+	_c.Call.Return(users, n, err)
 	return _c
 }
 
-func (_c *MockUserRepository_FindAllDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, error)) *MockUserRepository_FindAllDynamic_Call {
+func (_c *MockUserRepository_FindAllDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, int64, error)) *MockUserRepository_FindAllDynamic_Call {
 	_c.Call.Return(run)
 	return _c
 }

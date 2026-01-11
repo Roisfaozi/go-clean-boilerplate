@@ -236,14 +236,18 @@ func (h *UserController) GetAllUsers(c *gin.Context) {
 		return
 	}
 
-	users, err := h.UserUseCase.GetAllUsers(ctx, &req)
+	users, total, err := h.UserUseCase.GetAllUsers(ctx, &req)
 	if err != nil {
 		h.Log.WithError(err).Error("failed to get all users")
 		response.HandleError(c, err, "failed to get all users")
 		return
 	}
 
-	response.Success(c, users)
+	response.SuccessResponseWithPaging(c, users, &response.PageMetadata{
+		Page:  req.Page,
+		Limit: req.Limit,
+		Total: total,
+	})
 }
 
 // GetUserByID retrieves a single user by their ID
@@ -340,12 +344,16 @@ func (h *UserController) GetUsersDynamic(c *gin.Context) {
 		return
 	}
 
-	users, err := h.UserUseCase.GetAllUsersDynamic(ctx, &filter)
+	users, total, err := h.UserUseCase.GetAllUsersDynamic(ctx, &filter)
 	if err != nil {
 		h.Log.WithError(err).Error("failed to get users dynamically")
 		response.HandleError(c, err, "failed to retrieve users")
 		return
 	}
 
-	response.Success(c, users)
+	response.SuccessResponseWithPaging(c, users, &response.PageMetadata{
+		Page:  filter.Page,
+		Limit: filter.PageSize,
+		Total: total,
+	})
 }

@@ -235,12 +235,13 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 		}
 		req := &model.GetUserListRequest{Page: 1, Limit: 10}
 
-		deps.Repo.On("FindAll", mock.Anything, req).Return(mockUsers, nil)
+		deps.Repo.On("FindAll", mock.Anything, req).Return(mockUsers, int64(2), nil)
 
-		result, err := uc.GetAllUsers(context.Background(), req)
+		result, total, err := uc.GetAllUsers(context.Background(), req)
 
 		assert.NoError(t, err)
 		assert.Len(t, result, 2)
+		assert.Equal(t, int64(2), total)
 		assert.Equal(t, "user1", result[0].ID)
 		assert.Equal(t, "user2", result[1].ID)
 
@@ -250,12 +251,13 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 	t.Run("Success - Empty Result", func(t *testing.T) {
 		deps, uc := setupUserTest()
 		req := &model.GetUserListRequest{Page: 1, Limit: 10}
-		deps.Repo.On("FindAll", mock.Anything, req).Return([]*entity.User{}, nil)
+		deps.Repo.On("FindAll", mock.Anything, req).Return([]*entity.User{}, int64(0), nil)
 
-		result, err := uc.GetAllUsers(context.Background(), req)
+		result, total, err := uc.GetAllUsers(context.Background(), req)
 
 		assert.NoError(t, err)
 		assert.Empty(t, result)
+		assert.Equal(t, int64(0), total)
 
 		deps.Repo.AssertExpectations(t)
 	})
@@ -265,12 +267,13 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 		dbError := errors.New("database connection failed")
 		req := &model.GetUserListRequest{Page: 1, Limit: 10}
 
-		deps.Repo.On("FindAll", mock.Anything, req).Return(nil, dbError)
+		deps.Repo.On("FindAll", mock.Anything, req).Return(nil, int64(0), dbError)
 
-		result, err := uc.GetAllUsers(context.Background(), req)
+		result, total, err := uc.GetAllUsers(context.Background(), req)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
+		assert.Equal(t, int64(0), total)
 		assert.Equal(t, exception.ErrInternalServer, err)
 		deps.Repo.AssertExpectations(t)
 	})
@@ -559,12 +562,13 @@ func TestUserUseCase_GetAllUsersDynamic(t *testing.T) {
 			},
 		}
 
-		deps.Repo.On("FindAllDynamic", mock.Anything, filter).Return(mockUsers, nil)
+		deps.Repo.On("FindAllDynamic", mock.Anything, filter).Return(mockUsers, int64(2), nil)
 
-		result, err := uc.GetAllUsersDynamic(context.Background(), filter)
+		result, total, err := uc.GetAllUsersDynamic(context.Background(), filter)
 
 		assert.NoError(t, err)
 		assert.Len(t, result, 2)
+		assert.Equal(t, int64(2), total)
 		assert.Equal(t, "user1", result[0].ID)
 		assert.Equal(t, "Dynamic User 1", result[0].Name)
 
@@ -582,12 +586,13 @@ func TestUserUseCase_GetAllUsersDynamic(t *testing.T) {
 			},
 		}
 
-		deps.Repo.On("FindAllDynamic", mock.Anything, filter).Return(nil, dbError)
+		deps.Repo.On("FindAllDynamic", mock.Anything, filter).Return(nil, int64(0), dbError)
 
-		result, err := uc.GetAllUsersDynamic(context.Background(), filter)
+		result, total, err := uc.GetAllUsersDynamic(context.Background(), filter)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
+		assert.Equal(t, int64(0), total)
 		assert.Equal(t, expectedError, err)
 		deps.Repo.AssertExpectations(t)
 	})

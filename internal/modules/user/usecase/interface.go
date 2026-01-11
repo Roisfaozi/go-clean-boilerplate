@@ -10,8 +10,8 @@ import (
 type UserUseCase interface {
 	Create(ctx context.Context, request *model.RegisterUserRequest) (*model.UserResponse, error)
 	GetUserByID(ctx context.Context, id string) (*model.UserResponse, error)
-	GetAllUsers(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, error)
-	GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, error)
+	GetAllUsers(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, int64, error)
+	GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, int64, error)
 	Current(ctx context.Context, request *model.GetUserRequest) (*model.UserResponse, error)
 	Update(ctx context.Context, request *model.UpdateUserRequest) (*model.UserResponse, error)
 	UpdateStatus(ctx context.Context, userID, status string) error

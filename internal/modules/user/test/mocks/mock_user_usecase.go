@@ -239,7 +239,7 @@ func (_c *MockUserUseCase_DeleteUser_Call) RunAndReturn(run func(ctx context.Con
 }
 
 // GetAllUsers provides a mock function for the type MockUserUseCase
-func (_mock *MockUserUseCase) GetAllUsers(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, error) {
+func (_mock *MockUserUseCase) GetAllUsers(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, int64, error) {
 	ret := _mock.Called(ctx, request)
 
 	if len(ret) == 0 {
@@ -247,8 +247,9 @@ func (_mock *MockUserUseCase) GetAllUsers(ctx context.Context, request *model.Ge
 	}
 
 	var r0 []*model.UserResponse
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) ([]*model.UserResponse, error)); ok {
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) ([]*model.UserResponse, int64, error)); ok {
 		return returnFunc(ctx, request)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) []*model.UserResponse); ok {
@@ -258,12 +259,17 @@ func (_mock *MockUserUseCase) GetAllUsers(ctx context.Context, request *model.Ge
 			r0 = ret.Get(0).([]*model.UserResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *model.GetUserListRequest) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *model.GetUserListRequest) int64); ok {
 		r1 = returnFunc(ctx, request)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, *model.GetUserListRequest) error); ok {
+		r2 = returnFunc(ctx, request)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockUserUseCase_GetAllUsers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAllUsers'
@@ -296,18 +302,18 @@ func (_c *MockUserUseCase_GetAllUsers_Call) Run(run func(ctx context.Context, re
 	return _c
 }
 
-func (_c *MockUserUseCase_GetAllUsers_Call) Return(userResponses []*model.UserResponse, err error) *MockUserUseCase_GetAllUsers_Call {
-	_c.Call.Return(userResponses, err)
+func (_c *MockUserUseCase_GetAllUsers_Call) Return(userResponses []*model.UserResponse, n int64, err error) *MockUserUseCase_GetAllUsers_Call {
+	_c.Call.Return(userResponses, n, err)
 	return _c
 }
 
-func (_c *MockUserUseCase_GetAllUsers_Call) RunAndReturn(run func(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, error)) *MockUserUseCase_GetAllUsers_Call {
+func (_c *MockUserUseCase_GetAllUsers_Call) RunAndReturn(run func(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, int64, error)) *MockUserUseCase_GetAllUsers_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetAllUsersDynamic provides a mock function for the type MockUserUseCase
-func (_mock *MockUserUseCase) GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, error) {
+func (_mock *MockUserUseCase) GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, int64, error) {
 	ret := _mock.Called(ctx, filter)
 
 	if len(ret) == 0 {
@@ -315,8 +321,9 @@ func (_mock *MockUserUseCase) GetAllUsersDynamic(ctx context.Context, filter *qu
 	}
 
 	var r0 []*model.UserResponse
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*model.UserResponse, error)); ok {
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*model.UserResponse, int64, error)); ok {
 		return returnFunc(ctx, filter)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) []*model.UserResponse); ok {
@@ -326,12 +333,17 @@ func (_mock *MockUserUseCase) GetAllUsersDynamic(ctx context.Context, filter *qu
 			r0 = ret.Get(0).([]*model.UserResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) int64); ok {
 		r1 = returnFunc(ctx, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+		r2 = returnFunc(ctx, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockUserUseCase_GetAllUsersDynamic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAllUsersDynamic'
@@ -364,12 +376,12 @@ func (_c *MockUserUseCase_GetAllUsersDynamic_Call) Run(run func(ctx context.Cont
 	return _c
 }
 
-func (_c *MockUserUseCase_GetAllUsersDynamic_Call) Return(userResponses []*model.UserResponse, err error) *MockUserUseCase_GetAllUsersDynamic_Call {
-	_c.Call.Return(userResponses, err)
+func (_c *MockUserUseCase_GetAllUsersDynamic_Call) Return(userResponses []*model.UserResponse, n int64, err error) *MockUserUseCase_GetAllUsersDynamic_Call {
+	_c.Call.Return(userResponses, n, err)
 	return _c
 }
 
-func (_c *MockUserUseCase_GetAllUsersDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, error)) *MockUserUseCase_GetAllUsersDynamic_Call {
+func (_c *MockUserUseCase_GetAllUsersDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, int64, error)) *MockUserUseCase_GetAllUsersDynamic_Call {
 	_c.Call.Return(run)
 	return _c
 }

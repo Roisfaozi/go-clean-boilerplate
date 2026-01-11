@@ -17,7 +17,6 @@ type userRepositoryData struct {
 	log *logrus.Logger
 }
 
-// NewUserRepository creates a new instance of UserRepository.
 func NewUserRepository(db *gorm.DB, log *logrus.Logger) UserRepository {
 	return &userRepositoryData{
 		db:  db,
@@ -25,7 +24,6 @@ func NewUserRepository(db *gorm.DB, log *logrus.Logger) UserRepository {
 	}
 }
 
-// getDB returns the transactional DB from context if available, otherwise returns the default DB with context
 func (r *userRepositoryData) getDB(ctx context.Context) *gorm.DB {
 	if txDB, ok := tx.DBFromContext(ctx); ok {
 		return txDB
@@ -101,15 +99,21 @@ func (r *userRepositoryData) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, error) {
+func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, int64, error) {
 	var users []*entity.User
-	query := r.getDB(ctx)
+	var total int64
+	query := r.getDB(ctx).Model(&entity.User{})
 
 	if filter.Username != "" {
 		query = query.Where("name LIKE ?", "%"+filter.Username+"%")
 	}
 	if filter.Email != "" {
 		query = query.Where("email LIKE ?", "%"+filter.Email+"%")
+	}
+
+	// Get Total Count before pagination using a session branch
+	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 
 	limit := filter.Limit
@@ -125,32 +129,45 @@ func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserL
 
 	if err := query.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("failed to find all users")
-		return nil, err
+		return nil, 0, err
 	}
-	return users, nil
+	return users, total, nil
 }
 
-func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.User, error) {
+func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.User, int64, error) {
 	var users []*entity.User
+	var total int64
 	query := r.getDB(ctx).Model(&entity.User{})
 
 	// Apply Dynamic Filter
-	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.User{}, filter)
+	var err error
+	query, err = querybuilder2.GenerateDynamicQuery(query, &entity.User{}, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	// Get Total Count using a session branch
+	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 
 	// Apply Dynamic Sort
 	query, err = querybuilder2.GenerateDynamicSort(query, &entity.User{}, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	// Apply Pagination if present
+	if filter.Page > 0 && filter.PageSize > 0 {
+		offset := (filter.Page - 1) * filter.PageSize
+		query = query.Limit(filter.PageSize).Offset(offset)
 	}
 
 	if err := query.Find(&users).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("failed to find users dynamic")
-		return nil, err
+		return nil, 0, err
 	}
-	return users, nil
+	return users, total, nil
 }
 
 func (r *userRepositoryData) FindByUsername(ctx context.Context, username string) (*entity.User, error) {

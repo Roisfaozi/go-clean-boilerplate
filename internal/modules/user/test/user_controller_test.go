@@ -27,7 +27,7 @@ func setupUserTestRouter() *gin.Engine {
 
 func newTestUserHandler(mockUseCase *mocks.MockUserUseCase) *userHandler.UserController {
 	log := logrus.New()
-	log.SetLevel(logrus.PanicLevel) // Suppress logs during tests
+	log.SetLevel(logrus.PanicLevel)
 	return userHandler.NewUserController(mockUseCase, log, validator.New())
 }
 
@@ -50,8 +50,6 @@ func TestUserHandler_RegisterUser_Success(t *testing.T) {
 
 	mockUseCase.On("Create", mock.Anything, reqBody).Return(resBody, nil)
 
-	// Note: Because the model has `json:"fullname"` on the `Name` field,
-	// the JSON body must use `fullname`.
 	jsonBody := `{"username":"testuser","password":"password123","fullname":"Test User","email":"test@example.com"}`
 
 	req, _ := http.NewRequest(http.MethodPost, "/users/register", bytes.NewBufferString(jsonBody))
@@ -144,7 +142,7 @@ func TestUserHandler_RegisterUser_ValidationError(t *testing.T) {
 func TestUserHandler_GetCurrentUser_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockUserUseCase)
 	handler := newTestUserHandler(mockUseCase)
-	
+
 	userID := "user-123"
 	resBody := &model.UserResponse{
 		ID:   userID,
@@ -176,7 +174,7 @@ func TestUserHandler_GetCurrentUser_Success(t *testing.T) {
 func TestUserHandler_GetCurrentUser_NotFound(t *testing.T) {
 	mockUseCase := new(mocks.MockUserUseCase)
 	handler := newTestUserHandler(mockUseCase)
-	
+
 	userID := "not-found-user"
 	mockUseCase.On("Current", mock.Anything, &model.GetUserRequest{ID: userID}).Return(nil, exception.ErrNotFound)
 
@@ -206,7 +204,7 @@ func TestUserHandler_GetAllUsers(t *testing.T) {
 		}
 		expectedReq := &model.GetUserListRequest{Page: 0, Limit: 0, Username: "", Email: ""}
 
-		mockUseCase.On("GetAllUsers", mock.Anything, expectedReq).Return(expectedUsers, nil).Once()
+		mockUseCase.On("GetAllUsers", mock.Anything, expectedReq).Return(expectedUsers, int64(2), nil).Once()
 
 		req, _ := http.NewRequest(http.MethodGet, "/users", nil)
 		w := httptest.NewRecorder()
@@ -224,7 +222,7 @@ func TestUserHandler_GetAllUsers(t *testing.T) {
 
 	t.Run("Internal Server Error", func(t *testing.T) {
 		expectedReq := &model.GetUserListRequest{Page: 0, Limit: 0, Username: "", Email: ""}
-		mockUseCase.On("GetAllUsers", mock.Anything, expectedReq).Return(nil, exception.ErrInternalServer).Once()
+		mockUseCase.On("GetAllUsers", mock.Anything, expectedReq).Return(nil, int64(0), exception.ErrInternalServer).Once()
 
 		req, _ := http.NewRequest(http.MethodGet, "/users", nil)
 		w := httptest.NewRecorder()
@@ -335,7 +333,7 @@ func TestUserHandler_UpdateStatus(t *testing.T) {
 		body := `{"status":"banned"}`
 		req, _ := http.NewRequest(http.MethodPatch, "/users/"+userID+"/status", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -352,7 +350,7 @@ func TestUserHandler_UpdateStatus(t *testing.T) {
 		body := `{"status":"invalid-status"}`
 		req, _ := http.NewRequest(http.MethodPatch, "/users/"+userID+"/status", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -365,14 +363,14 @@ func TestUserHandler_UpdateStatus(t *testing.T) {
 		handler := newTestUserHandler(mockUseCase)
 		router := setupUserTestRouter()
 		router.PATCH("/users/:id/status", handler.UpdateUserStatus)
-		
+
 		status := "active"
 		mockUseCase.On("UpdateStatus", mock.Anything, userID, status).Return(exception.ErrNotFound).Once()
-		
+
 		body := `{"status":"active"}`
 		req, _ := http.NewRequest(http.MethodPatch, "/users/"+userID+"/status", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
