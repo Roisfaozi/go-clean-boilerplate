@@ -27,6 +27,8 @@ func NewAuditModule(db *gorm.DB, log *logrus.Logger) *AuditModule {
 
 	return &AuditModule{
 		AuditController: controller,
+		AuditUseCase:    uc,
+		AuditRepo:       repo,
 	}
 }
 
