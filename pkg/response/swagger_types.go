@@ -73,6 +73,12 @@ type SwaggerEndpointResponseWrapper struct {
 	Paging *PageMetadata                `json:"paging,omitempty"`
 }
 
+// SwaggerEndpointListResponseWrapper wraps a list of EndpointResponse for Swagger documentation (Success).
+type SwaggerEndpointListResponseWrapper struct {
+	Data   []accessModel.EndpointResponse `json:"data"`
+	Paging *PageMetadata                  `json:"paging,omitempty"`
+}
+
 // SwaggerPermissionListResponseWrapper wraps a list of permissions for Swagger documentation (Success).
 type SwaggerPermissionListResponseWrapper struct {
 	Data   [][]string    `json:"data"`

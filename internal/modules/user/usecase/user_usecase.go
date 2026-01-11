@@ -256,13 +256,15 @@ func (u *userUseCaseImpl) UpdateStatus(ctx context.Context, userID, status strin
 	}
 
 	if u.AuditUC != nil {
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:    userID,
 			Action:    "UPDATE_STATUS",
 			Entity:    "User",
 			EntityID:  userID,
 			NewValues: map[string]interface{}{"status": status},
-		})
+		}); err != nil {
+			u.Log.Warnf("Failed to log activity: %v", err)
+		}
 	}
 
 	return nil
@@ -318,7 +320,7 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 			})
 			if err != nil {
 				u.Log.Errorf("Failed to log audit for delete (rollback triggered): %v", err)
-				
+
 				// COMPENSATE CASBIN: Restore Roles
 				if u.Enforcer != nil && len(oldRoles) > 0 {
 					for _, role := range oldRoles {
@@ -327,7 +329,7 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 						}
 					}
 				}
-				
+
 				return exception.ErrInternalServer
 			}
 		}

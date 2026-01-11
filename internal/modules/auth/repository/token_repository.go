@@ -51,10 +51,6 @@ func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger, db *gorm.
 func (r *tokenRepositoryRedis) StoreToken(ctx context.Context, session *model.Auth) error {
 	key := r.getSessionKey(session.UserID, session.ID)
 
-	now := time.Now()
-	session.CreatedAt = now
-	session.UpdatedAt = now
-
 	sessionJSON, err := json.Marshal(session)
 	if err != nil {
 		r.log.WithError(err).Error("Failed to marshal session to JSON")

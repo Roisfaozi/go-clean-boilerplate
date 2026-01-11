@@ -1,7 +1,9 @@
 package http
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -97,4 +99,38 @@ func TestUserController_GetAllUsers_Validation(t *testing.T) {
 	// Assertions for FIXED state
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code) // Validation error
 	mockUsecase.AssertNotCalled(t, "GetAllUsers")
+}
+
+func TestUserController_GetUsersDynamic_Validation(t *testing.T) {
+	// Setup
+	gin.SetMode(gin.TestMode)
+	mockUsecase := new(MockUserUseCase)
+	logger := logrus.New()
+	validate := validator.New()
+	controller := NewUserController(mockUsecase, logger, validate)
+
+	router := gin.New()
+	router.POST("/users/search", controller.GetUsersDynamic)
+
+	// Case 1: Invalid Sort Direction (should fail if validation exists, but initially will pass or error differently)
+	// We want to verify that validation IS enforced.
+
+	invalidSort := []querybuilder.SortModel{
+		{ColId: "username", Sort: "INVALID_DIRECTION"},
+	}
+	filter := querybuilder.DynamicFilter{
+		Sort: &invalidSort,
+	}
+	body, _ := json.Marshal(filter)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/users/search", bytes.NewReader(body))
+
+	// We expect NO call to usecase because validation should fail first
+	// If validation fails, it returns 422.
+
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code, "Expected validation error for invalid sort direction")
+	mockUsecase.AssertNotCalled(t, "GetAllUsersDynamic")
 }

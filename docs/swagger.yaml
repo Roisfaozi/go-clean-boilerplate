@@ -1,10 +1,10 @@
 basePath: /api/v1
 definitions:
-  github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightListResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightResponse'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightResponse'
         type: array
       meta:
         properties:
@@ -12,7 +12,7 @@ definitions:
             type: integer
         type: object
     type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightResponse:
     properties:
       created_at:
         type: integer
@@ -20,16 +20,16 @@ definitions:
         type: string
       endpoints:
         items:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.EndpointResponse'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.EndpointResponse'
         type: array
       id:
-        type: integer
+        type: string
       name:
         type: string
       updated_at:
         type: integer
     type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_access_model.CreateAccessRightRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.CreateAccessRightRequest:
     properties:
       description:
         maxLength: 255
@@ -41,7 +41,7 @@ definitions:
     required:
     - name
     type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_access_model.CreateEndpointRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.CreateEndpointRequest:
     properties:
       method:
         maxLength: 10
@@ -55,123 +55,28 @@ definitions:
     - method
     - path
     type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_access_model.EndpointResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.EndpointResponse:
     properties:
       created_at:
         type: integer
       id:
-        type: integer
+        type: string
       method:
         type: string
       path:
         type: string
     type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_access_model.LinkEndpointRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.LinkEndpointRequest:
     properties:
       access_right_id:
-        type: integer
+        type: string
       endpoint_id:
-        type: integer
+        type: string
     required:
     - access_right_id
     - endpoint_id
     type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginRequest:
-    properties:
-      password:
-        minLength: 8
-        type: string
-      username:
-        maxLength: 50
-        minLength: 3
-        type: string
-    required:
-    - password
-    - username
-    type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginResponse:
-    properties:
-      access_token:
-        type: string
-      expires_at:
-        type: string
-      expires_in:
-        type: integer
-      refresh_token:
-        type: string
-      token_type:
-        type: string
-      user:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.UserInfo'
-    type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_auth_model.TokenResponse:
-    properties:
-      access_token:
-        type: string
-      expires_at:
-        type: string
-      expires_in:
-        type: integer
-      refresh_token:
-        type: string
-      token_type:
-        type: string
-    type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_auth_model.UserInfo:
-    properties:
-      email:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      role:
-        type: string
-      username:
-        type: string
-    type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_permission_model.AssignRoleRequest:
-    properties:
-      role:
-        type: string
-      user_id:
-        type: string
-    required:
-    - role
-    - user_id
-    type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_permission_model.GrantPermissionRequest:
-    properties:
-      method:
-        type: string
-      path:
-        type: string
-      role:
-        type: string
-    required:
-    - method
-    - path
-    - role
-    type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_permission_model.UpdatePermissionRequest:
-    properties:
-      new_permission:
-        items:
-          type: string
-        maxItems: 3
-        minItems: 3
-        type: array
-      old_permission:
-        items:
-          type: string
-        maxItems: 3
-        minItems: 3
-        type: array
-    required:
-    - new_permission
-    - old_permission
-    type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_role_model.CreateRoleRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.CreateRoleRequest:
     properties:
       description:
         type: string
@@ -181,7 +86,7 @@ definitions:
     required:
     - name
     type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_role_model.RoleResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.RoleResponse:
     properties:
       description:
         type: string
@@ -190,16 +95,17 @@ definitions:
       name:
         type: string
     type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_user_model.RegisterUserRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.RegisterUserRequest:
     properties:
       email:
+        maxLength: 100
         type: string
       fullname:
         maxLength: 100
         minLength: 3
         type: string
       password:
-        maxLength: 100
+        maxLength: 72
         minLength: 8
         type: string
       username:
@@ -207,20 +113,38 @@ definitions:
         minLength: 6
         type: string
     required:
+    - email
     - fullname
     - password
     - username
     type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_user_model.UpdateUserRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UpdateUserRequest:
     properties:
       name:
         maxLength: 100
         type: string
       password:
-        maxLength: 100
+        maxLength: 72
         type: string
+      username:
+        maxLength: 100
+        minLength: 6
+        type: string
+    required:
+    - username
     type: object
-  github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UpdateUserStatusRequest:
+    properties:
+      status:
+        enum:
+        - active
+        - suspended
+        - banned
+        type: string
+    required:
+    - status
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse:
     properties:
       created_at:
         type: integer
@@ -230,6 +154,8 @@ definitions:
         type: string
       name:
         type: string
+      status:
+        type: string
       token:
         type: string
       updated_at:
@@ -237,7 +163,53 @@ definitions:
       username:
         type: string
     type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter:
+    properties:
+      filter:
+        additionalProperties:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.Filter'
+        type: object
+      sort:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.SortModel'
+        type: array
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.Filter:
+    properties:
+      from: {}
+      to: {}
+      type:
+        enum:
+        - equals
+        - contains
+        - in
+        - between
+        - gt
+        - gte
+        - lt
+        - lte
+        - ne
+        type: string
+    required:
+    - type
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.SortModel:
+    properties:
+      colId:
+        maxLength: 100
+        type: string
+      sort:
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        type: string
+    required:
+    - colId
+    - sort
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata:
     properties:
       page:
         type: integer
@@ -248,35 +220,44 @@ definitions:
       total_page:
         type: integer
     type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerAccessRightListResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightListResponseWrapper:
     properties:
       data:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightListResponse'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightListResponse'
       paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerAccessRightResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightResponseWrapper:
     properties:
       data:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightResponse'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightResponse'
       paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerEndpointResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointListResponseWrapper:
     properties:
       data:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.EndpointResponse'
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.EndpointResponse'
+        type: array
       paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointResponseWrapper:
+    properties:
+      data:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.EndpointResponse'
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper:
     properties:
       error:
         type: string
       message:
         type: string
     type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper:
     properties:
       data:
         additionalProperties:
@@ -284,64 +265,39 @@ definitions:
         description: 'Example: {"message": "success"}'
         type: object
       paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerLoginResponseWrapper:
-    properties:
-      data:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginResponse'
-      paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
-    type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerPermissionListResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleListResponseWrapper:
     properties:
       data:
         items:
-          items:
-            type: string
-          type: array
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.RoleResponse'
         type: array
       paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerRoleListResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleResponseWrapper:
+    properties:
+      data:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.RoleResponse'
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserListResponseWrapper:
     properties:
       data:
         items:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.RoleResponse'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse'
         type: array
       paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerRoleResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper:
     properties:
       data:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.RoleResponse'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse'
       paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
-    type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerTokenResponseWrapper:
-    properties:
-      data:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.TokenResponse'
-      paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
-    type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserListResponseWrapper:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse'
-        type: array
-      paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
-    type: object
-  github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper:
-    properties:
-      data:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse'
-      paging:
-        $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
 host: localhost:8080
 info:
@@ -349,12 +305,13 @@ info:
     email: support@swagger.io
     name: API Support
     url: http://www.swagger.io/support
-  description: This is a sample server for a modular application with JWT authentication.
+  description: This is a clean and modular boilerplate for Go REST APIs with RBAC,
+    Audit Logs, and WebSockets.
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: http://swagger.io/terms/
-  title: Modular API with JWT
+  title: Go Clean Boilerplate API
   version: "1.0"
 paths:
   /access-rights:
@@ -366,11 +323,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerAccessRightListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightListResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: List all access rights
@@ -386,29 +343,58 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.CreateAccessRightRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.CreateAccessRightRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerAccessRightResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Create access right
+      tags:
+      - access-rights
+  /access-rights/{id}:
+    delete:
+      description: Deletes an access right by ID.
+      parameters:
+      - description: Access Right ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Access right deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "404":
+          description: Access right not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Delete access right
       tags:
       - access-rights
   /access-rights/link:
@@ -422,115 +408,72 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.LinkEndpointRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.LinkEndpointRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Endpoint linked successfully
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Link endpoint to access right
       tags:
       - access-rights
-  /auth/login:
+  /access-rights/search:
     post:
       consumes:
       - application/json
-      description: Logs in a user by validating credentials and returns an access
-        token and a refresh token cookie.
+      description: Retrieves a list of access rights based on dynamic filter and sort
+        criteria provided in the request body.
       parameters:
-      - description: Login Credentials
+      - description: Dynamic filter and sort criteria
         in: body
-        name: loginRequest
+        name: filter
         required: true
         schema:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerLoginResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightListResponseWrapper'
         "400":
-          description: Invalid request body
+          description: Invalid request body or filter criteria
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
-          description: Invalid credentials
+          description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-        "422":
-          description: Validation Error
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "403":
+          description: Forbidden
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-      summary: User Login
-      tags:
-      - auth
-  /auth/logout:
-    post:
-      description: Logs out the current user by revoking their session.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 'message: logged out successfully'
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
-        "401":
-          description: User not authenticated or invalid session
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
-      summary: User Logout
+      summary: Get access rights with dynamic filters
       tags:
-      - auth
-  /auth/refresh:
-    post:
-      description: Refreshes an access token using a valid refresh token provided
-        in an HTTP-only cookie.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerTokenResponseWrapper'
-        "401":
-          description: Refresh token not found or invalid
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-      summary: Refresh Access Token
-      tags:
-      - auth
+      - access-rights
   /endpoints:
     post:
       consumes:
@@ -542,226 +485,101 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.CreateEndpointRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.CreateEndpointRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerEndpointResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Create endpoint
       tags:
       - endpoints
-  /permissions:
-    get:
-      description: Retrieves all policies from the Casbin enforcer.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerPermissionListResponseWrapper'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-      security:
-      - BearerAuth: []
-      summary: Get all permissions
-      tags:
-      - permissions
-    put:
-      consumes:
-      - application/json
-      description: Updates an existing policy rule.
+  /endpoints/{id}:
+    delete:
+      description: Deletes an endpoint by ID.
       parameters:
-      - description: Update Permission Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_permission_model.UpdatePermissionRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Permission updated successfully
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
-        "400":
-          description: Invalid request body
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-        "404":
-          description: Policy to update not found
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-        "422":
-          description: Validation Error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-      security:
-      - BearerAuth: []
-      summary: Update permission
-      tags:
-      - permissions
-  /permissions/{role}:
-    get:
-      description: Retrieves all permissions associated with a specific role.
-      parameters:
-      - description: Role Name
+      - description: Endpoint ID
         in: path
-        name: role
+        name: id
         required: true
         type: string
       produces:
       - application/json
       responses:
         "200":
+          description: Endpoint deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "404":
+          description: Endpoint not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Delete endpoint
+      tags:
+      - endpoints
+  /endpoints/search:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a list of endpoints based on dynamic filter and sort
+        criteria provided in the request body.
+      parameters:
+      - description: Dynamic filter and sort criteria
+        in: body
+        name: filter
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter'
+      produces:
+      - application/json
+      responses:
+        "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerPermissionListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointListResponseWrapper'
         "400":
-          description: Role parameter required
+          description: Invalid request body or filter criteria
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
-      summary: Get permissions for role
+      summary: Get endpoints with dynamic filters
       tags:
-      - permissions
-  /permissions/assign-role:
-    post:
-      consumes:
-      - application/json
-      description: Assigns a specific role to a user.
-      parameters:
-      - description: Assign Role Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_permission_model.AssignRoleRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Role assigned successfully
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
-        "400":
-          description: Invalid request body
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-        "422":
-          description: Validation Error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-      security:
-      - BearerAuth: []
-      summary: Assign role to user
-      tags:
-      - permissions
-  /permissions/grant:
-    post:
-      consumes:
-      - application/json
-      description: Grants a specific permission (path & method) to a role.
-      parameters:
-      - description: Grant Permission Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_permission_model.GrantPermissionRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Permission granted successfully
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
-        "400":
-          description: Invalid request body
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-        "422":
-          description: Validation Error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-      security:
-      - BearerAuth: []
-      summary: Grant permission
-      tags:
-      - permissions
-  /permissions/revoke:
-    delete:
-      consumes:
-      - application/json
-      description: Revokes a specific permission (path & method) from a role.
-      parameters:
-      - description: Revoke Permission Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_permission_model.GrantPermissionRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Permission revoked successfully
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
-        "400":
-          description: Invalid request body
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-        "422":
-          description: Validation Error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
-      security:
-      - BearerAuth: []
-      summary: Revoke permission
-      tags:
-      - permissions
+      - endpoints
   /roles:
     get:
       description: Get a list of all available roles.
@@ -771,11 +589,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerRoleListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleListResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: List all roles
@@ -791,33 +609,107 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.CreateRoleRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.CreateRoleRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerRoleResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "409":
           description: Role already exists
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Create a new role
+      tags:
+      - roles
+  /roles/{id}:
+    delete:
+      description: Deletes a role by ID. Only superadmin should have access.
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "403":
+          description: Forbidden (cannot delete superadmin)
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Role not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Delete role
+      tags:
+      - roles
+  /roles/search:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a list of roles based on dynamic filter and sort criteria
+        provided in the request body.
+      parameters:
+      - description: Dynamic filter and sort criteria
+        in: body
+        name: filter
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleListResponseWrapper'
+        "400":
+          description: Invalid request body or filter criteria
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get roles with dynamic filters
       tags:
       - roles
   /users:
@@ -847,23 +739,23 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserListResponseWrapper'
         "400":
           description: Invalid query parameters
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get all users
@@ -884,23 +776,23 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Delete user by ID
@@ -921,26 +813,79 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get user by ID
+      tags:
+      - users
+  /users/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Updates the status of a specific user. Accessible only by admins/superadmins.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New Status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UpdateUserStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Update user status
       tags:
       - users
   /users/me:
@@ -952,19 +897,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get current user
@@ -980,34 +925,34 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UpdateUserRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UpdateUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Update current user
@@ -1024,31 +969,72 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.RegisterUserRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.RegisterUserRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "409":
           description: User with the same ID already exists
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       summary: Register a new user
+      tags:
+      - users
+  /users/search:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a list of users based on dynamic filter and sort criteria
+        provided in the request body.
+      parameters:
+      - description: Dynamic filter and sort criteria
+        in: body
+        name: filter
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserListResponseWrapper'
+        "400":
+          description: Invalid request body or filter criteria
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get users with dynamic filters
       tags:
       - users
 securityDefinitions:

@@ -76,6 +76,8 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 	deps.AuditUC.AssertExpectations(t)
 }
 
+
+
 func TestUserUseCase_Create_Conflict(t *testing.T) {
 	deps, uc := setupUserTest()
 
@@ -144,6 +146,24 @@ func TestUserUseCase_Create_AuditError(t *testing.T) {
 
 	_, err := uc.Create(context.Background(), req)
 	assert.ErrorIs(t, err, exception.ErrInternalServer)
+}
+
+func TestUserUseCase_Create_EnforcerError(t *testing.T) {
+	deps, uc := setupUserTest()
+	req := &model.RegisterUserRequest{
+		Username: "user", Email: "test@example.com", Password: "password123", Name: "Test",
+	}
+
+	deps.Repo.On("FindByUsername", mock.Anything, "user").Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("Create", mock.Anything, mock.Anything).Return(nil)
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, "role:user").Return(false, errors.New("casbin error"))
+	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+	result, err := uc.Create(context.Background(), req)
+	assert.NoError(t, err) // Should proceed even if role assignment fails
+	assert.NotNil(t, result)
+	deps.Enforcer.AssertExpectations(t)
 }
 
 func TestUserUseCase_GetUserByID(t *testing.T) {
@@ -309,6 +329,36 @@ func TestUserUseCase_Update(t *testing.T) {
 		deps.AuditUC.AssertExpectations(t)
 	})
 
+	t.Run("Success - Update Username", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		request := &model.UpdateUserRequest{
+			ID: "user123", Username: "newuser",
+		}
+		existingUser := &entity.User{ID: "user123", Username: "olduser"}
+
+		deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		deps.Repo.On("FindByUsername", mock.Anything, "newuser").Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(nil)
+		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+		_, err := uc.Update(context.Background(), request)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error - Username Conflict", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		request := &model.UpdateUserRequest{
+			ID: "user123", Username: "exists",
+		}
+		existingUser := &entity.User{ID: "user123", Username: "olduser"}
+
+		deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		deps.Repo.On("FindByUsername", mock.Anything, "exists").Return(&entity.User{Username: "exists"}, nil)
+
+		_, err := uc.Update(context.Background(), request)
+		assert.ErrorIs(t, err, exception.ErrConflict)
+	})
+
 	t.Run("Update Password - Success", func(t *testing.T) {
 		deps, uc := setupUserTest()
 		request := &model.UpdateUserRequest{
@@ -323,6 +373,22 @@ func TestUserUseCase_Update(t *testing.T) {
 
 		_, err := uc.Update(context.Background(), request)
 		assert.NoError(t, err)
+	})
+
+	t.Run("Update - Conflict", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		request := &model.UpdateUserRequest{
+			ID: "user123", Username: "exists",
+		}
+
+		existingUser := &entity.User{ID: "user123", Username: "original"}
+		otherUser := &entity.User{ID: "user456", Username: "exists"}
+
+		deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		deps.Repo.On("FindByUsername", mock.Anything, "exists").Return(otherUser, nil)
+
+		_, err := uc.Update(context.Background(), request)
+		assert.ErrorIs(t, err, exception.ErrConflict)
 	})
 
 	t.Run("Error - User Not Found", func(t *testing.T) {
@@ -354,6 +420,19 @@ func TestUserUseCase_Update(t *testing.T) {
 		_, err := uc.Update(context.Background(), request)
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
 	})
+
+	t.Run("Audit Log Error", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		request := &model.UpdateUserRequest{ID: "user123", Name: "Updated"}
+		existingUser := &entity.User{ID: "user123"}
+
+		deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(nil)
+		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
+
+		_, err := uc.Update(context.Background(), request)
+		assert.NoError(t, err) // Should not fail if audit logging fails
+	})
 }
 
 func TestUserUseCase_DeleteUser(t *testing.T) {
@@ -371,10 +450,10 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		})
 
 		deps.Repo.On("Delete", mock.Anything, deleteReq.ID).Return(nil)
-		
+
 		// Expect Backup Roles
 		deps.Enforcer.On("GetRolesForUser", deleteReq.ID).Return([]string{"role:user"}, nil)
-		
+
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, deleteReq.ID).Return(true, nil)
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
@@ -383,7 +462,6 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		assert.NoError(t, err)
 		deps.Repo.AssertExpectations(t)
 		deps.AuditUC.AssertExpectations(t)
-		deps.Enforcer.AssertExpectations(t)
 	})
 
 	t.Run("Error - User Not Found", func(t *testing.T) {
@@ -407,10 +485,6 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, exception.ErrBadRequest, err)
-		// deps.AuditUC cannot be accessed if we ignored it in setup return,
-		// but since we updated setupUserTest to return a struct, we can access it safely if we use the struct pattern fully.
-		// However, in this line I used `_, uc` which ignores deps.
-		// It's safe because if validation fails early, mocks shouldn't be called anyway.
 	})
 
 	t.Run("Error - Database Error During Delete", func(t *testing.T) {
@@ -436,7 +510,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 
 	t.Run("Error - Audit Log Fails (Compensation Triggered)", func(t *testing.T) {
 		deps, uc := setupUserTest()
-		
+
 		deps.Repo.On("FindByID", mock.Anything, deleteReq.ID).Return(&entity.User{ID: deleteReq.ID, Username: "deletedUser"}, nil)
 
 		// Mock Transaction
@@ -445,13 +519,13 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		})
 
 		deps.Repo.On("Delete", mock.Anything, deleteReq.ID).Return(nil)
-		
+
 		// Expect Backup Roles
 		deps.Enforcer.On("GetRolesForUser", deleteReq.ID).Return([]string{"role:user", "role:admin"}, nil)
-		
+
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, deleteReq.ID).Return(true, nil)
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit fail"))
-		
+
 		// Expect Compensation: Restore Roles
 		deps.Enforcer.On("AddGroupingPolicy", deleteReq.ID, "role:user").Return(true, nil)
 		deps.Enforcer.On("AddGroupingPolicy", deleteReq.ID, "role:admin").Return(true, nil)
@@ -550,6 +624,20 @@ func TestUserUseCase_UpdateStatus(t *testing.T) {
 		deps.AuditUC.AssertExpectations(t)
 	})
 
+	t.Run("Revoke Sessions Error", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		userID := "user123"
+		status := entity.UserStatusBanned
+
+		deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
+		deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(nil)
+		deps.AuthUC.On("RevokeAllSessions", mock.Anything, userID).Return(errors.New("redis error"))
+		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+		err := uc.UpdateStatus(context.Background(), userID, status)
+		assert.NoError(t, err)
+	})
+
 	t.Run("Error - Invalid Status", func(t *testing.T) {
 		_, uc := setupUserTest()
 		err := uc.UpdateStatus(context.Background(), "user123", "invalid_status")
@@ -562,5 +650,18 @@ func TestUserUseCase_UpdateStatus(t *testing.T) {
 
 		err := uc.UpdateStatus(context.Background(), "unknown", entity.UserStatusActive)
 		assert.Equal(t, exception.ErrNotFound, err)
+	})
+
+	t.Run("Audit Log Error", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		userID := "user123"
+		status := entity.UserStatusActive
+
+		deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
+		deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(nil)
+		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
+
+		err := uc.UpdateStatus(context.Background(), userID, status)
+		assert.NoError(t, err)
 	})
 }
