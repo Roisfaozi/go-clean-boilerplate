@@ -217,8 +217,6 @@ definitions:
         type: string
       status:
         type: string
-      token:
-        type: string
       updated_at:
         type: integer
       username:
@@ -230,6 +228,12 @@ definitions:
         additionalProperties:
           $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.Filter'
         type: object
+      page:
+        minimum: 1
+        type: integer
+      page_size:
+        minimum: 1
+        type: integer
       sort:
         items:
           $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.SortModel'
@@ -272,9 +276,13 @@ definitions:
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata:
     properties:
+      limit:
+        type: integer
       page:
         type: integer
       size:
+        type: integer
+      total:
         type: integer
       total_item:
         type: integer
@@ -323,7 +331,6 @@ definitions:
       data:
         additionalProperties:
           type: string
-        description: 'Example: {"message": "success"}'
         type: object
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'

@@ -1673,9 +1673,6 @@ const docTemplate = `{
                 "status": {
                     "type": "string"
                 },
-                "token": {
-                    "type": "string"
-                },
                 "updated_at": {
                     "type": "integer"
                 },
@@ -1692,6 +1689,14 @@ const docTemplate = `{
                     "additionalProperties": {
                         "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.Filter"
                     }
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "page_size": {
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "sort": {
                     "type": "array",
@@ -1750,10 +1755,16 @@ const docTemplate = `{
         "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata": {
             "type": "object",
             "properties": {
+                "limit": {
+                    "type": "integer"
+                },
                 "page": {
                     "type": "integer"
                 },
                 "size": {
+                    "type": "integer"
+                },
+                "total": {
                     "type": "integer"
                 },
                 "total_item": {
@@ -1826,7 +1837,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "Example: {\"message\": \"success\"}",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
