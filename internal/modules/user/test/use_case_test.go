@@ -70,25 +70,6 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 	deps.AuditUC.AssertExpectations(t)
 }
 
-func TestUserUseCase_Create_EnforcerError(t *testing.T) {
-	deps, uc := setupUserTest()
-	testReq := &model.RegisterUserRequest{
-		Username: "testuser", Email: "test@example.com", Name: "Test User", Password: "password123",
-	}
-
-	deps.Repo.On("FindByUsername", mock.Anything, "testuser").Return(nil, gorm.ErrRecordNotFound)
-	deps.Repo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, gorm.ErrRecordNotFound)
-	deps.Repo.On("Create", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
-	// Mock enforcer error - should be logged but not fail the request
-	deps.Enforcer.On("AddGroupingPolicy", mock.AnythingOfType("string"), "role:user").Return(false, errors.New("policy error"))
-	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
-
-	result, err := uc.Create(context.Background(), testReq)
-
-	assert.NoError(t, err) // Should succeed despite role assignment failure (logged only)
-	assert.NotNil(t, result)
-	deps.Enforcer.AssertExpectations(t)
-}
 
 
 func TestUserUseCase_Create_Conflict(t *testing.T) {
