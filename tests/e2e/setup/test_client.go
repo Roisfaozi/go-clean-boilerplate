@@ -53,8 +53,28 @@ func (c *TestClient) PUT(path string, body interface{}, opts ...RequestOption) *
 	return NewResponse(resp)
 }
 
-func (c *TestClient) DELETE(path string, opts ...RequestOption) *Response {
-	req, _ := http.NewRequest("DELETE", c.BaseURL+path, nil)
+func (c *TestClient) PATCH(path string, body interface{}, opts ...RequestOption) *Response {
+	jsonBody, _ := json.Marshal(body)
+	req, _ := http.NewRequest("PATCH", c.BaseURL+path, bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	for _, opt := range opts {
+		opt(req)
+	}
+
+	resp, _ := http.DefaultClient.Do(req)
+	return NewResponse(resp)
+}
+
+func (c *TestClient) DELETE(path string, body interface{}, opts ...RequestOption) *Response {
+	var req *http.Request
+	if body != nil {
+		jsonBody, _ := json.Marshal(body)
+		req, _ = http.NewRequest("DELETE", c.BaseURL+path, bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+	} else {
+		req, _ = http.NewRequest("DELETE", c.BaseURL+path, nil)
+	}
 
 	for _, opt := range opts {
 		opt(req)

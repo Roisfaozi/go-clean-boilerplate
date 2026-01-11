@@ -103,12 +103,12 @@ func TestRoleE2E_DeleteRole(t *testing.T) {
 		roleToDelete := &roleEntity.Role{ID: uuid.New().String(), Name: "RoleToDelete"}
 		server.DB.Create(roleToDelete)
 
-		resp := server.Client.DELETE("/api/v1/roles/"+roleToDelete.ID, setup.WithAuth(adminToken))
+		resp := server.Client.DELETE("/api/v1/roles/"+roleToDelete.ID, nil, setup.WithAuth(adminToken))
 		assert.Equal(t, 200, resp.StatusCode)
 	})
 
 	t.Run("Negative - Delete Non-existent", func(t *testing.T) {
-		resp := server.Client.DELETE("/api/v1/roles/nonexistent-role-id", setup.WithAuth(adminToken))
+		resp := server.Client.DELETE("/api/v1/roles/nonexistent-role-id", nil, setup.WithAuth(adminToken))
 		assert.Equal(t, 404, resp.StatusCode)
 	})
 }

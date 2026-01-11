@@ -89,12 +89,12 @@ func TestAccessE2E_AccessRightsCRUD(t *testing.T) {
 	})
 
 	t.Run("Success - Delete Access Right", func(t *testing.T) {
-		resp := server.Client.DELETE("/api/v1/access-rights/"+createdID, setup.WithAuth(adminToken))
+		resp := server.Client.DELETE("/api/v1/access-rights/"+createdID, nil, setup.WithAuth(adminToken))
 		assert.Equal(t, 200, resp.StatusCode)
 	})
 
 	t.Run("Negative - Delete Non-existent", func(t *testing.T) {
-		resp := server.Client.DELETE("/api/v1/access-rights/nonexistent-id", setup.WithAuth(adminToken))
+		resp := server.Client.DELETE("/api/v1/access-rights/nonexistent-id", nil, setup.WithAuth(adminToken))
 		assert.Equal(t, 404, resp.StatusCode)
 	})
 }
@@ -128,7 +128,7 @@ func TestAccessE2E_EndpointsCRUD(t *testing.T) {
 	})
 
 	t.Run("Success - Delete Endpoint", func(t *testing.T) {
-		resp := server.Client.DELETE("/api/v1/endpoints/"+createdID, setup.WithAuth(adminToken))
+		resp := server.Client.DELETE("/api/v1/endpoints/"+createdID, nil, setup.WithAuth(adminToken))
 		assert.Equal(t, 200, resp.StatusCode)
 	})
 }

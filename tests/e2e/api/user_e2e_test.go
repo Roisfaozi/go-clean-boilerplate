@@ -129,7 +129,7 @@ func TestUserE2E_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("Success - Delete User", func(t *testing.T) {
-		resp := server.Client.DELETE("/api/v1/users/"+userToDelete.ID, setup.WithAuth(adminToken))
+		resp := server.Client.DELETE("/api/v1/users/"+userToDelete.ID, nil, setup.WithAuth(adminToken))
 		assert.Equal(t, 200, resp.StatusCode)
 
 		// Verify user is gone
@@ -138,7 +138,7 @@ func TestUserE2E_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("Negative - Delete Non-existent", func(t *testing.T) {
-		resp := server.Client.DELETE("/api/v1/users/nonexistent-id", setup.WithAuth(adminToken))
+		resp := server.Client.DELETE("/api/v1/users/nonexistent-id", nil, setup.WithAuth(adminToken))
 		assert.Equal(t, 404, resp.StatusCode)
 	})
 }
