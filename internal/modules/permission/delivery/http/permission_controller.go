@@ -26,7 +26,6 @@ func NewPermissionController(useCase usecase.IPermissionUseCase, log *logrus.Log
 	}
 }
 
-// AssignRole handles assigning a role to a user
 func (h *PermissionController) AssignRole(c *gin.Context) {
 	var req model.AssignRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -49,7 +48,6 @@ func (h *PermissionController) AssignRole(c *gin.Context) {
 	response.Success(c, gin.H{"message": "role assigned successfully"})
 }
 
-// GrantPermission handles granting a permission to a role
 func (h *PermissionController) GrantPermission(c *gin.Context) {
 	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -72,7 +70,6 @@ func (h *PermissionController) GrantPermission(c *gin.Context) {
 	response.Created(c, gin.H{"message": "permission granted successfully"})
 }
 
-// GetAllPermissions handles retrieving all permissions
 func (h *PermissionController) GetAllPermissions(c *gin.Context) {
 	permissions, err := h.useCase.GetAllPermissions(c.Request.Context())
 	if err != nil {
@@ -83,7 +80,6 @@ func (h *PermissionController) GetAllPermissions(c *gin.Context) {
 	response.Success(c, permissions)
 }
 
-// GetPermissionsForRole handles retrieving permissions for a specific role
 func (h *PermissionController) GetPermissionsForRole(c *gin.Context) {
 	role := c.Param("role")
 	if role == "" {
@@ -100,7 +96,6 @@ func (h *PermissionController) GetPermissionsForRole(c *gin.Context) {
 	response.Success(c, permissions)
 }
 
-// UpdatePermission handles updating an existing permission
 func (h *PermissionController) UpdatePermission(c *gin.Context) {
 	var req model.UpdatePermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -123,9 +118,7 @@ func (h *PermissionController) UpdatePermission(c *gin.Context) {
 	response.Success(c, gin.H{"message": "permission updated successfully"})
 }
 
-// RevokePermission handles revoking a permission from a role
 func (h *PermissionController) RevokePermission(c *gin.Context) {
-	// Re-use GrantPermissionRequest for revocation as it contains Role, Path, Method
 	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err, "invalid request body")
@@ -147,7 +140,6 @@ func (h *PermissionController) RevokePermission(c *gin.Context) {
 	response.Success(c, gin.H{"message": "permission revoked successfully"})
 }
 
-// AddRoleInheritance handles adding inheritance between two roles
 func (h *PermissionController) AddRoleInheritance(c *gin.Context) {
 	var req model.RoleInheritanceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -170,11 +162,9 @@ func (h *PermissionController) AddRoleInheritance(c *gin.Context) {
 	response.Success(c, gin.H{"message": "role inheritance added successfully"})
 }
 
-// RemoveRoleInheritance handles removing inheritance between two roles
 func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 	var req model.RoleInheritanceRequest
-	// For DELETE, we typically use Query Params or Path Params, but JSON body is cleaner for complex pairs.
-	// Gin allows binding JSON for DELETE.
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err, "invalid request body")
 		return
@@ -195,7 +185,6 @@ func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 	response.Success(c, gin.H{"message": "role inheritance removed successfully"})
 }
 
-// GetParentRoles returns the parent roles for a given role
 func (h *PermissionController) GetParentRoles(c *gin.Context) {
 	role := c.Param("role")
 	if role == "" {
@@ -212,7 +201,6 @@ func (h *PermissionController) GetParentRoles(c *gin.Context) {
 	response.Success(c, parents)
 }
 
-// BatchCheck handles checking multiple permissions at once
 func (h *PermissionController) BatchCheck(c *gin.Context) {
 	var req model.BatchPermissionCheckRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -226,7 +214,6 @@ func (h *PermissionController) BatchCheck(c *gin.Context) {
 		return
 	}
 
-	// Get UserID from context (set by AuthMiddleware)
 	userID, exists := c.Get("user_id")
 	if !exists {
 		response.Unauthorized(c, errors.New("missing user id"), "user not authenticated")

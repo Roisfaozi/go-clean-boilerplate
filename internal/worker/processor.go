@@ -44,7 +44,6 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, logger *logrus.Logger)
 func (processor *RedisTaskProcessor) Start() error {
 	mux := asynq.NewServeMux()
 
-	// Register Handlers
 	emailHandler := handlers.NewEmailTaskHandler(processor.logger)
 	mux.HandleFunc(tasks.TypeSendEmail, emailHandler.ProcessTaskSendEmail)
 
@@ -55,7 +54,6 @@ func (processor *RedisTaskProcessor) Shutdown() {
 	processor.server.Shutdown()
 }
 
-// Adapter to make logrus compatible with asynq logger interface
 type AsynqLogger struct {
 	logger *logrus.Logger
 }

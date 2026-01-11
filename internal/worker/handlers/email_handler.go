@@ -29,7 +29,6 @@ func (h *EmailTaskHandler) ProcessTaskSendEmail(ctx context.Context, task *asynq
 	h.logger.WithContext(ctx).Infof("Processing task: sending email to %s", payload.To)
 
 	// TODO: Integrate actual email sending logic here (e.g. SMTP, SendGrid, SES)
-	// For now, we simulate processing
 	h.logger.Infof("SIMULATION: Email sent to %s with subject: %s", payload.To, payload.Subject)
 
 	return nil

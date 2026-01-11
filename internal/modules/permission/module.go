@@ -14,12 +14,10 @@ type PermissionModule struct {
 	PermissionController *http.PermissionController
 }
 
-// NewPermissionModule creates a new instance of PermissionModule.
 func NewPermissionModule(enforcer *casbin.Enforcer, validate *validator.Validate, log *logrus.Logger, roleRepo roleRepository.RoleRepository, userRepo userRepository.UserRepository) *PermissionModule {
 
 	permissionUseCase := usecase.NewPermissionUseCase(enforcer, log, roleRepo, userRepo)
 
-	// Fixed argument order: (useCase, log, validate)
 	permissionController := http.NewPermissionController(permissionUseCase, log, validate)
 
 	return &PermissionModule{
