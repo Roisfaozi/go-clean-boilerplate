@@ -70,6 +70,8 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 	deps.AuditUC.AssertExpectations(t)
 }
 
+
+
 func TestUserUseCase_Create_Conflict(t *testing.T) {
 	deps, uc := setupUserTest()
 
@@ -290,6 +292,36 @@ func TestUserUseCase_Update(t *testing.T) {
 
 		deps.Repo.AssertExpectations(t)
 		deps.AuditUC.AssertExpectations(t)
+	})
+
+	t.Run("Success - Update Username", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		request := &model.UpdateUserRequest{
+			ID: "user123", Username: "newuser",
+		}
+		existingUser := &entity.User{ID: "user123", Username: "olduser"}
+
+		deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		deps.Repo.On("FindByUsername", mock.Anything, "newuser").Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(nil)
+		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+		_, err := uc.Update(context.Background(), request)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error - Username Conflict", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		request := &model.UpdateUserRequest{
+			ID: "user123", Username: "exists",
+		}
+		existingUser := &entity.User{ID: "user123", Username: "olduser"}
+
+		deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		deps.Repo.On("FindByUsername", mock.Anything, "exists").Return(&entity.User{Username: "exists"}, nil)
+
+		_, err := uc.Update(context.Background(), request)
+		assert.ErrorIs(t, err, exception.ErrConflict)
 	})
 
 	t.Run("Update Password - Success", func(t *testing.T) {
