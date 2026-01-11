@@ -828,6 +828,6 @@ func TestLogin_Success_NoRoles(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, loginResp)
-	assert.Empty(t, loginResp.User.Role) // Role should be empty
+	assert.Empty(t, loginResp.User.Role)
 	deps.enforcer.AssertExpectations(t)
 }

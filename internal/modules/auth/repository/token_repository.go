@@ -37,9 +37,6 @@ func (r *tokenRepositoryRedis) DeleteByEmail(ctx context.Context, email string) 
 
 }
 
-// NewTokenRepositoryRedis creates a new instance of tokenRepositoryRedis
-// It takes a redis client and a logger as parameters
-// and returns a TokenRepository interface
 func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger, db *gorm.DB) TokenRepository {
 	return &tokenRepositoryRedis{
 		client: client,

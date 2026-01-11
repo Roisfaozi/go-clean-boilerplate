@@ -31,7 +31,6 @@ type AuthUseCase interface {
 	GetUserSessions(ctx context.Context, userID string) ([]*model.Auth, error)
 	RevokeAllSessions(ctx context.Context, userID string) error
 
-	// Password Recovery
 	ForgotPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
 }

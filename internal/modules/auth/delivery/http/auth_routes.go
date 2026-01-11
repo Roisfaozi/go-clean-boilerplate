@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterPublicRoutes registers the public routes for authentication.
 func RegisterPublicRoutes(router *gin.RouterGroup, controller *AuthController) {
 	authGroup := router.Group("/auth")
 	{
@@ -15,7 +14,6 @@ func RegisterPublicRoutes(router *gin.RouterGroup, controller *AuthController) {
 	}
 }
 
-// RegisterAuthenticatedRoutes registers the routes for authenticated users.
 func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *AuthController) {
 	authGroup := router.Group("/auth")
 	{

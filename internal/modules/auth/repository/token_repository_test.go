@@ -32,7 +32,7 @@ func setupGormDB(t *testing.T) *gorm.DB {
 }
 
 func TestTokenRepository_StoreToken(t *testing.T) {
-	// With time removed from repository, we can now test StoreToken more easily.
+
 	db, mock := redismock.NewClientMock()
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
@@ -53,18 +53,11 @@ func TestTokenRepository_StoreToken(t *testing.T) {
 	val, err := json.Marshal(authData)
 	assert.NoError(t, err)
 
-	// We still have time.Until(ExpiresAt) which makes expiration non-deterministic.
-	// But we can check that Set IS called.
 	mock.ExpectSet(key, val, 0).SetVal("OK")
 
-	// Avoid "declared and not used" error by using variables before skipping
 	_ = repo
 	_ = mock
 
-	// This will fail on expiration check if we pass 0 here but code passes real duration.
-	// redismock doesn't support ignoring expiration easily.
-	// So we'll skip success test and rely on integration/GetToken.
-	// At least we removed the time.Now() side effect from repository.
 	t.Skip("Skipping StoreToken success test due to time.Until dependency")
 }
 
@@ -89,24 +82,14 @@ func TestTokenRepository_StoreToken_RedisError(t *testing.T) {
 
 	val, _ := json.Marshal(authData)
 
-	// Even for error, Set args are checked first.
-	// We can't match expiration.
-	// If we use `mock.ExpectSet` we must match everything.
-	// Since we can't, we can't fully unit test `StoreToken` with `redismock` without controlling time.
-	// However, `RedisError` test in original file did `_ = repo` and did nothing.
-	// We will accept 0% coverage for `StoreToken` in unit tests and mark it as technical limitation,
-	// validated by integration tests (if they were running).
-	// But since I cannot run integration tests, I will rely on manual verification that `Set` is called.
-
 	_ = key
 	_ = redisErr
 	_ = val
 	_ = repo
 	_ = mock
-	// repo.StoreToken(...) // Commented out
+
 	t.Skip("Skipping StoreToken error test due to time dependency")
 }
-
 
 func TestTokenRepository_Save(t *testing.T) {
 	db := setupGormDB(t)
@@ -124,7 +107,6 @@ func TestTokenRepository_Save(t *testing.T) {
 	err := repo.Save(context.Background(), token)
 	assert.NoError(t, err)
 
-	// Verify
 	var stored entity.PasswordResetToken
 	err = db.First(&stored, "email = ?", token.Email).Error
 	assert.NoError(t, err)
@@ -145,13 +127,11 @@ func TestTokenRepository_FindByToken(t *testing.T) {
 	}
 	db.Create(token)
 
-	// Success
 	result, err := repo.FindByToken(context.Background(), "token123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, token.Email, result.Email)
 
-	// Not Found
 	result, err = repo.FindByToken(context.Background(), "invalid")
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -165,8 +145,8 @@ func TestTokenRepository_DeleteByEmail(t *testing.T) {
 	repo := repository.NewTokenRepositoryRedis(nil, logger, db)
 
 	token := &entity.PasswordResetToken{
-		Email:     "test@example.com",
-		Token:     "token123",
+		Email: "test@example.com",
+		Token: "token123",
 	}
 	db.Create(token)
 
@@ -187,14 +167,12 @@ func TestTokenRepository_GetUserSessions(t *testing.T) {
 	userID := "user123"
 	pattern := getSessionKey(userID, "*")
 
-	// Case 1: Keys Error
 	mock.ExpectKeys(pattern).SetErr(errors.New("redis error"))
 	sessions, err := repo.GetUserSessions(context.Background(), userID)
 	assert.Error(t, err)
 	assert.Nil(t, sessions)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	// Case 2: Success
 	keys := []string{getSessionKey(userID, "s1"), getSessionKey(userID, "s2")}
 	mock.ExpectKeys(pattern).SetVal(keys)
 
@@ -213,15 +191,13 @@ func TestTokenRepository_GetUserSessions(t *testing.T) {
 	assert.Equal(t, "s2", sessions[1].ID)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	// Case 3: Get Error (Partial failure logged but continues)
-	// Re-mock because expectations were met
 	mock.ExpectKeys(pattern).SetVal(keys)
-	mock.ExpectGet(keys[0]).SetErr(errors.New("get error")) // Will be skipped/logged
+	mock.ExpectGet(keys[0]).SetErr(errors.New("get error"))
 	mock.ExpectGet(keys[1]).SetVal(string(json2))
 
 	sessions, err = repo.GetUserSessions(context.Background(), userID)
 	assert.NoError(t, err)
-	assert.Len(t, sessions, 1) // Only valid one
+	assert.Len(t, sessions, 1)
 	assert.Equal(t, "s2", sessions[0].ID)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -235,19 +211,16 @@ func TestTokenRepository_RevokeAllSessions(t *testing.T) {
 	userID := "user123"
 	pattern := getSessionKey(userID, "*")
 
-	// Case 1: Keys Error
 	mock.ExpectKeys(pattern).SetErr(errors.New("redis error"))
 	err := repo.RevokeAllSessions(context.Background(), userID)
 	assert.Error(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	// Case 2: No keys found
 	mock.ExpectKeys(pattern).SetVal([]string{})
 	err = repo.RevokeAllSessions(context.Background(), userID)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	// Case 3: Success with keys
 	keys := []string{"k1", "k2"}
 	mock.ExpectKeys(pattern).SetVal(keys)
 	mock.ExpectDel(keys...).SetVal(2)
@@ -255,7 +228,6 @@ func TestTokenRepository_RevokeAllSessions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	// Case 4: Del Error
 	mock.ExpectKeys(pattern).SetVal(keys)
 	mock.ExpectDel(keys...).SetErr(errors.New("del error"))
 	err = repo.RevokeAllSessions(context.Background(), userID)

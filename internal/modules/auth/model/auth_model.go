@@ -9,8 +9,8 @@ import (
 type LoginRequest struct {
 	Username  string `json:"username" validate:"required,min=3,max=50"`
 	Password  string `json:"password" validate:"required,min=8,max=72"`
-	IPAddress string `json:"-"` // Filled by controller
-	UserAgent string `json:"-"` // Filled by controller
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
 }
 
 type Auth struct {

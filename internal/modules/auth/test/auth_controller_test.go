@@ -26,7 +26,7 @@ func setupAuthTestRouter() *gin.Engine {
 }
 func newTestAuthController(mockUseCase *mocks.MockAuthUseCase) *authHandler.AuthController {
 	log := logrus.New()
-	log.SetLevel(logrus.PanicLevel) // Suppress logs during tests
+	log.SetLevel(logrus.PanicLevel)
 	return authHandler.NewAuthController(mockUseCase, log, validator.New())
 }
 
