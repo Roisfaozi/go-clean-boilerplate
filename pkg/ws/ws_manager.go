@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
@@ -149,6 +150,7 @@ func (m *WebSocketManager) handleRegister(client *Client) {
 	defer m.mu.Unlock()
 
 	m.clients[client] = true
+	telemetry.ActiveWSConnections.Inc()
 	m.log.Infof("Client registered: %s, total clients: %d", client.ID, len(m.clients))
 }
 
@@ -173,6 +175,7 @@ func (m *WebSocketManager) handleUnregister(client *Client) {
 		delete(m.clients, client)
 		close(client.Send)
 
+		telemetry.ActiveWSConnections.Dec()
 		m.log.Infof("Client unregistered: %s, total clients: %d", client.ID, len(m.clients))
 	}
 }
