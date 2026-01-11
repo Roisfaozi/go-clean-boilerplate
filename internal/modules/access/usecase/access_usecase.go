@@ -129,12 +129,12 @@ func (uc *AccessUseCase) DeleteEndpoint(ctx context.Context, id string) error {
 	return nil
 }
 
-func (uc *AccessUseCase) GetEndpointsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.EndpointResponse, error) {
+func (uc *AccessUseCase) GetEndpointsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.EndpointResponse, int64, error) {
 	uc.log.WithContext(ctx).Info("Retrieving endpoints dynamically")
-	endpointEntities, err := uc.repo.FindEndpointsDynamic(ctx, filter)
+	endpointEntities, total, err := uc.repo.FindEndpointsDynamic(ctx, filter)
 	if err != nil {
 		uc.log.WithContext(ctx).WithError(err).Error("Failed to get endpoints dynamically from repository")
-		return nil, exception.ErrInternalServer
+		return nil, 0, exception.ErrInternalServer
 	}
 
 	var responses []*model.EndpointResponse
@@ -146,15 +146,15 @@ func (uc *AccessUseCase) GetEndpointsDynamic(ctx context.Context, filter *queryb
 			CreatedAt: ep.CreatedAt,
 		})
 	}
-	return responses, nil
+	return responses, total, nil
 }
 
-func (uc *AccessUseCase) GetAccessRightsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) (*model.AccessRightListResponse, error) {
+func (uc *AccessUseCase) GetAccessRightsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) (*model.AccessRightListResponse, int64, error) {
 	uc.log.WithContext(ctx).Info("Retrieving access rights dynamically")
-	accessRightEntities, err := uc.repo.FindAccessRightsDynamic(ctx, filter)
+	accessRightEntities, total, err := uc.repo.FindAccessRightsDynamic(ctx, filter)
 	if err != nil {
 		uc.log.WithContext(ctx).WithError(err).Error("Failed to get access rights dynamically from repository")
-		return nil, exception.ErrInternalServer
+		return nil, 0, exception.ErrInternalServer
 	}
-	return model.ConvertAccessRightListToResponse(accessRightEntities), nil
+	return model.ConvertAccessRightListToResponse(accessRightEntities), total, nil
 }

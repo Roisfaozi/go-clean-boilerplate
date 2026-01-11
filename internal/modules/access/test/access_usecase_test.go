@@ -231,11 +231,12 @@ func TestAccessUseCase_GetEndpointsDynamic(t *testing.T) {
 		expectedEndpoints := []*entity.Endpoint{
 			{ID: "1", Path: "/api/test", Method: "GET"},
 		}
-		deps.Repo.On("FindEndpointsDynamic", ctx, filter).Return(expectedEndpoints, nil).Once()
+		deps.Repo.On("FindEndpointsDynamic", ctx, filter).Return(expectedEndpoints, int64(1), nil).Once()
 
-		results, err := uc.GetEndpointsDynamic(ctx, filter)
+		results, total, err := uc.GetEndpointsDynamic(ctx, filter)
 		assert.NoError(t, err)
 		assert.Len(t, results, 1)
+		assert.Equal(t, int64(1), total)
 		assert.Equal(t, "GET", results[0].Method)
 		deps.Repo.AssertExpectations(t)
 	})
@@ -246,11 +247,12 @@ func TestAccessUseCase_GetEndpointsDynamic(t *testing.T) {
 
 		filter := &querybuilder.DynamicFilter{}
 		repoError := errors.New("repo error")
-		deps.Repo.On("FindEndpointsDynamic", ctx, filter).Return(nil, repoError).Once()
+		deps.Repo.On("FindEndpointsDynamic", ctx, filter).Return(nil, int64(0), repoError).Once()
 
-		results, err := uc.GetEndpointsDynamic(ctx, filter)
+		results, total, err := uc.GetEndpointsDynamic(ctx, filter)
 		assert.Error(t, err)
 		assert.Nil(t, results)
+		assert.Equal(t, int64(0), total)
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
 		deps.Repo.AssertExpectations(t)
 	})
@@ -269,11 +271,12 @@ func TestAccessUseCase_GetAccessRightsDynamic(t *testing.T) {
 		expectedAccessRights := []*entity.AccessRight{
 			{ID: "1", Name: "Manage Users"},
 		}
-		deps.Repo.On("FindAccessRightsDynamic", ctx, filter).Return(expectedAccessRights, nil).Once()
+		deps.Repo.On("FindAccessRightsDynamic", ctx, filter).Return(expectedAccessRights, int64(1), nil).Once()
 
-		results, err := uc.GetAccessRightsDynamic(ctx, filter)
+		results, total, err := uc.GetAccessRightsDynamic(ctx, filter)
 		assert.NoError(t, err)
 		assert.Len(t, results.Data, 1)
+		assert.Equal(t, int64(1), total)
 		assert.Equal(t, "Manage Users", results.Data[0].Name)
 		deps.Repo.AssertExpectations(t)
 	})
@@ -284,11 +287,12 @@ func TestAccessUseCase_GetAccessRightsDynamic(t *testing.T) {
 
 		filter := &querybuilder.DynamicFilter{}
 		repoError := errors.New("repo error")
-		deps.Repo.On("FindAccessRightsDynamic", ctx, filter).Return(nil, repoError).Once()
+		deps.Repo.On("FindAccessRightsDynamic", ctx, filter).Return(nil, int64(0), repoError).Once()
 
-		results, err := uc.GetAccessRightsDynamic(ctx, filter)
+		results, total, err := uc.GetAccessRightsDynamic(ctx, filter)
 		assert.Error(t, err)
 		assert.Nil(t, results)
+		assert.Equal(t, int64(0), total)
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
 		deps.Repo.AssertExpectations(t)
 	})

@@ -415,7 +415,7 @@ func TestAccessHandler_GetEndpointsDynamic_Success(t *testing.T) {
 	expectedEndpoints := []*model.EndpointResponse{
 		{ID: "1", Path: "/test", Method: "GET"},
 	}
-	mockUseCase.On("GetEndpointsDynamic", mock.Anything, &filter).Return(expectedEndpoints, nil)
+	mockUseCase.On("GetEndpointsDynamic", mock.Anything, &filter).Return(expectedEndpoints, int64(1), nil)
 
 	req, _ := http.NewRequest(http.MethodPost, "/endpoints/search", bytes.NewBuffer(reqBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -444,7 +444,7 @@ func TestAccessHandler_GetAccessRightsDynamic_Success(t *testing.T) {
 			{ID: "1", Name: "Manage Users"},
 		},
 	}
-	mockUseCase.On("GetAccessRightsDynamic", mock.Anything, &filter).Return(expectedResponse, nil)
+	mockUseCase.On("GetAccessRightsDynamic", mock.Anything, &filter).Return(expectedResponse, int64(1), nil)
 
 	req, _ := http.NewRequest(http.MethodPost, "/access-rights/search", bytes.NewBuffer(reqBody))
 	req.Header.Set("Content-Type", "application/json")

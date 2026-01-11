@@ -33,24 +33,34 @@ func (r *accessRepository) GetEndpoints(ctx context.Context) ([]*entity.Endpoint
 	return endpoints, nil
 }
 
-func (r *accessRepository) FindEndpointsDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.Endpoint, error) {
+func (r *accessRepository) FindEndpointsDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.Endpoint, int64, error) {
 	var endpoints []*entity.Endpoint
+	var total int64
 	query := r.db.WithContext(ctx).Model(&entity.Endpoint{})
 
 	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.Endpoint{}, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 
 	query, err = querybuilder2.GenerateDynamicSort(query, &entity.Endpoint{}, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	if filter.Page > 0 && filter.PageSize > 0 {
+		offset := (filter.Page - 1) * filter.PageSize
+		query = query.Limit(filter.PageSize).Offset(offset)
 	}
 
 	if err := query.Find(&endpoints).Error; err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return endpoints, nil
+	return endpoints, total, nil
 }
 
 func (r *accessRepository) GetEndpointByID(ctx context.Context, id string) (*entity.Endpoint, error) {
@@ -77,24 +87,34 @@ func (r *accessRepository) GetAccessRights(ctx context.Context) ([]*entity.Acces
 	return accessRights, nil
 }
 
-func (r *accessRepository) FindAccessRightsDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.AccessRight, error) {
+func (r *accessRepository) FindAccessRightsDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.AccessRight, int64, error) {
 	var accessRights []*entity.AccessRight
+	var total int64
 	query := r.db.WithContext(ctx).Model(&entity.AccessRight{}).Preload("Endpoints")
 
 	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.AccessRight{}, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 
 	query, err = querybuilder2.GenerateDynamicSort(query, &entity.AccessRight{}, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	if filter.Page > 0 && filter.PageSize > 0 {
+		offset := (filter.Page - 1) * filter.PageSize
+		query = query.Limit(filter.PageSize).Offset(offset)
 	}
 
 	if err := query.Find(&accessRights).Error; err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return accessRights, nil
+	return accessRights, total, nil
 }
 
 func (r *accessRepository) GetAccessRightByID(ctx context.Context, id string) (*entity.AccessRight, error) {

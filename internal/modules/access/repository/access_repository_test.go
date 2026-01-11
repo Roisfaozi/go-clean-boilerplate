@@ -65,9 +65,10 @@ func TestAccessRepository_FindEndpointsDynamic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := repo.FindEndpointsDynamic(ctx, tt.filter)
+			res, total, err := repo.FindEndpointsDynamic(ctx, tt.filter)
 			require.NoError(t, err)
 			assert.Len(t, res, tt.expectedCount)
+			assert.Equal(t, int64(tt.expectedCount), total)
 		})
 	}
 }
@@ -101,9 +102,10 @@ func TestAccessRepository_FindAccessRightsDynamic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := repo.FindAccessRightsDynamic(ctx, tt.filter)
+			res, total, err := repo.FindAccessRightsDynamic(ctx, tt.filter)
 			require.NoError(t, err)
 			assert.Len(t, res, tt.expectedCount)
+			assert.Equal(t, int64(tt.expectedCount), total)
 		})
 	}
 }

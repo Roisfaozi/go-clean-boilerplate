@@ -290,7 +290,7 @@ func (_c *MockIAccessUseCase_DeleteEndpoint_Call) RunAndReturn(run func(ctx cont
 }
 
 // GetAccessRightsDynamic provides a mock function for the type MockIAccessUseCase
-func (_mock *MockIAccessUseCase) GetAccessRightsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) (*model.AccessRightListResponse, error) {
+func (_mock *MockIAccessUseCase) GetAccessRightsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) (*model.AccessRightListResponse, int64, error) {
 	ret := _mock.Called(ctx, filter)
 
 	if len(ret) == 0 {
@@ -298,8 +298,9 @@ func (_mock *MockIAccessUseCase) GetAccessRightsDynamic(ctx context.Context, fil
 	}
 
 	var r0 *model.AccessRightListResponse
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) (*model.AccessRightListResponse, error)); ok {
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) (*model.AccessRightListResponse, int64, error)); ok {
 		return returnFunc(ctx, filter)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) *model.AccessRightListResponse); ok {
@@ -309,12 +310,17 @@ func (_mock *MockIAccessUseCase) GetAccessRightsDynamic(ctx context.Context, fil
 			r0 = ret.Get(0).(*model.AccessRightListResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) int64); ok {
 		r1 = returnFunc(ctx, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+		r2 = returnFunc(ctx, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockIAccessUseCase_GetAccessRightsDynamic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAccessRightsDynamic'
@@ -347,12 +353,12 @@ func (_c *MockIAccessUseCase_GetAccessRightsDynamic_Call) Run(run func(ctx conte
 	return _c
 }
 
-func (_c *MockIAccessUseCase_GetAccessRightsDynamic_Call) Return(accessRightListResponse *model.AccessRightListResponse, err error) *MockIAccessUseCase_GetAccessRightsDynamic_Call {
-	_c.Call.Return(accessRightListResponse, err)
+func (_c *MockIAccessUseCase_GetAccessRightsDynamic_Call) Return(accessRightListResponse *model.AccessRightListResponse, n int64, err error) *MockIAccessUseCase_GetAccessRightsDynamic_Call {
+	_c.Call.Return(accessRightListResponse, n, err)
 	return _c
 }
 
-func (_c *MockIAccessUseCase_GetAccessRightsDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) (*model.AccessRightListResponse, error)) *MockIAccessUseCase_GetAccessRightsDynamic_Call {
+func (_c *MockIAccessUseCase_GetAccessRightsDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) (*model.AccessRightListResponse, int64, error)) *MockIAccessUseCase_GetAccessRightsDynamic_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -420,7 +426,7 @@ func (_c *MockIAccessUseCase_GetAllAccessRights_Call) RunAndReturn(run func(ctx 
 }
 
 // GetEndpointsDynamic provides a mock function for the type MockIAccessUseCase
-func (_mock *MockIAccessUseCase) GetEndpointsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.EndpointResponse, error) {
+func (_mock *MockIAccessUseCase) GetEndpointsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.EndpointResponse, int64, error) {
 	ret := _mock.Called(ctx, filter)
 
 	if len(ret) == 0 {
@@ -428,8 +434,9 @@ func (_mock *MockIAccessUseCase) GetEndpointsDynamic(ctx context.Context, filter
 	}
 
 	var r0 []*model.EndpointResponse
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*model.EndpointResponse, error)); ok {
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*model.EndpointResponse, int64, error)); ok {
 		return returnFunc(ctx, filter)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) []*model.EndpointResponse); ok {
@@ -439,12 +446,17 @@ func (_mock *MockIAccessUseCase) GetEndpointsDynamic(ctx context.Context, filter
 			r0 = ret.Get(0).([]*model.EndpointResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) int64); ok {
 		r1 = returnFunc(ctx, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+		r2 = returnFunc(ctx, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockIAccessUseCase_GetEndpointsDynamic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetEndpointsDynamic'
@@ -477,12 +489,12 @@ func (_c *MockIAccessUseCase_GetEndpointsDynamic_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *MockIAccessUseCase_GetEndpointsDynamic_Call) Return(endpointResponses []*model.EndpointResponse, err error) *MockIAccessUseCase_GetEndpointsDynamic_Call {
-	_c.Call.Return(endpointResponses, err)
+func (_c *MockIAccessUseCase_GetEndpointsDynamic_Call) Return(endpointResponses []*model.EndpointResponse, n int64, err error) *MockIAccessUseCase_GetEndpointsDynamic_Call {
+	_c.Call.Return(endpointResponses, n, err)
 	return _c
 }
 
-func (_c *MockIAccessUseCase_GetEndpointsDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.EndpointResponse, error)) *MockIAccessUseCase_GetEndpointsDynamic_Call {
+func (_c *MockIAccessUseCase_GetEndpointsDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.EndpointResponse, int64, error)) *MockIAccessUseCase_GetEndpointsDynamic_Call {
 	_c.Call.Return(run)
 	return _c
 }
