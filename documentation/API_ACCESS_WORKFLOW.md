@@ -59,6 +59,7 @@ We use **Casbin** with a RESTful model `(Subject, Object, Action)`.
 | `POST` | `/api/v1/users/register`| Register Account | Public |
 | `GET` | `/api/v1/users/me` | Get Own Profile | `role:user` |
 | `PUT` | `/api/v1/users/me` | Update Own Profile | `role:user` |
+| `PATCH`| `/api/v1/users/me/avatar`| Update Own Avatar | `role:user` |
 | `GET` | `/api/v1/users` | List All Users | `role:admin` |
 | `POST` | `/api/v1/users/search` | Dynamic User Search | `role:admin` |
 | `DELETE`| `/api/v1/users/:id` | Delete User | `role:superadmin` |

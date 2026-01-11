@@ -30,34 +30,29 @@ Before you begin, ensure you have the following installed on your system:
 
 ## ⚙️ 2. Setup & First Run
 
-Follow these steps to get your project up and running:
-
-### Step 2.1: Clone the Repository
-
-If you haven't already, clone the project repository:
-
-```bash
-git clone https://github.com/Roisfaozi/go-clean-boilerplate.git
-cd go-clean-boilerplate
-```
-
 ### Step 2.2: Configure Environment Variables
 
-Create a `.env` file from the example and configure your application settings. This includes database credentials, JWT secrets, and other runtime parameters.
+Create a `.env` file from the example and configure your application settings.
 
 ```bash
 cp .env.example .env
 ```
-*   **Note**: The provided `docker-compose.yml` uses the default values from `.env.example`, so you can usually proceed without changes for a quick local setup.
+
+**New Feature Configuration:**
+- **Storage**: By default, `local` is used. Files are stored in `./uploads`.
+- **Telemetry**: To enable tracing, set `OTEL_ENABLED=true` and ensure Jaeger is running.
 
 ### Step 2.3: Start Infrastructure Services
 
-Use Docker Compose to launch the MySQL database and Redis cache containers. These are essential for the application to function.
+Use Docker Compose to launch the MySQL, Redis, and Jaeger containers.
 
 ```bash
-docker-compose up -d
+# Using Makefile helper
+make docker-dev
+
+# OR directly
+docker-compose -f docker-compose.dev.yml up -d
 ```
-*   This command will download the necessary Docker images and start the services in the background.
 
 ### Step 2.4: Run Database Migrations
 

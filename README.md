@@ -16,6 +16,9 @@ Enterprise-ready Go boilerplate implementing Clean Architecture, RBAC with Casbi
 -   **Advanced RBAC with Casbin**: Fine-grained access control using GORM adapter. Policies are stored in the database for dynamic updates.
 -   **Distributed WebSockets**: Scalable WebSocket management using **Redis Pub/Sub** backplane, allowing multi-node synchronization.
 -   **Modular Audit Logging**: Synchronous activity tracking (LOGIN, REGISTER, UPDATE, DELETE) integrated directly into business UseCases.
+-   **Multi-Provider File Storage**: Pluggable storage abstraction supporting **Local Disk**, **AWS S3**, **MinIO**, and **Cloudflare R2**.
+-   **Automated Cleanup Jobs**: Integrated background worker scheduler for database maintenance (token pruning, soft-delete cleanup, log rotation).
+-   **Distributed Tracing (OTEL)**: Full visibility with **OpenTelemetry** integration, tracking request flow across HTTP, Database, and Workers.
 -   **Dynamic Search & Filtering**: Secure, reusable query builder supporting complex clauses, range filters, and dynamic sorting.
 -   **Secure Authentication**: JWT-based auth with stateful session management in Redis for instant token revocation.
 -   **Real-time SSE**: Server-Sent Events manager for live one-way data streaming.
@@ -47,9 +50,25 @@ This project is designed with high flexibility. Many core features can be enable
 
 | Configuration | Env Variable | Default | Description |
 | :--- | :--- | :---: | :--- |
-| **Trusted Proxies** | `SERVER_TRUSTED_PROXIES` | *Empty* | Comma-separated list of trusted Load Balancer IPs/CIDRs. Prevents IP Spoofing. |
-| **CORS Origins** | `CORS_ALLOWED_ORIGINS` | `*` | Allowed domains for CORS. Use specific domains in production. |
+| **Trusted Proxies** | `SERVER_TRUSTED_PROXIES` | *Empty* | Comma-separated list of trusted Load Balancer IPs/CIDRs. |
+| **CORS Origins** | `CORS_ALLOWED_ORIGINS` | `*` | Allowed domains for CORS. |
 | **JWT Secrets** | `JWT_ACCESS_SECRET`<br>`JWT_REFRESH_SECRET` | - | **Critical**: Must be random strings (min 32 chars). |
+
+### Telemetry & Observability
+
+| Configuration | Env Variable | Default | Description |
+| :--- | :--- | :---: | :--- |
+| **OTEL Tracing** | `OTEL_ENABLED` | `false` | Enables OpenTelemetry tracing. |
+| **OTEL Service** | `OTEL_SERVICE_NAME` | `go-clean-api` | Service name shown in Jaeger/Tempo. |
+| **Collector URL** | `OTEL_COLLECTOR_URL` | `localhost:4317` | OTLP gRPC collector endpoint (e.g. Jaeger). |
+
+### Storage
+
+| Configuration | Env Variable | Default | Description |
+| :--- | :--- | :---: | :--- |
+| **Driver** | `STORAGE_DRIVER` | `local` | Storage strategy: `local` or `s3`. |
+| **Root Path** | `STORAGE_LOCAL_ROOT_PATH` | `./uploads` | Local directory for file storage. |
+| **S3 Endpoint** | `STORAGE_S3_ENDPOINT` | - | Custom S3 endpoint (required for MinIO/R2). |
 
 ### Performance
 
@@ -191,23 +210,18 @@ The project follows a standard Go project layout suitable for scalable microserv
 │   ├── Casbin Project API - Realtime.postman_collection.json # Realtime features (WS, SSE)
 │   └── ...
 │
-└── internal/           # Private application code (not importable by other apps)
+└───internal/           # Private application code (not importable by other apps)
     ├── config/         # Configuration loading & app initialization wiring
-    ├── middleware/     # HTTP Middlewares (Auth, Casbin Enforcer, CORS)
+    ├── middleware/     # HTTP Middlewares (Auth, Casbin Enforcer, CORS, OTEL)
     ├── router/         # Gin router setup and route registration
-    ├── utils/          # Shared utilities (JWT, Response Helper, Validator, WebSocket, SSE, QueryBuilder)
+    ├── worker/         # Background tasks, handlers & scheduler
     │
     └── modules/        # Domain-specific modules following Clean Architecture
         ├── auth/       # Authentication logic & JWT handling
-        ├── user/       # User management (CRUD)
+        ├── user/       # User management (CRUD) & Avatar Upload
         ├── role/       # Role management
         ├── permission/ # Permission/Policy management (Casbin)
         └── access/     # Access Right & Endpoint management
-            ├── delivery/   # HTTP Handlers (Controller layer)
-            ├── usecase/    # Business Logic layer
-            ├── repository/ # Data Access layer (DB/Redis)
-            ├── model/      # Data structures (DTOs) & Validation structs
-            └── entity/     # Database entities (GORM models)
 ```
 ---
 
@@ -217,7 +231,10 @@ The project follows a standard Go project layout suitable for scalable microserv
 - [Integration Testing Guide](./documentation/INTEGRATION_TESTING_GUIDE.md)
 - [Distributed WebSocket Usage](./documentation/WEBSOCKET_USAGE.md)
 - [API Access Workflow](./documentation/API_ACCESS_WORKFLOW.md)
-- [Technical Debt Status](./documentation/TECHNICAL_DEBT_STATUS.md)
+- [Multi-Provider Storage](./documentation/STORAGE_USAGE.md)
+- [Observability (Tracing/OTEL)](./documentation/OBSERVABILITY.md)
+- [Maintenance & Scheduler](./documentation/MAINTENANCE_GUIDE.md)
+- [Future Roadmap](./documentation/FUTURE_ROADM
 
 ---
 

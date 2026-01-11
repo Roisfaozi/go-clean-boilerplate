@@ -20,8 +20,11 @@ Selamat datang di panduan proyek **Go Clean Boilerplate API**! Dokumen ini diran
 ### 1.3 Fitur Utama
 
 *   **Clean Architecture:** Struktur kode modular dan terorganisir berdasarkan domain dan layer.
-*   **Otorisasi RBAC Lanjutan (Casbin):** Kontrol akses yang sangat granular dan dinamis.
+*   **Otorisasi RBAC Lanjutan (Casbin):** Kontrol akses yang sangat granular, dinamis, dan mendukung hierarki peran.
 *   **Otentikasi Aman (JWT & Redis):** Token akses stateless, token refresh stateful dengan revokasi instan.
+*   **Multi-Provider Storage:** Abstraksi penyimpanan file untuk Local, S3, dan Cloudflare R2.
+*   **Automated Maintenance:** Background worker untuk pembersihan database otomatis.
+*   **Enterprise Observability:** Tracing request terdistribusi menggunakan OpenTelemetry dan Jaeger.
 *   **Dynamic Search & Filtering:** Mekanisme pencarian dan pengurutan data yang fleksibel dan aman.
 *   **Komunikasi Real-time (SSE & WebSocket):** Dukungan untuk event streaming satu arah dan komunikasi bidireksional.
 *   **Validasi Robust:** Validasi input request terpusat dengan pesan error yang *user-friendly*.
@@ -136,15 +139,18 @@ Struktur folder mencerminkan prinsip-prinsip Clean Architecture dan konvensi pro
 │   ├── querybuilder/   # Implementasi Dynamic Search Query Builder.
 │   ├── response/       # Struktur respons API standar.
 │   ├── sse/            # Manajer Server-Sent Events.
+│   ├── storage/        # Abstraksi Multi-Provider Storage.
+│   ├── telemetry/      # Konfigurasi OpenTelemetry SDK.
 │   ├── tx/             # Manajer transaksi database.
 │   ├── validation/     # Validasi kustom dan format error.
 │   └── ws/             # Manajer WebSocket dan penanganan client.
 │
 └── internal/           # Kode internal proyek yang tidak boleh diimpor oleh proyek Go eksternal.
     ├── config/         # Konfigurasi aplikasi, inisialisasi dependensi (DI Container).
-    ├── middleware/     # Middleware HTTP (Autentikasi, Otorisasi, CORS).
+    ├── middleware/     # Middleware HTTP (Autentikasi, Otorisasi, CORS, OTEL).
     ├── mocking/        # Mock object untuk pengujian.
     ├── router/         # Konfigurasi routing utama.
+    ├── worker/         # Background job processor dan scheduler.
     │
     └── modules/        # Modul-modul spesifik domain (Core Business Logic).
         ├── <nama_module_1>/ # Contoh: auth, user, role, permission, access.

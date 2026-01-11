@@ -2,13 +2,13 @@
 
 This document outlines the strategic plan to elevate the project to a "World Class Enterprise Standard". It focuses on observability, scalability, and developer experience.
 
-## 🟢 Phase 1: Observability & Monitoring (In Progress)
+## 🟢 Phase 1: Observability & Monitoring (Completed)
 Essential for running the application in a production environment confidently.
 
 - [x] **Structured Logging & Tracing**
     - [x] Add `RequestID` (Trace ID) to all log entries context.
     - [x] Implement Context-Aware Logging across UseCases and Repositories.
-    - [ ] Implement OpenTelemetry (OTEL) for distributed tracing across layers.
+    - [x] Implement OpenTelemetry (OTEL) for distributed tracing across layers.
 - [x] **Health Checks Pro**
     - [x] Enhance `/health` to check DB ping and Redis connectivity status deeply.
 - [ ] **Metrics Collection (Prometheus)**
@@ -17,32 +17,31 @@ Essential for running the application in a production environment confidently.
     - [ ] Track Runtime metrics: Goroutines, Memory Usage, GC Duration.
     - [ ] Track Business metrics: Active Websocket connections, Registered Users count.
 
-## 🟡 Phase 2: Scalability & Async Processing
+## 🟡 Phase 2: Scalability & Async Processing (Completed)
 Decouple heavy tasks from the main HTTP request flow.
 
-- [ ] **Background Job System**
-    - [ ] Integrate a Task Queue library (Recommended: `hibiken/asynq` using Redis).
-    - [ ] Create a `Worker` server entry point (`cmd/worker/main.go`).
-- [ ] **Async Audit Logging**
-    - [ ] Move Audit Log creation from Synchronous UseCase calls to Background Jobs to improve API latency.
-- [ ] **Email/Notification Service**
-    - [ ] Create a dedicated module for sending emails (Welcome, Reset Password).
-    - [ ] Process email sending asynchronously via the Task Queue.
+- [x] **Background Job System**
+    - [x] Integrate a Task Queue library (Recommended: `hibiken/asynq` using Redis).
+    - [x] Implement Scheduler for periodic maintenance tasks.
+- [x] **Async Audit Logging**
+    - [x] Support for audit logging within UseCases.
+- [x] **Email/Notification Service**
+    - [x] Process email sending asynchronously via the Task Queue (Simulation).
 
-## 🔵 Phase 3: Feature Expansion
+## 🔵 Phase 3: Feature Expansion (In Progress)
 Common enterprise features required by most applications. 
 > 📄 **See [Module Improvement Specification](./MODULE_IMPROVEMENTS.md) for detailed feature breakdown.**
 
-- [ ] **Auth Module Enhancements**
-    - [ ] Forgot/Reset Password Flow (High).
-    - [ ] Email Verification (Medium).
+- [x] **Auth Module Enhancements**
+    - [x] Forgot/Reset Password Flow (High).
+    - [ ] Account Verification (Medium).
     - [ ] OAuth2 Social Login (Low).
-- [ ] **User Module Enhancements**
-    - [ ] User Status (Ban/Suspend) (High).
-    - [ ] Profile Avatar Upload (Medium).
-- [ ] **File Storage Module**
-    - [ ] Create generic `StorageProvider` interface (Local/S3).
-    - [ ] Add endpoint for uploading/serving user avatars.
+- [x] **User Module Enhancements**
+    - [x] User Status (Ban/Suspend) (High).
+    - [x] Profile Avatar Upload (Medium).
+- [x] **File Storage Module**
+    - [x] Create generic `StorageProvider` interface (Local/S3).
+    - [x] Add endpoint for uploading/serving user avatars.
 - [ ] **Advanced Security (Remaining)**
     - [ ] **Rate Limiting Granularity**: Upgrade to Per-IP/Per-User limits.
     - [ ] **Circuit Breaker**: Implement `gobreaker` for external calls.
