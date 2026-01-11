@@ -85,9 +85,6 @@ func GenerateDynamicSort(db *gorm.DB, model interface{}, filter *DynamicFilter) 
 
 // GetDBFieldName extracts the database column name from the gorm tag or converts the field name to snake_case.
 func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
-	// Debug print
-	fmt.Printf("DEBUG: Looking for field '%s' in struct '%s'\n", fieldName, tType.Name())
-
 	if isSensitiveField(fieldName) {
 		return "", false
 	}
@@ -137,6 +134,7 @@ func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 			}
 		}
 	}
+
 
 	if !found || isSensitiveField(field.Name) {
 		return "", false

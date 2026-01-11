@@ -24,7 +24,6 @@ func NewAuditUseCase(repo AuditRepository, log *logrus.Logger) AuditUseCase {
 }
 
 func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLogRequest) error {
-	uc.log.WithContext(ctx).Infof("DEBUG: Logging Activity: Action=%s, Entity=%s, EntityID=%s", req.Action, req.Entity, req.EntityID)
 	// Validation: Ensure mandatory fields are present
 	if req.UserID == "" || req.Action == "" || req.Entity == "" {
 		return fmt.Errorf("missing required fields for audit log: UserID, Action, and Entity are mandatory")
