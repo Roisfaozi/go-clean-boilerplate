@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	auditRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository"
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
@@ -17,6 +18,7 @@ import (
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
@@ -46,8 +48,9 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	regReq := &userModel.RegisterUserRequest{
 		Username: "lifecycle", Email: "lifecycle@example.com", Password: "password123", Name: "Life Cycle",
 	}
-	_, err := userUC.Create(ctx, regReq)
+	userResp, err := userUC.Create(ctx, regReq)
 	require.NoError(t, err)
+	userID := userResp.ID
 
 	// 2. Login
 	loginReq := authModel.LoginRequest{Username: regReq.Username, Password: regReq.Password}
@@ -57,18 +60,43 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 
 	// 3. Profile Update
 	updateReq := &userModel.UpdateUserRequest{
-		ID: loginResp.User.ID, Name: "Updated Life",
+		ID: userID, Name: "Updated Life",
 	}
 	updateResp, err := userUC.Update(ctx, updateReq)
 	require.NoError(t, err)
 	assert.Equal(t, "Updated Life", updateResp.Name)
 
 	// 4. Delete
-	deleteReq := &userModel.DeleteUserRequest{ID: loginResp.User.ID}
-	err = userUC.DeleteUser(ctx, loginResp.User.ID, deleteReq)
+	deleteReq := &userModel.DeleteUserRequest{ID: userID}
+	err = userUC.DeleteUser(ctx, userID, deleteReq)
 	require.NoError(t, err)
 
-	// 5. Verify Deletion
-	_, err = userRepo.FindByID(ctx, loginResp.User.ID)
-	assert.Error(t, err)
+	// 5. Verify Audit Trail Sequence
+	// We expect logs for: CREATE (User), LOGIN (Auth), UPDATE (User), DELETE (User)
+	logs, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
+		Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
+	})
+	require.NoError(t, err)
+	
+	// Filter logs by this user specifically (excluding potential noisy global logs if any)
+	var userLogs []auditModel.AuditLogResponse
+	for _, l := range logs {
+		if l.UserID == userID || l.EntityID == userID {
+			userLogs = append(userLogs, l)
+		}
+	}
+
+	require.GreaterOrEqual(t, len(userLogs), 4, "Should have at least 4 audit entries for this lifecycle")
+	
+	assert.Equal(t, "CREATE", userLogs[0].Action)
+	assert.Equal(t, "User", userLogs[0].Entity)
+	
+	assert.Equal(t, "LOGIN", userLogs[1].Action)
+	assert.Equal(t, "Auth", userLogs[1].Entity)
+	
+	assert.Equal(t, "UPDATE", userLogs[2].Action)
+	assert.Equal(t, "User", userLogs[2].Entity)
+	
+	assert.Equal(t, "DELETE", userLogs[3].Action)
+	assert.Equal(t, "User", userLogs[3].Entity)
 }
