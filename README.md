@@ -223,18 +223,19 @@ The project follows a standard Go project layout suitable for scalable microserv
         ├── permission/ # Permission/Policy management (Casbin)
         └── access/     # Access Right & Endpoint management
 ```
----
-
 ## 📜 Documentation Links
 
-- [Testing Strategy](./documentation/TESTING_STRATEGY.md)
-- [Integration Testing Guide](./documentation/INTEGRATION_TESTING_GUIDE.md)
-- [Distributed WebSocket Usage](./documentation/WEBSOCKET_USAGE.md)
-- [API Access Workflow](./documentation/API_ACCESS_WORKFLOW.md)
-- [Multi-Provider Storage](./documentation/STORAGE_USAGE.md)
-- [Observability (Tracing/OTEL)](./documentation/OBSERVABILITY.md)
-- [Maintenance & Scheduler](./documentation/MAINTENANCE_GUIDE.md)
-- [Future Roadmap](./documentation/FUTURE_ROADM
+- [System Architecture](./documentation/ARCHITECTURE.md)
+- [API Usage Guide](./documentation/guides/API_USAGE.md)
+- [API Access & RBAC](./documentation/API_ACCESS_WORKFLOW.md)
+- [Testing Strategy](./documentation/guides/TESTING.md)
+- [Real-time (WS & SSE)](./documentation/guides/REALTIME.md)
+- [Dynamic Search](./documentation/guides/SEARCH.md)
+- [Multi-Provider Storage](./documentation/guides/STORAGE.md)
+- [Observability (Tracing/Metrics)](./documentation/guides/OBSERVABILITY.md)
+- [Maintenance & Scheduler](./documentation/guides/MAINTENANCE.md)
+- [Server Setup (Ops)](./documentation/ops/SERVER_SETUP_GUIDE.md)
+- [Future Roadmap](./documentation/ops/ROADMAP.md)
 
 ---
 

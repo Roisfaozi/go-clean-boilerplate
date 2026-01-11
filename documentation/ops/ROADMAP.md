@@ -11,11 +11,11 @@ Essential for running the application in a production environment confidently.
     - [x] Implement OpenTelemetry (OTEL) for distributed tracing across layers.
 - [x] **Health Checks Pro**
     - [x] Enhance `/health` to check DB ping and Redis connectivity status deeply.
-- [ ] **Metrics Collection (Prometheus)**
-    - [ ] Expose `/metrics` endpoint.
-    - [ ] Track HTTP metrics: Request Rate (RPS), Latency (P95/P99), Error Rate.
-    - [ ] Track Runtime metrics: Goroutines, Memory Usage, GC Duration.
-    - [ ] Track Business metrics: Active Websocket connections, Registered Users count.
+- [x] **Metrics Collection (Prometheus)**
+    - [x] Expose `/metrics` endpoint.
+    - [x] Track HTTP metrics: Request Rate (RPS), Latency (P95/P99), Error Rate.
+    - [x] Track Runtime metrics: Goroutines, Memory Usage, GC Duration.
+    - [x] Track Business metrics: Active Websocket connections, Registered Users count.
 
 ## 🟡 Phase 2: Scalability & Async Processing (Completed)
 Decouple heavy tasks from the main HTTP request flow.
