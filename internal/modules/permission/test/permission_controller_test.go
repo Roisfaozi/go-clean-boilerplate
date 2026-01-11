@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+
 func setupPermissionTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
@@ -26,7 +27,7 @@ func setupPermissionTestRouter() *gin.Engine {
 
 func newTestPermissionController(mockUseCase *mocks.MockIPermissionUseCase) *permHandler.PermissionController {
 	log := logrus.New()
-	log.SetLevel(logrus.PanicLevel) // Suppress logs during tests
+	log.SetLevel(logrus.PanicLevel)
 	return permHandler.NewPermissionController(mockUseCase, log, validator.New())
 }
 

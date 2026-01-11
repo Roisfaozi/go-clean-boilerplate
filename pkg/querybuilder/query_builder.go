@@ -19,10 +19,6 @@ func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter)
 		tType = tType.Elem()
 	}
 
-	if hasSoftDeleteField(tType) {
-		db = db.Where("deleted_at IS NULL")
-	}
-
 	for fieldName, condition := range filter.Filter {
 		dbFieldName, ok := GetDBFieldName(tType, fieldName)
 		if !ok {

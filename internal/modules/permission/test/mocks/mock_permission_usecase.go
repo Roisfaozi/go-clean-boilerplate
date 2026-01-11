@@ -7,6 +7,7 @@ package mocks
 import (
 	"context"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -171,6 +172,75 @@ func (_c *MockIEnforcer_AddPolicy_Call) Return(b bool, err error) *MockIEnforcer
 }
 
 func (_c *MockIEnforcer_AddPolicy_Call) RunAndReturn(run func(params ...interface{}) (bool, error)) *MockIEnforcer_AddPolicy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Enforce provides a mock function for the type MockIEnforcer
+func (_mock *MockIEnforcer) Enforce(params ...interface{}) (bool, error) {
+	var tmpRet mock.Arguments
+	if len(params) > 0 {
+		tmpRet = _mock.Called(params)
+	} else {
+		tmpRet = _mock.Called()
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for Enforce")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(...interface{}) (bool, error)); ok {
+		return returnFunc(params...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(...interface{}) bool); ok {
+		r0 = returnFunc(params...)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(...interface{}) error); ok {
+		r1 = returnFunc(params...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockIEnforcer_Enforce_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Enforce'
+type MockIEnforcer_Enforce_Call struct {
+	*mock.Call
+}
+
+// Enforce is a helper method to define mock.On call
+//   - params ...interface{}
+func (_e *MockIEnforcer_Expecter) Enforce(params ...interface{}) *MockIEnforcer_Enforce_Call {
+	return &MockIEnforcer_Enforce_Call{Call: _e.mock.On("Enforce",
+		append([]interface{}{}, params...)...)}
+}
+
+func (_c *MockIEnforcer_Enforce_Call) Run(run func(params ...interface{})) *MockIEnforcer_Enforce_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 []interface{}
+		var variadicArgs []interface{}
+		if len(args) > 0 {
+			variadicArgs = args[0].([]interface{})
+		}
+		arg0 = variadicArgs
+		run(
+			arg0...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIEnforcer_Enforce_Call) Return(b bool, err error) *MockIEnforcer_Enforce_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockIEnforcer_Enforce_Call) RunAndReturn(run func(params ...interface{}) (bool, error)) *MockIEnforcer_Enforce_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -621,6 +691,69 @@ func (_m *MockIPermissionUseCase) EXPECT() *MockIPermissionUseCase_Expecter {
 	return &MockIPermissionUseCase_Expecter{mock: &_m.Mock}
 }
 
+// AddParentRole provides a mock function for the type MockIPermissionUseCase
+func (_mock *MockIPermissionUseCase) AddParentRole(ctx context.Context, childRole string, parentRole string) error {
+	ret := _mock.Called(ctx, childRole, parentRole)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddParentRole")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = returnFunc(ctx, childRole, parentRole)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockIPermissionUseCase_AddParentRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddParentRole'
+type MockIPermissionUseCase_AddParentRole_Call struct {
+	*mock.Call
+}
+
+// AddParentRole is a helper method to define mock.On call
+//   - ctx context.Context
+//   - childRole string
+//   - parentRole string
+func (_e *MockIPermissionUseCase_Expecter) AddParentRole(ctx interface{}, childRole interface{}, parentRole interface{}) *MockIPermissionUseCase_AddParentRole_Call {
+	return &MockIPermissionUseCase_AddParentRole_Call{Call: _e.mock.On("AddParentRole", ctx, childRole, parentRole)}
+}
+
+func (_c *MockIPermissionUseCase_AddParentRole_Call) Run(run func(ctx context.Context, childRole string, parentRole string)) *MockIPermissionUseCase_AddParentRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIPermissionUseCase_AddParentRole_Call) Return(err error) *MockIPermissionUseCase_AddParentRole_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockIPermissionUseCase_AddParentRole_Call) RunAndReturn(run func(ctx context.Context, childRole string, parentRole string) error) *MockIPermissionUseCase_AddParentRole_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AssignRoleToUser provides a mock function for the type MockIPermissionUseCase
 func (_mock *MockIPermissionUseCase) AssignRoleToUser(ctx context.Context, userID string, role string) error {
 	ret := _mock.Called(ctx, userID, role)
@@ -684,6 +817,80 @@ func (_c *MockIPermissionUseCase_AssignRoleToUser_Call) RunAndReturn(run func(ct
 	return _c
 }
 
+// BatchCheckPermission provides a mock function for the type MockIPermissionUseCase
+func (_mock *MockIPermissionUseCase) BatchCheckPermission(ctx context.Context, userID string, items []model.PermissionCheckItem) (map[string]bool, error) {
+	ret := _mock.Called(ctx, userID, items)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BatchCheckPermission")
+	}
+
+	var r0 map[string]bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, []model.PermissionCheckItem) (map[string]bool, error)); ok {
+		return returnFunc(ctx, userID, items)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, []model.PermissionCheckItem) map[string]bool); ok {
+		r0 = returnFunc(ctx, userID, items)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]bool)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, []model.PermissionCheckItem) error); ok {
+		r1 = returnFunc(ctx, userID, items)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockIPermissionUseCase_BatchCheckPermission_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BatchCheckPermission'
+type MockIPermissionUseCase_BatchCheckPermission_Call struct {
+	*mock.Call
+}
+
+// BatchCheckPermission is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - items []model.PermissionCheckItem
+func (_e *MockIPermissionUseCase_Expecter) BatchCheckPermission(ctx interface{}, userID interface{}, items interface{}) *MockIPermissionUseCase_BatchCheckPermission_Call {
+	return &MockIPermissionUseCase_BatchCheckPermission_Call{Call: _e.mock.On("BatchCheckPermission", ctx, userID, items)}
+}
+
+func (_c *MockIPermissionUseCase_BatchCheckPermission_Call) Run(run func(ctx context.Context, userID string, items []model.PermissionCheckItem)) *MockIPermissionUseCase_BatchCheckPermission_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 []model.PermissionCheckItem
+		if args[2] != nil {
+			arg2 = args[2].([]model.PermissionCheckItem)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIPermissionUseCase_BatchCheckPermission_Call) Return(stringToBool map[string]bool, err error) *MockIPermissionUseCase_BatchCheckPermission_Call {
+	_c.Call.Return(stringToBool, err)
+	return _c
+}
+
+func (_c *MockIPermissionUseCase_BatchCheckPermission_Call) RunAndReturn(run func(ctx context.Context, userID string, items []model.PermissionCheckItem) (map[string]bool, error)) *MockIPermissionUseCase_BatchCheckPermission_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetAllPermissions provides a mock function for the type MockIPermissionUseCase
 func (_mock *MockIPermissionUseCase) GetAllPermissions(ctx context.Context) ([][]string, error) {
 	ret := _mock.Called(ctx)
@@ -742,6 +949,74 @@ func (_c *MockIPermissionUseCase_GetAllPermissions_Call) Return(stringss [][]str
 }
 
 func (_c *MockIPermissionUseCase_GetAllPermissions_Call) RunAndReturn(run func(ctx context.Context) ([][]string, error)) *MockIPermissionUseCase_GetAllPermissions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetParentRoles provides a mock function for the type MockIPermissionUseCase
+func (_mock *MockIPermissionUseCase) GetParentRoles(ctx context.Context, role string) ([]string, error) {
+	ret := _mock.Called(ctx, role)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetParentRoles")
+	}
+
+	var r0 []string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]string, error)); ok {
+		return returnFunc(ctx, role)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []string); ok {
+		r0 = returnFunc(ctx, role)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, role)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockIPermissionUseCase_GetParentRoles_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetParentRoles'
+type MockIPermissionUseCase_GetParentRoles_Call struct {
+	*mock.Call
+}
+
+// GetParentRoles is a helper method to define mock.On call
+//   - ctx context.Context
+//   - role string
+func (_e *MockIPermissionUseCase_Expecter) GetParentRoles(ctx interface{}, role interface{}) *MockIPermissionUseCase_GetParentRoles_Call {
+	return &MockIPermissionUseCase_GetParentRoles_Call{Call: _e.mock.On("GetParentRoles", ctx, role)}
+}
+
+func (_c *MockIPermissionUseCase_GetParentRoles_Call) Run(run func(ctx context.Context, role string)) *MockIPermissionUseCase_GetParentRoles_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIPermissionUseCase_GetParentRoles_Call) Return(strings []string, err error) *MockIPermissionUseCase_GetParentRoles_Call {
+	_c.Call.Return(strings, err)
+	return _c
+}
+
+func (_c *MockIPermissionUseCase_GetParentRoles_Call) RunAndReturn(run func(ctx context.Context, role string) ([]string, error)) *MockIPermissionUseCase_GetParentRoles_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -879,6 +1154,69 @@ func (_c *MockIPermissionUseCase_GrantPermissionToRole_Call) Return(err error) *
 }
 
 func (_c *MockIPermissionUseCase_GrantPermissionToRole_Call) RunAndReturn(run func(ctx context.Context, role string, path string, method string) error) *MockIPermissionUseCase_GrantPermissionToRole_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveParentRole provides a mock function for the type MockIPermissionUseCase
+func (_mock *MockIPermissionUseCase) RemoveParentRole(ctx context.Context, childRole string, parentRole string) error {
+	ret := _mock.Called(ctx, childRole, parentRole)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveParentRole")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = returnFunc(ctx, childRole, parentRole)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockIPermissionUseCase_RemoveParentRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveParentRole'
+type MockIPermissionUseCase_RemoveParentRole_Call struct {
+	*mock.Call
+}
+
+// RemoveParentRole is a helper method to define mock.On call
+//   - ctx context.Context
+//   - childRole string
+//   - parentRole string
+func (_e *MockIPermissionUseCase_Expecter) RemoveParentRole(ctx interface{}, childRole interface{}, parentRole interface{}) *MockIPermissionUseCase_RemoveParentRole_Call {
+	return &MockIPermissionUseCase_RemoveParentRole_Call{Call: _e.mock.On("RemoveParentRole", ctx, childRole, parentRole)}
+}
+
+func (_c *MockIPermissionUseCase_RemoveParentRole_Call) Run(run func(ctx context.Context, childRole string, parentRole string)) *MockIPermissionUseCase_RemoveParentRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIPermissionUseCase_RemoveParentRole_Call) Return(err error) *MockIPermissionUseCase_RemoveParentRole_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockIPermissionUseCase_RemoveParentRole_Call) RunAndReturn(run func(ctx context.Context, childRole string, parentRole string) error) *MockIPermissionUseCase_RemoveParentRole_Call {
 	_c.Call.Return(run)
 	return _c
 }

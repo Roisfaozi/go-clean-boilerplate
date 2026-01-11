@@ -29,5 +29,15 @@ func RegisterPermissionRoutes(router *gin.RouterGroup, controller *PermissionCon
 		permissionGroup.GET("/:role", controller.GetPermissionsForRole)
 		permissionGroup.PUT("", controller.UpdatePermission)
 		permissionGroup.DELETE("/revoke", controller.RevokePermission)
+		
+		// Role Hierarchy
+		permissionGroup.POST("/inheritance", controller.AddRoleInheritance)
+		permissionGroup.DELETE("/inheritance", controller.RemoveRoleInheritance)
+		permissionGroup.GET("/:role/parents", controller.GetParentRoles)
 	}
+}
+
+// RegisterBatchCheckRoute registers the route for batch permission checking which requires authentication but not specific admin permissions.
+func RegisterBatchCheckRoute(router *gin.RouterGroup, controller *PermissionController) {
+	router.POST("/permissions/check-batch", controller.BatchCheck)
 }

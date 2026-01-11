@@ -146,3 +146,98 @@ func (h *PermissionController) RevokePermission(c *gin.Context) {
 
 	response.Success(c, gin.H{"message": "permission revoked successfully"})
 }
+
+// AddRoleInheritance handles adding inheritance between two roles
+func (h *PermissionController) AddRoleInheritance(c *gin.Context) {
+	var req model.RoleInheritanceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, errors.New("validation failed"), msg)
+		return
+	}
+
+	err := h.useCase.AddParentRole(c.Request.Context(), req.ChildRole, req.ParentRole)
+	if err != nil {
+		response.HandleError(c, err, "failed to add role inheritance")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "role inheritance added successfully"})
+}
+
+// RemoveRoleInheritance handles removing inheritance between two roles
+func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
+	var req model.RoleInheritanceRequest
+	// For DELETE, we typically use Query Params or Path Params, but JSON body is cleaner for complex pairs.
+	// Gin allows binding JSON for DELETE.
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, errors.New("validation failed"), msg)
+		return
+	}
+
+	err := h.useCase.RemoveParentRole(c.Request.Context(), req.ChildRole, req.ParentRole)
+	if err != nil {
+		response.HandleError(c, err, "failed to remove role inheritance")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "role inheritance removed successfully"})
+}
+
+// GetParentRoles returns the parent roles for a given role
+func (h *PermissionController) GetParentRoles(c *gin.Context) {
+	role := c.Param("role")
+	if role == "" {
+		response.BadRequest(c, nil, "role is required")
+		return
+	}
+
+	parents, err := h.useCase.GetParentRoles(c.Request.Context(), role)
+	if err != nil {
+		response.HandleError(c, err, "failed to get parent roles")
+		return
+	}
+
+	response.Success(c, parents)
+}
+
+// BatchCheck handles checking multiple permissions at once
+func (h *PermissionController) BatchCheck(c *gin.Context) {
+	var req model.BatchPermissionCheckRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, errors.New("validation failed"), msg)
+		return
+	}
+
+	// Get UserID from context (set by AuthMiddleware)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, errors.New("missing user id"), "user not authenticated")
+		return
+	}
+
+	results, err := h.useCase.BatchCheckPermission(c.Request.Context(), userID.(string), req.Items)
+	if err != nil {
+		response.HandleError(c, err, "failed to batch check permissions")
+		return
+	}
+
+	response.Success(c, model.BatchPermissionCheckResponse{Results: results})
+}

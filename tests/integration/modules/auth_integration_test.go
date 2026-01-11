@@ -16,9 +16,13 @@ import (
 	authRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
+	"github.com/hibiken/asynq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -37,6 +41,17 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
 
+	// WebSocket and SSE managers
+	wsConfig := &ws.WebSocketConfig{}
+	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis)
+	sseManager := sse.NewManager()
+
+	// TaskDistributor
+	taskDistributor := worker.NewRedisTaskDistributor(asynq.RedisClientOpt{Addr: env.RedisAddr})
+
+	enforcer := env.Enforcer
+	logger := env.Logger
+
 	return usecase.NewAuthUsecase(
 		jwtManager,
 		tokenRepo,
@@ -44,7 +59,7 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 		tm,
 		logger,
 		wsManager,
-		nil, // sseManager
+		sseManager,
 		enforcer,
 		auditUC,
 		taskDistributor,

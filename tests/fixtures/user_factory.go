@@ -25,6 +25,7 @@ func (f *UserFactory) Create(overrides ...func(*entity.User)) *entity.User {
 		Email:    "test_" + uniqueID + "@example.com",
 		Name:     "Test User",
 		Password: string(hashedPassword),
+		Status:   entity.UserStatusActive,
 	}
 
 	for _, override := range overrides {

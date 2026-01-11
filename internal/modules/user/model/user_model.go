@@ -5,8 +5,8 @@ type UserResponse struct {
 	Name      string `json:"name"`
 	Username  string `json:"username"`
 	Email     string `json:"email"`
-	Token     string `json:"token"`
-	Status    string `json:"status"`
+	Token     string `json:"-"`
+	Status    string `json:"status,omitempty"`
 	CreatedAt int64  `json:"created_at,omitempty"`
 	UpdatedAt int64  `json:"updated_at,omitempty"`
 }
@@ -31,7 +31,7 @@ type UpdateUserRequest struct {
 	Name      string `json:"name,omitempty" validate:"max=100"`
 	IPAddress string `json:"-"`
 	UserAgent string `json:"-"`
- // Filled by controller
+	// Filled by controller
 }
 
 type LoginUserRequest struct {

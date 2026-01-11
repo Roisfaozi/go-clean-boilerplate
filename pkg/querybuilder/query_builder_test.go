@@ -91,8 +91,9 @@ func TestGenerateDynamicQuery(t *testing.T) {
 				// ToSQL generates the SQL string
 				sql := resQuery.Find(&[]TestModel{}).Statement.SQL.String()
 				assert.Contains(t, sql, tt.expectedQuery)
-				// TestModel has DeletedAt, so it SHOULD contain the check
-				assert.Contains(t, sql, "deleted_at IS NULL")
+				// TestModel has DeletedAt, so GORM SHOULD automatically include the check
+				assert.Contains(t, sql, "deleted_at")
+				assert.Contains(t, sql, "IS NULL")
 			}
 		})
 	}
@@ -112,7 +113,7 @@ func TestGenerateDynamicQuery_NoSoftDelete(t *testing.T) {
 
 	sql := resQuery.Find(&[]TestModelNoDelete{}).Statement.SQL.String()
 	assert.Contains(t, sql, "name =")
-	assert.NotContains(t, sql, "deleted_at IS NULL", "Should not include soft delete check for model without DeletedAt")
+	assert.NotContains(t, sql, "deleted_at", "Should not include soft delete check for model without DeletedAt")
 }
 
 func TestGenerateDynamicSort(t *testing.T) {

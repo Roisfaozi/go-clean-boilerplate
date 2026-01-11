@@ -152,6 +152,7 @@ func SetupRouter(
 	{
 		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController)
 		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
+		permissionHttp.RegisterBatchCheckRoute(authenticated, permissionModule.PermissionController)
 	}
 
 	authorized := apiV1.Group("")

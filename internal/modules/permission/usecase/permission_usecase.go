@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
@@ -19,6 +20,12 @@ type IPermissionUseCase interface {
 	GetAllPermissions(ctx context.Context) ([][]string, error)
 	GetPermissionsForRole(ctx context.Context, role string) ([][]string, error)
 	UpdatePermission(ctx context.Context, oldPermission, newPermission []string) (bool, error)
+
+	AddParentRole(ctx context.Context, childRole, parentRole string) error
+	RemoveParentRole(ctx context.Context, childRole, parentRole string) error
+	GetParentRoles(ctx context.Context, role string) ([]string, error)
+
+	BatchCheckPermission(ctx context.Context, userID string, items []model.PermissionCheckItem) (map[string]bool, error)
 }
 
 type PermissionUseCase struct {
@@ -37,6 +44,71 @@ func NewPermissionUseCase(enforcer IEnforcer, log *logrus.Logger, roleRepo roleR
 	}
 }
 
+func (uc *PermissionUseCase) BatchCheckPermission(ctx context.Context, userID string, items []model.PermissionCheckItem) (map[string]bool, error) {
+	results := make(map[string]bool)
+
+	for _, item := range items {
+
+		key := fmt.Sprintf("%s:%s", item.Resource, item.Action)
+
+		allowed, err := uc.enforcer.Enforce(userID, item.Resource, item.Action)
+		if err != nil {
+			uc.log.WithContext(ctx).Errorf("Enforce error for %s on %s: %v", userID, item.Resource, err)
+			results[key] = false
+			continue
+		}
+		results[key] = allowed
+	}
+
+	return results, nil
+}
+
+func (uc *PermissionUseCase) AddParentRole(ctx context.Context, childRole, parentRole string) error {
+	uc.log.WithContext(ctx).Infof("Adding inheritance: role '%s' inherits from '%s'", childRole, parentRole)
+
+	if _, err := uc.RoleRepo.FindByName(ctx, childRole); err != nil {
+		return exception.ErrBadRequest
+	}
+	if _, err := uc.RoleRepo.FindByName(ctx, parentRole); err != nil {
+		return exception.ErrBadRequest
+	}
+
+	if childRole == parentRole {
+		return errors.New("role cannot inherit from itself")
+	}
+
+	_, err := uc.enforcer.AddGroupingPolicy(childRole, parentRole)
+	if err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to add parent role: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (uc *PermissionUseCase) RemoveParentRole(ctx context.Context, childRole, parentRole string) error {
+	uc.log.WithContext(ctx).Infof("Removing inheritance: role '%s' inherits from '%s'", childRole, parentRole)
+
+	removed, err := uc.enforcer.RemoveFilteredGroupingPolicy(0, childRole, parentRole)
+	if err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to remove parent role: %v", err)
+		return err
+	}
+	if !removed {
+		return errors.New("inheritance relationship not found")
+	}
+	return nil
+}
+
+func (uc *PermissionUseCase) GetParentRoles(ctx context.Context, role string) ([]string, error) {
+
+	roles, err := uc.enforcer.GetRolesForUser(role)
+	if err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to get parent roles: %v", err)
+		return nil, err
+	}
+	return roles, nil
+}
+
 func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role string) error {
 	uc.log.WithContext(ctx).Infof("Attempting to assign role '%s' to user '%s'", role, userID)
 
@@ -44,7 +116,6 @@ func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role 
 		return fmt.Errorf("userID and role are required")
 	}
 
-	// 1. Validate User
 	_, err := uc.UserRepo.FindByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -55,7 +126,6 @@ func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role 
 		return exception.ErrInternalServer
 	}
 
-	// 2. Validate Role
 	_, err = uc.RoleRepo.FindByName(ctx, role)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
