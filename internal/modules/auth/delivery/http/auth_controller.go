@@ -27,7 +27,19 @@ func NewAuthController(useCase usecase.AuthUseCase, log *logrus.Logger, validate
 	}
 }
 
-// Login handles user login
+// Login godoc
+// @Summary      User login
+// @Description  Authenticates a user and returns access token and user info.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.LoginRequest true "Login request"
+// @Success      200  {object}  response.SwaggerLoginResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/login [post]
 func (h *AuthController) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -59,7 +71,20 @@ func (h *AuthController) Login(c *gin.Context) {
 	response.Success(c, res)
 }
 
-// RefreshToken handles token refresh
+
+
+
+// RefreshToken godoc
+// @Summary      Refresh access token
+// @Description  Refreshes access and refresh tokens using the refresh token cookie.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  response.SwaggerTokenResponseWrapper
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/refresh [post]
+
 func (h *AuthController) RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
@@ -78,7 +103,17 @@ func (h *AuthController) RefreshToken(c *gin.Context) {
 	response.Success(c, res)
 }
 
-// Logout handles user logout
+// Logout godoc
+// @Summary      Logout user
+// @Description  Revokes the current session and clears refresh token cookie.
+// @Tags         auth
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/logout [post]
 func (h *AuthController) Logout(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	sessionID, _ := c.Get("session_id")
@@ -98,7 +133,19 @@ func (h *AuthController) Logout(c *gin.Context) {
 	response.Success(c, gin.H{"message": "logged out successfully"})
 }
 
-// ForgotPassword handles forgot password request
+
+// ForgotPassword godoc
+// @Summary      Request password reset
+// @Description  Sends a password reset email if the account exists.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.ForgotPasswordRequest true "Forgot password request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/forgot-password [post]
 func (h *AuthController) ForgotPassword(c *gin.Context) {
 	var req model.ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -122,7 +169,19 @@ func (h *AuthController) ForgotPassword(c *gin.Context) {
 	response.Success(c, gin.H{"message": "If the email is registered, a reset link will be sent shortly."})
 }
 
-// ResetPassword handles password reset using token
+
+// ResetPassword godoc
+// @Summary      Reset password
+// @Description  Resets the user's password using a valid reset token.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.ResetPasswordRequest true "Reset password request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/reset-password [post]
 func (h *AuthController) ResetPassword(c *gin.Context) {
 	var req model.ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
