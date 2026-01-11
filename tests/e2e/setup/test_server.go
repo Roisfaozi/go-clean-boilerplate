@@ -84,9 +84,9 @@ func SetupTestServer(t *testing.T) *TestServer {
 
 	return &TestServer{
 		Server:   server,
-		DB:       env.DB,
+		DB:       env.DB, // Using env.DB allows sharing the container connection, but careful! App created its own DB connection pool.
 		Redis:    env.Redis,
-		Enforcer: env.Enforcer,
+		Enforcer: app.Enforcer, // USE APP ENFORCER!
 		BaseURL:  server.URL,
 		Client:   client,
 	}

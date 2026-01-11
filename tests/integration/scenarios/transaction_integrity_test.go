@@ -21,6 +21,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // Scenario: Register User Transactional Rollback
@@ -61,12 +62,9 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 	_, err := userService.Create(context.Background(), req)
 
 	// 4. Assertions
-	if err != nil {
-		user, _ := uRepo.FindByUsername(context.Background(), req.Username)
-		assert.Nil(t, user, "User should be rolled back on failure")
-	} else {
-		user, _ := uRepo.FindByUsername(context.Background(), req.Username)
-		assert.NotNil(t, user, "User exists despite role failure (Current Behavior)")
-		t.Log("Note: User creation is NOT transactional with Role assignment currently.")
-	}
+	require.Error(t, err, "Expected error from UserUseCase when Role assignment fails")
+	
+	// Expectation: User should NOT exist (Rolled back)
+	user, _ := uRepo.FindByUsername(context.Background(), req.Username)
+	assert.Nil(t, user, "User should be rolled back (not found) when role assignment fails")
 }
