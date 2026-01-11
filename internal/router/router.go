@@ -153,10 +153,10 @@ func SetupRouter(
 		userHttp.RegisterPublicRoutes(public, userModule.UserController)
 	}
 
-	// AUTHENTICATED Group: Token is valid, but user might be banned
-	// Useful for viewing profile/status even if banned
+	// AUTHENTICATED Group: Token is valid AND user must be Active
 	authenticated := apiV1.Group("")
 	authenticated.Use(authMiddleware.ValidateToken())
+	authenticated.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	{
 		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController)
 		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController) // Access /me
@@ -165,10 +165,7 @@ func SetupRouter(
 	// AUTHORIZED Group: Token is valid AND user is Active AND has permission
 	authorized := apiV1.Group("")
 	authorized.Use(authMiddleware.ValidateToken())
-
-	// Check User Status (Active?)
 	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
-
 	authorized.Use(casbinMiddleware)
 	{
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
