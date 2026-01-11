@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	auditRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository"
-	auditUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
+	auditUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	authUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
@@ -36,14 +36,14 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	// 1. Setup Dependencies
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	
+
 	// Real dependencies for setup
 	realAuditRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
 	realAuditUC := auditUC.NewAuditUseCase(realAuditRepo, env.Logger)
-	
+
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
-	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, nil, env.Enforcer, realAuditUC, nil)
+	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, env.Enforcer, realAuditUC, nil)
 
 	// Create User for test using real service
 	setupService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, realAuditUC, authService)
@@ -93,7 +93,7 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	// If Casbin Remove is DB Tx (same connection), it rolls back.
 	// If Casbin Remove is NOT transactional, it might persist!
 	// This is the CRITICAL check for "Cross-Module" integrity.
-	
+
 	rolesAfter, err := env.Enforcer.GetRolesForUser(user.ID)
 	assert.NoError(t, err)
 	// If Casbin adapter supports Tx, this should still contain "role:user".

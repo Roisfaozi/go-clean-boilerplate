@@ -38,7 +38,16 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
 
 	return usecase.NewAuthUsecase(
-		jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC, nil,
+		jwtManager,
+		tokenRepo,
+		userRepo,
+		tm,
+		logger,
+		wsManager,
+		nil, // sseManager
+		enforcer,
+		auditUC,
+		taskDistributor,
 	)
 }
 

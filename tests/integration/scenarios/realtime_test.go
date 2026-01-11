@@ -47,7 +47,7 @@ func TestScenario_RealTime_LoginBroadcast(t *testing.T) {
 	go wsManager.Run() // Start the manager loop
 
 	// 3. Setup Auth UseCase with WS Manager
-	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, wsManager, env.Enforcer, nil, nil)
+	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, wsManager, nil, env.Enforcer, nil, nil)
 
 	// 4. Client Subscribe: Listen to Redis Channel directly
 	// We need to wait a bit for WS Manager to be ready, but since we subscribe directly to Redis,

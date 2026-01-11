@@ -36,7 +36,7 @@ func setupTestDependencies(env *setup.TestEnvironment) (usecase.UserUseCase, rep
 	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)
 
-	authUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC, nil)
+	authUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
 
 	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC), userRepo
 }
@@ -184,7 +184,7 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
 
-	authUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC, nil)
+	authUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
 
 	// 1. LOGIN (Should SUCCEED even if banned)
 	loginReq := authModel.LoginRequest{Username: user.Username, Password: password}
@@ -604,7 +604,7 @@ func setupUserUseCase(t *testing.T, env *setup.TestEnvironment) usecase.UserUseC
 	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)
 
-	authUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC, nil)
+	authUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
 
 	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC)
 }

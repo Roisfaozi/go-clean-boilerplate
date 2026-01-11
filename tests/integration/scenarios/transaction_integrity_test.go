@@ -40,7 +40,7 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
 	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
-	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, nil, mockEnforcer, auditService, nil)
+	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, mockEnforcer, auditService, nil)
 
 	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, mockEnforcer, auditService, authService)
 
@@ -63,7 +63,7 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 
 	// 4. Assertions
 	require.Error(t, err, "Expected error from UserUseCase when Role assignment fails")
-	
+
 	// Expectation: User should NOT exist (Rolled back)
 	user, _ := uRepo.FindByUsername(context.Background(), req.Username)
 	assert.Nil(t, user, "User should be rolled back (not found) when role assignment fails")

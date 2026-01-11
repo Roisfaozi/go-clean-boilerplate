@@ -41,7 +41,7 @@ func TestScenario_PasswordRecovery_Lifecycle(t *testing.T) {
 	// Note: We pass nil for TaskDistributor because we don't want to test the worker here,
 	// we want to test the logic flow. The logic should still save to DB even if distributor is nil
 	// (or we can verify it doesn't panic). Based on reading, it handles nil distributor gracefully.
-	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, nil, env.Enforcer, auditService, nil)
+	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, env.Enforcer, auditService, nil)
 
 	// 2. Create User
 	oldPassword := "OldPass123!"

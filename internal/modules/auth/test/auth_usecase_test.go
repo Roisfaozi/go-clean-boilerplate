@@ -74,6 +74,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		deps.tm,
 		deps.log,
 		deps.wsManager,
+		nil, // sseManager
 		deps.enforcer,
 		deps.auditUC,
 		deps.taskDistributor,

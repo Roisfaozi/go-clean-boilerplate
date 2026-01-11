@@ -39,7 +39,7 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
 
-	authUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC, nil)
+	authUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
 	userUC := userUseCase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC)
 
 	ctx := context.Background()
@@ -77,7 +77,7 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 		Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
 	})
 	require.NoError(t, err)
-	
+
 	// Filter logs by this user specifically (excluding potential noisy global logs if any)
 	var userLogs []auditModel.AuditLogResponse
 	for _, l := range logs {
@@ -87,16 +87,16 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	}
 
 	require.GreaterOrEqual(t, len(userLogs), 4, "Should have at least 4 audit entries for this lifecycle")
-	
+
 	assert.Equal(t, "CREATE", userLogs[0].Action)
 	assert.Equal(t, "User", userLogs[0].Entity)
-	
+
 	assert.Equal(t, "LOGIN", userLogs[1].Action)
 	assert.Equal(t, "Auth", userLogs[1].Entity)
-	
+
 	assert.Equal(t, "UPDATE", userLogs[2].Action)
 	assert.Equal(t, "User", userLogs[2].Entity)
-	
+
 	assert.Equal(t, "DELETE", userLogs[3].Action)
 	assert.Equal(t, "User", userLogs[3].Entity)
 }

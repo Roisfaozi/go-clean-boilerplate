@@ -76,8 +76,6 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 	deps.AuditUC.AssertExpectations(t)
 }
 
-
-
 func TestUserUseCase_Create_Conflict(t *testing.T) {
 	deps, uc := setupUserTest()
 
@@ -156,13 +154,21 @@ func TestUserUseCase_Create_EnforcerError(t *testing.T) {
 
 	deps.Repo.On("FindByUsername", mock.Anything, "user").Return(nil, gorm.ErrRecordNotFound)
 	deps.Repo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, gorm.ErrRecordNotFound)
+
+	// Mock Transaction that executes closure
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+
 	deps.Repo.On("Create", mock.Anything, mock.Anything).Return(nil)
 	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, "role:user").Return(false, errors.New("casbin error"))
-	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
 	result, err := uc.Create(context.Background(), req)
-	assert.NoError(t, err) // Should proceed even if role assignment fails
-	assert.NotNil(t, result)
+
+	// After refactoring, Casbin failure now causes rollback
+	assert.Error(t, err)
+	assert.Equal(t, exception.ErrInternalServer, err)
+	assert.Nil(t, result)
 	deps.Enforcer.AssertExpectations(t)
 }
 
