@@ -33,7 +33,7 @@ type RouterConfig struct {
 	RateLimitEnabled bool
 	RateLimitRPS     float64
 	RateLimitBurst   int
-	RateLimitStore   string // "memory" or "redis"
+	RateLimitStore   string
 	MetricsEnabled   bool
 	MetricsAuth      bool
 	MetricsUser      string
@@ -58,16 +58,16 @@ func SetupRouter(
 ) *gin.Engine {
 	router := gin.New()
 
-	// Global Middlewares (Order Matters!)
 	router.Use(gin.Recovery())
-	router.Use(middleware.RequestIDMiddleware()) // 1. Generate Request ID First
+	router.Use(middleware.RequestIDMiddleware())
 
-	// 2. Metrics Middleware
 	if cfg.MetricsEnabled {
 		router.Use(middleware.PrometheusMiddleware())
 	}
+	router.GET("/ws", wsController.HandleWebSocket)
+	router.GET("/events", sseManager.ServeHTTP())
 
-	router.Use(middleware.RequestLogger(logger)) // 3. Log request (now with ID)
+	router.Use(middleware.RequestLogger(logger))
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.SecurityMiddleware())
 	router.Use(middleware.CORSMiddleware(cfg.AllowedOrigins))
@@ -94,9 +94,6 @@ func SetupRouter(
 		}
 	}
 
-	// ---------------------------------
-	// PUBLIC UTILITY ENDPOINTS
-	// ---------------------------------
 	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.GET("/api/health", func(c *gin.Context) {
@@ -131,7 +128,6 @@ func SetupRouter(
 		})
 	})
 
-	// PROMETHEUS METRICS ENDPOINT
 	if cfg.MetricsEnabled {
 		metricsGroup := router.Group("/metrics")
 		if cfg.MetricsAuth {
@@ -142,9 +138,6 @@ func SetupRouter(
 		metricsGroup.GET("", gin.WrapH(promhttp.Handler()))
 	}
 
-	router.GET("/ws", wsController.HandleWebSocket)
-	router.GET("/events", sseManager.ServeHTTP())
-
 	apiV1 := router.Group("/api/v1")
 
 	public := apiV1.Group("")
@@ -153,16 +146,14 @@ func SetupRouter(
 		userHttp.RegisterPublicRoutes(public, userModule.UserController)
 	}
 
-	// AUTHENTICATED Group: Token is valid AND user must be Active
 	authenticated := apiV1.Group("")
 	authenticated.Use(authMiddleware.ValidateToken())
 	authenticated.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	{
 		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController)
-		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController) // Access /me
+		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
 	}
 
-	// AUTHORIZED Group: Token is valid AND user is Active AND has permission
 	authorized := apiV1.Group("")
 	authorized.Use(authMiddleware.ValidateToken())
 	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
@@ -171,7 +162,7 @@ func SetupRouter(
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
 		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
-		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController) // Access Admin/Management Endpoints
+		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
 		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
 	}
 

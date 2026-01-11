@@ -20,6 +20,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/google/uuid"
@@ -34,6 +35,7 @@ type Service struct {
 	tm              tx.WithTransactionManager
 	log             *logrus.Logger
 	wsManager       ws.Manager
+	sseManager      *sse.Manager
 	Enforcer        permissionUseCase.IEnforcer
 	auditUC         auditUseCase.AuditUseCase
 	taskDistributor worker.TaskDistributor
@@ -46,6 +48,7 @@ func NewAuthUsecase(
 	tm tx.WithTransactionManager,
 	log *logrus.Logger,
 	wsManager ws.Manager,
+	sseManager *sse.Manager,
 	enforcer permissionUseCase.IEnforcer,
 	auditUC auditUseCase.AuditUseCase,
 	taskDistributor worker.TaskDistributor,
@@ -57,6 +60,7 @@ func NewAuthUsecase(
 		tm:              tm,
 		log:             log,
 		wsManager:       wsManager,
+		sseManager:      sseManager,
 		Enforcer:        enforcer,
 		auditUC:         auditUC,
 		taskDistributor: taskDistributor,
@@ -154,6 +158,10 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	notificationJSON, _ := json.Marshal(notification)
 	if s.wsManager != nil {
 		s.wsManager.BroadcastToChannel("global_notifications", notificationJSON)
+	}
+
+	if s.sseManager != nil {
+		s.sseManager.Broadcast("user_login", notification)
 	}
 
 	accessTokenDuration := s.jwtManager.GetAccessTokenDuration()

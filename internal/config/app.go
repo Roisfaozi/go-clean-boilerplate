@@ -84,7 +84,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	auditModule := audit.NewAuditModule(dbConnection, logger)
 
 	// Inject TaskDistributor to AuthModule
-	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, enforcer, auditModule, taskDistributor)
+	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, sseManager, enforcer, auditModule, taskDistributor)
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule)
 
