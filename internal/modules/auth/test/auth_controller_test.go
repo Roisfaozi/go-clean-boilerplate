@@ -12,6 +12,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -27,7 +28,9 @@ func setupAuthTestRouter() *gin.Engine {
 func newTestAuthController(mockUseCase *mocks.MockAuthUseCase) *authHandler.AuthController {
 	log := logrus.New()
 	log.SetLevel(logrus.PanicLevel)
-	return authHandler.NewAuthController(mockUseCase, log, validator.New())
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v) // Register custom validations like 'xss'
+	return authHandler.NewAuthController(mockUseCase, log, v)
 }
 
 func TestAuthHandler_Login_Success(t *testing.T) {

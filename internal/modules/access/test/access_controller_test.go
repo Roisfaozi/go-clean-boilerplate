@@ -13,6 +13,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -29,7 +30,9 @@ func setupAccessTestRouter() *gin.Engine {
 func newTestAccessController(mockUseCase *mocks.MockIAccessUseCase) *accessHandler.AccessController {
 	log := logrus.New()
 	log.SetLevel(logrus.PanicLevel)
-	return accessHandler.NewAccessController(mockUseCase, validator.New(), log)
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v) // Register custom validations like 'xss'
+	return accessHandler.NewAccessController(mockUseCase, v, log)
 }
 
 func TestAccessHandler_CreateAccessRight_Success(t *testing.T) {

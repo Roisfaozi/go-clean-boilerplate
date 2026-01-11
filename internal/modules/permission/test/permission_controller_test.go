@@ -11,6 +11,7 @@ import (
 	permHandler "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -28,7 +29,9 @@ func setupPermissionTestRouter() *gin.Engine {
 func newTestPermissionController(mockUseCase *mocks.MockIPermissionUseCase) *permHandler.PermissionController {
 	log := logrus.New()
 	log.SetLevel(logrus.PanicLevel)
-	return permHandler.NewPermissionController(mockUseCase, log, validator.New())
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v) // Register custom validations like 'xss'
+	return permHandler.NewPermissionController(mockUseCase, log, v)
 }
 
 func TestGrantPermission_Success(t *testing.T) {

@@ -16,6 +16,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -35,6 +36,13 @@ const (
 	TestUsername      = "testuser"
 	TestRole          = "role:user"
 )
+
+// initializeValidator creates and configures a validator with custom validations
+func initializeValidator() *validator.Validate {
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v)
+	return v
+}
 
 type testDependencies struct {
 	jwtManager      *jwt.JWTManager
@@ -59,7 +67,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		tm:              new(mocking.MockWithTransactionManager),
 		wsManager:       new(mocking.MockManager),
 		enforcer:        new(mock_permission.IEnforcer),
-		validate:        validator.New(),
+		validate:        initializeValidator(),
 		log:             logrus.New(),
 		auditUC:         new(auditMocks.MockAuditUseCase),
 		taskDistributor: new(mocking.MockTaskDistributor),
