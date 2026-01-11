@@ -20,7 +20,6 @@ func NewAuditController(uc usecase.AuditUseCase, log *logrus.Logger) *AuditContr
 	}
 }
 
-// GetLogsDynamic handles dynamic search for audit logs
 func (h *AuditController) GetLogsDynamic(c *gin.Context) {
 	var filter querybuilder.DynamicFilter
 	if err := c.ShouldBindJSON(&filter); err != nil {
@@ -28,11 +27,15 @@ func (h *AuditController) GetLogsDynamic(c *gin.Context) {
 		return
 	}
 
-	logs, err := h.UseCase.GetLogsDynamic(c.Request.Context(), &filter)
+	logs, total, err := h.UseCase.GetLogsDynamic(c.Request.Context(), &filter)
 	if err != nil {
 		response.InternalServerError(c, err, "Failed to fetch logs")
 		return
 	}
 
-	response.Success(c, logs)
+	response.SuccessResponseWithPaging(c, logs, &response.PageMetadata{
+		Page:  filter.Page,
+		Limit: filter.PageSize,
+		Total: total,
+	})
 }

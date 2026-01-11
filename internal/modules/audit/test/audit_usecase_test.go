@@ -85,11 +85,12 @@ func TestGetLogsDynamic(t *testing.T) {
 		}
 
 		filter := &querybuilder.DynamicFilter{}
-		deps.Repo.On("FindAllDynamic", mock.Anything, filter).Return(entities, nil)
+		deps.Repo.On("FindAllDynamic", mock.Anything, filter).Return(entities, int64(1), nil)
 
-		res, err := uc.GetLogsDynamic(context.Background(), filter)
+		res, total, err := uc.GetLogsDynamic(context.Background(), filter)
 		assert.NoError(t, err)
 		assert.Len(t, res, 1)
+		assert.Equal(t, int64(1), total)
 		assert.Equal(t, "u1", res[0].UserID)
 
 		// Verify JSON unmarshaling
@@ -105,21 +106,23 @@ func TestGetLogsDynamic(t *testing.T) {
 		}
 
 		filter := &querybuilder.DynamicFilter{}
-		deps.Repo.On("FindAllDynamic", mock.Anything, filter).Return(entities, nil)
+		deps.Repo.On("FindAllDynamic", mock.Anything, filter).Return(entities, int64(1), nil)
 
-		res, err := uc.GetLogsDynamic(context.Background(), filter)
+		res, total, err := uc.GetLogsDynamic(context.Background(), filter)
 		assert.NoError(t, err)
 		assert.Len(t, res, 1)
+		assert.Equal(t, int64(1), total)
 		// Should not panic, and OldValues should be nil/null because unmarshal failed
 		assert.Nil(t, res[0].OldValues)
 	})
 
 	t.Run("Negative - Repo Error", func(t *testing.T) {
 		deps, uc := setupAuditTest()
-		deps.Repo.On("FindAllDynamic", mock.Anything, mock.Anything).Return(nil, errors.New("db fail"))
+		deps.Repo.On("FindAllDynamic", mock.Anything, mock.Anything).Return(nil, int64(0), errors.New("db fail"))
 
-		res, err := uc.GetLogsDynamic(context.Background(), nil)
+		res, total, err := uc.GetLogsDynamic(context.Background(), nil)
 		assert.Error(t, err)
 		assert.Nil(t, res)
+		assert.Equal(t, int64(0), total)
 	})
 }

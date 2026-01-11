@@ -11,6 +11,7 @@ import (
 
 	auditHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
@@ -26,7 +27,7 @@ func setupAuditTestRouter() *gin.Engine {
 	return r
 }
 
-func newTestAuditController(mockUC *mocks.MockAuditUseCase) *auditHttp.AuditController {
+func newTestAuditController(mockUC usecase.AuditUseCase) *auditHttp.AuditController {
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
 	return auditHttp.NewAuditController(mockUC, logger)
@@ -47,7 +48,7 @@ func TestGetLogsDynamicController(t *testing.T) {
 		respData := []model.AuditLogResponse{
 			{ID: "1", UserID: "u1"},
 		}
-		mockUC.On("GetLogsDynamic", mock.Anything, &filter).Return(respData, nil)
+		mockUC.On("GetLogsDynamic", mock.Anything, &filter).Return(respData, int64(1), nil)
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/audit-logs/search", bytes.NewBuffer(body))
@@ -60,6 +61,7 @@ func TestGetLogsDynamicController(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &webResp)
 		assert.NoError(t, err, "Failed to unmarshal response")
 		assert.Len(t, webResp.Data, 1)
+		assert.Equal(t, int64(1), webResp.Paging.Total)
 		mockUC.AssertExpectations(t)
 	})
 
@@ -76,7 +78,7 @@ func TestGetLogsDynamicController(t *testing.T) {
 		filter := querybuilder.DynamicFilter{}
 		body, _ := json.Marshal(filter)
 
-		mockUC.On("GetLogsDynamic", mock.Anything, &filter).Return(nil, errors.New("fail"))
+		mockUC.On("GetLogsDynamic", mock.Anything, &filter).Return(nil, int64(0), errors.New("fail"))
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/audit-logs/search", bytes.NewBuffer(body))

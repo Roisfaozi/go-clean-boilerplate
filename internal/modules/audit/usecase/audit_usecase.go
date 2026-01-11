@@ -24,6 +24,7 @@ func NewAuditUseCase(repo AuditRepository, log *logrus.Logger) AuditUseCase {
 }
 
 func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLogRequest) error {
+	uc.log.WithContext(ctx).Infof("DEBUG: Logging Activity: Action=%s, Entity=%s, EntityID=%s", req.Action, req.Entity, req.EntityID)
 	// Validation: Ensure mandatory fields are present
 	if req.UserID == "" || req.Action == "" || req.Entity == "" {
 		return fmt.Errorf("missing required fields for audit log: UserID, Action, and Entity are mandatory")
@@ -50,11 +51,11 @@ func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLo
 	return nil
 }
 
-func (uc *auditUseCase) GetLogsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]model.AuditLogResponse, error) {
-	logs, err := uc.repo.FindAllDynamic(ctx, filter)
+func (uc *auditUseCase) GetLogsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]model.AuditLogResponse, int64, error) {
+	logs, total, err := uc.repo.FindAllDynamic(ctx, filter)
 	if err != nil {
 		uc.log.WithContext(ctx).WithError(err).Error("Failed to fetch audit logs")
-		return nil, err
+		return nil, 0, err
 	}
 
 	var response []model.AuditLogResponse
@@ -76,5 +77,5 @@ func (uc *auditUseCase) GetLogsDynamic(ctx context.Context, filter *querybuilder
 			CreatedAt: log.CreatedAt,
 		})
 	}
-	return response, nil
+	return response, total, nil
 }
