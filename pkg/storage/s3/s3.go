@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -34,30 +35,20 @@ type S3Config struct {
 func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 	ctx := context.TODO()
 
-	// Configure Custom Endpoint Resolver if specific endpoint is provided (MinIO, R2)
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		if cfg.Endpoint != "" {
-			return aws.Endpoint{
-				PartitionID:   "aws",
-				URL:           cfg.Endpoint,
-				SigningRegion: cfg.Region,
-			}, nil
-		}
-		// Returning EndpointNotFoundError allows the service to fallback to its default resolution
-		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-	})
-
 	awsCfg, err := awsconfig.LoadDefaultConfig(ctx,
 		awsconfig.WithRegion(cfg.Region),
 		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.AccessKey, cfg.SecretKey, "")),
-		awsconfig.WithEndpointResolverWithOptions(customResolver),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load aws config: %w", err)
 	}
 
+	// Use service-specific endpoint resolver (recommended approach in AWS SDK v2)
 	client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.UsePathStyle = cfg.ForcePathStyle // Required for MinIO
+		if cfg.Endpoint != "" {
+			o.BaseEndpoint = aws.String(cfg.Endpoint)
+		}
 	})
 
 	return &S3Storage{
@@ -76,10 +67,12 @@ func (s *S3Storage) UploadFile(ctx context.Context, file io.Reader, filename str
 		ContentType: aws.String(contentType),
 	})
 	if err != nil {
+		telemetry.StorageUploadsTotal.WithLabelValues("s3", "failed").Inc()
 		return "", fmt.Errorf("failed to upload file to s3: %w", err)
 	}
 
 	// For S3-compatible, usually we return key or construct URL
+	telemetry.StorageUploadsTotal.WithLabelValues("s3", "success").Inc()
 	return s.GetFileUrl(filename)
 }
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 )
 
 type LocalStorage struct {
@@ -36,6 +37,7 @@ func (s *LocalStorage) UploadFile(ctx context.Context, file io.Reader, filename 
 	// Create destination file
 	dst, err := os.Create(fullPath)
 	if err != nil {
+		telemetry.StorageUploadsTotal.WithLabelValues("local", "failed").Inc()
 		return "", fmt.Errorf("failed to create destination file: %w", err)
 	}
 	defer func() {
@@ -44,10 +46,12 @@ func (s *LocalStorage) UploadFile(ctx context.Context, file io.Reader, filename 
 
 	// Copy content
 	if _, err := io.Copy(dst, file); err != nil {
+		telemetry.StorageUploadsTotal.WithLabelValues("local", "failed").Inc()
 		return "", fmt.Errorf("failed to save file content: %w", err)
 	}
 
 	// Return public URL (assumes the app serves RootPath statically)
+	telemetry.StorageUploadsTotal.WithLabelValues("local", "success").Inc()
 	url := fmt.Sprintf("%s/%s", s.BaseURL, cleanPath)
 	return url, nil
 }
