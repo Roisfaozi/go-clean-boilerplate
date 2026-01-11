@@ -20,7 +20,6 @@ func TestSearchAuditE2E_DynamicSearchAndAudit(t *testing.T) {
 	defer server.Cleanup()
 	client := server.Client
 
-	// 1. Setup: Create Admin User (to search audits)
 	f := fixtures.NewUserFactory(server.DB)
 	hash, _ := bcrypt.GenerateFromPassword([]byte("StrongPass123!"), bcrypt.DefaultCost)
 	passHash := string(hash)
@@ -31,20 +30,21 @@ func TestSearchAuditE2E_DynamicSearchAndAudit(t *testing.T) {
 		u.Password = passHash
 	})
 	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "*", "*") 
+	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
 	server.Enforcer.SavePolicy()
 
-	// Login Admin
 	loginPayload := map[string]any{"username": admin.Username, "password": "StrongPass123!"}
 	resp := client.POST("/api/v1/auth/login", loginPayload)
 	require.Equal(t, 200, resp.StatusCode)
-	
-	var loginRes struct { Data struct { AccessToken string `json:"access_token"` } }
+
+	var loginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		}
+	}
 	resp.JSON(&loginRes)
 	adminToken := loginRes.Data.AccessToken
 
-	// 2. Perform Action: Update User (Generates Audit Log)
-	// Create another user to update
 	targetUser := f.Create(func(u *userEntity.User) {
 		u.Username = "target_update"
 		u.Email = "target@update.com"
@@ -54,29 +54,28 @@ func TestSearchAuditE2E_DynamicSearchAndAudit(t *testing.T) {
 
 	updatePayload := map[string]any{
 		"name":     "New Name Updated",
-		"username": targetUser.Username, // Required by validation
+		"username": targetUser.Username,
 	}
-	
-	// Login Target User
+
 	resp = client.POST("/api/v1/auth/login", map[string]any{"username": targetUser.Username, "password": "StrongPass123!"})
-	var targetLoginRes struct { Data struct { AccessToken string `json:"access_token"` } }
+	var targetLoginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		}
+	}
 	resp.JSON(&targetLoginRes)
 	targetToken := targetLoginRes.Data.AccessToken
 
-	// Update Self
 	resp = client.PUT("/api/v1/users/me", updatePayload, setup.WithAuth(targetToken))
 	require.Equal(t, 200, resp.StatusCode)
 
-	// Allow slight delay for async audit logging (if async)
 	time.Sleep(2 * time.Second)
 
-	// 3. Dynamic Search on Audit Logs (Admin Only)
-	// Use Struct Field Names for filtering to ensure mapping works with QueryBuilder's GetDBFieldName
 	searchPayload := map[string]any{
 		"filter": map[string]any{
-			"Action":   map[string]any{"type": "equals", "from": "UPDATE"},
-			"Entity":   map[string]any{"type": "equals", "from": "User"},
-			"EntityID": map[string]any{"type": "equals", "from": targetUser.ID},
+			"action":    map[string]any{"type": "equals", "from": "UPDATE"},
+			"entity":    map[string]any{"type": "equals", "from": "User"},
+			"entity_id": map[string]any{"type": "equals", "from": targetUser.ID},
 		},
 		"page":      1,
 		"page_size": 10,
@@ -93,15 +92,14 @@ func TestSearchAuditE2E_DynamicSearchAndAudit(t *testing.T) {
 			OldValues any    `json:"old_values"`
 			NewValues any    `json:"new_values"`
 		} `json:"data"`
-		Meta struct {
+		Paging struct {
 			Total int64 `json:"total"`
-		} `json:"meta"`
+		} `json:"paging"`
 	}
 	err := resp.JSON(&searchRes)
 	require.NoError(t, err)
 
-	// Assertions
-	assert.GreaterOrEqual(t, searchRes.Meta.Total, int64(1))
+	assert.GreaterOrEqual(t, searchRes.Paging.Total, int64(1))
 	if len(searchRes.Data) > 0 {
 		log := searchRes.Data[0]
 		assert.Equal(t, "UPDATE", log.Action)
@@ -114,7 +112,6 @@ func TestSearchAuditE2E_UserDynamicSearch(t *testing.T) {
 	defer server.Cleanup()
 	client := server.Client
 
-	// 1. Setup Admin
 	f := fixtures.NewUserFactory(server.DB)
 	hash, _ := bcrypt.GenerateFromPassword([]byte("StrongPass123!"), bcrypt.DefaultCost)
 	passHash := string(hash)
@@ -128,21 +125,30 @@ func TestSearchAuditE2E_UserDynamicSearch(t *testing.T) {
 	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
 	server.Enforcer.SavePolicy()
 
-	// Login
 	resp := client.POST("/api/v1/auth/login", map[string]any{"username": admin.Username, "password": "StrongPass123!"})
-	var loginRes struct { Data struct { AccessToken string `json:"access_token"` } }
+	var loginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		}
+	}
 	resp.JSON(&loginRes)
 	token := loginRes.Data.AccessToken
 
-	// 2. Create Dummy Users for Searching
-	f.Create(func(u *userEntity.User) { u.Name = "Alice Wonderland"; u.Email = "alice@test.com"; u.Username = "alice_w" })
+	f.Create(func(u *userEntity.User) {
+		u.Name = "Alice Wonderland"
+		u.Email = "alice@test.com"
+		u.Username = "alice_w"
+	})
 	f.Create(func(u *userEntity.User) { u.Name = "Bob Builder"; u.Email = "bob@test.com"; u.Username = "bob_b" })
-	f.Create(func(u *userEntity.User) { u.Name = "Charlie Chocolate"; u.Email = "charlie@test.com"; u.Username = "charlie_c" })
+	f.Create(func(u *userEntity.User) {
+		u.Name = "Charlie Chocolate"
+		u.Email = "charlie@test.com"
+		u.Username = "charlie_c"
+	})
 
-	// 3. Search for "Alice" using Struct Field Name "Email"
 	searchPayload := map[string]any{
 		"filter": map[string]any{
-			"Email": map[string]any{"type": "contains", "from": "alice"},
+			"email": map[string]any{"type": "contains", "from": "alice"},
 		},
 	}
 	resp = client.POST("/api/v1/users/search", searchPayload, setup.WithAuth(token))
@@ -153,34 +159,36 @@ func TestSearchAuditE2E_UserDynamicSearch(t *testing.T) {
 			Email string `json:"email"`
 			Name  string `json:"name"`
 		} `json:"data"`
-		Meta struct {
+		Paging struct {
 			Total int64 `json:"total"`
-		} `json:"meta"`
+		} `json:"paging"`
 	}
 	resp.JSON(&userSearchRes)
-	
-	// Debug log
-	if userSearchRes.Meta.Total == 0 {
+
+	if userSearchRes.Paging.Total == 0 {
 		t.Logf("DEBUG: Search Result Empty. Payload: %+v. Response: %+v", searchPayload, userSearchRes)
 	}
 
-	assert.Equal(t, int64(1), userSearchRes.Meta.Total)
+	assert.Equal(t, int64(1), userSearchRes.Paging.Total)
 	if len(userSearchRes.Data) > 0 {
 		assert.Equal(t, "alice@test.com", userSearchRes.Data[0].Email)
 	}
 
-	// 4. Complex Search (Sorting)
 	sortPayload := map[string]any{
 		"sort": []map[string]any{
-			{"colId": "Name", "sort": "desc"}, // Use "Name" instead of "name" just to be safe
+			{"colId": "name", "sort": "desc"},
 		},
 		"page_size": 5,
 	}
 	resp = client.POST("/api/v1/users/search", sortPayload, setup.WithAuth(token))
 	require.Equal(t, 200, resp.StatusCode)
-	
-	var sortedRes struct { Data []struct { Name string `json:"name"` } `json:"data"` }
+
+	var sortedRes struct {
+		Data []struct {
+			Name string `json:"name"`
+		} `json:"data"`
+	}
 	resp.JSON(&sortedRes)
-	
+
 	assert.NotEmpty(t, sortedRes.Data)
 }

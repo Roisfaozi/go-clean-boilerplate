@@ -11,28 +11,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ============================================
-// POSITIVE TEST CASES
-// ============================================
-
 func TestAuthE2E_CompleteFlow_Positive(t *testing.T) {
 	server := setup.SetupTestServer(t)
 	defer server.Cleanup()
 
 	client := server.Client
 
-	// Register
 	registerReq := map[string]interface{}{
 		"username": "e2euser",
 		"email":    "e2e@example.com",
 		"password": "SecurePass123!",
-		"fullname": "E2E User", // Corrected field name
+		"fullname": "E2E User",
 	}
 
 	resp := client.POST("/api/v1/users/register", registerReq)
 	assert.Equal(t, 201, resp.StatusCode)
 
-	// Login
 	loginReq := map[string]interface{}{
 		"username": "e2euser",
 		"password": "SecurePass123!",
@@ -49,18 +43,12 @@ func TestAuthE2E_CompleteFlow_Positive(t *testing.T) {
 	err := resp.JSON(&loginResult)
 	require.NoError(t, err)
 
-	// Access protected endpoint
 	resp = client.GET("/api/v1/users/me", setup.WithAuth(loginResult.Data.AccessToken))
 	assert.Equal(t, 200, resp.StatusCode)
 
-	// Logout
 	resp = client.POST("/api/v1/auth/logout", nil, setup.WithAuth(loginResult.Data.AccessToken))
 	assert.Equal(t, 200, resp.StatusCode)
 }
-
-// ============================================
-// NEGATIVE TEST CASES
-// ============================================
 
 func TestAuthE2E_Login_Negative_InvalidCredentials(t *testing.T) {
 	server := setup.SetupTestServer(t)
@@ -83,7 +71,7 @@ func TestAuthE2E_Register_Negative_DuplicateUsername(t *testing.T) {
 		"username": "duplicate",
 		"email":    "first@example.com",
 		"password": "password123",
-		"fullname": "First User", // Corrected field name
+		"fullname": "First User",
 	}
 
 	resp := server.Client.POST("/api/v1/users/register", registerReq)
@@ -93,7 +81,7 @@ func TestAuthE2E_Register_Negative_DuplicateUsername(t *testing.T) {
 		"username": "duplicate",
 		"email":    "second@example.com",
 		"password": "password123",
-		"fullname": "Second User", // Corrected field name
+		"fullname": "Second User",
 	}
 
 	resp = server.Client.POST("/api/v1/users/register", registerReq2)
@@ -116,10 +104,6 @@ func TestAuthE2E_ProtectedEndpoint_Negative_InvalidToken(t *testing.T) {
 	assert.Equal(t, 401, resp.StatusCode)
 }
 
-// ============================================
-// EDGE CASES
-// ============================================
-
 func TestAuthE2E_Register_Edge_SpecialCharactersInUsername(t *testing.T) {
 	server := setup.SetupTestServer(t)
 	defer server.Cleanup()
@@ -128,11 +112,11 @@ func TestAuthE2E_Register_Edge_SpecialCharactersInUsername(t *testing.T) {
 		"username": "user@#$%",
 		"email":    "special@example.com",
 		"password": "password123",
-		"fullname": "Special User", // Corrected field name
+		"fullname": "Special User",
 	}
 
 	resp := server.Client.POST("/api/v1/users/register", registerReq)
-	// Success if validation allows, failure if it doesn't. We just check it's one of these.
+
 	assert.True(t, resp.StatusCode == 201 || resp.StatusCode == 400 || resp.StatusCode == 422)
 }
 
@@ -144,7 +128,7 @@ func TestAuthE2E_Login_Edge_CaseSensitiveUsername(t *testing.T) {
 		"username": "TestUser",
 		"email":    "test@example.com",
 		"password": "password123",
-		"fullname": "Test User", // Corrected field name
+		"fullname": "Test User",
 	}
 
 	resp := server.Client.POST("/api/v1/users/register", registerReq)
@@ -156,14 +140,9 @@ func TestAuthE2E_Login_Edge_CaseSensitiveUsername(t *testing.T) {
 	}
 
 	resp = server.Client.POST("/api/v1/auth/login", loginReq)
-	// In some DBs this is case-insensitive. We check current behavior.
-	// If 401, then it's case-sensitive. If 200, it's case-insensitive.
+
 	assert.True(t, resp.StatusCode == 401 || resp.StatusCode == 200)
 }
-
-// ============================================
-// SECURITY TEST CASES
-// ============================================
 
 func TestAuthE2E_Security_SQLInjectionInLogin(t *testing.T) {
 	server := setup.SetupTestServer(t)
@@ -194,7 +173,7 @@ func TestAuthE2E_Security_XSSInRegistration(t *testing.T) {
 		"username": "xssuser",
 		"email":    "xss@example.com",
 		"password": "password123",
-		"fullname": "<script>alert('XSS')</script>", // Corrected field name
+		"fullname": "<script>alert('XSS')</script>",
 	}
 
 	resp := server.Client.POST("/api/v1/users/register", registerReq)

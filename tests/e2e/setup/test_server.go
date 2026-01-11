@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
+	integrationSetup "github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/casbin/casbin/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
-	integrationSetup "github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"gorm.io/gorm"
 )
 
@@ -27,8 +27,6 @@ type TestServer struct {
 func SetupTestServer(t *testing.T) *TestServer {
 	env := integrationSetup.SetupIntegrationEnvironment(t)
 
-	// Parse MySQL connection string to get host and port
-	// DSN format: user:pass@tcp(host:port)/dbname
 	dsn := env.MySQLAddr
 	parts := strings.Split(dsn, "@tcp(")
 	hostPortAndDB := strings.Split(parts[1], ")/")
@@ -84,9 +82,9 @@ func SetupTestServer(t *testing.T) *TestServer {
 
 	return &TestServer{
 		Server:   server,
-		DB:       env.DB, // Using env.DB allows sharing the container connection, but careful! App created its own DB connection pool.
+		DB:       env.DB,
 		Redis:    env.Redis,
-		Enforcer: app.Enforcer, // USE APP ENFORCER!
+		Enforcer: app.Enforcer,
 		BaseURL:  server.URL,
 		Client:   client,
 	}
