@@ -80,27 +80,50 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 		Status:   entity.UserStatusActive,
 	}
 
-	if err := u.Repo.Create(ctx, user); err != nil {
-		u.Log.Errorf("Failed to create user: %v", err)
-		return nil, exception.ErrInternalServer
-	}
-
-	// RBAC: Assign default role
-	if u.Enforcer != nil {
-		_, err := u.Enforcer.AddGroupingPolicy(user.ID, "role:user")
-		if err != nil {
-			u.Log.Errorf("Failed to assign default role: %v", err)
+	// Use Transaction for Atomicity (User Creation + Role Assignment)
+	err = u.DB.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := u.Repo.Create(txCtx, user); err != nil {
+			u.Log.Errorf("Failed to create user: %v", err)
+			return exception.ErrInternalServer
 		}
-	}
 
-	if u.AuditUC != nil {
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
-			UserID:    user.ID,
-			Action:    "CREATE",
-			Entity:    "User",
-			EntityID:  user.ID,
-			NewValues: map[string]interface{}{"username": user.Username, "email": user.Email, "Name": user.Name},
-		})
+		// RBAC: Assign default role
+		roleAdded := false
+		if u.Enforcer != nil {
+			_, err := u.Enforcer.AddGroupingPolicy(user.ID, "role:user")
+			if err != nil {
+				u.Log.Errorf("Failed to assign default role: %v", err)
+				// Return error to trigger rollback
+				return exception.ErrInternalServer
+			}
+			roleAdded = true
+		}
+
+		if u.AuditUC != nil {
+			// Audit log must succeed for strict compliance/integrity.
+			err := u.AuditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+				UserID:    user.ID,
+				Action:    "CREATE",
+				Entity:    "User",
+				EntityID:  user.ID,
+				NewValues: map[string]interface{}{"username": user.Username, "email": user.Email, "Name": user.Name},
+			})
+			if err != nil {
+				u.Log.Errorf("Failed to create audit log (rollback triggered): %v", err)
+				// Compensation: Undo Casbin change
+				if roleAdded && u.Enforcer != nil {
+					if _, errComp := u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID); errComp != nil {
+						u.Log.Errorf("Failed to rollback Casbin policy: %v", errComp)
+					}
+				}
+				return exception.ErrInternalServer
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return converter.UserToResponse(user), nil
@@ -259,22 +282,55 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 		return err
 	}
 
-	if err := u.Repo.Delete(ctx, user.ID); err != nil {
-		u.Log.Errorf("Failed to delete user: %v", err)
-		return err
-	}
+	return u.DB.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := u.Repo.Delete(txCtx, user.ID); err != nil {
+			u.Log.Errorf("Failed to delete user: %v", err)
+			return err
+		}
 
-	if u.AuditUC != nil {
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
-			UserID:   actorUserID,
-			Action:   "DELETE",
-			Entity:   "User",
-			EntityID: user.ID,
-			OldValues: map[string]interface{}{
-				"username": user.Username,
-				"email":    user.Email,
-			},
-		})
-	}
-	return nil
+		var oldRoles []string
+		if u.Enforcer != nil {
+			// Backup roles for compensation
+			var err error
+			oldRoles, err = u.Enforcer.GetRolesForUser(user.ID)
+			if err != nil {
+				u.Log.Warnf("Failed to fetch roles for backup in delete: %v", err)
+			}
+
+			// Remove all grouping policies (roles) associated with this user
+			_, err = u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID)
+			if err != nil {
+				u.Log.Errorf("Failed to remove user policies: %v", err)
+				return exception.ErrInternalServer
+			}
+		}
+
+		if u.AuditUC != nil {
+			err := u.AuditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+				UserID:   actorUserID,
+				Action:   "DELETE",
+				Entity:   "User",
+				EntityID: user.ID,
+				OldValues: map[string]interface{}{
+					"username": user.Username,
+					"email":    user.Email,
+				},
+			})
+			if err != nil {
+				u.Log.Errorf("Failed to log audit for delete (rollback triggered): %v", err)
+				
+				// COMPENSATE CASBIN: Restore Roles
+				if u.Enforcer != nil && len(oldRoles) > 0 {
+					for _, role := range oldRoles {
+						if _, errComp := u.Enforcer.AddGroupingPolicy(user.ID, role); errComp != nil {
+							u.Log.Errorf("Failed to restore role %s during rollback: %v", role, errComp)
+						}
+					}
+				}
+				
+				return exception.ErrInternalServer
+			}
+		}
+		return nil
+	})
 }

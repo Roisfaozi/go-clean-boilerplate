@@ -7,6 +7,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	querybuilder2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -24,8 +25,16 @@ func NewUserRepository(db *gorm.DB, log *logrus.Logger) UserRepository {
 	}
 }
 
+// getDB returns the transactional DB from context if available, otherwise returns the default DB with context
+func (r *userRepositoryData) getDB(ctx context.Context) *gorm.DB {
+	if txDB, ok := tx.DBFromContext(ctx); ok {
+		return txDB
+	}
+	return r.db.WithContext(ctx)
+}
+
 func (r *userRepositoryData) Create(ctx context.Context, user *entity.User) error {
-	if err := r.db.WithContext(ctx).Create(user).Error; err != nil {
+	if err := r.getDB(ctx).Create(user).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("failed to create user")
 		return err
 	}
@@ -33,7 +42,7 @@ func (r *userRepositoryData) Create(ctx context.Context, user *entity.User) erro
 }
 
 func (r *userRepositoryData) Update(ctx context.Context, user *entity.User) error {
-	if err := r.db.WithContext(ctx).Save(user).Error; err != nil {
+	if err := r.getDB(ctx).Save(user).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("failed to update user")
 		return err
 	}
@@ -41,7 +50,7 @@ func (r *userRepositoryData) Update(ctx context.Context, user *entity.User) erro
 }
 
 func (r *userRepositoryData) UpdateStatus(ctx context.Context, userID, status string) error {
-	if err := r.db.WithContext(ctx).Model(&entity.User{}).Where("id = ?", userID).Update("status", status).Error; err != nil {
+	if err := r.getDB(ctx).Model(&entity.User{}).Where("id = ?", userID).Update("status", status).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("failed to update user status")
 		return err
 	}
@@ -50,7 +59,7 @@ func (r *userRepositoryData) UpdateStatus(ctx context.Context, userID, status st
 
 func (r *userRepositoryData) FindByID(ctx context.Context, id string) (*entity.User, error) {
 	var user entity.User
-	if err := r.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
+	if err := r.getDB(ctx).First(&user, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
 		}
@@ -62,9 +71,9 @@ func (r *userRepositoryData) FindByID(ctx context.Context, id string) (*entity.U
 
 func (r *userRepositoryData) FindByEmail(ctx context.Context, email string) (*entity.User, error) {
 	var user entity.User
-	if err := r.db.WithContext(ctx).First(&user, "email = ?", email).Error; err != nil {
+	if err := r.getDB(ctx).First(&user, "email = ?", email).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, gorm.ErrRecordNotFound
+			return nil, errors.New("user not found")
 		}
 		r.log.WithContext(ctx).WithError(err).Error("failed to find user by email")
 		return nil, err
@@ -74,7 +83,7 @@ func (r *userRepositoryData) FindByEmail(ctx context.Context, email string) (*en
 
 func (r *userRepositoryData) FindByToken(ctx context.Context, token string) (*entity.User, error) {
 	var user entity.User
-	if err := r.db.WithContext(ctx).First(&user, "token = ?", token).Error; err != nil {
+	if err := r.getDB(ctx).First(&user, "token = ?", token).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
 		}
@@ -85,7 +94,7 @@ func (r *userRepositoryData) FindByToken(ctx context.Context, token string) (*en
 }
 
 func (r *userRepositoryData) Delete(ctx context.Context, id string) error {
-	if err := r.db.WithContext(ctx).Delete(&entity.User{}, "id = ?", id).Error; err != nil {
+	if err := r.getDB(ctx).Delete(&entity.User{}, "id = ?", id).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("failed to delete user")
 		return err
 	}
@@ -94,7 +103,7 @@ func (r *userRepositoryData) Delete(ctx context.Context, id string) error {
 
 func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, error) {
 	var users []*entity.User
-	query := r.db.WithContext(ctx)
+	query := r.getDB(ctx)
 
 	if filter.Username != "" {
 		query = query.Where("name LIKE ?", "%"+filter.Username+"%")
@@ -123,7 +132,7 @@ func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserL
 
 func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.User, error) {
 	var users []*entity.User
-	query := r.db.WithContext(ctx).Model(&entity.User{})
+	query := r.getDB(ctx).Model(&entity.User{})
 
 	// Apply Dynamic Filter
 	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.User{}, filter)
@@ -146,7 +155,7 @@ func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybu
 
 func (r *userRepositoryData) FindByUsername(ctx context.Context, username string) (*entity.User, error) {
 	var user entity.User
-	err := r.db.WithContext(ctx).Where("username = ?", username).First(&user).Error
+	err := r.getDB(ctx).Where("username = ?", username).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, gorm.ErrRecordNotFound
