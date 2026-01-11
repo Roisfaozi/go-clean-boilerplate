@@ -7,8 +7,6 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// FormatValidationErrors converts validator errors into a friendly string message.
-// It combines multiple errors into a single string separated by semicolons.
 func FormatValidationErrors(err error) string {
 	var sb strings.Builder
 

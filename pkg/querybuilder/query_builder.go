@@ -83,49 +83,66 @@ func GenerateDynamicSort(db *gorm.DB, model interface{}, filter *DynamicFilter) 
 	return db, nil
 }
 
-func hasSoftDeleteField(tType reflect.Type) bool {
-	if tType.Kind() == reflect.Ptr {
-		tType = tType.Elem()
-	}
-	_, found := tType.FieldByName("DeletedAt")
-	return found
-}
-
+// GetDBFieldName extracts the database column name from the gorm tag or converts the field name to snake_case.
 func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
-	// SECURITY: Block sorting/filtering by sensitive fields
 	if isSensitiveField(fieldName) {
 		return "", false
 	}
 
+	// 1. Try direct match
 	field, found := tType.FieldByName(fieldName)
+
+	// 2. If not found, try case-insensitive or tag-based match
 	if !found {
 		for i := 0; i < tType.NumField(); i++ {
 			f := tType.Field(i)
+
+			// Check exact name (case-insensitive)
 			if strings.EqualFold(f.Name, fieldName) {
-				// SECURITY: Check matched field name too
-				if isSensitiveField(f.Name) {
-					return "", false
+				field = f
+				found = true
+				break
+			}
+
+			// Check JSON tag
+			jsonTag := f.Tag.Get("json")
+			if jsonTag != "" {
+				col := extractColumnNameFromJsonTag(jsonTag)
+				if strings.EqualFold(col, fieldName) {
+					field = f
+					found = true
+					break
 				}
+			}
+
+			// Check GORM tag
+			gormTag := f.Tag.Get("gorm")
+			if gormTag != "" {
+				col := extractColumnNameFromGormTag(gormTag)
+				if strings.EqualFold(col, fieldName) {
+					field = f
+					found = true
+					break
+				}
+			}
+
+			// Check Snake Case of field name
+			if strings.EqualFold(ToSnakeCase(f.Name), fieldName) {
 				field = f
 				found = true
 				break
 			}
 		}
-		if !found {
-			return "", false
-		}
 	}
 
+	if !found || isSensitiveField(field.Name) {
+		return "", false
+	}
+
+	// Now that we have the field, get its DB column name
 	gormTag := field.Tag.Get("gorm")
 	if gormTag != "" {
 		if colName := extractColumnNameFromGormTag(gormTag); colName != "" {
-			return colName, true
-		}
-	}
-
-	jsonTag := field.Tag.Get("json")
-	if jsonTag != "" {
-		if colName := extractColumnNameFromJsonTag(jsonTag); colName != "" {
 			return colName, true
 		}
 	}

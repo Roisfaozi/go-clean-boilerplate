@@ -48,7 +48,7 @@ type WebSocketManager struct {
 type BroadcastMessage struct {
 	Channel    string
 	Message    []byte
-	FromRemote bool // Internal flag to avoid re-publishing to Redis
+	FromRemote bool
 }
 
 type SubscriptionRequest struct {
@@ -65,7 +65,6 @@ type WebSocketConfig struct {
 	RedisPrefix        string
 }
 
-// NewWebSocketManager creates a new WebSocketManager with the provided configuration, logger, and redis client.
 func NewWebSocketManager(config *WebSocketConfig, log *logrus.Logger, redisClient *redis.Client) *WebSocketManager {
 	return &WebSocketManager{
 		clients:     make(map[*Client]bool),
@@ -85,7 +84,6 @@ func NewWebSocketManager(config *WebSocketConfig, log *logrus.Logger, redisClien
 func (m *WebSocketManager) Run() {
 	m.log.Info("WebSocket Manager started")
 
-	// Start Redis subscriber if enabled and redis is available
 	if m.config.DistributedEnabled && m.redisClient != nil {
 		go m.listenToRedis()
 	}
@@ -114,7 +112,6 @@ func (m *WebSocketManager) Run() {
 	}
 }
 
-// listenToRedis listens for broadcast messages from other instances via Redis Pub/Sub
 func (m *WebSocketManager) listenToRedis() {
 	ctx := context.Background()
 	prefix := m.config.RedisPrefix
@@ -122,7 +119,6 @@ func (m *WebSocketManager) listenToRedis() {
 		prefix = "ws_broadcast:"
 	}
 
-	// Use pattern-based subscribe to listen to all ws_broadcast channels
 	pubsub := m.redisClient.PSubscribe(ctx, prefix+"*")
 	defer func() {
 		_ = pubsub.Close()
@@ -136,10 +132,9 @@ func (m *WebSocketManager) listenToRedis() {
 		case <-m.stopChan:
 			return
 		case msg := <-ch:
-			// Extract local channel name from Redis channel name (strip prefix)
+
 			localChannel := msg.Channel[len(prefix):]
 
-			// Inject into local broadcast queue with FromRemote = true
 			m.broadcast <- &BroadcastMessage{
 				Channel:    localChannel,
 				Message:    []byte(msg.Payload),
@@ -183,7 +178,7 @@ func (m *WebSocketManager) handleUnregister(client *Client) {
 }
 
 func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
-	// 1. Publish to Redis if this is a local broadcast, feature is ENABLED, and redis is available
+
 	if !msg.FromRemote && m.config.DistributedEnabled && m.redisClient != nil {
 		ctx := context.Background()
 		prefix := m.config.RedisPrefix
@@ -197,7 +192,6 @@ func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 		}
 	}
 
-	// 2. Send to local clients
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -247,7 +241,6 @@ func (m *WebSocketManager) handleUnsubscribe(req *SubscriptionRequest) {
 	}
 }
 
-// RegisterClient registers a client with a timeout
 func (m *WebSocketManager) RegisterClient(client *Client) {
 	select {
 	case m.register <- client:
@@ -258,7 +251,6 @@ func (m *WebSocketManager) RegisterClient(client *Client) {
 	}
 }
 
-// UnregisterClient unregisters a client with a timeout
 func (m *WebSocketManager) UnregisterClient(client *Client) {
 	select {
 	case m.unregister <- client:
@@ -269,7 +261,6 @@ func (m *WebSocketManager) UnregisterClient(client *Client) {
 	}
 }
 
-// BroadcastToChannel sends a message to a channel with a timeout
 func (m *WebSocketManager) BroadcastToChannel(channel string, message []byte) {
 	select {
 	case m.broadcast <- &BroadcastMessage{Channel: channel, Message: message, FromRemote: false}:
@@ -280,7 +271,6 @@ func (m *WebSocketManager) BroadcastToChannel(channel string, message []byte) {
 	}
 }
 
-// SubscribeToChannel subscribes a client to a channel with a timeout
 func (m *WebSocketManager) SubscribeToChannel(client *Client, channel string) {
 	select {
 	case m.subscribe <- &SubscriptionRequest{Client: client, Channel: channel}:
@@ -291,7 +281,6 @@ func (m *WebSocketManager) SubscribeToChannel(client *Client, channel string) {
 	}
 }
 
-// UnsubscribeFromChannel unsubscribes a client from a channel with a timeout
 func (m *WebSocketManager) UnsubscribeFromChannel(client *Client, channel string) {
 	select {
 	case m.unsubscribe <- &SubscriptionRequest{Client: client, Channel: channel}:
@@ -327,7 +316,7 @@ func (m *WebSocketManager) Channels() map[string]map[*Client]bool {
 func (m *WebSocketManager) Stop() {
 	select {
 	case <-m.stopChan:
-		// Already closed
+
 	default:
 		close(m.stopChan)
 	}
