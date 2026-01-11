@@ -21,6 +21,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/google/uuid"
@@ -115,6 +116,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	})
 
 	if err != nil {
+		telemetry.UserLoginsTotal.WithLabelValues("failed").Inc()
 		return nil, "", err
 	}
 
@@ -165,6 +167,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	}
 
 	accessTokenDuration := s.jwtManager.GetAccessTokenDuration()
+	telemetry.UserLoginsTotal.WithLabelValues("success").Inc()
 	loginResponse := &model.LoginResponse{
 		AccessToken: accessToken,
 		TokenType:   "Bearer",
@@ -190,6 +193,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 
 	user, err := s.userRepo.FindByID(ctx, claims.UserID)
 	if err != nil {
+		telemetry.UserLoginsTotal.WithLabelValues("failed").Inc()
 		return nil, "", err
 	}
 

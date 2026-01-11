@@ -18,6 +18,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/storage"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -130,6 +131,8 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 	if err != nil {
 		return nil, err
 	}
+
+	telemetry.UserRegistrationsTotal.Inc()
 
 	return converter.UserToResponse(user), nil
 }
