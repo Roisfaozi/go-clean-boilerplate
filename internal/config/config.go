@@ -21,7 +21,18 @@ type AppConfig struct {
 	Casbin    CasbinConfig    `mapstructure:"casbin"`
 	CORS      CORSConfig      `mapstructure:"cors"`
 	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
-	Metrics   MetricsConfig   `mapstructure:"metrics"`
+	Metrics struct {
+		Enabled      bool   `env:"METRICS_ENABLED" envDefault:"false"`
+		AuthEnabled  bool   `env:"METRICS_AUTH_ENABLED" envDefault:"false"`
+		Username     string `env:"METRICS_USER"`
+		Password     string `env:"METRICS_PASS"`
+	}
+
+	Telemetry struct {
+		Enabled      bool   `env:"OTEL_ENABLED" envDefault:"false"`
+		ServiceName  string `env:"OTEL_SERVICE_NAME" envDefault:"go-clean-api"`
+		CollectorURL string `env:"OTEL_COLLECTOR_URL" envDefault:"localhost:4317"`
+	}
 }
 
 type ServerConfig struct {

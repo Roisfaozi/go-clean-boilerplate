@@ -96,6 +96,57 @@ func (_c *MockTokenRepository_DeleteByEmail_Call) RunAndReturn(run func(ctx cont
 	return _c
 }
 
+// DeleteExpiredResetTokens provides a mock function for the type MockTokenRepository
+func (_mock *MockTokenRepository) DeleteExpiredResetTokens(ctx context.Context) error {
+	ret := _mock.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteExpiredResetTokens")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(ctx)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockTokenRepository_DeleteExpiredResetTokens_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteExpiredResetTokens'
+type MockTokenRepository_DeleteExpiredResetTokens_Call struct {
+	*mock.Call
+}
+
+// DeleteExpiredResetTokens is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockTokenRepository_Expecter) DeleteExpiredResetTokens(ctx interface{}) *MockTokenRepository_DeleteExpiredResetTokens_Call {
+	return &MockTokenRepository_DeleteExpiredResetTokens_Call{Call: _e.mock.On("DeleteExpiredResetTokens", ctx)}
+}
+
+func (_c *MockTokenRepository_DeleteExpiredResetTokens_Call) Run(run func(ctx context.Context)) *MockTokenRepository_DeleteExpiredResetTokens_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTokenRepository_DeleteExpiredResetTokens_Call) Return(err error) *MockTokenRepository_DeleteExpiredResetTokens_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockTokenRepository_DeleteExpiredResetTokens_Call) RunAndReturn(run func(ctx context.Context) error) *MockTokenRepository_DeleteExpiredResetTokens_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteToken provides a mock function for the type MockTokenRepository
 func (_mock *MockTokenRepository) DeleteToken(ctx context.Context, userID string, sessionID string) error {
 	ret := _mock.Called(ctx, userID, sessionID)

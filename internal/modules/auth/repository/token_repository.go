@@ -33,8 +33,20 @@ func (r *tokenRepositoryRedis) FindByToken(ctx context.Context, token string) (*
 }
 
 func (r *tokenRepositoryRedis) DeleteByEmail(ctx context.Context, email string) error {
-	return r.db.WithContext(ctx).Where("email = ?", email).Delete(&entity.PasswordResetToken{}).Error
+	if err := r.db.WithContext(ctx).Where("email = ?", email).Delete(&entity.PasswordResetToken{}).Error; err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("Failed to delete reset token by email")
+		return err
+	}
+	return nil
+}
 
+func (r *tokenRepositoryRedis) DeleteExpiredResetTokens(ctx context.Context) error {
+	// Deletes tokens where expires_at < NOW()
+	if err := r.db.WithContext(ctx).Where("expires_at < NOW()").Delete(&entity.PasswordResetToken{}).Error; err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("Failed to delete expired reset tokens")
+		return err
+	}
+	return nil
 }
 
 func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger, db *gorm.DB) TokenRepository {

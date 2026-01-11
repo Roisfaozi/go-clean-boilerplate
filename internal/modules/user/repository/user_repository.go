@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
@@ -180,4 +181,21 @@ func (r *userRepositoryData) FindByUsername(ctx context.Context, username string
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *userRepositoryData) HardDeleteSoftDeletedUsers(ctx context.Context, retentionDays int) error {
+	// Calculate cutoff time in milliseconds (since soft_delete uses milli)
+	// retentionDays ago
+	// GORM soft delete plugin stores deleted_at as unix milli. Active is 0.
+	// We want records where deleted_at > 0 AND deleted_at < (now - retention)
+
+	cutoffTime := time.Now().AddDate(0, 0, -retentionDays).UnixMilli()
+
+	// Unscoped() is required to see soft-deleted records.
+	// We check if deleted_at is not 0 (deleted) AND deleted_at is older than cutoff.
+	if err := r.getDB(ctx).Unscoped().Where("deleted_at > 0 AND deleted_at < ?", cutoffTime).Delete(&entity.User{}).Error; err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("failed to hard delete old users")
+		return err
+	}
+	return nil
 }

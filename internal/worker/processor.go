@@ -15,11 +15,16 @@ type TaskProcessor interface {
 }
 
 type RedisTaskProcessor struct {
-	server *asynq.Server
-	logger *logrus.Logger
+	server         *asynq.Server
+	logger         *logrus.Logger
+	cleanupHandler *handlers.CleanupTaskHandler
 }
 
-func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, logger *logrus.Logger) TaskProcessor {
+func NewRedisTaskProcessor(
+	redisOpt asynq.RedisClientOpt,
+	logger *logrus.Logger,
+	cleanupHandler *handlers.CleanupTaskHandler,
+) TaskProcessor {
 	server := asynq.NewServer(
 		redisOpt,
 		asynq.Config{
@@ -36,8 +41,9 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, logger *logrus.Logger)
 	)
 
 	return &RedisTaskProcessor{
-		server: server,
-		logger: logger,
+		server:         server,
+		logger:         logger,
+		cleanupHandler: cleanupHandler,
 	}
 }
 
@@ -46,6 +52,13 @@ func (processor *RedisTaskProcessor) Start() error {
 
 	emailHandler := handlers.NewEmailTaskHandler(processor.logger)
 	mux.HandleFunc(tasks.TypeSendEmail, emailHandler.ProcessTaskSendEmail)
+
+	// Register Cleanup Handlers
+	if processor.cleanupHandler != nil {
+		mux.HandleFunc(tasks.TypeCleanupExpiredTokens, processor.cleanupHandler.ProcessCleanupExpiredTokens)
+		mux.HandleFunc(tasks.TypeCleanupSoftDeletedEntities, processor.cleanupHandler.ProcessCleanupSoftDeletedEntities)
+		mux.HandleFunc(tasks.TypePruneAuditLogs, processor.cleanupHandler.ProcessPruneAuditLogs)
+	}
 
 	return processor.server.Start(mux)
 }

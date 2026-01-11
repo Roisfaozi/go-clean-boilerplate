@@ -21,6 +21,7 @@ import (
 type AuthModule struct {
 	AuthController *http.AuthController
 	AuthUseCase    usecase.AuthUseCase
+	TokenRepo      repository.TokenRepository
 }
 
 func NewAuthModule(
@@ -45,6 +46,7 @@ func NewAuthModule(
 	return &AuthModule{
 		AuthController: authController,
 		AuthUseCase:    authUseCase,
+		TokenRepo:      tokenRepo,
 	}
 }
 

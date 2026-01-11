@@ -15,8 +15,10 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/router"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	ws2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/casbin/casbin/v2"
@@ -35,11 +37,26 @@ type Application struct {
 	Enforcer        *casbin.Enforcer
 	TaskDistributor worker.TaskDistributor
 	TaskProcessor   worker.TaskProcessor
+	Scheduler       *worker.Scheduler
+	TracerShutdown  func(context.Context) error
 }
 
 // NewApplication initializes and wires up all application components.
 func NewApplication(cfg *AppConfig) (*Application, error) {
 	logger := NewLogrus(cfg)
+
+	// Initialize OpenTelemetry
+	var tracerShutdown func(context.Context) error
+	if cfg.Telemetry.Enabled {
+		var err error
+		tracerShutdown, err = telemetry.InitTracer(cfg.Telemetry.ServiceName, cfg.Telemetry.CollectorURL)
+		if err != nil {
+			logger.Errorf("Failed to initialize OTEL: %v", err)
+		} else {
+			logger.Infof("OTEL initialized for service: %s", cfg.Telemetry.ServiceName)
+		}
+	}
+
 	validate := NewValidator()
 	dbConnection := NewDatabase(cfg, logger)
 
@@ -53,7 +70,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 
 	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger)
 
 	tm := tx.NewTransactionManager(dbConnection, logger)
 
@@ -96,6 +112,18 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	logger.Info("Application modules initialized.")
 
+	// Worker Handlers
+	cleanupHandler := handlers.NewCleanupTaskHandler(
+		authModule.TokenRepo,
+		userModule.UserRepo,
+		auditModule.AuditRepo,
+		logger,
+	)
+
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler)
+	scheduler := worker.NewScheduler(redisOpt, logger)
+	scheduler.RegisterScheduledTasks()
+
 	// Access AuthUseCase via AuthController
 	authUseCase := authModule.AuthController.AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger)
@@ -113,6 +141,13 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		MetricsAuth:      cfg.Metrics.AuthEnabled,
 		MetricsUser:      cfg.Metrics.Username,
 		MetricsPass:      cfg.Metrics.Password,
+		OTEL: struct {
+			Enabled     bool
+			ServiceName string
+		}{
+			Enabled:     cfg.Telemetry.Enabled,
+			ServiceName: cfg.Telemetry.ServiceName,
+		},
 	}
 
 	ginRouter := router.SetupRouter(
@@ -156,6 +191,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		Enforcer:        enforcer,
 		TaskDistributor: taskDistributor,
 		TaskProcessor:   taskProcessor,
+		Scheduler:       scheduler,
+		TracerShutdown:  tracerShutdown,
 	}
 
 	return app, nil
@@ -168,8 +205,17 @@ func (app *Application) Shutdown(ctx context.Context) error {
 		return fmt.Errorf("server forced to shutdown: %w", err)
 	}
 
+	// Shutdown Tracer
+	if app.TracerShutdown != nil {
+		app.Log.Info("Shutting down Tracer Provider...")
+		if err := app.TracerShutdown(ctx); err != nil {
+			app.Log.Errorf("Failed to shutdown Tracer: %v", err)
+		}
+	}
+
 	app.Log.Info("Shutting down Worker Processor...")
 	app.TaskProcessor.Shutdown()
+	app.Scheduler.Shutdown()
 
 	if app.Redis != nil {
 		app.Log.Info("Closing Redis connection...")

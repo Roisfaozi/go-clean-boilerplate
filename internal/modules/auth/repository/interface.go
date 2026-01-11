@@ -16,4 +16,5 @@ type TokenRepository interface {
 	Save(ctx context.Context, token *entity.PasswordResetToken) error
 	FindByToken(ctx context.Context, token string) (*entity.PasswordResetToken, error)
 	DeleteByEmail(ctx context.Context, email string) error
+	DeleteExpiredResetTokens(ctx context.Context) error
 }

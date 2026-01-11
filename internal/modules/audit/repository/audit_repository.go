@@ -64,3 +64,12 @@ func (r *auditRepository) FindAllDynamic(ctx context.Context, filter *querybuild
 	}
 	return logs, total, nil
 }
+
+func (r *auditRepository) DeleteLogsOlderThan(ctx context.Context, cutoffTime int64) error {
+	// Audit logs use created_at as unix milli
+	if err := r.db.WithContext(ctx).Where("created_at < ?", cutoffTime).Delete(&entity.AuditLog{}).Error; err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("Failed to prune old audit logs")
+		return err
+	}
+	return nil
+}

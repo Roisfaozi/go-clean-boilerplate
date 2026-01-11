@@ -24,6 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"gorm.io/gorm"
 )
 
@@ -38,6 +39,10 @@ type RouterConfig struct {
 	MetricsAuth      bool
 	MetricsUser      string
 	MetricsPass      string
+	OTEL             struct {
+		Enabled     bool
+		ServiceName string
+	}
 }
 
 func SetupRouter(
@@ -57,6 +62,10 @@ func SetupRouter(
 	logger *logrus.Logger,
 ) *gin.Engine {
 	router := gin.New()
+
+	if cfg.OTEL.Enabled {
+		router.Use(otelgin.Middleware(cfg.OTEL.ServiceName))
+	}
 
 	router.Use(gin.Recovery())
 	router.Use(middleware.RequestIDMiddleware())

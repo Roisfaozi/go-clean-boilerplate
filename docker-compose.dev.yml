@@ -52,6 +52,17 @@ services:
     networks:
       - app_network
 
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686" # Dashboard UI
+      - "4317:4317"   # OTLP gRPC port
+    networks:
+      - app_network
+
 networks:
   app_network:
     driver: bridge

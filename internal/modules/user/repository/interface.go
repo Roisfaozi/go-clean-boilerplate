@@ -19,4 +19,5 @@ type UserRepository interface {
 	Delete(ctx context.Context, id string) error
 	FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, int64, error)
 	FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, int64, error)
+	HardDeleteSoftDeletedUsers(ctx context.Context, retentionDays int) error
 }

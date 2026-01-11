@@ -57,6 +57,13 @@ func main() {
 		}
 	}()
 
+	go func() {
+		log.Println("Starting Scheduler...")
+		if err := app.Scheduler.Start(); err != nil {
+			log.Fatalf("Failed to start scheduler: %v", err)
+		}
+	}()
+
 	<-ctx.Done()
 	log.Println("Shutting down server...")
 

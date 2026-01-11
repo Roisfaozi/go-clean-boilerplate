@@ -97,6 +97,63 @@ func (_c *MockAuditRepository_Create_Call) RunAndReturn(run func(ctx context.Con
 	return _c
 }
 
+// DeleteLogsOlderThan provides a mock function for the type MockAuditRepository
+func (_mock *MockAuditRepository) DeleteLogsOlderThan(ctx context.Context, cutoffTime int64) error {
+	ret := _mock.Called(ctx, cutoffTime)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteLogsOlderThan")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64) error); ok {
+		r0 = returnFunc(ctx, cutoffTime)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuditRepository_DeleteLogsOlderThan_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteLogsOlderThan'
+type MockAuditRepository_DeleteLogsOlderThan_Call struct {
+	*mock.Call
+}
+
+// DeleteLogsOlderThan is a helper method to define mock.On call
+//   - ctx context.Context
+//   - cutoffTime int64
+func (_e *MockAuditRepository_Expecter) DeleteLogsOlderThan(ctx interface{}, cutoffTime interface{}) *MockAuditRepository_DeleteLogsOlderThan_Call {
+	return &MockAuditRepository_DeleteLogsOlderThan_Call{Call: _e.mock.On("DeleteLogsOlderThan", ctx, cutoffTime)}
+}
+
+func (_c *MockAuditRepository_DeleteLogsOlderThan_Call) Run(run func(ctx context.Context, cutoffTime int64)) *MockAuditRepository_DeleteLogsOlderThan_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuditRepository_DeleteLogsOlderThan_Call) Return(err error) *MockAuditRepository_DeleteLogsOlderThan_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuditRepository_DeleteLogsOlderThan_Call) RunAndReturn(run func(ctx context.Context, cutoffTime int64) error) *MockAuditRepository_DeleteLogsOlderThan_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FindAllDynamic provides a mock function for the type MockAuditRepository
 func (_mock *MockAuditRepository) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AuditLog, int64, error) {
 	ret := _mock.Called(ctx, filter)
