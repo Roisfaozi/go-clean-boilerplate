@@ -20,22 +20,40 @@ type AppConfig struct {
 	WebSocket WebSocketConfig `mapstructure:"websocket"`
 	Casbin    CasbinConfig    `mapstructure:"casbin"`
 	CORS      CORSConfig      `mapstructure:"cors"`
-	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
-	Metrics struct {
-		Enabled      bool   `env:"METRICS_ENABLED" envDefault:"false"`
-		AuthEnabled  bool   `env:"METRICS_AUTH_ENABLED" envDefault:"false"`
-		Username     string `env:"METRICS_USER"`
-		Password     string `env:"METRICS_PASS"`
+		RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+		Storage   StorageConfig   `mapstructure:"storage"`
+		Metrics   struct {
+			Enabled     bool   `env:"METRICS_ENABLED" envDefault:"false"`
+			AuthEnabled bool   `env:"METRICS_AUTH_ENABLED" envDefault:"false"`
+			Username    string `env:"METRICS_USER"`
+			Password    string `env:"METRICS_PASS"`
+		}
+	
+		Telemetry struct {
+			Enabled      bool   `env:"OTEL_ENABLED" envDefault:"false"`
+			ServiceName  string `env:"OTEL_SERVICE_NAME" envDefault:"go-clean-api"`
+			CollectorURL string `env:"OTEL_COLLECTOR_URL" envDefault:"localhost:4317"`
+		}
 	}
-
-	Telemetry struct {
-		Enabled      bool   `env:"OTEL_ENABLED" envDefault:"false"`
-		ServiceName  string `env:"OTEL_SERVICE_NAME" envDefault:"go-clean-api"`
-		CollectorURL string `env:"OTEL_COLLECTOR_URL" envDefault:"localhost:4317"`
+	
+	type StorageConfig struct {
+		Driver string `mapstructure:"driver" validate:"required,oneof=local s3"`
+		Local  struct {
+			RootPath string `mapstructure:"root_path"`
+			BaseURL  string `mapstructure:"base_url"`
+		} `mapstructure:"local"`
+		S3 struct {
+			Endpoint       string `mapstructure:"endpoint"`
+			Region         string `mapstructure:"region"`
+			Bucket         string `mapstructure:"bucket"`
+			AccessKey      string `mapstructure:"access_key"`
+			SecretKey      string `mapstructure:"secret_key"`
+			UseSSL         bool   `mapstructure:"use_ssl"`
+			ForcePathStyle bool   `mapstructure:"force_path_style"`
+		} `mapstructure:"s3"`
 	}
-}
-
-type ServerConfig struct {
+	
+	type ServerConfig struct {
 	Port           int           `mapstructure:"port" validate:"required"`
 	ReadTimeout    time.Duration `mapstructure:"read_timeout"`
 	WriteTimeout   time.Duration `mapstructure:"write_timeout"`
@@ -138,11 +156,26 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("metrics.auth_enabled", false)
 	v.SetDefault("metrics.username", "admin")
 	v.SetDefault("metrics.password", "metrics123")
+	v.SetDefault("storage.driver", "local")
+	v.SetDefault("storage.local.root_path", "./uploads")
+	v.SetDefault("storage.local.base_url", "http://localhost:8080/uploads")
+	v.SetDefault("storage.s3.use_ssl", true)
 
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
+
+	cfg.Storage.Driver = v.GetString("storage.driver")
+	cfg.Storage.Local.RootPath = v.GetString("storage.local.root_path")
+	cfg.Storage.Local.BaseURL = v.GetString("storage.local.base_url")
+	cfg.Storage.S3.Endpoint = v.GetString("storage.s3.endpoint")
+	cfg.Storage.S3.Region = v.GetString("storage.s3.region")
+	cfg.Storage.S3.Bucket = v.GetString("storage.s3.bucket")
+	cfg.Storage.S3.AccessKey = v.GetString("storage.s3.access_key")
+	cfg.Storage.S3.SecretKey = v.GetString("storage.s3.secret_key")
+	cfg.Storage.S3.UseSSL = v.GetBool("storage.s3.use_ssl")
+	cfg.Storage.S3.ForcePathStyle = v.GetBool("storage.s3.force_path_style")
 
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")

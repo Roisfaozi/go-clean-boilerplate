@@ -16,6 +16,7 @@ func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *UserContro
 	{
 		userGroup.GET("/me", controller.GetCurrentUser)
 		userGroup.PUT("/me", controller.UpdateUser)
+		userGroup.PATCH("/me/avatar", controller.UpdateAvatar)
 	}
 }
 

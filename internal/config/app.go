@@ -18,6 +18,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/storage"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	ws2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
@@ -39,6 +40,7 @@ type Application struct {
 	TaskProcessor   worker.TaskProcessor
 	Scheduler       *worker.Scheduler
 	TracerShutdown  func(context.Context) error
+	StorageProvider storage.Provider
 }
 
 // NewApplication initializes and wires up all application components.
@@ -94,6 +96,12 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		return nil, err
 	}
 
+	storageProvider, err := NewStorageProvider(cfg)
+	if err != nil {
+		logger.Fatalf("Failed to initialize storage provider: %v", err)
+	}
+	logger.Infof("Storage provider initialized: %s", cfg.Storage.Driver)
+
 	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
 
 	// Audit Module (Initialize early to inject into others)
@@ -102,7 +110,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	// Inject TaskDistributor to AuthModule
 	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, sseManager, enforcer, auditModule, taskDistributor)
 
-	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule)
+	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, storageProvider)
 
 	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo, userModule.UserRepo)
 
@@ -193,6 +201,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		TaskProcessor:   taskProcessor,
 		Scheduler:       scheduler,
 		TracerShutdown:  tracerShutdown,
+		StorageProvider: storageProvider,
 	}
 
 	return app, nil

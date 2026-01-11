@@ -5,6 +5,7 @@ type UserResponse struct {
 	Name      string `json:"name"`
 	Username  string `json:"username"`
 	Email     string `json:"email"`
+	AvatarURL string `json:"avatar_url,omitempty"`
 	Token     string `json:"-"`
 	Status    string `json:"status,omitempty"`
 	CreatedAt int64  `json:"created_at,omitempty"`

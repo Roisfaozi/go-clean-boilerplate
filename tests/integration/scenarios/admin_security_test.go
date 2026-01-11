@@ -42,7 +42,7 @@ func TestScenario_AdminSecurity_AccountSuspension(t *testing.T) {
 
 	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, env.Enforcer, auditService, nil)
 
-	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, auditService, authService)
+	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, auditService, authService, nil)
 
 	password := "Pass123!"
 	user := setup.CreateTestUser(t, env.DB, "suspend_target", "suspend@test.com", password)

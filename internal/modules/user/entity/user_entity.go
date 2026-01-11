@@ -14,6 +14,7 @@ type User struct {
 	Email     string                `gorm:"column:email;unique;not null"`
 	Username  string                `gorm:"column:username;unique;not null"`
 	Name      string                `gorm:"column:name"`
+	AvatarURL string                `gorm:"column:avatar_url"`
 	Token     string                `gorm:"column:token"`
 	Status    string                `gorm:"column:status;type:varchar(20);not null;default:'active';index"`
 	CreatedAt int64                 `gorm:"column:created_at;autoCreateTime:milli"`

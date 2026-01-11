@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -71,6 +72,19 @@ func (m *MockUserUseCase) Update(ctx context.Context, request *model.UpdateUserR
 
 func (m *MockUserUseCase) UpdateStatus(ctx context.Context, userID, status string) error {
 	args := m.Called(ctx, userID, status)
+	return args.Error(0)
+}
+
+func (m *MockUserUseCase) UpdateAvatar(ctx context.Context, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error) {
+	args := m.Called(ctx, userID, file, filename, contentType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.UserResponse), args.Error(1)
+}
+
+func (m *MockUserUseCase) HardDeleteSoftDeletedUsers(ctx context.Context, retentionDays int) error {
+	args := m.Called(ctx, retentionDays)
 	return args.Error(0)
 }
 

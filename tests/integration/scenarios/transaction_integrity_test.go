@@ -39,7 +39,7 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
 	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, mockEnforcer, auditService, nil)
 
-	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, mockEnforcer, auditService, authService)
+	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, mockEnforcer, auditService, authService, nil)
 
 	expectedErr := errors.New("casbin connection error")
 

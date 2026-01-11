@@ -39,7 +39,7 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
 	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, env.Enforcer, realAuditUC, nil)
 
-	setupService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, realAuditUC, authService)
+	setupService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, realAuditUC, authService, nil)
 	regReq := &userModel.RegisterUserRequest{
 		Username: "todelete", Email: "delete@test.com", Password: "Pass123!", Name: "To Delete",
 	}
@@ -57,7 +57,7 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	mockAuditUC := new(mocks.MockAuditUseCase)
 	mockAuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("intentional audit failure"))
 
-	targetService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, mockAuditUC, authService)
+	targetService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, mockAuditUC, authService, nil)
 
 	delReq := &userModel.DeleteUserRequest{ID: user.ID}
 	err = targetService.DeleteUser(context.Background(), "admin-id", delReq)

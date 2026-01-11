@@ -2,6 +2,9 @@ package usecase
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"path/filepath"
 
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
@@ -14,6 +17,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/storage"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -27,6 +31,7 @@ type userUseCaseImpl struct {
 	Enforcer permissionUseCase.IEnforcer
 	AuditUC  auditUseCase.AuditUseCase
 	AuthUC   authUseCase.AuthUseCase
+	Storage  storage.Provider
 }
 
 func NewUserUseCase(
@@ -36,6 +41,7 @@ func NewUserUseCase(
 	enforcer permissionUseCase.IEnforcer,
 	auditUC auditUseCase.AuditUseCase,
 	authUC authUseCase.AuthUseCase,
+	storage storage.Provider,
 ) UserUseCase {
 	return &userUseCaseImpl{
 		DB:       db,
@@ -44,6 +50,7 @@ func NewUserUseCase(
 		Enforcer: enforcer,
 		AuditUC:  auditUC,
 		AuthUC:   authUC,
+		Storage:  storage,
 	}
 }
 
@@ -268,6 +275,47 @@ func (u *userUseCaseImpl) UpdateStatus(ctx context.Context, userID, status strin
 	return nil
 }
 
+func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error) {
+	// 1. Get User
+	user, err := u.Repo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, exception.ErrNotFound
+	}
+
+	// 2. Generate unique filename to avoid collisions
+	ext := filepath.Ext(filename)
+	newFilename := fmt.Sprintf("avatars/%s%s", userID, ext)
+
+	// 3. Upload to Storage
+	url, err := u.Storage.UploadFile(ctx, file, newFilename, contentType)
+	if err != nil {
+		u.Log.Errorf("Failed to upload avatar: %v", err)
+		return nil, exception.ErrInternalServer
+	}
+
+	// 4. Update Database
+	user.AvatarURL = url
+	if err := u.Repo.Update(ctx, user); err != nil {
+		u.Log.Errorf("Failed to update user avatar URL: %v", err)
+		return nil, exception.ErrInternalServer
+	}
+
+	// 5. Audit Log
+	if u.AuditUC != nil {
+		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			UserID:   userID,
+			Action:   "UPDATE_AVATAR",
+			Entity:   "User",
+			EntityID: userID,
+			NewValues: map[string]string{
+				"avatar_url": url,
+			},
+		})
+	}
+
+	return converter.UserToResponse(user), nil
+}
+
 func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error {
 	if pkg.ContainsSQLInjection(request.ID) {
 		u.Log.Warnf("Potential SQL Injection in Delete User ID: %s", request.ID)
@@ -332,3 +380,12 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 		return nil
 	})
 }
+
+func (u *userUseCaseImpl) HardDeleteSoftDeletedUsers(ctx context.Context, retentionDays int) error {
+	if err := u.Repo.HardDeleteSoftDeletedUsers(ctx, retentionDays); err != nil {
+		u.Log.Errorf("Failed to hard delete users: %v", err)
+		return exception.ErrInternalServer
+	}
+	return nil
+}
+

@@ -56,6 +56,10 @@ packages:
     config:
       dir: internal/modules/audit/test/mocks
       filename: mock_audit_usecase.go
+  github.com/Roisfaozi/go-clean-boilerplate/pkg/storage:
+    config:
+      dir: pkg/storage/mocks
+      filename: mock_storage_provider.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/worker:
     config:
       dir: internal/mocking

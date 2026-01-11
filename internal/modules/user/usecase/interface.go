@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"io"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
@@ -15,5 +16,7 @@ type UserUseCase interface {
 	Current(ctx context.Context, request *model.GetUserRequest) (*model.UserResponse, error)
 	Update(ctx context.Context, request *model.UpdateUserRequest) (*model.UserResponse, error)
 	UpdateStatus(ctx context.Context, userID, status string) error
+	UpdateAvatar(ctx context.Context, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error)
+	HardDeleteSoftDeletedUsers(ctx context.Context, retentionDays int) error
 	DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error
 }

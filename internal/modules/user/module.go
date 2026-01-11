@@ -7,6 +7,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/storage"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -26,10 +27,11 @@ func NewUserModule(
 	enforcer permissionUseCase.IEnforcer,
 	auditModule *audit.AuditModule,
 	authModule *auth.AuthModule,
+	storage storage.Provider,
 ) *UserModule {
 	userRepo := userRepository.NewUserRepository(db, log)
 
-	userUseCase := usecase.NewUserUseCase(tm, log, userRepo, enforcer, auditModule.AuditUseCase, authModule.AuthUseCase)
+	userUseCase := usecase.NewUserUseCase(tm, log, userRepo, enforcer, auditModule.AuditUseCase, authModule.AuthUseCase, storage)
 
 	userController := http.NewUserController(userUseCase, log, validator)
 

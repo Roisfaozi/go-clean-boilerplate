@@ -17,6 +17,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	storageMocks "github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/mocks"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -29,6 +30,7 @@ type userTestDeps struct {
 	Enforcer *permMocks.IEnforcer
 	AuditUC  *auditMocks.MockAuditUseCase
 	AuthUC   *authMocks.MockAuthUseCase
+	Storage  *storageMocks.MockProvider
 }
 
 func setupUserTest() (*userTestDeps, usecase.UserUseCase) {
@@ -38,12 +40,13 @@ func setupUserTest() (*userTestDeps, usecase.UserUseCase) {
 		Enforcer: new(permMocks.IEnforcer),
 		AuditUC:  new(auditMocks.MockAuditUseCase),
 		AuthUC:   new(authMocks.MockAuthUseCase),
+		Storage:  new(storageMocks.MockProvider),
 	}
 
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 
-	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC)
+	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
 
 	return deps, uc
 }

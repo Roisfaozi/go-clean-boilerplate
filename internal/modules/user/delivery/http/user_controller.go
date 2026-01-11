@@ -159,6 +159,55 @@ func (h *UserController) UpdateUser(c *gin.Context) {
 	response.Success(c, user)
 }
 
+// UpdateAvatar handles user avatar upload
+// @Summary      Upload avatar
+// @Description  Uploads a new avatar image for the current user.
+// @Tags         users
+// @Security     BearerAuth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        avatar formData file true "Avatar image file"
+// @Success      200  {object}  response.SwaggerUserResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid file"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /users/me/avatar [patch]
+func (h *UserController) UpdateAvatar(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, exception.ErrUnauthorized, "unauthorized")
+		return
+	}
+
+	// 1. Get file from form
+	file, header, err := c.Request.FormFile("avatar")
+	if err != nil {
+		response.BadRequest(c, err, "failed to get avatar file from request")
+		return
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	// 2. Validate file size (max 2MB)
+	if header.Size > 2*1024*1024 {
+		response.BadRequest(c, errors.New("file too large"), "avatar size must be less than 2MB")
+		return
+	}
+
+	// 3. Call UseCase
+	user, err := h.UserUseCase.UpdateAvatar(ctx, userID.(string), file, header.Filename, header.Header.Get("Content-Type"))
+	if err != nil {
+		h.Log.WithError(err).Error("failed to update avatar")
+		response.HandleError(c, err, "failed to update avatar")
+		return
+	}
+
+	response.Success(c, user)
+}
+
 // UpdateUserStatus updates user status (active, suspended, banned)
 // @Summary      Update user status
 // @Description  Updates the status of a specific user. Accessible only by admins/superadmins.
