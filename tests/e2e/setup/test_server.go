@@ -72,6 +72,16 @@ func SetupTestServer(t *testing.T) *TestServer {
 				Channel: "/casbin",
 			},
 		},
+		Storage: config.StorageConfig{
+			Driver: "local",
+			Local: struct {
+				RootPath string `mapstructure:"root_path"`
+				BaseURL  string `mapstructure:"base_url"`
+			}{
+				RootPath: "./test_uploads",
+				BaseURL:  "http://localhost/uploads",
+			},
+		},
 	}
 
 	app, err := config.NewApplication(cfg)
