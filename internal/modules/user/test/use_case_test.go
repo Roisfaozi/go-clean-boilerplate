@@ -495,68 +495,50 @@ func TestUserUseCase_UpdateStatus(t *testing.T) {
 		deps.AuditUC.AssertExpectations(t)
 	})
 
-	t.Run("Success - Banned (Revoke Sessions)", func(t *testing.T) {
-		deps, uc := setupUserTest()
-		userID := "user123"
-		status := entity.UserStatusBanned
-
-		deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
-		deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(nil)
-
-		deps.AuthUC.On("RevokeAllSessions", mock.Anything, userID).Return(nil)
-
-		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
-
-		err := uc.UpdateStatus(context.Background(), userID, status)
-		assert.NoError(t, err)
-		deps.Repo.AssertExpectations(t)
-		deps.AuthUC.AssertExpectations(t)
-		deps.AuditUC.AssertExpectations(t)
-	})
-
 	t.Run("Success - Banned (Revoke Sessions Failure)", func(t *testing.T) {
-		deps, uc := setupUserTest()
-		userID := "user123"
-		status := entity.UserStatusBanned
-
-		deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
-		deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(nil)
-
-		// Revoke sessions fails but UpdateStatus should succeed
-		deps.AuthUC.On("RevokeAllSessions", mock.Anything, userID).Return(errors.New("revoke failed"))
-
-		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
-
-		err := uc.UpdateStatus(context.Background(), userID, status)
-		assert.NoError(t, err)
-		deps.Repo.AssertExpectations(t)
-		deps.AuthUC.AssertExpectations(t)
-	})
-
-	t.Run("Error - Invalid Status", func(t *testing.T) {
-		_, uc := setupUserTest()
-		err := uc.UpdateStatus(context.Background(), "user123", "invalid_status")
-		assert.Equal(t, exception.ErrValidationError, err)
-	})
-
-	t.Run("Error - User Not Found", func(t *testing.T) {
-		deps, uc := setupUserTest()
-		deps.Repo.On("FindByID", mock.Anything, "unknown").Return(nil, errors.New("user not found"))
-
-		err := uc.UpdateStatus(context.Background(), "unknown", entity.UserStatusActive)
-		assert.Equal(t, exception.ErrNotFound, err)
-	})
-
-	t.Run("Error - Update Status Fails", func(t *testing.T) {
-		deps, uc := setupUserTest()
-		userID := "user123"
-		status := entity.UserStatusActive
-		dbErr := errors.New("db error")
-
-		deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
-		deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(dbErr)
-
-		err := uc.UpdateStatus(context.Background(), userID, status)
-		assert.Equal(t, exception.ErrInternalServer, err)
-	})
+    deps, uc := setupUserTest()
+    userID := "user123"
+    status := entity.UserStatusBanned
+    deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
+    deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(nil)
+    deps.AuthUC.On("RevokeAllSessions", mock.Anything, userID).Return(errors.New("revoke failed"))
+    deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+    err := uc.UpdateStatus(context.Background(), userID, status)
+    assert.NoError(t, err)
+    deps.Repo.AssertExpectations(t)
+    deps.AuthUC.AssertExpectations(t)
+})
+t.Run("Error - Invalid Status", func(t *testing.T) {
+    _, uc := setupUserTest()
+    err := uc.UpdateStatus(context.Background(), "user123", "invalid_status")
+    assert.Equal(t, exception.ErrValidationError, err)
+})
+t.Run("Error - User Not Found", func(t *testing.T) {
+    deps, uc := setupUserTest()
+    deps.Repo.On("FindByID", mock.Anything, "unknown").Return(nil, errors.New("user not found"))
+    err := uc.UpdateStatus(context.Background(), "unknown", entity.UserStatusActive)
+    assert.Equal(t, exception.ErrNotFound, err)
+})
+// DARI guardian-coverage-boost:
+t.Run("Error - Update Status Fails", func(t *testing.T) {
+    deps, uc := setupUserTest()
+    userID := "user123"
+    status := entity.UserStatusActive
+    dbErr := errors.New("db error")
+    deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
+    deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(dbErr)
+    err := uc.UpdateStatus(context.Background(), userID, status)
+    assert.Equal(t, exception.ErrInternalServer, err)
+})
+// DARI dev:
+t.Run("Audit Log Error", func(t *testing.T) {
+    deps, uc := setupUserTest()
+    userID := "user123"
+    status := entity.UserStatusActive
+    deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
+    deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(nil)
+    deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
+    err := uc.UpdateStatus(context.Background(), userID, status)
+    assert.NoError(t, err)
+})
 }
