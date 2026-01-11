@@ -94,13 +94,15 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 	}
 
 	if u.AuditUC != nil {
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:    user.ID,
 			Action:    "CREATE",
 			Entity:    "User",
 			EntityID:  user.ID,
 			NewValues: map[string]interface{}{"username": user.Username, "email": user.Email, "Name": user.Name},
-		})
+		}); err != nil {
+			u.Log.Warnf("Failed to log activity: %v", err)
+		}
 	}
 
 	return converter.UserToResponse(user), nil
@@ -198,12 +200,14 @@ func (u *userUseCaseImpl) Update(ctx context.Context, request *model.UpdateUserR
 	}
 
 	if u.AuditUC != nil {
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   user.ID,
 			Action:   "UPDATE",
 			Entity:   "User",
 			EntityID: user.ID,
-		})
+		}); err != nil {
+			u.Log.Warnf("Failed to log activity: %v", err)
+		}
 	}
 
 	return converter.UserToResponse(user), nil
@@ -233,13 +237,15 @@ func (u *userUseCaseImpl) UpdateStatus(ctx context.Context, userID, status strin
 	}
 
 	if u.AuditUC != nil {
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:    userID,
 			Action:    "UPDATE_STATUS",
 			Entity:    "User",
 			EntityID:  userID,
 			NewValues: map[string]interface{}{"status": status},
-		})
+		}); err != nil {
+			u.Log.Warnf("Failed to log activity: %v", err)
+		}
 	}
 
 	return nil
@@ -265,7 +271,7 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 	}
 
 	if u.AuditUC != nil {
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   actorUserID,
 			Action:   "DELETE",
 			Entity:   "User",
@@ -274,7 +280,9 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 				"username": user.Username,
 				"email":    user.Email,
 			},
-		})
+		}); err != nil {
+			u.Log.Warnf("Failed to log activity: %v", err)
+		}
 	}
 	return nil
 }

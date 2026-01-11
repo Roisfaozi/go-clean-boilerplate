@@ -218,6 +218,30 @@ func TestLogin_EnforcerError(t *testing.T) {
 	deps.enforcer.AssertExpectations(t)
 }
 
+func TestLogin_AuditError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, password := createTestUser("password123")
+	loginReq := model.LoginRequest{Username: user.Username, Password: password}
+
+	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(context.Background())
+		}).Return(nil)
+	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
+	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
+	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+
+	deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
+
+	loginResp, _, err := authService.Login(context.Background(), loginReq)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, loginResp)
+	deps.auditUC.AssertExpectations(t)
+}
+
 func TestRefreshToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
@@ -379,6 +403,20 @@ func TestRevokeToken_Success(t *testing.T) {
 	deps.auditUC.AssertExpectations(t)
 }
 
+func TestRevokeToken_AuditError(t *testing.T) {
+	authService, deps := setupTest(t)
+	userID, sessionID := "user-1", "session-1"
+
+	deps.tokenRepo.On("DeleteToken", mock.Anything, userID, sessionID).Return(nil)
+	deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
+
+	err := authService.RevokeToken(context.Background(), userID, sessionID)
+
+	assert.NoError(t, err) // Should proceed
+	deps.tokenRepo.AssertExpectations(t)
+	deps.auditUC.AssertExpectations(t)
+}
+
 func TestVerify_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	userID, sessionID := "user-1", "session-1"
@@ -421,6 +459,19 @@ func TestRevokeAllSessions_Success(t *testing.T) {
 	assert.NoError(t, err)
 	deps.tokenRepo.AssertExpectations(t)
 	deps.auditUC.AssertExpectations(t)
+}
+
+func TestRevokeAllSessions_AuditError(t *testing.T) {
+	authService, deps := setupTest(t)
+	userID := "user-1"
+
+	deps.tokenRepo.On("RevokeAllSessions", mock.Anything, userID).Return(nil)
+	deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
+
+	err := authService.RevokeAllSessions(context.Background(), userID)
+
+	assert.NoError(t, err)
+	deps.tokenRepo.AssertExpectations(t)
 }
 
 func TestGenerateAccessToken_Success(t *testing.T) {
@@ -550,6 +601,20 @@ func TestForgotPassword_DistributeTaskError(t *testing.T) {
 	deps.auditUC.AssertExpectations(t)
 }
 
+func TestForgotPassword_AuditError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
+	deps.tokenRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.PasswordResetToken")).Return(nil)
+	deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
+
+	err := authService.ForgotPassword(context.Background(), user.Email)
+
+	assert.NoError(t, err)
+}
+
 func TestResetPassword_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
@@ -660,6 +725,32 @@ func TestResetPassword_Failure_UserDeleted(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, usecase.ErrInvalidResetToken))
 	deps.userRepo.AssertExpectations(t)
+}
+
+func TestResetPassword_AuditError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+	token := "valid-token"
+	resetToken := &authEntity.PasswordResetToken{
+		Email:     user.Email,
+		Token:     token,
+		ExpiresAt: time.Now().Add(1 * time.Hour),
+	}
+
+	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
+	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(context.Background())
+		}).Return(nil)
+	deps.userRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
+	deps.tokenRepo.On("DeleteByEmail", mock.Anything, user.Email).Return(nil)
+	deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
+
+	err := authService.ResetPassword(context.Background(), token, "new-strong-password-123")
+
+	assert.NoError(t, err)
 }
 
 func TestValidateRefreshToken_Success(t *testing.T) {
