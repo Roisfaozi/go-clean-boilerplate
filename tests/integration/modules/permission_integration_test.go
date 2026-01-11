@@ -15,17 +15,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// --- HELPERS ---
-
 func setupPermissionIntegration(env *setup.TestEnvironment) usecase.IPermissionUseCase {
 	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	return usecase.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo)
 }
-
-// ============================================
-// POSITIVE SCENARIOS
-// ============================================
 
 func TestPermissionIntegration_AssignRoleToUser(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -133,28 +127,20 @@ func TestPermissionIntegration_FullLifecycle(t *testing.T) {
 	roleName := "lifecycle_role"
 	setup.CreateTestRole(t, env.DB, roleName)
 
-	// Grant
 	err := permUC.GrantPermissionToRole(context.Background(), roleName, "/api/v1/data", "GET")
 	require.NoError(t, err)
 
-	// Update
 	oldP := []string{roleName, "/api/v1/data", "GET"}
 	newP := []string{roleName, "/api/v1/data/updated", "POST"}
 	_, err = permUC.UpdatePermission(context.Background(), oldP, newP)
 	require.NoError(t, err)
 
-	// Revoke
 	err = permUC.RevokePermissionFromRole(context.Background(), roleName, "/api/v1/data/updated", "POST")
 	require.NoError(t, err)
 
-	// Final Verify
 	policies, _ := permUC.GetPermissionsForRole(context.Background(), roleName)
 	assert.Empty(t, policies)
 }
-
-// ============================================
-// NEGATIVE SCENARIOS
-// ============================================
 
 func TestPermissionIntegration_Negative_GrantNonExistentRole(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -175,7 +161,7 @@ func TestPermissionIntegration_Negative_AssignRoleToNonExistentUser(t *testing.T
 	setup.CreateTestRole(t, env.DB, "valid_role")
 
 	err := permUC.AssignRoleToUser(context.Background(), "non-existent-user-id", "valid_role")
-	// Usecase should return error if user doesn't exist
+
 	assert.Error(t, err)
 }
 
@@ -189,6 +175,6 @@ func TestPermissionIntegration_Negative_RevokeNonExistentPermission(t *testing.T
 	setup.CreateTestRole(t, env.DB, roleName)
 
 	err := permUC.RevokePermissionFromRole(context.Background(), roleName, "/ghost", "GET")
-	// If UseCase returns success for no-op, we just verify no panic
+	
 	_ = err
 }

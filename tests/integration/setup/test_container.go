@@ -21,7 +21,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Singleton instances
 var (
 	mysqlC    *mysql.MySQLContainer
 	redisC    *redisContainer.RedisContainer
@@ -42,7 +41,6 @@ type TestEnvironment struct {
 	RedisAddr string
 }
 
-// SetupIntegrationEnvironment initializes the shared containers once using singleton pattern.
 func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 	ctx := context.Background()
 	logger := logrus.New()
@@ -52,7 +50,6 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 		var err error
 		logger.Info("🐳 Starting Shared Integration Containers...")
 
-		// Pre-check if Docker is available to avoid panic in testcontainers
 		if !isDockerAvailable() {
 			_ = fmt.Errorf("docker not available")
 			return
@@ -88,7 +85,7 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 		if err != nil {
 			panic(err)
 		}
-		// Ensure parseTime=true is added to DSN
+
 		mysqlAddr = mysqlAddr + "?parseTime=true"
 		globalDB, err = connectWithRetry(mysqlAddr, 5)
 		if err != nil {
@@ -129,7 +126,7 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 }
 
 func (env *TestEnvironment) Cleanup() {
-	// No-op for singleton containers
+	
 }
 
 func connectWithRetry(connStr string, maxRetries int) (*gorm.DB, error) {

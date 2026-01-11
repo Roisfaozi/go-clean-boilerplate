@@ -16,16 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// --- HELPERS ---
-
 func setupAccessIntegration(env *setup.TestEnvironment) usecase.IAccessUseCase {
 	repo := repository.NewAccessRepository(env.DB, env.Logger)
 	return usecase.NewAccessUseCase(repo, env.Logger)
 }
-
-// ============================================
-// ACCESS RIGHT SCENARIOS
-// ============================================
 
 func TestAccessIntegration_CreateAccessRight_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -85,10 +79,6 @@ func TestAccessIntegration_DeleteAccessRight_Fail_NotFound(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// ============================================
-// ENDPOINT MANAGEMENT SCENARIOS
-// ============================================
-
 func TestAccessIntegration_CreateEndpoint_LinkToAccessRight(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
@@ -129,10 +119,6 @@ func TestAccessIntegration_DeleteEndpoint_Success(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// ============================================
-// DYNAMIC SEARCH SCENARIOS
-// ============================================
-
 func TestAccessIntegration_DynamicSearch_AccessRights(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
@@ -148,15 +134,11 @@ func TestAccessIntegration_DynamicSearch_AccessRights(t *testing.T) {
 			"name": {Type: "contains", From: "User"},
 		},
 	}
-	list, err := uc.GetAccessRightsDynamic(context.Background(), filter)
+	list, _, err := uc.GetAccessRightsDynamic(context.Background(), filter)
 	require.NoError(t, err)
 	assert.Len(t, list.Data, 1)
 	assert.Equal(t, "User Management", list.Data[0].Name)
 }
-
-// ============================================
-// SECURITY SCENARIOS
-// ============================================
 
 func TestAccessIntegration_Security_SQLInjectionPrevention(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)

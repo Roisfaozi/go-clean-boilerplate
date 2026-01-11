@@ -19,17 +19,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// --- HELPERS ---
-
 func setupRoleIntegration(env *setup.TestEnvironment) usecase.RoleUseCase {
 	roleRepo := repository.NewRoleRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	return usecase.NewRoleUseCase(env.Logger, tm, roleRepo)
 }
-
-// ============================================
-// CORE CRUD SCENARIOS (Positive)
-// ============================================
 
 func TestRoleIntegration_Create_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -124,10 +118,6 @@ func TestRoleIntegration_DynamicSearch_Success(t *testing.T) {
 	assert.Equal(t, "Developer", result[0].Name)
 }
 
-// ============================================
-// NEGATIVE SCENARIOS
-// ============================================
-
 func TestRoleIntegration_Create_Negative_DuplicateName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
@@ -154,7 +144,6 @@ func TestRoleIntegration_Create_Negative_EmptyName(t *testing.T) {
 	req := &model.CreateRoleRequest{Name: "", Description: "Empty Name"}
 	result, err := roleUC.Create(context.Background(), req)
 
-	// If UseCase doesn't validate, it might succeed. We just verify it doesn't panic.
 	_ = err
 	if err == nil {
 		assert.NotEmpty(t, result.ID)
@@ -172,10 +161,6 @@ func TestRoleIntegration_Delete_Negative_NonExistentRole(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// ============================================
-// EDGE CASES
-// ============================================
-
 func TestRoleIntegration_Edge_Create_LongName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
@@ -187,7 +172,7 @@ func TestRoleIntegration_Edge_Create_LongName(t *testing.T) {
 	req := &model.CreateRoleRequest{Name: longName, Description: "Long Name"}
 
 	_, err := roleUC.Create(context.Background(), req)
-	assert.Error(t, err) // Model has validation max=50
+	assert.Error(t, err)
 }
 
 func TestRoleIntegration_Edge_SpecialCharactersInName(t *testing.T) {
@@ -245,10 +230,6 @@ func TestRoleIntegration_Edge_MinimumNameLength(t *testing.T) {
 	assert.NotEmpty(t, result.ID)
 }
 
-// ============================================
-// SECURITY SCENARIOS
-// ============================================
-
 func TestRoleIntegration_Security_SQLInjectionInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
@@ -264,8 +245,7 @@ func TestRoleIntegration_Security_SQLInjectionInName(t *testing.T) {
 		t.Run("SQLInjection_"+injection, func(t *testing.T) {
 			req := &model.CreateRoleRequest{Name: injection, Description: "SQL injection attempt"}
 			_, err := roleUC.Create(context.Background(), req)
-			// Should fail or store as literal, but we want to ensure it doesn't cause harm
-			// Here we just verify it doesn't panic and either succeeds as string or fails validation
+			
 			_ = err
 		})
 	}

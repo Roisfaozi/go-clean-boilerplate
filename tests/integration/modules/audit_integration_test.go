@@ -16,16 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// --- HELPERS ---
-
 func setupAuditIntegration(env *setup.TestEnvironment) auditUseCase.AuditUseCase {
 	repo := auditRepo.NewAuditRepository(env.DB, env.Logger)
 	return auditUseCase.NewAuditUseCase(repo, env.Logger)
 }
-
-// ============================================
-// POSITIVE SCENARIOS
-// ============================================
 
 func TestAuditIntegration_LogActivity_And_Query(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -43,16 +37,12 @@ func TestAuditIntegration_LogActivity_And_Query(t *testing.T) {
 	require.NoError(t, err)
 
 	filter := &querybuilder.DynamicFilter{Filter: map[string]querybuilder.Filter{"entity": {Type: "equals", From: "User"}}}
-	logs, err := uc.GetLogsDynamic(context.Background(), filter)
+	logs, _, err := uc.GetLogsDynamic(context.Background(), filter)
 	require.NoError(t, err)
 	assert.Len(t, logs, 1)
 	assert.Equal(t, "CREATE", logs[0].Action)
 	assert.Equal(t, "User", logs[0].Entity)
 }
-
-// ============================================
-// NEGATIVE SCENARIOS
-// ============================================
 
 func TestAuditIntegration_LogActivity_MissingRequiredFields(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -64,10 +54,6 @@ func TestAuditIntegration_LogActivity_MissingRequiredFields(t *testing.T) {
 	err := uc.LogActivity(context.Background(), model.CreateAuditLogRequest{})
 	assert.Error(t, err)
 }
-
-// ============================================
-// EDGE CASES
-// ============================================
 
 func TestAuditIntegration_LogActivity_NilValues(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -83,10 +69,6 @@ func TestAuditIntegration_LogActivity_NilValues(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// ============================================
-// SECURITY SCENARIOS
-// ============================================
-
 func TestAuditIntegration_Security_SQLInjectionInEntity(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
@@ -99,10 +81,9 @@ func TestAuditIntegration_Security_SQLInjectionInEntity(t *testing.T) {
 		UserID: "user-1", Action: "CREATE", Entity: payload, EntityID: "entity-1",
 	})
 
-	// Should fail validation or create safe string. Must not error unexpectedly.
 	if err == nil {
 		filter := &querybuilder.DynamicFilter{Filter: map[string]querybuilder.Filter{"entity": {Type: "equals", From: payload}}}
-		logs, err := uc.GetLogsDynamic(context.Background(), filter)
+		logs, _, err := uc.GetLogsDynamic(context.Background(), filter)
 		require.NoError(t, err)
 		assert.NotEmpty(t, logs)
 		assert.Equal(t, payload, logs[0].Entity)

@@ -28,8 +28,7 @@ func RunMigrations(t *testing.T, db *gorm.DB) {
 	} else if err != nil {
 		panic("Failed to run migrations: " + err.Error())
 	}
-	
-	// Create casbin_rule table manually if not exists
+
 	db.Exec(`CREATE TABLE IF NOT EXISTS casbin_rule (
 		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 		ptype varchar(100) DEFAULT NULL,
@@ -56,7 +55,6 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 		db.FirstOrCreate(&role, roleEntity.Role{ID: role.ID})
 	}
 
-	// Seed basic policies for role:user
 	policies := [][]string{
 		{"role:user", "/api/v1/users/me", "GET"},
 		{"role:user", "/api/v1/users/me", "PUT"},

@@ -170,11 +170,9 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 
 	setup.CleanupDatabase(t, env.DB)
 
-	// --- SETUP ---
 	password := "password123"
 	user := setup.CreateTestUser(t, env.DB, "banneduser", "banned@example.com", password)
 
-	// Update status to BANNED
 	env.DB.Model(&entity.User{}).Where("id = ?", user.ID).Update("status", entity.UserStatusBanned)
 
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", 15*time.Minute, 24*time.Hour)
@@ -186,26 +184,17 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 
 	authUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
 
-	// 1. LOGIN (Should SUCCEED even if banned)
 	loginReq := authModel.LoginRequest{Username: user.Username, Password: password}
 	loginResp, _, err := authUC.Login(context.Background(), loginReq)
 
 	require.NoError(t, err, "Login should succeed even for banned users")
 	assert.NotEmpty(t, loginResp.AccessToken)
 
-	// 2. MIDDLEWARE CHECK (Simulate access to protected resource)
-	// We'll manually call the middleware or check repo
-
 	t.Run("Middleware should block banned user", func(t *testing.T) {
-		// Verify the user status in DB is indeed banned
 		u, _ := userRepo.FindByID(context.Background(), user.ID)
 		assert.Equal(t, entity.UserStatusBanned, u.Status)
 	})
 }
-
-// ============================================
-// POSITIVE TEST CASES
-// ============================================
 
 func TestUserIntegration_Create_Positive_ValidData(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -244,10 +233,6 @@ func TestUserIntegration_Update_Positive_ValidUpdate(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Updated Name", result.Name)
 }
-
-// ============================================
-// NEGATIVE TEST CASES
-// ============================================
 
 func TestUserIntegration_Create_Negative_DuplicateUsername(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -317,10 +302,6 @@ func TestUserIntegration_Delete_Negative_NonExistentUser(t *testing.T) {
 
 	assert.Error(t, err)
 }
-
-// ============================================
-// EDGE CASES
-// ============================================
 
 func TestUserIntegration_Create_Edge_MinimumUsernameLength(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -434,10 +415,6 @@ func TestUserIntegration_Create_Edge_EmailWithPlusSign(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, req.Email, result.Email)
 }
-
-// ============================================
-// SECURITY TEST CASES
-// ============================================
 
 func TestUserIntegration_Security_SQLInjectionInUsername(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -590,10 +567,6 @@ func TestUserIntegration_Security_UnauthorizedUpdate(t *testing.T) {
 		assert.NotNil(t, result)
 	}
 }
-
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
 
 func setupUserUseCase(t *testing.T, env *setup.TestEnvironment) usecase.UserUseCase {
 	userRepo := repository.NewUserRepository(env.DB, env.Logger)

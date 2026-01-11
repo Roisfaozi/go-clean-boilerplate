@@ -24,14 +24,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Scenario: Register User Transactional Rollback
-// Ensures that if role assignment fails, the user creation is rolled back.
 func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 	setup.CleanupDatabase(t, env.DB)
 
-	// 1. Setup Dependencies
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	mockEnforcer := new(mocks.MockIEnforcer)
@@ -44,14 +41,10 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 
 	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, mockEnforcer, auditService, authService)
 
-	// 2. Define Expectations
 	expectedErr := errors.New("casbin connection error")
 
-	// FIX: The mock expects variadic arguments.
-	// We match any first argument (userID) and specific second argument ("role:user")
 	mockEnforcer.On("AddGroupingPolicy", mock.Anything).Return(false, expectedErr)
 
-	// 3. Execute Register
 	req := &userModel.RegisterUserRequest{
 		Username: "rollback_user",
 		Email:    "rollback@test.com",
@@ -61,10 +54,8 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 
 	_, err := userService.Create(context.Background(), req)
 
-	// 4. Assertions
 	require.Error(t, err, "Expected error from UserUseCase when Role assignment fails")
 
-	// Expectation: User should NOT exist (Rolled back)
 	user, _ := uRepo.FindByUsername(context.Background(), req.Username)
 	assert.Nil(t, user, "User should be rolled back (not found) when role assignment fails")
 }

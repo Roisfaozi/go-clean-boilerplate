@@ -31,7 +31,6 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 
 	setup.CleanupDatabase(t, env.DB)
 
-	// Setup Dependencies
 	jwtManager := jwt.NewJWTManager("lifecycle-secret", "lifecycle-refresh", 15*time.Minute, 24*time.Hour)
 	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
@@ -44,7 +43,6 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 
 	ctx := context.Background()
 
-	// 1. Registration
 	regReq := &userModel.RegisterUserRequest{
 		Username: "lifecycle", Email: "lifecycle@example.com", Password: "password123", Name: "Life Cycle",
 	}
@@ -52,13 +50,11 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	require.NoError(t, err)
 	userID := userResp.ID
 
-	// 2. Login
 	loginReq := authModel.LoginRequest{Username: regReq.Username, Password: regReq.Password}
 	loginResp, _, err := authUC.Login(ctx, loginReq)
 	require.NoError(t, err)
 	assert.NotEmpty(t, loginResp.AccessToken)
 
-	// 3. Profile Update
 	updateReq := &userModel.UpdateUserRequest{
 		ID: userID, Name: "Updated Life",
 	}
@@ -66,19 +62,15 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Updated Life", updateResp.Name)
 
-	// 4. Delete
 	deleteReq := &userModel.DeleteUserRequest{ID: userID}
 	err = userUC.DeleteUser(ctx, userID, deleteReq)
 	require.NoError(t, err)
 
-	// 5. Verify Audit Trail Sequence
-	// We expect logs for: CREATE (User), LOGIN (Auth), UPDATE (User), DELETE (User)
-	logs, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
+	logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
 		Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
 	})
 	require.NoError(t, err)
 
-	// Filter logs by this user specifically (excluding potential noisy global logs if any)
 	var userLogs []auditModel.AuditLogResponse
 	for _, l := range logs {
 		if l.UserID == userID || l.EntityID == userID {

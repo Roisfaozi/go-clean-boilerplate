@@ -27,8 +27,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// --- HELPERS ---
-
 func setupAuthIntegration(env *setup.TestEnvironment) (usecase.AuthUseCase, *jwt.JWTManager) {
 	jwtManager := jwt.NewJWTManager("test-access-secret", "test-refresh-secret", 15*time.Minute, 24*time.Hour)
 	return setupAuthIntegrationWithJWT(env, jwtManager), jwtManager
@@ -41,12 +39,10 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
 
-	// WebSocket and SSE managers
 	wsConfig := &ws.WebSocketConfig{}
 	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis)
 	sseManager := sse.NewManager()
 
-	// TaskDistributor
 	taskDistributor := worker.NewRedisTaskDistributor(asynq.RedisClientOpt{Addr: env.RedisAddr})
 
 	enforcer := env.Enforcer
@@ -65,10 +61,6 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 		taskDistributor,
 	)
 }
-
-// ============================================
-// LOGIN SCENARIOS
-// ============================================
 
 func TestAuthIntegration_Login(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -92,7 +84,6 @@ func TestAuthIntegration_Login(t *testing.T) {
 		assert.Equal(t, testUser.ID, resp.User.ID)
 		assert.Greater(t, int64(resp.ExpiresIn), int64(0))
 
-		// Verify session exists in Redis
 		keys, err := env.Redis.Keys(context.Background(), "session:*").Result()
 		require.NoError(t, err)
 		assert.NotEmpty(t, keys)
@@ -162,10 +153,6 @@ func TestAuthIntegration_Login(t *testing.T) {
 	})
 }
 
-// ============================================
-// TOKEN LIFECYCLE SCENARIOS
-// ============================================
-
 func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
@@ -185,7 +172,6 @@ func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 		assert.NotEmpty(t, newToken.AccessToken)
 		assert.NotEqual(t, refreshToken, newRefresh)
 
-		// Update refreshToken for next sub-tests
 		refreshToken = newRefresh
 	})
 
@@ -215,22 +201,17 @@ func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 	})
 
 	t.Run("Success Logout (Revoke)", func(t *testing.T) {
-		// Get fresh login for revocation
+
 		lr, _, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "tokenuser", Password: password})
 		claims, _ := jwtManager.ValidateAccessToken(lr.AccessToken)
 
 		err := authUC.RevokeToken(context.Background(), testUser.ID, claims.SessionID)
 		require.NoError(t, err)
 
-		// Verify session is gone. Pattern should match repository.getSessionKey
 		keys, _ := env.Redis.Keys(context.Background(), "session:"+testUser.ID+":"+claims.SessionID).Result()
 		assert.Empty(t, keys, "Session should be deleted from Redis")
 	})
 }
-
-// ============================================
-// PASSWORD RECOVERY SCENARIOS
-// ============================================
 
 func TestAuthIntegration_PasswordRecovery(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -253,10 +234,9 @@ func TestAuthIntegration_PasswordRecovery(t *testing.T) {
 	})
 
 	t.Run("Success Reset Password", func(t *testing.T) {
-		email := "reset_unique@example.com" // Use unique email to avoid constraint error
+		email := "reset_unique@example.com"
 		testUser := setup.CreateTestUser(t, env.DB, "resetuser", email, "oldpass")
 
-		// Seed a token
 		resetToken := "secret-token-unique-123"
 		err := env.DB.Create(&authEntity.PasswordResetToken{
 			Email: email, Token: resetToken, ExpiresAt: time.Now().Add(time.Hour),
@@ -266,17 +246,12 @@ func TestAuthIntegration_PasswordRecovery(t *testing.T) {
 		err = authUC.ResetPassword(context.Background(), resetToken, "NewPass123!")
 		require.NoError(t, err)
 
-		// Verify old fails, new succeeds
 		_, _, err = authUC.Login(context.Background(), model.LoginRequest{Username: testUser.Username, Password: "oldpass"})
 		assert.Error(t, err)
 		_, _, err = authUC.Login(context.Background(), model.LoginRequest{Username: testUser.Username, Password: "NewPass123!"})
 		assert.NoError(t, err)
 	})
 }
-
-// ============================================
-// SECURITY SCENARIOS
-// ============================================
 
 func TestAuthIntegration_Security(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
@@ -308,11 +283,9 @@ func TestAuthIntegration_Security(t *testing.T) {
 
 		_, rt2, _ := authUC.RefreshToken(context.Background(), rt1)
 
-		// Attempt reuse RT1
 		_, _, err := authUC.RefreshToken(context.Background(), rt1)
 		assert.Error(t, err)
 
-		// RT2 still works
 		_, _, err = authUC.RefreshToken(context.Background(), rt2)
 		assert.NoError(t, err)
 	})
