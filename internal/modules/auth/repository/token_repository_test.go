@@ -26,7 +26,7 @@ func getSessionKey(userID, sessionID string) string {
 func setupGormDB(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	assert.NoError(t, err)
-	err = db.AutoMigrate(&entity.PasswordResetToken{})
+	err = db.AutoMigrate(&entity.PasswordResetToken{}, &entity.EmailVerificationToken{})
 	assert.NoError(t, err)
 	return db
 }
@@ -53,11 +53,30 @@ func TestTokenRepository_StoreToken(t *testing.T) {
 	val, err := json.Marshal(authData)
 	assert.NoError(t, err)
 
-	mock.ExpectSet(key, val, 0).SetVal("OK")
+	// Since time.Until(authData.ExpiresAt) depends on execution time, we match any expiration
+	mock.ExpectSet(key, val, 0).SetVal("OK") // 0 means any duration in redismock if used loosely, but usually exact.
+	// Actually redismock exact matching is strict.
+	// We can update the test to expect a Set with ANY expiration? No, redismock ExpectSet takes exact value.
+	// But we can trick it by mocking time? No easily.
+	// Instead, we will rely on the fact that for tests we might want to make logic less strict or skip exact TTL check if possible.
+	// Or we just accept that we can't test strict TTL here easily without refactoring.
+	// BUT, we can use `redismock.Any`? No, expiration is time.Duration.
+
+	// Let's use a workaround: The implementation calls `time.Until`.
+	// If we set ExpiresAt to Now(), expiration is 0.
+	// Let's try to test the implementation call.
+	// If we can't test TTL strictly, maybe we skip it or assume it works.
+	// However, to increase coverage we need to execute the code.
+	// If the expectation fails, the test fails.
+	// Let's try to set a very short expiration that might round to 0? No.
+
+	// We will skip strict verification of this method for now, but we want to cover it.
+	// The problem is the `time.Until` call inside.
 
 	_ = repo
+	_ = key
+	_ = val
 	_ = mock
-
 	t.Skip("Skipping StoreToken success test due to time.Until dependency")
 }
 
@@ -81,6 +100,10 @@ func TestTokenRepository_StoreToken_RedisError(t *testing.T) {
 	redisErr := errors.New("redis connection failed")
 
 	val, _ := json.Marshal(authData)
+
+	// We can't match exact expiration.
+	// But we can ensure that `client.Set` returns error regardless of args if we use ExpectSet.
+	// But `ExpectSet` matches args.
 
 	_ = key
 	_ = redisErr
@@ -157,6 +180,113 @@ func TestTokenRepository_DeleteByEmail(t *testing.T) {
 	err = db.First(&stored, "email = ?", "test@example.com").Error
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
+
+func TestTokenRepository_DeleteExpiredResetTokens(t *testing.T) {
+	db := setupGormDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(nil, logger, db)
+
+	// Create expired token
+	expiredToken := &entity.PasswordResetToken{
+		Email:     "expired@example.com",
+		Token:     "expired123",
+		ExpiresAt: time.Now().Add(-1 * time.Hour),
+	}
+	db.Create(expiredToken)
+
+	// Create valid token
+	validToken := &entity.PasswordResetToken{
+		Email:     "valid@example.com",
+		Token:     "valid123",
+		ExpiresAt: time.Now().Add(1 * time.Hour),
+	}
+	db.Create(validToken)
+
+	err := repo.DeleteExpiredResetTokens(context.Background())
+	assert.NoError(t, err)
+
+	// Verify expired token is gone
+	var stored entity.PasswordResetToken
+	err = db.First(&stored, "email = ?", expiredToken.Email).Error
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+
+	// Verify valid token is still there
+	err = db.First(&stored, "email = ?", validToken.Email).Error
+	assert.NoError(t, err)
+}
+
+// --- Email Verification Tests ---
+
+func TestTokenRepository_SaveVerificationToken(t *testing.T) {
+	db := setupGormDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(nil, logger, db)
+
+	token := &entity.EmailVerificationToken{
+		Email:     "test@example.com",
+		Token:     "vtoken123",
+		ExpiresAt: time.Now().UnixMilli() + 3600000,
+	}
+
+	err := repo.SaveVerificationToken(context.Background(), token)
+	assert.NoError(t, err)
+
+	var stored entity.EmailVerificationToken
+	err = db.First(&stored, "email = ?", token.Email).Error
+	assert.NoError(t, err)
+	assert.Equal(t, token.Token, stored.Token)
+}
+
+func TestTokenRepository_FindVerificationToken(t *testing.T) {
+	db := setupGormDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(nil, logger, db)
+
+	token := &entity.EmailVerificationToken{
+		Email:     "test@example.com",
+		Token:     "vtoken123",
+		ExpiresAt: time.Now().UnixMilli() + 3600000,
+	}
+	db.Create(token)
+
+	result, err := repo.FindVerificationToken(context.Background(), "vtoken123")
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, token.Email, result.Email)
+
+	result, err = repo.FindVerificationToken(context.Background(), "invalid")
+	assert.Error(t, err)
+	assert.Nil(t, result)
+}
+
+func TestTokenRepository_DeleteVerificationTokenByEmail(t *testing.T) {
+	db := setupGormDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(nil, logger, db)
+
+	token := &entity.EmailVerificationToken{
+		Email: "test@example.com",
+		Token: "vtoken123",
+	}
+	db.Create(token)
+
+	err := repo.DeleteVerificationTokenByEmail(context.Background(), "test@example.com")
+	assert.NoError(t, err)
+
+	var stored entity.EmailVerificationToken
+	err = db.First(&stored, "email = ?", "test@example.com").Error
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+}
+
+// --- End Email Verification Tests ---
 
 func TestTokenRepository_GetUserSessions(t *testing.T) {
 	db, mock := redismock.NewClientMock()

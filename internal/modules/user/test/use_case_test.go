@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strings"
 	"testing"
 
 	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
@@ -677,5 +678,94 @@ func TestUserUseCase_UpdateStatus(t *testing.T) {
 
 		err := uc.UpdateStatus(context.Background(), userID, status)
 		assert.NoError(t, err)
+	})
+}
+
+func TestUserUseCase_UpdateAvatar(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		userID := "user123"
+		filename := "avatar.jpg"
+		contentType := "image/jpeg"
+		file := strings.NewReader("dummy content")
+		expectedURL := "https://storage.com/avatars/user123.jpg"
+
+		deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
+		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, contentType).Return(expectedURL, nil)
+		deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+			return u.AvatarURL == expectedURL
+		})).Return(nil)
+		deps.AuditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+			return req.Action == "UPDATE_AVATAR"
+		})).Return(nil)
+
+		result, err := uc.UpdateAvatar(context.Background(), userID, file, filename, contentType)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, expectedURL, result.AvatarURL)
+		deps.Repo.AssertExpectations(t)
+		deps.Storage.AssertExpectations(t)
+		deps.AuditUC.AssertExpectations(t)
+	})
+
+	t.Run("User Not Found", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		userID := "unknown"
+		file := strings.NewReader("dummy")
+
+		deps.Repo.On("FindByID", mock.Anything, userID).Return(nil, errors.New("user not found"))
+
+		_, err := uc.UpdateAvatar(context.Background(), userID, file, "test.jpg", "image/jpeg")
+		assert.ErrorIs(t, err, exception.ErrNotFound)
+	})
+
+	t.Run("Upload Error", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		userID := "user123"
+		file := strings.NewReader("dummy")
+
+		deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
+		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("", errors.New("upload failed"))
+
+		_, err := uc.UpdateAvatar(context.Background(), userID, file, "test.jpg", "image/jpeg")
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+	})
+
+	t.Run("Update DB Error", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		userID := "user123"
+		file := strings.NewReader("dummy")
+
+		deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
+		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("http://url", nil)
+		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error"))
+
+		_, err := uc.UpdateAvatar(context.Background(), userID, file, "test.jpg", "image/jpeg")
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+	})
+}
+
+func TestUserUseCase_HardDeleteSoftDeletedUsers(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		retentionDays := 30
+
+		deps.Repo.On("HardDeleteSoftDeletedUsers", mock.Anything, retentionDays).Return(nil)
+
+		err := uc.HardDeleteSoftDeletedUsers(context.Background(), retentionDays)
+		assert.NoError(t, err)
+		deps.Repo.AssertExpectations(t)
+	})
+
+	t.Run("Error", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		retentionDays := 30
+
+		deps.Repo.On("HardDeleteSoftDeletedUsers", mock.Anything, retentionDays).Return(errors.New("db error"))
+
+		err := uc.HardDeleteSoftDeletedUsers(context.Background(), retentionDays)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		deps.Repo.AssertExpectations(t)
 	})
 }

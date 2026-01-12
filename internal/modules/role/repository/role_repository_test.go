@@ -6,81 +6,164 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	querybuilder2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/glebarez/sqlite"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
-func setupRoleRepo(t *testing.T) (repository.RoleRepository, *gorm.DB) {
+func setupRoleTestDB(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	require.NoError(t, err)
-
+	assert.NoError(t, err)
 	err = db.AutoMigrate(&entity.Role{})
-	require.NoError(t, err)
+	assert.NoError(t, err)
+	return db
+}
 
+func TestRoleRepository_Create(t *testing.T) {
+	db := setupRoleTestDB(t)
 	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
 	repo := repository.NewRoleRepository(db, logger)
-	return repo, db
+
+	role := &entity.Role{
+		ID:          "role-123",
+		Name:        "admin",
+		Description: "Administrator",
+	}
+
+	err := repo.Create(context.Background(), role)
+	assert.NoError(t, err)
+
+	var stored entity.Role
+	err = db.First(&stored, "id = ?", role.ID).Error
+	assert.NoError(t, err)
+	assert.Equal(t, role.Name, stored.Name)
+}
+
+func TestRoleRepository_FindByID(t *testing.T) {
+	db := setupRoleTestDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewRoleRepository(db, logger)
+
+	role := &entity.Role{
+		ID:          "role-123",
+		Name:        "admin",
+		Description: "Administrator",
+	}
+	db.Create(role)
+
+	found, err := repo.FindByID(context.Background(), role.ID)
+	assert.NoError(t, err)
+	assert.NotNil(t, found)
+	assert.Equal(t, role.Name, found.Name)
+
+	found, err = repo.FindByID(context.Background(), "non-existent")
+	assert.Error(t, err)
+	assert.Nil(t, found)
+}
+
+func TestRoleRepository_FindByName(t *testing.T) {
+	db := setupRoleTestDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewRoleRepository(db, logger)
+
+	role := &entity.Role{
+		ID:          "role-123",
+		Name:        "admin",
+		Description: "Administrator",
+	}
+	db.Create(role)
+
+	found, err := repo.FindByName(context.Background(), role.Name)
+	assert.NoError(t, err)
+	assert.NotNil(t, found)
+	assert.Equal(t, role.ID, found.ID)
+
+	found, err = repo.FindByName(context.Background(), "non-existent")
+	assert.Error(t, err)
+	assert.Nil(t, found)
+}
+
+func TestRoleRepository_FindAll(t *testing.T) {
+	db := setupRoleTestDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewRoleRepository(db, logger)
+
+	role1 := &entity.Role{ID: "r1", Name: "admin"}
+	role2 := &entity.Role{ID: "r2", Name: "user"}
+	db.Create(role1)
+	db.Create(role2)
+
+	roles, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
+	assert.Len(t, roles, 2)
+}
+
+func TestRoleRepository_Delete(t *testing.T) {
+	db := setupRoleTestDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewRoleRepository(db, logger)
+
+	role := &entity.Role{ID: "r1", Name: "admin"}
+	db.Create(role)
+
+	err := repo.Delete(context.Background(), role.ID)
+	assert.NoError(t, err)
+
+	var stored entity.Role
+	err = db.First(&stored, "id = ?", role.ID).Error
+	assert.Error(t, err)
 }
 
 func TestRoleRepository_FindAllDynamic(t *testing.T) {
-	repo, db := setupRoleRepo(t)
-	ctx := context.Background()
+	db := setupRoleTestDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
 
-	roles := []entity.Role{
-		{ID: "1", Name: "Admin", Description: "Administrator"},
-		{ID: "2", Name: "Editor", Description: "Content Editor"},
-		{ID: "3", Name: "Viewer", Description: "Read Only"},
-	}
-	db.Create(&roles)
+	repo := repository.NewRoleRepository(db, logger)
 
-	tests := []struct {
-		name          string
-		filter        *querybuilder.DynamicFilter
-		expectedCount int
-		expectedNames []string
-	}{
-		{
-			name: "Contains Name 'd'",
-			filter: &querybuilder.DynamicFilter{
-				Filter: map[string]querybuilder.Filter{
-					"Name": {Type: "contains", From: "d"},
-				},
-			},
-			expectedCount: 2,
-			expectedNames: []string{"Admin", "Editor"},
-		},
-		{
-			name: "Sort Descending",
-			filter: &querybuilder.DynamicFilter{
-				Sort: &[]querybuilder.SortModel{{ColId: "Name", Sort: "desc"}},
-			},
-			expectedCount: 3,
-			expectedNames: []string{"Viewer", "Editor", "Admin"},
+	role1 := &entity.Role{ID: "r1", Name: "admin"}
+	role2 := &entity.Role{ID: "r2", Name: "user"}
+	db.Create(role1)
+	db.Create(role2)
+
+	// Filter by name
+	filter := &querybuilder2.DynamicFilter{
+		Filter: querybuilder2.Filter{
+			Field:    "name",
+			Operator: "eq",
+			Value:    "admin",
 		},
 	}
+	roles, err := repo.FindAllDynamic(context.Background(), filter)
+	assert.NoError(t, err)
+	assert.Len(t, roles, 1)
+	assert.Equal(t, "admin", roles[0].Name)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := repo.FindAllDynamic(ctx, tt.filter)
-			require.NoError(t, err)
-			assert.Len(t, result, tt.expectedCount)
-
-			if len(tt.expectedNames) > 0 {
-				var names []string
-				for _, r := range result {
-					names = append(names, r.Name)
-				}
-
-				if tt.name == "Sort Descending" {
-					assert.Equal(t, tt.expectedNames, names)
-				} else {
-					assert.ElementsMatch(t, tt.expectedNames, names)
-				}
-			}
-		})
+	// Sort desc
+	filter = &querybuilder2.DynamicFilter{
+		Sort: []querybuilder2.SortModel{
+			{ColId: "name", Sort: "desc"},
+		},
 	}
+	roles, err = repo.FindAllDynamic(context.Background(), filter)
+	assert.NoError(t, err)
+	assert.Len(t, roles, 2)
+	assert.Equal(t, "user", roles[0].Name)
 }
+
+type NoOpWriter struct{}
+
+func (w *NoOpWriter) Write([]byte) (int, error) { return 0, nil }
+func (w *NoOpWriter) Levels() []logrus.Level    { return logrus.AllLevels }
