@@ -109,6 +109,16 @@ func (m *MockAuthUseCase) ResetPassword(ctx context.Context, token, newPassword 
 	return args.Error(0)
 }
 
+func (m *MockAuthUseCase) RequestVerification(ctx context.Context, userID string) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
+func (m *MockAuthUseCase) VerifyEmail(ctx context.Context, token string) error {
+	args := m.Called(ctx, token)
+	return args.Error(0)
+}
+
 func TestAuthMiddleware_ValidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()

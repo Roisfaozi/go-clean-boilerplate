@@ -22,6 +22,7 @@ func RunMigrations(t *testing.T, db *gorm.DB) {
 		&entity.AccessRight{},
 		&auditEntity.AuditLog{},
 		&authEntity.PasswordResetToken{},
+		&authEntity.EmailVerificationToken{},
 	)
 	if t != nil {
 		require.NoError(t, err, "Failed to run migrations")
@@ -75,6 +76,7 @@ func CleanupDatabase(t *testing.T, db *gorm.DB) {
 		"users",
 		"roles",
 		"password_reset_tokens",
+		"email_verification_tokens",
 	}
 
 	db.Exec("SET FOREIGN_KEY_CHECKS = 0")

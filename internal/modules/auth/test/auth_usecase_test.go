@@ -831,3 +831,235 @@ func TestLogin_Success_NoRoles(t *testing.T) {
 	assert.Empty(t, loginResp.User.Role)
 	deps.enforcer.AssertExpectations(t)
 }
+
+// --- EMAIL VERIFICATION TESTS ---
+
+func TestRequestVerification_Success(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+	user.EmailVerifiedAt = nil // Not yet verified
+
+	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
+	deps.tokenRepo.On("SaveVerificationToken", mock.Anything, mock.AnythingOfType("*entity.EmailVerificationToken")).Return(nil)
+	deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.MatchedBy(func(payload *tasks.SendEmailPayload) bool {
+		return payload.To == user.Email && payload.Subject == "Verify Your Email Address"
+	}), mock.Anything).Return(nil)
+
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.UserID == user.ID && req.Action == "VERIFICATION_EMAIL_REQUESTED"
+	})).Return(nil)
+
+	err := authService.RequestVerification(context.Background(), user.ID)
+
+	assert.NoError(t, err)
+	deps.userRepo.AssertExpectations(t)
+	deps.tokenRepo.AssertExpectations(t)
+	deps.taskDistributor.AssertExpectations(t)
+	deps.auditUC.AssertExpectations(t)
+}
+
+func TestRequestVerification_UserNotFound(t *testing.T) {
+	authService, deps := setupTest(t)
+
+	deps.userRepo.On("FindByID", mock.Anything, "nonexistent").Return(nil, errors.New("user not found"))
+
+	err := authService.RequestVerification(context.Background(), "nonexistent")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "user not found")
+	deps.userRepo.AssertExpectations(t)
+}
+
+func TestRequestVerification_AlreadyVerified(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+	verifiedAt := time.Now().UnixMilli()
+	user.EmailVerifiedAt = &verifiedAt // Already verified
+
+	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
+
+	err := authService.RequestVerification(context.Background(), user.ID)
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrAlreadyVerified))
+	deps.userRepo.AssertExpectations(t)
+	deps.tokenRepo.AssertNotCalled(t, "SaveVerificationToken", mock.Anything, mock.Anything)
+}
+
+func TestRequestVerification_SaveTokenError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+	user.EmailVerifiedAt = nil
+
+	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
+	deps.tokenRepo.On("SaveVerificationToken", mock.Anything, mock.AnythingOfType("*entity.EmailVerificationToken")).Return(errors.New("db error"))
+
+	err := authService.RequestVerification(context.Background(), user.ID)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "db error")
+	deps.tokenRepo.AssertExpectations(t)
+}
+
+func TestRequestVerification_DistributeTaskError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+	user.EmailVerifiedAt = nil
+
+	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
+	deps.tokenRepo.On("SaveVerificationToken", mock.Anything, mock.AnythingOfType("*entity.EmailVerificationToken")).Return(nil)
+	deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("task queue error"))
+	deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+	err := authService.RequestVerification(context.Background(), user.ID)
+
+	// Should succeed even if email task fails
+	assert.NoError(t, err)
+	deps.taskDistributor.AssertExpectations(t)
+}
+
+func TestVerifyEmail_Success(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+	user.EmailVerifiedAt = nil
+	token := "valid-verification-token"
+	now := time.Now().UnixMilli()
+	verificationToken := &authEntity.EmailVerificationToken{
+		Email:     user.Email,
+		Token:     token,
+		ExpiresAt: now + (24 * 60 * 60 * 1000), // 24h from now
+		CreatedAt: now,
+	}
+
+	deps.tokenRepo.On("FindVerificationToken", mock.Anything, token).Return(verificationToken, nil)
+	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
+	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(context.Background())
+		}).Return(nil)
+	deps.userRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
+	deps.tokenRepo.On("DeleteVerificationTokenByEmail", mock.Anything, user.Email).Return(nil)
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.UserID == user.ID && req.Action == "EMAIL_VERIFIED"
+	})).Return(nil)
+
+	err := authService.VerifyEmail(context.Background(), token)
+
+	assert.NoError(t, err)
+	deps.tokenRepo.AssertExpectations(t)
+	deps.userRepo.AssertExpectations(t)
+	deps.auditUC.AssertExpectations(t)
+}
+
+func TestVerifyEmail_InvalidToken(t *testing.T) {
+	authService, deps := setupTest(t)
+	token := "invalid-token"
+
+	deps.tokenRepo.On("FindVerificationToken", mock.Anything, token).Return(nil, errors.New("not found"))
+
+	err := authService.VerifyEmail(context.Background(), token)
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrInvalidVerificationToken))
+	deps.tokenRepo.AssertExpectations(t)
+}
+
+func TestVerifyEmail_ExpiredToken(t *testing.T) {
+	authService, deps := setupTest(t)
+	token := "expired-token"
+	now := time.Now().UnixMilli()
+	verificationToken := &authEntity.EmailVerificationToken{
+		Email:     "test@example.com",
+		Token:     token,
+		ExpiresAt: now - (1 * 60 * 60 * 1000), // 1h ago (expired)
+		CreatedAt: now - (25 * 60 * 60 * 1000),
+	}
+
+	deps.tokenRepo.On("FindVerificationToken", mock.Anything, token).Return(verificationToken, nil)
+	deps.tokenRepo.On("DeleteVerificationTokenByEmail", mock.Anything, verificationToken.Email).Return(nil)
+
+	err := authService.VerifyEmail(context.Background(), token)
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrInvalidVerificationToken))
+	deps.tokenRepo.AssertExpectations(t)
+}
+
+func TestVerifyEmail_UserNotFound(t *testing.T) {
+	authService, deps := setupTest(t)
+	token := "valid-token"
+	now := time.Now().UnixMilli()
+	verificationToken := &authEntity.EmailVerificationToken{
+		Email:     "deleted@example.com",
+		Token:     token,
+		ExpiresAt: now + (24 * 60 * 60 * 1000),
+		CreatedAt: now,
+	}
+
+	deps.tokenRepo.On("FindVerificationToken", mock.Anything, token).Return(verificationToken, nil)
+	deps.userRepo.On("FindByEmail", mock.Anything, verificationToken.Email).Return(nil, errors.New("user not found"))
+
+	err := authService.VerifyEmail(context.Background(), token)
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrInvalidVerificationToken))
+	deps.userRepo.AssertExpectations(t)
+}
+
+func TestVerifyEmail_AlreadyVerified(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+	verifiedAt := time.Now().UnixMilli()
+	user.EmailVerifiedAt = &verifiedAt // Already verified
+	token := "valid-token"
+	now := time.Now().UnixMilli()
+	verificationToken := &authEntity.EmailVerificationToken{
+		Email:     user.Email,
+		Token:     token,
+		ExpiresAt: now + (24 * 60 * 60 * 1000),
+		CreatedAt: now,
+	}
+
+	deps.tokenRepo.On("FindVerificationToken", mock.Anything, token).Return(verificationToken, nil)
+	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
+	deps.tokenRepo.On("DeleteVerificationTokenByEmail", mock.Anything, user.Email).Return(nil)
+
+	err := authService.VerifyEmail(context.Background(), token)
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrAlreadyVerified))
+	deps.tokenRepo.AssertExpectations(t)
+}
+
+func TestVerifyEmail_TransactionError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+	user.EmailVerifiedAt = nil
+	token := "valid-token"
+	now := time.Now().UnixMilli()
+	verificationToken := &authEntity.EmailVerificationToken{
+		Email:     user.Email,
+		Token:     token,
+		ExpiresAt: now + (24 * 60 * 60 * 1000),
+		CreatedAt: now,
+	}
+
+	deps.tokenRepo.On("FindVerificationToken", mock.Anything, token).Return(verificationToken, nil)
+	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
+
+	dbErr := errors.New("update failed")
+	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(context.Background())
+		}).Return(dbErr)
+	deps.userRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.User")).Return(dbErr)
+
+	err := authService.VerifyEmail(context.Background(), token)
+
+	assert.Error(t, err)
+	assert.Equal(t, dbErr, err)
+	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
+}
+
