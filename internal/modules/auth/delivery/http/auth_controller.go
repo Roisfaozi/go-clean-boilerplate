@@ -203,3 +203,66 @@ func (h *AuthController) ResetPassword(c *gin.Context) {
 
 	response.Success(c, gin.H{"message": "password reset successfully"})
 }
+
+// VerifyEmail godoc
+// @Summary      Verify email address
+// @Description  Verifies the user's email address using a verification token.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.VerifyEmailRequest true "Verify email request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/verify-email [post]
+func (h *AuthController) VerifyEmail(c *gin.Context) {
+	var req model.VerifyEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, errors.New("validation failed"), msg)
+		return
+	}
+
+	err := h.AuthUseCase.VerifyEmail(c.Request.Context(), req.Token)
+	if err != nil {
+		response.HandleError(c, err, "failed to verify email")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "email verified successfully"})
+}
+
+// ResendVerification godoc
+// @Summary      Resend verification email
+// @Description  Resends the email verification link to the authenticated user.
+// @Tags         auth
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Already verified or request failed"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/resend-verification [post]
+func (h *AuthController) ResendVerification(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists || userID == nil {
+		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+
+	err := h.AuthUseCase.RequestVerification(c.Request.Context(), userID.(string))
+	if err != nil {
+		response.HandleError(c, err, "failed to request verification email")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "verification email sent successfully"})
+}
+

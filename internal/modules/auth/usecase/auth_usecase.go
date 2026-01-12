@@ -447,3 +447,111 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 
 	return nil
 }
+
+func (s *Service) RequestVerification(ctx context.Context, userID string) error {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("user not found: %w", err)
+	}
+
+	// Check if already verified
+	if user.EmailVerifiedAt != nil {
+		return ErrAlreadyVerified
+	}
+
+	// Generate 32-char hex token
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Errorf("failed to generate random token: %w", err)
+	}
+	token := hex.EncodeToString(b)
+
+	now := time.Now().UnixMilli()
+	verificationToken := &authEntity.EmailVerificationToken{
+		Email:     user.Email,
+		Token:     token,
+		ExpiresAt: now + (24 * 60 * 60 * 1000), // 24 hours in milliseconds
+		CreatedAt: now,
+	}
+
+	if err := s.tokenRepo.SaveVerificationToken(ctx, verificationToken); err != nil {
+		return err
+	}
+
+	// Send Email Async
+	if s.taskDistributor != nil {
+		taskPayload := &tasks.SendEmailPayload{
+			To:      user.Email,
+			Subject: "Verify Your Email Address",
+			Body:    fmt.Sprintf("Please verify your email by using this token: %s. It expires in 24 hours.", token),
+		}
+		if err := s.taskDistributor.DistributeTaskSendEmail(ctx, taskPayload); err != nil {
+			s.log.WithContext(ctx).WithError(err).Error("Failed to enqueue verification email task")
+		}
+	} else {
+		s.log.WithContext(ctx).Infof("EMAIL VERIFICATION TOKEN for %s: %s (Expires in 24h)", user.Email, token)
+	}
+
+	if s.auditUC != nil {
+		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			UserID:   user.ID,
+			Action:   "VERIFICATION_EMAIL_REQUESTED",
+			Entity:   "User",
+			EntityID: user.ID,
+		}); err != nil {
+			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) VerifyEmail(ctx context.Context, token string) error {
+	verificationToken, err := s.tokenRepo.FindVerificationToken(ctx, token)
+	if err != nil {
+		return ErrInvalidVerificationToken
+	}
+
+	now := time.Now().UnixMilli()
+	if now > verificationToken.ExpiresAt {
+		_ = s.tokenRepo.DeleteVerificationTokenByEmail(ctx, verificationToken.Email)
+		return ErrInvalidVerificationToken
+	}
+
+	user, err := s.userRepo.FindByEmail(ctx, verificationToken.Email)
+	if err != nil {
+		return ErrInvalidVerificationToken
+	}
+
+	// Already verified check
+	if user.EmailVerifiedAt != nil {
+		_ = s.tokenRepo.DeleteVerificationTokenByEmail(ctx, verificationToken.Email)
+		return ErrAlreadyVerified
+	}
+
+	user.EmailVerifiedAt = &now
+
+	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := s.userRepo.Update(txCtx, user); err != nil {
+			return err
+		}
+		return s.tokenRepo.DeleteVerificationTokenByEmail(txCtx, verificationToken.Email)
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if s.auditUC != nil {
+		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			UserID:   user.ID,
+			Action:   "EMAIL_VERIFIED",
+			Entity:   "User",
+			EntityID: user.ID,
+		}); err != nil {
+			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
+		}
+	}
+
+	return nil
+}

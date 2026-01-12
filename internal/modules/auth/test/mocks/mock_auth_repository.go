@@ -210,6 +210,63 @@ func (_c *MockTokenRepository_DeleteToken_Call) RunAndReturn(run func(ctx contex
 	return _c
 }
 
+// DeleteVerificationTokenByEmail provides a mock function for the type MockTokenRepository
+func (_mock *MockTokenRepository) DeleteVerificationTokenByEmail(ctx context.Context, email string) error {
+	ret := _mock.Called(ctx, email)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteVerificationTokenByEmail")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, email)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockTokenRepository_DeleteVerificationTokenByEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteVerificationTokenByEmail'
+type MockTokenRepository_DeleteVerificationTokenByEmail_Call struct {
+	*mock.Call
+}
+
+// DeleteVerificationTokenByEmail is a helper method to define mock.On call
+//   - ctx context.Context
+//   - email string
+func (_e *MockTokenRepository_Expecter) DeleteVerificationTokenByEmail(ctx interface{}, email interface{}) *MockTokenRepository_DeleteVerificationTokenByEmail_Call {
+	return &MockTokenRepository_DeleteVerificationTokenByEmail_Call{Call: _e.mock.On("DeleteVerificationTokenByEmail", ctx, email)}
+}
+
+func (_c *MockTokenRepository_DeleteVerificationTokenByEmail_Call) Run(run func(ctx context.Context, email string)) *MockTokenRepository_DeleteVerificationTokenByEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTokenRepository_DeleteVerificationTokenByEmail_Call) Return(err error) *MockTokenRepository_DeleteVerificationTokenByEmail_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockTokenRepository_DeleteVerificationTokenByEmail_Call) RunAndReturn(run func(ctx context.Context, email string) error) *MockTokenRepository_DeleteVerificationTokenByEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FindByToken provides a mock function for the type MockTokenRepository
 func (_mock *MockTokenRepository) FindByToken(ctx context.Context, token string) (*entity.PasswordResetToken, error) {
 	ret := _mock.Called(ctx, token)
@@ -274,6 +331,74 @@ func (_c *MockTokenRepository_FindByToken_Call) Return(passwordResetToken *entit
 }
 
 func (_c *MockTokenRepository_FindByToken_Call) RunAndReturn(run func(ctx context.Context, token string) (*entity.PasswordResetToken, error)) *MockTokenRepository_FindByToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindVerificationToken provides a mock function for the type MockTokenRepository
+func (_mock *MockTokenRepository) FindVerificationToken(ctx context.Context, token string) (*entity.EmailVerificationToken, error) {
+	ret := _mock.Called(ctx, token)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindVerificationToken")
+	}
+
+	var r0 *entity.EmailVerificationToken
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*entity.EmailVerificationToken, error)); ok {
+		return returnFunc(ctx, token)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *entity.EmailVerificationToken); ok {
+		r0 = returnFunc(ctx, token)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.EmailVerificationToken)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, token)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockTokenRepository_FindVerificationToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindVerificationToken'
+type MockTokenRepository_FindVerificationToken_Call struct {
+	*mock.Call
+}
+
+// FindVerificationToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+func (_e *MockTokenRepository_Expecter) FindVerificationToken(ctx interface{}, token interface{}) *MockTokenRepository_FindVerificationToken_Call {
+	return &MockTokenRepository_FindVerificationToken_Call{Call: _e.mock.On("FindVerificationToken", ctx, token)}
+}
+
+func (_c *MockTokenRepository_FindVerificationToken_Call) Run(run func(ctx context.Context, token string)) *MockTokenRepository_FindVerificationToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTokenRepository_FindVerificationToken_Call) Return(emailVerificationToken *entity.EmailVerificationToken, err error) *MockTokenRepository_FindVerificationToken_Call {
+	_c.Call.Return(emailVerificationToken, err)
+	return _c
+}
+
+func (_c *MockTokenRepository_FindVerificationToken_Call) RunAndReturn(run func(ctx context.Context, token string) (*entity.EmailVerificationToken, error)) *MockTokenRepository_FindVerificationToken_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -530,6 +655,63 @@ func (_c *MockTokenRepository_Save_Call) Return(err error) *MockTokenRepository_
 }
 
 func (_c *MockTokenRepository_Save_Call) RunAndReturn(run func(ctx context.Context, token *entity.PasswordResetToken) error) *MockTokenRepository_Save_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SaveVerificationToken provides a mock function for the type MockTokenRepository
+func (_mock *MockTokenRepository) SaveVerificationToken(ctx context.Context, token *entity.EmailVerificationToken) error {
+	ret := _mock.Called(ctx, token)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SaveVerificationToken")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entity.EmailVerificationToken) error); ok {
+		r0 = returnFunc(ctx, token)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockTokenRepository_SaveVerificationToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SaveVerificationToken'
+type MockTokenRepository_SaveVerificationToken_Call struct {
+	*mock.Call
+}
+
+// SaveVerificationToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token *entity.EmailVerificationToken
+func (_e *MockTokenRepository_Expecter) SaveVerificationToken(ctx interface{}, token interface{}) *MockTokenRepository_SaveVerificationToken_Call {
+	return &MockTokenRepository_SaveVerificationToken_Call{Call: _e.mock.On("SaveVerificationToken", ctx, token)}
+}
+
+func (_c *MockTokenRepository_SaveVerificationToken_Call) Run(run func(ctx context.Context, token *entity.EmailVerificationToken)) *MockTokenRepository_SaveVerificationToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *entity.EmailVerificationToken
+		if args[1] != nil {
+			arg1 = args[1].(*entity.EmailVerificationToken)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTokenRepository_SaveVerificationToken_Call) Return(err error) *MockTokenRepository_SaveVerificationToken_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockTokenRepository_SaveVerificationToken_Call) RunAndReturn(run func(ctx context.Context, token *entity.EmailVerificationToken) error) *MockTokenRepository_SaveVerificationToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

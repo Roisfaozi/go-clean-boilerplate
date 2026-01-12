@@ -11,6 +11,7 @@ func RegisterPublicRoutes(router *gin.RouterGroup, controller *AuthController) {
 		authGroup.POST("/refresh", controller.RefreshToken)
 		authGroup.POST("/forgot-password", controller.ForgotPassword)
 		authGroup.POST("/reset-password", controller.ResetPassword)
+		authGroup.POST("/verify-email", controller.VerifyEmail)
 	}
 }
 
@@ -18,5 +19,7 @@ func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *AuthContro
 	authGroup := router.Group("/auth")
 	{
 		authGroup.POST("/logout", controller.Logout)
+		authGroup.POST("/resend-verification", controller.ResendVerification)
 	}
 }
+

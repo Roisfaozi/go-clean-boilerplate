@@ -10,11 +10,13 @@ import (
 )
 
 var (
-	ErrInvalidCredentials = exception.ErrUnauthorized
-	ErrInvalidToken       = exception.ErrUnauthorized
-	ErrExpiredToken       = exception.ErrUnauthorized
-	ErrTokenRevoked       = exception.ErrUnauthorized
-	ErrInvalidResetToken  = exception.ErrBadRequest
+	ErrInvalidCredentials        = exception.ErrUnauthorized
+	ErrInvalidToken              = exception.ErrUnauthorized
+	ErrExpiredToken              = exception.ErrUnauthorized
+	ErrTokenRevoked              = exception.ErrUnauthorized
+	ErrInvalidResetToken         = exception.ErrBadRequest
+	ErrInvalidVerificationToken  = exception.ErrBadRequest
+	ErrAlreadyVerified           = exception.ErrBadRequest
 )
 
 type AuthUseCase interface {
@@ -33,4 +35,8 @@ type AuthUseCase interface {
 
 	ForgotPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
+
+	// Email Verification
+	RequestVerification(ctx context.Context, userID string) error
+	VerifyEmail(ctx context.Context, token string) error
 }

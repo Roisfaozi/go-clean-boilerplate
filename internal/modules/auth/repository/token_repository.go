@@ -153,3 +153,27 @@ func (r *tokenRepositoryRedis) RevokeAllSessions(ctx context.Context, userID str
 func (r *tokenRepositoryRedis) getSessionKey(userID, sessionID string) string {
 	return fmt.Sprintf("session:%s:%s", userID, sessionID)
 }
+
+// Email Verification Token Methods
+
+func (r *tokenRepositoryRedis) SaveVerificationToken(ctx context.Context, token *entity.EmailVerificationToken) error {
+	return r.db.WithContext(ctx).Save(token).Error
+}
+
+func (r *tokenRepositoryRedis) FindVerificationToken(ctx context.Context, token string) (*entity.EmailVerificationToken, error) {
+	var verificationToken entity.EmailVerificationToken
+	err := r.db.WithContext(ctx).Where("token = ?", token).First(&verificationToken).Error
+	if err != nil {
+		return nil, err
+	}
+	return &verificationToken, nil
+}
+
+func (r *tokenRepositoryRedis) DeleteVerificationTokenByEmail(ctx context.Context, email string) error {
+	if err := r.db.WithContext(ctx).Where("email = ?", email).Delete(&entity.EmailVerificationToken{}).Error; err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("Failed to delete verification token by email")
+		return err
+	}
+	return nil
+}
+

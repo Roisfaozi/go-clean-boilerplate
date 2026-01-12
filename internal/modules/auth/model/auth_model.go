@@ -62,6 +62,10 @@ type ResetPasswordRequest struct {
 	NewPassword string `json:"new_password" validate:"required,min=8,max=72"`
 }
 
+type VerifyEmailRequest struct {
+	Token string `json:"token" validate:"required"`
+}
+
 func (r *LoginRequest) Validate() error {
 	validate := validator.New()
 	return validate.Struct(r)
@@ -71,3 +75,4 @@ func (r *RefreshRequest) Validate() error {
 	validate := validator.New()
 	return validate.Struct(r)
 }
+

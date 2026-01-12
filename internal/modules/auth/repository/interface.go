@@ -17,4 +17,9 @@ type TokenRepository interface {
 	FindByToken(ctx context.Context, token string) (*entity.PasswordResetToken, error)
 	DeleteByEmail(ctx context.Context, email string) error
 	DeleteExpiredResetTokens(ctx context.Context) error
+
+	// Email Verification Token Methods
+	SaveVerificationToken(ctx context.Context, token *entity.EmailVerificationToken) error
+	FindVerificationToken(ctx context.Context, token string) (*entity.EmailVerificationToken, error)
+	DeleteVerificationTokenByEmail(ctx context.Context, email string) error
 }
