@@ -181,8 +181,9 @@ func TestUserE2E_UpdateStatus(t *testing.T) {
 		assert.Equal(t, 200, resp.StatusCode)
 
 		// Banned user tries to access protected route
+		// Note: When banned, user's sessions are revoked, so token becomes invalid (401)
 		resp = server.Client.GET("/api/v1/users/me", setup.WithAuth(userToken))
-		assert.Equal(t, 403, resp.StatusCode, "Banned user should be denied access")
+		assert.Equal(t, 401, resp.StatusCode, "Banned user's token should be invalidated")
 	})
 
 	t.Run("Success - Reactivate User", func(t *testing.T) {
