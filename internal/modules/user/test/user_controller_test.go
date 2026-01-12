@@ -12,6 +12,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -28,7 +29,9 @@ func setupUserTestRouter() *gin.Engine {
 func newTestUserHandler(mockUseCase *mocks.MockUserUseCase) *userHandler.UserController {
 	log := logrus.New()
 	log.SetLevel(logrus.PanicLevel)
-	return userHandler.NewUserController(mockUseCase, log, validator.New())
+	v := validator.New()
+	validation.RegisterCustomValidations(v) // Register custom validators here!
+	return userHandler.NewUserController(mockUseCase, log, v)
 }
 
 func TestUserHandler_RegisterUser_Success(t *testing.T) {
