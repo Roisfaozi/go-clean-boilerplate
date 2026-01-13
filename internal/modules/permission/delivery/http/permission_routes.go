@@ -24,6 +24,7 @@ func RegisterPermissionRoutes(router *gin.RouterGroup, controller *PermissionCon
 	permissionGroup := router.Group("/permissions")
 	{
 		permissionGroup.POST("/assign-role", controller.AssignRole)
+		permissionGroup.DELETE("/revoke-role", controller.RevokeRole)
 		permissionGroup.POST("/grant", controller.GrantPermission)
 		permissionGroup.GET("", controller.GetAllPermissions)
 		permissionGroup.GET("/:role", controller.GetPermissionsForRole)

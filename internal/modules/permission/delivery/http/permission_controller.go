@@ -48,6 +48,28 @@ func (h *PermissionController) AssignRole(c *gin.Context) {
 	response.Success(c, gin.H{"message": "role assigned successfully"})
 }
 
+func (h *PermissionController) RevokeRole(c *gin.Context) {
+	var req model.AssignRoleRequest // Same request structure as Assign
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, errors.New("validation failed"), msg)
+		return
+	}
+
+	err := h.useCase.RevokeRoleFromUser(c.Request.Context(), req.UserID, req.Role)
+	if err != nil {
+		response.HandleError(c, err, "failed to revoke role")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "role revoked successfully"})
+}
+
 func (h *PermissionController) GrantPermission(c *gin.Context) {
 	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

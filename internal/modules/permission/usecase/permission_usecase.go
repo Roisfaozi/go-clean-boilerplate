@@ -15,6 +15,7 @@ import (
 
 type IPermissionUseCase interface {
 	AssignRoleToUser(ctx context.Context, userID, role string) error
+	RevokeRoleFromUser(ctx context.Context, userID, role string) error
 	GrantPermissionToRole(ctx context.Context, role, path, method string) error
 	RevokePermissionFromRole(ctx context.Context, role, path, method string) error
 	GetAllPermissions(ctx context.Context) ([][]string, error)
@@ -148,6 +149,44 @@ func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role 
 	if err != nil {
 		uc.log.WithContext(ctx).Errorf("Failed to add grouping policy: %v", err)
 		return err
+	}
+	return nil
+}
+
+func (uc *PermissionUseCase) RevokeRoleFromUser(ctx context.Context, userID, role string) error {
+	uc.log.WithContext(ctx).Infof("Attempting to revoke role '%s' from user '%s'", role, userID)
+
+	if userID == "" || role == "" {
+		return fmt.Errorf("userID and role are required")
+	}
+
+	_, err := uc.UserRepo.FindByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			uc.log.WithContext(ctx).Warnf("Revoke role failed: user '%s' does not exist.", userID)
+			return exception.ErrNotFound
+		}
+		uc.log.WithContext(ctx).Errorf("Failed to query user repository: %v", err)
+		return exception.ErrInternalServer
+	}
+
+	_, err = uc.RoleRepo.FindByName(ctx, role)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			uc.log.WithContext(ctx).Warnf("Revoke role failed: role '%s' does not exist.", role)
+			return exception.ErrBadRequest
+		}
+		uc.log.WithContext(ctx).Errorf("Failed to query role repository: %v", err)
+		return exception.ErrInternalServer
+	}
+
+	removed, err := uc.enforcer.RemoveFilteredGroupingPolicy(0, userID, role)
+	if err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to remove role from user: %v", err)
+		return exception.ErrInternalServer
+	}
+	if !removed {
+		return errors.New("role was not assigned to user")
 	}
 	return nil
 }

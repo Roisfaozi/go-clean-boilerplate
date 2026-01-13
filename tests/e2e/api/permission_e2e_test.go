@@ -209,7 +209,7 @@ func TestPermissionE2E_RevokeRole(t *testing.T) {
 
 	// Verify role assigned
 	roles, _ := server.Enforcer.GetRolesForUser(user.ID)
-	assert.Contains(t, roles, "role:RevokeTestRole")
+	assert.Contains(t, roles, "RevokeTestRole")
 
 	t.Run("Success - Revoke Role", func(t *testing.T) {
 		resp := client.DELETE("/api/v1/permissions/revoke-role", map[string]any{
@@ -220,7 +220,7 @@ func TestPermissionE2E_RevokeRole(t *testing.T) {
 
 		// Verify role revoked
 		rolesAfter, _ := server.Enforcer.GetRolesForUser(user.ID)
-		assert.NotContains(t, rolesAfter, "role:RevokeTestRole")
+		assert.NotContains(t, rolesAfter, "RevokeTestRole")
 	})
 }
 
@@ -270,7 +270,7 @@ func TestPermissionE2E_RemoveInheritance(t *testing.T) {
 	require.Equal(t, 200, resp.StatusCode)
 
 	// Verify inheritance
-	ok, _ := server.Enforcer.Enforce("role:ParentRole", "/api/v1/inherited", "GET")
+	ok, _ := server.Enforcer.Enforce("ParentRole", "/api/v1/inherited", "GET")
 	assert.True(t, ok, "Parent should have access via inheritance")
 
 	t.Run("Success - Remove Inheritance", func(t *testing.T) {
@@ -281,7 +281,7 @@ func TestPermissionE2E_RemoveInheritance(t *testing.T) {
 		assert.Equal(t, 200, resp.StatusCode)
 
 		// Verify inheritance removed
-		ok, _ := server.Enforcer.Enforce("role:ParentRole", "/api/v1/inherited", "GET")
+		ok, _ := server.Enforcer.Enforce("ParentRole", "/api/v1/inherited", "GET")
 		assert.False(t, ok, "Parent should NOT have access after inheritance removed")
 	})
 }
