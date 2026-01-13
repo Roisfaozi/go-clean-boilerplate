@@ -427,6 +427,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/resend-verification": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Resends the email verification link to the authenticated user.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Resend verification email",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Already verified or request failed",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/reset-password": {
             "post": {
                 "description": "Resets the user's password using a valid reset token.",
@@ -448,6 +494,58 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/verify-email": {
+            "post": {
+                "description": "Verifies the user's email address using a verification token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Verify email address",
+                "parameters": [
+                    {
+                        "description": "Verify email request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.VerifyEmailRequest"
                         }
                     }
                 ],
@@ -1037,6 +1135,61 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/me/avatar": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Uploads a new avatar image for the current user.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Upload avatar",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Avatar image file",
+                        "name": "avatar",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid file",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
         "/users/register": {
             "post": {
                 "description": "Creates a new user account.",
@@ -1559,6 +1712,17 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.VerifyEmailRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.CreateRoleRequest": {
             "type": "object",
             "required": [
@@ -1658,6 +1822,9 @@ const docTemplate = `{
         "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse": {
             "type": "object",
             "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "integer"
                 },
@@ -1671,9 +1838,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "type": "string"
-                },
-                "token": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -1692,6 +1856,14 @@ const docTemplate = `{
                     "additionalProperties": {
                         "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.Filter"
                     }
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "page_size": {
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "sort": {
                     "type": "array",
@@ -1750,10 +1922,16 @@ const docTemplate = `{
         "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata": {
             "type": "object",
             "properties": {
+                "limit": {
+                    "type": "integer"
+                },
                 "page": {
                     "type": "integer"
                 },
                 "size": {
+                    "type": "integer"
+                },
+                "total": {
                     "type": "integer"
                 },
                 "total_item": {
@@ -1826,7 +2004,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "Example: {\"message\": \"success\"}",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
