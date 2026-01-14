@@ -11,6 +11,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -93,13 +94,20 @@ func (m *MockUserUseCase) DeleteUser(ctx context.Context, actorUserID string, re
 	return args.Error(0)
 }
 
-func TestUserController_GetAllUsers_Validation(t *testing.T) {
-	// Setup
-	gin.SetMode(gin.TestMode)
+func newTestController() (*UserController, *MockUserUseCase) {
 	mockUsecase := new(MockUserUseCase)
 	logger := logrus.New()
 	validate := validator.New()
+	// Register custom validations
+	_ = validation.RegisterCustomValidations(validate)
 	controller := NewUserController(mockUsecase, logger, validate)
+	return controller, mockUsecase
+}
+
+func TestUserController_GetAllUsers_Validation(t *testing.T) {
+	// Setup
+	gin.SetMode(gin.TestMode)
+	controller, mockUsecase := newTestController()
 
 	router := gin.New()
 	router.GET("/users", controller.GetAllUsers)
@@ -117,10 +125,7 @@ func TestUserController_GetAllUsers_Validation(t *testing.T) {
 func TestUserController_GetUsersDynamic_Validation(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
-	mockUsecase := new(MockUserUseCase)
-	logger := logrus.New()
-	validate := validator.New()
-	controller := NewUserController(mockUsecase, logger, validate)
+	controller, mockUsecase := newTestController()
 
 	router := gin.New()
 	router.POST("/users/search", controller.GetUsersDynamic)
@@ -146,4 +151,47 @@ func TestUserController_GetUsersDynamic_Validation(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code, "Expected validation error for invalid sort direction")
 	mockUsecase.AssertNotCalled(t, "GetAllUsersDynamic")
+}
+
+func TestUserController_RegisterUser_XSS(t *testing.T) {
+	// Setup
+	gin.SetMode(gin.TestMode)
+	controller, mockUsecase := newTestController()
+
+	router := gin.New()
+	router.POST("/users/register", controller.RegisterUser)
+
+	// Case 1: XSS in Username
+	reqBody := model.RegisterUserRequest{
+		Username: "<script>alert('xss')</script>",
+		Password: "password123",
+		Name:     "Normal Name",
+		Email:    "test@example.com",
+	}
+	body, _ := json.Marshal(reqBody)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/users/register", bytes.NewReader(body))
+
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code, "Expected validation error for XSS in Username")
+	mockUsecase.AssertNotCalled(t, "Create")
+
+	// Case 2: XSS in Name
+	reqBody = model.RegisterUserRequest{
+		Username: "validuser",
+		Password: "password123",
+		Name:     "<img src=x onerror=alert(1)>",
+		Email:    "test2@example.com",
+	}
+	body, _ = json.Marshal(reqBody)
+
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest("POST", "/users/register", bytes.NewReader(body))
+
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code, "Expected validation error for XSS in Name")
+	mockUsecase.AssertNotCalled(t, "Create")
 }
