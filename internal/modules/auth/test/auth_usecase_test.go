@@ -91,6 +91,7 @@ func createTestUser(password string) (*entity.User, string) {
 		Name:     "Test User",
 		Password: string(hashedPassword),
 		Email:    "test@example.com",
+		Status:   entity.UserStatusActive,
 	}, password
 }
 
@@ -574,12 +575,52 @@ func TestForgotPassword_Failure_RepositoryError(t *testing.T) {
 
 	err := authService.ForgotPassword(context.Background(), user.Email)
 
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "db save error")
+	// We expect NO error because we swallow DB errors to prevent enumeration
+	assert.NoError(t, err)
 	deps.userRepo.AssertExpectations(t)
 	deps.tokenRepo.AssertExpectations(t)
 	// Audit log should NOT be called if save fails
 	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
+}
+
+func TestLogin_Failure_UserSuspended(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, password := createTestUser("password123")
+	user.Status = entity.UserStatusSuspended
+
+	loginReq := model.LoginRequest{Username: user.Username, Password: password}
+
+	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(context.Background())
+		}).Return(usecase.ErrAccountSuspended)
+	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
+
+	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrAccountSuspended))
+	assert.Nil(t, loginResp)
+	assert.Empty(t, refreshToken)
+}
+
+func TestRefreshToken_Failure_UserSuspended(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+	user.Status = entity.UserStatusBanned
+
+	token, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, TestRefreshSecret, 24*time.Hour)
+	assert.NoError(t, err)
+
+	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: token}
+	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
+	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
+
+	_, _, err = authService.RefreshToken(context.Background(), token)
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, usecase.ErrAccountSuspended))
 }
 
 func TestForgotPassword_DistributeTaskError(t *testing.T) {

@@ -112,6 +112,10 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 			return ErrInvalidCredentials
 		}
 
+		if user.Status != entity.UserStatusActive {
+			return ErrAccountSuspended
+		}
+
 		return nil
 	})
 
@@ -195,6 +199,10 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 	if err != nil {
 		telemetry.UserLoginsTotal.WithLabelValues("failed").Inc()
 		return nil, "", err
+	}
+
+	if user.Status != entity.UserStatusActive {
+		return nil, "", ErrAccountSuspended
 	}
 
 	var userRole string
@@ -371,7 +379,9 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 	}
 
 	if err := s.tokenRepo.Save(ctx, resetToken); err != nil {
-		return err
+		// Security: Don't reveal if email exists (DB error)
+		s.log.WithContext(ctx).WithError(err).Error("Failed to save password reset token")
+		return nil
 	}
 
 	// Send Email Async
