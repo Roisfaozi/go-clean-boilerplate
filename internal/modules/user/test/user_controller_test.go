@@ -3,6 +3,7 @@ package test_test
 import (
 	"bytes"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
@@ -379,5 +381,192 @@ func TestUserHandler_UpdateStatus(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
 		mockUseCase.AssertExpectations(t)
+	})
+}
+
+func TestUserHandler_UpdateUser(t *testing.T) {
+	userID := "user-123"
+
+	t.Run("Success", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		reqBody := &model.UpdateUserRequest{
+			ID: userID,
+			Username: "newusername",
+			Name: "New Name",
+		}
+
+		resBody := &model.UserResponse{
+			ID: userID,
+			Username: "newusername",
+			Name: "New Name",
+		}
+
+		mockUseCase.On("Update", mock.Anything, reqBody).Return(resBody, nil).Once()
+
+		jsonBody := `{"username":"newusername","name":"New Name"}`
+		req, _ := http.NewRequest(http.MethodPut, "/users/me", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("user_id", userID)
+
+		handler.UpdateUser(c)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockUseCase.AssertExpectations(t)
+	})
+
+	t.Run("Conflict", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		mockUseCase.On("Update", mock.Anything, mock.Anything).Return(nil, exception.ErrConflict).Once()
+
+		jsonBody := `{"username":"exists","name":"New Name"}`
+		req, _ := http.NewRequest(http.MethodPut, "/users/me", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("user_id", userID)
+
+		handler.UpdateUser(c)
+
+		assert.Equal(t, http.StatusConflict, w.Code)
+	})
+
+	t.Run("Validation Error", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		jsonBody := `{"username":"ab"}` // Too short
+		req, _ := http.NewRequest(http.MethodPut, "/users/me", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("user_id", userID)
+
+		handler.UpdateUser(c)
+
+		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	})
+}
+
+func TestUserHandler_GetUsersDynamic(t *testing.T) {
+	mockUseCase := new(mocks.MockUserUseCase)
+	handler := newTestUserHandler(mockUseCase)
+	router := setupUserTestRouter()
+	router.POST("/users/search", handler.GetUsersDynamic)
+
+	t.Run("Success", func(t *testing.T) {
+		expectedUsers := []*model.UserResponse{{ID: "1", Name: "Test"}}
+		mockUseCase.On("GetAllUsersDynamic", mock.Anything, mock.MatchedBy(func (f *querybuilder.DynamicFilter) bool {
+            return f != nil
+        })).Return(expectedUsers, int64(1), nil).Once()
+
+		jsonBody := `{"filters":{"name":{"type":"contains","from":"Test"}}}`
+		req, _ := http.NewRequest(http.MethodPost, "/users/search", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockUseCase.AssertExpectations(t)
+	})
+
+	t.Run("Validation Error - Invalid Filter", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+		router := setupUserTestRouter()
+		router.POST("/users/search", handler.GetUsersDynamic)
+
+		jsonBody := `{"page_size": 200}` // Exceeds max 100
+		req, _ := http.NewRequest(http.MethodPost, "/users/search", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	})
+}
+
+func TestUserHandler_UpdateAvatar(t *testing.T) {
+	userID := "user-123"
+
+	t.Run("Success", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		expectedRes := &model.UserResponse{ID: userID, AvatarURL: "http://s3/avatar.png"}
+		mockUseCase.On("UpdateAvatar", mock.Anything, userID, mock.Anything, mock.Anything, mock.Anything).Return(expectedRes, nil).Once()
+
+		body := new(bytes.Buffer)
+		writer := multipart.NewWriter(body)
+		part, _ := writer.CreateFormFile("avatar", "avatar.png")
+		part.Write([]byte("image data"))
+		writer.Close()
+
+		req, _ := http.NewRequest(http.MethodPatch, "/users/me/avatar", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("user_id", userID)
+
+		handler.UpdateAvatar(c)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockUseCase.AssertExpectations(t)
+	})
+
+	t.Run("Bad Request - Missing File", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		req, _ := http.NewRequest(http.MethodPatch, "/users/me/avatar", nil) // No multipart body
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("user_id", userID)
+
+		handler.UpdateAvatar(c)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Internal Error", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		mockUseCase.On("UpdateAvatar", mock.Anything, userID, mock.Anything, mock.Anything, mock.Anything).Return(nil, exception.ErrInternalServer).Once()
+
+		body := new(bytes.Buffer)
+		writer := multipart.NewWriter(body)
+		part, _ := writer.CreateFormFile("avatar", "avatar.png")
+		part.Write([]byte("image data"))
+		writer.Close()
+
+		req, _ := http.NewRequest(http.MethodPatch, "/users/me/avatar", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("user_id", userID)
+
+		handler.UpdateAvatar(c)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 }
