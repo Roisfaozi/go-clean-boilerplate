@@ -54,16 +54,16 @@ type RefreshRequest struct {
 }
 
 type ForgotPasswordRequest struct {
-	Email string `json:"email" validate:"required,email"`
+	Email string `json:"email" validate:"required,email,max=100"`
 }
 
 type ResetPasswordRequest struct {
-	Token       string `json:"token" validate:"required"`
+	Token       string `json:"token" validate:"required,max=500"`
 	NewPassword string `json:"new_password" validate:"required,min=8,max=72"`
 }
 
 type VerifyEmailRequest struct {
-	Token string `json:"token" validate:"required"`
+	Token string `json:"token" validate:"required,max=500"`
 }
 
 func (r *LoginRequest) Validate() error {
