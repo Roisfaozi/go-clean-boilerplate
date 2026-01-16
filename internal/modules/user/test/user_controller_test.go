@@ -20,6 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func setupUserTestRouter() *gin.Engine {
@@ -512,8 +513,12 @@ func TestUserHandler_UpdateAvatar(t *testing.T) {
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
 		part, _ := writer.CreateFormFile("avatar", "avatar.png")
-		part.Write([]byte("image data"))
-		writer.Close()
+
+		_, err := part.Write([]byte("image data"))
+		require.NoError(t, err)
+
+		err = writer.Close()
+		require.NoError(t, err)
 
 		req, _ := http.NewRequest(http.MethodPatch, "/users/me/avatar", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -554,8 +559,12 @@ func TestUserHandler_UpdateAvatar(t *testing.T) {
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
 		part, _ := writer.CreateFormFile("avatar", "avatar.png")
-		part.Write([]byte("image data"))
-		writer.Close()
+		_, err := part.Write([]byte("image data"))
+
+		require.NoError(t, err)
+
+		err = writer.Close()
+		require.NoError(t, err)
 
 		req, _ := http.NewRequest(http.MethodPatch, "/users/me/avatar", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
