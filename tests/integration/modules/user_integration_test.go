@@ -187,10 +187,10 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 	loginReq := authModel.LoginRequest{Username: user.Username, Password: password}
 	loginResp, _, err := authUC.Login(context.Background(), loginReq)
 
-	require.NoError(t, err, "Login should succeed even for banned users")
-	assert.NotEmpty(t, loginResp.AccessToken)
+	require.Error(t, err, "Login should fail for banned users")
+	assert.Nil(t, loginResp)
 
-	t.Run("Middleware should block banned user", func(t *testing.T) {
+	t.Run("Verify user status is banned", func(t *testing.T) {
 		u, _ := userRepo.FindByID(context.Background(), user.ID)
 		assert.Equal(t, entity.UserStatusBanned, u.Status)
 	})
