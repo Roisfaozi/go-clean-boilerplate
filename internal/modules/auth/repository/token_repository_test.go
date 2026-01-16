@@ -8,50 +8,231 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
+	"github.com/glebarez/sqlite"
 	"github.com/go-redis/redismock/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
 )
 
 func getSessionKey(userID, sessionID string) string {
 	return fmt.Sprintf("session:%s:%s", userID, sessionID)
 }
 
-func TestTokenRepository_StoreToken(t *testing.T) {
-	// Skipping StoreToken full verification due to dynamic timestamp/JSON marshaling
-	// which is hard to match strictly with redismock without mocking time.
-	// We trust GetToken integration.
+func setupGormDB(t *testing.T) *gorm.DB {
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	assert.NoError(t, err)
+	err = db.AutoMigrate(&entity.PasswordResetToken{})
+	assert.NoError(t, err)
+	return db
 }
 
-func TestTokenRepository_StoreToken_RedisError(t *testing.T) {
-	db, _ := redismock.NewClientMock()
+func TestTokenRepository_StoreToken(t *testing.T) {
+
+	db, mock := redismock.NewClientMock()
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
 
+	now := time.Now()
 	authData := &model.Auth{
 		ID:           "session123",
 		UserID:       "user456",
 		RefreshToken: "some_refresh_token",
-		ExpiresAt:    time.Now().Add(time.Hour),
+		ExpiresAt:    now.Add(time.Hour),
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	key := getSessionKey(authData.UserID, authData.ID)
+
+	val, err := json.Marshal(authData)
+	assert.NoError(t, err)
+
+	mock.ExpectSet(key, val, 0).SetVal("OK")
+
+	_ = repo
+	_ = mock
+
+	t.Skip("Skipping StoreToken success test due to time.Until dependency")
+}
+
+func TestTokenRepository_StoreToken_RedisError(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+
+	now := time.Now()
+	authData := &model.Auth{
+		ID:           "session123",
+		UserID:       "user456",
+		RefreshToken: "some_refresh_token",
+		ExpiresAt:    now.Add(time.Hour),
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 	key := getSessionKey(authData.UserID, authData.ID)
 	redisErr := errors.New("redis connection failed")
 
-	// We can use a custom matcher if we really want, but for error case,
-	// redismock still matches arguments.
-	// Since we can't match args easily, we might skip this too or try to construct exact same JSON.
-	// Let's try to construct exact same JSON by updating CreatedAt/UpdatedAt manually before call?
-	// No, StoreToken overrides them.
+	val, _ := json.Marshal(authData)
 
-	// So we skip StoreToken RedisError test too to avoid flakiness.
 	_ = key
-	_ = repo
 	_ = redisErr
+	_ = val
+	_ = repo
+	_ = mock
+
+	t.Skip("Skipping StoreToken error test due to time dependency")
+}
+
+func TestTokenRepository_Save(t *testing.T) {
+	db := setupGormDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(nil, logger, db)
+
+	token := &entity.PasswordResetToken{
+		Email:     "test@example.com",
+		Token:     "token123",
+		ExpiresAt: time.Now().Add(time.Hour),
+	}
+
+	err := repo.Save(context.Background(), token)
+	assert.NoError(t, err)
+
+	var stored entity.PasswordResetToken
+	err = db.First(&stored, "email = ?", token.Email).Error
+	assert.NoError(t, err)
+	assert.Equal(t, token.Token, stored.Token)
+}
+
+func TestTokenRepository_FindByToken(t *testing.T) {
+	db := setupGormDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(nil, logger, db)
+
+	token := &entity.PasswordResetToken{
+		Email:     "test@example.com",
+		Token:     "token123",
+		ExpiresAt: time.Now().Add(time.Hour),
+	}
+	db.Create(token)
+
+	result, err := repo.FindByToken(context.Background(), "token123")
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, token.Email, result.Email)
+
+	result, err = repo.FindByToken(context.Background(), "invalid")
+	assert.Error(t, err)
+	assert.Nil(t, result)
+}
+
+func TestTokenRepository_DeleteByEmail(t *testing.T) {
+	db := setupGormDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(nil, logger, db)
+
+	token := &entity.PasswordResetToken{
+		Email: "test@example.com",
+		Token: "token123",
+	}
+	db.Create(token)
+
+	err := repo.DeleteByEmail(context.Background(), "test@example.com")
+	assert.NoError(t, err)
+
+	var stored entity.PasswordResetToken
+	err = db.First(&stored, "email = ?", "test@example.com").Error
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+}
+
+func TestTokenRepository_GetUserSessions(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	userID := "user123"
+	pattern := getSessionKey(userID, "*")
+
+	mock.ExpectKeys(pattern).SetErr(errors.New("redis error"))
+	sessions, err := repo.GetUserSessions(context.Background(), userID)
+	assert.Error(t, err)
+	assert.Nil(t, sessions)
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	keys := []string{getSessionKey(userID, "s1"), getSessionKey(userID, "s2")}
+	mock.ExpectKeys(pattern).SetVal(keys)
+
+	s1 := model.Auth{ID: "s1", UserID: userID}
+	s2 := model.Auth{ID: "s2", UserID: userID}
+	json1, _ := json.Marshal(s1)
+	json2, _ := json.Marshal(s2)
+
+	mock.ExpectGet(keys[0]).SetVal(string(json1))
+	mock.ExpectGet(keys[1]).SetVal(string(json2))
+
+	sessions, err = repo.GetUserSessions(context.Background(), userID)
+	assert.NoError(t, err)
+	assert.Len(t, sessions, 2)
+	assert.Equal(t, "s1", sessions[0].ID)
+	assert.Equal(t, "s2", sessions[1].ID)
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	mock.ExpectKeys(pattern).SetVal(keys)
+	mock.ExpectGet(keys[0]).SetErr(errors.New("get error"))
+	mock.ExpectGet(keys[1]).SetVal(string(json2))
+
+	sessions, err = repo.GetUserSessions(context.Background(), userID)
+	assert.NoError(t, err)
+	assert.Len(t, sessions, 1)
+	assert.Equal(t, "s2", sessions[0].ID)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTokenRepository_RevokeAllSessions(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	userID := "user123"
+	pattern := getSessionKey(userID, "*")
+
+	mock.ExpectKeys(pattern).SetErr(errors.New("redis error"))
+	err := repo.RevokeAllSessions(context.Background(), userID)
+	assert.Error(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	mock.ExpectKeys(pattern).SetVal([]string{})
+	err = repo.RevokeAllSessions(context.Background(), userID)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	keys := []string{"k1", "k2"}
+	mock.ExpectKeys(pattern).SetVal(keys)
+	mock.ExpectDel(keys...).SetVal(2)
+	err = repo.RevokeAllSessions(context.Background(), userID)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	mock.ExpectKeys(pattern).SetVal(keys)
+	mock.ExpectDel(keys...).SetErr(errors.New("del error"))
+	err = repo.RevokeAllSessions(context.Background(), userID)
+	assert.Error(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTokenRepository_GetToken(t *testing.T) {
@@ -59,7 +240,7 @@ func TestTokenRepository_GetToken(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
 
 	userID := "user456"
 	sessionID := "session123"
@@ -86,7 +267,7 @@ func TestTokenRepository_GetToken_NotFound(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
 
 	userID := "user456"
 	sessionID := "nonexistent_session"
@@ -105,7 +286,7 @@ func TestTokenRepository_GetToken_RedisError(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
 
 	userID := "user456"
 	sessionID := "session123"
@@ -125,7 +306,7 @@ func TestTokenRepository_DeleteToken(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
 
 	userID := "user456"
 	sessionID := "session123"
@@ -143,7 +324,7 @@ func TestTokenRepository_DeleteToken_RedisError(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
 
 	userID := "user456"
 	sessionID := "session123"

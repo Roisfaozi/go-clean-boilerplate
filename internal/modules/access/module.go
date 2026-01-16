@@ -13,7 +13,6 @@ type AccessModule struct {
 	AccessController *http.AccessController
 }
 
-// NewAccessModule creates a new AccessModule instance with the given dependencies.
 func NewAccessModule(db *gorm.DB, log *logrus.Logger, validate *validator.Validate) *AccessModule {
 	repo := repository.NewAccessRepository(db, log)
 	uc := usecase.NewAccessUseCase(repo, log)

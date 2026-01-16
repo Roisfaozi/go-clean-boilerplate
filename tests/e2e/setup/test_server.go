@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
+	integrationSetup "github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/casbin/casbin/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
-	integrationSetup "github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"gorm.io/gorm"
 )
 
@@ -27,8 +27,6 @@ type TestServer struct {
 func SetupTestServer(t *testing.T) *TestServer {
 	env := integrationSetup.SetupIntegrationEnvironment(t)
 
-	// Parse MySQL connection string to get host and port
-	// DSN format: user:pass@tcp(host:port)/dbname
 	dsn := env.MySQLAddr
 	parts := strings.Split(dsn, "@tcp(")
 	hostPortAndDB := strings.Split(parts[1], ")/")
@@ -74,6 +72,16 @@ func SetupTestServer(t *testing.T) *TestServer {
 				Channel: "/casbin",
 			},
 		},
+		Storage: config.StorageConfig{
+			Driver: "local",
+			Local: struct {
+				RootPath string `mapstructure:"root_path"`
+				BaseURL  string `mapstructure:"base_url"`
+			}{
+				RootPath: "./test_uploads",
+				BaseURL:  "http://localhost/uploads",
+			},
+		},
 	}
 
 	app, err := config.NewApplication(cfg)
@@ -86,7 +94,7 @@ func SetupTestServer(t *testing.T) *TestServer {
 		Server:   server,
 		DB:       env.DB,
 		Redis:    env.Redis,
-		Enforcer: env.Enforcer,
+		Enforcer: app.Enforcer,
 		BaseURL:  server.URL,
 		Client:   client,
 	}

@@ -1,6 +1,8 @@
 package router
 
 import (
+	"net/http"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
 	accessHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/delivery/http"
@@ -17,10 +19,13 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+	"gorm.io/gorm"
 )
 
 type RouterConfig struct {
@@ -29,7 +34,15 @@ type RouterConfig struct {
 	RateLimitEnabled bool
 	RateLimitRPS     float64
 	RateLimitBurst   int
-	RateLimitStore   string // "memory" or "redis"
+	RateLimitStore   string
+	MetricsEnabled   bool
+	MetricsAuth      bool
+	MetricsUser      string
+	MetricsPass      string
+	OTEL             struct {
+		Enabled     bool
+		ServiceName string
+	}
 }
 
 func SetupRouter(
@@ -44,27 +57,37 @@ func SetupRouter(
 	casbinMiddleware gin.HandlerFunc,
 	wsController *ws.WebSocketController,
 	sseManager *sse.Manager,
+	db *gorm.DB,
 	redisClient *redis.Client,
 	logger *logrus.Logger,
 ) *gin.Engine {
 	router := gin.New()
 
+	if cfg.OTEL.Enabled {
+		router.Use(otelgin.Middleware(cfg.OTEL.ServiceName))
+	}
+
 	router.Use(gin.Recovery())
+	router.Use(middleware.RequestIDMiddleware())
+
+	if cfg.MetricsEnabled {
+		router.Use(middleware.PrometheusMiddleware())
+	}
+	router.GET("/ws", wsController.HandleWebSocket)
+	router.GET("/events", sseManager.ServeHTTP())
+
 	router.Use(middleware.RequestLogger(logger))
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.SecurityMiddleware())
 	router.Use(middleware.CORSMiddleware(cfg.AllowedOrigins))
 
 	if len(cfg.TrustedProxies) > 0 {
-		// CRITICAL: If setting trusted proxies fails (e.g. invalid CIDR), we must fail fast.
-		// Continuing with invalid security config is dangerous.
 		if err := router.SetTrustedProxies(cfg.TrustedProxies); err != nil {
 			logger.Fatalf("Failed to set trusted proxies (invalid CIDR?): %v", err)
 		} else {
 			logger.Infof("Trusted proxies set to: %v", cfg.TrustedProxies)
 		}
 	} else {
-		// Secure default: trust no proxies if not configured.
 		if err := router.SetTrustedProxies(nil); err != nil {
 			logger.Fatalf("Failed to disable trusted proxies: %v", err)
 		}
@@ -72,11 +95,9 @@ func SetupRouter(
 
 	if cfg.RateLimitEnabled {
 		if cfg.RateLimitStore == "redis" {
-			// Use Redis-based rate limiter (Distributed)
 			router.Use(middleware.RateLimitMiddlewareRedis(redisClient, logger, cfg.RateLimitRPS))
 			logger.Info("Rate Limiter enabled: Redis store")
 		} else {
-			// Use In-Memory rate limiter (Local)
 			router.Use(middleware.RateLimitMiddlewareMemory(cfg.RateLimitRPS, cfg.RateLimitBurst))
 			logger.Info("Rate Limiter enabled: Memory store")
 		}
@@ -85,13 +106,46 @@ func SetupRouter(
 	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.GET("/api/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "OK",
+		status := "OK"
+		details := make(map[string]string)
+
+		if db != nil {
+			sqlDB, err := db.DB()
+			if err != nil {
+				status = "DEGRADED"
+				details["mysql"] = "CONNECTION_ERROR"
+			} else if err := sqlDB.Ping(); err != nil {
+				status = "DEGRADED"
+				details["mysql"] = "DOWN"
+			} else {
+				details["mysql"] = "UP"
+			}
+		}
+
+		if redisClient != nil {
+			if err := redisClient.Ping(c.Request.Context()).Err(); err != nil {
+				status = "DEGRADED"
+				details["redis"] = "DOWN"
+			} else {
+				details["redis"] = "UP"
+			}
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status":  status,
+			"details": details,
 		})
 	})
 
-	router.GET("/ws", wsController.HandleWebSocket)
-	router.GET("/events", sseManager.ServeHTTP())
+	if cfg.MetricsEnabled {
+		metricsGroup := router.Group("/metrics")
+		if cfg.MetricsAuth {
+			metricsGroup.Use(gin.BasicAuth(gin.Accounts{
+				cfg.MetricsUser: cfg.MetricsPass,
+			}))
+		}
+		metricsGroup.GET("", gin.WrapH(promhttp.Handler()))
+	}
 
 	apiV1 := router.Group("/api/v1")
 
@@ -103,18 +157,22 @@ func SetupRouter(
 
 	authenticated := apiV1.Group("")
 	authenticated.Use(authMiddleware.ValidateToken())
+	authenticated.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	{
 		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController)
+		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
+		permissionHttp.RegisterBatchCheckRoute(authenticated, permissionModule.PermissionController)
 	}
 
 	authorized := apiV1.Group("")
 	authorized.Use(authMiddleware.ValidateToken())
+	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	authorized.Use(casbinMiddleware)
 	{
-		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
 		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
+		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
 		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
 	}
 

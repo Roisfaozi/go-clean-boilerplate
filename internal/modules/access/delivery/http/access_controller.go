@@ -241,14 +241,18 @@ func (h *AccessController) GetEndpointsDynamic(c *gin.Context) {
 		return
 	}
 
-	endpoints, err := h.useCase.GetEndpointsDynamic(ctx, &filter)
+	endpoints, total, err := h.useCase.GetEndpointsDynamic(ctx, &filter)
 	if err != nil {
 		h.log.WithError(err).Error("failed to get endpoints dynamically")
 		response.InternalServerError(c, err, "failed to retrieve endpoints")
 		return
 	}
 
-	response.Success(c, endpoints)
+	response.SuccessResponseWithPaging(c, endpoints, &response.PageMetadata{
+		Page:  filter.Page,
+		Limit: filter.PageSize,
+		Total: total,
+	})
 }
 
 // GetAccessRightsDynamic retrieves access rights based on dynamic filters and sorting via POST request body
@@ -275,12 +279,16 @@ func (h *AccessController) GetAccessRightsDynamic(c *gin.Context) {
 		return
 	}
 
-	accessRights, err := h.useCase.GetAccessRightsDynamic(ctx, &filter)
+	accessRights, total, err := h.useCase.GetAccessRightsDynamic(ctx, &filter)
 	if err != nil {
 		h.log.WithError(err).Error("failed to get access rights dynamically")
 		response.InternalServerError(c, err, "failed to retrieve access rights")
 		return
 	}
 
-	response.Success(c, accessRights)
+	response.SuccessResponseWithPaging(c, accessRights, &response.PageMetadata{
+		Page:  filter.Page,
+		Limit: filter.PageSize,
+		Total: total,
+	})
 }

@@ -22,11 +22,6 @@ type JWTManager struct {
 	refreshTokenDuration time.Duration
 }
 
-// NewJWTManager creates a new instance of JWTManager.
-//
-// It takes in the secrets for generating access and refresh tokens,
-// as well as the duration for both tokens. It returns a pointer to
-// the newly created JWTManager.
 func NewJWTManager(accessSecret, refreshSecret string, accessDuration, refreshDuration time.Duration) *JWTManager {
 	return &JWTManager{
 		accessTokenSecret:    accessSecret,

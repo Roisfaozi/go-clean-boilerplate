@@ -74,9 +74,10 @@ func TestUserRepository_FindAllDynamic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := repo.FindAllDynamic(ctx, tt.filter)
+			result, total, err := repo.FindAllDynamic(ctx, tt.filter)
 			require.NoError(t, err)
 			assert.Len(t, result, tt.expectedCount)
+			assert.Equal(t, int64(tt.expectedCount), total)
 
 			if len(tt.expectedNames) > 0 {
 				var names []string

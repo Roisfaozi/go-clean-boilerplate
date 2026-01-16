@@ -10,10 +10,11 @@ import (
 
 type AuditRepository interface {
 	Create(ctx context.Context, log *entity.AuditLog) error
-	FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AuditLog, error)
+	FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AuditLog, int64, error)
+	DeleteLogsOlderThan(ctx context.Context, cutoffTime int64) error
 }
 
 type AuditUseCase interface {
 	LogActivity(ctx context.Context, req model.CreateAuditLogRequest) error
-	GetLogsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]model.AuditLogResponse, error)
+	GetLogsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]model.AuditLogResponse, int64, error)
 }

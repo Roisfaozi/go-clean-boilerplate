@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "go-clean-api"
+    static_configs:
+      - targets: ["api:8080"] # 'api' is the container name in docker-compose
+    # If running outside docker (via make run), use your host IP or 'host.docker.internal'
+    # - targets: ["host.docker.internal:8080"]

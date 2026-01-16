@@ -6,6 +6,7 @@ package mocks
 
 import (
 	"context"
+	"io"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
@@ -239,7 +240,7 @@ func (_c *MockUserUseCase_DeleteUser_Call) RunAndReturn(run func(ctx context.Con
 }
 
 // GetAllUsers provides a mock function for the type MockUserUseCase
-func (_mock *MockUserUseCase) GetAllUsers(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, error) {
+func (_mock *MockUserUseCase) GetAllUsers(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, int64, error) {
 	ret := _mock.Called(ctx, request)
 
 	if len(ret) == 0 {
@@ -247,8 +248,9 @@ func (_mock *MockUserUseCase) GetAllUsers(ctx context.Context, request *model.Ge
 	}
 
 	var r0 []*model.UserResponse
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) ([]*model.UserResponse, error)); ok {
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) ([]*model.UserResponse, int64, error)); ok {
 		return returnFunc(ctx, request)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) []*model.UserResponse); ok {
@@ -258,12 +260,17 @@ func (_mock *MockUserUseCase) GetAllUsers(ctx context.Context, request *model.Ge
 			r0 = ret.Get(0).([]*model.UserResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *model.GetUserListRequest) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *model.GetUserListRequest) int64); ok {
 		r1 = returnFunc(ctx, request)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, *model.GetUserListRequest) error); ok {
+		r2 = returnFunc(ctx, request)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockUserUseCase_GetAllUsers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAllUsers'
@@ -296,18 +303,18 @@ func (_c *MockUserUseCase_GetAllUsers_Call) Run(run func(ctx context.Context, re
 	return _c
 }
 
-func (_c *MockUserUseCase_GetAllUsers_Call) Return(userResponses []*model.UserResponse, err error) *MockUserUseCase_GetAllUsers_Call {
-	_c.Call.Return(userResponses, err)
+func (_c *MockUserUseCase_GetAllUsers_Call) Return(userResponses []*model.UserResponse, n int64, err error) *MockUserUseCase_GetAllUsers_Call {
+	_c.Call.Return(userResponses, n, err)
 	return _c
 }
 
-func (_c *MockUserUseCase_GetAllUsers_Call) RunAndReturn(run func(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, error)) *MockUserUseCase_GetAllUsers_Call {
+func (_c *MockUserUseCase_GetAllUsers_Call) RunAndReturn(run func(ctx context.Context, request *model.GetUserListRequest) ([]*model.UserResponse, int64, error)) *MockUserUseCase_GetAllUsers_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetAllUsersDynamic provides a mock function for the type MockUserUseCase
-func (_mock *MockUserUseCase) GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, error) {
+func (_mock *MockUserUseCase) GetAllUsersDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, int64, error) {
 	ret := _mock.Called(ctx, filter)
 
 	if len(ret) == 0 {
@@ -315,8 +322,9 @@ func (_mock *MockUserUseCase) GetAllUsersDynamic(ctx context.Context, filter *qu
 	}
 
 	var r0 []*model.UserResponse
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*model.UserResponse, error)); ok {
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*model.UserResponse, int64, error)); ok {
 		return returnFunc(ctx, filter)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) []*model.UserResponse); ok {
@@ -326,12 +334,17 @@ func (_mock *MockUserUseCase) GetAllUsersDynamic(ctx context.Context, filter *qu
 			r0 = ret.Get(0).([]*model.UserResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) int64); ok {
 		r1 = returnFunc(ctx, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+		r2 = returnFunc(ctx, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockUserUseCase_GetAllUsersDynamic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAllUsersDynamic'
@@ -364,12 +377,12 @@ func (_c *MockUserUseCase_GetAllUsersDynamic_Call) Run(run func(ctx context.Cont
 	return _c
 }
 
-func (_c *MockUserUseCase_GetAllUsersDynamic_Call) Return(userResponses []*model.UserResponse, err error) *MockUserUseCase_GetAllUsersDynamic_Call {
-	_c.Call.Return(userResponses, err)
+func (_c *MockUserUseCase_GetAllUsersDynamic_Call) Return(userResponses []*model.UserResponse, n int64, err error) *MockUserUseCase_GetAllUsersDynamic_Call {
+	_c.Call.Return(userResponses, n, err)
 	return _c
 }
 
-func (_c *MockUserUseCase_GetAllUsersDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, error)) *MockUserUseCase_GetAllUsersDynamic_Call {
+func (_c *MockUserUseCase_GetAllUsersDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.UserResponse, int64, error)) *MockUserUseCase_GetAllUsersDynamic_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -442,6 +455,63 @@ func (_c *MockUserUseCase_GetUserByID_Call) RunAndReturn(run func(ctx context.Co
 	return _c
 }
 
+// HardDeleteSoftDeletedUsers provides a mock function for the type MockUserUseCase
+func (_mock *MockUserUseCase) HardDeleteSoftDeletedUsers(ctx context.Context, retentionDays int) error {
+	ret := _mock.Called(ctx, retentionDays)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HardDeleteSoftDeletedUsers")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) error); ok {
+		r0 = returnFunc(ctx, retentionDays)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserUseCase_HardDeleteSoftDeletedUsers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HardDeleteSoftDeletedUsers'
+type MockUserUseCase_HardDeleteSoftDeletedUsers_Call struct {
+	*mock.Call
+}
+
+// HardDeleteSoftDeletedUsers is a helper method to define mock.On call
+//   - ctx context.Context
+//   - retentionDays int
+func (_e *MockUserUseCase_Expecter) HardDeleteSoftDeletedUsers(ctx interface{}, retentionDays interface{}) *MockUserUseCase_HardDeleteSoftDeletedUsers_Call {
+	return &MockUserUseCase_HardDeleteSoftDeletedUsers_Call{Call: _e.mock.On("HardDeleteSoftDeletedUsers", ctx, retentionDays)}
+}
+
+func (_c *MockUserUseCase_HardDeleteSoftDeletedUsers_Call) Run(run func(ctx context.Context, retentionDays int)) *MockUserUseCase_HardDeleteSoftDeletedUsers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int
+		if args[1] != nil {
+			arg1 = args[1].(int)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserUseCase_HardDeleteSoftDeletedUsers_Call) Return(err error) *MockUserUseCase_HardDeleteSoftDeletedUsers_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserUseCase_HardDeleteSoftDeletedUsers_Call) RunAndReturn(run func(ctx context.Context, retentionDays int) error) *MockUserUseCase_HardDeleteSoftDeletedUsers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Update provides a mock function for the type MockUserUseCase
 func (_mock *MockUserUseCase) Update(ctx context.Context, request *model.UpdateUserRequest) (*model.UserResponse, error) {
 	ret := _mock.Called(ctx, request)
@@ -506,6 +576,155 @@ func (_c *MockUserUseCase_Update_Call) Return(userResponse *model.UserResponse, 
 }
 
 func (_c *MockUserUseCase_Update_Call) RunAndReturn(run func(ctx context.Context, request *model.UpdateUserRequest) (*model.UserResponse, error)) *MockUserUseCase_Update_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateAvatar provides a mock function for the type MockUserUseCase
+func (_mock *MockUserUseCase) UpdateAvatar(ctx context.Context, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error) {
+	ret := _mock.Called(ctx, userID, file, filename, contentType)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateAvatar")
+	}
+
+	var r0 *model.UserResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, io.Reader, string, string) (*model.UserResponse, error)); ok {
+		return returnFunc(ctx, userID, file, filename, contentType)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, io.Reader, string, string) *model.UserResponse); ok {
+		r0 = returnFunc(ctx, userID, file, filename, contentType)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.UserResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, io.Reader, string, string) error); ok {
+		r1 = returnFunc(ctx, userID, file, filename, contentType)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUserUseCase_UpdateAvatar_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateAvatar'
+type MockUserUseCase_UpdateAvatar_Call struct {
+	*mock.Call
+}
+
+// UpdateAvatar is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - file io.Reader
+//   - filename string
+//   - contentType string
+func (_e *MockUserUseCase_Expecter) UpdateAvatar(ctx interface{}, userID interface{}, file interface{}, filename interface{}, contentType interface{}) *MockUserUseCase_UpdateAvatar_Call {
+	return &MockUserUseCase_UpdateAvatar_Call{Call: _e.mock.On("UpdateAvatar", ctx, userID, file, filename, contentType)}
+}
+
+func (_c *MockUserUseCase_UpdateAvatar_Call) Run(run func(ctx context.Context, userID string, file io.Reader, filename string, contentType string)) *MockUserUseCase_UpdateAvatar_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 io.Reader
+		if args[2] != nil {
+			arg2 = args[2].(io.Reader)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserUseCase_UpdateAvatar_Call) Return(userResponse *model.UserResponse, err error) *MockUserUseCase_UpdateAvatar_Call {
+	_c.Call.Return(userResponse, err)
+	return _c
+}
+
+func (_c *MockUserUseCase_UpdateAvatar_Call) RunAndReturn(run func(ctx context.Context, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error)) *MockUserUseCase_UpdateAvatar_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateStatus provides a mock function for the type MockUserUseCase
+func (_mock *MockUserUseCase) UpdateStatus(ctx context.Context, userID string, status string) error {
+	ret := _mock.Called(ctx, userID, status)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateStatus")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = returnFunc(ctx, userID, status)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserUseCase_UpdateStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateStatus'
+type MockUserUseCase_UpdateStatus_Call struct {
+	*mock.Call
+}
+
+// UpdateStatus is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - status string
+func (_e *MockUserUseCase_Expecter) UpdateStatus(ctx interface{}, userID interface{}, status interface{}) *MockUserUseCase_UpdateStatus_Call {
+	return &MockUserUseCase_UpdateStatus_Call{Call: _e.mock.On("UpdateStatus", ctx, userID, status)}
+}
+
+func (_c *MockUserUseCase_UpdateStatus_Call) Run(run func(ctx context.Context, userID string, status string)) *MockUserUseCase_UpdateStatus_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserUseCase_UpdateStatus_Call) Return(err error) *MockUserUseCase_UpdateStatus_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserUseCase_UpdateStatus_Call) RunAndReturn(run func(ctx context.Context, userID string, status string) error) *MockUserUseCase_UpdateStatus_Call {
 	_c.Call.Return(run)
 	return _c
 }

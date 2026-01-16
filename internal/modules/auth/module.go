@@ -5,11 +5,13 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
-	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
-	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
+	"github.com/casbin/casbin/v2"
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
@@ -18,37 +20,33 @@ import (
 
 type AuthModule struct {
 	AuthController *http.AuthController
+	AuthUseCase    usecase.AuthUseCase
+	TokenRepo      repository.TokenRepository
 }
 
 func NewAuthModule(
 	jwtManager *jwt.JWTManager,
 	db *gorm.DB,
-	redis *redis.Client,
+	redisClient *redis.Client,
 	log *logrus.Logger,
-	validator *validator.Validate,
+	validate *validator.Validate,
 	tm tx.WithTransactionManager,
 	wsManager ws.Manager,
-	enforcer permissionUseCase.IEnforcer,
+	sseManager *sse.Manager,
+	enforcer *casbin.Enforcer,
 	auditModule *audit.AuditModule,
+	taskDistributor worker.TaskDistributor,
 ) *AuthModule {
-	tokenRepository := repository.NewTokenRepositoryRedis(redis, log)
-	userRepo := userRepository.NewUserRepository(db, log)
+	tokenRepo := repository.NewTokenRepositoryRedis(redisClient, log, db)
+	userRepository := userRepo.NewUserRepository(db, log)
 
-	authUseCase := usecase.NewAuthUsecase(
-		jwtManager, 
-		tokenRepository, 
-		userRepo, 
-		tm, 
-		log, 
-		wsManager, 
-		enforcer, 
-		auditModule.AuditUseCase,
-	)
-
-	authController := http.NewAuthController(authUseCase, log, validator)
+	authUseCase := usecase.NewAuthUsecase(jwtManager, tokenRepo, userRepository, tm, log, wsManager, sseManager, enforcer, auditModule.AuditController.UseCase, taskDistributor)
+	authController := http.NewAuthController(authUseCase, log, validate)
 
 	return &AuthModule{
 		AuthController: authController,
+		AuthUseCase:    authUseCase,
+		TokenRepo:      tokenRepo,
 	}
 }
 

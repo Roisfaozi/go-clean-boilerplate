@@ -17,9 +17,6 @@ func SuccessResponse(c *gin.Context, statusCode int, data interface{}) {
 func ErrorResponse(c *gin.Context, statusCode int, err error, msg string) {
 	errorMsg := err.Error()
 
-	// Security Hardening:
-	// In Release mode (Production), never leak raw internal error details (like SQL errors)
-	// to the client for 500 Internal Server Errors.
 	if statusCode == http.StatusInternalServerError && gin.Mode() == gin.ReleaseMode {
 		errorMsg = "Internal Server Error"
 	}
@@ -30,8 +27,8 @@ func ErrorResponse(c *gin.Context, statusCode int, err error, msg string) {
 	})
 }
 
-func SuccessResponseWithPaging(c *gin.Context, statusCode int, data interface{}, paging *PageMetadata) {
-	c.JSON(statusCode, WebResponseSuccess[any]{
+func SuccessResponseWithPaging(c *gin.Context, data interface{}, paging *PageMetadata) {
+	c.JSON(http.StatusOK, WebResponseSuccess[any]{
 		Data:   data,
 		Paging: paging,
 	})

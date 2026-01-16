@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
+	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -13,62 +15,184 @@ import (
 
 type IPermissionUseCase interface {
 	AssignRoleToUser(ctx context.Context, userID, role string) error
+	RevokeRoleFromUser(ctx context.Context, userID, role string) error
 	GrantPermissionToRole(ctx context.Context, role, path, method string) error
 	RevokePermissionFromRole(ctx context.Context, role, path, method string) error
-	GetAllPermissions() ([][]string, error)
-	GetPermissionsForRole(role string) ([][]string, error)
-	UpdatePermission(oldPermission, newPermission []string) (bool, error)
+	GetAllPermissions(ctx context.Context) ([][]string, error)
+	GetPermissionsForRole(ctx context.Context, role string) ([][]string, error)
+	UpdatePermission(ctx context.Context, oldPermission, newPermission []string) (bool, error)
+
+	AddParentRole(ctx context.Context, childRole, parentRole string) error
+	RemoveParentRole(ctx context.Context, childRole, parentRole string) error
+	GetParentRoles(ctx context.Context, role string) ([]string, error)
+
+	BatchCheckPermission(ctx context.Context, userID string, items []model.PermissionCheckItem) (map[string]bool, error)
 }
 
 type PermissionUseCase struct {
 	enforcer IEnforcer
 	log      *logrus.Logger
-	RoleRepo repository.RoleRepository
+	RoleRepo roleRepository.RoleRepository
+	UserRepo userRepository.UserRepository
 }
 
-func NewPermissionUseCase(enforcer IEnforcer, log *logrus.Logger, roleRepo repository.RoleRepository) IPermissionUseCase {
+func NewPermissionUseCase(enforcer IEnforcer, log *logrus.Logger, roleRepo roleRepository.RoleRepository, userRepo userRepository.UserRepository) IPermissionUseCase {
 	return &PermissionUseCase{
 		enforcer: enforcer,
 		log:      log,
 		RoleRepo: roleRepo,
+		UserRepo: userRepo,
 	}
 }
 
-func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role string) error {
-	uc.log.Infof("Attempting to assign role '%s' to user '%s'", role, userID)
+func (uc *PermissionUseCase) BatchCheckPermission(ctx context.Context, userID string, items []model.PermissionCheckItem) (map[string]bool, error) {
+	results := make(map[string]bool)
 
-	if userID == "" || role == "" {
-		return fmt.Errorf("userID and role are required")
-	}
+	for _, item := range items {
 
-	_, err := uc.RoleRepo.FindByName(ctx, role)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			uc.log.Warnf("Assign role failed: role '%s' does not exist.", role)
-			return exception.ErrBadRequest
+		key := fmt.Sprintf("%s:%s", item.Resource, item.Action)
+
+		allowed, err := uc.enforcer.Enforce(userID, item.Resource, item.Action)
+		if err != nil {
+			uc.log.WithContext(ctx).Errorf("Enforce error for %s on %s: %v", userID, item.Resource, err)
+			results[key] = false
+			continue
 		}
-		uc.log.Errorf("Failed to query role repository: %v", err)
-		return exception.ErrInternalServer
+		results[key] = allowed
 	}
 
-	uc.log.Infof("Role validated. Removing existing roles and assigning role '%s' to user '%s'", role, userID)
+	return results, nil
+}
 
-	_, err = uc.enforcer.RemoveFilteredGroupingPolicy(0, userID)
-	if err != nil {
-		uc.log.Errorf("Failed to remove existing roles: %v", err)
-		return exception.ErrInternalServer
+func (uc *PermissionUseCase) AddParentRole(ctx context.Context, childRole, parentRole string) error {
+	uc.log.WithContext(ctx).Infof("Adding inheritance: role '%s' inherits from '%s'", childRole, parentRole)
+
+	if _, err := uc.RoleRepo.FindByName(ctx, childRole); err != nil {
+		return exception.ErrBadRequest
+	}
+	if _, err := uc.RoleRepo.FindByName(ctx, parentRole); err != nil {
+		return exception.ErrBadRequest
 	}
 
-	_, err = uc.enforcer.AddGroupingPolicy(userID, role)
+	if childRole == parentRole {
+		return errors.New("role cannot inherit from itself")
+	}
+
+	_, err := uc.enforcer.AddGroupingPolicy(childRole, parentRole)
 	if err != nil {
-		uc.log.Errorf("Failed to add grouping policy: %v", err)
+		uc.log.WithContext(ctx).Errorf("Failed to add parent role: %v", err)
 		return err
 	}
 	return nil
 }
 
+func (uc *PermissionUseCase) RemoveParentRole(ctx context.Context, childRole, parentRole string) error {
+	uc.log.WithContext(ctx).Infof("Removing inheritance: role '%s' inherits from '%s'", childRole, parentRole)
+
+	removed, err := uc.enforcer.RemoveFilteredGroupingPolicy(0, childRole, parentRole)
+	if err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to remove parent role: %v", err)
+		return err
+	}
+	if !removed {
+		return errors.New("inheritance relationship not found")
+	}
+	return nil
+}
+
+func (uc *PermissionUseCase) GetParentRoles(ctx context.Context, role string) ([]string, error) {
+
+	roles, err := uc.enforcer.GetRolesForUser(role)
+	if err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to get parent roles: %v", err)
+		return nil, err
+	}
+	return roles, nil
+}
+
+func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role string) error {
+	uc.log.WithContext(ctx).Infof("Attempting to assign role '%s' to user '%s'", role, userID)
+
+	if userID == "" || role == "" {
+		return fmt.Errorf("userID and role are required")
+	}
+
+	_, err := uc.UserRepo.FindByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			uc.log.WithContext(ctx).Warnf("Assign role failed: user '%s' does not exist.", userID)
+			return exception.ErrNotFound
+		}
+		uc.log.WithContext(ctx).Errorf("Failed to query user repository: %v", err)
+		return exception.ErrInternalServer
+	}
+
+	_, err = uc.RoleRepo.FindByName(ctx, role)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			uc.log.WithContext(ctx).Warnf("Assign role failed: role '%s' does not exist.", role)
+			return exception.ErrBadRequest
+		}
+		uc.log.WithContext(ctx).Errorf("Failed to query role repository: %v", err)
+		return exception.ErrInternalServer
+	}
+
+	uc.log.WithContext(ctx).Infof("User and Role validated. Removing existing roles and assigning role '%s' to user '%s'", role, userID)
+
+	_, err = uc.enforcer.RemoveFilteredGroupingPolicy(0, userID)
+	if err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to remove existing roles: %v", err)
+		return exception.ErrInternalServer
+	}
+
+	_, err = uc.enforcer.AddGroupingPolicy(userID, role)
+	if err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to add grouping policy: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (uc *PermissionUseCase) RevokeRoleFromUser(ctx context.Context, userID, role string) error {
+	uc.log.WithContext(ctx).Infof("Attempting to revoke role '%s' from user '%s'", role, userID)
+
+	if userID == "" || role == "" {
+		return fmt.Errorf("userID and role are required")
+	}
+
+	_, err := uc.UserRepo.FindByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			uc.log.WithContext(ctx).Warnf("Revoke role failed: user '%s' does not exist.", userID)
+			return exception.ErrNotFound
+		}
+		uc.log.WithContext(ctx).Errorf("Failed to query user repository: %v", err)
+		return exception.ErrInternalServer
+	}
+
+	_, err = uc.RoleRepo.FindByName(ctx, role)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			uc.log.WithContext(ctx).Warnf("Revoke role failed: role '%s' does not exist.", role)
+			return exception.ErrBadRequest
+		}
+		uc.log.WithContext(ctx).Errorf("Failed to query role repository: %v", err)
+		return exception.ErrInternalServer
+	}
+
+	removed, err := uc.enforcer.RemoveFilteredGroupingPolicy(0, userID, role)
+	if err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to remove role from user: %v", err)
+		return exception.ErrInternalServer
+	}
+	if !removed {
+		return errors.New("role was not assigned to user")
+	}
+	return nil
+}
+
 func (uc *PermissionUseCase) GrantPermissionToRole(ctx context.Context, role, path, method string) error {
-	uc.log.Infof("Attempting to grant permission to role '%s'", role)
+	uc.log.WithContext(ctx).Infof("Attempting to grant permission to role '%s'", role)
 
 	if role == "" || path == "" || method == "" {
 		return fmt.Errorf("role, path, and method are required")
@@ -77,24 +201,24 @@ func (uc *PermissionUseCase) GrantPermissionToRole(ctx context.Context, role, pa
 	_, err := uc.RoleRepo.FindByName(ctx, role)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			uc.log.Warnf("Grant permission failed: role '%s' does not exist.", role)
+			uc.log.WithContext(ctx).Warnf("Grant permission failed: role '%s' does not exist.", role)
 			return exception.ErrBadRequest
 		}
-		uc.log.Errorf("Failed to query role repository for GrantPermission: %v", err)
+		uc.log.WithContext(ctx).Errorf("Failed to query role repository for GrantPermission: %v", err)
 		return exception.ErrInternalServer
 	}
 
-	uc.log.Infof("Granting permission to role '%s' for %s %s", role, method, path)
+	uc.log.WithContext(ctx).Infof("Granting permission to role '%s' for %s %s", role, method, path)
 	_, err = uc.enforcer.AddPolicy(role, path, method)
 	if err != nil {
-		uc.log.Errorf("Failed to add policy: %v", err)
+		uc.log.WithContext(ctx).Errorf("Failed to add policy: %v", err)
 		return err
 	}
 	return nil
 }
 
 func (uc *PermissionUseCase) RevokePermissionFromRole(ctx context.Context, role, path, method string) error {
-	uc.log.Infof("Attempting to revoke permission from role '%s'", role)
+	uc.log.WithContext(ctx).Infof("Attempting to revoke permission from role '%s'", role)
 
 	if role == "" || path == "" || method == "" {
 		return fmt.Errorf("role, path, and method are required")
@@ -103,14 +227,14 @@ func (uc *PermissionUseCase) RevokePermissionFromRole(ctx context.Context, role,
 	_, err := uc.RoleRepo.FindByName(ctx, role)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			uc.log.Warnf("Revoke permission failed: role '%s' does not exist.", role)
+			uc.log.WithContext(ctx).Warnf("Revoke permission failed: role '%s' does not exist.", role)
 			return exception.ErrBadRequest
 		}
-		uc.log.Errorf("Failed to query role repository for RevokePermission: %v", err)
+		uc.log.WithContext(ctx).Errorf("Failed to query role repository for RevokePermission: %v", err)
 		return exception.ErrInternalServer
 	}
 
-	uc.log.Infof("Revoking permission from role '%s' for %s %s", role, method, path)
+	uc.log.WithContext(ctx).Infof("Revoking permission from role '%s' for %s %s", role, method, path)
 	removed, err := uc.enforcer.RemovePolicy(role, path, method)
 	if err != nil {
 		return err
@@ -121,39 +245,39 @@ func (uc *PermissionUseCase) RevokePermissionFromRole(ctx context.Context, role,
 	return nil
 }
 
-func (uc *PermissionUseCase) GetAllPermissions() ([][]string, error) {
-	uc.log.Info("Retrieving all permissions")
+func (uc *PermissionUseCase) GetAllPermissions(ctx context.Context) ([][]string, error) {
+	uc.log.WithContext(ctx).Info("Retrieving all permissions")
 	policies, err := uc.enforcer.GetPolicy()
 	if err != nil {
-		uc.log.Errorf("Failed to get all permissions: %v", err)
+		uc.log.WithContext(ctx).Errorf("Failed to get all permissions: %v", err)
 		return nil, err
 	}
 	return policies, nil
 }
 
-func (uc *PermissionUseCase) GetPermissionsForRole(role string) ([][]string, error) {
-	uc.log.Infof("Retrieving permissions for role '%s'", role)
+func (uc *PermissionUseCase) GetPermissionsForRole(ctx context.Context, role string) ([][]string, error) {
+	uc.log.WithContext(ctx).Infof("Retrieving permissions for role '%s'", role)
 	policies, err := uc.enforcer.GetFilteredPolicy(0, role)
 	if err != nil {
-		uc.log.Errorf("Failed get permission for role '%s'", role)
+		uc.log.WithContext(ctx).Errorf("Failed get permission for role '%s'", role)
 		return nil, err
 	}
 	return policies, nil
 }
 
-func (uc *PermissionUseCase) UpdatePermission(oldPermission, newPermission []string) (bool, error) {
+func (uc *PermissionUseCase) UpdatePermission(ctx context.Context, oldPermission, newPermission []string) (bool, error) {
 	if len(oldPermission) == 0 || len(newPermission) == 0 {
 		return false, errors.New("old and new permissions cannot be empty")
 	}
 
-	uc.log.Infof("Updating permission from %v to %v", oldPermission, newPermission)
+	uc.log.WithContext(ctx).Infof("Updating permission from %v to %v", oldPermission, newPermission)
 	updated, err := uc.enforcer.UpdatePolicy(oldPermission, newPermission)
 	if err != nil {
-		uc.log.Errorf("Failed update permission: %v", err)
+		uc.log.WithContext(ctx).Errorf("Failed update permission: %v", err)
 		return false, err
 	}
 	if !updated {
-		uc.log.Errorf("Policy to update not found: %v", oldPermission)
+		uc.log.WithContext(ctx).Errorf("Policy to update not found: %v", oldPermission)
 		return false, errors.New("policy to update not found")
 	}
 

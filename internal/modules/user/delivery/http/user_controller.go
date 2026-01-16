@@ -59,7 +59,6 @@ func (h *UserController) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	// Capture Audit Data
 	req.IPAddress = c.ClientIP()
 	req.UserAgent = c.Request.UserAgent()
 
@@ -160,6 +159,99 @@ func (h *UserController) UpdateUser(c *gin.Context) {
 	response.Success(c, user)
 }
 
+// UpdateAvatar handles user avatar upload
+// @Summary      Upload avatar
+// @Description  Uploads a new avatar image for the current user.
+// @Tags         users
+// @Security     BearerAuth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        avatar formData file true "Avatar image file"
+// @Success      200  {object}  response.SwaggerUserResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid file"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /users/me/avatar [patch]
+func (h *UserController) UpdateAvatar(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, exception.ErrUnauthorized, "unauthorized")
+		return
+	}
+
+	// 1. Get file from form
+	file, header, err := c.Request.FormFile("avatar")
+	if err != nil {
+		response.BadRequest(c, err, "failed to get avatar file from request")
+		return
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	// 2. Validate file size (max 2MB)
+	if header.Size > 2*1024*1024 {
+		response.BadRequest(c, errors.New("file too large"), "avatar size must be less than 2MB")
+		return
+	}
+
+	// 3. Call UseCase
+	user, err := h.UserUseCase.UpdateAvatar(ctx, userID.(string), file, header.Filename, header.Header.Get("Content-Type"))
+	if err != nil {
+		h.Log.WithError(err).Error("failed to update avatar")
+		response.HandleError(c, err, "failed to update avatar")
+		return
+	}
+
+	response.Success(c, user)
+}
+
+// UpdateUserStatus updates user status (active, suspended, banned)
+// @Summary      Update user status
+// @Description  Updates the status of a specific user. Accessible only by admins/superadmins.
+// @Tags         users
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id     path      string  true  "User ID"
+// @Param        request body model.UpdateUserStatusRequest true "New Status"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "User not found"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /users/{id}/status [patch]
+func (h *UserController) UpdateUserStatus(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID := c.Param("id")
+
+	var req model.UpdateUserStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.Log.WithError(err).Error("failed to bind request body")
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
+		return
+	}
+
+	err := h.UserUseCase.UpdateStatus(ctx, userID, req.Status)
+	if err != nil {
+		h.Log.WithError(err).Error("failed to update user status")
+		response.HandleError(c, err, "failed to update user status")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "User status updated successfully"})
+}
+
 // GetAllUsers retrieves all users with pagination and filtering
 // @Summary      Get all users
 // @Description  Retrieves a list of all users with optional pagination and filtering. Accessible only by admins/superadmins.
@@ -186,14 +278,25 @@ func (h *UserController) GetAllUsers(c *gin.Context) {
 		return
 	}
 
-	users, err := h.UserUseCase.GetAllUsers(ctx, &req)
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		h.Log.WithError(err).Error(msg)
+		response.ValidationError(c, exception.ErrValidationError, msg)
+		return
+	}
+
+	users, total, err := h.UserUseCase.GetAllUsers(ctx, &req)
 	if err != nil {
 		h.Log.WithError(err).Error("failed to get all users")
 		response.HandleError(c, err, "failed to get all users")
 		return
 	}
 
-	response.Success(c, users)
+	response.SuccessResponseWithPaging(c, users, &response.PageMetadata{
+		Page:  req.Page,
+		Limit: req.Limit,
+		Total: total,
+	})
 }
 
 // GetUserByID retrieves a single user by their ID
@@ -283,12 +386,23 @@ func (h *UserController) GetUsersDynamic(c *gin.Context) {
 		return
 	}
 
-	users, err := h.UserUseCase.GetAllUsersDynamic(ctx, &filter)
+	if err := h.validate.Struct(filter); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		h.Log.WithError(err).Error(msg)
+		response.ValidationError(c, exception.ErrValidationError, msg)
+		return
+	}
+
+	users, total, err := h.UserUseCase.GetAllUsersDynamic(ctx, &filter)
 	if err != nil {
 		h.Log.WithError(err).Error("failed to get users dynamically")
 		response.HandleError(c, err, "failed to retrieve users")
 		return
 	}
 
-	response.Success(c, users)
+	response.SuccessResponseWithPaging(c, users, &response.PageMetadata{
+		Page:  filter.Page,
+		Limit: filter.PageSize,
+		Total: total,
+	})
 }

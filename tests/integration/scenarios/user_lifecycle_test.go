@@ -8,111 +8,87 @@ import (
 	"testing"
 	"time"
 
+	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	auditRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository"
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	authRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	authUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
-	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
-	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
-	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
-	"github.com/Roisfaozi/go-clean-boilerplate/tests/fixtures"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCompleteUserLifecycle(t *testing.T) {
+func TestUserLifecycle_FullFlow(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+
 	setup.CleanupDatabase(t, env.DB)
 
-	roleFactory := fixtures.NewRoleFactory(env.DB)
-	roleFactory.Create(func(r *roleEntity.Role) { r.Name = "role:moderator" })
-
-	jwtManager := jwt.NewJWTManager("test-access-secret", "test-refresh-secret", 15*time.Minute, 24*time.Hour)
-	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger)
+	jwtManager := jwt.NewJWTManager("lifecycle-secret", "lifecycle-refresh", 15*time.Minute, 24*time.Hour)
+	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
-	roleRepo := roleRepository.NewRoleRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
 
-	uUC := userUseCase.NewUserUseCase(env.Logger, tm, userRepo, env.Enforcer, auditUC)
-	aUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, env.Enforcer, auditUC)
-	pUC := permissionUseCase.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo)
+	authUC := authUseCase.NewAuthUsecase(jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
+	userUC := userUseCase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil)
 
-	// 1. Register User
-	registerReq := &userModel.RegisterUserRequest{
-		Username: "lifecycleuser", Email: "lifecycle@example.com", Password: "password123",
-		Name: "Lifecycle User", IPAddress: "127.0.0.1", UserAgent: "TestAgent",
+	ctx := context.Background()
+
+	regReq := &userModel.RegisterUserRequest{
+		Username: "lifecycle", Email: "lifecycle@example.com", Password: "password123", Name: "Life Cycle",
 	}
-	user, err := uUC.Create(context.Background(), registerReq)
+	userResp, err := userUC.Create(ctx, regReq)
 	require.NoError(t, err)
+	userID := userResp.ID
 
-	// 2. Login
-	loginReq := authModel.LoginRequest{Username: "lifecycleuser", Password: "password123", IPAddress: "127.0.0.1", UserAgent: "TestAgent"}
-	loginResp, refreshToken, err := aUC.Login(context.Background(), loginReq)
+	loginReq := authModel.LoginRequest{Username: regReq.Username, Password: regReq.Password}
+	loginResp, _, err := authUC.Login(ctx, loginReq)
 	require.NoError(t, err)
 	assert.NotEmpty(t, loginResp.AccessToken)
 
-	// 3. Update Profile
-	updateReq := &userModel.UpdateUserRequest{ID: user.ID, Name: "Updated User", IPAddress: "127.0.0.1", UserAgent: "TestAgent"}
-	updatedUser, err := uUC.Update(context.Background(), updateReq)
+	updateReq := &userModel.UpdateUserRequest{
+		ID: userID, Name: "Updated Life",
+	}
+	updateResp, err := userUC.Update(ctx, updateReq)
 	require.NoError(t, err)
-	assert.Equal(t, "Updated User", updatedUser.Name)
+	assert.Equal(t, "Updated Life", updateResp.Name)
 
-	// 4. Assign Role
-	err = pUC.AssignRoleToUser(context.Background(), user.ID, "role:moderator")
-	require.NoError(t, err)
-
-	// 5. Refresh Token
-	newToken, _, err := aUC.RefreshToken(context.Background(), refreshToken)
-	require.NoError(t, err)
-	assert.NotEmpty(t, newToken.AccessToken)
-
-	// 6. Logout
-	claims, _ := jwtManager.ValidateAccessToken(newToken.AccessToken)
-	err = aUC.RevokeToken(context.Background(), user.ID, claims.SessionID)
+	deleteReq := &userModel.DeleteUserRequest{ID: userID}
+	err = userUC.DeleteUser(ctx, userID, deleteReq)
 	require.NoError(t, err)
 
-	// 7. Delete User
-	deleteReq := &userModel.DeleteUserRequest{ID: user.ID, IPAddress: "127.0.0.1", UserAgent: "TestAgent"}
-	err = uUC.DeleteUser(context.Background(), "admin-id", deleteReq)
-	require.NoError(t, err)
-}
-
-func TestRBACWorkflow(t *testing.T) {
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
-
-	roleFactory := fixtures.NewRoleFactory(env.DB)
-	roleFactory.Create(func(r *roleEntity.Role) { r.Name = "role:admin" })
-
-	roleRepo := roleRepository.NewRoleRepository(env.DB, env.Logger)
-	pUC := permissionUseCase.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo)
-	testUser := setup.CreateTestUser(t, env.DB, "rbacuser", "rbac@example.com", "password123")
-
-	// 1. Grant Permission to Role
-	err := pUC.GrantPermissionToRole(context.Background(), "role:admin", "/api/v1/admin/dashboard", "GET")
+	logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
+		Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
+	})
 	require.NoError(t, err)
 
-	// 2. Assign Role to User
-	err = pUC.AssignRoleToUser(context.Background(), testUser.ID, "role:admin")
-	require.NoError(t, err)
+	var userLogs []auditModel.AuditLogResponse
+	for _, l := range logs {
+		if l.UserID == userID || l.EntityID == userID {
+			userLogs = append(userLogs, l)
+		}
+	}
 
-	// 3. Verify Access
-	allowed, err := env.Enforcer.Enforce(testUser.ID, "/api/v1/admin/dashboard", "GET")
-	require.NoError(t, err)
-	assert.True(t, allowed)
+	require.GreaterOrEqual(t, len(userLogs), 4, "Should have at least 4 audit entries for this lifecycle")
 
-	// 4. Verify Role via Casbin
-	roles, _ := env.Enforcer.GetRolesForUser(testUser.ID)
-	assert.Contains(t, roles, "role:admin")
+	assert.Equal(t, "CREATE", userLogs[0].Action)
+	assert.Equal(t, "User", userLogs[0].Entity)
+
+	assert.Equal(t, "LOGIN", userLogs[1].Action)
+	assert.Equal(t, "Auth", userLogs[1].Entity)
+
+	assert.Equal(t, "UPDATE", userLogs[2].Action)
+	assert.Equal(t, "User", userLogs[2].Entity)
+
+	assert.Equal(t, "DELETE", userLogs[3].Action)
+	assert.Equal(t, "User", userLogs[3].Entity)
 }

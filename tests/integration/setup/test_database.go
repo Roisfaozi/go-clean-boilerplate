@@ -5,6 +5,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 	auditEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
+	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/google/uuid"
@@ -20,14 +21,15 @@ func RunMigrations(t *testing.T, db *gorm.DB) {
 		&entity.Endpoint{},
 		&entity.AccessRight{},
 		&auditEntity.AuditLog{},
+		&authEntity.PasswordResetToken{},
+		&authEntity.EmailVerificationToken{},
 	)
 	if t != nil {
 		require.NoError(t, err, "Failed to run migrations")
 	} else if err != nil {
 		panic("Failed to run migrations: " + err.Error())
 	}
-	
-	// Create casbin_rule table manually if not exists
+
 	db.Exec(`CREATE TABLE IF NOT EXISTS casbin_rule (
 		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 		ptype varchar(100) DEFAULT NULL,
@@ -54,7 +56,6 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 		db.FirstOrCreate(&role, roleEntity.Role{ID: role.ID})
 	}
 
-	// Seed basic policies for role:user
 	policies := [][]string{
 		{"role:user", "/api/v1/users/me", "GET"},
 		{"role:user", "/api/v1/users/me", "PUT"},
@@ -74,6 +75,8 @@ func CleanupDatabase(t *testing.T, db *gorm.DB) {
 		"casbin_rule",
 		"users",
 		"roles",
+		"password_reset_tokens",
+		"email_verification_tokens",
 	}
 
 	db.Exec("SET FOREIGN_KEY_CHECKS = 0")
@@ -99,4 +102,19 @@ func CreateTestUser(t *testing.T, db *gorm.DB, username, email, password string)
 	require.NoError(t, err, "Failed to create test user")
 
 	return user
+}
+
+func CreateTestRole(t *testing.T, db *gorm.DB, name string) *roleEntity.Role {
+	role := &roleEntity.Role{
+		ID:          uuid.New().String(),
+		Name:        name,
+		Description: "Test role " + name,
+	}
+
+	err := db.Create(role).Error
+	if t != nil {
+		require.NoError(t, err, "Failed to create test role")
+	}
+
+	return role
 }

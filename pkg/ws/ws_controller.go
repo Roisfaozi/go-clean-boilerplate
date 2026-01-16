@@ -15,13 +15,6 @@ type WebSocketController struct {
 	upgrader *websocket.Upgrader
 }
 
-// NewWebSocketController creates a new WebSocketController instance.
-//
-// log: The logger to log WebSocket events.
-// manager: The WebSocket manager to handle WebSocket events.
-// allowedOrigins: List of allowed origins for WebSocket connections.
-//
-// Returns a pointer to the newly created WebSocketController.
 func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins []string) *WebSocketController {
 	checkOrigin := func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
@@ -39,8 +32,6 @@ func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins 
 		CheckOrigin:     checkOrigin,
 	}
 
-	// If allowedOrigins is empty, we fall back to the safe default (Same Origin policy)
-	// by setting CheckOrigin to nil, which gorilla/websocket handles automatically.
 	if len(allowedOrigins) == 0 {
 		upgrader.CheckOrigin = nil
 	}

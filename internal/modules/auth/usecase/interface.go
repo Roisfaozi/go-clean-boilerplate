@@ -2,18 +2,22 @@ package usecase
 
 import (
 	"context"
-	"errors"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 )
 
 var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrInvalidToken       = errors.New("invalid or expired token")
-	ErrExpiredToken       = errors.New("token has expired")
-	ErrTokenRevoked       = errors.New("token has been revoked")
+	ErrInvalidCredentials        = exception.ErrUnauthorized
+	ErrInvalidToken              = exception.ErrUnauthorized
+	ErrExpiredToken              = exception.ErrUnauthorized
+	ErrTokenRevoked              = exception.ErrUnauthorized
+	ErrInvalidResetToken         = exception.ErrBadRequest
+	ErrInvalidVerificationToken  = exception.ErrBadRequest
+	ErrAlreadyVerified           = exception.ErrBadRequest
+	ErrAccountSuspended          = exception.ErrForbidden
 )
 
 type AuthUseCase interface {
@@ -29,4 +33,11 @@ type AuthUseCase interface {
 
 	GetUserSessions(ctx context.Context, userID string) ([]*model.Auth, error)
 	RevokeAllSessions(ctx context.Context, userID string) error
+
+	ForgotPassword(ctx context.Context, email string) error
+	ResetPassword(ctx context.Context, token, newPassword string) error
+
+	// Email Verification
+	RequestVerification(ctx context.Context, userID string) error
+	VerifyEmail(ctx context.Context, token string) error
 }

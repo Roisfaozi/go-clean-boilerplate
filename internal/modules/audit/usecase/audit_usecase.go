@@ -44,17 +44,17 @@ func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLo
 	}
 
 	if err := uc.repo.Create(ctx, logEntity); err != nil {
-		uc.log.WithError(err).Error("Failed to create audit log")
+		uc.log.WithContext(ctx).WithError(err).Error("Failed to create audit log")
 		return err
 	}
 	return nil
 }
 
-func (uc *auditUseCase) GetLogsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]model.AuditLogResponse, error) {
-	logs, err := uc.repo.FindAllDynamic(ctx, filter)
+func (uc *auditUseCase) GetLogsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]model.AuditLogResponse, int64, error) {
+	logs, total, err := uc.repo.FindAllDynamic(ctx, filter)
 	if err != nil {
-		uc.log.WithError(err).Error("Failed to fetch audit logs")
-		return nil, err
+		uc.log.WithContext(ctx).WithError(err).Error("Failed to fetch audit logs")
+		return nil, 0, err
 	}
 
 	var response []model.AuditLogResponse
@@ -76,5 +76,5 @@ func (uc *auditUseCase) GetLogsDynamic(ctx context.Context, filter *querybuilder
 			CreatedAt: log.CreatedAt,
 		})
 	}
-	return response, nil
+	return response, total, nil
 }

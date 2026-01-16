@@ -29,7 +29,7 @@ type AddEndpointToAccessRightRequest struct {
 }
 
 type AccessRightResponse struct {
-	ID          string               `json:"id"`
+	ID          string             `json:"id"`
 	Name        string             `json:"name"`
 	Description string             `json:"description,omitempty"`
 	Endpoints   []EndpointResponse `json:"endpoints,omitempty"`
@@ -38,7 +38,7 @@ type AccessRightResponse struct {
 }
 
 type EndpointResponse struct {
-	ID        string   `json:"id"`
+	ID        string `json:"id"`
 	Path      string `json:"path"`
 	Method    string `json:"method"`
 	CreatedAt int64  `json:"created_at"`
@@ -63,7 +63,6 @@ type ErrorResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
-// ConvertAccessRightToResponse converts an entity.AccessRight to AccessRightResponse
 func ConvertAccessRightToResponse(accessRight *entity.AccessRight) *AccessRightResponse {
 	if accessRight == nil {
 		return nil
@@ -89,7 +88,6 @@ func ConvertAccessRightToResponse(accessRight *entity.AccessRight) *AccessRightR
 	}
 }
 
-// ConvertAccessRightListToResponse converts a slice of entity.AccessRight pointers to AccessRightListResponse
 func ConvertAccessRightListToResponse(accessRights []*entity.AccessRight) *AccessRightListResponse {
 	response := &AccessRightListResponse{
 		Data: make([]AccessRightResponse, 0, len(accessRights)),

@@ -8,9 +8,9 @@ import (
 
 type LoginRequest struct {
 	Username  string `json:"username" validate:"required,min=3,max=50"`
-	Password  string `json:"password" validate:"required,min=8"`
-	IPAddress string `json:"-"` // Filled by controller
-	UserAgent string `json:"-"` // Filled by controller
+	Password  string `json:"password" validate:"required,min=8,max=72"`
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
 }
 
 type Auth struct {
@@ -50,7 +50,20 @@ type UserInfo struct {
 }
 
 type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token" validate:"required"`
+	RefreshToken string `json:"refresh_token" validate:"required,max=500"`
+}
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email,max=100"`
+}
+
+type ResetPasswordRequest struct {
+	Token       string `json:"token" validate:"required,max=500"`
+	NewPassword string `json:"new_password" validate:"required,min=8,max=72"`
+}
+
+type VerifyEmailRequest struct {
+	Token string `json:"token" validate:"required,max=500"`
 }
 
 func (r *LoginRequest) Validate() error {
@@ -62,3 +75,4 @@ func (r *RefreshRequest) Validate() error {
 	validate := validator.New()
 	return validate.Struct(r)
 }
+

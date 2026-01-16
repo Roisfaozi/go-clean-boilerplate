@@ -14,7 +14,6 @@ import (
 )
 
 func TestInternalServerError_DebugMode(t *testing.T) {
-	// Set mode to Debug to allow error leaking
 	gin.SetMode(gin.DebugMode)
 	defer gin.SetMode(gin.TestMode)
 
@@ -29,13 +28,12 @@ func TestInternalServerError_DebugMode(t *testing.T) {
 	var resp response.WebResponseError[any]
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 
-	// In Debug mode, we expect the raw error
 	assert.Equal(t, "database connection failed", resp.Error)
 	assert.Equal(t, "Something wrong", resp.Message)
 }
 
 func TestInternalServerError_ReleaseMode(t *testing.T) {
-	// Set mode to Release to enforce error masking
+
 	gin.SetMode(gin.ReleaseMode)
 	defer gin.SetMode(gin.TestMode)
 
@@ -50,7 +48,6 @@ func TestInternalServerError_ReleaseMode(t *testing.T) {
 	var resp response.WebResponseError[any]
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 
-	// In Release mode, we expect the masked error
 	assert.Equal(t, "Internal Server Error", resp.Error)
 	assert.Equal(t, "Something wrong", resp.Message)
 }
@@ -117,11 +114,11 @@ func TestSuccessResponseWithPaging(t *testing.T) {
 	data := []string{"item1", "item2"}
 	paging := &response.PageMetadata{
 		Page:      1,
-		Size:      10,
+		Limit:     10,
 		TotalItem: 2,
 		TotalPage: 1,
 	}
-	response.SuccessResponseWithPaging(c, http.StatusOK, data, paging)
+	response.SuccessResponseWithPaging(c, data, paging)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 

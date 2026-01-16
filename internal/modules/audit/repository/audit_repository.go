@@ -16,7 +16,6 @@ type auditRepository struct {
 	log *logrus.Logger
 }
 
-// NewAuditRepository creates a new instance of AuditRepository.
 func NewAuditRepository(db *gorm.DB, log *logrus.Logger) usecase.AuditRepository {
 	return &auditRepository{
 		db:  db,
@@ -24,7 +23,6 @@ func NewAuditRepository(db *gorm.DB, log *logrus.Logger) usecase.AuditRepository
 	}
 }
 
-// Create inserts a new audit log record.
 func (r *auditRepository) Create(ctx context.Context, log *entity.AuditLog) error {
 	if log.ID == "" {
 		id, err := uuid.NewV7()
@@ -36,23 +34,42 @@ func (r *auditRepository) Create(ctx context.Context, log *entity.AuditLog) erro
 	return r.db.WithContext(ctx).Create(log).Error
 }
 
-// FindAllDynamic retrieves audit logs based on dynamic filters.
-func (r *auditRepository) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AuditLog, error) {
+func (r *auditRepository) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AuditLog, int64, error) {
 	var logs []*entity.AuditLog
-	query := r.db.WithContext(ctx)
+	var total int64
+	query := r.db.WithContext(ctx).Model(&entity.AuditLog{})
 
 	query, err := querybuilder.GenerateDynamicQuery(query, &entity.AuditLog{}, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	// Get Total using a session branch
+	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 
 	query, err = querybuilder.GenerateDynamicSort(query, &entity.AuditLog{}, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	if filter.Page > 0 && filter.PageSize > 0 {
+		offset := (filter.Page - 1) * filter.PageSize
+		query = query.Limit(filter.PageSize).Offset(offset)
 	}
 
 	if err := query.Find(&logs).Error; err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return logs, nil
+	return logs, total, nil
+}
+
+func (r *auditRepository) DeleteLogsOlderThan(ctx context.Context, cutoffTime int64) error {
+	// Audit logs use created_at as unix milli
+	if err := r.db.WithContext(ctx).Where("created_at < ?", cutoffTime).Delete(&entity.AuditLog{}).Error; err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("Failed to prune old audit logs")
+		return err
+	}
+	return nil
 }

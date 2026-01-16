@@ -26,8 +26,8 @@ DB_URL_PROD = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_PROD)@tcp($(DB_HOST_PROD)
 DB_URL_STAG = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_PROD)@tcp($(DB_HOST_PROD):$(DB_PORT_PROD))/$(DB_NAME)"
 
 
-# Swagger CLI
-SWAG_CLI=swag
+# Swagger CLI (pin to module version to ensure consistent generated output)
+SWAG_CLI=go run github.com/swaggo/swag/cmd/swag@v1.8.12
 
 # Binary name
 BINARY_NAME=main.exe
@@ -169,6 +169,13 @@ deploy: ## Run Blue-Green deployment
 docs:
 	@echo "Generating Swagger/OpenAPI documentation..."
 	$(SWAG_CLI) init -g cmd/api/main.go --parseDependency --parseInternal --parseDepth 1
+	# sanitize generated file: remove LeftDelim/RightDelim if present (compatibility across swag versions)
+	@{ \
+		if [ -f ./docs/docs.go ]; then \
+			sed -i '/LeftDelim/d' ./docs/docs.go || true; \
+			sed -i '/RightDelim/d' ./docs/docs.go || true; \
+		fi; \
+	}
 
 # Tidy go.mod and go.sum files
 .PHONY: tidy
@@ -180,12 +187,12 @@ tidy:
 .PHONY: lint
 lint:
 	@echo "Running linter..."
-	@powershell -Command "if (-not (Get-Command golangci-lint -ErrorAction SilentlyContinue)) { echo 'golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/'; exit 1; } else { golangci-lint run }"
+	golangci-lint run
 
 .PHONY: lint-fix
 lint-fix:
 	@echo "Running linter with auto-fix..."
-	@powershell -Command "if (-not (Get-Command golangci-lint -ErrorAction SilentlyContinue)) { echo 'golangci-lint is not installed. Please install it: https://golangci-lint.run/usage/install/'; exit 1; } else { golangci-lint run --fix }"
+	golangci-lint run --fix
 
 .PHONY: vulcek
 vulcek:

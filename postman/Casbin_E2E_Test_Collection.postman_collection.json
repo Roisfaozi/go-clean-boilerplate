@@ -1,0 +1,1508 @@
+{
+  "info": {
+    "_postman_id": "e2e-test-collection-2026",
+    "name": "Casbin E2E Test Collection",
+    "description": "Complete E2E test scenarios mirroring Go e2e tests with comprehensive test scripts",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01. Auth E2E",
+      "item": [
+        {
+          "name": "[Success] Register Login Logout Flow",
+          "item": [
+            {
+              "name": "1. Register User",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.data && jsonData.data.id) {",
+                      "    pm.environment.set('e2eUserId', jsonData.data.id);",
+                      "    pm.environment.set('e2eUsername', jsonData.data.username);",
+                      "}",
+                      "",
+                      "// ===== POSITIVE CASES =====",
+                      "pm.test('Response has correct Content-Type', function () {",
+                      "    pm.response.to.have.header('Content-Type');",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Response time is under 2000ms', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});",
+                      "",
+                      "pm.test('Response has data object with required fields', function () {",
+                      "    pm.expect(jsonData).to.have.property('data');",
+                      "    pm.expect(jsonData.data).to.have.property('id');",
+                      "    pm.expect(jsonData.data).to.have.property('username');",
+                      "    pm.expect(jsonData.data).to.have.property('email');",
+                      "});",
+                      "",
+                      "// ===== SECURITY CASES =====",
+                      "pm.test('Password is NOT present in response', function () {",
+                      "    pm.expect(jsonData.data).to.not.have.property('password');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const timestamp = Date.now();",
+                      "pm.environment.set('e2eUsername', 'e2e_user_' + timestamp);",
+                      "pm.environment.set('e2eEmail', 'e2e_' + timestamp + '@test.com');"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"{{e2eUsername}}\",\n    \"email\": \"{{e2eEmail}}\",\n    \"password\": \"StrongPass123!\",\n    \"fullname\": \"E2E Test User\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users/register",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users", "register"]
+                }
+              }
+            },
+            {
+              "name": "2. Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.data && jsonData.data.access_token) {",
+                      "    pm.environment.set('userToken', jsonData.data.access_token);",
+                      "}",
+                      "",
+                      "// ===== POSITIVE CASES =====",
+                      "pm.test('Response has access_token', function () {",
+                      "    pm.expect(jsonData.data).to.have.property('access_token');",
+                      "    pm.expect(jsonData.data.access_token).to.be.a('string');",
+                      "    pm.expect(jsonData.data.access_token.length).to.be.above(0);",
+                      "});",
+                      "",
+                      "pm.test('Response has token_type Bearer', function () {",
+                      "    pm.expect(jsonData.data).to.have.property('token_type');",
+                      "    pm.expect(jsonData.data.token_type).to.equal('Bearer');",
+                      "});",
+                      "",
+                      "// ===== SECURITY CASES =====",
+                      "pm.test('Token is JWT format', function () {",
+                      "    const token = jsonData.data.access_token;",
+                      "    const parts = token.split('.');",
+                      "    pm.expect(parts.length).to.equal(3);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"{{e2eUsername}}\",\n    \"password\": \"StrongPass123!\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "auth", "login"]
+                }
+              }
+            },
+            {
+              "name": "3. Get Profile",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// ===== POSITIVE CASES =====",
+                      "pm.test('Response has user data', function () {",
+                      "    pm.expect(jsonData).to.have.property('data');",
+                      "    pm.expect(jsonData.data).to.have.property('id');",
+                      "    pm.expect(jsonData.data).to.have.property('username');",
+                      "});",
+                      "",
+                      "pm.test('User ID matches registered user', function () {",
+                      "    pm.expect(jsonData.data.id).to.equal(pm.environment.get('e2eUserId'));",
+                      "});",
+                      "",
+                      "// ===== SECURITY CASES =====",
+                      "pm.test('Password is NOT exposed', function () {",
+                      "    pm.expect(jsonData.data).to.not.have.property('password');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{userToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users/me",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users", "me"]
+                }
+              }
+            },
+            {
+              "name": "4. Logout",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "// Clear token after logout",
+                      "pm.environment.unset('userToken');"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{userToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/auth/logout",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "auth", "logout"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Negative] Invalid Credentials",
+          "item": [
+            {
+              "name": "Login with Wrong Password",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 401', function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// ===== NEGATIVE CASES =====",
+                      "pm.test('Response contains error message', function () {",
+                      "    pm.expect(jsonData).to.have.property('message');",
+                      "});",
+                      "",
+                      "pm.test('No token is returned', function () {",
+                      "    pm.expect(jsonData.data).to.not.have.property('access_token');",
+                      "});",
+                      "",
+                      "// ===== SECURITY CASES =====",
+                      "pm.test('Error does not expose internal details', function () {",
+                      "    const responseString = JSON.stringify(jsonData).toLowerCase();",
+                      "    pm.expect(responseString).to.not.include('stack');",
+                      "    pm.expect(responseString).to.not.include('sql');",
+                      "    pm.expect(responseString).to.not.include('database');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"nonexistent_user\",\n    \"password\": \"wrongpassword\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "auth", "login"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Success] Forgot Password Flow",
+          "item": [
+            {
+              "name": "1. Register User for Recovery",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const timestamp = Date.now();",
+                      "pm.environment.set('recoveryUsername', 'recovery_' + timestamp);",
+                      "pm.environment.set('recoveryEmail', 'recovery_' + timestamp + '@test.com');"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"{{recoveryUsername}}\",\n    \"email\": \"{{recoveryEmail}}\",\n    \"password\": \"OldPass123!\",\n    \"fullname\": \"Recovery User\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users/register",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users", "register"]
+                }
+              }
+            },
+            {
+              "name": "2. Forgot Password Request",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "// ===== SECURITY CASES =====",
+                      "pm.test('Response does not expose token', function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.data).to.not.have.property('token');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"email\": \"{{recoveryEmail}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/auth/forgot-password",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "auth", "forgot-password"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Security] Token Rotation",
+          "item": [
+            {
+              "name": "1. Login for Token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.data && jsonData.data.access_token) {",
+                      "    pm.environment.set('rotationToken', jsonData.data.access_token);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"{{e2eUsername}}\",\n    \"password\": \"StrongPass123!\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "auth", "login"]
+                }
+              }
+            },
+            {
+              "name": "2. Refresh Token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// ===== SECURITY CASES =====",
+                      "pm.test('New token is different from old token', function () {",
+                      "    if (jsonData.data && jsonData.data.access_token) {",
+                      "        const oldToken = pm.environment.get('rotationToken');",
+                      "        pm.expect(jsonData.data.access_token).to.not.equal(oldToken);",
+                      "    }",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/auth/refresh",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "auth", "refresh"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02. User E2E",
+      "item": [
+        {
+          "name": "[Success] Get All Users",
+          "item": [
+            {
+              "name": "1. Admin Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.data && jsonData.data.access_token) {",
+                      "    pm.environment.set('adminToken', jsonData.data.access_token);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"{{adminUsername}}\",\n    \"password\": \"{{adminPassword}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "auth", "login"]
+                }
+              }
+            },
+            {
+              "name": "2. Get All Users",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// ===== POSITIVE CASES =====",
+                      "pm.test('Response has data array', function () {",
+                      "    pm.expect(jsonData).to.have.property('data');",
+                      "    pm.expect(jsonData.data).to.be.an('array');",
+                      "});",
+                      "",
+                      "pm.test('Response time is under 2000ms', function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                      "});",
+                      "",
+                      "// ===== EDGE CASES =====",
+                      "pm.test('Each user has required fields', function () {",
+                      "    if (jsonData.data.length > 0) {",
+                      "        jsonData.data.forEach(function(user) {",
+                      "            pm.expect(user).to.have.property('id');",
+                      "            pm.expect(user).to.have.property('username');",
+                      "        });",
+                      "    }",
+                      "});",
+                      "",
+                      "// ===== SECURITY CASES =====",
+                      "pm.test('No passwords exposed in list', function () {",
+                      "    const responseString = JSON.stringify(jsonData);",
+                      "    pm.expect(responseString).to.not.include('password');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Negative] Unauthorized Access",
+          "item": [
+            {
+              "name": "Get Users Without Token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 401', function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "// ===== SECURITY CASES =====",
+                      "pm.test('No user data exposed without auth', function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.data).to.not.be.an('array');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Success] Get User By ID",
+          "item": [
+            {
+              "name": "Get User By ID",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// ===== POSITIVE CASES =====",
+                      "pm.test('Response has user data', function () {",
+                      "    pm.expect(jsonData.data).to.have.property('id');",
+                      "    pm.expect(jsonData.data).to.have.property('username');",
+                      "    pm.expect(jsonData.data).to.have.property('email');",
+                      "});",
+                      "",
+                      "pm.test('ID matches requested ID', function () {",
+                      "    pm.expect(jsonData.data.id).to.equal(pm.environment.get('e2eUserId'));",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users/{{e2eUserId}}",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users", "{{e2eUserId}}"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Negative] User Not Found",
+          "item": [
+            {
+              "name": "Get Non-existent User",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 404', function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// ===== NEGATIVE CASES =====",
+                      "pm.test('Response has error message', function () {",
+                      "    pm.expect(jsonData).to.have.property('message');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users/nonexistent-id-12345",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users", "nonexistent-id-12345"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Success] Delete User",
+          "item": [
+            {
+              "name": "1. Create User to Delete",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.data && jsonData.data.id) {",
+                      "    pm.environment.set('deleteUserId', jsonData.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const timestamp = Date.now();",
+                      "pm.environment.set('deleteUsername', 'delete_' + timestamp);",
+                      "pm.environment.set('deleteEmail', 'delete_' + timestamp + '@test.com');"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"{{deleteUsername}}\",\n    \"email\": \"{{deleteEmail}}\",\n    \"password\": \"Pass123!\",\n    \"fullname\": \"Delete Me\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users/register",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users", "register"]
+                }
+              }
+            },
+            {
+              "name": "2. Delete User",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users/{{deleteUserId}}",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users", "{{deleteUserId}}"]
+                }
+              }
+            },
+            {
+              "name": "3. Verify Deleted",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 404 - User deleted', function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users/{{deleteUserId}}",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users", "{{deleteUserId}}"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Security] Ban User Flow",
+          "item": [
+            {
+              "name": "1. Create Target User",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.data && jsonData.data.id) {",
+                      "    pm.environment.set('banUserId', jsonData.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const timestamp = Date.now();",
+                      "pm.environment.set('banUsername', 'ban_' + timestamp);",
+                      "pm.environment.set('banEmail', 'ban_' + timestamp + '@test.com');"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"{{banUsername}}\",\n    \"email\": \"{{banEmail}}\",\n    \"password\": \"Pass123!\",\n    \"fullname\": \"Ban Target\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users/register",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users", "register"]
+                }
+              }
+            },
+            {
+              "name": "2. Target User Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.data && jsonData.data.access_token) {",
+                      "    pm.environment.set('banUserToken', jsonData.data.access_token);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"{{banUsername}}\",\n    \"password\": \"Pass123!\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "auth", "login"]
+                }
+              }
+            },
+            {
+              "name": "3. Admin Bans User",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"status\": \"banned\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users/{{banUserId}}/status",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users", "{{banUserId}}", "status"]
+                }
+              }
+            },
+            {
+              "name": "4. Banned User Access Denied",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 403 - Banned', function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});",
+                      "",
+                      "// ===== SECURITY CASES =====",
+                      "pm.test('Banned user cannot access protected resources', function () {",
+                      "    pm.response.to.have.status(403);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{banUserToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users/me",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users", "me"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Edge] Invalid Status Value",
+          "item": [
+            {
+              "name": "Update with Invalid Status",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 422', function () {",
+                      "    pm.response.to.have.status(422);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// ===== EDGE CASES =====",
+                      "pm.test('Response contains validation error', function () {",
+                      "    pm.expect(jsonData).to.have.property('message');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"status\": \"invalid_status\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/users/{{e2eUserId}}/status",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "users", "{{e2eUserId}}", "status"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03. Role E2E",
+      "item": [
+        {
+          "name": "[Success] Create Role",
+          "item": [
+            {
+              "name": "Create Role",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.data && jsonData.data.id) {",
+                      "    pm.environment.set('e2eRoleId', jsonData.data.id);",
+                      "    pm.environment.set('e2eRoleName', jsonData.data.name);",
+                      "}",
+                      "",
+                      "// ===== POSITIVE CASES =====",
+                      "pm.test('Response has role data', function () {",
+                      "    pm.expect(jsonData.data).to.have.property('id');",
+                      "    pm.expect(jsonData.data).to.have.property('name');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const timestamp = Date.now();",
+                      "pm.environment.set('newRoleName', 'E2ERole_' + timestamp);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"{{newRoleName}}\",\n    \"description\": \"E2E Test Role\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/roles",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "roles"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Negative] Duplicate Role Name",
+          "item": [
+            {
+              "name": "Create Duplicate Role",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 409', function () {",
+                      "    pm.response.to.have.status(409);",
+                      "});",
+                      "",
+                      "// ===== NEGATIVE CASES =====",
+                      "pm.test('Response indicates conflict', function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.have.property('message');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"{{e2eRoleName}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/roles",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "roles"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Edge] Empty Name Validation",
+          "item": [
+            {
+              "name": "Create Role Empty Name",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 422', function () {",
+                      "    pm.response.to.have.status(422);",
+                      "});",
+                      "",
+                      "// ===== EDGE CASES =====",
+                      "pm.test('Validation error for empty name', function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.have.property('message');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/roles",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "roles"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Success] Get All Roles",
+          "item": [
+            {
+              "name": "Get All Roles",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// ===== POSITIVE CASES =====",
+                      "pm.test('Response has roles array', function () {",
+                      "    pm.expect(jsonData).to.have.property('data');",
+                      "    pm.expect(jsonData.data).to.be.an('array');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/roles",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "roles"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Success] Dynamic Search",
+          "item": [
+            {
+              "name": "Search Roles",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// ===== POSITIVE CASES =====",
+                      "pm.test('Search returns results', function () {",
+                      "    pm.expect(jsonData).to.have.property('data');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"filter\": {\n        \"name\": {\"type\": \"contains\", \"from\": \"E2E\"}\n    }\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/roles/search",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "roles", "search"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Success] Delete Role",
+          "item": [
+            {
+              "name": "Delete Role",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/roles/{{e2eRoleId}}",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "roles", "{{e2eRoleId}}"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04. Access E2E",
+      "item": [
+        {
+          "name": "[Success] Access Rights CRUD",
+          "item": [
+            {
+              "name": "1. Create Access Right",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.data && jsonData.data.id) {",
+                      "    pm.environment.set('accessRightId', jsonData.data.id);",
+                      "}",
+                      "",
+                      "// ===== POSITIVE CASES =====",
+                      "pm.test('Response has access right data', function () {",
+                      "    pm.expect(jsonData.data).to.have.property('id');",
+                      "    pm.expect(jsonData.data).to.have.property('name');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const timestamp = Date.now();",
+                      "pm.environment.set('accessRightName', 'manage_e2e_' + timestamp);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"{{accessRightName}}\",\n    \"description\": \"E2E Test Access Right\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/access-rights",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "access-rights"]
+                }
+              }
+            },
+            {
+              "name": "2. Get All Access Rights",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "// ===== POSITIVE CASES =====",
+                      "pm.test('Response has data', function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.have.property('data');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/access-rights",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "access-rights"]
+                }
+              }
+            },
+            {
+              "name": "3. Delete Access Right",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/access-rights/{{accessRightId}}",
+                  "host": ["{{baseURL}}"],
+                  "path": [
+                    "{{apiVersion}}",
+                    "access-rights",
+                    "{{accessRightId}}"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "[Success] Endpoints CRUD",
+          "item": [
+            {
+              "name": "1. Create Endpoint",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.data && jsonData.data.id) {",
+                      "    pm.environment.set('endpointId', jsonData.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"path\": \"/api/v1/e2e-reports\",\n    \"method\": \"GET\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/endpoints",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "endpoints"]
+                }
+              }
+            },
+            {
+              "name": "2. Delete Endpoint",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/endpoints/{{endpointId}}",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "endpoints", "{{endpointId}}"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05. Permission E2E",
+      "item": [
+        {
+          "name": "[Security] Batch Permission Check",
+          "item": [
+            {
+              "name": "Batch Check Permissions",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// ===== SECURITY CASES =====",
+                      "pm.test('Response has permission results', function () {",
+                      "    pm.expect(jsonData.data).to.have.property('results');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{userToken}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"items\": [\n        {\"resource\": \"/news\", \"action\": \"READ\"},\n        {\"resource\": \"/news\", \"action\": \"WRITE\"},\n        {\"resource\": \"/admin\", \"action\": \"GET\"}\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/permissions/check-batch",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "permissions", "check-batch"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06. SSE E2E",
+      "item": [
+        {
+          "name": "[Security] Unauthorized SSE Access",
+          "item": [
+            {
+              "name": "SSE Without Token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 401', function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "// ===== SECURITY CASES =====",
+                      "pm.test('Unauthorized access blocked', function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "text/event-stream" }],
+                "url": {
+                  "raw": "{{baseURL}}/{{apiVersion}}/events",
+                  "host": ["{{baseURL}}"],
+                  "path": ["{{apiVersion}}", "events"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
