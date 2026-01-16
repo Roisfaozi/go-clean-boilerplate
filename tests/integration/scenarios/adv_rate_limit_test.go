@@ -26,7 +26,9 @@ func TestScenario_AdvancedRateLimit_Tiers(t *testing.T) {
 	// 1. Setup Environment (Redis is key here)
 	redisContainer, redisPort, err := setup.SetupRedisContainer(context.Background())
 	require.NoError(t, err)
-	defer redisContainer.Terminate(context.Background())
+	defer func() {
+		_ = redisContainer.Terminate(context.Background())
+	}()
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("localhost:%s", redisPort),
