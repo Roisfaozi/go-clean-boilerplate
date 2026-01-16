@@ -154,8 +154,8 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("websocket.redis_prefix", "ws_broadcast:")
 	v.SetDefault("metrics.enabled", true)
 	v.SetDefault("metrics.auth_enabled", false)
-	v.SetDefault("metrics.username", "admin")
-	v.SetDefault("metrics.password", "metrics123")
+	// v.SetDefault("metrics.username", "admin")      // Removed hardcoded default
+	// v.SetDefault("metrics.password", "metrics123") // Removed hardcoded default
 	v.SetDefault("storage.driver", "local")
 	v.SetDefault("storage.local.root_path", "./uploads")
 	v.SetDefault("storage.local.base_url", "http://localhost:8080/uploads")
@@ -233,6 +233,12 @@ func NewConfig() (*AppConfig, error) {
 	validate := validator.New()
 	if err := validate.Struct(&cfg); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
+	if cfg.Metrics.AuthEnabled {
+		if cfg.Metrics.Username == "" || cfg.Metrics.Password == "" {
+			return nil, fmt.Errorf("metrics auth is enabled but username or password is missing")
+		}
 	}
 
 	return &cfg, nil
