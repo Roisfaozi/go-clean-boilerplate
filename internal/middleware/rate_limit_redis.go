@@ -3,12 +3,20 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
+)
+
+type LimiterType string
+
+const (
+	LimiterTypeIP   LimiterType = "ip"
+	LimiterTypeUser LimiterType = "user"
 )
 
 // rateLimitScript is a Lua script to atomically increment and set expiry if needed.
@@ -22,15 +30,12 @@ var rateLimitScript = redis.NewScript(`
 	return current
 `)
 
-// RateLimitMiddlewareRedis implements a simple fixed window rate limiter using Redis.
-// It converts the RPS (Requests Per Second) config into a 1-minute fixed window limit.
-func RateLimitMiddlewareRedis(redisClient *redis.Client, log *logrus.Logger, rps float64) gin.HandlerFunc {
-	limit := int64(rps * 60)
+// RateLimitMiddlewareRedis implements a flexible rate limiter using Redis.
+func RateLimitMiddlewareRedis(redisClient *redis.Client, log *logrus.Logger, limitType LimiterType, limit int, window time.Duration) gin.HandlerFunc {
 	if limit < 1 {
 		limit = 1
 	}
-	// Window is 60 seconds
-	windowSeconds := 60
+	windowSeconds := int(window.Seconds())
 
 	return func(c *gin.Context) {
 		if redisClient == nil {
@@ -38,8 +43,23 @@ func RateLimitMiddlewareRedis(redisClient *redis.Client, log *logrus.Logger, rps
 			return
 		}
 
-		clientIP := c.ClientIP()
-		key := fmt.Sprintf("rate_limit:%s", clientIP)
+		var identifier string
+		var key string
+
+		if limitType == LimiterTypeUser {
+			userID, exists := c.Get("userID")
+			if !exists {
+				// Fallback to IP if userID not found (e.g. auth failed)
+				identifier = c.ClientIP()
+				key = fmt.Sprintf("rate_limit:%s:%s", "ip_fallback", identifier)
+			} else {
+				identifier = userID.(string)
+				key = fmt.Sprintf("rate_limit:%s:%s", limitType, identifier)
+			}
+		} else {
+			identifier = c.ClientIP()
+			key = fmt.Sprintf("rate_limit:%s:%s", limitType, identifier)
+		}
 
 		// Execute Lua script
 		count, err := rateLimitScript.Run(c.Request.Context(), redisClient, []string{key}, windowSeconds).Int64()
@@ -49,8 +69,8 @@ func RateLimitMiddlewareRedis(redisClient *redis.Client, log *logrus.Logger, rps
 			return
 		}
 
-		if count > limit {
-			log.Warnf("Rate limit exceeded for IP: %s (Count: %d, Limit: %d)", clientIP, count, limit)
+		if count > int64(limit) {
+			log.Warnf("Rate limit exceeded for %s: %s (Count: %d, Limit: %d)", limitType, identifier, count, limit)
 			response.ErrorResponse(c, http.StatusTooManyRequests, exception.ErrTooManyRequests, "Too many requests, please try again later.")
 			c.Abort()
 			return

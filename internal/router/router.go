@@ -9,7 +9,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	auditHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
-	authHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	permissionHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
@@ -93,11 +92,20 @@ func SetupRouter(
 		}
 	}
 
+	// Rate Limiter Definition
+	var publicLimiter, criticalLimiter, authLimiter gin.HandlerFunc
+
 	if cfg.RateLimitEnabled {
 		if cfg.RateLimitStore == "redis" {
-			router.Use(middleware.RateLimitMiddlewareRedis(redisClient, logger, cfg.RateLimitRPS))
-			logger.Info("Rate Limiter enabled: Redis store")
+			// Tier 1: Public API - Low limit (e.g. 10 RPS)
+			publicLimiter = middleware.RateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeIP, 10*60, 60)
+			// Tier 3: Critical Endpoints (Login) - Very Low Limit (e.g. 5 RPM)
+			criticalLimiter = middleware.RateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeIP, 5, 60)
+			// Tier 2: Authenticated User - High limit (e.g. 100 RPS)
+			authLimiter = middleware.RateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeUser, 100*60, 60)
+			logger.Info("Advanced Rate Limiter enabled: Redis store")
 		} else {
+			// Fallback to Memory (Global for now, as memory limiter refactor is separate task)
 			router.Use(middleware.RateLimitMiddlewareMemory(cfg.RateLimitRPS, cfg.RateLimitBurst))
 			logger.Info("Rate Limiter enabled: Memory store")
 		}
@@ -150,16 +158,39 @@ func SetupRouter(
 	apiV1 := router.Group("/api/v1")
 
 	public := apiV1.Group("")
+	if publicLimiter != nil {
+		public.Use(publicLimiter)
+	}
 	{
-		authHttp.RegisterPublicRoutes(public, authModule.AuthController)
+		// Special handling for Login to use Critical Limiter
+		authGroup := public.Group("/auth") 
+		if criticalLimiter != nil {
+			authGroup.POST("/login", criticalLimiter, authModule.AuthController.Login)
+		} else {
+			authGroup.POST("/login", authModule.AuthController.Login)
+		}
+		
+		// Other Auth Routes (Standard Public Limit)
+		authGroup.POST("/refresh", authModule.AuthController.RefreshToken)
+		authGroup.POST("/forgot-password", authModule.AuthController.ForgotPassword)
+		authGroup.POST("/reset-password", authModule.AuthController.ResetPassword)
+		authGroup.POST("/verify-email", authModule.AuthController.VerifyEmail)
+
 		userHttp.RegisterPublicRoutes(public, userModule.UserController)
 	}
 
 	authenticated := apiV1.Group("")
 	authenticated.Use(authMiddleware.ValidateToken())
 	authenticated.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
+	if authLimiter != nil {
+		authenticated.Use(authLimiter)
+	}
 	{
-		authHttp.RegisterAuthenticatedRoutes(authenticated, authModule.AuthController)
+		// Manually register auth routes that need authentication
+		authGroup := authenticated.Group("/auth")
+		authGroup.POST("/logout", authModule.AuthController.Logout)
+		authGroup.POST("/resend-verification", authModule.AuthController.ResendVerification)
+		
 		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
 		permissionHttp.RegisterBatchCheckRoute(authenticated, permissionModule.PermissionController)
 	}
@@ -168,6 +199,9 @@ func SetupRouter(
 	authorized.Use(authMiddleware.ValidateToken())
 	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	authorized.Use(casbinMiddleware)
+	if authLimiter != nil {
+		authorized.Use(authLimiter)
+	}
 	{
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
 		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)

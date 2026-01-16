@@ -72,6 +72,9 @@ func SetupTestServer(t *testing.T) *TestServer {
 				Channel: "/casbin",
 			},
 		},
+		RateLimit: config.RateLimitConfig{
+			Enabled: false,
+		},
 		Storage: config.StorageConfig{
 			Driver: "local",
 			Local: struct {
