@@ -30,19 +30,23 @@ import (
 )
 
 type Service struct {
-	jwtManager      *jwt.JWTManager
-	tokenRepo       repository.TokenRepository
-	userRepo        userRepository.UserRepository
-	tm              tx.WithTransactionManager
-	log             *logrus.Logger
-	wsManager       ws.Manager
-	sseManager      *sse.Manager
-	Enforcer        permissionUseCase.IEnforcer
-	auditUC         auditUseCase.AuditUseCase
-	taskDistributor worker.TaskDistributor
+	maxLoginAttempts int
+	lockoutDuration  time.Duration
+	jwtManager       *jwt.JWTManager
+	tokenRepo        repository.TokenRepository
+	userRepo         userRepository.UserRepository
+	tm               tx.WithTransactionManager
+	log              *logrus.Logger
+	wsManager        ws.Manager
+	sseManager       *sse.Manager
+	Enforcer         permissionUseCase.IEnforcer
+	auditUC          auditUseCase.AuditUseCase
+	taskDistributor  worker.TaskDistributor
 }
 
 func NewAuthUsecase(
+	maxLoginAttempts int,
+	lockoutDuration time.Duration,
 	jwtManager *jwt.JWTManager,
 	tokenRepo repository.TokenRepository,
 	userRepo userRepository.UserRepository,
@@ -55,16 +59,18 @@ func NewAuthUsecase(
 	taskDistributor worker.TaskDistributor,
 ) AuthUseCase {
 	return &Service{
-		jwtManager:      jwtManager,
-		tokenRepo:       tokenRepo,
-		userRepo:        userRepo,
-		tm:              tm,
-		log:             log,
-		wsManager:       wsManager,
-		sseManager:      sseManager,
-		Enforcer:        enforcer,
-		auditUC:         auditUC,
-		taskDistributor: taskDistributor,
+		maxLoginAttempts: maxLoginAttempts,
+		lockoutDuration:  lockoutDuration,
+		jwtManager:       jwtManager,
+		tokenRepo:        tokenRepo,
+		userRepo:         userRepo,
+		tm:               tm,
+		log:              log,
+		wsManager:        wsManager,
+		sseManager:       sseManager,
+		Enforcer:         enforcer,
+		auditUC:          auditUC,
+		taskDistributor:  taskDistributor,
 	}
 }
 
@@ -100,8 +106,18 @@ func (s *Service) generateAndStoreTokenPair(ctx context.Context, user *entity.Us
 }
 
 func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model.LoginResponse, string, error) {
+	// 1. Check if account is locked
+	locked, ttl, err := s.tokenRepo.IsAccountLocked(ctx, request.Username)
+	if err != nil {
+		s.log.WithContext(ctx).WithError(err).Error("Failed to check account lock status")
+		return nil, "", fmt.Errorf("failed to check account status")
+	}
+	if locked {
+		return nil, "", fmt.Errorf("%w: try again in %v", ErrAccountLocked, ttl.Round(time.Second))
+	}
+
 	var user *entity.User
-	err := s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error
 		user, err = s.userRepo.FindByUsername(txCtx, request.Username)
 		if err != nil {
@@ -109,7 +125,41 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		}
 
 		if !pkg.CheckPasswordHash(request.Password, user.Password) {
+			// Password Invalid: Handle Lockout Logic
+			if incrErr := s.tokenRepo.IncrementLoginAttempts(txCtx, request.Username); incrErr != nil {
+				s.log.WithContext(txCtx).WithError(incrErr).Error("Failed to increment login attempts")
+			}
+			
+			attempts, getErr := s.tokenRepo.GetLoginAttempts(txCtx, request.Username)
+			if getErr != nil {
+				s.log.WithContext(txCtx).WithError(getErr).Error("Failed to get login attempts")
+			}
+
+			if attempts >= s.maxLoginAttempts {
+				if lockErr := s.tokenRepo.LockAccount(txCtx, request.Username, s.lockoutDuration); lockErr != nil {
+					s.log.WithContext(txCtx).WithError(lockErr).Error("Failed to lock account")
+				}
+
+				// Audit Log: ACCOUNT_LOCKED
+				if s.auditUC != nil {
+					_ = s.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+						UserID:    user.ID, // User ID is known since FindByUsername succeeded
+						Action:    "ACCOUNT_LOCKED",
+						Entity:    "User",
+						EntityID:  user.ID,
+						IPAddress: request.IPAddress,
+						UserAgent: request.UserAgent,
+					})
+				}
+				return fmt.Errorf("%w: too many failed attempts", ErrAccountLocked)
+			}
+
 			return ErrInvalidCredentials
+		}
+
+		// Password Valid: Reset Attempts
+		if resetErr := s.tokenRepo.ResetLoginAttempts(txCtx, request.Username); resetErr != nil {
+			s.log.WithContext(txCtx).WithError(resetErr).Error("Failed to reset login attempts")
 		}
 
 		if user.Status != entity.UserStatusActive {

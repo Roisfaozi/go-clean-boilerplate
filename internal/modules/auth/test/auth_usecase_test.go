@@ -68,6 +68,8 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 	deps.log.SetOutput(io.Discard)
 
 	authService := usecase.NewAuthUsecase(
+		5,              // MaxLoginAttempts
+		30*time.Minute, // LockoutDuration
 		deps.jwtManager,
 		deps.tokenRepo,
 		deps.userRepo,
@@ -99,6 +101,9 @@ func TestLogin_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, password := createTestUser("password123")
 	loginReq := model.LoginRequest{Username: user.Username, Password: password, IPAddress: "127.0.0.1", UserAgent: "TestAgent"}
+
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil) // Added expectation
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -137,6 +142,8 @@ func TestLogin_Failure_UserNotFound(t *testing.T) {
 	authService, deps := setupTest(t)
 	loginReq := model.LoginRequest{Username: "nonexistent", Password: "password123"}
 
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, "nonexistent").Return(false, time.Duration(0), nil)
+
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -157,6 +164,10 @@ func TestLogin_Failure_InvalidPassword(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 	loginReq := model.LoginRequest{Username: user.Username, Password: "wrong-password"}
+
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
+	deps.tokenRepo.On("IncrementLoginAttempts", mock.Anything, user.Username).Return(nil)
+	deps.tokenRepo.On("GetLoginAttempts", mock.Anything, user.Username).Return(1, nil) // Added expectation
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -179,6 +190,9 @@ func TestLogin_Failure_StoreTokenError(t *testing.T) {
 	user, password := createTestUser("password123")
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
 	storeErr := errors.New("redis is down")
+
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil) // Added IsAccountLocked
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil)                       // Added ResetLoginAttempts
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -203,6 +217,9 @@ func TestLogin_EnforcerError(t *testing.T) {
 	user, password := createTestUser("password123")
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
 
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil) // Added ResetLoginAttempts
+
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -224,6 +241,9 @@ func TestLogin_AuditError(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, password := createTestUser("password123")
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
+
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil) // Added ResetLoginAttempts
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -590,6 +610,9 @@ func TestLogin_Failure_UserSuspended(t *testing.T) {
 
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
 
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil) // Added IsAccountLocked
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil)                       // Added ResetLoginAttempts
+
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -603,6 +626,7 @@ func TestLogin_Failure_UserSuspended(t *testing.T) {
 	assert.True(t, errors.Is(err, usecase.ErrAccountSuspended))
 	assert.Nil(t, loginResp)
 	assert.Empty(t, refreshToken)
+	deps.tokenRepo.AssertExpectations(t)
 }
 
 func TestRefreshToken_Failure_UserSuspended(t *testing.T) {
@@ -849,6 +873,9 @@ func TestLogin_Success_NoRoles(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, password := createTestUser("password123")
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
+
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil) // Added ResetLoginAttempts
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {

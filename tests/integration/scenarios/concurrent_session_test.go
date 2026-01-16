@@ -28,7 +28,7 @@ func TestScenario_Auth_ConcurrentSessions(t *testing.T) {
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)
-	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, env.Enforcer, nil, nil)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, env.Enforcer, nil, nil)
 
 	password := "Pass123!"
 	user := setup.CreateTestUser(t, env.DB, "multi_session_user", "multi@test.com", password)

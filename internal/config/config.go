@@ -16,6 +16,7 @@ type AppConfig struct {
 	Mysql     MySqlConfig     `mapstructure:"mysql"`
 	Redis     RedisConfig     `mapstructure:"redis"`
 	JWT       JWTConfig       `mapstructure:"jwt"`
+	Security  SecurityConfig  `mapstructure:"security"`
 	Log       LoggerConfig    `mapstructure:"log"`
 	WebSocket WebSocketConfig `mapstructure:"websocket"`
 	Casbin    CasbinConfig    `mapstructure:"casbin"`
@@ -56,14 +57,18 @@ type AppConfig struct {
 	type ServerConfig struct {
 	Port           int           `mapstructure:"port" validate:"required"`
 	ReadTimeout    time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout   time.Duration `mapstructure:"write_timeout"`
-	AppName        string        `mapstructure:"app_name"`
-	AppEnv         string        `mapstructure:"app_env"`
-	TrustedProxies []string      `mapstructure:"trusted_proxies"`
-}
-
-type MetricsConfig struct {
-	Enabled     bool   `mapstructure:"enabled"`
+	    WriteTimeout   time.Duration `mapstructure:"write_timeout"`
+	    AppName        string        `mapstructure:"app_name"`
+	    AppEnv         string        `mapstructure:"app_env"`
+	    TrustedProxies []string      `mapstructure:"trusted_proxies"`
+	}
+	
+	type SecurityConfig struct {
+		MaxLoginAttempts int           `mapstructure:"max_login_attempts"`
+		LockoutDuration  time.Duration `mapstructure:"lockout_duration"`
+	}
+	
+	type MetricsConfig struct {	Enabled     bool   `mapstructure:"enabled"`
 	AuthEnabled bool   `mapstructure:"auth_enabled"`
 	Username    string `mapstructure:"username"`
 	Password    string `mapstructure:"password"`
@@ -141,6 +146,8 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("redis.addr", "localhost:6379")
 	v.SetDefault("jwt.access_duration", "15m")
 	v.SetDefault("jwt.refresh_duration", "720h")
+	v.SetDefault("security.max_login_attempts", 5)
+	v.SetDefault("security.lockout_duration", "30m")
 	v.SetDefault("casbin.enabled", false)
 	v.SetDefault("casbin.model", "internal/config/casbin_model.conf")
 	v.SetDefault("casbin.watcher.enabled", false)
@@ -179,6 +186,9 @@ func NewConfig() (*AppConfig, error) {
 
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")
+
+	cfg.Security.MaxLoginAttempts = v.GetInt("security.max_login_attempts")
+	cfg.Security.LockoutDuration = v.GetDuration("security.lockout_duration")
 
 	cfg.Redis.Addr = v.GetString("redis.addr")
 	cfg.Redis.Password = v.GetString("redis.password")
