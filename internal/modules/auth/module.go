@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"time"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
@@ -25,6 +27,8 @@ type AuthModule struct {
 }
 
 func NewAuthModule(
+	maxLoginAttempts int,
+	lockoutDuration time.Duration,
 	jwtManager *jwt.JWTManager,
 	db *gorm.DB,
 	redisClient *redis.Client,
@@ -40,7 +44,7 @@ func NewAuthModule(
 	tokenRepo := repository.NewTokenRepositoryRedis(redisClient, log, db)
 	userRepository := userRepo.NewUserRepository(db, log)
 
-	authUseCase := usecase.NewAuthUsecase(jwtManager, tokenRepo, userRepository, tm, log, wsManager, sseManager, enforcer, auditModule.AuditController.UseCase, taskDistributor)
+	authUseCase := usecase.NewAuthUsecase(maxLoginAttempts, lockoutDuration, jwtManager, tokenRepo, userRepository, tm, log, wsManager, sseManager, enforcer, auditModule.AuditController.UseCase, taskDistributor)
 	authController := http.NewAuthController(authUseCase, log, validate)
 
 	return &AuthModule{

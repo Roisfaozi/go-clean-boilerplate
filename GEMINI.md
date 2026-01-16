@@ -7,58 +7,63 @@ This `GEMINI.md` file provides essential context for the Gemini agent to underst
 **Name:** Go Clean Boilerplate - Enterprise Modular REST API
 **Purpose:** An enterprise-ready Go boilerplate implementing Clean Architecture, RBAC with Casbin, Modular Audit Logging, and Distributed WebSocket scaling.
 **Core Technologies:**
-*   **Language:** Go 1.25.5+
-*   **Web Framework:** Gin
-*   **Database:** MySQL 8.0 (GORM)
-*   **Caching/Session:** Redis 7
-*   **Auth/Authz:** JWT & Casbin (RBAC)
-*   **Infrastructure:** Docker, Docker Compose
+
+- **Language:** Go 1.25.5+
+- **Web Framework:** Gin
+- **Database:** MySQL 8.0 (GORM)
+- **Caching/Session:** Redis 7
+- **Auth/Authz:** JWT & Casbin (RBAC)
+- **Infrastructure:** Docker, Docker Compose
 
 ## Architecture & Structure
 
 The project strictly follows **Clean Architecture** principles.
 
-*   **`cmd/api/`**: Application entry point (`main.go`).
-*   **`internal/`**: Private application code.
-    *   **`config/`**: Configuration and dependency injection.
-    *   **`middleware/`**: HTTP middlewares (Auth, Casbin, CORS).
-    *   **`modules/`**: Domain-specific modules (e.g., `auth`, `user`, `role`, `access`). Each module contains:
-        *   `delivery/`: HTTP Handlers (Controllers).
-        *   `usecase/`: Business Logic.
-        *   `repository/`: Data Access (DB/Redis).
-        *   `model/`: DTOs.
-        *   `entity/`: Database entities.
-    *   **`router/`**: Route registration.
-*   **`pkg/`**: Reusable packages (e.g., `jwt`, `response`, `querybuilder`, `ws`).
-*   **`db/`**: Database scripts (`migrations`, `seeds`).
-*   **`tests/`**: Integration and E2E tests.
+- **`cmd/api/`**: Application entry point (`main.go`).
+- **`internal/`**: Private application code.
+  - **`config/`**: Configuration and dependency injection.
+  - **`middleware/`**: HTTP middlewares (Auth, Casbin, CORS).
+  - **`modules/`**: Domain-specific modules (e.g., `auth`, `user`, `role`, `access`). Each module contains:
+    - `delivery/`: HTTP Handlers (Controllers).
+    - `usecase/`: Business Logic.
+    - `repository/`: Data Access (DB/Redis).
+    - `model/`: DTOs.
+    - `entity/`: Database entities.
+  - **`router/`**: Route registration.
+- **`pkg/`**: Reusable packages (e.g., `jwt`, `response`, `querybuilder`, `ws`).
+- **`db/`**: Database scripts (`migrations`, `seeds`).
+- **`tests/`**: Integration and E2E tests.
 
 ## Development Workflow & Commands
 
 The project uses `Make` for automation. Always prefer `make` commands over direct `go` commands.
 
 ### Build & Run
-*   **Run (Dev):** `make run` (or `air` for hot reload if installed).
-*   **Build:** `make build` (Output: `main.exe` or `main`).
-*   **Docker Dev:** `make docker-dev` (Starts MySQL & Redis).
+
+- **Run (Dev):** `make run` (or `air` for hot reload if installed).
+- **Build:** `make build` (Output: `main.exe` or `main`).
+- **Docker Dev:** `make docker-dev` (Starts MySQL & Redis).
 
 ### Database Management
-*   **Migrate Up:** `make migrate-up`
-*   **Migrate Down:** `make migrate-down`
-*   **Create Migration:** `make migrate-create name=<migration_name>`
-*   **Seed Data:** `make seed-up`
+
+- **Migrate Up:** `make migrate-up`
+- **Migrate Down:** `make migrate-down`
+- **Create Migration:** `make migrate-create name=<migration_name>`
+- **Seed Data:** `make seed-up`
 
 ### Testing
-*   **Unit Tests:** `make test` (Fast, mocks only).
-*   **Integration Tests:** `make test-integration` (Requires Docker).
-*   **E2E Tests:** `make test-e2e` (Requires Docker).
-*   **All Tests:** `make test-all`
-*   **Generate Mocks:** `make mocks` (Uses `mockery`).
+
+- **Unit Tests:** `make test` (Fast, mocks only).
+- **Integration Tests:** `make test-integration` (Requires Docker).
+- **E2E Tests:** `make test-e2e` (Requires Docker).
+- **All Tests:** `make test-all`
+- **Generate Mocks:** `make mocks` (Uses `mockery`).
 
 ### Code Quality
-*   **Lint:** `make lint` (Uses `golangci-lint`).
-*   **Format:** Standard `go fmt`.
-*   **Docs:** `make docs` (Generates Swagger docs).
+
+- **Lint:** `make lint` (Uses `golangci-lint`).
+- **Format:** Standard `go fmt`.
+- **Docs:** `make docs` (Generates Swagger docs).
 
 ## Key Conventions
 
@@ -69,14 +74,34 @@ The project uses `Make` for automation. Always prefer `make` commands over direc
 5.  **Dynamic Search:** Use `POST /search` endpoints with `pkg/querybuilder` for complex filtering.
 
 ## Environment Variables
+
 Refer to `.env.example` for required variables. Key variables include:
-*   `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
-*   `REDIS_ADDR`, `REDIS_PASSWORD`
-*   `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
-*   `CASBIN_ENABLED` (Default: `false`)
+
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- `REDIS_ADDR`, `REDIS_PASSWORD`
+- `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
+- `CASBIN_ENABLED` (Default: `false`)
 
 ## Documentation
+
 Additional detailed documentation is located in the `documentation/` directory, including:
-*   `PROJECT_GUIDE.md` (Comprehensive guide)
-*   `API_ACCESS_WORKFLOW.md` (RBAC details)
-*   `TESTING_STRATEGY.md`
+
+- `PROJECT_GUIDE.md` (Comprehensive guide)
+- `API_ACCESS_WORKFLOW.md` (RBAC details)
+- `TESTING_STRATEGY.md`
+
+## Important Notes
+
+- Always use `make` commands for automation.
+- Always use `air` for hot reload if installed.
+- Always use `golangci-lint` for linting.
+- Always use `mockery` for generating mocks.
+- Always use `swagger` for generating docs.
+- Always use `gorm` for database operations.
+- Always use `redis` for caching operations.
+- Always use `casbin` for authorization operations.
+- Always use `jwt` for authentication operations.
+- Always use `gin` for web framework operations.
+- Always use `docker` for container operations.
+- Always use `docker-compose` for container operations.
+- Ignore .agent directory and GEMINI.md for commit

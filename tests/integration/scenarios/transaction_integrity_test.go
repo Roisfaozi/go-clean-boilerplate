@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	auditRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository"
 	auditUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
@@ -37,7 +38,7 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
 	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
-	authService := authUC.NewAuthUsecase(jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, mockEnforcer, auditService, nil)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, mockEnforcer, auditService, nil)
 
 	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, mockEnforcer, auditService, authService, nil)
 

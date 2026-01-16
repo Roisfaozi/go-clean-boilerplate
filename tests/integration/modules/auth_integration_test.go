@@ -49,6 +49,8 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 	logger := env.Logger
 
 	return usecase.NewAuthUsecase(
+		5,              // MaxLoginAttempts
+		30*time.Minute, // LockoutDuration
 		jwtManager,
 		tokenRepo,
 		userRepo,

@@ -177,3 +177,72 @@ func (r *tokenRepositoryRedis) DeleteVerificationTokenByEmail(ctx context.Contex
 	return nil
 }
 
+// Account Lockout Methods
+
+func (r *tokenRepositoryRedis) getAttemptsKey(username string) string {
+	return fmt.Sprintf("auth:attempts:%s", username)
+}
+
+func (r *tokenRepositoryRedis) getLockedKey(username string) string {
+	return fmt.Sprintf("auth:locked:%s", username)
+}
+
+func (r *tokenRepositoryRedis) GetLoginAttempts(ctx context.Context, username string) (int, error) {
+	key := r.getAttemptsKey(username)
+	val, err := r.client.Get(ctx, key).Int()
+	if err == redis.Nil {
+		return 0, nil
+	}
+	if err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("Failed to get login attempts")
+		return 0, err
+	}
+	return val, nil
+}
+
+func (r *tokenRepositoryRedis) IncrementLoginAttempts(ctx context.Context, username string) error {
+	key := r.getAttemptsKey(username)
+	pipe := r.client.Pipeline()
+	pipe.Incr(ctx, key)
+	pipe.Expire(ctx, key, 1*time.Hour) // Reset attempts counter after 1 hour of inactivity
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("Failed to increment login attempts")
+		return err
+	}
+	return nil
+}
+
+func (r *tokenRepositoryRedis) ResetLoginAttempts(ctx context.Context, username string) error {
+	key := r.getAttemptsKey(username)
+	if err := r.client.Del(ctx, key).Err(); err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("Failed to reset login attempts")
+		return err
+	}
+	return nil
+}
+
+func (r *tokenRepositoryRedis) LockAccount(ctx context.Context, username string, duration time.Duration) error {
+	key := r.getLockedKey(username)
+	if err := r.client.Set(ctx, key, "locked", duration).Err(); err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("Failed to lock account")
+		return err
+	}
+	return nil
+}
+
+func (r *tokenRepositoryRedis) IsAccountLocked(ctx context.Context, username string) (bool, time.Duration, error) {
+	key := r.getLockedKey(username)
+	ttl, err := r.client.TTL(ctx, key).Result()
+	if err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("Failed to check account lock status")
+		return false, 0, err
+	}
+	
+	if ttl <= 0 { // Key does not exist (TTL -2) or no expire (TTL -1) but logic says locked keys always expire
+		return false, 0, nil
+	}
+
+	return true, ttl, nil
+}
+
