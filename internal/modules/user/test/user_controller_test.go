@@ -458,6 +458,29 @@ func TestUserHandler_UpdateUser(t *testing.T) {
 
 		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 	})
+
+	t.Run("Validation Error - Long Name", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		// Name > 100 chars
+		longName := ""
+		for i := 0; i < 101; i++ {
+			longName += "a"
+		}
+		jsonBody := `{"username":"validuser", "name":"` + longName + `"}`
+		req, _ := http.NewRequest(http.MethodPut, "/users/me", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("user_id", userID)
+
+		handler.UpdateUser(c)
+
+		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	})
 }
 
 func TestUserHandler_GetUsersDynamic(t *testing.T) {
