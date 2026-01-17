@@ -229,11 +229,20 @@ func (u *userUseCaseImpl) Update(ctx context.Context, request *model.UpdateUserR
 	}
 
 	if u.AuditUC != nil {
+		newVals := make(map[string]interface{})
+		if request.Name != "" {
+			newVals["name"] = request.Name
+		}
+		if request.Username != "" {
+			newVals["username"] = request.Username
+		}
+		
 		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
-			UserID:   user.ID,
-			Action:   "UPDATE",
-			Entity:   "User",
-			EntityID: user.ID,
+			UserID:    user.ID,
+			Action:    "UPDATE",
+			Entity:    "User",
+			EntityID:  user.ID,
+			NewValues: newVals,
 		})
 	}
 
