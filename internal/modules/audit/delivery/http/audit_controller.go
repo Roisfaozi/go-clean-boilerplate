@@ -65,8 +65,16 @@ func (h *AuditController) Export(c *gin.Context) {
 
 	err := h.UseCase.ExportLogs(c.Request.Context(), fromDate, toDate, func(logs []model.AuditLogResponse) error {
 		for _, log := range logs {
-			oldVal, _ := json.Marshal(log.OldValues)
-			newVal, _ := json.Marshal(log.NewValues)
+			oldVal, oldErr := json.Marshal(log.OldValues)
+			if oldErr != nil {
+					h.Log.WithError(oldErr).Warnf("Failed to marshal OldValues for audit log %s", log.ID)
+					oldVal = []byte("null")
+			}
+			newVal, newErr := json.Marshal(log.NewValues)
+			if newErr != nil {
+					h.Log.WithError(newErr).Warnf("Failed to marshal NewValues for audit log %s", log.ID)
+					newVal = []byte("null")
+			}
 			record := []string{
 				log.ID,
 				log.UserID,

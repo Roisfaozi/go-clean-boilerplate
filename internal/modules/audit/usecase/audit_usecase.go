@@ -12,6 +12,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	exportBatchSize = 1000
+)
+
 type auditUseCase struct {
 	repo AuditRepository
 	log  *logrus.Logger
@@ -100,15 +104,18 @@ func (uc *auditUseCase) ExportLogs(ctx context.Context, fromDate, toDate string,
 		endTime = t.Add(24 * time.Hour).UnixMilli()
 	}
 
-	batchSize := 1000
+	batchSize := exportBatchSize
 
 	return uc.repo.FindAllInBatches(ctx, startTime, endTime, batchSize, func(logs []*entity.AuditLog) error {
 		var response []model.AuditLogResponse
 		for _, log := range logs {
 			var oldVal, newVal interface{}
-			_ = json.Unmarshal([]byte(log.OldValues), &oldVal)
-			_ = json.Unmarshal([]byte(log.NewValues), &newVal)
-
+			if err := json.Unmarshal([]byte(log.OldValues), &oldVal); err != nil {
+				uc.log.WithError(err).Warnf("Failed to unmarshal OldValues for audit log %s", log.ID)
+			}
+			if err := json.Unmarshal([]byte(log.NewValues), &newVal); err != nil {
+				uc.log.WithError(err).Warnf("Failed to unmarshal NewValues for audit log %s", log.ID)
+			}
 			response = append(response, model.AuditLogResponse{
 				ID:        log.ID,
 				UserID:    log.UserID,
