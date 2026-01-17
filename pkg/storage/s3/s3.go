@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/circuitbreaker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -60,12 +61,16 @@ func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 }
 
 func (s *S3Storage) UploadFile(ctx context.Context, file io.Reader, filename string, contentType string) (string, error) {
-	_, err := s.Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(s.Bucket),
-		Key:         aws.String(filename),
-		Body:        file,
-		ContentType: aws.String(contentType),
+	err := circuitbreaker.Execute("s3-upload", func() error {
+		_, err := s.Client.PutObject(ctx, &s3.PutObjectInput{
+			Bucket:      aws.String(s.Bucket),
+			Key:         aws.String(filename),
+			Body:        file,
+			ContentType: aws.String(contentType),
+		})
+		return err
 	})
+
 	if err != nil {
 		telemetry.StorageUploadsTotal.WithLabelValues("s3", "failed").Inc()
 		return "", fmt.Errorf("failed to upload file to s3: %w", err)

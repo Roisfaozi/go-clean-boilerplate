@@ -21,7 +21,8 @@ type AppConfig struct {
 	WebSocket WebSocketConfig `mapstructure:"websocket"`
 	Casbin    CasbinConfig    `mapstructure:"casbin"`
 	CORS      CORSConfig      `mapstructure:"cors"`
-		RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+	CircuitBreaker CircuitBreakerConfig `mapstructure:"circuit_breaker"`
+	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 		Storage   StorageConfig   `mapstructure:"storage"`
 		Metrics   struct {
 			Enabled     bool   `env:"METRICS_ENABLED" envDefault:"false"`
@@ -83,6 +84,13 @@ type RateLimitConfig struct {
 
 type CORSConfig struct {
 	AllowedOrigins []string `mapstructure:"allowed_origins"`
+}
+
+type CircuitBreakerConfig struct {
+	Enabled     bool          `mapstructure:"enabled"`
+	MaxRequests uint32        `mapstructure:"max_requests"`
+	Interval    time.Duration `mapstructure:"interval"`
+	Timeout     time.Duration `mapstructure:"timeout"`
 }
 
 type MySqlConfig struct {
@@ -157,6 +165,10 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("rate_limit.rps", 10.0)
 	v.SetDefault("rate_limit.burst", 20)
 	v.SetDefault("rate_limit.store", "memory")
+	v.SetDefault("circuit_breaker.enabled", true)
+	v.SetDefault("circuit_breaker.max_requests", 5)
+	v.SetDefault("circuit_breaker.interval", "60s")
+	v.SetDefault("circuit_breaker.timeout", "30s")
 	v.SetDefault("websocket.distributed_enabled", false)
 	v.SetDefault("websocket.redis_prefix", "ws_broadcast:")
 	v.SetDefault("metrics.enabled", true)
@@ -172,6 +184,11 @@ func NewConfig() (*AppConfig, error) {
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
+
+	cfg.CircuitBreaker.Enabled = v.GetBool("circuit_breaker.enabled")
+	cfg.CircuitBreaker.MaxRequests = v.GetUint32("circuit_breaker.max_requests")
+	cfg.CircuitBreaker.Interval = v.GetDuration("circuit_breaker.interval")
+	cfg.CircuitBreaker.Timeout = v.GetDuration("circuit_breaker.timeout")
 
 	cfg.Storage.Driver = v.GetString("storage.driver")
 	cfg.Storage.Local.RootPath = v.GetString("storage.local.root_path")

@@ -165,6 +165,36 @@ func SetupCasbin(t *testing.T, db *gorm.DB, logger *logrus.Logger) *casbin.Enfor
 	return enforcer
 }
 
+func SetupRedisContainer(ctx context.Context) (*redisContainer.RedisContainer, string, error) {
+	redisC, err := redisContainer.Run(ctx,
+		"redis:8.4-alpine",
+		testcontainers.WithWaitStrategy(
+			wait.ForLog("Ready to accept connections").
+				WithStartupTimeout(30*time.Second),
+		),
+	)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Remove the protocol if present (e.g., "redis://") as client usually expects host:port
+	// Actually Endpoint returns host:port, so no need to strip protocol usually unless mapped port retrieval is weird.
+	// But redis.NewClient Options.Addr expects "host:port". redisC.Endpoint returns exactly that.
+
+	// Extract port is tricky from Endpoint directly if we want just port, but we need host:port for client.
+	// The function signature in test expects (container, port), but actually it uses it as Addr.
+	// Let's return the full address as "port" string for simplicity in the test usage which does fmt.Sprintf("localhost:%s", port) - WAIT.
+	// If test does `fmt.Sprintf("localhost:%s", redisPort)`, it expects ONLY port.
+	
+	// Let's get the mapped port.
+	p, err := redisC.MappedPort(ctx, "6379")
+	if err != nil {
+		return nil, "", err
+	}
+	
+	return redisC, p.Port(), nil
+}
+
 func isDockerAvailable() bool {
 	cmd := exec.Command("docker", "info")
 	if err := cmd.Run(); err != nil {
