@@ -20,11 +20,21 @@ func TestContainsSQLInjection(t *testing.T) {
 		{"SQL injection - semicolon", "admin;", true},
 		{"Safe email", "test@example.com", false},
 		{"Safe username", "user123", false},
+
+		// False positive prevention (Substrings)
+		{"Safe word 'selection'", "Natural selection", false}, // Contains 'select' but not as whole word
+		{"Safe name 'Selecta'", "Selecta", false}, // Contains 'select' but not as whole word
+		{"Safe name 'Benedict'", "Benedict", false},
+
+		// Limitations (Whole words are still flagged)
+		// "Grant" is a name, but also a keyword. This simple regex cannot distinguish.
+		{"Ambiguous name 'Grant'", "Grant", true},
+		{"Sentence with keyword", "Please select an option", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, ContainsSQLInjection(tt.input))
+			assert.Equal(t, tt.expected, ContainsSQLInjection(tt.input), "Input: %s", tt.input)
 		})
 	}
 }

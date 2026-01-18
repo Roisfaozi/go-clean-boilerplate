@@ -550,6 +550,37 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		deps.AuditUC.AssertExpectations(t)
 		deps.Enforcer.AssertExpectations(t)
 	})
+
+	t.Run("Error - Audit Log Fails & Compensation Fails", func(t *testing.T) {
+		deps, uc := setupUserTest()
+
+		deps.Repo.On("FindByID", mock.Anything, deleteReq.ID).Return(&entity.User{ID: deleteReq.ID, Username: "deletedUser"}, nil)
+
+		// Mock Transaction
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+
+		deps.Repo.On("Delete", mock.Anything, deleteReq.ID).Return(nil)
+
+		// Expect Backup Roles
+		deps.Enforcer.On("GetRolesForUser", deleteReq.ID).Return([]string{"role:user"}, nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, deleteReq.ID).Return(true, nil)
+
+		// Audit fails
+		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit fail"))
+
+		// Compensation fails
+		deps.Enforcer.On("AddGroupingPolicy", deleteReq.ID, "role:user").Return(false, errors.New("casbin restore error"))
+
+		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
+
+		// Should still return error, but code should not panic and should log error (which we can't assert easily without hooking logger, but coverage will increase)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		deps.Repo.AssertExpectations(t)
+		deps.AuditUC.AssertExpectations(t)
+		deps.Enforcer.AssertExpectations(t)
+	})
 }
 
 func TestUserUseCase_GetAllUsersDynamic(t *testing.T) {
