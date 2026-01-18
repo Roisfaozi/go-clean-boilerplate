@@ -485,3 +485,25 @@ func TestAuthHandler_ResendVerification_AlreadyVerified(t *testing.T) {
 	mockUseCase.AssertExpectations(t)
 }
 
+func TestAuthController_Login_XSS(t *testing.T) {
+	mockUseCase := new(mocks.MockAuthUseCase)
+	handler := newTestAuthController(mockUseCase)
+
+	// Create request with XSS payload
+	reqBody := model.LoginRequest{
+		Username: "<script>alert('xss')</script>",
+		Password: "password123",
+	}
+	jsonValue, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(jsonValue))
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	// Execute
+	handler.Login(c)
+
+	// Assert
+	assert.Equal(t, 422, w.Code) // Validation Error
+	assert.Contains(t, w.Body.String(), "xss")
+}
