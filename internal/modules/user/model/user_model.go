@@ -27,7 +27,7 @@ type RegisterUserRequest struct {
 
 type UpdateUserRequest struct {
 	ID        string `json:"-" validate:"required,max=100"`
-	Password  string `json:"password,omitempty" validate:"max=72"`
+	Password  string `json:"password,omitempty" validate:"omitempty,min=8,max=72"`
 	Username  string `json:"username" validate:"required,min=6,max=100,xss"`
 	Name      string `json:"name,omitempty" validate:"max=100,xss"`
 	IPAddress string `json:"-"`
