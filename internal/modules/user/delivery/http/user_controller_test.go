@@ -195,3 +195,39 @@ func TestUserController_RegisterUser_XSS(t *testing.T) {
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code, "Expected validation error for XSS in Name")
 	mockUsecase.AssertNotCalled(t, "Create")
 }
+
+func TestUserController_UpdateUser_PasswordValidation(t *testing.T) {
+	// Setup
+	gin.SetMode(gin.TestMode)
+	controller, mockUsecase := newTestController()
+
+	router := gin.New()
+	// Middleware mock to set user_id
+	router.Use(func(c *gin.Context) {
+		c.Set("user_id", "test-user-id")
+		c.Next()
+	})
+	router.PUT("/users/me", controller.UpdateUser)
+
+	// Case 1: Short Password (should fail validation if we fix it, but pass initially)
+	reqBody := model.UpdateUserRequest{
+		Username: "validusername",
+		Password: "short", // Too short
+	}
+	body, _ := json.Marshal(reqBody)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("PUT", "/users/me", bytes.NewReader(body))
+
+	// Mock expectation (if it passes validation, it calls Update)
+	// We expect this to NOT be called after the fix.
+	// For TDD, we assert that validation fails.
+
+	// If the test fails (fix not applied), it might try to call Update, so we should allow it to avoid panic
+	mockUsecase.On("Update", mock.Anything, mock.Anything).Return(&model.UserResponse{}, nil).Maybe()
+
+	router.ServeHTTP(w, req)
+
+	// This assertion is expected to FAIL before the fix is applied
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code, "Expected validation error for short password in UpdateUser")
+}
