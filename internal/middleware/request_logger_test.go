@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -149,6 +150,7 @@ func TestRequestLogger_LogsLatency(t *testing.T) {
 	
 	router.GET("/slow", func(c *gin.Context) {
 		// Simulate some processing
+		time.Sleep(1 * time.Millisecond)
 		c.JSON(http.StatusOK, gin.H{"message": "done"})
 	})
 
