@@ -143,3 +143,23 @@ func TestCORSMiddleware_AllowedMethods(t *testing.T) {
 		})
 	}
 }
+
+func TestCORSMiddleware_WildcardOrigin_DisablesCredentials(t *testing.T) {
+	router := setupCORSTest()
+
+	// Setup CORS with empty origins (defaults to wildcard)
+	router.Use(CORSMiddleware([]string{}))
+
+	router.GET("/test-vulnerability", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "success"})
+	})
+
+	req := httptest.NewRequest("GET", "/test-vulnerability", nil)
+	req.Header.Set("Origin", "https://example.com")
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	// Security: If allowedOrigins contains wildcard "*", AllowCredentials MUST be false
+	assert.NotEqual(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
+}
