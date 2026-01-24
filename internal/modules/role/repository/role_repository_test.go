@@ -14,8 +14,15 @@ import (
 	"gorm.io/gorm"
 )
 
+import (
+	"fmt"
+	"github.com/google/uuid"
+)
+
 func setupRoleRepo(t *testing.T) (repository.RoleRepository, *gorm.DB) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	uid, _ := uuid.NewV7()
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", uid.String())
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	require.NoError(t, err)
 
 	err = db.AutoMigrate(&entity.Role{})
@@ -83,4 +90,43 @@ func TestRoleRepository_FindAllDynamic(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRoleRepository_CRUD(t *testing.T) {
+	repo, _ := setupRoleRepo(t)
+	ctx := context.Background()
+
+	role := &entity.Role{
+		ID:          "role-1",
+		Name:        "TestRole",
+		Description: "Test Description",
+	}
+
+	// Create
+	err := repo.Create(ctx, role)
+	require.NoError(t, err)
+
+	// FindByID
+	found, err := repo.FindByID(ctx, role.ID)
+	require.NoError(t, err)
+	assert.Equal(t, role.Name, found.Name)
+
+	// FindByName
+	foundName, err := repo.FindByName(ctx, role.Name)
+	require.NoError(t, err)
+	assert.Equal(t, role.ID, foundName.ID)
+
+	// FindAll
+	all, err := repo.FindAll(ctx)
+	require.NoError(t, err)
+	assert.Len(t, all, 1)
+
+	// Delete
+	err = repo.Delete(ctx, role.ID)
+	require.NoError(t, err)
+
+	// Verify Delete
+	_, err = repo.FindByID(ctx, role.ID)
+	assert.Error(t, err)
+	assert.Equal(t, gorm.ErrRecordNotFound, err)
 }
