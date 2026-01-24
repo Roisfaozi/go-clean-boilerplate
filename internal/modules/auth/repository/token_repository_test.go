@@ -388,12 +388,14 @@ func TestTokenRepository_IncrementLoginAttempts(t *testing.T) {
 	mock.ExpectIncr(key).SetVal(1)
 	mock.ExpectExpire(key, time.Hour).SetVal(true)
 	
-	err := repo.IncrementLoginAttempts(context.Background(), username)
+	attempts, err := repo.IncrementLoginAttempts(context.Background(), username)
 	assert.NoError(t, err)
+	assert.Equal(t, 1, attempts)
 
 	mock.ExpectIncr(key).SetErr(errors.New("redis error"))
-	err = repo.IncrementLoginAttempts(context.Background(), username)
+	attempts, err = repo.IncrementLoginAttempts(context.Background(), username)
 	assert.Error(t, err)
+	assert.Equal(t, 0, attempts)
 
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

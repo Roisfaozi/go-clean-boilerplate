@@ -166,8 +166,7 @@ func TestLogin_Failure_InvalidPassword(t *testing.T) {
 	loginReq := model.LoginRequest{Username: user.Username, Password: "wrong-password"}
 
 	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
-	deps.tokenRepo.On("IncrementLoginAttempts", mock.Anything, user.Username).Return(nil)
-	deps.tokenRepo.On("GetLoginAttempts", mock.Anything, user.Username).Return(1, nil) 
+	deps.tokenRepo.On("IncrementLoginAttempts", mock.Anything, user.Username).Return(1, nil)
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -301,9 +300,7 @@ func TestLogin_Security_BruteForceProtection(t *testing.T) {
 		deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 
 		
-		deps.tokenRepo.On("IncrementLoginAttempts", mock.Anything, user.Username).Return(nil)
-		
-		deps.tokenRepo.On("GetLoginAttempts", mock.Anything, user.Username).Return(1, nil)
+		deps.tokenRepo.On("IncrementLoginAttempts", mock.Anything, user.Username).Return(1, nil)
 		
 		deps.tokenRepo.On("LockAccount", mock.Anything, user.Username, lockoutDuration).Return(nil)
 		
