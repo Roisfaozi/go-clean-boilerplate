@@ -8,8 +8,17 @@ import (
 )
 
 func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
+	allowCredentials := true
 	if len(allowedOrigins) == 0 {
 		allowedOrigins = []string{"*"}
+		allowCredentials = false
+	}
+
+	for _, origin := range allowedOrigins {
+		if origin == "*" {
+			allowCredentials = false
+			break
+		}
 	}
 
 	return cors.New(cors.Config{
@@ -17,7 +26,7 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
+		AllowCredentials: allowCredentials,
 		MaxAge:           12 * time.Hour,
 	})
 }
