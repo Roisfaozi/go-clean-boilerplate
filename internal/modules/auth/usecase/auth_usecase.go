@@ -42,6 +42,7 @@ type Service struct {
 	Enforcer         permissionUseCase.IEnforcer
 	auditUC          auditUseCase.AuditUseCase
 	taskDistributor  worker.TaskDistributor
+	dummyHash        string
 }
 
 func NewAuthUsecase(
@@ -58,7 +59,7 @@ func NewAuthUsecase(
 	auditUC auditUseCase.AuditUseCase,
 	taskDistributor worker.TaskDistributor,
 ) AuthUseCase {
-	return &Service{
+	s := &Service{
 		maxLoginAttempts: maxLoginAttempts,
 		lockoutDuration:  lockoutDuration,
 		jwtManager:       jwtManager,
@@ -72,6 +73,13 @@ func NewAuthUsecase(
 		auditUC:          auditUC,
 		taskDistributor:  taskDistributor,
 	}
+
+	// Generate dummy hash for timing attack prevention
+	// We use the default cost to ensure it matches the real password check duration
+	bytes, _ := bcrypt.GenerateFromPassword([]byte("dummy"), bcrypt.DefaultCost)
+	s.dummyHash = string(bytes)
+
+	return s
 }
 
 func (s *Service) generateAndStoreTokenPair(ctx context.Context, user *entity.User, role, username string) (string, string, string, error) {
@@ -121,6 +129,8 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		var err error
 		user, err = s.userRepo.FindByUsername(txCtx, request.Username)
 		if err != nil {
+			// Timing attack prevention: perform a hash check even if user not found
+			pkg.CheckPasswordHash(request.Password, s.dummyHash)
 			return ErrInvalidCredentials
 		}
 

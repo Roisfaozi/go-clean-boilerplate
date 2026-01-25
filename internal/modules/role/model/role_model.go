@@ -13,7 +13,7 @@ type RoleResponse struct {
 }
 
 type CreateRoleRequest struct {
-	Name        string `json:"name" validate:"required,max=50"`
+	Name        string `json:"name" validate:"required,max=50,xss"`
 	Description string `json:"description,omitempty" validate:"omitempty,xss"`
 }
 
