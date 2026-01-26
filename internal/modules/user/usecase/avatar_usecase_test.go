@@ -1,53 +1,25 @@
-package test
+package usecase
 
 import (
 	"context"
 	"errors"
-	"io"
 	"strings"
 	"testing"
 
-	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
-	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
-	authMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
-	permMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
-	storageMocks "github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/mocks"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 )
-
-// setupAvatarTest creates test dependencies for avatar tests
-func setupAvatarTest() (*userTestDeps, usecase.UserUseCase) {
-	deps := &userTestDeps{
-		Repo:     new(mocks.MockUserRepository),
-		TM:       new(mocking.MockWithTransactionManager),
-		Enforcer: new(permMocks.IEnforcer),
-		AuditUC:  new(auditMocks.MockAuditUseCase),
-		AuthUC:   new(authMocks.MockAuthUseCase),
-		Storage:  new(storageMocks.MockProvider),
-	}
-
-	log := logrus.New()
-	log.SetOutput(io.Discard)
-
-	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
-
-	return deps, uc
-}
 
 // ============================================================================
 // ✅ POSITIVE CASES
 // ============================================================================
 
 func TestUserUseCase_UpdateAvatar_Success(t *testing.T) {
-	deps, uc := setupAvatarTest()
+	deps, uc := setupUserTest()
 	ctx := context.Background()
 
 	userID := "user-123"
@@ -97,7 +69,7 @@ func TestUserUseCase_UpdateAvatar_Success(t *testing.T) {
 }
 
 func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {
-	deps, uc := setupAvatarTest()
+	deps, uc := setupUserTest()
 	ctx := context.Background()
 
 	userID := "user-456"
@@ -147,7 +119,7 @@ func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {
 // ============================================================================
 
 func TestUserUseCase_UpdateAvatar_UserNotFound(t *testing.T) {
-	deps, uc := setupAvatarTest()
+	deps, uc := setupUserTest()
 	ctx := context.Background()
 
 	userID := "nonexistent-user"
@@ -170,7 +142,7 @@ func TestUserUseCase_UpdateAvatar_UserNotFound(t *testing.T) {
 }
 
 func TestUserUseCase_UpdateAvatar_StorageUploadError(t *testing.T) {
-	deps, uc := setupAvatarTest()
+	deps, uc := setupUserTest()
 	ctx := context.Background()
 
 	userID := "user-789"
@@ -205,7 +177,7 @@ func TestUserUseCase_UpdateAvatar_StorageUploadError(t *testing.T) {
 }
 
 func TestUserUseCase_UpdateAvatar_DatabaseUpdateError(t *testing.T) {
-	deps, uc := setupAvatarTest()
+	deps, uc := setupUserTest()
 	ctx := context.Background()
 
 	userID := "user-101"
@@ -243,7 +215,7 @@ func TestUserUseCase_UpdateAvatar_DatabaseUpdateError(t *testing.T) {
 }
 
 func TestUserUseCase_UpdateAvatar_AuditLogError(t *testing.T) {
-	deps, uc := setupAvatarTest()
+	deps, uc := setupUserTest()
 	ctx := context.Background()
 
 	userID := "user-202"
@@ -289,7 +261,7 @@ func TestUserUseCase_UpdateAvatar_AuditLogError(t *testing.T) {
 // ============================================================================
 
 func TestUserUseCase_UpdateAvatar_InvalidFileType(t *testing.T) {
-	deps, uc := setupAvatarTest()
+	deps, uc := setupUserTest()
 	ctx := context.Background()
 
 	userID := "user-303"
@@ -323,7 +295,7 @@ func TestUserUseCase_UpdateAvatar_InvalidFileType(t *testing.T) {
 }
 
 func TestUserUseCase_UpdateAvatar_FileTooLarge(t *testing.T) {
-	deps, uc := setupAvatarTest()
+	deps, uc := setupUserTest()
 	ctx := context.Background()
 
 	userID := "user-404"
