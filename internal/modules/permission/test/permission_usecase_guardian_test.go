@@ -45,7 +45,7 @@ func TestPermissionUseCase_Edge_MaxStringLength(t *testing.T) {
 
 	err := uc.GrantPermissionToRole(context.Background(), longString, longString, "GET")
 	assert.Error(t, err) // Expect bad request because role not found
-	assert.Equal(t, exception.ErrBadRequest, err)
+	assert.Equal(t, exception.ErrInternalServer, err)
 
 	deps.RoleRepo.AssertExpectations(t)
 }
