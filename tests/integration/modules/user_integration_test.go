@@ -20,6 +20,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -441,7 +442,7 @@ func TestUserIntegration_Security_SQLInjectionInUsername(t *testing.T) {
 
 			if err == nil {
 				assert.NotEmpty(t, result.ID)
-				assert.Equal(t, injection, result.Username)
+				assert.Equal(t, pkg.SanitizeString(injection), result.Username)
 			}
 		})
 	}

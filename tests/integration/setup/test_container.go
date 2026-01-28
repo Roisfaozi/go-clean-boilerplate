@@ -50,7 +50,7 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 		var err error
 		logger.Info("🐳 Starting Shared Integration Containers...")
 
-		if !isDockerAvailable() {
+		if !IsDockerAvailable() {
 			_ = fmt.Errorf("docker not available")
 			return
 		}
@@ -195,7 +195,7 @@ func SetupRedisContainer(ctx context.Context) (*redisContainer.RedisContainer, s
 	return redisC, p.Port(), nil
 }
 
-func isDockerAvailable() bool {
+func IsDockerAvailable() bool {
 	cmd := exec.Command("docker", "info")
 	if err := cmd.Run(); err != nil {
 		return false

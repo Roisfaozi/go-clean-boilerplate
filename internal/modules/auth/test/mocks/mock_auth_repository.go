@@ -630,6 +630,7 @@ func (_mock *MockTokenRepository) IncrementLoginAttempts(ctx context.Context, us
 	} else {
 		r0 = ret.Get(0).(int)
 	}
+
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, username)
 	} else {

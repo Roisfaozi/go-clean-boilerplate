@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/glebarez/sqlite"
@@ -55,6 +56,20 @@ func TestUserRepository_Create(t *testing.T) {
 	assert.Equal(t, "test@example.com", savedUser.Email)
 }
 
+func TestUserRepository_Create_Error(t *testing.T) {
+	repo, _ := setupUserRepo(t)
+	ctx := context.Background()
+
+	user1 := &entity.User{ID: "1", Username: "duplicate", Email: "dup@test.com"}
+	err := repo.Create(ctx, user1)
+	require.NoError(t, err)
+
+	// Try to create another user with SAME Username (should fail due to unique constraint)
+	user2 := &entity.User{ID: "2", Username: "duplicate", Email: "other@test.com"}
+	err = repo.Create(ctx, user2)
+	assert.Error(t, err)
+}
+
 func TestUserRepository_FindByUsername(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
@@ -95,6 +110,26 @@ func TestUserRepository_FindByEmail(t *testing.T) {
 	})
 }
 
+func TestUserRepository_FindByToken(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	db.Create(&entity.User{ID: "1", Token: "valid-token", Username: "tokenuser", Email: "token@test.com"})
+
+	t.Run("Found", func(t *testing.T) {
+		user, err := repo.FindByToken(ctx, "valid-token")
+		require.NoError(t, err)
+		assert.NotNil(t, user)
+		assert.Equal(t, "valid-token", user.Token)
+	})
+
+	t.Run("Not Found", func(t *testing.T) {
+		user, err := repo.FindByToken(ctx, "invalid-token")
+		assert.Error(t, err)
+		assert.Nil(t, user)
+	})
+}
+
 func TestUserRepository_Update(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
@@ -109,6 +144,23 @@ func TestUserRepository_Update(t *testing.T) {
 	updated, err := repo.FindByID(ctx, "1")
 	require.NoError(t, err)
 	assert.Equal(t, "New Name", updated.Name)
+}
+
+func TestUserRepository_Update_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	// Create User 1
+	db.Create(&entity.User{ID: "1", Username: "user1", Email: "user1@test.com"})
+
+	// Create User 2
+	db.Create(&entity.User{ID: "2", Username: "user2", Email: "user2@test.com"})
+
+	// Try to update User 2 to have User 1's username (should fail)
+	user2ToUpdate := &entity.User{ID: "2", Username: "user1", Email: "user2@test.com"}
+
+	err := repo.Update(ctx, user2ToUpdate)
+	assert.Error(t, err)
 }
 
 func TestUserRepository_UpdateStatus(t *testing.T) {
@@ -146,6 +198,32 @@ func TestUserRepository_Delete(t *testing.T) {
 	var deletedAt int64
 	db.Unscoped().Model(&entity.User{}).Select("deleted_at").Where("id = ?", "1").Scan(&deletedAt)
 	assert.True(t, deletedAt > 0, "DeletedAt should be > 0")
+}
+
+func TestUserRepository_FindAll(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	db.Create(&entity.User{ID: "1", Username: "alpha", Email: "alpha@test.com", Name: "Alpha User"})
+	db.Create(&entity.User{ID: "2", Username: "beta", Email: "beta@test.com", Name: "Beta User"})
+
+	// Test 1: No Filter
+	users, total, err := repo.FindAll(ctx, &model.GetUserListRequest{Page: 1, Limit: 10})
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), total)
+	assert.Len(t, users, 2)
+
+	// Test 2: Filter by Username (LIKE)
+	users, total, err = repo.FindAll(ctx, &model.GetUserListRequest{Username: "alp", Page: 1, Limit: 10})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	assert.Equal(t, "alpha", users[0].Username)
+
+	// Test 3: Pagination
+	users, total, err = repo.FindAll(ctx, &model.GetUserListRequest{Page: 1, Limit: 1})
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), total) // Total is still 2
+	assert.Len(t, users, 1)          // But we got 1
 }
 
 func TestUserRepository_FindAllDynamic(t *testing.T) {

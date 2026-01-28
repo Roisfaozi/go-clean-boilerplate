@@ -1,10 +1,11 @@
 package usecase
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"path/filepath"
+	"net/http"
 
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
@@ -56,6 +57,9 @@ func NewUserUseCase(
 }
 
 func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUserRequest) (*model.UserResponse, error) {
+	request.Name = pkg.SanitizeString(request.Name)
+	request.Username = pkg.SanitizeString(request.Username)
+
 	existingUser, err := u.Repo.FindByUsername(ctx, request.Username)
 	if err == nil && existingUser != nil {
 		u.Log.Warnf("Username already exists: %s", request.Username)
@@ -294,12 +298,39 @@ func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file 
 		return nil, exception.ErrNotFound
 	}
 
-	// 2. Generate unique filename to avoid collisions
-	ext := filepath.Ext(filename)
+	// Security: Validate File Type using Magic Bytes
+	buf := make([]byte, 512)
+	n, err := file.Read(buf)
+	if err != nil && err != io.EOF {
+		u.Log.Warnf("Failed to read file for type detection: %v", err)
+		return nil, exception.ErrBadRequest
+	}
+	buf = buf[:n]
+
+	detectedType := http.DetectContentType(buf)
+
+	// Whitelist allowed types and enforce extension
+	allowedTypes := map[string]string{
+		"image/jpeg": ".jpg",
+		"image/png":  ".png",
+		"image/gif":  ".gif",
+		"image/webp": ".webp",
+	}
+
+	ext, allowed := allowedTypes[detectedType]
+	if !allowed {
+		u.Log.Warnf("Blocked upload of type: %s", detectedType)
+		return nil, exception.ErrValidationError
+	}
+
+	// Reconstruct the reader
+	file = io.MultiReader(bytes.NewReader(buf), file)
+
+	// 2. Generate unique filename to avoid collisions (force safe extension)
 	newFilename := fmt.Sprintf("avatars/%s%s", userID, ext)
 
-	// 3. Upload to Storage
-	url, err := u.Storage.UploadFile(ctx, file, newFilename, contentType)
+	// 3. Upload to Storage (use detected type)
+	url, err := u.Storage.UploadFile(ctx, file, newFilename, detectedType)
 	if err != nil {
 		u.Log.Errorf("Failed to upload avatar: %v", err)
 		return nil, exception.ErrInternalServer

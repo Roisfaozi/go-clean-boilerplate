@@ -42,6 +42,7 @@ type Service struct {
 	Enforcer         permissionUseCase.IEnforcer
 	auditUC          auditUseCase.AuditUseCase
 	taskDistributor  worker.TaskDistributor
+	dummyHash        string
 }
 
 func NewAuthUsecase(
@@ -58,7 +59,7 @@ func NewAuthUsecase(
 	auditUC auditUseCase.AuditUseCase,
 	taskDistributor worker.TaskDistributor,
 ) AuthUseCase {
-	return &Service{
+	s := &Service{
 		maxLoginAttempts: maxLoginAttempts,
 		lockoutDuration:  lockoutDuration,
 		jwtManager:       jwtManager,
@@ -72,6 +73,13 @@ func NewAuthUsecase(
 		auditUC:          auditUC,
 		taskDistributor:  taskDistributor,
 	}
+
+	// Generate dummy hash for timing attack prevention
+	// We use the default cost to ensure it matches the real password check duration
+	hash, _ := pkg.HashPassword("dummy")
+	s.dummyHash = hash
+
+	return s
 }
 
 func (s *Service) generateAndStoreTokenPair(ctx context.Context, user *entity.User, role, username string) (string, string, string, error) {
@@ -121,6 +129,8 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		var err error
 		user, err = s.userRepo.FindByUsername(txCtx, request.Username)
 		if err != nil {
+			// Timing attack prevention: perform a hash check even if user not found
+			pkg.CheckPasswordHash(request.Password, s.dummyHash)
 			return ErrInvalidCredentials
 		}
 
@@ -443,7 +453,7 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 		}
 	} else {
 		// Fallback logging if distributor is not configured
-		s.log.WithContext(ctx).Infof("PASSWORD RESET TOKEN for %s: %s (Expires in 15m)", email, token)
+		s.log.WithContext(ctx).Warnf("Email distributor not configured. Password reset token generated for %s but not logged for security.", email)
 	}
 
 	if s.auditUC != nil {
@@ -545,7 +555,7 @@ func (s *Service) RequestVerification(ctx context.Context, userID string) error 
 			s.log.WithContext(ctx).WithError(err).Error("Failed to enqueue verification email task")
 		}
 	} else {
-		s.log.WithContext(ctx).Infof("EMAIL VERIFICATION TOKEN for %s: %s (Expires in 24h)", user.Email, token)
+		s.log.WithContext(ctx).Warnf("Email distributor not configured. Email verification token generated for %s but not logged for security.", user.Email)
 	}
 
 	if s.auditUC != nil {

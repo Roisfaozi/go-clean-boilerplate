@@ -79,6 +79,7 @@ definitions:
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.ForgotPasswordRequest:
     properties:
       email:
+        maxLength: 100
         type: string
     required:
     - email
@@ -119,6 +120,7 @@ definitions:
         minLength: 8
         type: string
       token:
+        maxLength: 500
         type: string
     required:
     - new_password
@@ -140,6 +142,7 @@ definitions:
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.VerifyEmailRequest:
     properties:
       token:
+        maxLength: 500
         type: string
     required:
     - token
@@ -193,6 +196,7 @@ definitions:
         type: string
       password:
         maxLength: 72
+        minLength: 8
         type: string
       username:
         maxLength: 100
@@ -241,6 +245,7 @@ definitions:
         minimum: 1
         type: integer
       page_size:
+        maximum: 100
         minimum: 1
         type: integer
       sort:

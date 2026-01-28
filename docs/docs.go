@@ -1629,7 +1629,8 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100
                 }
             }
         },
@@ -1688,7 +1689,8 @@ const docTemplate = `{
                     "minLength": 8
                 },
                 "token": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 500
                 }
             }
         },
@@ -1719,7 +1721,8 @@ const docTemplate = `{
             ],
             "properties": {
                 "token": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 500
                 }
             }
         },
@@ -1794,7 +1797,8 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string",
-                    "maxLength": 72
+                    "maxLength": 72,
+                    "minLength": 8
                 },
                 "username": {
                     "type": "string",
@@ -1863,6 +1867,7 @@ const docTemplate = `{
                 },
                 "page_size": {
                     "type": "integer",
+                    "maximum": 100,
                     "minimum": 1
                 },
                 "sort": {
