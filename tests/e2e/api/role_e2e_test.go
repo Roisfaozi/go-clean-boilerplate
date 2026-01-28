@@ -139,6 +139,44 @@ func TestRoleE2E_GetAllRoles(t *testing.T) {
 	})
 }
 
+func TestRoleE2E_UpdateRole(t *testing.T) {
+	server := setup.SetupTestServer(t)
+	defer server.Cleanup()
+
+	adminToken := createRoleAdminAndLogin(t, server)
+
+	// Create role to update
+	roleToUpdate := &roleEntity.Role{ID: uuid.New().String(), Name: "RoleToUpdate", Description: "Original"}
+	server.DB.Create(roleToUpdate)
+
+	t.Run("Success - Update Role", func(t *testing.T) {
+		resp := server.Client.PUT("/api/v1/roles/"+roleToUpdate.ID, map[string]any{
+			"description": "Updated Description",
+		}, setup.WithAuth(adminToken))
+
+		assert.Equal(t, 200, resp.StatusCode)
+
+		var result struct {
+			Data struct {
+				ID          string `json:"id"`
+				Name        string `json:"name"`
+				Description string `json:"description"`
+			} `json:"data"`
+		}
+		err := resp.JSON(&result)
+		require.NoError(t, err)
+		assert.Equal(t, "Updated Description", result.Data.Description)
+	})
+
+	t.Run("Negative - Update Non-existent", func(t *testing.T) {
+		resp := server.Client.PUT("/api/v1/roles/nonexistent-role-id", map[string]any{
+			"description": "Updated Description",
+		}, setup.WithAuth(adminToken))
+
+		assert.Equal(t, 404, resp.StatusCode)
+	})
+}
+
 func TestRoleE2E_DynamicSearch(t *testing.T) {
 	server := setup.SetupTestServer(t)
 	defer server.Cleanup()

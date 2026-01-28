@@ -13,7 +13,7 @@ type RoleResponse struct {
 }
 
 type CreateRoleRequest struct {
-	Name        string `json:"name" validate:"required,max=50"`
+	Name        string `json:"name" validate:"required,max=50,xss"`
 	Description string `json:"description,omitempty" validate:"omitempty,xss"`
 }
 
@@ -22,7 +22,7 @@ type UpdateRoleRequest struct {
 }
 
 func (r *CreateRoleRequest) Sanitize() {
-	r.Name = strings.TrimSpace(r.Name)
+	r.Name = validation.SanitizeString(strings.TrimSpace(r.Name))
 	r.Description = validation.SanitizeString(strings.TrimSpace(r.Description))
 }
 
