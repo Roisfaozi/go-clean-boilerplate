@@ -7,28 +7,30 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateRoleRequest_Validation(t *testing.T) {
-	v := validator.New()
-	_ = validation.RegisterCustomValidations(v)
+	validate := validator.New()
+	err := validation.RegisterCustomValidations(validate)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name    string
-		req     model.CreateRoleRequest
+		request model.CreateRoleRequest
 		wantErr bool
 	}{
 		{
 			name: "Valid Role",
-			req: model.CreateRoleRequest{
+			request: model.CreateRoleRequest{
 				Name:        "Admin",
 				Description: "Administrator role",
 			},
 			wantErr: false,
 		},
 		{
-			name: "XSS in Name (Vulnerability Check)",
-			req: model.CreateRoleRequest{
+			name: "XSS in Name",
+			request: model.CreateRoleRequest{
 				Name:        "<script>alert(1)</script>",
 				Description: "Malicious role",
 			},
@@ -36,8 +38,8 @@ func TestCreateRoleRequest_Validation(t *testing.T) {
 		},
 		{
 			name: "XSS in Description",
-			req: model.CreateRoleRequest{
-				Name:        "Admin",
+			request: model.CreateRoleRequest{
+				Name:        "Safe Role",
 				Description: "<script>alert(1)</script>",
 			},
 			wantErr: true,
@@ -46,7 +48,7 @@ func TestCreateRoleRequest_Validation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := v.Struct(tt.req)
+			err := validate.Struct(tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
