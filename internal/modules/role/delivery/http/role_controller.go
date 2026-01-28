@@ -3,6 +3,7 @@ package http
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase"
@@ -53,11 +54,16 @@ func (h *RoleController) Create(c *gin.Context) {
 		return
 	}
 
+	req.Name = strings.TrimSpace(req.Name)
+	req.Description = strings.TrimSpace(req.Description)
+
 	if err := h.validate.Struct(req); err != nil {
 		msg := validation.FormatValidationErrors(err)
 		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
+
+	req.Sanitize()
 
 	role, err := h.RoleUseCase.Create(ctx, &req)
 	if err != nil {
