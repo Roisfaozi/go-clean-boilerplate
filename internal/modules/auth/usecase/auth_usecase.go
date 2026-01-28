@@ -76,8 +76,8 @@ func NewAuthUsecase(
 
 	// Generate dummy hash for timing attack prevention
 	// We use the default cost to ensure it matches the real password check duration
-	bytes, _ := bcrypt.GenerateFromPassword([]byte("dummy"), bcrypt.DefaultCost)
-	s.dummyHash = string(bytes)
+	hash, _ := pkg.HashPassword("dummy")
+	s.dummyHash = hash
 
 	return s
 }
