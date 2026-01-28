@@ -20,12 +20,12 @@ type AppConfig struct {
 	Log            LoggerConfig         `mapstructure:"log"`
 	WebSocket      WebSocketConfig      `mapstructure:"websocket"`
 	Casbin         CasbinConfig         `mapstructure:"casbin"`
-		CORS      CORSConfig      `mapstructure:"cors"`
-		CircuitBreaker CircuitBreakerConfig `mapstructure:"circuit_breaker"`
-		RateLimit RateLimitConfig `mapstructure:"rate_limit"`
-		SMTP      SMTPConfig      `mapstructure:"smtp"`
-		Storage   StorageConfig   `mapstructure:"storage"`
-		Metrics   struct {
+	CORS           CORSConfig           `mapstructure:"cors"`
+	CircuitBreaker CircuitBreakerConfig `mapstructure:"circuit_breaker"`
+	RateLimit      RateLimitConfig      `mapstructure:"rate_limit"`
+	SMTP           SMTPConfig           `mapstructure:"smtp"`
+	Storage        StorageConfig        `mapstructure:"storage"`
+	Metrics        struct {
 		Enabled     bool   `env:"METRICS_ENABLED" envDefault:"false"`
 		AuthEnabled bool   `env:"METRICS_AUTH_ENABLED" envDefault:"false"`
 		Username    string `env:"METRICS_USER"`

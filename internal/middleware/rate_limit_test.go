@@ -185,7 +185,7 @@ func TestRateLimitMemory_IPIsolation(t *testing.T) {
 	req3, _ := http.NewRequest("GET", "/", nil)
 	req3.Header.Set("X-Forwarded-For", "192.168.1.2")
 	r.ServeHTTP(w3, req3)
-	assert.Equal(t, http.StatusTooManyRequests , w3.Code)
+	assert.Equal(t, http.StatusTooManyRequests, w3.Code)
 }
 
 func TestRateLimitMemory_ResponseHeaders(t *testing.T) {
