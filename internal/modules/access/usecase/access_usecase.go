@@ -9,6 +9,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -34,6 +35,9 @@ func NewAccessUseCase(repo repository.AccessRepository, log *logrus.Logger) IAcc
 }
 
 func (uc *AccessUseCase) CreateAccessRight(ctx context.Context, req model.CreateAccessRightRequest) (*model.AccessRightResponse, error) {
+	req.Name = validation.SanitizeString(req.Name)
+	req.Description = validation.SanitizeString(req.Description)
+
 	accessRightEntity := &entity.AccessRight{
 		Name:        req.Name,
 		Description: req.Description,
@@ -61,6 +65,8 @@ func (uc *AccessUseCase) GetAllAccessRights(ctx context.Context) (*model.AccessR
 }
 
 func (uc *AccessUseCase) CreateEndpoint(ctx context.Context, req model.CreateEndpointRequest) (*model.EndpointResponse, error) {
+	req.Path = validation.SanitizeString(req.Path)
+
 	endpointEntity := &entity.Endpoint{
 		Path:   req.Path,
 		Method: req.Method,

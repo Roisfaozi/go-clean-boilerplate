@@ -5,12 +5,12 @@ import (
 )
 
 type CreateAccessRightRequest struct {
-	Name        string `json:"name" validate:"required,min=3,max=100"`
-	Description string `json:"description" validate:"max=255"`
+	Name        string `json:"name" validate:"required,min=3,max=100,xss"`
+	Description string `json:"description" validate:"max=255,xss"`
 }
 
 type CreateEndpointRequest struct {
-	Path   string `json:"path" validate:"required,min=1,max=191"`
+	Path   string `json:"path" validate:"required,min=1,max=191,xss"`
 	Method string `json:"method" validate:"required,min=1,max=10"`
 }
 
@@ -20,8 +20,8 @@ type LinkEndpointRequest struct {
 }
 
 type UpdateAccessRightRequest struct {
-	Name        string `json:"name,omitempty" validate:"omitempty,min=3,max=100"`
-	Description string `json:"description,omitempty" validate:"max=255"`
+	Name        string `json:"name,omitempty" validate:"omitempty,min=3,max=100,xss"`
+	Description string `json:"description,omitempty" validate:"max=255,xss"`
 }
 
 type AddEndpointToAccessRightRequest struct {

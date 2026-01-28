@@ -13,6 +13,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -29,7 +30,9 @@ func setupAccessTestRouter() *gin.Engine {
 func newTestAccessController(mockUseCase *mocks.MockIAccessUseCase) *accessHandler.AccessController {
 	log := logrus.New()
 	log.SetLevel(logrus.PanicLevel)
-	return accessHandler.NewAccessController(mockUseCase, validator.New(), log)
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v)
+	return accessHandler.NewAccessController(mockUseCase, v, log)
 }
 
 func TestAccessHandler_CreateAccessRight_Success(t *testing.T) {
@@ -453,4 +456,50 @@ func TestAccessHandler_GetAccessRightsDynamic_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	mockUseCase.AssertExpectations(t)
+}
+
+func TestAccessHandler_CreateAccessRight_XSS(t *testing.T) {
+	mockUseCase := new(mocks.MockIAccessUseCase)
+	handler := newTestAccessController(mockUseCase)
+	router := setupAccessTestRouter()
+	router.POST("/access-rights", handler.CreateAccessRight)
+
+	reqBody := model.CreateAccessRightRequest{
+		Name:        "<script>alert(1)</script>",
+		Description: "Safe description",
+	}
+
+	bodyBytes, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/access-rights", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Expect 422 because of xss tag
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	mockUseCase.AssertNotCalled(t, "CreateAccessRight", mock.Anything, mock.Anything)
+}
+
+func TestAccessHandler_CreateEndpoint_XSS(t *testing.T) {
+	mockUseCase := new(mocks.MockIAccessUseCase)
+	handler := newTestAccessController(mockUseCase)
+	router := setupAccessTestRouter()
+	router.POST("/endpoints", handler.CreateEndpoint)
+
+	reqBody := model.CreateEndpointRequest{
+		Path:   "/test/<script>alert(1)</script>",
+		Method: "GET",
+	}
+
+	bodyBytes, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/endpoints", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Expect 422 because of xss tag
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	mockUseCase.AssertNotCalled(t, "CreateEndpoint", mock.Anything, mock.Anything)
 }
