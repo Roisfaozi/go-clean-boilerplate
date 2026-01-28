@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"strings"
 	"testing"
 
 	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
@@ -716,7 +715,7 @@ func TestUserUseCase_UpdateAvatar(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, uc := setupUserTest()
 		userID := "user123"
-		file := strings.NewReader("image content")
+		file := createValidImageReader("image content")
 		filename := "avatar.png"
 		contentType := "image/png"
 		expectedURL := "https://storage.com/avatars/user123.png"
@@ -755,7 +754,7 @@ func TestUserUseCase_UpdateAvatar(t *testing.T) {
 		deps.Repo.On("FindByID", mock.Anything, userID).Return(user, nil)
 		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("", errors.New("s3 error"))
 
-		_, err := uc.UpdateAvatar(context.Background(), userID, strings.NewReader(""), "f.png", "image/png")
+		_, err := uc.UpdateAvatar(context.Background(), userID, createValidImageReader(""), "f.png", "image/png")
 		assert.Equal(t, exception.ErrInternalServer, err)
 	})
 
@@ -768,7 +767,7 @@ func TestUserUseCase_UpdateAvatar(t *testing.T) {
 		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("url", nil)
 		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error"))
 
-		_, err := uc.UpdateAvatar(context.Background(), userID, strings.NewReader(""), "f.png", "image/png")
+		_, err := uc.UpdateAvatar(context.Background(), userID, createValidImageReader(""), "f.png", "image/png")
 		assert.Equal(t, exception.ErrInternalServer, err)
 	})
 }

@@ -23,9 +23,16 @@ func TestScenario_AdvancedRateLimit_Tiers(t *testing.T) {
 		t.Skip("Skipping E2E test in short mode")
 	}
 
+	if !setup.IsDockerAvailable() {
+		t.Skip("Skipping integration test: Docker not available")
+	}
+
 	// 1. Setup Environment (Redis is key here)
 	redisContainer, redisPort, err := setup.SetupRedisContainer(context.Background())
-	require.NoError(t, err)
+	if err != nil {
+		t.Skipf("Skipping integration test: Failed to start Redis container: %v", err)
+		return
+	}
 	defer func() {
 		_ = redisContainer.Terminate(context.Background())
 	}()
