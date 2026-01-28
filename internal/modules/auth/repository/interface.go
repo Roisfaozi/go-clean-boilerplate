@@ -26,7 +26,7 @@ type TokenRepository interface {
 
 	// Account Lockout Methods
 	GetLoginAttempts(ctx context.Context, username string) (int, error)
-	IncrementLoginAttempts(ctx context.Context, username string) error
+	IncrementLoginAttempts(ctx context.Context, username string) (int, error)
 	ResetLoginAttempts(ctx context.Context, username string) error
 	LockAccount(ctx context.Context, username string, duration time.Duration) error
 	IsAccountLocked(ctx context.Context, username string) (bool, time.Duration, error)

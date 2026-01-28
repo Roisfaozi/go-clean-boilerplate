@@ -126,13 +126,9 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 
 		if !pkg.CheckPasswordHash(request.Password, user.Password) {
 			// Password Invalid: Handle Lockout Logic
-			if incrErr := s.tokenRepo.IncrementLoginAttempts(txCtx, request.Username); incrErr != nil {
+			attempts, incrErr := s.tokenRepo.IncrementLoginAttempts(txCtx, request.Username)
+			if incrErr != nil {
 				s.log.WithContext(txCtx).WithError(incrErr).Error("Failed to increment login attempts")
-			}
-			
-			attempts, getErr := s.tokenRepo.GetLoginAttempts(txCtx, request.Username)
-			if getErr != nil {
-				s.log.WithContext(txCtx).WithError(getErr).Error("Failed to get login attempts")
 			}
 
 			if attempts >= s.maxLoginAttempts {
