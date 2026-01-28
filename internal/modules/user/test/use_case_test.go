@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"strings"
 	"testing"
 
 	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
@@ -550,6 +549,37 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		deps.AuditUC.AssertExpectations(t)
 		deps.Enforcer.AssertExpectations(t)
 	})
+
+	t.Run("Error - Audit Log Fails & Compensation Fails", func(t *testing.T) {
+		deps, uc := setupUserTest()
+
+		deps.Repo.On("FindByID", mock.Anything, deleteReq.ID).Return(&entity.User{ID: deleteReq.ID, Username: "deletedUser"}, nil)
+
+		// Mock Transaction
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+
+		deps.Repo.On("Delete", mock.Anything, deleteReq.ID).Return(nil)
+
+		// Expect Backup Roles
+		deps.Enforcer.On("GetRolesForUser", deleteReq.ID).Return([]string{"role:user"}, nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, deleteReq.ID).Return(true, nil)
+
+		// Audit fails
+		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit fail"))
+
+		// Compensation fails
+		deps.Enforcer.On("AddGroupingPolicy", deleteReq.ID, "role:user").Return(false, errors.New("casbin restore error"))
+
+		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
+
+		// Should still return error, but code should not panic and should log error (which we can't assert easily without hooking logger, but coverage will increase)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		deps.Repo.AssertExpectations(t)
+		deps.AuditUC.AssertExpectations(t)
+		deps.Enforcer.AssertExpectations(t)
+	})
 }
 
 func TestUserUseCase_GetAllUsersDynamic(t *testing.T) {
@@ -685,7 +715,7 @@ func TestUserUseCase_UpdateAvatar(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, uc := setupUserTest()
 		userID := "user123"
-		file := strings.NewReader("image content")
+		file := createValidImageReader("image content")
 		filename := "avatar.png"
 		contentType := "image/png"
 		expectedURL := "https://storage.com/avatars/user123.png"
@@ -724,7 +754,7 @@ func TestUserUseCase_UpdateAvatar(t *testing.T) {
 		deps.Repo.On("FindByID", mock.Anything, userID).Return(user, nil)
 		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("", errors.New("s3 error"))
 
-		_, err := uc.UpdateAvatar(context.Background(), userID, strings.NewReader(""), "f.png", "image/png")
+		_, err := uc.UpdateAvatar(context.Background(), userID, createValidImageReader(""), "f.png", "image/png")
 		assert.Equal(t, exception.ErrInternalServer, err)
 	})
 
@@ -737,7 +767,7 @@ func TestUserUseCase_UpdateAvatar(t *testing.T) {
 		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("url", nil)
 		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error"))
 
-		_, err := uc.UpdateAvatar(context.Background(), userID, strings.NewReader(""), "f.png", "image/png")
+		_, err := uc.UpdateAvatar(context.Background(), userID, createValidImageReader(""), "f.png", "image/png")
 		assert.Equal(t, exception.ErrInternalServer, err)
 	})
 }
@@ -759,4 +789,46 @@ func TestUserUseCase_HardDeleteSoftDeletedUsers(t *testing.T) {
 		err := uc.HardDeleteSoftDeletedUsers(context.Background(), 30)
 		assert.Equal(t, exception.ErrInternalServer, err)
 	})
+}
+
+func TestUserUseCase_Create_Sanitization(t *testing.T) {
+	deps, uc := setupUserTest()
+
+	inputName := "<script>alert('XSS')</script>John Doe"
+	// pkg.SanitizeString implementation:
+	// output = strings.TrimSpace(input)
+	// output = html.EscapeString(output)
+	// Wait, if it uses html.EscapeString, then "<script>" becomes "&lt;script&gt;"
+	// It does NOT remove tags.
+
+	// Let's check pkg/security.go again.
+	// "func SanitizeString(input string) string { output := strings.TrimSpace(input); output = html.EscapeString(output); return output }"
+
+	expectedName := "&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;John Doe"
+
+	testReq := &model.RegisterUserRequest{
+		Username: "userXSS", Email: "xss@example.com", Name: inputName, Password: "password123",
+	}
+
+	deps.Repo.On("FindByUsername", mock.Anything, "userXSS").Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByEmail", mock.Anything, "xss@example.com").Return(nil, gorm.ErrRecordNotFound)
+
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+
+	// Capture the user passed to Create and verify Name is sanitized
+	deps.Repo.On("Create", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+		return u.Name == expectedName
+	})).Return(nil)
+
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
+	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+	result, err := uc.Create(context.Background(), testReq)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, expectedName, result.Name)
+	deps.Repo.AssertExpectations(t)
 }

@@ -96,6 +96,63 @@ func (_c *MockRoleRepository_Create_Call) RunAndReturn(run func(ctx context.Cont
 	return _c
 }
 
+// Update provides a mock function for the type MockRoleRepository
+func (_mock *MockRoleRepository) Update(ctx context.Context, role *entity.Role) error {
+	ret := _mock.Called(ctx, role)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Update")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entity.Role) error); ok {
+		r0 = returnFunc(ctx, role)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockRoleRepository_Update_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Update'
+type MockRoleRepository_Update_Call struct {
+	*mock.Call
+}
+
+// Update is a helper method to define mock.On call
+//   - ctx context.Context
+//   - role *entity.Role
+func (_e *MockRoleRepository_Expecter) Update(ctx interface{}, role interface{}) *MockRoleRepository_Update_Call {
+	return &MockRoleRepository_Update_Call{Call: _e.mock.On("Update", ctx, role)}
+}
+
+func (_c *MockRoleRepository_Update_Call) Run(run func(ctx context.Context, role *entity.Role)) *MockRoleRepository_Update_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *entity.Role
+		if args[1] != nil {
+			arg1 = args[1].(*entity.Role)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRoleRepository_Update_Call) Return(err error) *MockRoleRepository_Update_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockRoleRepository_Update_Call) RunAndReturn(run func(ctx context.Context, role *entity.Role) error) *MockRoleRepository_Update_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Delete provides a mock function for the type MockRoleRepository
 func (_mock *MockRoleRepository) Delete(ctx context.Context, id string) error {
 	ret := _mock.Called(ctx, id)

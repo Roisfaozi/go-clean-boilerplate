@@ -6,6 +6,7 @@ package mocks
 
 import (
 	"context"
+	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
@@ -403,6 +404,72 @@ func (_c *MockTokenRepository_FindVerificationToken_Call) RunAndReturn(run func(
 	return _c
 }
 
+// GetLoginAttempts provides a mock function for the type MockTokenRepository
+func (_mock *MockTokenRepository) GetLoginAttempts(ctx context.Context, username string) (int, error) {
+	ret := _mock.Called(ctx, username)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetLoginAttempts")
+	}
+
+	var r0 int
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (int, error)); ok {
+		return returnFunc(ctx, username)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) int); ok {
+		r0 = returnFunc(ctx, username)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, username)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockTokenRepository_GetLoginAttempts_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetLoginAttempts'
+type MockTokenRepository_GetLoginAttempts_Call struct {
+	*mock.Call
+}
+
+// GetLoginAttempts is a helper method to define mock.On call
+//   - ctx context.Context
+//   - username string
+func (_e *MockTokenRepository_Expecter) GetLoginAttempts(ctx interface{}, username interface{}) *MockTokenRepository_GetLoginAttempts_Call {
+	return &MockTokenRepository_GetLoginAttempts_Call{Call: _e.mock.On("GetLoginAttempts", ctx, username)}
+}
+
+func (_c *MockTokenRepository_GetLoginAttempts_Call) Run(run func(ctx context.Context, username string)) *MockTokenRepository_GetLoginAttempts_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTokenRepository_GetLoginAttempts_Call) Return(n int, err error) *MockTokenRepository_GetLoginAttempts_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *MockTokenRepository_GetLoginAttempts_Call) RunAndReturn(run func(ctx context.Context, username string) (int, error)) *MockTokenRepository_GetLoginAttempts_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetToken provides a mock function for the type MockTokenRepository
 func (_mock *MockTokenRepository) GetToken(ctx context.Context, userID string, sessionID string) (*model.Auth, error) {
 	ret := _mock.Called(ctx, userID, sessionID)
@@ -541,6 +608,265 @@ func (_c *MockTokenRepository_GetUserSessions_Call) Return(auths []*model.Auth, 
 }
 
 func (_c *MockTokenRepository_GetUserSessions_Call) RunAndReturn(run func(ctx context.Context, userID string) ([]*model.Auth, error)) *MockTokenRepository_GetUserSessions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IncrementLoginAttempts provides a mock function for the type MockTokenRepository
+func (_mock *MockTokenRepository) IncrementLoginAttempts(ctx context.Context, username string) (int, error) {
+	ret := _mock.Called(ctx, username)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IncrementLoginAttempts")
+	}
+
+	var r0 int
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (int, error)); ok {
+		return returnFunc(ctx, username)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) int); ok {
+		r0 = returnFunc(ctx, username)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, username)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockTokenRepository_IncrementLoginAttempts_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IncrementLoginAttempts'
+type MockTokenRepository_IncrementLoginAttempts_Call struct {
+	*mock.Call
+}
+
+// IncrementLoginAttempts is a helper method to define mock.On call
+//   - ctx context.Context
+//   - username string
+func (_e *MockTokenRepository_Expecter) IncrementLoginAttempts(ctx interface{}, username interface{}) *MockTokenRepository_IncrementLoginAttempts_Call {
+	return &MockTokenRepository_IncrementLoginAttempts_Call{Call: _e.mock.On("IncrementLoginAttempts", ctx, username)}
+}
+
+func (_c *MockTokenRepository_IncrementLoginAttempts_Call) Run(run func(ctx context.Context, username string)) *MockTokenRepository_IncrementLoginAttempts_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTokenRepository_IncrementLoginAttempts_Call) Return(attempts int, err error) *MockTokenRepository_IncrementLoginAttempts_Call {
+	_c.Call.Return(attempts, err)
+	return _c
+}
+
+func (_c *MockTokenRepository_IncrementLoginAttempts_Call) RunAndReturn(run func(ctx context.Context, username string) (int, error)) *MockTokenRepository_IncrementLoginAttempts_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IsAccountLocked provides a mock function for the type MockTokenRepository
+func (_mock *MockTokenRepository) IsAccountLocked(ctx context.Context, username string) (bool, time.Duration, error) {
+	ret := _mock.Called(ctx, username)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsAccountLocked")
+	}
+
+	var r0 bool
+	var r1 time.Duration
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (bool, time.Duration, error)); ok {
+		return returnFunc(ctx, username)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) bool); ok {
+		r0 = returnFunc(ctx, username)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) time.Duration); ok {
+		r1 = returnFunc(ctx, username)
+	} else {
+		r1 = ret.Get(1).(time.Duration)
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
+		r2 = returnFunc(ctx, username)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockTokenRepository_IsAccountLocked_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsAccountLocked'
+type MockTokenRepository_IsAccountLocked_Call struct {
+	*mock.Call
+}
+
+// IsAccountLocked is a helper method to define mock.On call
+//   - ctx context.Context
+//   - username string
+func (_e *MockTokenRepository_Expecter) IsAccountLocked(ctx interface{}, username interface{}) *MockTokenRepository_IsAccountLocked_Call {
+	return &MockTokenRepository_IsAccountLocked_Call{Call: _e.mock.On("IsAccountLocked", ctx, username)}
+}
+
+func (_c *MockTokenRepository_IsAccountLocked_Call) Run(run func(ctx context.Context, username string)) *MockTokenRepository_IsAccountLocked_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTokenRepository_IsAccountLocked_Call) Return(b bool, duration time.Duration, err error) *MockTokenRepository_IsAccountLocked_Call {
+	_c.Call.Return(b, duration, err)
+	return _c
+}
+
+func (_c *MockTokenRepository_IsAccountLocked_Call) RunAndReturn(run func(ctx context.Context, username string) (bool, time.Duration, error)) *MockTokenRepository_IsAccountLocked_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// LockAccount provides a mock function for the type MockTokenRepository
+func (_mock *MockTokenRepository) LockAccount(ctx context.Context, username string, duration time.Duration) error {
+	ret := _mock.Called(ctx, username, duration)
+
+	if len(ret) == 0 {
+		panic("no return value specified for LockAccount")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Duration) error); ok {
+		r0 = returnFunc(ctx, username, duration)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockTokenRepository_LockAccount_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LockAccount'
+type MockTokenRepository_LockAccount_Call struct {
+	*mock.Call
+}
+
+// LockAccount is a helper method to define mock.On call
+//   - ctx context.Context
+//   - username string
+//   - duration time.Duration
+func (_e *MockTokenRepository_Expecter) LockAccount(ctx interface{}, username interface{}, duration interface{}) *MockTokenRepository_LockAccount_Call {
+	return &MockTokenRepository_LockAccount_Call{Call: _e.mock.On("LockAccount", ctx, username, duration)}
+}
+
+func (_c *MockTokenRepository_LockAccount_Call) Run(run func(ctx context.Context, username string, duration time.Duration)) *MockTokenRepository_LockAccount_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 time.Duration
+		if args[2] != nil {
+			arg2 = args[2].(time.Duration)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTokenRepository_LockAccount_Call) Return(err error) *MockTokenRepository_LockAccount_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockTokenRepository_LockAccount_Call) RunAndReturn(run func(ctx context.Context, username string, duration time.Duration) error) *MockTokenRepository_LockAccount_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ResetLoginAttempts provides a mock function for the type MockTokenRepository
+func (_mock *MockTokenRepository) ResetLoginAttempts(ctx context.Context, username string) error {
+	ret := _mock.Called(ctx, username)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ResetLoginAttempts")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, username)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockTokenRepository_ResetLoginAttempts_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ResetLoginAttempts'
+type MockTokenRepository_ResetLoginAttempts_Call struct {
+	*mock.Call
+}
+
+// ResetLoginAttempts is a helper method to define mock.On call
+//   - ctx context.Context
+//   - username string
+func (_e *MockTokenRepository_Expecter) ResetLoginAttempts(ctx interface{}, username interface{}) *MockTokenRepository_ResetLoginAttempts_Call {
+	return &MockTokenRepository_ResetLoginAttempts_Call{Call: _e.mock.On("ResetLoginAttempts", ctx, username)}
+}
+
+func (_c *MockTokenRepository_ResetLoginAttempts_Call) Run(run func(ctx context.Context, username string)) *MockTokenRepository_ResetLoginAttempts_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTokenRepository_ResetLoginAttempts_Call) Return(err error) *MockTokenRepository_ResetLoginAttempts_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockTokenRepository_ResetLoginAttempts_Call) RunAndReturn(run func(ctx context.Context, username string) error) *MockTokenRepository_ResetLoginAttempts_Call {
 	_c.Call.Return(run)
 	return _c
 }

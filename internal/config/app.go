@@ -16,6 +16,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/router"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/circuitbreaker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/storage"
@@ -46,6 +47,14 @@ type Application struct {
 // NewApplication initializes and wires up all application components.
 func NewApplication(cfg *AppConfig) (*Application, error) {
 	logger := NewLogrus(cfg)
+
+	// Configure Circuit Breaker
+	circuitbreaker.Configure(
+		cfg.CircuitBreaker.Enabled,
+		cfg.CircuitBreaker.MaxRequests,
+		cfg.CircuitBreaker.Interval,
+		cfg.CircuitBreaker.Timeout,
+	)
 
 	// Initialize OpenTelemetry
 	var tracerShutdown func(context.Context) error
@@ -108,7 +117,21 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	auditModule := audit.NewAuditModule(dbConnection, logger)
 
 	// Inject TaskDistributor to AuthModule
-	authModule := auth.NewAuthModule(jwtManager, dbConnection, redisClient, logger, validate, tm, wsManager, sseManager, enforcer, auditModule, taskDistributor)
+	authModule := auth.NewAuthModule(
+		cfg.Security.MaxLoginAttempts,
+		cfg.Security.LockoutDuration,
+		jwtManager,
+		dbConnection,
+		redisClient,
+		logger,
+		validate,
+		tm,
+		wsManager,
+		sseManager,
+		enforcer,
+		auditModule,
+		taskDistributor,
+	)
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, storageProvider)
 

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redismock/v9"
@@ -73,16 +74,16 @@ func TestRateLimitMiddlewareRedis(t *testing.T) {
 		db, mock := redismock.NewClientMock()
 
 		// When using Lua script, redismock handles Eval/EvalSha
-		// The key is "rate_limit:"
+		// The key format is "rate_limit:ip:"
 
 		// First request: Script returns 1
-		mock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:"}, 60).SetVal(int64(1))
+		mock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetVal(int64(1))
 
 		// Second request: Script returns 2
-		mock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:"}, 60).SetVal(int64(2))
+		mock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetVal(int64(2))
 
 		r := gin.New()
-		r.Use(RateLimitMiddlewareRedis(db, logger, 10))
+		r.Use(RateLimitMiddlewareRedis(db, logger, LimiterTypeIP, 10, 60*time.Second))
 		r.GET("/", func(c *gin.Context) {
 			c.Status(http.StatusOK)
 		})
@@ -107,15 +108,14 @@ func TestRateLimitMiddlewareRedis(t *testing.T) {
 	t.Run("Block requests", func(t *testing.T) {
 		db, mock := redismock.NewClientMock()
 
-		rps := 1.0
-		limit := int64(rps * 60) // 60
+		limit := 60
 
 		// Mock hitting the limit
 		// Script returns limit + 1
-		mock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:"}, 60).SetVal(limit + 1)
+		mock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetVal(int64(limit + 1))
 
 		r := gin.New()
-		r.Use(RateLimitMiddlewareRedis(db, logger, rps))
+		r.Use(RateLimitMiddlewareRedis(db, logger, LimiterTypeIP, limit, 60*time.Second))
 		r.GET("/", func(c *gin.Context) {
 			c.Status(http.StatusOK)
 		})

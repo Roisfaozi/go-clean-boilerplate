@@ -18,6 +18,7 @@ var (
 	ErrInvalidVerificationToken  = exception.ErrBadRequest
 	ErrAlreadyVerified           = exception.ErrBadRequest
 	ErrAccountSuspended          = exception.ErrForbidden
+	ErrAccountLocked             = exception.ErrForbidden
 )
 
 type AuthUseCase interface {

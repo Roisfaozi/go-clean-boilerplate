@@ -25,6 +25,10 @@ func (r *roleRepository) Create(ctx context.Context, role *entity.Role) error {
 	return r.db.WithContext(ctx).Create(role).Error
 }
 
+func (r *roleRepository) Update(ctx context.Context, role *entity.Role) error {
+	return r.db.WithContext(ctx).Model(role).Omit("ID", "Name", "CreatedAt").Updates(role).Error
+}
+
 func (r *roleRepository) FindByID(ctx context.Context, id string) (*entity.Role, error) {
 	var role entity.Role
 	if err := r.db.WithContext(ctx).First(&role, "id = ?", id).Error; err != nil {

@@ -16,11 +16,13 @@ type AppConfig struct {
 	Mysql     MySqlConfig     `mapstructure:"mysql"`
 	Redis     RedisConfig     `mapstructure:"redis"`
 	JWT       JWTConfig       `mapstructure:"jwt"`
+	Security  SecurityConfig  `mapstructure:"security"`
 	Log       LoggerConfig    `mapstructure:"log"`
 	WebSocket WebSocketConfig `mapstructure:"websocket"`
 	Casbin    CasbinConfig    `mapstructure:"casbin"`
 	CORS      CORSConfig      `mapstructure:"cors"`
-		RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+	CircuitBreaker CircuitBreakerConfig `mapstructure:"circuit_breaker"`
+	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 		Storage   StorageConfig   `mapstructure:"storage"`
 		Metrics   struct {
 			Enabled     bool   `env:"METRICS_ENABLED" envDefault:"false"`
@@ -56,14 +58,18 @@ type AppConfig struct {
 	type ServerConfig struct {
 	Port           int           `mapstructure:"port" validate:"required"`
 	ReadTimeout    time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout   time.Duration `mapstructure:"write_timeout"`
-	AppName        string        `mapstructure:"app_name"`
-	AppEnv         string        `mapstructure:"app_env"`
-	TrustedProxies []string      `mapstructure:"trusted_proxies"`
-}
-
-type MetricsConfig struct {
-	Enabled     bool   `mapstructure:"enabled"`
+	    WriteTimeout   time.Duration `mapstructure:"write_timeout"`
+	    AppName        string        `mapstructure:"app_name"`
+	    AppEnv         string        `mapstructure:"app_env"`
+	    TrustedProxies []string      `mapstructure:"trusted_proxies"`
+	}
+	
+	type SecurityConfig struct {
+		MaxLoginAttempts int           `mapstructure:"max_login_attempts"`
+		LockoutDuration  time.Duration `mapstructure:"lockout_duration"`
+	}
+	
+	type MetricsConfig struct {	Enabled     bool   `mapstructure:"enabled"`
 	AuthEnabled bool   `mapstructure:"auth_enabled"`
 	Username    string `mapstructure:"username"`
 	Password    string `mapstructure:"password"`
@@ -78,6 +84,13 @@ type RateLimitConfig struct {
 
 type CORSConfig struct {
 	AllowedOrigins []string `mapstructure:"allowed_origins"`
+}
+
+type CircuitBreakerConfig struct {
+	Enabled     bool          `mapstructure:"enabled"`
+	MaxRequests uint32        `mapstructure:"max_requests"`
+	Interval    time.Duration `mapstructure:"interval"`
+	Timeout     time.Duration `mapstructure:"timeout"`
 }
 
 type MySqlConfig struct {
@@ -141,15 +154,21 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("redis.addr", "localhost:6379")
 	v.SetDefault("jwt.access_duration", "15m")
 	v.SetDefault("jwt.refresh_duration", "720h")
+	v.SetDefault("security.max_login_attempts", 5)
+	v.SetDefault("security.lockout_duration", "30m")
 	v.SetDefault("casbin.enabled", false)
 	v.SetDefault("casbin.model", "internal/config/casbin_model.conf")
 	v.SetDefault("casbin.watcher.enabled", false)
 	v.SetDefault("casbin.watcher.channel", "/casbin")
-	v.SetDefault("cors.allowed_origins", "*")
+	// v.SetDefault("cors.allowed_origins", "*") // Removed unsafe default
 	v.SetDefault("rate_limit.enabled", true)
 	v.SetDefault("rate_limit.rps", 10.0)
 	v.SetDefault("rate_limit.burst", 20)
 	v.SetDefault("rate_limit.store", "memory")
+	v.SetDefault("circuit_breaker.enabled", true)
+	v.SetDefault("circuit_breaker.max_requests", 5)
+	v.SetDefault("circuit_breaker.interval", "60s")
+	v.SetDefault("circuit_breaker.timeout", "30s")
 	v.SetDefault("websocket.distributed_enabled", false)
 	v.SetDefault("websocket.redis_prefix", "ws_broadcast:")
 	v.SetDefault("metrics.enabled", true)
@@ -166,6 +185,11 @@ func NewConfig() (*AppConfig, error) {
 		return nil, err
 	}
 
+	cfg.CircuitBreaker.Enabled = v.GetBool("circuit_breaker.enabled")
+	cfg.CircuitBreaker.MaxRequests = v.GetUint32("circuit_breaker.max_requests")
+	cfg.CircuitBreaker.Interval = v.GetDuration("circuit_breaker.interval")
+	cfg.CircuitBreaker.Timeout = v.GetDuration("circuit_breaker.timeout")
+
 	cfg.Storage.Driver = v.GetString("storage.driver")
 	cfg.Storage.Local.RootPath = v.GetString("storage.local.root_path")
 	cfg.Storage.Local.BaseURL = v.GetString("storage.local.base_url")
@@ -179,6 +203,9 @@ func NewConfig() (*AppConfig, error) {
 
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")
+
+	cfg.Security.MaxLoginAttempts = v.GetInt("security.max_login_attempts")
+	cfg.Security.LockoutDuration = v.GetDuration("security.lockout_duration")
 
 	cfg.Redis.Addr = v.GetString("redis.addr")
 	cfg.Redis.Password = v.GetString("redis.password")

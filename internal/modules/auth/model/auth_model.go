@@ -7,7 +7,7 @@ import (
 )
 
 type LoginRequest struct {
-	Username  string `json:"username" validate:"required,min=3,max=50"`
+	Username  string `json:"username" validate:"required,min=3,max=50,xss"`
 	Password  string `json:"password" validate:"required,min=8,max=72"`
 	IPAddress string `json:"-"`
 	UserAgent string `json:"-"`
@@ -75,4 +75,3 @@ func (r *RefreshRequest) Validate() error {
 	validate := validator.New()
 	return validate.Struct(r)
 }
-

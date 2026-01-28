@@ -286,3 +286,28 @@ func TestRoleIntegration_Security_Delete_SuperadminForbidden(t *testing.T) {
 	err := roleUC.Delete(context.Background(), "role:superadmin")
 	assert.Error(t, err)
 }
+
+func TestRoleIntegration_Update_Success(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	roleUC := setupRoleIntegration(env)
+
+	createReq := &model.CreateRoleRequest{
+		Name:        "Role To Update",
+		Description: "Original Description",
+	}
+	created, err := roleUC.Create(context.Background(), createReq)
+	require.NoError(t, err)
+
+	updateReq := &model.UpdateRoleRequest{
+		Description: "Updated Description",
+	}
+
+	updated, err := roleUC.Update(context.Background(), created.ID, updateReq)
+
+	require.NoError(t, err)
+	assert.Equal(t, created.ID, updated.ID)
+	assert.Equal(t, "Updated Description", updated.Description)
+}

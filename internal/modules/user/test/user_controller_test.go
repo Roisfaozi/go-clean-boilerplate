@@ -68,6 +68,23 @@ func TestUserHandler_RegisterUser_Success(t *testing.T) {
 	mockUseCase.AssertExpectations(t)
 }
 
+func TestUserHandler_RegisterUser_BindError(t *testing.T) {
+	mockUseCase := new(mocks.MockUserUseCase)
+	handler := newTestUserHandler(mockUseCase)
+	router := setupUserTestRouter()
+	router.POST("/users/register", handler.RegisterUser)
+
+	// Malformed JSON
+	jsonBody := `{"username":"testuser",`
+	req, _ := http.NewRequest(http.MethodPost, "/users/register", bytes.NewBufferString(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
 func TestUserHandler_RegisterUser_Conflict(t *testing.T) {
 	mockUseCase := new(mocks.MockUserUseCase)
 	handler := newTestUserHandler(mockUseCase)
@@ -197,6 +214,22 @@ func TestUserHandler_GetCurrentUser_NotFound(t *testing.T) {
 	mockUseCase.AssertExpectations(t)
 }
 
+func TestUserHandler_GetCurrentUser_Unauthorized(t *testing.T) {
+	mockUseCase := new(mocks.MockUserUseCase)
+	handler := newTestUserHandler(mockUseCase)
+
+	req, _ := http.NewRequest(http.MethodGet, "/users/me", nil)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	// No user_id in context
+
+	handler.GetCurrentUser(c)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
 func TestUserHandler_GetAllUsers(t *testing.T) {
 	mockUseCase := new(mocks.MockUserUseCase)
 	handler := newTestUserHandler(mockUseCase)
@@ -236,6 +269,14 @@ func TestUserHandler_GetAllUsers(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 		mockUseCase.AssertExpectations(t)
+	})
+
+	t.Run("Bind Error", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/users?page=abc", nil) // Invalid int
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
 
@@ -322,6 +363,129 @@ func TestUserHandler_DeleteUser(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, w.Code)
 		mockUseCase.AssertExpectations(t)
 	})
+
+	t.Run("Unauthorized", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodDelete, "/users/"+userID, nil)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Params = []gin.Param{{Key: "id", Value: userID}}
+		// Missing user_id
+
+		handler.DeleteUser(c)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+}
+
+func TestUserHandler_GetAllUsers_Validation(t *testing.T) {
+	mockUseCase := new(mocks.MockUserUseCase)
+	handler := newTestUserHandler(mockUseCase)
+	router := setupUserTestRouter()
+	router.GET("/users", handler.GetAllUsers)
+
+	// Case 1: Excessive Limit (should fail validation)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/users?limit=1001", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code) // Validation error
+	mockUseCase.AssertNotCalled(t, "GetAllUsers", mock.Anything, mock.Anything)
+}
+
+func TestUserHandler_GetUsersDynamic_Validation(t *testing.T) {
+	mockUseCase := new(mocks.MockUserUseCase)
+	handler := newTestUserHandler(mockUseCase)
+	router := setupUserTestRouter()
+	router.POST("/users/search", handler.GetUsersDynamic)
+
+	// Case 1: Invalid Sort Direction
+	jsonBody := `{"sort": [{"colId": "username", "sort": "INVALID_DIRECTION"}]}`
+	req, _ := http.NewRequest("POST", "/users/search", bytes.NewBufferString(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	mockUseCase.AssertNotCalled(t, "GetAllUsersDynamic", mock.Anything, mock.Anything)
+}
+
+func TestUserHandler_RegisterUser_XSS(t *testing.T) {
+	mockUseCase := new(mocks.MockUserUseCase)
+	handler := newTestUserHandler(mockUseCase)
+	router := setupUserTestRouter()
+	router.POST("/users/register", handler.RegisterUser)
+
+	// Case 1: XSS in Username
+	jsonBody1 := `{"username": "<script>alert('xss')</script>", "password": "password123", "name": "Normal Name", "email": "test@example.com"}`
+	req1, _ := http.NewRequest("POST", "/users/register", bytes.NewBufferString(jsonBody1))
+	req1.Header.Set("Content-Type", "application/json")
+
+	w1 := httptest.NewRecorder()
+	router.ServeHTTP(w1, req1)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w1.Code)
+	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+
+	// Case 2: XSS in Name
+	jsonBody2 := `{"username": "validuser", "password": "password123", "name": "<img src=x onerror=alert(1)>", "email": "test2@example.com"}`
+	req2, _ := http.NewRequest("POST", "/users/register", bytes.NewBufferString(jsonBody2))
+	req2.Header.Set("Content-Type", "application/json")
+
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w2.Code)
+	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+
+	testCases := []struct {
+		name string
+		body string
+	}{
+		{
+			name: "XSS in Username",
+			body: `{"username":"<script>alert(1)</script>","password":"password123","fullname":"Test User","email":"test@example.com"}`,
+		},
+		{
+			name: "XSS in Fullname",
+			body: `{"username":"testuser","password":"password123","fullname":"<img src=x onerror=alert(1)>","email":"test@example.com"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req, _ := http.NewRequest(http.MethodPost, "/users/register", bytes.NewBufferString(tc.body))
+			req.Header.Set("Content-Type", "application/json")
+
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+			assert.Contains(t, w.Body.String(), "xss") // Ensure the error is related to XSS validation
+		})
+	}
+	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+}
+
+func TestUserHandler_UpdateUser_PasswordValidation(t *testing.T) {
+	mockUseCase := new(mocks.MockUserUseCase)
+	handler := newTestUserHandler(mockUseCase)
+
+	// Case 1: Short Password
+	jsonBody := `{"username": "validusername", "password": "short"}`
+	req, _ := http.NewRequest("PUT", "/users/me", bytes.NewBufferString(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Set("user_id", "test-user-id")
+
+	handler.UpdateUser(c)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	mockUseCase.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
 }
 
 func TestUserHandler_UpdateStatus(t *testing.T) {
@@ -382,6 +546,22 @@ func TestUserHandler_UpdateStatus(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
 		mockUseCase.AssertExpectations(t)
+	})
+
+	t.Run("Bind Error", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+		router := setupUserTestRouter()
+		router.PATCH("/users/:id/status", handler.UpdateUserStatus)
+
+		body := `{"status":` // Malformed
+		req, _ := http.NewRequest(http.MethodPatch, "/users/"+userID+"/status", bytes.NewBufferString(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
 
@@ -458,6 +638,63 @@ func TestUserHandler_UpdateUser(t *testing.T) {
 
 		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 	})
+
+	t.Run("Validation Error - Long Name", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		// Name > 100 chars
+		longName := ""
+		for i := 0; i < 101; i++ {
+			longName += "a"
+		}
+		jsonBody := `{"username":"validuser", "name":"` + longName + `"}`
+		req, _ := http.NewRequest(http.MethodPut, "/users/me", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("user_id", userID)
+
+		handler.UpdateUser(c)
+
+		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	})
+
+	t.Run("Unauthorized", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		req, _ := http.NewRequest(http.MethodPut, "/users/me", nil)
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		// No user_id
+
+		handler.UpdateUser(c)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("Bind Error", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		jsonBody := `{"username":` // Malformed
+		req, _ := http.NewRequest(http.MethodPut, "/users/me", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("user_id", userID)
+
+		handler.UpdateUser(c)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
 }
 
 func TestUserHandler_GetUsersDynamic(t *testing.T) {
@@ -497,6 +734,41 @@ func TestUserHandler_GetUsersDynamic(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	})
+
+	t.Run("Bind Error", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+		router := setupUserTestRouter()
+		router.POST("/users/search", handler.GetUsersDynamic)
+
+		jsonBody := `{"page_size": "abc"}` // Invalid type
+		req, _ := http.NewRequest(http.MethodPost, "/users/search", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Internal Server Error", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+		router := setupUserTestRouter()
+		router.POST("/users/search", handler.GetUsersDynamic)
+
+		mockUseCase.On("GetAllUsersDynamic", mock.Anything, mock.Anything).Return(nil, int64(0), exception.ErrInternalServer).Once()
+
+		jsonBody := `{"filters":{"name":{"type":"contains","from":"Test"}}}`
+		req, _ := http.NewRequest(http.MethodPost, "/users/search", bytes.NewBufferString(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		mockUseCase.AssertExpectations(t)
 	})
 }
 
@@ -578,4 +850,90 @@ func TestUserHandler_UpdateAvatar(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
+
+	t.Run("Unauthorized", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		req, _ := http.NewRequest(http.MethodPatch, "/users/me/avatar", nil)
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		// No user_id
+
+		handler.UpdateAvatar(c)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("File Too Large", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		body := new(bytes.Buffer)
+		writer := multipart.NewWriter(body)
+		part, _ := writer.CreateFormFile("avatar", "large.png")
+		// Write 3MB of dummy data
+		// To avoid allocating 3MB in memory, we can try to mock the header size if possible,
+		// but since we are using httptest, we actually need to send data or use a custom request that lies about size.
+		// Constructing a 3MB buffer is fine in test.
+		dummyData := make([]byte, 2*1024*1024+10) // 2MB + 10 bytes
+		_, err := part.Write(dummyData)
+		require.NoError(t, err)
+
+		err = writer.Close()
+		require.NoError(t, err)
+
+		req, _ := http.NewRequest(http.MethodPatch, "/users/me/avatar", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("user_id", userID)
+
+		handler.UpdateAvatar(c)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
+func TestUserHandler_UpdateUser_XSS(t *testing.T) {
+	mockUseCase := new(mocks.MockUserUseCase)
+	handler := newTestUserHandler(mockUseCase)
+
+	userID := "user-123"
+
+	testCases := []struct {
+		name string
+		body string
+	}{
+		{
+			name: "XSS in Username",
+			body: `{"username":"<script>alert(1)</script>"}`,
+		},
+		{
+			name: "XSS in Name",
+			body: `{"name":"<img src=x onerror=alert(1)>"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req, _ := http.NewRequest(http.MethodPut, "/users/me", bytes.NewBufferString(tc.body))
+			req.Header.Set("Content-Type", "application/json")
+
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = req
+			c.Set("user_id", userID)
+
+			handler.UpdateUser(c)
+
+			assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+			assert.Contains(t, w.Body.String(), "xss")
+		})
+	}
+	mockUseCase.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
 }

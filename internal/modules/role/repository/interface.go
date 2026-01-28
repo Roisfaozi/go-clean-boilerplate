@@ -13,5 +13,6 @@ type RoleRepository interface {
 	FindByName(ctx context.Context, name string) (*entity.Role, error)
 	FindByID(ctx context.Context, id string) (*entity.Role, error)
 	Create(ctx context.Context, role *entity.Role) error
+	Update(ctx context.Context, role *entity.Role) error
 	Delete(ctx context.Context, id string) error
 }

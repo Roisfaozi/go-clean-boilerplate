@@ -228,6 +228,81 @@ func (_c *MockAuditRepository_FindAllDynamic_Call) RunAndReturn(run func(ctx con
 	return _c
 }
 
+// FindAllInBatches provides a mock function for the type MockAuditRepository
+func (_mock *MockAuditRepository) FindAllInBatches(ctx context.Context, startTime int64, endTime int64, batchSize int, process func([]*entity.AuditLog) error) error {
+	ret := _mock.Called(ctx, startTime, endTime, batchSize, process)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindAllInBatches")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, int64, int, func([]*entity.AuditLog) error) error); ok {
+		r0 = returnFunc(ctx, startTime, endTime, batchSize, process)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuditRepository_FindAllInBatches_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindAllInBatches'
+type MockAuditRepository_FindAllInBatches_Call struct {
+	*mock.Call
+}
+
+// FindAllInBatches is a helper method to define mock.On call
+//   - ctx context.Context
+//   - startTime int64
+//   - endTime int64
+//   - batchSize int
+//   - process func([]*entity.AuditLog) error
+func (_e *MockAuditRepository_Expecter) FindAllInBatches(ctx interface{}, startTime interface{}, endTime interface{}, batchSize interface{}, process interface{}) *MockAuditRepository_FindAllInBatches_Call {
+	return &MockAuditRepository_FindAllInBatches_Call{Call: _e.mock.On("FindAllInBatches", ctx, startTime, endTime, batchSize, process)}
+}
+
+func (_c *MockAuditRepository_FindAllInBatches_Call) Run(run func(ctx context.Context, startTime int64, endTime int64, batchSize int, process func([]*entity.AuditLog) error)) *MockAuditRepository_FindAllInBatches_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		var arg3 int
+		if args[3] != nil {
+			arg3 = args[3].(int)
+		}
+		var arg4 func([]*entity.AuditLog) error
+		if args[4] != nil {
+			arg4 = args[4].(func([]*entity.AuditLog) error)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuditRepository_FindAllInBatches_Call) Return(err error) *MockAuditRepository_FindAllInBatches_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuditRepository_FindAllInBatches_Call) RunAndReturn(run func(ctx context.Context, startTime int64, endTime int64, batchSize int, process func([]*entity.AuditLog) error) error) *MockAuditRepository_FindAllInBatches_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockAuditUseCase creates a new instance of MockAuditUseCase. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockAuditUseCase(t interface {
@@ -253,6 +328,75 @@ type MockAuditUseCase_Expecter struct {
 
 func (_m *MockAuditUseCase) EXPECT() *MockAuditUseCase_Expecter {
 	return &MockAuditUseCase_Expecter{mock: &_m.Mock}
+}
+
+// ExportLogs provides a mock function for the type MockAuditUseCase
+func (_mock *MockAuditUseCase) ExportLogs(ctx context.Context, fromDate string, toDate string, process func([]model.AuditLogResponse) error) error {
+	ret := _mock.Called(ctx, fromDate, toDate, process)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExportLogs")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, func([]model.AuditLogResponse) error) error); ok {
+		r0 = returnFunc(ctx, fromDate, toDate, process)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuditUseCase_ExportLogs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExportLogs'
+type MockAuditUseCase_ExportLogs_Call struct {
+	*mock.Call
+}
+
+// ExportLogs is a helper method to define mock.On call
+//   - ctx context.Context
+//   - fromDate string
+//   - toDate string
+//   - process func([]model.AuditLogResponse) error
+func (_e *MockAuditUseCase_Expecter) ExportLogs(ctx interface{}, fromDate interface{}, toDate interface{}, process interface{}) *MockAuditUseCase_ExportLogs_Call {
+	return &MockAuditUseCase_ExportLogs_Call{Call: _e.mock.On("ExportLogs", ctx, fromDate, toDate, process)}
+}
+
+func (_c *MockAuditUseCase_ExportLogs_Call) Run(run func(ctx context.Context, fromDate string, toDate string, process func([]model.AuditLogResponse) error)) *MockAuditUseCase_ExportLogs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 func([]model.AuditLogResponse) error
+		if args[3] != nil {
+			arg3 = args[3].(func([]model.AuditLogResponse) error)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuditUseCase_ExportLogs_Call) Return(err error) *MockAuditUseCase_ExportLogs_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuditUseCase_ExportLogs_Call) RunAndReturn(run func(ctx context.Context, fromDate string, toDate string, process func([]model.AuditLogResponse) error) error) *MockAuditUseCase_ExportLogs_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // GetLogsDynamic provides a mock function for the type MockAuditUseCase

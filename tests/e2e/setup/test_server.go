@@ -64,6 +64,10 @@ func SetupTestServer(t *testing.T) *TestServer {
 			AccessTokenDuration:  15 * time.Minute,
 			RefreshTokenDuration: 24 * time.Hour,
 		},
+		Security: config.SecurityConfig{
+			MaxLoginAttempts: 5,
+			LockoutDuration:  30 * time.Minute,
+		},
 		Casbin: config.CasbinConfig{
 			Enabled: true,
 			Model:   "../../../internal/config/casbin_model.conf",
@@ -71,6 +75,9 @@ func SetupTestServer(t *testing.T) *TestServer {
 				Enabled: false,
 				Channel: "/casbin",
 			},
+		},
+		RateLimit: config.RateLimitConfig{
+			Enabled: false,
 		},
 		Storage: config.StorageConfig{
 			Driver: "local",

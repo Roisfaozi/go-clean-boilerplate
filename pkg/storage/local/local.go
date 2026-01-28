@@ -30,9 +30,9 @@ func NewLocalStorage(rootPath, baseURL string) (*LocalStorage, error) {
 }
 
 func (s *LocalStorage) UploadFile(ctx context.Context, file io.Reader, filename string, contentType string) (string, error) {
-	// Prevent directory traversal
-	cleanPath := filepath.Clean(filename)
-	fullPath := filepath.Join(s.RootPath, cleanPath)
+	// Prevent directory traversal by using filepath.Base
+	baseName := filepath.Base(filename)
+	fullPath := filepath.Join(s.RootPath, baseName)
 
 	// Create destination file
 	dst, err := os.Create(fullPath)
@@ -52,13 +52,13 @@ func (s *LocalStorage) UploadFile(ctx context.Context, file io.Reader, filename 
 
 	// Return public URL (assumes the app serves RootPath statically)
 	telemetry.StorageUploadsTotal.WithLabelValues("local", "success").Inc()
-	url := fmt.Sprintf("%s/%s", s.BaseURL, cleanPath)
+	url := fmt.Sprintf("%s/%s", s.BaseURL, baseName)
 	return url, nil
 }
 
 func (s *LocalStorage) DeleteFile(ctx context.Context, filename string) error {
-	cleanPath := filepath.Clean(filename)
-	fullPath := filepath.Join(s.RootPath, cleanPath)
+	baseName := filepath.Base(filename)
+	fullPath := filepath.Join(s.RootPath, baseName)
 
 	if err := os.Remove(fullPath); err != nil {
 		if os.IsNotExist(err) {
@@ -70,6 +70,6 @@ func (s *LocalStorage) DeleteFile(ctx context.Context, filename string) error {
 }
 
 func (s *LocalStorage) GetFileUrl(filename string) (string, error) {
-	cleanPath := filepath.Clean(filename)
-	return fmt.Sprintf("%s/%s", s.BaseURL, cleanPath), nil
+	baseName := filepath.Base(filename)
+	return fmt.Sprintf("%s/%s", s.BaseURL, baseName), nil
 }

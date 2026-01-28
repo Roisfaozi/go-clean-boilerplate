@@ -12,6 +12,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -27,7 +28,9 @@ func setupAuthTestRouter() *gin.Engine {
 func newTestAuthController(mockUseCase *mocks.MockAuthUseCase) *authHandler.AuthController {
 	log := logrus.New()
 	log.SetLevel(logrus.PanicLevel)
-	return authHandler.NewAuthController(mockUseCase, log, validator.New())
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v)
+	return authHandler.NewAuthController(mockUseCase, log, v)
 }
 
 func TestAuthHandler_Login_Success(t *testing.T) {
@@ -482,3 +485,25 @@ func TestAuthHandler_ResendVerification_AlreadyVerified(t *testing.T) {
 	mockUseCase.AssertExpectations(t)
 }
 
+func TestAuthController_Login_XSS(t *testing.T) {
+	mockUseCase := new(mocks.MockAuthUseCase)
+	handler := newTestAuthController(mockUseCase)
+
+	// Create request with XSS payload
+	reqBody := model.LoginRequest{
+		Username: "<script>alert('xss')</script>",
+		Password: "password123",
+	}
+	jsonValue, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(jsonValue))
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	// Execute
+	handler.Login(c)
+
+	// Assert
+	assert.Equal(t, 422, w.Code) // Validation Error
+	assert.Contains(t, w.Body.String(), "xss")
+}

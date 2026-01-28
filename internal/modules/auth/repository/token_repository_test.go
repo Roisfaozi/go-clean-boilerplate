@@ -23,6 +23,14 @@ func getSessionKey(userID, sessionID string) string {
 	return fmt.Sprintf("session:%s:%s", userID, sessionID)
 }
 
+func getAttemptsKey(username string) string {
+	return fmt.Sprintf("auth:attempts:%s", username)
+}
+
+func getLockedKey(username string) string {
+	return fmt.Sprintf("auth:locked:%s", username)
+}
+
 func setupGormDB(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	assert.NoError(t, err)
@@ -336,6 +344,134 @@ func TestTokenRepository_DeleteToken_RedisError(t *testing.T) {
 	err := repo.DeleteToken(context.Background(), userID, sessionID)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, redisErr)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// Account Lockout Tests
+
+func TestTokenRepository_GetLoginAttempts(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	username := "testuser"
+	key := getAttemptsKey(username)
+
+	mock.ExpectGet(key).SetVal("3")
+	attempts, err := repo.GetLoginAttempts(context.Background(), username)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, attempts)
+
+	mock.ExpectGet(key).SetErr(redis.Nil)
+	attempts, err = repo.GetLoginAttempts(context.Background(), username)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, attempts)
+
+	mock.ExpectGet(key).SetErr(errors.New("redis error"))
+	attempts, err = repo.GetLoginAttempts(context.Background(), username)
+	assert.Error(t, err)
+	assert.Equal(t, 0, attempts)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTokenRepository_IncrementLoginAttempts(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	username := "testuser"
+	key := getAttemptsKey(username)
+
+	mock.ExpectIncr(key).SetVal(1)
+	mock.ExpectExpire(key, time.Hour).SetVal(true)
+	
+	attempts, err := repo.IncrementLoginAttempts(context.Background(), username)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, attempts)
+
+	mock.ExpectIncr(key).SetErr(errors.New("redis error"))
+	// mock.ExpectExpire(key, time.Hour).SetVal(true)
+	attempts, err = repo.IncrementLoginAttempts(context.Background(), username)
+	assert.Error(t, err)
+	assert.Equal(t, 0, attempts)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTokenRepository_ResetLoginAttempts(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	username := "testuser"
+	key := getAttemptsKey(username)
+
+	mock.ExpectDel(key).SetVal(1)
+	err := repo.ResetLoginAttempts(context.Background(), username)
+	assert.NoError(t, err)
+
+	mock.ExpectDel(key).SetErr(errors.New("redis error"))
+	err = repo.ResetLoginAttempts(context.Background(), username)
+	assert.Error(t, err)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTokenRepository_LockAccount(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	username := "testuser"
+	key := getLockedKey(username)
+	duration := 30 * time.Minute
+
+	mock.ExpectSet(key, "locked", duration).SetVal("OK")
+	err := repo.LockAccount(context.Background(), username, duration)
+	assert.NoError(t, err)
+
+	mock.ExpectSet(key, "locked", duration).SetErr(errors.New("redis error"))
+	err = repo.LockAccount(context.Background(), username, duration)
+	assert.Error(t, err)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTokenRepository_IsAccountLocked(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	username := "testuser"
+	key := getLockedKey(username)
+
+	// Locked case
+	mock.ExpectTTL(key).SetVal(time.Minute)
+	locked, ttl, err := repo.IsAccountLocked(context.Background(), username)
+	assert.NoError(t, err)
+	assert.True(t, locked)
+	assert.Equal(t, time.Minute, ttl)
+
+	// Not locked (key not found)
+	mock.ExpectTTL(key).SetVal(-2 * time.Second)
+	locked, ttl, err = repo.IsAccountLocked(context.Background(), username)
+	assert.NoError(t, err)
+	assert.False(t, locked)
+	assert.Equal(t, time.Duration(0), ttl) // Assert ttl
+
+	// Redis error
+	mock.ExpectTTL(key).SetErr(errors.New("redis error"))
+	locked, ttl, err = repo.IsAccountLocked(context.Background(), username)
+	assert.Error(t, err)
+	assert.False(t, locked)
+	assert.Equal(t, time.Duration(0), ttl) // Assert ttl
+
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

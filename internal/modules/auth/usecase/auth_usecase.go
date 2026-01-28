@@ -30,19 +30,24 @@ import (
 )
 
 type Service struct {
-	jwtManager      *jwt.JWTManager
-	tokenRepo       repository.TokenRepository
-	userRepo        userRepository.UserRepository
-	tm              tx.WithTransactionManager
-	log             *logrus.Logger
-	wsManager       ws.Manager
-	sseManager      *sse.Manager
-	Enforcer        permissionUseCase.IEnforcer
-	auditUC         auditUseCase.AuditUseCase
-	taskDistributor worker.TaskDistributor
+	maxLoginAttempts int
+	lockoutDuration  time.Duration
+	jwtManager       *jwt.JWTManager
+	tokenRepo        repository.TokenRepository
+	userRepo         userRepository.UserRepository
+	tm               tx.WithTransactionManager
+	log              *logrus.Logger
+	wsManager        ws.Manager
+	sseManager       *sse.Manager
+	Enforcer         permissionUseCase.IEnforcer
+	auditUC          auditUseCase.AuditUseCase
+	taskDistributor  worker.TaskDistributor
+	dummyHash        string
 }
 
 func NewAuthUsecase(
+	maxLoginAttempts int,
+	lockoutDuration time.Duration,
 	jwtManager *jwt.JWTManager,
 	tokenRepo repository.TokenRepository,
 	userRepo userRepository.UserRepository,
@@ -54,18 +59,27 @@ func NewAuthUsecase(
 	auditUC auditUseCase.AuditUseCase,
 	taskDistributor worker.TaskDistributor,
 ) AuthUseCase {
-	return &Service{
-		jwtManager:      jwtManager,
-		tokenRepo:       tokenRepo,
-		userRepo:        userRepo,
-		tm:              tm,
-		log:             log,
-		wsManager:       wsManager,
-		sseManager:      sseManager,
-		Enforcer:        enforcer,
-		auditUC:         auditUC,
-		taskDistributor: taskDistributor,
+	s := &Service{
+		maxLoginAttempts: maxLoginAttempts,
+		lockoutDuration:  lockoutDuration,
+		jwtManager:       jwtManager,
+		tokenRepo:        tokenRepo,
+		userRepo:         userRepo,
+		tm:               tm,
+		log:              log,
+		wsManager:        wsManager,
+		sseManager:       sseManager,
+		Enforcer:         enforcer,
+		auditUC:          auditUC,
+		taskDistributor:  taskDistributor,
 	}
+
+	// Generate dummy hash for timing attack prevention
+	// We use the default cost to ensure it matches the real password check duration
+	hash, _ := pkg.HashPassword("dummy")
+	s.dummyHash = hash
+
+	return s
 }
 
 func (s *Service) generateAndStoreTokenPair(ctx context.Context, user *entity.User, role, username string) (string, string, string, error) {
@@ -100,16 +114,58 @@ func (s *Service) generateAndStoreTokenPair(ctx context.Context, user *entity.Us
 }
 
 func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model.LoginResponse, string, error) {
+	// 1. Check if account is locked
+	locked, ttl, err := s.tokenRepo.IsAccountLocked(ctx, request.Username)
+	if err != nil {
+		s.log.WithContext(ctx).WithError(err).Error("Failed to check account lock status")
+		return nil, "", fmt.Errorf("failed to check account status")
+	}
+	if locked {
+		return nil, "", fmt.Errorf("%w: try again in %v", ErrAccountLocked, ttl.Round(time.Second))
+	}
+
 	var user *entity.User
-	err := s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error
 		user, err = s.userRepo.FindByUsername(txCtx, request.Username)
 		if err != nil {
+			// Timing attack prevention: perform a hash check even if user not found
+			pkg.CheckPasswordHash(request.Password, s.dummyHash)
 			return ErrInvalidCredentials
 		}
 
 		if !pkg.CheckPasswordHash(request.Password, user.Password) {
+			// Password Invalid: Handle Lockout Logic
+			attempts, incrErr := s.tokenRepo.IncrementLoginAttempts(txCtx, request.Username)
+			if incrErr != nil {
+				s.log.WithContext(txCtx).WithError(incrErr).Error("Failed to increment login attempts")
+			}
+
+			if attempts >= s.maxLoginAttempts {
+				if lockErr := s.tokenRepo.LockAccount(txCtx, request.Username, s.lockoutDuration); lockErr != nil {
+					s.log.WithContext(txCtx).WithError(lockErr).Error("Failed to lock account")
+				}
+
+				// Audit Log: ACCOUNT_LOCKED
+				if s.auditUC != nil {
+					_ = s.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+						UserID:    user.ID, // User ID is known since FindByUsername succeeded
+						Action:    "ACCOUNT_LOCKED",
+						Entity:    "User",
+						EntityID:  user.ID,
+						IPAddress: request.IPAddress,
+						UserAgent: request.UserAgent,
+					})
+				}
+				return fmt.Errorf("%w: too many failed attempts", ErrAccountLocked)
+			}
+
 			return ErrInvalidCredentials
+		}
+
+		// Password Valid: Reset Attempts
+		if resetErr := s.tokenRepo.ResetLoginAttempts(txCtx, request.Username); resetErr != nil {
+			s.log.WithContext(txCtx).WithError(resetErr).Error("Failed to reset login attempts")
 		}
 
 		if user.Status != entity.UserStatusActive {
@@ -397,7 +453,7 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 		}
 	} else {
 		// Fallback logging if distributor is not configured
-		s.log.WithContext(ctx).Infof("PASSWORD RESET TOKEN for %s: %s (Expires in 15m)", email, token)
+		s.log.WithContext(ctx).Warnf("Email distributor not configured. Password reset token generated for %s but not logged for security.", email)
 	}
 
 	if s.auditUC != nil {
@@ -499,7 +555,7 @@ func (s *Service) RequestVerification(ctx context.Context, userID string) error 
 			s.log.WithContext(ctx).WithError(err).Error("Failed to enqueue verification email task")
 		}
 	} else {
-		s.log.WithContext(ctx).Infof("EMAIL VERIFICATION TOKEN for %s: %s (Expires in 24h)", user.Email, token)
+		s.log.WithContext(ctx).Warnf("Email distributor not configured. Email verification token generated for %s but not logged for security.", user.Email)
 	}
 
 	if s.auditUC != nil {

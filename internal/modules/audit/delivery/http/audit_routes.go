@@ -6,5 +6,6 @@ func RegisterAuthorizedRoutes(router *gin.RouterGroup, controller *AuditControll
 	auditGroup := router.Group("/audit-logs")
 	{
 		auditGroup.POST("/search", controller.GetLogsDynamic)
+		auditGroup.GET("/export", controller.Export)
 	}
 }
