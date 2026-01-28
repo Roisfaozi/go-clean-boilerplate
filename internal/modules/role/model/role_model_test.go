@@ -12,7 +12,7 @@ import (
 func TestCreateRoleRequest_Validation(t *testing.T) {
 	validate := validator.New()
 	err := validation.RegisterCustomValidations(validate)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name    string
