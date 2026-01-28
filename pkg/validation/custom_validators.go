@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 var (
@@ -39,7 +40,6 @@ func validateXSS(fl validator.FieldLevel) bool {
 }
 
 func SanitizeString(s string) string {
-	// Simple regex-based strip tags.
-	// Note: This is not secure against all XSS vectors but sufficient for basic cleanup.
-	return htmlTagRegex.ReplaceAllString(s, "")
+	p := bluemonday.StrictPolicy()
+	return p.Sanitize(s)
 }

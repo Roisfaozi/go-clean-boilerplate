@@ -54,6 +54,31 @@ func TestCreateAccessRight(t *testing.T) {
 		deps.Repo.AssertExpectations(t)
 	})
 
+	t.Run("Success - Sanitizes Input", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		// Input with tags
+		req := model.CreateAccessRightRequest{
+			Name:        "<b>MyRight</b>",
+			Description: "<script>alert(1)</script>Safe",
+		}
+
+		// Expect sanitized values: "MyRight" and "Safe" (tags AND content of script stripped by bluemonday)
+		expectedName := "MyRight"
+		expectedDesc := "Safe"
+
+		deps.Repo.On("CreateAccessRight", ctx, mock.MatchedBy(func(a *entity.AccessRight) bool {
+			return a.Name == expectedName && a.Description == expectedDesc
+		})).Return(nil).Once()
+
+		created, err := uc.CreateAccessRight(ctx, req)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedName, created.Name)
+		assert.Equal(t, expectedDesc, created.Description)
+		deps.Repo.AssertExpectations(t)
+	})
+
 	t.Run("Error - Repository Create Fails", func(t *testing.T) {
 		deps, uc := setupAccessTest()
 		ctx := context.Background()
@@ -127,6 +152,23 @@ func TestCreateEndpoint(t *testing.T) {
 		deps.Repo.AssertExpectations(t)
 	})
 
+	t.Run("Success - Sanitizes Input", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		req := model.CreateEndpointRequest{Path: "/api/<script>v1</script>/test", Method: "GET"}
+		expectedPath := "/api//test" // content of script tag is also removed
+
+		deps.Repo.On("CreateEndpoint", ctx, mock.MatchedBy(func(e *entity.Endpoint) bool {
+			return e.Path == expectedPath
+		})).Return(nil).Once()
+
+		created, err := uc.CreateEndpoint(ctx, req)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedPath, created.Path)
+		deps.Repo.AssertExpectations(t)
+	})
+
 	t.Run("Error - Repository Create Fails", func(t *testing.T) {
 		deps, uc := setupAccessTest()
 		ctx := context.Background()
@@ -192,6 +234,27 @@ func TestDeleteAccessRight(t *testing.T) {
 		assert.ErrorIs(t, err, exception.ErrNotFound)
 		deps.Repo.AssertExpectations(t)
 	})
+
+	t.Run("Error - GetByID Repo Error", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		deps.Repo.On("GetAccessRightByID", ctx, id).Return(nil, errors.New("db error")).Once()
+		err := uc.DeleteAccessRight(ctx, id)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		deps.Repo.AssertExpectations(t)
+	})
+
+	t.Run("Error - Delete Repo Error", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		deps.Repo.On("GetAccessRightByID", ctx, id).Return(&entity.AccessRight{ID: id}, nil).Once()
+		deps.Repo.On("DeleteAccessRight", ctx, id).Return(errors.New("db error")).Once()
+		err := uc.DeleteAccessRight(ctx, id)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		deps.Repo.AssertExpectations(t)
+	})
 }
 
 func TestDeleteEndpoint(t *testing.T) {
@@ -214,6 +277,16 @@ func TestDeleteEndpoint(t *testing.T) {
 		deps.Repo.On("DeleteEndpoint", ctx, id).Return(gorm.ErrRecordNotFound).Once()
 		err := uc.DeleteEndpoint(ctx, id)
 		assert.ErrorIs(t, err, exception.ErrNotFound)
+		deps.Repo.AssertExpectations(t)
+	})
+
+	t.Run("Error - Generic Repo Error", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		deps.Repo.On("DeleteEndpoint", ctx, id).Return(errors.New("db error")).Once()
+		err := uc.DeleteEndpoint(ctx, id)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
 		deps.Repo.AssertExpectations(t)
 	})
 }
