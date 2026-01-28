@@ -57,6 +57,9 @@ func NewUserUseCase(
 }
 
 func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUserRequest) (*model.UserResponse, error) {
+	request.Name = pkg.SanitizeString(request.Name)
+	request.Username = pkg.SanitizeString(request.Username)
+
 	existingUser, err := u.Repo.FindByUsername(ctx, request.Username)
 	if err == nil && existingUser != nil {
 		u.Log.Warnf("Username already exists: %s", request.Username)

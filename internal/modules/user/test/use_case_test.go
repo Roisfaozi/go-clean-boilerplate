@@ -790,3 +790,45 @@ func TestUserUseCase_HardDeleteSoftDeletedUsers(t *testing.T) {
 		assert.Equal(t, exception.ErrInternalServer, err)
 	})
 }
+
+func TestUserUseCase_Create_Sanitization(t *testing.T) {
+	deps, uc := setupUserTest()
+
+	inputName := "<script>alert('XSS')</script>John Doe"
+	// pkg.SanitizeString implementation:
+	// output = strings.TrimSpace(input)
+	// output = html.EscapeString(output)
+	// Wait, if it uses html.EscapeString, then "<script>" becomes "&lt;script&gt;"
+	// It does NOT remove tags.
+
+	// Let's check pkg/security.go again.
+	// "func SanitizeString(input string) string { output := strings.TrimSpace(input); output = html.EscapeString(output); return output }"
+
+	expectedName := "&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;John Doe"
+
+	testReq := &model.RegisterUserRequest{
+		Username: "userXSS", Email: "xss@example.com", Name: inputName, Password: "password123",
+	}
+
+	deps.Repo.On("FindByUsername", mock.Anything, "userXSS").Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByEmail", mock.Anything, "xss@example.com").Return(nil, gorm.ErrRecordNotFound)
+
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+
+	// Capture the user passed to Create and verify Name is sanitized
+	deps.Repo.On("Create", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+		return u.Name == expectedName
+	})).Return(nil)
+
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
+	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+	result, err := uc.Create(context.Background(), testReq)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, expectedName, result.Name)
+	deps.Repo.AssertExpectations(t)
+}
