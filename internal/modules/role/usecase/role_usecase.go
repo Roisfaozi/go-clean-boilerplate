@@ -67,6 +67,34 @@ func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequ
 	return response, err
 }
 
+func (uc *roleUseCase) Update(ctx context.Context, id string, request *model.UpdateRoleRequest) (*model.RoleResponse, error) {
+	var response *model.RoleResponse
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		role, err := uc.RoleRepository.FindByID(txCtx, id)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				uc.Log.WithContext(txCtx).Warnf("Role with id %s not found for update", id)
+				return exception.ErrNotFound
+			}
+			uc.Log.WithContext(txCtx).Errorf("Failed to find role by id: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		// Update fields
+		role.Description = request.Description
+
+		if err := uc.RoleRepository.Update(txCtx, role); err != nil {
+			uc.Log.WithContext(txCtx).Errorf("Failed to update role: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		response = converter.RoleToResponse(role)
+		return nil
+	})
+
+	return response, err
+}
+
 func (uc *roleUseCase) GetAll(ctx context.Context) ([]model.RoleResponse, error) {
 	var roles []*entity.Role
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {

@@ -89,6 +89,48 @@ func (h *RoleController) GetAll(c *gin.Context) {
 	response.Success(c, roles)
 }
 
+// Update updates a role
+// @Summary      Update role
+// @Description  Update a role by ID.
+// @Tags         roles
+// @Security     BearerAuth
+// @Param        id   path      string  true  "Role ID"
+// @Param        request body model.UpdateRoleRequest true "Role Update Details"
+// @Produce      json
+// @Success      200  {object}  response.SwaggerRoleResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Role not found"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /roles/{id} [put]
+func (h *RoleController) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+	var req model.UpdateRoleRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.Log.WithError(err).Error("failed to bind request body for update role")
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	req.Sanitize()
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
+		return
+	}
+
+	role, err := h.RoleUseCase.Update(ctx, id, &req)
+	if err != nil {
+		h.handleError(c, err, "failed to update role")
+		return
+	}
+
+	response.Success(c, role)
+}
+
 // Delete removes a role
 // @Summary      Delete role
 // @Description  Deletes a role by ID. Only superadmin should have access.
