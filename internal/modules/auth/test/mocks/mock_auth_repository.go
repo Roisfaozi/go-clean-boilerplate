@@ -613,20 +613,30 @@ func (_c *MockTokenRepository_GetUserSessions_Call) RunAndReturn(run func(ctx co
 }
 
 // IncrementLoginAttempts provides a mock function for the type MockTokenRepository
-func (_mock *MockTokenRepository) IncrementLoginAttempts(ctx context.Context, username string) error {
+func (_mock *MockTokenRepository) IncrementLoginAttempts(ctx context.Context, username string) (int, error) {
 	ret := _mock.Called(ctx, username)
 
 	if len(ret) == 0 {
 		panic("no return value specified for IncrementLoginAttempts")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+	var r0 int
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (int, error)); ok {
+		return returnFunc(ctx, username)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) int); ok {
 		r0 = returnFunc(ctx, username)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(int)
 	}
-	return r0
+
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, username)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // MockTokenRepository_IncrementLoginAttempts_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IncrementLoginAttempts'
@@ -659,12 +669,12 @@ func (_c *MockTokenRepository_IncrementLoginAttempts_Call) Run(run func(ctx cont
 	return _c
 }
 
-func (_c *MockTokenRepository_IncrementLoginAttempts_Call) Return(err error) *MockTokenRepository_IncrementLoginAttempts_Call {
-	_c.Call.Return(err)
+func (_c *MockTokenRepository_IncrementLoginAttempts_Call) Return(attempts int, err error) *MockTokenRepository_IncrementLoginAttempts_Call {
+	_c.Call.Return(attempts, err)
 	return _c
 }
 
-func (_c *MockTokenRepository_IncrementLoginAttempts_Call) RunAndReturn(run func(ctx context.Context, username string) error) *MockTokenRepository_IncrementLoginAttempts_Call {
+func (_c *MockTokenRepository_IncrementLoginAttempts_Call) RunAndReturn(run func(ctx context.Context, username string) (int, error)) *MockTokenRepository_IncrementLoginAttempts_Call {
 	_c.Call.Return(run)
 	return _c
 }

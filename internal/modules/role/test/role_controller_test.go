@@ -229,3 +229,21 @@ func TestRoleHandler_GetAllRolesDynamic_Success(t *testing.T) {
 	assert.Len(t, responseBody.Data, 1)
 	mockUseCase.AssertExpectations(t)
 }
+
+func TestRoleHandler_Create_XSS_Name(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	createRequest := model.CreateRoleRequest{Name: "<script>alert(1)</script>", Description: "XSS role"}
+	requestBody, _ := json.Marshal(createRequest)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/roles", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	// Should return 422 Unprocessable Entity due to xss validation failure
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	assert.Contains(t, w.Body.String(), "validation error")
+	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+}

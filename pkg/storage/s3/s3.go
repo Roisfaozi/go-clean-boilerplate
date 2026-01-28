@@ -9,18 +9,29 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/circuitbreaker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
+type S3ClientAPI interface {
+	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+	DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
+}
+
+type S3PresignerAPI interface {
+	PresignGetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error)
+}
+
 type S3Storage struct {
-	Client     *s3.Client
-	Bucket     string
-	Endpoint   string
-	IsPublic   bool // If true, generates public URLs instead of presigned
-	Region     string
-	BaseURL    string // Optional override for public URL (e.g. CDN)
+	Client    S3ClientAPI
+	Presigner S3PresignerAPI
+	Bucket    string
+	Endpoint  string
+	IsPublic  bool // If true, generates public URLs instead of presigned
+	Region    string
+	BaseURL   string // Optional override for public URL (e.g. CDN)
 }
 
 type S3Config struct {
@@ -52,11 +63,14 @@ func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 		}
 	})
 
+	presigner := s3.NewPresignClient(client)
+
 	return &S3Storage{
-		Client:   client,
-		Bucket:   cfg.Bucket,
-		Endpoint: cfg.Endpoint,
-		Region:   cfg.Region,
+		Client:    client,
+		Presigner: presigner,
+		Bucket:    cfg.Bucket,
+		Endpoint:  cfg.Endpoint,
+		Region:    cfg.Region,
 	}, nil
 }
 
@@ -94,8 +108,7 @@ func (s *S3Storage) DeleteFile(ctx context.Context, filename string) error {
 
 func (s *S3Storage) GetFileUrl(filename string) (string, error) {
 	// Generate Presigned URL (valid for 1 hour)
-	presignClient := s3.NewPresignClient(s.Client)
-	req, err := presignClient.PresignGetObject(context.TODO(), &s3.GetObjectInput{
+	req, err := s.Presigner.PresignGetObject(context.TODO(), &s3.GetObjectInput{
 		Bucket: aws.String(s.Bucket),
 		Key:    aws.String(filename),
 	}, func(opts *s3.PresignOptions) {

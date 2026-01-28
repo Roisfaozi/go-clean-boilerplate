@@ -160,7 +160,7 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("casbin.model", "internal/config/casbin_model.conf")
 	v.SetDefault("casbin.watcher.enabled", false)
 	v.SetDefault("casbin.watcher.channel", "/casbin")
-	v.SetDefault("cors.allowed_origins", "*")
+	// v.SetDefault("cors.allowed_origins", "*") // Removed unsafe default
 	v.SetDefault("rate_limit.enabled", true)
 	v.SetDefault("rate_limit.rps", 10.0)
 	v.SetDefault("rate_limit.burst", 20)

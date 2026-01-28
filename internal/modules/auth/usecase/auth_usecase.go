@@ -42,6 +42,7 @@ type Service struct {
 	Enforcer         permissionUseCase.IEnforcer
 	auditUC          auditUseCase.AuditUseCase
 	taskDistributor  worker.TaskDistributor
+	dummyHash        string
 }
 
 func NewAuthUsecase(
@@ -58,7 +59,7 @@ func NewAuthUsecase(
 	auditUC auditUseCase.AuditUseCase,
 	taskDistributor worker.TaskDistributor,
 ) AuthUseCase {
-	return &Service{
+	s := &Service{
 		maxLoginAttempts: maxLoginAttempts,
 		lockoutDuration:  lockoutDuration,
 		jwtManager:       jwtManager,
@@ -72,6 +73,13 @@ func NewAuthUsecase(
 		auditUC:          auditUC,
 		taskDistributor:  taskDistributor,
 	}
+
+	// Generate dummy hash for timing attack prevention
+	// We use the default cost to ensure it matches the real password check duration
+	hash, _ := pkg.HashPassword("dummy")
+	s.dummyHash = hash
+
+	return s
 }
 
 func (s *Service) generateAndStoreTokenPair(ctx context.Context, user *entity.User, role, username string) (string, string, string, error) {
@@ -121,18 +129,16 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		var err error
 		user, err = s.userRepo.FindByUsername(txCtx, request.Username)
 		if err != nil {
+			// Timing attack prevention: perform a hash check even if user not found
+			pkg.CheckPasswordHash(request.Password, s.dummyHash)
 			return ErrInvalidCredentials
 		}
 
 		if !pkg.CheckPasswordHash(request.Password, user.Password) {
 			// Password Invalid: Handle Lockout Logic
-			if incrErr := s.tokenRepo.IncrementLoginAttempts(txCtx, request.Username); incrErr != nil {
+			attempts, incrErr := s.tokenRepo.IncrementLoginAttempts(txCtx, request.Username)
+			if incrErr != nil {
 				s.log.WithContext(txCtx).WithError(incrErr).Error("Failed to increment login attempts")
-			}
-			
-			attempts, getErr := s.tokenRepo.GetLoginAttempts(txCtx, request.Username)
-			if getErr != nil {
-				s.log.WithContext(txCtx).WithError(getErr).Error("Failed to get login attempts")
 			}
 
 			if attempts >= s.maxLoginAttempts {

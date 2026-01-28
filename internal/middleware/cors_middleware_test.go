@@ -27,7 +27,7 @@ func TestCORSMiddleware_CanBeInstantiated(t *testing.T) {
 func TestCORSMiddleware_WithEmptyOrigins(t *testing.T) {
 	router := setupCORSTest()
 	
-	// Setup CORS with empty origins (defaults to wildcard)
+	// Setup CORS with empty origins (Should default to SECURE/No-Op, not wildcard)
 	router.Use(CORSMiddleware([]string{}))
 	
 	router.GET("/test", func(c *gin.Context) {
@@ -41,9 +41,32 @@ func TestCORSMiddleware_WithEmptyOrigins(t *testing.T) {
 	
 	router.ServeHTTP(w, req)
 
-	// Request should succeed
+	// Request should succeed server-side, but NO CORS headers should be present
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "success")
+	assert.Empty(t, w.Header().Get("Access-Control-Allow-Origin"), "Should not return CORS headers for empty config")
+}
+
+func TestCORSMiddleware_Wildcard_NoCredentials(t *testing.T) {
+	router := setupCORSTest()
+
+	// Setup CORS with wildcard
+	router.Use(CORSMiddleware([]string{"*"}))
+
+	router.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "success"})
+	})
+
+	req := httptest.NewRequest("GET", "/test", nil)
+	req.Header.Set("Origin", "https://any-origin.com")
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
+	// Should NOT have credentials allowed when using wildcard
+	assert.NotEqual(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
 }
 
 func TestCORSMiddleware_WithSpecificOrigins(t *testing.T) {
@@ -142,4 +165,24 @@ func TestCORSMiddleware_AllowedMethods(t *testing.T) {
 			assert.Equal(t, tt.expectedCode, w.Code)
 		})
 	}
+}
+
+func TestCORSMiddleware_WildcardOrigin_DisablesCredentials(t *testing.T) {
+	router := setupCORSTest()
+
+	// Setup CORS with empty origins (defaults to wildcard)
+	router.Use(CORSMiddleware([]string{}))
+
+	router.GET("/test-vulnerability", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "success"})
+	})
+
+	req := httptest.NewRequest("GET", "/test-vulnerability", nil)
+	req.Header.Set("Origin", "https://example.com")
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	// Security: If allowedOrigins contains wildcard "*", AllowCredentials MUST be false
+	assert.NotEqual(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
 }

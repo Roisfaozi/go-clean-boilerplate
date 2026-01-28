@@ -200,17 +200,17 @@ func (r *tokenRepositoryRedis) GetLoginAttempts(ctx context.Context, username st
 	return val, nil
 }
 
-func (r *tokenRepositoryRedis) IncrementLoginAttempts(ctx context.Context, username string) error {
+func (r *tokenRepositoryRedis) IncrementLoginAttempts(ctx context.Context, username string) (int, error) {
 	key := r.getAttemptsKey(username)
 	pipe := r.client.Pipeline()
-	pipe.Incr(ctx, key)
+	incr := pipe.Incr(ctx, key)
 	pipe.Expire(ctx, key, 1*time.Hour) // Reset attempts counter after 1 hour of inactivity
 	_, err := pipe.Exec(ctx)
 	if err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("Failed to increment login attempts")
-		return err
+		return 0, err
 	}
-	return nil
+	return int(incr.Val()), nil
 }
 
 func (r *tokenRepositoryRedis) ResetLoginAttempts(ctx context.Context, username string) error {
