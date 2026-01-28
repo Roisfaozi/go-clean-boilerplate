@@ -20,11 +20,12 @@ type AppConfig struct {
 	Log            LoggerConfig         `mapstructure:"log"`
 	WebSocket      WebSocketConfig      `mapstructure:"websocket"`
 	Casbin         CasbinConfig         `mapstructure:"casbin"`
-	CORS           CORSConfig           `mapstructure:"cors"`
-	CircuitBreaker CircuitBreakerConfig `mapstructure:"circuit_breaker"`
-	RateLimit      RateLimitConfig      `mapstructure:"rate_limit"`
-	Storage        StorageConfig        `mapstructure:"storage"`
-	Metrics        struct {
+		CORS      CORSConfig      `mapstructure:"cors"`
+		CircuitBreaker CircuitBreakerConfig `mapstructure:"circuit_breaker"`
+		RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+		SMTP      SMTPConfig      `mapstructure:"smtp"`
+		Storage   StorageConfig   `mapstructure:"storage"`
+		Metrics   struct {
 		Enabled     bool   `env:"METRICS_ENABLED" envDefault:"false"`
 		AuthEnabled bool   `env:"METRICS_AUTH_ENABLED" envDefault:"false"`
 		Username    string `env:"METRICS_USER"`
@@ -81,6 +82,15 @@ type RateLimitConfig struct {
 	RPS     float64 `mapstructure:"rps"`
 	Burst   int     `mapstructure:"burst"`
 	Store   string  `mapstructure:"store"` // "memory" or "redis"
+}
+
+type SMTPConfig struct {
+	Host       string `mapstructure:"host"`
+	Port       int    `mapstructure:"port"`
+	Username   string `mapstructure:"username"`
+	Password   string `mapstructure:"password"`
+	FromSender string `mapstructure:"from_sender"`
+	FromEmail  string `mapstructure:"from_email"`
 }
 
 type CORSConfig struct {
@@ -166,6 +176,12 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("rate_limit.rps", 10.0)
 	v.SetDefault("rate_limit.burst", 20)
 	v.SetDefault("rate_limit.store", "memory")
+	v.SetDefault("smtp.host", "localhost")
+	v.SetDefault("smtp.port", 1025)
+	v.SetDefault("smtp.username", "")
+	v.SetDefault("smtp.password", "")
+	v.SetDefault("smtp.from_sender", "NexusOS Admin")
+	v.SetDefault("smtp.from_email", "no-reply@nexusos.dev")
 	v.SetDefault("circuit_breaker.enabled", true)
 	v.SetDefault("circuit_breaker.max_requests", 5)
 	v.SetDefault("circuit_breaker.interval", "60s")

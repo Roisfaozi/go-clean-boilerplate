@@ -151,7 +151,19 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		logger,
 	)
 
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler)
+	// Map AppConfig to WorkerConfig (Manual mapping to avoid cycle)
+	workerCfg := worker.WorkerConfig{
+		SMTP: worker.SMTPConfig{
+			Host:       cfg.SMTP.Host,
+			Port:       cfg.SMTP.Port,
+			Username:   cfg.SMTP.Username,
+			Password:   cfg.SMTP.Password,
+			FromSender: cfg.SMTP.FromSender,
+			FromEmail:  cfg.SMTP.FromEmail,
+		},
+	}
+
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler, workerCfg)
 	scheduler := worker.NewScheduler(redisOpt, logger)
 	scheduler.RegisterScheduledTasks()
 
