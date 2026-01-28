@@ -438,6 +438,34 @@ func TestUserHandler_RegisterUser_XSS(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w2.Code)
 	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+
+	testCases := []struct {
+		name string
+		body string
+	}{
+		{
+			name: "XSS in Username",
+			body: `{"username":"<script>alert(1)</script>","password":"password123","fullname":"Test User","email":"test@example.com"}`,
+		},
+		{
+			name: "XSS in Fullname",
+			body: `{"username":"testuser","password":"password123","fullname":"<img src=x onerror=alert(1)>","email":"test@example.com"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req, _ := http.NewRequest(http.MethodPost, "/users/register", bytes.NewBufferString(tc.body))
+			req.Header.Set("Content-Type", "application/json")
+
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+			assert.Contains(t, w.Body.String(), "xss") // Ensure the error is related to XSS validation
+		})
+	}
+	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
 }
 
 func TestUserHandler_UpdateUser_PasswordValidation(t *testing.T) {
@@ -869,41 +897,6 @@ func TestUserHandler_UpdateAvatar(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
-}
-
-func TestUserHandler_RegisterUser_XSS(t *testing.T) {
-	mockUseCase := new(mocks.MockUserUseCase)
-	handler := newTestUserHandler(mockUseCase)
-	router := setupUserTestRouter()
-	router.POST("/users/register", handler.RegisterUser)
-
-	testCases := []struct {
-		name string
-		body string
-	}{
-		{
-			name: "XSS in Username",
-			body: `{"username":"<script>alert(1)</script>","password":"password123","fullname":"Test User","email":"test@example.com"}`,
-		},
-		{
-			name: "XSS in Fullname",
-			body: `{"username":"testuser","password":"password123","fullname":"<img src=x onerror=alert(1)>","email":"test@example.com"}`,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			req, _ := http.NewRequest(http.MethodPost, "/users/register", bytes.NewBufferString(tc.body))
-			req.Header.Set("Content-Type", "application/json")
-
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-			assert.Contains(t, w.Body.String(), "xss") // Ensure the error is related to XSS validation
-		})
-	}
-	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
 }
 
 func TestUserHandler_UpdateUser_XSS(t *testing.T) {

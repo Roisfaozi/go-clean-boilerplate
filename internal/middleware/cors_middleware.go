@@ -27,15 +27,6 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 		}
 	}
 
-	// Security: If allowedOrigins contains wildcard "*", AllowCredentials MUST be false
-	// to prevent security misconfigurations.
-	allowCredentials := true
-	for _, origin := range allowedOrigins {
-		if origin == "*" {
-			allowCredentials = false
-			break
-		}
-	}
 
 	return cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
