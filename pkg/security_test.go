@@ -23,7 +23,7 @@ func TestContainsSQLInjection(t *testing.T) {
 
 		// False positive prevention (Substrings)
 		{"Safe word 'selection'", "Natural selection", false}, // Contains 'select' but not as whole word
-		{"Safe name 'Selecta'", "Selecta", false}, // Contains 'select' but not as whole word
+		{"Safe name 'Selecta'", "Selecta", false},             // Contains 'select' but not as whole word
 		{"Safe name 'Benedict'", "Benedict", false},
 
 		// Limitations (Whole words are still flagged)

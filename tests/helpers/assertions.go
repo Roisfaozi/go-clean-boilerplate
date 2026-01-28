@@ -15,7 +15,7 @@ func AssertStatusCode(t *testing.T, expected int, actual int) {
 
 func AssertJSONResponse(t *testing.T, body []byte, path string, expected interface{}) {
 	result := gjson.GetBytes(body, path)
-	
+
 	switch v := expected.(type) {
 	case string:
 		assert.Equal(t, v, result.String())
@@ -36,7 +36,7 @@ func AssertJSONContains(t *testing.T, body []byte, path string) {
 func AssertJSONNotEmpty(t *testing.T, body []byte, path string) {
 	result := gjson.GetBytes(body, path)
 	assert.True(t, result.Exists(), "Path %s does not exist", path)
-	
+
 	switch result.Type {
 	case gjson.String:
 		assert.NotEmpty(t, result.String(), "String at %s is empty", path)
@@ -47,7 +47,7 @@ func AssertJSONNotEmpty(t *testing.T, body []byte, path string) {
 
 func AssertValidationError(t *testing.T, resp *http.Response, body []byte) {
 	assert.Equal(t, 422, resp.StatusCode, "Expected validation error (422)")
-	
+
 	var result map[string]interface{}
 	err := json.Unmarshal(body, &result)
 	assert.NoError(t, err)
@@ -67,6 +67,6 @@ func AssertNotFound(t *testing.T, resp *http.Response) {
 }
 
 func AssertSuccess(t *testing.T, resp *http.Response) {
-	assert.True(t, resp.StatusCode >= 200 && resp.StatusCode < 300, 
+	assert.True(t, resp.StatusCode >= 200 && resp.StatusCode < 300,
 		"Expected success status code (2xx), got %d", resp.StatusCode)
 }

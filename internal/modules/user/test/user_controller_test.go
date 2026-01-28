@@ -573,15 +573,15 @@ func TestUserHandler_UpdateUser(t *testing.T) {
 		handler := newTestUserHandler(mockUseCase)
 
 		reqBody := &model.UpdateUserRequest{
-			ID: userID,
+			ID:       userID,
 			Username: "newusername",
-			Name: "New Name",
+			Name:     "New Name",
 		}
 
 		resBody := &model.UserResponse{
-			ID: userID,
+			ID:       userID,
 			Username: "newusername",
-			Name: "New Name",
+			Name:     "New Name",
 		}
 
 		mockUseCase.On("Update", mock.Anything, reqBody).Return(resBody, nil).Once()
@@ -705,9 +705,9 @@ func TestUserHandler_GetUsersDynamic(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		expectedUsers := []*model.UserResponse{{ID: "1", Name: "Test"}}
-		mockUseCase.On("GetAllUsersDynamic", mock.Anything, mock.MatchedBy(func (f *querybuilder.DynamicFilter) bool {
-            return f != nil
-        })).Return(expectedUsers, int64(1), nil).Once()
+		mockUseCase.On("GetAllUsersDynamic", mock.Anything, mock.MatchedBy(func(f *querybuilder.DynamicFilter) bool {
+			return f != nil
+		})).Return(expectedUsers, int64(1), nil).Once()
 
 		jsonBody := `{"filters":{"name":{"type":"contains","from":"Test"}}}`
 		req, _ := http.NewRequest(http.MethodPost, "/users/search", bytes.NewBufferString(jsonBody))

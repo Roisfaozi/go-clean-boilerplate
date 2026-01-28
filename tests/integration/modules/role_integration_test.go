@@ -245,7 +245,7 @@ func TestRoleIntegration_Security_SQLInjectionInName(t *testing.T) {
 		t.Run("SQLInjection_"+injection, func(t *testing.T) {
 			req := &model.CreateRoleRequest{Name: injection, Description: "SQL injection attempt"}
 			_, err := roleUC.Create(context.Background(), req)
-			
+
 			_ = err
 		})
 	}

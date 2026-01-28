@@ -12,64 +12,65 @@ import (
 )
 
 type AppConfig struct {
-	Server    ServerConfig    `mapstructure:"server"`
-	Mysql     MySqlConfig     `mapstructure:"mysql"`
-	Redis     RedisConfig     `mapstructure:"redis"`
-	JWT       JWTConfig       `mapstructure:"jwt"`
-	Security  SecurityConfig  `mapstructure:"security"`
-	Log       LoggerConfig    `mapstructure:"log"`
-	WebSocket WebSocketConfig `mapstructure:"websocket"`
-	Casbin    CasbinConfig    `mapstructure:"casbin"`
-	CORS      CORSConfig      `mapstructure:"cors"`
+	Server         ServerConfig         `mapstructure:"server"`
+	Mysql          MySqlConfig          `mapstructure:"mysql"`
+	Redis          RedisConfig          `mapstructure:"redis"`
+	JWT            JWTConfig            `mapstructure:"jwt"`
+	Security       SecurityConfig       `mapstructure:"security"`
+	Log            LoggerConfig         `mapstructure:"log"`
+	WebSocket      WebSocketConfig      `mapstructure:"websocket"`
+	Casbin         CasbinConfig         `mapstructure:"casbin"`
+	CORS           CORSConfig           `mapstructure:"cors"`
 	CircuitBreaker CircuitBreakerConfig `mapstructure:"circuit_breaker"`
-	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
-		Storage   StorageConfig   `mapstructure:"storage"`
-		Metrics   struct {
-			Enabled     bool   `env:"METRICS_ENABLED" envDefault:"false"`
-			AuthEnabled bool   `env:"METRICS_AUTH_ENABLED" envDefault:"false"`
-			Username    string `env:"METRICS_USER"`
-			Password    string `env:"METRICS_PASS"`
-		}
-	
-		Telemetry struct {
-			Enabled      bool   `env:"OTEL_ENABLED" envDefault:"false"`
-			ServiceName  string `env:"OTEL_SERVICE_NAME" envDefault:"go-clean-api"`
-			CollectorURL string `env:"OTEL_COLLECTOR_URL" envDefault:"localhost:4317"`
-		}
+	RateLimit      RateLimitConfig      `mapstructure:"rate_limit"`
+	Storage        StorageConfig        `mapstructure:"storage"`
+	Metrics        struct {
+		Enabled     bool   `env:"METRICS_ENABLED" envDefault:"false"`
+		AuthEnabled bool   `env:"METRICS_AUTH_ENABLED" envDefault:"false"`
+		Username    string `env:"METRICS_USER"`
+		Password    string `env:"METRICS_PASS"`
 	}
-	
-	type StorageConfig struct {
-		Driver string `mapstructure:"driver" validate:"required,oneof=local s3"`
-		Local  struct {
-			RootPath string `mapstructure:"root_path"`
-			BaseURL  string `mapstructure:"base_url"`
-		} `mapstructure:"local"`
-		S3 struct {
-			Endpoint       string `mapstructure:"endpoint"`
-			Region         string `mapstructure:"region"`
-			Bucket         string `mapstructure:"bucket"`
-			AccessKey      string `mapstructure:"access_key"`
-			SecretKey      string `mapstructure:"secret_key"`
-			UseSSL         bool   `mapstructure:"use_ssl"`
-			ForcePathStyle bool   `mapstructure:"force_path_style"`
-		} `mapstructure:"s3"`
+
+	Telemetry struct {
+		Enabled      bool   `env:"OTEL_ENABLED" envDefault:"false"`
+		ServiceName  string `env:"OTEL_SERVICE_NAME" envDefault:"go-clean-api"`
+		CollectorURL string `env:"OTEL_COLLECTOR_URL" envDefault:"localhost:4317"`
 	}
-	
-	type ServerConfig struct {
+}
+
+type StorageConfig struct {
+	Driver string `mapstructure:"driver" validate:"required,oneof=local s3"`
+	Local  struct {
+		RootPath string `mapstructure:"root_path"`
+		BaseURL  string `mapstructure:"base_url"`
+	} `mapstructure:"local"`
+	S3 struct {
+		Endpoint       string `mapstructure:"endpoint"`
+		Region         string `mapstructure:"region"`
+		Bucket         string `mapstructure:"bucket"`
+		AccessKey      string `mapstructure:"access_key"`
+		SecretKey      string `mapstructure:"secret_key"`
+		UseSSL         bool   `mapstructure:"use_ssl"`
+		ForcePathStyle bool   `mapstructure:"force_path_style"`
+	} `mapstructure:"s3"`
+}
+
+type ServerConfig struct {
 	Port           int           `mapstructure:"port" validate:"required"`
 	ReadTimeout    time.Duration `mapstructure:"read_timeout"`
-	    WriteTimeout   time.Duration `mapstructure:"write_timeout"`
-	    AppName        string        `mapstructure:"app_name"`
-	    AppEnv         string        `mapstructure:"app_env"`
-	    TrustedProxies []string      `mapstructure:"trusted_proxies"`
-	}
-	
-	type SecurityConfig struct {
-		MaxLoginAttempts int           `mapstructure:"max_login_attempts"`
-		LockoutDuration  time.Duration `mapstructure:"lockout_duration"`
-	}
-	
-	type MetricsConfig struct {	Enabled     bool   `mapstructure:"enabled"`
+	WriteTimeout   time.Duration `mapstructure:"write_timeout"`
+	AppName        string        `mapstructure:"app_name"`
+	AppEnv         string        `mapstructure:"app_env"`
+	TrustedProxies []string      `mapstructure:"trusted_proxies"`
+}
+
+type SecurityConfig struct {
+	MaxLoginAttempts int           `mapstructure:"max_login_attempts"`
+	LockoutDuration  time.Duration `mapstructure:"lockout_duration"`
+}
+
+type MetricsConfig struct {
+	Enabled     bool   `mapstructure:"enabled"`
 	AuthEnabled bool   `mapstructure:"auth_enabled"`
 	Username    string `mapstructure:"username"`
 	Password    string `mapstructure:"password"`

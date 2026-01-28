@@ -240,7 +240,7 @@ func (u *userUseCaseImpl) Update(ctx context.Context, request *model.UpdateUserR
 		if request.Username != "" {
 			newVals["username"] = request.Username
 		}
-		
+
 		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:    user.ID,
 			Action:    "UPDATE",
@@ -431,4 +431,3 @@ func (u *userUseCaseImpl) HardDeleteSoftDeletedUsers(ctx context.Context, retent
 	}
 	return nil
 }
-

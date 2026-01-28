@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-
 func setupPermissionTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()

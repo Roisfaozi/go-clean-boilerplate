@@ -67,13 +67,13 @@ func (h *AuditController) Export(c *gin.Context) {
 		for _, log := range logs {
 			oldVal, oldErr := json.Marshal(log.OldValues)
 			if oldErr != nil {
-					h.Log.WithError(oldErr).Warnf("Failed to marshal OldValues for audit log %s", log.ID)
-					oldVal = []byte("null")
+				h.Log.WithError(oldErr).Warnf("Failed to marshal OldValues for audit log %s", log.ID)
+				oldVal = []byte("null")
 			}
 			newVal, newErr := json.Marshal(log.NewValues)
 			if newErr != nil {
-					h.Log.WithError(newErr).Warnf("Failed to marshal NewValues for audit log %s", log.ID)
-					newVal = []byte("null")
+				h.Log.WithError(newErr).Warnf("Failed to marshal NewValues for audit log %s", log.ID)
+				newVal = []byte("null")
 			}
 			record := []string{
 				log.ID,

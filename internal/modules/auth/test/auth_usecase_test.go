@@ -68,15 +68,15 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 	deps.log.SetOutput(io.Discard)
 
 	authService := usecase.NewAuthUsecase(
-		5,              
-		30*time.Minute, 
+		5,
+		30*time.Minute,
 		deps.jwtManager,
 		deps.tokenRepo,
 		deps.userRepo,
 		deps.tm,
 		deps.log,
 		deps.wsManager,
-		nil, 
+		nil,
 		deps.enforcer,
 		deps.auditUC,
 		deps.taskDistributor,
@@ -103,7 +103,7 @@ func TestLogin_Success(t *testing.T) {
 	loginReq := model.LoginRequest{Username: user.Username, Password: password, IPAddress: "127.0.0.1", UserAgent: "TestAgent"}
 
 	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
-	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil) 
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil)
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -154,7 +154,7 @@ func TestLogin_Failure_UserNotFound(t *testing.T) {
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
 
 	assert.Error(t, err)
-	assert.True(t, errors.Is(err, usecase.ErrInvalidCredentials)) 
+	assert.True(t, errors.Is(err, usecase.ErrInvalidCredentials))
 	assert.Nil(t, loginResp)
 	assert.Empty(t, refreshToken)
 	deps.userRepo.AssertExpectations(t)
@@ -178,7 +178,7 @@ func TestLogin_Failure_InvalidPassword(t *testing.T) {
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
 
 	assert.Error(t, err)
-	assert.True(t, errors.Is(err, usecase.ErrInvalidCredentials)) 
+	assert.True(t, errors.Is(err, usecase.ErrInvalidCredentials))
 	assert.Nil(t, loginResp)
 	assert.Empty(t, refreshToken)
 	deps.userRepo.AssertExpectations(t)
@@ -190,8 +190,8 @@ func TestLogin_Failure_StoreTokenError(t *testing.T) {
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
 	storeErr := errors.New("redis is down")
 
-	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil) 
-	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil)                       
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil)
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -217,7 +217,7 @@ func TestLogin_EnforcerError(t *testing.T) {
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
 
 	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
-	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil) 
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil)
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -242,7 +242,7 @@ func TestLogin_AuditError(t *testing.T) {
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
 
 	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
-	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil) 
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil)
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -264,10 +264,10 @@ func TestLogin_AuditError(t *testing.T) {
 }
 
 func TestLogin_Security_BruteForceProtection(t *testing.T) {
-	
+
 	maxAttempts := 1
 	lockoutDuration := 15 * time.Minute
-	
+
 	_, deps := setupTest(t)
 	authService := usecase.NewAuthUsecase(
 		maxAttempts,
@@ -288,22 +288,19 @@ func TestLogin_Security_BruteForceProtection(t *testing.T) {
 	wrongPassword := "wrongpass"
 
 	t.Run("Should lock account immediately if max attempts reached", func(t *testing.T) {
-		
+
 		deps.tm.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
 			return fn(ctx)
 		})
 
-		
 		deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
 
-		
 		deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 
-		
 		deps.tokenRepo.On("IncrementLoginAttempts", mock.Anything, user.Username).Return(1, nil)
-		
+
 		deps.tokenRepo.On("LockAccount", mock.Anything, user.Username, lockoutDuration).Return(nil)
-		
+
 		deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
 		req := model.LoginRequest{
@@ -312,7 +309,7 @@ func TestLogin_Security_BruteForceProtection(t *testing.T) {
 		}
 
 		_, _, err := authService.Login(context.Background(), req)
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "too many failed attempts")
 	})
@@ -488,7 +485,7 @@ func TestRevokeToken_AuditError(t *testing.T) {
 
 	err := authService.RevokeToken(context.Background(), userID, sessionID)
 
-	assert.NoError(t, err) 
+	assert.NoError(t, err)
 	deps.tokenRepo.AssertExpectations(t)
 	deps.auditUC.AssertExpectations(t)
 }
@@ -600,8 +597,6 @@ func TestGenerateRefreshToken_EnforcerError(t *testing.T) {
 	deps.enforcer.AssertExpectations(t)
 }
 
-
-
 func TestForgotPassword_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
@@ -644,16 +639,15 @@ func TestForgotPassword_Failure_RepositoryError(t *testing.T) {
 	user, _ := createTestUser("password123")
 
 	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
-	
+
 	deps.tokenRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.PasswordResetToken")).Return(errors.New("db save error"))
 
 	err := authService.ForgotPassword(context.Background(), user.Email)
 
-	
 	assert.NoError(t, err)
 	deps.userRepo.AssertExpectations(t)
 	deps.tokenRepo.AssertExpectations(t)
-	
+
 	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
 }
 
@@ -664,8 +658,8 @@ func TestLogin_Failure_UserSuspended(t *testing.T) {
 
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
 
-	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil) 
-	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil)                       
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil)
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -713,7 +707,6 @@ func TestForgotPassword_DistributeTaskError(t *testing.T) {
 
 	err := authService.ForgotPassword(context.Background(), user.Email)
 
-	
 	assert.NoError(t, err)
 	deps.userRepo.AssertExpectations(t)
 	deps.tokenRepo.AssertExpectations(t)
@@ -779,7 +772,6 @@ func TestResetPassword_Failure_TransactionError(t *testing.T) {
 	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
 	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
 
-	
 	dbErr := errors.New("update failed")
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -912,7 +904,6 @@ func TestValidateRefreshToken_Failure_Revoked(t *testing.T) {
 	token, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, TestRefreshSecret, 24*time.Hour)
 	assert.NoError(t, err)
 
-	
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(nil, nil)
 
 	claims, err := authService.ValidateRefreshToken(token)
@@ -929,7 +920,7 @@ func TestLogin_Success_NoRoles(t *testing.T) {
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
 
 	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
-	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil) 
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil)
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -937,7 +928,7 @@ func TestLogin_Success_NoRoles(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	
+
 	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
@@ -954,12 +945,10 @@ func TestLogin_Success_NoRoles(t *testing.T) {
 	deps.enforcer.AssertExpectations(t)
 }
 
-
-
 func TestRequestVerification_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
-	user.EmailVerifiedAt = nil 
+	user.EmailVerifiedAt = nil
 
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
 	deps.tokenRepo.On("SaveVerificationToken", mock.Anything, mock.AnythingOfType("*entity.EmailVerificationToken")).Return(nil)
@@ -996,7 +985,7 @@ func TestRequestVerification_AlreadyVerified(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 	verifiedAt := time.Now().UnixMilli()
-	user.EmailVerifiedAt = &verifiedAt 
+	user.EmailVerifiedAt = &verifiedAt
 
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
 
@@ -1035,7 +1024,6 @@ func TestRequestVerification_DistributeTaskError(t *testing.T) {
 
 	err := authService.RequestVerification(context.Background(), user.ID)
 
-	
 	assert.NoError(t, err)
 	deps.taskDistributor.AssertExpectations(t)
 }
@@ -1049,7 +1037,7 @@ func TestVerifyEmail_Success(t *testing.T) {
 	verificationToken := &authEntity.EmailVerificationToken{
 		Email:     user.Email,
 		Token:     token,
-		ExpiresAt: now + (24 * 60 * 60 * 1000), 
+		ExpiresAt: now + (24 * 60 * 60 * 1000),
 		CreatedAt: now,
 	}
 
@@ -1094,7 +1082,7 @@ func TestVerifyEmail_ExpiredToken(t *testing.T) {
 	verificationToken := &authEntity.EmailVerificationToken{
 		Email:     "test@example.com",
 		Token:     token,
-		ExpiresAt: now - (1 * 60 * 60 * 1000), 
+		ExpiresAt: now - (1 * 60 * 60 * 1000),
 		CreatedAt: now - (25 * 60 * 60 * 1000),
 	}
 
@@ -1133,7 +1121,7 @@ func TestVerifyEmail_AlreadyVerified(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 	verifiedAt := time.Now().UnixMilli()
-	user.EmailVerifiedAt = &verifiedAt 
+	user.EmailVerifiedAt = &verifiedAt
 	token := "valid-token"
 	now := time.Now().UnixMilli()
 	verificationToken := &authEntity.EmailVerificationToken{
@@ -1184,4 +1172,3 @@ func TestVerifyEmail_TransactionError(t *testing.T) {
 	assert.Equal(t, dbErr, err)
 	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
 }
-

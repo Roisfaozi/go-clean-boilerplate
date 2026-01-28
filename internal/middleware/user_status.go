@@ -3,8 +3,8 @@ package middleware
 import (
 	"errors"
 
-	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -32,7 +32,7 @@ func UserStatusMiddleware(userRepo userRepository.UserRepository, log *logrus.Lo
 
 		if user.Status != entity.UserStatusActive {
 			log.Warnf("Access denied for %s user: %s", user.Status, userID)
-			
+
 			msg := "Your account has been banned. Please contact support."
 			if user.Status == entity.UserStatusSuspended {
 				msg = "Your account has been suspended temporarily. Please contact support."

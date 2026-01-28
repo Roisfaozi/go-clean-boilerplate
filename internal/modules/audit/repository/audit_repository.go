@@ -59,78 +59,64 @@ func (r *auditRepository) FindAllDynamic(ctx context.Context, filter *querybuild
 		query = query.Limit(filter.PageSize).Offset(offset)
 	}
 
-		if err := query.Find(&logs).Error; err != nil {
+	if err := query.Find(&logs).Error; err != nil {
 
-			return nil, 0, err
-
-		}
-
-		return logs, total, nil
+		return nil, 0, err
 
 	}
 
-	
+	return logs, total, nil
 
-	func (r *auditRepository) DeleteLogsOlderThan(ctx context.Context, cutoffTime int64) error {
+}
 
-		// Audit logs use created_at as unix milli
+func (r *auditRepository) DeleteLogsOlderThan(ctx context.Context, cutoffTime int64) error {
 
-		if err := r.db.WithContext(ctx).Where("created_at < ?", cutoffTime).Delete(&entity.AuditLog{}).Error; err != nil {
+	// Audit logs use created_at as unix milli
 
-			r.log.WithContext(ctx).WithError(err).Error("Failed to prune old audit logs")
+	if err := r.db.WithContext(ctx).Where("created_at < ?", cutoffTime).Delete(&entity.AuditLog{}).Error; err != nil {
 
-			return err
+		r.log.WithContext(ctx).WithError(err).Error("Failed to prune old audit logs")
 
-		}
-
-		return nil
+		return err
 
 	}
 
-	
+	return nil
 
-	func (r *auditRepository) FindAllInBatches(ctx context.Context, startTime, endTime int64, batchSize int, process func([]*entity.AuditLog) error) error {
+}
 
-		var logs []*entity.AuditLog
+func (r *auditRepository) FindAllInBatches(ctx context.Context, startTime, endTime int64, batchSize int, process func([]*entity.AuditLog) error) error {
 
-		query := r.db.WithContext(ctx).Model(&entity.AuditLog{})
+	var logs []*entity.AuditLog
 
-	
+	query := r.db.WithContext(ctx).Model(&entity.AuditLog{})
 
-		if startTime > 0 {
+	if startTime > 0 {
 
-			query = query.Where("created_at >= ?", startTime)
-
-		}
-
-		if endTime > 0 {
-
-			query = query.Where("created_at <= ?", endTime)
-
-		}
-
-	
-
-		result := query.FindInBatches(&logs, batchSize, func(tx *gorm.DB, batch int) error {
-
-			return process(logs)
-
-		})
-
-	
-
-		if result.Error != nil {
-
-			r.log.WithContext(ctx).WithError(result.Error).Error("Failed to fetch audit logs in batches")
-
-			return result.Error
-
-		}
-
-	
-
-		return nil
+		query = query.Where("created_at >= ?", startTime)
 
 	}
 
-	
+	if endTime > 0 {
+
+		query = query.Where("created_at <= ?", endTime)
+
+	}
+
+	result := query.FindInBatches(&logs, batchSize, func(tx *gorm.DB, batch int) error {
+
+		return process(logs)
+
+	})
+
+	if result.Error != nil {
+
+		r.log.WithContext(ctx).WithError(result.Error).Error("Failed to fetch audit logs in batches")
+
+		return result.Error
+
+	}
+
+	return nil
+
+}

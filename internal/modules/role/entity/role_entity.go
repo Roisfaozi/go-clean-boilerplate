@@ -10,4 +10,3 @@ type Role struct {
 	UpdatedAt   int64                 `gorm:"column:updated_at;autoCreateTime:milli;autoUpdateTime:milli"`
 	DeletedAt   soft_delete.DeletedAt `gorm:"column:deleted_at;softDelete:milli;index"`
 }
-

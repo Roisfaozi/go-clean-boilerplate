@@ -16,8 +16,8 @@ type Settings struct {
 }
 
 var (
-	breakers = make(map[string]*gobreaker.CircuitBreaker)
-	mu       sync.RWMutex
+	breakers        = make(map[string]*gobreaker.CircuitBreaker)
+	mu              sync.RWMutex
 	defaultSettings Settings
 )
 
@@ -51,8 +51,7 @@ func GetOrBuild(name string) *gobreaker.CircuitBreaker {
 		return cb
 	}
 
-
-st := gobreaker.Settings{
+	st := gobreaker.Settings{
 		Name:        name,
 		MaxRequests: defaultSettings.MaxRequests,
 		Interval:    defaultSettings.Interval,

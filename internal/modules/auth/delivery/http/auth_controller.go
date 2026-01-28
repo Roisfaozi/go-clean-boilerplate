@@ -71,9 +71,6 @@ func (h *AuthController) Login(c *gin.Context) {
 	response.Success(c, res)
 }
 
-
-
-
 // RefreshToken godoc
 // @Summary      Refresh access token
 // @Description  Refreshes access and refresh tokens using the refresh token cookie.
@@ -133,7 +130,6 @@ func (h *AuthController) Logout(c *gin.Context) {
 	response.Success(c, gin.H{"message": "logged out successfully"})
 }
 
-
 // ForgotPassword godoc
 // @Summary      Request password reset
 // @Description  Sends a password reset email if the account exists.
@@ -168,7 +164,6 @@ func (h *AuthController) ForgotPassword(c *gin.Context) {
 	// Always return success for security reasons (don't reveal if email exists)
 	response.Success(c, gin.H{"message": "If the email is registered, a reset link will be sent shortly."})
 }
-
 
 // ResetPassword godoc
 // @Summary      Reset password
@@ -265,4 +260,3 @@ func (h *AuthController) ResendVerification(c *gin.Context) {
 
 	response.Success(c, gin.H{"message": "verification email sent successfully"})
 }
-

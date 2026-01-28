@@ -163,13 +163,13 @@ func SetupRouter(
 	}
 	{
 		// Special handling for Login to use Critical Limiter
-		authGroup := public.Group("/auth") 
+		authGroup := public.Group("/auth")
 		if criticalLimiter != nil {
 			authGroup.POST("/login", criticalLimiter, authModule.AuthController.Login)
 		} else {
 			authGroup.POST("/login", authModule.AuthController.Login)
 		}
-		
+
 		// Other Auth Routes (Standard Public Limit)
 		authGroup.POST("/refresh", authModule.AuthController.RefreshToken)
 		authGroup.POST("/forgot-password", authModule.AuthController.ForgotPassword)
@@ -190,7 +190,7 @@ func SetupRouter(
 		authGroup := authenticated.Group("/auth")
 		authGroup.POST("/logout", authModule.AuthController.Logout)
 		authGroup.POST("/resend-verification", authModule.AuthController.ResendVerification)
-		
+
 		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
 		permissionHttp.RegisterBatchCheckRoute(authenticated, permissionModule.PermissionController)
 	}

@@ -73,6 +73,6 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 
 	rolesAfter, err := env.Enforcer.GetRolesForUser(user.ID)
 	assert.NoError(t, err)
-	
+
 	assert.Contains(t, rolesAfter, "role:user", "Roles should be restored/preserved on rollback")
 }

@@ -30,7 +30,7 @@ func validateXSS(fl validator.FieldLevel) bool {
 
 	temp := desc
 	for _, tag := range safeTags {
-		
+
 		re := regexp.MustCompile(fmt.Sprintf(`(?i)<[/]?%s\b[^>]*>`, tag))
 		temp = re.ReplaceAllString(temp, "")
 	}
