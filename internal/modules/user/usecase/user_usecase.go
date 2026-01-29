@@ -381,11 +381,11 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 
 		var oldRoles []string
 		if u.Enforcer != nil {
-
 			var err error
 			oldRoles, err = u.Enforcer.GetRolesForUser(user.ID)
 			if err != nil {
-				u.Log.Warnf("Failed to fetch roles for backup in delete: %v", err)
+				u.Log.Errorf("Failed to fetch roles for backup in delete: %v", err)
+				return exception.ErrInternalServer
 			}
 
 			_, err = u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID)
