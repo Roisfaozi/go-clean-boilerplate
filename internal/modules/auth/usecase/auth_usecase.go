@@ -414,19 +414,26 @@ func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
 }
 
 func (s *Service) ForgotPassword(ctx context.Context, email string) error {
-	user, err := s.userRepo.FindByEmail(ctx, email)
-	if err != nil {
-		// Security: Don't reveal if email exists
-		s.log.WithContext(ctx).Warnf("Forgot password attempt for non-existent email: %s", email)
-		return nil
-	}
-
-	// Generate 32-char hex token
+	// Generate 32-char hex token unconditionally to prevent timing leaks
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
 		return fmt.Errorf("failed to generate random token: %w", err)
 	}
 	token := hex.EncodeToString(b)
+
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		// Security: Don't reveal if email exists
+		s.log.WithContext(ctx).Warnf("Forgot password attempt for non-existent email: %s", email)
+
+		// Simulate DB/Network latency (20-50ms) to prevent user enumeration via timing attacks
+		// The success path involves a DB write and task enqueue which typically takes this amount of time.
+		// We use a simple modulo on UnixNano to get a pseudo-random duration without importing math/rand.
+		sleepDuration := time.Duration(20+(time.Now().UnixNano()%30)) * time.Millisecond
+		time.Sleep(sleepDuration)
+
+		return nil
+	}
 
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     email,
