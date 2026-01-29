@@ -51,8 +51,8 @@ type GetUserRequest struct {
 type GetUserListRequest struct {
 	Page     int    `form:"page" json:"page" validate:"omitempty,min=1"`
 	Limit    int    `form:"limit" json:"limit" validate:"omitempty,min=1,max=100"`
-	Username string `form:"username" json:"username" validate:"omitempty,max=100"`
-	Email    string `form:"email" json:"email" validate:"omitempty,max=100"`
+	Username string `form:"username" json:"username" validate:"omitempty,max=100,xss"`
+	Email    string `form:"email" json:"email" validate:"omitempty,max=100,xss"`
 }
 
 type DeleteUserRequest struct {
