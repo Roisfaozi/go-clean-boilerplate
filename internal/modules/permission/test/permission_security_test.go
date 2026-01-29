@@ -57,20 +57,20 @@ func TestCircularRoleInheritance_DirectCycle(t *testing.T) {
 	// AddParentRole calls FindByName for both childRole and parentRole
 	deps.RoleRepo.On("FindByName", mock.Anything, "editor").Return(roleB, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, "admin").Return(roleA, nil)
-	
+
 	// AddGroupingPolicy is called with raw role names, not prefixed
 	deps.Enforcer.On("AddGroupingPolicy", "editor", "admin").Return(true, nil)
 
 	// The test here demonstrates the NEED for circular detection
 	// In production, before calling AddGroupingPolicy, we should check for cycles
-	
+
 	// This is a design test - checking that the function doesn't crash
 	// In a proper implementation, this should return an error for circular inheritance
 	err := uc.AddParentRole(context.Background(), "editor", "admin")
-	
+
 	// Current implementation allows this - documenting need for cycle detection
 	assert.NoError(t, err)
-	
+
 	deps.RoleRepo.AssertExpectations(t)
 	deps.Enforcer.AssertExpectations(t)
 }
@@ -86,7 +86,7 @@ func TestCircularRoleInheritance_IndirectCycle(t *testing.T) {
 	// AddParentRole calls FindByName for both childRole and parentRole
 	deps.RoleRepo.On("FindByName", mock.Anything, "superadmin").Return(roleA, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, "moderator").Return(roleC, nil)
-	
+
 	// AddGroupingPolicy is called with raw role names, not prefixed
 	deps.Enforcer.On("AddGroupingPolicy", "superadmin", "moderator").Return(true, nil)
 
@@ -111,12 +111,12 @@ func TestGrantPermissionToRole_SQLInjection_InPath(t *testing.T) {
 	method := "GET"
 
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(&roleEntity.Role{Name: roleName}, nil)
-	
+
 	// Casbin should receive the raw string - parameterized at DB level
 	deps.Enforcer.On("AddPolicy", roleName, maliciousPath, method).Return(true, nil)
 
 	err := uc.GrantPermissionToRole(context.Background(), roleName, maliciousPath, method)
-	
+
 	// Should not error - string is passed as-is, DB handles escaping
 	assert.NoError(t, err)
 	deps.Enforcer.AssertCalled(t, "AddPolicy", roleName, maliciousPath, method)
@@ -453,4 +453,3 @@ func TestConcurrentBatchPermissionCheck(t *testing.T) {
 	wg.Wait()
 	assert.Equal(t, int32(numGoroutines), successCount)
 }
-

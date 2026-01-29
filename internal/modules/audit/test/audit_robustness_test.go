@@ -44,7 +44,7 @@ func TestAuditUseCase_LogActivity_CircularRef(t *testing.T) {
 	// Expectation: The usecase ignores jsonmarshal errors and stores "null" or empty string?
 	// The implementation uses: oldValJSON, _ := json.Marshal(req.OldValues)
 	// If error, it returns nil slice, so string(nil) is "".
-	
+
 	mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(log *entity.AuditLog) bool {
 		// OldValues should be empty string (or "null" if changed, but implementation implies "")
 		// Verify other fields
@@ -59,7 +59,7 @@ func TestAuditUseCase_LogActivity_LargePayload(t *testing.T) {
 	mockRepo, uc := setupAuditTest()
 
 	// 1.5MB String
-	largeVal := strings.Repeat("a", 1500*1024) 
+	largeVal := strings.Repeat("a", 1500*1024)
 
 	req := model.CreateAuditLogRequest{
 		UserID:    "user-1",

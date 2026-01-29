@@ -36,11 +36,11 @@ func TestCreateEndpoint_DuplicateDetection(t *testing.T) {
 	// Case 1: Duplicate entry (Repo returns conflict/unique constraint error)
 	// Assuming logic relies on DB unique constraint
 	expectedErr := exception.ErrConflict // or standard error depending on repo impl
-	
+
 	// Mock repo returning error
 	repo.On("CreateEndpoint", mock.Anything, mock.MatchedBy(func(e interface{}) bool {
 		// Verify fields if needed, simplified for error check
-		return true 
+		return true
 	})).Return(expectedErr).Once()
 
 	resp, err := uc.CreateEndpoint(context.Background(), req)
@@ -52,11 +52,8 @@ func TestCreateEndpoint_DuplicateDetection(t *testing.T) {
 	// Case 2: Success
 	repo.On("CreateEndpoint", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		arg := args.Get(1)
-		// Simulate ID assignment
-		if entity, ok := arg.(interface{}); ok {
-			// In real struct, fields are set. Mock just returns nil
-			_ = entity
-		}
+		// Simulate ID assignment (no-op in mock)
+		_ = arg
 	})
 
 	// To make asserting response easier, we'd need to mock assignment or check logic.

@@ -64,7 +64,7 @@ func TestDeleteRole_SuperadminProtection_CaseSensitive(t *testing.T) {
 	repo.On("Delete", mock.Anything, roleID).Return(nil)
 
 	err := uc.Delete(context.Background(), roleID)
-	
+
 	// Currently expecting success because protection is exact match
 	assert.NoError(t, err)
 }
@@ -77,7 +77,7 @@ func TestUpdateRole_SuperadminProtection(t *testing.T) {
 	role := &entity.Role{ID: roleID, Name: "role:superadmin"}
 
 	repo.On("FindByID", mock.Anything, roleID).Return(role, nil)
-	
+
 	// Expect Update to be called because currently there is NO protection on Update
 	// If protection is added later, this expectation should verify it (expecting error instead).
 	// For now, we assert that it succeeds (documenting current behavior).

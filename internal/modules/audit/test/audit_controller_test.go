@@ -15,7 +15,9 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -30,7 +32,9 @@ func setupAuditTestRouter() *gin.Engine {
 func newTestAuditController(mockUC usecase.AuditUseCase) *auditHttp.AuditController {
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
-	return auditHttp.NewAuditController(mockUC, logger)
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v)
+	return auditHttp.NewAuditController(mockUC, v, logger)
 }
 
 func TestGetLogsDynamicController(t *testing.T) {

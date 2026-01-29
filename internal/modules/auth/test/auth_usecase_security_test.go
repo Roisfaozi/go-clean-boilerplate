@@ -236,7 +236,6 @@ func TestRefreshToken_SessionCleanupFailure(t *testing.T) {
 	assert.NotEmpty(t, newRefreshToken)
 }
 
-
 // TestRefreshToken_OrphanedSession tests behavior with expired but not-yet-deleted session.
 func TestRefreshToken_ExpiredButOrphanedSession(t *testing.T) {
 	authService, _ := setupSecurityTest(t)
@@ -361,7 +360,6 @@ func TestVerifyEmail_TokenReplay_SameTokenTwice(t *testing.T) {
 	err = authService.VerifyEmail(context.Background(), verificationToken)
 	assert.ErrorIs(t, err, usecase.ErrInvalidVerificationToken)
 }
-
 
 // ============================================================================
 // 🔐 CONCURRENT SESSION VALIDATION TESTS

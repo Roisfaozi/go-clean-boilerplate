@@ -10,6 +10,7 @@ import (
 	permissionHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -21,6 +22,7 @@ func setupPermissionControllerTest() (*mocks.MockIPermissionUseCase, *permission
 	mockUC := new(mocks.MockIPermissionUseCase)
 	logger := logrus.New()
 	validate := validator.New()
+	_ = validation.RegisterCustomValidations(validate)
 	controller := permissionHttp.NewPermissionController(mockUC, logger, validate)
 	return mockUC, controller
 }
@@ -81,7 +83,7 @@ func TestPermissionController_BatchCheck(t *testing.T) {
 	}
 	body, _ := json.Marshal(req)
 	c.Request, _ = http.NewRequest("POST", "/permission/batch-check", bytes.NewBuffer(body))
-	
+
 	// Simulate middleware setting user_id
 	c.Set("user_id", "u1")
 
@@ -91,10 +93,11 @@ func TestPermissionController_BatchCheck(t *testing.T) {
 	controller.BatchCheck(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	
+
 	// Verify response body
 	var resp map[string]interface{} // Using generic map to avoid model import cycling if it happens
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
 	// data.results
 	data := resp["data"].(map[string]interface{})
 	res := data["results"].(map[string]interface{})

@@ -25,7 +25,7 @@ func TestGetUserByID_ContextCancellation(t *testing.T) {
 	// We can't strictly assert "ctx.Err() != nil" inside the mock matching easily without a custom matcher,
 	// but we can assert that the context passed IS the same context.
 	expectedErr := context.Canceled
-	
+
 	mockRepo.On("FindByID", mock.MatchedBy(func(c context.Context) bool {
 		return c == ctx
 	}), "user-123").Return(nil, expectedErr)
@@ -37,7 +37,7 @@ func TestGetUserByID_ContextCancellation(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, result)
-	
+
 	mockRepo.AssertExpectations(t)
 }
 
@@ -55,27 +55,27 @@ func setupTestUserUseCase() (
 ) {
 	mockRepo := new(mocks.MockUserRepository)
 	logger := logrus.New()
-	
+
 	// We need nil/mock placeholders for other deps to construct the usecase
 	// Since GetUserByID only needs Repo and Logger, others can be nil or simple mocks if NewUserUseCase enforces non-nil.
 	// Looking at user_usecase.go, NewUserUseCase takes interfaces.
 	// checking if it panics on nil. The implementation struct just assigns them.
 	// u.Repo.FindByID is called.
-	
+
 	// However, we need to respect the constructor signature.
 	// NewUserUseCase(db, log, repo, enforcer, audit, auth, storage)
-	
+
 	// We might need to mock these if NewUserUseCase checks them, or if we want to be safe.
-	// Based on previous files, I'll use simple nil or new() for interfaces if possible, 
+	// Based on previous files, I'll use simple nil or new() for interfaces if possible,
 	// or valid mocks if I need to import them.
 	// For this specific test, we only access Repo.
-	
+
 	// Re-using the MockTransactionManager from before would be good if available, or just nil if not used in GetUserByID.
 	// GetUserByID does NOT use transaction manager (lines 144-160 of user_usecase.go).
-	
+
 	// So we pass nil for others.
-	
+
 	uc := usecase.NewUserUseCase(nil, logger, mockRepo, nil, nil, nil, nil)
-	
+
 	return mockRepo, nil, nil, nil, nil, nil, logger, uc
 }
