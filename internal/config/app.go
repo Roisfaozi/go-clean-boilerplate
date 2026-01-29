@@ -114,7 +114,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
 
 	// Audit Module (Initialize early to inject into others)
-	auditModule := audit.NewAuditModule(dbConnection, logger)
+	// Audit Module (Initialize early to inject into others)
+	auditModule := audit.NewAuditModule(dbConnection, logger, validate)
 
 	// Inject TaskDistributor to AuthModule
 	authModule := auth.NewAuthModule(
