@@ -12,6 +12,13 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// NoOpLogWriter suppresses log output for tests
+type NoOpLogWriter struct{}
+
+func (w *NoOpLogWriter) Write([]byte) (int, error) {
+	return 0, nil
+}
+
 // MockManager is a mock implementation of the Manager interface
 type MockManager struct {
 	mock.Mock
@@ -54,9 +61,7 @@ func (m *MockManager) Run() {
 
 func TestWebSocketOrigin(t *testing.T) {
 	log := logrus.New()
-	manager := new(MockManager)
-	// Expect RegisterClient to be called if connection succeeds
-	manager.On("RegisterClient", mock.Anything).Return()
+	log.SetOutput(&NoOpLogWriter{})
 
 	tests := []struct {
 		name           string
@@ -86,6 +91,11 @@ func TestWebSocketOrigin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Create fresh mock for each subtest
+			manager := new(MockManager)
+			manager.On("RegisterClient", mock.Anything).Return().Maybe()
+			manager.On("UnregisterClient", mock.Anything).Return().Maybe()
+
 			ctrl := NewWebSocketController(log, manager, tt.allowedOrigins)
 
 			// Start a test server
@@ -113,12 +123,14 @@ func TestWebSocketOrigin(t *testing.T) {
 				header.Set("Origin", tt.requestOrigin)
 			}
 
-			_, resp, err := websocket.DefaultDialer.Dial(wsURL, header)
+			conn, resp, err := websocket.DefaultDialer.Dial(wsURL, header)
 
 			if tt.shouldConnect {
 				assert.NoError(t, err, "Should connect")
 				if err == nil {
 					assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
+					// Close connection to prevent dangling goroutines
+					_ = conn.Close()
 				}
 			} else {
 				assert.Error(t, err, "Should fail to connect")

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/go-redis/redismock/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRateLimitMiddlewareMemory(t *testing.T) {
@@ -71,16 +73,16 @@ func TestRateLimitMiddlewareRedis(t *testing.T) {
 	logger := logrus.New()
 
 	t.Run("Allow requests", func(t *testing.T) {
-		db, mock := redismock.NewClientMock()
+		db, redMock := redismock.NewClientMock()
 
 		// When using Lua script, redismock handles Eval/EvalSha
 		// The key format is "rate_limit:ip:"
 
 		// First request: Script returns 1
-		mock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetVal(int64(1))
+		redMock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetVal(int64(1))
 
 		// Second request: Script returns 2
-		mock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetVal(int64(2))
+		redMock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetVal(int64(2))
 
 		r := gin.New()
 		r.Use(RateLimitMiddlewareRedis(db, logger, LimiterTypeIP, 10, 60*time.Second))
@@ -100,19 +102,17 @@ func TestRateLimitMiddlewareRedis(t *testing.T) {
 		r.ServeHTTP(w2, req2)
 		assert.Equal(t, http.StatusOK, w2.Code)
 
-		if err := mock.ExpectationsWereMet(); err != nil {
-			t.Errorf("there were unfulfilled expectations: %s", err)
-		}
+		require.NoError(t, redMock.ExpectationsWereMet())
 	})
 
 	t.Run("Block requests", func(t *testing.T) {
-		db, mock := redismock.NewClientMock()
+		db, redMock := redismock.NewClientMock()
 
 		limit := 60
 
 		// Mock hitting the limit
 		// Script returns limit + 1
-		mock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetVal(int64(limit + 1))
+		redMock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetVal(int64(limit + 1))
 
 		r := gin.New()
 		r.Use(RateLimitMiddlewareRedis(db, logger, LimiterTypeIP, limit, 60*time.Second))
@@ -126,9 +126,7 @@ func TestRateLimitMiddlewareRedis(t *testing.T) {
 
 		assert.Equal(t, http.StatusTooManyRequests, w.Code)
 
-		if err := mock.ExpectationsWereMet(); err != nil {
-			t.Errorf("there were unfulfilled expectations: %s", err)
-		}
+		require.NoError(t, redMock.ExpectationsWereMet())
 	})
 }
 
@@ -218,10 +216,10 @@ func TestRateLimitRedis_ScriptError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	logger := logrus.New()
 
-	db, mock := redismock.NewClientMock()
+	db, redMock := redismock.NewClientMock()
 
 	// Simulate Redis error
-	mock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetErr(nil)
+	redMock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetErr(fmt.Errorf("redis error"))
 
 	r := gin.New()
 	r.Use(RateLimitMiddlewareRedis(db, logger, LimiterTypeIP, 10, 60*time.Second))
@@ -231,21 +229,25 @@ func TestRateLimitRedis_ScriptError(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/", nil)
 	r.ServeHTTP(w, req)
 
-	// On Redis error, should still allow (fail open) or block (fail closed)
-	// Actual behavior depends on implementation
-	assert.True(t, w.Code == http.StatusOK || w.Code == http.StatusTooManyRequests)
+	// On Redis error, should still allow (fail open)
+	assert.Equal(t, http.StatusOK, w.Code)
+	require.NoError(t, redMock.ExpectationsWereMet())
 }
 
 func TestRateLimitRedis_UserTypeLimiter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	logger := logrus.New()
 
-	db, mock := redismock.NewClientMock()
+	db, redMock := redismock.NewClientMock()
 
 	// User type uses user_id from context
-	mock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:user:"}, 60).SetVal(int64(1))
+	redMock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:user:user123"}, 60).SetVal(int64(1))
 
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "user123")
+		c.Next()
+	})
 	r.Use(RateLimitMiddlewareRedis(db, logger, LimiterTypeUser, 10, 60*time.Second))
 	r.GET("/", func(c *gin.Context) { c.Status(http.StatusOK) })
 
@@ -254,19 +256,19 @@ func TestRateLimitRedis_UserTypeLimiter(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	mock.ExpectationsWereMet()
+	require.NoError(t, redMock.ExpectationsWereMet())
 }
 
 func TestRateLimitRedis_ExactLimitBoundary(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	logger := logrus.New()
 
-	db, mock := redismock.NewClientMock()
+	db, redMock := redismock.NewClientMock()
 
 	limit := 10
 
 	// Exactly at limit should still pass
-	mock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetVal(int64(limit))
+	redMock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:"}, 60).SetVal(int64(limit))
 
 	r := gin.New()
 	r.Use(RateLimitMiddlewareRedis(db, logger, LimiterTypeIP, limit, 60*time.Second))
@@ -277,5 +279,5 @@ func TestRateLimitRedis_ExactLimitBoundary(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	mock.ExpectationsWereMet()
+	require.NoError(t, redMock.ExpectationsWereMet())
 }
