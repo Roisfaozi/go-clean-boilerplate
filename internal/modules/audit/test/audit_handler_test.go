@@ -97,7 +97,7 @@ func TestAuditController_Export_CSVInjection(t *testing.T) {
 					Action: "HACK",
 				},
 			}
-			iterator(logs)
+			_ = iterator(logs)
 		}).Return(nil)
 
 	controller.Export(c)

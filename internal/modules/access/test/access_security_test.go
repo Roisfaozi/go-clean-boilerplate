@@ -53,10 +53,8 @@ func TestCreateEndpoint_DuplicateDetection(t *testing.T) {
 	repo.On("CreateEndpoint", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		arg := args.Get(1)
 		// Simulate ID assignment
-		if entity, ok := arg.(interface{}); ok {
-			// In real struct, fields are set. Mock just returns nil
-			_ = entity
-		}
+		// In real struct, fields are set. Mock just returns nil
+		_ = arg
 	})
 
 	// To make asserting response easier, we'd need to mock assignment or check logic.

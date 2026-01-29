@@ -94,7 +94,8 @@ func TestPermissionController_BatchCheck(t *testing.T) {
 	
 	// Verify response body
 	var resp map[string]interface{} // Using generic map to avoid model import cycling if it happens
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
 	// data.results
 	data := resp["data"].(map[string]interface{})
 	res := data["results"].(map[string]interface{})
