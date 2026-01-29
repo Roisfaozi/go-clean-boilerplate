@@ -55,4 +55,3 @@ type AccessRightEndpoint struct {
 func (AccessRightEndpoint) TableName() string {
 	return "access_right_endpoints"
 }
-

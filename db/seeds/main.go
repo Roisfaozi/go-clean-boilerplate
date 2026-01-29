@@ -97,7 +97,7 @@ func main() {
 				log.Fatalf("Failed to generate UUID for user: %v", err)
 			}
 			userID = newUserID.String()
-			
+
 			newUser := userEntity.User{
 				ID:        userID,
 				Username:  adminUsername,

@@ -387,7 +387,7 @@ func TestTokenRepository_IncrementLoginAttempts(t *testing.T) {
 
 	mock.ExpectIncr(key).SetVal(1)
 	mock.ExpectExpire(key, time.Hour).SetVal(true)
-	
+
 	attempts, err := repo.IncrementLoginAttempts(context.Background(), username)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, attempts)

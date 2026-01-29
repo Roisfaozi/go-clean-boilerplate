@@ -57,13 +57,13 @@ func (h *CleanupTaskHandler) ProcessCleanupSoftDeletedEntities(ctx context.Conte
 	}
 
 	h.log.Infof("Starting hard delete of users soft-deleted more than %d days ago", payload.RetentionDays)
-	
+
 	if err := h.userRepo.HardDeleteSoftDeletedUsers(ctx, payload.RetentionDays); err != nil {
 		telemetry.CleanupTasksTotal.WithLabelValues("soft_deleted_entities", "failed").Inc()
 		h.log.WithError(err).Error("Failed to hard delete users")
 		return err
 	}
-	
+
 	telemetry.CleanupTasksTotal.WithLabelValues("soft_deleted_entities", "success").Inc()
 	h.log.Info("Completed hard delete of old users")
 	return nil

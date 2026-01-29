@@ -78,8 +78,8 @@ func TestUploadFile(t *testing.T) {
 	t.Run("Upload Error", func(t *testing.T) {
 		mockClient := new(MockS3Client)
 		storage := &s3.S3Storage{
-			Client:    mockClient,
-			Bucket:    "test-bucket",
+			Client: mockClient,
+			Bucket: "test-bucket",
 		}
 		filename := "fail.txt"
 

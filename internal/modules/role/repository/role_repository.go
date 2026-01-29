@@ -55,7 +55,7 @@ func (r *roleRepository) FindAll(ctx context.Context) ([]*entity.Role, error) {
 
 	r.log.WithFields(logrus.Fields{
 		"roles_found": len(roles),
-		"query":       r.db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		"query": r.db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 			return tx.Find(&entity.Role{})
 		}),
 	}).Info("Roles query executed")

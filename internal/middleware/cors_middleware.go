@@ -27,7 +27,6 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 		}
 	}
 
-
 	return cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},

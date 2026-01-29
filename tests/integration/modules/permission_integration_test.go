@@ -175,6 +175,6 @@ func TestPermissionIntegration_Negative_RevokeNonExistentPermission(t *testing.T
 	setup.CreateTestRole(t, env.DB, roleName)
 
 	err := permUC.RevokePermissionFromRole(context.Background(), roleName, "/ghost", "GET")
-	
+
 	_ = err
 }

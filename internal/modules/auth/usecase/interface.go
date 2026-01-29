@@ -10,15 +10,15 @@ import (
 )
 
 var (
-	ErrInvalidCredentials        = exception.ErrUnauthorized
-	ErrInvalidToken              = exception.ErrUnauthorized
-	ErrExpiredToken              = exception.ErrUnauthorized
-	ErrTokenRevoked              = exception.ErrUnauthorized
-	ErrInvalidResetToken         = exception.ErrBadRequest
-	ErrInvalidVerificationToken  = exception.ErrBadRequest
-	ErrAlreadyVerified           = exception.ErrBadRequest
-	ErrAccountSuspended          = exception.ErrForbidden
-	ErrAccountLocked             = exception.ErrForbidden
+	ErrInvalidCredentials       = exception.ErrUnauthorized
+	ErrInvalidToken             = exception.ErrUnauthorized
+	ErrExpiredToken             = exception.ErrUnauthorized
+	ErrTokenRevoked             = exception.ErrUnauthorized
+	ErrInvalidResetToken        = exception.ErrBadRequest
+	ErrInvalidVerificationToken = exception.ErrBadRequest
+	ErrAlreadyVerified          = exception.ErrBadRequest
+	ErrAccountSuspended         = exception.ErrForbidden
+	ErrAccountLocked            = exception.ErrForbidden
 )
 
 type AuthUseCase interface {

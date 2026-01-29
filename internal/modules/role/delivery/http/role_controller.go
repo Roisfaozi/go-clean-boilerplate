@@ -179,6 +179,13 @@ func (h *RoleController) GetRolesDynamic(c *gin.Context) {
 		return
 	}
 
+	if err := h.validate.Struct(filter); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		h.Log.WithError(err).Error(msg)
+		response.ValidationError(c, exception.ErrValidationError, msg)
+		return
+	}
+
 	roles, err := h.RoleUseCase.GetAllRolesDynamic(ctx, &filter)
 	if err != nil {
 		h.Log.WithError(err).Error("failed to get roles dynamically")

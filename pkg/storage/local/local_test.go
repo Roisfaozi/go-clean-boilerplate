@@ -109,16 +109,15 @@ func TestGetFileUrl(t *testing.T) {
 }
 
 func TestUploadFile_CreateError(t *testing.T) {
-	// Use a read-only directory to trigger error
-	tempDir := t.TempDir()
-	err := os.Chmod(tempDir, 0500) // Read/Execute only, no Write
-	require.NoError(t, err)
-	defer func() { _ = os.Chmod(tempDir, 0700) }() // Cleanup
+	// Use an invalid/non-existent nested path that cannot be created
+	// This works cross-platform (Windows and Unix)
+	invalidPath := filepath.Join(t.TempDir(), "nonexistent", "deep", "path")
 
-	ls := &local.LocalStorage{RootPath: tempDir, BaseURL: "http://localhost"}
+	// Don't create the parent directories - the upload should fail
+	ls := &local.LocalStorage{RootPath: invalidPath, BaseURL: "http://localhost"}
 
 	reader := strings.NewReader("content")
-	_, err = ls.UploadFile(context.Background(), reader, "fail.txt", "text/plain")
+	_, err := ls.UploadFile(context.Background(), reader, "fail.txt", "text/plain")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create destination file")
 }

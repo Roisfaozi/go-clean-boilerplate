@@ -3,10 +3,10 @@ package local
 import (
 	"context"
 	"fmt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"io"
 	"os"
 	"path/filepath"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 )
 
 type LocalStorage struct {

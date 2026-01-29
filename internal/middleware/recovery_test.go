@@ -14,10 +14,10 @@ import (
 func setupRecoveryTest() (*gin.Engine, *logrus.Logger) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	
+
 	log := logrus.New()
 	log.SetOutput(io.Discard) // Suppress logs in tests
-	
+
 	return router, log
 }
 
@@ -27,9 +27,9 @@ func setupRecoveryTest() (*gin.Engine, *logrus.Logger) {
 
 func TestRecoveryMiddleware_PanicRecovery(t *testing.T) {
 	router, log := setupRecoveryTest()
-	
+
 	router.Use(RecoveryMiddleware(log))
-	
+
 	// Route that panics
 	router.GET("/panic", func(c *gin.Context) {
 		panic("something went wrong!")
@@ -38,7 +38,7 @@ func TestRecoveryMiddleware_PanicRecovery(t *testing.T) {
 	req := httptest.NewRequest("GET", "/panic", nil)
 	req.Header.Set("X-Request-ID", "test-request-123")
 	w := httptest.NewRecorder()
-	
+
 	router.ServeHTTP(w, req)
 
 	// Assert - Should recover and return 500
@@ -48,9 +48,9 @@ func TestRecoveryMiddleware_PanicRecovery(t *testing.T) {
 
 func TestRecoveryMiddleware_NoPanic(t *testing.T) {
 	router, log := setupRecoveryTest()
-	
+
 	router.Use(RecoveryMiddleware(log))
-	
+
 	// Normal route that doesn't panic
 	router.GET("/normal", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "success"})
@@ -58,7 +58,7 @@ func TestRecoveryMiddleware_NoPanic(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "/normal", nil)
 	w := httptest.NewRecorder()
-	
+
 	router.ServeHTTP(w, req)
 
 	// Assert - Should work normally
@@ -70,9 +70,9 @@ func TestRecoveryMiddleware_NoPanic(t *testing.T) {
 
 func TestRecoveryMiddleware_PanicWithRequestID(t *testing.T) {
 	router, log := setupRecoveryTest()
-	
+
 	router.Use(RecoveryMiddleware(log))
-	
+
 	// Route that panics with request_id in context
 	router.GET("/panic-with-id", func(c *gin.Context) {
 		c.Set("request_id", "ctx-request-456")
@@ -81,7 +81,7 @@ func TestRecoveryMiddleware_PanicWithRequestID(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "/panic-with-id", nil)
 	w := httptest.NewRecorder()
-	
+
 	router.ServeHTTP(w, req)
 
 	// Assert - Should recover and use context request_id
@@ -90,9 +90,9 @@ func TestRecoveryMiddleware_PanicWithRequestID(t *testing.T) {
 
 func TestRecoveryMiddleware_PanicNilError(t *testing.T) {
 	router, log := setupRecoveryTest()
-	
+
 	router.Use(RecoveryMiddleware(log))
-	
+
 	// Route that panics with nil
 	router.GET("/panic-nil", func(c *gin.Context) {
 		panic(nil)
@@ -100,7 +100,7 @@ func TestRecoveryMiddleware_PanicNilError(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "/panic-nil", nil)
 	w := httptest.NewRecorder()
-	
+
 	router.ServeHTTP(w, req)
 
 	// Assert - Should still recover
@@ -109,13 +109,13 @@ func TestRecoveryMiddleware_PanicNilError(t *testing.T) {
 
 func TestRecoveryMiddleware_PanicDifferentTypes(t *testing.T) {
 	router, log := setupRecoveryTest()
-	
+
 	router.Use(RecoveryMiddleware(log))
-	
+
 	testCases := []struct {
-		name      string
-		panicVal  interface{}
-		path      string
+		name     string
+		panicVal interface{}
+		path     string
 	}{
 		{"String panic", "error string", "/panic-string"},
 		{"Int panic", 42, "/panic-int"},
@@ -130,7 +130,7 @@ func TestRecoveryMiddleware_PanicDifferentTypes(t *testing.T) {
 
 			req := httptest.NewRequest("GET", tc.path, nil)
 			w := httptest.NewRecorder()
-			
+
 			router.ServeHTTP(w, req)
 
 			// Assert - All should be recovered

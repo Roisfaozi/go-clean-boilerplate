@@ -91,6 +91,16 @@ services:
     networks:
       - app_network
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: casbin_mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025" # Web UI
+      - "1025:1025" # SMTP Port
+    networks:
+      - app_network
+
 networks:
   app_network:
     driver: bridge

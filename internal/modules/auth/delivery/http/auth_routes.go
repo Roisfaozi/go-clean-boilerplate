@@ -22,4 +22,3 @@ func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *AuthContro
 		authGroup.POST("/resend-verification", controller.ResendVerification)
 	}
 }
-

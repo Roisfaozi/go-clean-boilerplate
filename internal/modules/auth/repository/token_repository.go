@@ -238,11 +238,10 @@ func (r *tokenRepositoryRedis) IsAccountLocked(ctx context.Context, username str
 		r.log.WithContext(ctx).WithError(err).Error("Failed to check account lock status")
 		return false, 0, err
 	}
-	
+
 	if ttl <= 0 { // Key does not exist (TTL -2) or no expire (TTL -1) but logic says locked keys always expire
 		return false, 0, nil
 	}
 
 	return true, ttl, nil
 }
-

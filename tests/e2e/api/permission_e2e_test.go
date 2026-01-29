@@ -285,4 +285,3 @@ func TestPermissionE2E_RemoveInheritance(t *testing.T) {
 		assert.False(t, ok, "Parent should NOT have access after inheritance removed")
 	})
 }
-
