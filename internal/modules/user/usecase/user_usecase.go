@@ -227,27 +227,37 @@ func (u *userUseCaseImpl) Update(ctx context.Context, request *model.UpdateUserR
 		user.Password = string(hashedPassword)
 	}
 
-	if err := u.Repo.Update(ctx, user); err != nil {
-		u.Log.Errorf("Failed to update user: %v", err)
-		return nil, exception.ErrInternalServer
-	}
-
-	if u.AuditUC != nil {
-		newVals := make(map[string]interface{})
-		if request.Name != "" {
-			newVals["name"] = request.Name
-		}
-		if request.Username != "" {
-			newVals["username"] = request.Username
+	err = u.DB.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := u.Repo.Update(txCtx, user); err != nil {
+			u.Log.Errorf("Failed to update user: %v", err)
+			return exception.ErrInternalServer
 		}
 
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
-			UserID:    user.ID,
-			Action:    "UPDATE",
-			Entity:    "User",
-			EntityID:  user.ID,
-			NewValues: newVals,
-		})
+		if u.AuditUC != nil {
+			newVals := make(map[string]interface{})
+			if request.Name != "" {
+				newVals["name"] = request.Name
+			}
+			if request.Username != "" {
+				newVals["username"] = request.Username
+			}
+
+			if err := u.AuditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+				UserID:    user.ID,
+				Action:    "UPDATE",
+				Entity:    "User",
+				EntityID:  user.ID,
+				NewValues: newVals,
+			}); err != nil {
+				u.Log.Errorf("Failed to log activity for update: %v", err)
+				return exception.ErrInternalServer
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return converter.UserToResponse(user), nil
@@ -263,32 +273,35 @@ func (u *userUseCaseImpl) UpdateStatus(ctx context.Context, userID, status strin
 		return exception.ErrNotFound
 	}
 
-	if err := u.Repo.UpdateStatus(ctx, userID, status); err != nil {
-		u.Log.Errorf("Failed to update user status: %v", err)
-		return exception.ErrInternalServer
-	}
+	return u.DB.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := u.Repo.UpdateStatus(txCtx, userID, status); err != nil {
+			u.Log.Errorf("Failed to update user status: %v", err)
+			return exception.ErrInternalServer
+		}
 
-	if status == entity.UserStatusBanned || status == entity.UserStatusSuspended {
-		if u.AuthUC != nil {
-			if err := u.AuthUC.RevokeAllSessions(ctx, userID); err != nil {
-				u.Log.Errorf("Failed to revoke sessions for user %s: %v", userID, err)
+		if status == entity.UserStatusBanned || status == entity.UserStatusSuspended {
+			if u.AuthUC != nil {
+				if err := u.AuthUC.RevokeAllSessions(txCtx, userID); err != nil {
+					u.Log.Errorf("Failed to revoke sessions for user %s: %v", userID, err)
+					return exception.ErrInternalServer
+				}
 			}
 		}
-	}
 
-	if u.AuditUC != nil {
-		if err := u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
-			UserID:    userID,
-			Action:    "UPDATE_STATUS",
-			Entity:    "User",
-			EntityID:  userID,
-			NewValues: map[string]interface{}{"status": status},
-		}); err != nil {
-			u.Log.Warnf("Failed to log activity: %v", err)
+		if u.AuditUC != nil {
+			if err := u.AuditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+				UserID:    userID,
+				Action:    "UPDATE_STATUS",
+				Entity:    "User",
+				EntityID:  userID,
+				NewValues: map[string]interface{}{"status": status},
+			}); err != nil {
+				u.Log.Errorf("Failed to log activity for status update: %v", err)
+				return exception.ErrInternalServer
+			}
 		}
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error) {

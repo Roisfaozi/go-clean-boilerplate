@@ -325,6 +325,9 @@ func TestUserUseCase_Update(t *testing.T) {
 		}
 
 		deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
 		deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
 			return u.ID == "user123" && u.Name == "Updated User"
 		})).Return(nil)
@@ -350,6 +353,9 @@ func TestUserUseCase_Update(t *testing.T) {
 
 		deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
 		deps.Repo.On("FindByUsername", mock.Anything, "newuser").Return(nil, gorm.ErrRecordNotFound)
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
 		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(nil)
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
@@ -380,6 +386,9 @@ func TestUserUseCase_Update(t *testing.T) {
 		existingUser := &entity.User{ID: "user123"}
 
 		deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
 		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(nil)
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
@@ -427,6 +436,9 @@ func TestUserUseCase_Update(t *testing.T) {
 		dbErr := errors.New("db update failed")
 
 		deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
 		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(dbErr)
 
 		_, err := uc.Update(context.Background(), request)
@@ -439,11 +451,14 @@ func TestUserUseCase_Update(t *testing.T) {
 		existingUser := &entity.User{ID: "user123"}
 
 		deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
 		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(nil)
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
 
 		_, err := uc.Update(context.Background(), request)
-		assert.NoError(t, err) // Should not fail if audit logging fails
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
 	})
 }
 
@@ -639,6 +654,9 @@ func TestUserUseCase_UpdateStatus(t *testing.T) {
 		status := entity.UserStatusActive
 
 		deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
 		deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(nil)
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 			return req.Action == "UPDATE_STATUS"
@@ -656,6 +674,9 @@ func TestUserUseCase_UpdateStatus(t *testing.T) {
 		status := entity.UserStatusBanned
 
 		deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
 		deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(nil)
 
 		deps.AuthUC.On("RevokeAllSessions", mock.Anything, userID).Return(nil)
@@ -675,12 +696,15 @@ func TestUserUseCase_UpdateStatus(t *testing.T) {
 		status := entity.UserStatusBanned
 
 		deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
 		deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(nil)
 		deps.AuthUC.On("RevokeAllSessions", mock.Anything, userID).Return(errors.New("redis error"))
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
 		err := uc.UpdateStatus(context.Background(), userID, status)
-		assert.NoError(t, err)
+		assert.Error(t, err)
 	})
 
 	t.Run("Error - Invalid Status", func(t *testing.T) {
@@ -703,11 +727,14 @@ func TestUserUseCase_UpdateStatus(t *testing.T) {
 		status := entity.UserStatusActive
 
 		deps.Repo.On("FindByID", mock.Anything, userID).Return(&entity.User{ID: userID}, nil)
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
 		deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(nil)
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
 
 		err := uc.UpdateStatus(context.Background(), userID, status)
-		assert.NoError(t, err)
+		assert.Error(t, err)
 	})
 }
 
