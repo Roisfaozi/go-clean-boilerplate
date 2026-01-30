@@ -486,7 +486,10 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return ErrInvalidResetToken
 	}
 
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
 	user.Password = string(hashedPassword)
 
 	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
