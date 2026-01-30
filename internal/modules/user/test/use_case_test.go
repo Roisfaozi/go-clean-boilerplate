@@ -859,3 +859,42 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 	assert.Equal(t, expectedName, result.Name)
 	deps.Repo.AssertExpectations(t)
 }
+
+func TestUserUseCase_Update_Sanitization(t *testing.T) {
+	deps, uc := setupUserTest()
+
+	inputUsername := "<b>bold</b>"
+	// pkg.SanitizeString escapes HTML
+	expectedUsername := "&lt;b&gt;bold&lt;/b&gt;"
+
+	request := &model.UpdateUserRequest{
+		ID: "user123", Username: inputUsername,
+	}
+
+	existingUser := &entity.User{
+		ID:       "user123",
+		Username: "olduser",
+	}
+
+	deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+
+	// Expect FindByUsername to be called with sanitized username
+	deps.Repo.On("FindByUsername", mock.Anything, expectedUsername).Return(nil, gorm.ErrRecordNotFound)
+
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+
+	deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+		return u.Username == expectedUsername
+	})).Return(nil)
+
+	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+	_, err := uc.Update(context.Background(), request)
+
+	// This assertion might fail if the mock is strict about calls.
+	// If it fails with "Unexpected call", that counts as test failure.
+	assert.NoError(t, err)
+	deps.Repo.AssertExpectations(t)
+}
