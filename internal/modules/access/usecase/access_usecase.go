@@ -7,6 +7,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/sirupsen/logrus"
@@ -35,8 +36,8 @@ func NewAccessUseCase(repo repository.AccessRepository, log *logrus.Logger) IAcc
 
 func (uc *AccessUseCase) CreateAccessRight(ctx context.Context, req model.CreateAccessRightRequest) (*model.AccessRightResponse, error) {
 	accessRightEntity := &entity.AccessRight{
-		Name:        req.Name,
-		Description: req.Description,
+		Name:        pkg.SanitizeString(req.Name),
+		Description: pkg.SanitizeString(req.Description),
 	}
 
 	if err := uc.repo.CreateAccessRight(ctx, accessRightEntity); err != nil {
