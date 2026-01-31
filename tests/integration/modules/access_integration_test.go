@@ -10,6 +10,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
@@ -150,6 +151,7 @@ func TestAccessIntegration_Security_SQLInjectionPrevention(t *testing.T) {
 	payload := "name' OR '1'='1"
 	ar, err := uc.CreateAccessRight(context.Background(), model.CreateAccessRightRequest{Name: payload})
 	if err == nil {
-		assert.Equal(t, payload, ar.Name)
+		// Verify that the stored name is sanitized (HTML escaped)
+		assert.Equal(t, pkg.SanitizeString(payload), ar.Name)
 	}
 }
