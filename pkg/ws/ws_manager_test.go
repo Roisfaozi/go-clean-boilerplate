@@ -183,3 +183,79 @@ func TestBroadcastToChannel(t *testing.T) {
 	err = c3.ReadJSON(&msg)
 	assert.Error(t, err) // Should timeout or EOF
 }
+
+func TestGetChannelClients(t *testing.T) {
+	manager, server := setupTestServer()
+	defer server.Close()
+	defer manager.Stop()
+
+	// Connect client 1
+	c1, err := connectClient(server.URL)
+	require.NoError(t, err)
+	defer c1.Close()
+
+	// Subscribe
+	err = c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "test-channel"})
+	require.NoError(t, err)
+	waitForMessage(c1, "info", "test-channel")
+
+	// Verify count
+	// Wait a bit for async processing
+	assert.Eventually(t, func() bool {
+		return manager.GetChannelClients("test-channel") == 1
+	}, 1*time.Second, 10*time.Millisecond)
+
+	assert.Equal(t, 0, manager.GetChannelClients("non-existent"))
+}
+
+func TestUnsubscribeFromChannel(t *testing.T) {
+	manager, server := setupTestServer()
+	defer server.Close()
+	defer manager.Stop()
+
+	c1, err := connectClient(server.URL)
+	require.NoError(t, err)
+	defer c1.Close()
+
+	// Subscribe
+	err = c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "test-channel"})
+	require.NoError(t, err)
+	waitForMessage(c1, "info", "test-channel")
+
+	assert.Eventually(t, func() bool {
+		return manager.GetChannelClients("test-channel") == 1
+	}, 1*time.Second, 10*time.Millisecond)
+
+	// Unsubscribe
+	err = c1.WriteJSON(ws.ClientMessage{Type: "unsubscribe", Channel: "test-channel"})
+	require.NoError(t, err)
+
+	// Check for unsubscribe confirmation or just state change
+	assert.Eventually(t, func() bool {
+		return manager.GetChannelClients("test-channel") == 0
+	}, 1*time.Second, 10*time.Millisecond)
+}
+
+func TestChannels(t *testing.T) {
+	manager, server := setupTestServer()
+	defer server.Close()
+	defer manager.Stop()
+
+	c1, err := connectClient(server.URL)
+	require.NoError(t, err)
+	defer c1.Close()
+
+	c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "ch1"})
+	waitForMessage(c1, "info", "ch1")
+
+	assert.Eventually(t, func() bool {
+		channels := manager.Channels()
+		if len(channels) != 1 {
+			return false
+		}
+		if _, ok := channels["ch1"]; !ok {
+			return false
+		}
+		return len(channels["ch1"]) == 1
+	}, 1*time.Second, 10*time.Millisecond)
+}
