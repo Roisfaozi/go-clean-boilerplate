@@ -140,7 +140,9 @@ func TestServeHTTP(t *testing.T) {
 	case <-time.After(1 * time.Second):
 		t.Fatal("Client connection timed out waiting for headers")
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Read output
 	t.Log("Reading body")
@@ -150,7 +152,7 @@ func TestServeHTTP(t *testing.T) {
 	if n == 0 && err == nil {
 		// retry once
 		time.Sleep(10 * time.Millisecond)
-		n, err = resp.Body.Read(buf)
+		n, _ = resp.Body.Read(buf)
 	}
 
 	// We might get partial reads or error if closed, but we expect data
@@ -160,7 +162,7 @@ func TestServeHTTP(t *testing.T) {
 
 	t.Log("Closing body")
 	// Close connection to trigger unregister
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	t.Log("Waiting for unregister")
 	assert.Eventually(t, func() bool {
@@ -210,7 +212,9 @@ func TestServeHTTP_JsonMarshalError(t *testing.T) {
 	case <-time.After(1 * time.Second):
 		t.Fatal("Client connection timed out waiting for headers")
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	buf := make([]byte, 1024)
 	n, _ := resp.Body.Read(buf)

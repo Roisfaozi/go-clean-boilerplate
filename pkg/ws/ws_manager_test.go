@@ -192,12 +192,15 @@ func TestGetChannelClients(t *testing.T) {
 	// Connect client 1
 	c1, err := connectClient(server.URL)
 	require.NoError(t, err)
-	defer c1.Close()
+	defer func() {
+		_ = c1.Close()
+	}()
 
 	// Subscribe
 	err = c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "test-channel"})
 	require.NoError(t, err)
-	waitForMessage(c1, "info", "test-channel")
+	_, err = waitForMessage(c1, "info", "test-channel")
+	require.NoError(t, err)
 
 	// Verify count
 	// Wait a bit for async processing
@@ -215,12 +218,15 @@ func TestUnsubscribeFromChannel(t *testing.T) {
 
 	c1, err := connectClient(server.URL)
 	require.NoError(t, err)
-	defer c1.Close()
+	defer func() {
+		_ = c1.Close()
+	}()
 
 	// Subscribe
 	err = c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "test-channel"})
 	require.NoError(t, err)
-	waitForMessage(c1, "info", "test-channel")
+	_, err = waitForMessage(c1, "info", "test-channel")
+	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool {
 		return manager.GetChannelClients("test-channel") == 1
@@ -243,10 +249,14 @@ func TestChannels(t *testing.T) {
 
 	c1, err := connectClient(server.URL)
 	require.NoError(t, err)
-	defer c1.Close()
+	defer func() {
+		_ = c1.Close()
+	}()
 
-	c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "ch1"})
-	waitForMessage(c1, "info", "ch1")
+	err = c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "ch1"})
+	require.NoError(t, err)
+	_, err = waitForMessage(c1, "info", "ch1")
+	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool {
 		channels := manager.Channels()
