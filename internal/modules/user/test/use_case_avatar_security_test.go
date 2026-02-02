@@ -78,8 +78,11 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 
 			if tt.errExpected == nil {
 				deps.Storage.On("UploadFile", ctx, mock.Anything, mock.Anything, mock.Anything).Return("http://ok.com", nil).Once()
-				deps.Repo.On("Update", ctx, mock.Anything).Return(nil).Once()
-				deps.AuditUC.On("LogActivity", ctx, mock.Anything).Return(nil).Once()
+				deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+					return fn(ctx)
+				}).Once()
+				deps.Repo.On("Update", mock.Anything, mock.Anything).Return(nil).Once()
+				deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil).Once()
 			}
 
 			_, err := uc.UpdateAvatar(ctx, userID, tt.fileContent, tt.filename, tt.contentType)

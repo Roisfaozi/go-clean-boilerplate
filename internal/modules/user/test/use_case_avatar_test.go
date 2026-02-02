@@ -78,13 +78,18 @@ func TestUserUseCase_UpdateAvatar_Success(t *testing.T) {
 	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-123.png", "image/png").
 		Return(uploadedURL, nil)
 
+	// Mock Transaction
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+
 	// Mock Update
-	deps.Repo.On("Update", ctx, mock.MatchedBy(func(u *entity.User) bool {
+	deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
 		return u.ID == userID && u.AvatarURL == uploadedURL
 	})).Return(nil)
 
 	// Mock Audit Log
-	deps.AuditUC.On("LogActivity", ctx, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+	deps.AuditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == userID &&
 			req.Action == "UPDATE_AVATAR" &&
 			req.Entity == "User" &&
@@ -129,13 +134,18 @@ func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {
 	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-456.png", "image/png").
 		Return(newAvatarURL, nil)
 
+	// Mock Transaction
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+
 	// Mock Update
-	deps.Repo.On("Update", ctx, mock.MatchedBy(func(u *entity.User) bool {
+	deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
 		return u.ID == userID && u.AvatarURL == newAvatarURL
 	})).Return(nil)
 
 	// Mock Audit Log
-	deps.AuditUC.On("LogActivity", ctx, mock.Anything).Return(nil)
+	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
 	// Execute
 	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
@@ -235,8 +245,13 @@ func TestUserUseCase_UpdateAvatar_DatabaseUpdateError(t *testing.T) {
 	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-101.png", "image/png").
 		Return(uploadedURL, nil)
 
+	// Mock Transaction
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+
 	// Mock Update - Error
-	deps.Repo.On("Update", ctx, mock.Anything).Return(errors.New("database connection lost"))
+	deps.Repo.On("Update", mock.Anything, mock.Anything).Return(errors.New("database connection lost"))
 
 	// Execute
 	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
@@ -273,19 +288,24 @@ func TestUserUseCase_UpdateAvatar_AuditLogError(t *testing.T) {
 	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-202.png", "image/png").
 		Return(uploadedURL, nil)
 
-	// Mock Update
-	deps.Repo.On("Update", ctx, mock.Anything).Return(nil)
+	// Mock Transaction
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
 
-	// Mock Audit Log - Error (should not fail the operation)
-	deps.AuditUC.On("LogActivity", ctx, mock.Anything).Return(errors.New("audit service down"))
+	// Mock Update
+	deps.Repo.On("Update", mock.Anything, mock.Anything).Return(nil)
+
+	// Mock Audit Log - Error (should cause rollback and fail the operation)
+	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit service down"))
 
 	// Execute
 	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
 
-	// Assert - Should still succeed even if audit fails
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, uploadedURL, result.AvatarURL)
+	// Assert - Should fail now
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, exception.ErrInternalServer, err)
 	deps.Repo.AssertExpectations(t)
 	deps.Storage.AssertExpectations(t)
 	deps.AuditUC.AssertExpectations(t)
