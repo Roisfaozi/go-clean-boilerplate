@@ -199,6 +199,7 @@ func (u *userUseCaseImpl) Current(ctx context.Context, request *model.GetUserReq
 
 func (u *userUseCaseImpl) Update(ctx context.Context, request *model.UpdateUserRequest) (*model.UserResponse, error) {
 	request.Name = pkg.SanitizeString(request.Name)
+	request.Username = pkg.SanitizeString(request.Username)
 
 	user, err := u.Repo.FindByID(ctx, request.ID)
 	if err != nil {
