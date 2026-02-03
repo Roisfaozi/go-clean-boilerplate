@@ -1,16 +1,8 @@
 package model
 
-// CreateOrganizationRequest represents the request to create a new organization
-type CreateOrganizationRequest struct {
-	Name string `json:"name" validate:"required,min=2,max=255"`
-	Slug string `json:"slug" validate:"required,min=2,max=100,slug"`
-}
-
-// UpdateOrganizationRequest represents the request to update an organization
-type UpdateOrganizationRequest struct {
-	Name   string `json:"name,omitempty" validate:"omitempty,min=2,max=255"`
-	Status string `json:"status,omitempty" validate:"omitempty,oneof=active suspended inactive"`
-}
+import (
+	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
+)
 
 // OrganizationResponse represents the response for organization operations
 type OrganizationResponse struct {
@@ -23,31 +15,45 @@ type OrganizationResponse struct {
 	UpdatedAt int64  `json:"updated_at"`
 }
 
-// InviteMemberRequest represents the request to invite a user to an organization
-type InviteMemberRequest struct {
-	Email  string `json:"email" validate:"required,email"`
-	UserID string `json:"user_id,omitempty"`
-	RoleID string `json:"role_id" validate:"required"`
-}
-
-// UpdateMemberRequest represents the request to update a member's role or status
-type UpdateMemberRequest struct {
-	RoleID string `json:"role_id,omitempty"`
-	Status string `json:"status,omitempty" validate:"omitempty,oneof=active suspended banned"`
-}
-
-// MemberResponse represents a member in an organization
-type MemberResponse struct {
-	ID             string `json:"id"`
-	OrganizationID string `json:"organization_id"`
-	UserID         string `json:"user_id"`
-	RoleID         string `json:"role_id"`
-	Status         string `json:"status"`
-	JoinedAt       int64  `json:"joined_at"`
-}
-
-// UserOrganizationsResponse represents the list of organizations a user belongs to
 type UserOrganizationsResponse struct {
 	Organizations []OrganizationResponse `json:"organizations"`
 	Total         int                    `json:"total"`
+}
+
+type CreateOrganizationRequest struct {
+	Name string `json:"name" binding:"required,min=3,max=100"`
+	Slug string `json:"slug" binding:"omitempty,min=3,max=100"`
+}
+
+type UpdateOrganizationRequest struct {
+	Name     string                 `json:"name" binding:"omitempty,min=3,max=100"`
+	Settings map[string]interface{} `json:"settings"`
+	Status   string                 `json:"status" binding:"omitempty,oneof=active suspended"`
+}
+
+type InviteMemberRequest struct {
+	Email  string `json:"email" binding:"required,email"`
+	UserID string `json:"user_id"` // Optional, if inviting generic email
+	RoleID string `json:"role_id" binding:"required"`
+}
+
+type AcceptInvitationRequest struct {
+	Token    string `json:"token" binding:"required"`
+	Password string `json:"password"` // Required for new users
+	Name     string `json:"name"`     // Optional
+}
+
+type UpdateMemberRequest struct {
+	RoleID string `json:"role_id"`
+	Status string `json:"status" binding:"omitempty,oneof=active suspended"`
+}
+
+type MemberResponse struct {
+	ID             string                  `json:"id"`
+	OrganizationID string                  `json:"organization_id"`
+	UserID         string                  `json:"user_id"`
+	User           *userModel.UserResponse `json:"user,omitempty"`
+	RoleID         string                  `json:"role_id"`
+	Status         string                  `json:"status"`
+	JoinedAt       int64                   `json:"joined_at"`
 }

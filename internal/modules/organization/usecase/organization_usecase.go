@@ -7,6 +7,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model/converter"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
+	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
@@ -19,10 +20,11 @@ const (
 )
 
 type organizationUseCase struct {
-	Log       *logrus.Logger
-	TM        tx.WithTransactionManager
-	OrgRepo   repository.OrganizationRepository
+	Log        *logrus.Logger
+	TM         tx.WithTransactionManager
+	OrgRepo    repository.OrganizationRepository
 	MemberRepo repository.OrganizationMemberRepository
+	Enforcer   permissionUseCase.IEnforcer
 }
 
 // NewOrganizationUseCase creates a new OrganizationUseCase instance
@@ -31,12 +33,14 @@ func NewOrganizationUseCase(
 	tm tx.WithTransactionManager,
 	orgRepo repository.OrganizationRepository,
 	memberRepo repository.OrganizationMemberRepository,
+	enforcer permissionUseCase.IEnforcer,
 ) OrganizationUseCase {
 	return &organizationUseCase{
 		Log:        log,
 		TM:         tm,
 		OrgRepo:    orgRepo,
 		MemberRepo: memberRepo,
+		Enforcer:   enforcer,
 	}
 }
 
@@ -76,6 +80,14 @@ func (uc *organizationUseCase) CreateOrganization(ctx context.Context, userID st
 		if err := uc.OrgRepo.Create(txCtx, org, DefaultOwnerRoleID); err != nil {
 			uc.Log.WithContext(txCtx).Errorf("Failed to create organization: %v", err)
 			return exception.ErrInternalServer
+		}
+
+		// Add Casbin Grouping Policy for owner in this org domain
+		if uc.Enforcer != nil {
+			if _, err := uc.Enforcer.AddGroupingPolicy(userID, DefaultOwnerRoleID, org.ID); err != nil {
+				uc.Log.WithContext(txCtx).Errorf("Failed to add Casbin grouping policy: %v", err)
+				return exception.ErrInternalServer
+			}
 		}
 
 		response = converter.OrganizationToResponse(org)
