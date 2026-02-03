@@ -56,7 +56,7 @@ func TestRevokeRoleFromUser_Guardian_Success(t *testing.T) {
 
 	deps.UserRepo.On("FindByID", mock.Anything, userID).Return(&userEntity.User{ID: userID}, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(&roleEntity.Role{Name: roleName}, nil)
-	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, roleName).Return(true, nil)
+	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, roleName, "global").Return(true, nil)
 
 	err := uc.RevokeRoleFromUser(context.Background(), userID, roleName)
 	assert.NoError(t, err)
@@ -106,7 +106,7 @@ func TestRevokeRoleFromUser_Guardian_EnforcerError(t *testing.T) {
 	deps, uc := setupGuardianPermissionTest()
 	deps.UserRepo.On("FindByID", mock.Anything, "u").Return(&userEntity.User{ID: "u"}, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, "r").Return(&roleEntity.Role{Name: "r"}, nil)
-	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, "u", "r").Return(false, errors.New("casbin fail"))
+	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, "u", "r", "global").Return(false, errors.New("casbin fail"))
 
 	err := uc.RevokeRoleFromUser(context.Background(), "u", "r")
 	assert.ErrorIs(t, err, exception.ErrInternalServer)
@@ -116,7 +116,7 @@ func TestRevokeRoleFromUser_Guardian_RoleNotAssigned(t *testing.T) {
 	deps, uc := setupGuardianPermissionTest()
 	deps.UserRepo.On("FindByID", mock.Anything, "u").Return(&userEntity.User{ID: "u"}, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, "r").Return(&roleEntity.Role{Name: "r"}, nil)
-	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, "u", "r").Return(false, nil) // Removed = false
+	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, "u", "r", "global").Return(false, nil) // Removed = false
 
 	err := uc.RevokeRoleFromUser(context.Background(), "u", "r")
 	assert.Error(t, err)
@@ -133,7 +133,7 @@ func TestAddParentRole_Guardian_Success(t *testing.T) {
 
 	deps.RoleRepo.On("FindByName", mock.Anything, child).Return(&roleEntity.Role{Name: child}, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, parent).Return(&roleEntity.Role{Name: parent}, nil)
-	deps.Enforcer.On("AddGroupingPolicy", child, parent).Return(true, nil)
+	deps.Enforcer.On("AddGroupingPolicy", child, parent, "global").Return(true, nil)
 
 	err := uc.AddParentRole(context.Background(), child, parent)
 	assert.NoError(t, err)
@@ -171,7 +171,7 @@ func TestAddParentRole_Guardian_EnforcerError(t *testing.T) {
 
 	deps.RoleRepo.On("FindByName", mock.Anything, child).Return(&roleEntity.Role{Name: child}, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, parent).Return(&roleEntity.Role{Name: parent}, nil)
-	deps.Enforcer.On("AddGroupingPolicy", child, parent).Return(false, errors.New("casbin fail"))
+	deps.Enforcer.On("AddGroupingPolicy", child, parent, "global").Return(false, errors.New("casbin fail"))
 
 	err := uc.AddParentRole(context.Background(), child, parent)
 	assert.Error(t, err)
@@ -186,7 +186,7 @@ func TestRemoveParentRole_Guardian_Success(t *testing.T) {
 	deps, uc := setupGuardianPermissionTest()
 	child, parent := "editor", "viewer"
 
-	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, child, parent).Return(true, nil)
+	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, child, parent, "global").Return(true, nil)
 
 	err := uc.RemoveParentRole(context.Background(), child, parent)
 	assert.NoError(t, err)
@@ -196,7 +196,7 @@ func TestRemoveParentRole_Guardian_EnforcerError(t *testing.T) {
 	deps, uc := setupGuardianPermissionTest()
 	child, parent := "editor", "viewer"
 
-	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, child, parent).Return(false, errors.New("casbin fail"))
+	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, child, parent, "global").Return(false, errors.New("casbin fail"))
 
 	err := uc.RemoveParentRole(context.Background(), child, parent)
 	assert.Error(t, err)
@@ -207,7 +207,7 @@ func TestRemoveParentRole_Guardian_RelationshipNotFound(t *testing.T) {
 	deps, uc := setupGuardianPermissionTest()
 	child, parent := "editor", "viewer"
 
-	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, child, parent).Return(false, nil)
+	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, child, parent, "global").Return(false, nil)
 
 	err := uc.RemoveParentRole(context.Background(), child, parent)
 	assert.Error(t, err)
@@ -223,7 +223,7 @@ func TestGetParentRoles_Guardian_Success(t *testing.T) {
 	role := "editor"
 	parents := []string{"viewer"}
 
-	deps.Enforcer.On("GetRolesForUser", role).Return(parents, nil)
+	deps.Enforcer.On("GetRolesForUser", role, "global").Return(parents, nil)
 
 	res, err := uc.GetParentRoles(context.Background(), role)
 	assert.NoError(t, err)
@@ -234,7 +234,7 @@ func TestGetParentRoles_Guardian_EnforcerError(t *testing.T) {
 	deps, uc := setupGuardianPermissionTest()
 	role := "editor"
 
-	deps.Enforcer.On("GetRolesForUser", role).Return(nil, errors.New("casbin fail"))
+	deps.Enforcer.On("GetRolesForUser", role, "global").Return(nil, errors.New("casbin fail"))
 
 	_, err := uc.GetParentRoles(context.Background(), role)
 	assert.Error(t, err)
@@ -305,7 +305,7 @@ func TestPermissionUseCase_Negative_GrantPermissionToRole_SpecialChars(t *testin
 	path := "/api/v1/resource/!@#$%^&*()"
 
 	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(&roleEntity.Role{Name: role}, nil)
-	deps.Enforcer.On("AddPolicy", role, path, "GET").Return(true, nil)
+	deps.Enforcer.On("AddPolicy", role, "global", path, "GET").Return(true, nil)
 
 	err := uc.GrantPermissionToRole(context.Background(), role, path, "GET")
 	assert.NoError(t, err) // Should succeed as special chars in path are usually allowed in Casbin

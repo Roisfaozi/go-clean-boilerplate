@@ -13,15 +13,18 @@ import (
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
 	mock_auth "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
+	mock_org "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	mock_permission "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	mock_user "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"golang.org/x/crypto/bcrypt"
@@ -40,6 +43,7 @@ type testDependencies struct {
 	jwtManager      *jwt.JWTManager
 	tokenRepo       *mock_auth.MockTokenRepository
 	userRepo        *mock_user.MockUserRepository
+	orgRepo         *mock_org.MockOrganizationRepository
 	tm              *mocking.MockWithTransactionManager
 	wsManager       *mocking.MockManager
 	enforcer        *mock_permission.IEnforcer
@@ -56,6 +60,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		jwtManager:      jwtManager,
 		tokenRepo:       new(mock_auth.MockTokenRepository),
 		userRepo:        new(mock_user.MockUserRepository),
+		orgRepo:         new(mock_org.MockOrganizationRepository),
 		tm:              new(mocking.MockWithTransactionManager),
 		wsManager:       new(mocking.MockManager),
 		enforcer:        new(mock_permission.IEnforcer),
@@ -73,10 +78,11 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		deps.jwtManager,
 		deps.tokenRepo,
 		deps.userRepo,
+		deps.orgRepo,
 		deps.tm,
 		deps.log,
 		deps.wsManager,
-		nil,
+		(*sse.Manager)(nil),
 		deps.enforcer,
 		deps.auditUC,
 		deps.taskDistributor,
@@ -111,7 +117,7 @@ func TestLogin_Success(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{TestRole}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
 
@@ -199,7 +205,7 @@ func TestLogin_Failure_StoreTokenError(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{TestRole}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(storeErr)
 
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
@@ -225,7 +231,7 @@ func TestLogin_EnforcerError(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return(nil, errors.New("casbin error"))
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return(nil, errors.New("casbin error"))
 
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
 
@@ -250,7 +256,7 @@ func TestLogin_AuditError(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{TestRole}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
 
@@ -275,6 +281,7 @@ func TestLogin_Security_BruteForceProtection(t *testing.T) {
 		deps.jwtManager,
 		deps.tokenRepo,
 		deps.userRepo,
+		deps.orgRepo,
 		deps.tm,
 		deps.log,
 		deps.wsManager,
@@ -325,7 +332,7 @@ func TestRefreshToken_Success(t *testing.T) {
 	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: oldRefreshToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{TestRole}, nil)
 	deps.tokenRepo.On("DeleteToken", mock.Anything, user.ID, "session-1").Return(nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 
@@ -356,7 +363,7 @@ func TestRefreshToken_EnforcerError(t *testing.T) {
 	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: oldRefreshToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return(nil, errors.New("casbin error"))
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return(nil, errors.New("casbin error"))
 
 	_, _, err = authService.RefreshToken(context.Background(), oldRefreshToken)
 
@@ -551,7 +558,7 @@ func TestGenerateAccessToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{TestRole}, nil)
 
 	token, err := authService.GenerateAccessToken(user)
 
@@ -563,7 +570,7 @@ func TestGenerateAccessToken_EnforcerError(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	deps.enforcer.On("GetRolesForUser", user.ID).Return(nil, errors.New("casbin error"))
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return(nil, errors.New("casbin error"))
 
 	_, err := authService.GenerateAccessToken(user)
 
@@ -576,7 +583,7 @@ func TestGenerateRefreshToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{TestRole}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{TestRole}, nil)
 
 	token, err := authService.GenerateRefreshToken(user)
 
@@ -588,7 +595,7 @@ func TestGenerateRefreshToken_EnforcerError(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	deps.enforcer.On("GetRolesForUser", user.ID).Return(nil, errors.New("casbin error"))
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return(nil, errors.New("casbin error"))
 
 	_, err := authService.GenerateRefreshToken(user)
 
@@ -929,7 +936,7 @@ func TestLogin_Success_NoRoles(t *testing.T) {
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
 
@@ -1144,6 +1151,7 @@ func TestVerifyEmail_AlreadyVerified(t *testing.T) {
 
 func TestVerifyEmail_TransactionError(t *testing.T) {
 	authService, deps := setupTest(t)
+	_ = authService // Prevent unused warning if test fails early
 	user, _ := createTestUser("password123")
 	user.EmailVerifiedAt = nil
 	token := "valid-token"
@@ -1171,4 +1179,92 @@ func TestVerifyEmail_TransactionError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, dbErr, err)
 	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
+}
+
+func TestRegister_Success(t *testing.T) {
+	authService, deps := setupTest(t)
+	password := "password123"
+	req := model.RegisterRequest{
+		Username:  "newuser",
+		Email:     "new@example.com",
+		Password:  password,
+		Name:      "New User",
+		IPAddress: "127.0.0.1",
+		UserAgent: "TestAgent",
+	}
+
+	hashedBytes, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword := string(hashedBytes)
+
+	// 1. Check existing (Register check)
+	deps.userRepo.On("FindByUsername", mock.Anything, req.Username).Return(nil, gorm.ErrRecordNotFound).Once()
+	deps.userRepo.On("FindByEmail", mock.Anything, req.Email).Return(nil, gorm.ErrRecordNotFound)
+
+	// 2. Transaction
+	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(context.Background())
+		}).Return(nil)
+
+	// In Transaction:
+	// Create User
+	deps.userRepo.On("Create", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+		return u.Username == req.Username && u.Email == req.Email
+	})).Return(nil)
+
+	// Add Role
+	deps.enforcer.On("AddGroupingPolicy", mock.Anything, "role:user", "global").Return(true, nil)
+
+	// Create Org (Auto-Provisioning)
+	deps.orgRepo.On("Create", mock.Anything, mock.MatchedBy(func(o *orgEntity.Organization) bool {
+		return o.Name == "New User's Workspace"
+	}), "owner").Return(nil)
+
+	// Audit (Register Action)
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.Action == "REGISTER" && req.Entity == "User"
+	})).Return(nil)
+
+	// 4. Login (Implicitly called by Register)
+	// Login logic mocks:
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, req.Username).Return(false, time.Duration(0), nil)
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, req.Username).Return(nil)
+	
+	// FindByUsername for Login (Second call) - MUST RETURN USER with matching password
+	createdUser := &entity.User{
+		ID:       "new-user-id",
+		Username: req.Username,
+		Password: hashedPassword,
+		Status:   entity.UserStatusActive,
+	}
+	deps.userRepo.On("FindByUsername", mock.Anything, req.Username).Return(createdUser, nil).Once()
+
+	// Enforcer GetRolesForUser (Login)
+	deps.enforcer.On("GetRolesForUser", createdUser.ID, "global").Return([]string{"role:user"}, nil)
+	
+	// StoreToken
+	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
+	
+	// Broadcast
+	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	
+	// Audit Login
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.Action == "LOGIN"
+	})).Return(nil)
+
+	// Execute
+	loginResp, refreshToken, err := authService.Register(context.Background(), req)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NotNil(t, loginResp)
+	assert.NotEmpty(t, refreshToken)
+	assert.Equal(t, req.Username, loginResp.User.Username)
+	assert.Equal(t, "new-user-id", loginResp.User.ID)
+	
+	deps.userRepo.AssertExpectations(t)
+	deps.orgRepo.AssertExpectations(t)
+	deps.enforcer.AssertExpectations(t)
 }
