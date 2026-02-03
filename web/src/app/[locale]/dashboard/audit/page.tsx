@@ -16,14 +16,15 @@ import { Badge } from "~/components/ui/badge";
 import { auditApi, AuditLog } from "~/lib/api/audit";
 import { toast } from "sonner";
 import { LogDetailDialog } from "~/components/dashboard/audit/log-detail-dialog";
+import { useAuditStream } from "~/hooks/use-audit-stream";
 import {
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-  } from "~/components/ui/pagination";
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "~/components/ui/pagination";
 
 export default function AuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -36,18 +37,28 @@ export default function AuditPage() {
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
+  // Real-time listener
+  const newLog = useAuditStream();
+
+  useEffect(() => {
+    if (newLog && page === 1) {
+      setLogs((prev) => [newLog, ...prev.slice(0, pageSize - 1)]);
+      setTotalItems((prev) => prev + 1);
+    }
+  }, [newLog, page]);
+
   const fetchLogs = useCallback(async () => {
     setIsLoading(true);
     try {
       const filter: any = {
         page: page,
         page_size: pageSize,
-        sort: [{ colId: "created_at", sort: "desc" }]
+        sort: [{ colId: "created_at", sort: "desc" }],
       };
 
       if (searchTerm) {
         filter.filter = {
-          action: { type: "contains", filter: searchTerm }
+          action: { type: "contains", filter: searchTerm },
         };
       }
 
@@ -88,7 +99,11 @@ export default function AuditPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" onClick={() => window.open(auditApi.export(), '_blank')}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(auditApi.export(), "_blank")}
+          >
             <Icon name="Download" className="mr-2 h-4 w-4" />
             Export CSV
           </Button>
@@ -101,19 +116,24 @@ export default function AuditPage() {
             placeholder="Search by action..."
             value={searchTerm}
             onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1); // Reset to first page on search
+              setSearchTerm(e.target.value);
+              setPage(1); // Reset to first page on search
             }}
             className="h-8 w-[150px] lg:w-[250px]"
           />
-          {isLoading && <Icon name="Loader" className="h-4 w-4 animate-spin text-muted-foreground" />}
+          {isLoading && (
+            <Icon
+              name="Loader"
+              className="text-muted-foreground h-4 w-4 animate-spin"
+            />
+          )}
         </div>
-        <div className="text-xs text-muted-foreground">
-            Total: {totalItems} logs
+        <div className="text-muted-foreground text-xs">
+          Total: {totalItems} logs
         </div>
       </div>
 
-      <div className="rounded-md border bg-card">
+      <div className="bg-card rounded-md border">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -137,32 +157,45 @@ export default function AuditPage() {
               </TableRow>
             ) : logs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground italic">
+                <TableCell
+                  colSpan={6}
+                  className="text-muted-foreground h-24 text-center italic"
+                >
                   No logs found.
                 </TableCell>
               </TableRow>
             ) : (
               logs.map((log) => (
-                <TableRow 
-                    key={log.id} 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors group"
-                    onClick={() => handleRowClick(log)}
+                <TableRow
+                  key={log.id}
+                  className="hover:bg-muted/50 group cursor-pointer transition-colors"
+                  onClick={() => handleRowClick(log)}
                 >
                   <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                     {new Date(log.created_at).toLocaleString()}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="font-mono text-[10px] uppercase bg-primary/5 text-primary border-primary/10">
-                        {log.action}
+                    <Badge
+                      variant="outline"
+                      className="bg-primary/5 text-primary border-primary/10 font-mono text-[10px] uppercase"
+                    >
+                      {log.action}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-medium text-xs">{log.entity}</TableCell>
-                  <TableCell className="font-mono text-[10px] text-muted-foreground truncate max-w-[120px]">
+                  <TableCell className="text-xs font-medium">
+                    {log.entity}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground max-w-[120px] truncate font-mono text-[10px]">
                     {log.entity_id}
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">{log.ip_address}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    {log.ip_address}
+                  </TableCell>
                   <TableCell>
-                    <Icon name="ChevronRight" className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Icon
+                      name="ChevronRight"
+                      className="text-muted-foreground h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100"
+                    />
                   </TableCell>
                 </TableRow>
               ))
@@ -176,43 +209,47 @@ export default function AuditPage() {
           <Pagination>
             <PaginationContent>
               <PaginationItem>
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    disabled={page === 1}
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    className="gap-1 pl-2.5"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="gap-1 pl-2.5"
                 >
                   <Icon name="ChevronLeft" className="h-4 w-4" />
                   <span>Previous</span>
                 </Button>
               </PaginationItem>
-              
+
               {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
                 // Simple pagination logic for first 5 pages
                 const pageNum = i + 1;
                 return (
                   <PaginationItem key={pageNum}>
-                    <PaginationLink 
-                        isActive={page === pageNum}
-                        onClick={() => setPage(pageNum)}
-                        className="cursor-pointer"
+                    <PaginationLink
+                      isActive={page === pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className="cursor-pointer"
                     >
                       {pageNum}
                     </PaginationLink>
                   </PaginationItem>
                 );
               })}
-              
-              {totalPages > 5 && <PaginationItem><span className="text-muted-foreground">...</span></PaginationItem>}
+
+              {totalPages > 5 && (
+                <PaginationItem>
+                  <span className="text-muted-foreground">...</span>
+                </PaginationItem>
+              )}
 
               <PaginationItem>
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    disabled={page === totalPages}
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    className="gap-1 pr-2.5"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={page === totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="gap-1 pr-2.5"
                 >
                   <span>Next</span>
                   <Icon name="ChevronRight" className="h-4 w-4" />
@@ -223,7 +260,7 @@ export default function AuditPage() {
         </div>
       )}
 
-      <LogDetailDialog 
+      <LogDetailDialog
         log={selectedLog}
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}

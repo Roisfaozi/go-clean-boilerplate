@@ -32,8 +32,9 @@ export const auditApi = {
     const params = new URLSearchParams();
     if (fromDate) params.append("from_date", fromDate);
     if (toDate) params.append("to_date", toDate);
-    
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
-    return `${baseUrl}/audit-logs/export?${params.toString()}`; 
-  }
+
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+    return `${baseUrl}/audit-logs/export?${params.toString()}`;
+  },
 };
