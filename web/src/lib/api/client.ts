@@ -6,17 +6,22 @@ const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
 class ApiClient {
-  private async request<T>(
+  public async request<T>(
     endpoint: string,
     options: FetchOptions = {}
   ): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
 
+    const isFormData = options.body instanceof FormData;
+
     // Default headers
-    const headers = {
-      "Content-Type": "application/json",
+    const headers: Record<string, string> = {
       ...options.headers,
     };
+
+    if (!isFormData) {
+      headers["Content-Type"] = "application/json";
+    }
 
     // Note: We don't need to manually send Authorization header if we use HttpOnly cookies.
     // The browser automatically sends cookies with credentials: "include".
@@ -24,6 +29,7 @@ class ApiClient {
       ...options,
       headers,
       credentials: "include" as RequestCredentials, // Important for cookies
+      body: isFormData ? options.body : (options.body && typeof options.body === 'object' ? JSON.stringify(options.body) : options.body),
     };
 
     try {
