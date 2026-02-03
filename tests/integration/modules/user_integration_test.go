@@ -33,7 +33,7 @@ func setupTestDependencies(env *setup.TestEnvironment) (usecase.UserUseCase, rep
 	userRepo := repository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
+	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
 	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)
@@ -183,7 +183,7 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
+	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
 	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
@@ -576,7 +576,7 @@ func setupUserUseCase(t *testing.T, env *setup.TestEnvironment) usecase.UserUseC
 	userRepo := repository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
+	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
 	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)

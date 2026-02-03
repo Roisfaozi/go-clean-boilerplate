@@ -35,11 +35,11 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 
 	realAuditRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
-	realAuditUC := auditUC.NewAuditUseCase(realAuditRepo, env.Logger)
+	realAuditUC := auditUC.NewAuditUseCase(realAuditRepo, env.Logger, nil)
 
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
-	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Logger)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, env.Enforcer, realAuditUC, nil)
 
 	setupService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, realAuditUC, authService, nil)
@@ -53,7 +53,7 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, user)
 
-	roles, err := env.Enforcer.GetRolesForUser(user.ID)
+	roles, err := env.Enforcer.GetRolesForUser(user.ID, "global")
 	require.NoError(t, err)
 	require.Contains(t, roles, "role:user")
 
@@ -73,7 +73,7 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	assert.NotNil(t, userAfter)
 	assert.Equal(t, user.ID, userAfter.ID)
 
-	rolesAfter, err := env.Enforcer.GetRolesForUser(user.ID)
+	rolesAfter, err := env.Enforcer.GetRolesForUser(user.ID, "global")
 	assert.NoError(t, err)
 
 	assert.Contains(t, rolesAfter, "role:user", "Roles should be restored/preserved on rollback")

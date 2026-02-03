@@ -38,7 +38,7 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
+	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
 	wsConfig := &ws.WebSocketConfig{}
 	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis)

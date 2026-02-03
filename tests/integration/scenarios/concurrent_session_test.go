@@ -29,7 +29,7 @@ func TestScenario_Auth_ConcurrentSessions(t *testing.T) {
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)
-	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Logger)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, env.Enforcer, nil, nil)
 
 	password := "Pass123!"

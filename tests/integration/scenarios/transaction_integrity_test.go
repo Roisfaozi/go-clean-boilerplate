@@ -37,16 +37,16 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
-	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger)
+	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger, nil)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
-	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Logger)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, mockEnforcer, auditService, nil)
 
 	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, mockEnforcer, auditService, authService, nil)
 
 	expectedErr := errors.New("casbin connection error")
 
-	mockEnforcer.On("AddGroupingPolicy", mock.Anything).Return(false, expectedErr)
+	mockEnforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, "global").Return(false, expectedErr)
 
 	req := &userModel.RegisterUserRequest{
 		Username: "rollback_user",

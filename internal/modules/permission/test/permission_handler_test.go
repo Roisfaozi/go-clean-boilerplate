@@ -16,6 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func setupPermissionControllerTest() (*mocks.MockIPermissionUseCase, *permissionHttp.PermissionController) {
@@ -81,8 +82,11 @@ func TestPermissionController_BatchCheck(t *testing.T) {
 			{Resource: "/api/v1/users", Action: "GET"},
 		},
 	}
-	body, _ := json.Marshal(req)
-	c.Request, _ = http.NewRequest("POST", "/permission/batch-check", bytes.NewBuffer(body))
+	body, err := json.Marshal(req)
+	require.NoError(t, err)
+	reqHttp, err := http.NewRequest("POST", "/permission/batch-check", bytes.NewBuffer(body))
+	require.NoError(t, err)
+	c.Request = reqHttp
 
 	// Simulate middleware setting user_id
 	c.Set("user_id", "u1")
@@ -96,11 +100,13 @@ func TestPermissionController_BatchCheck(t *testing.T) {
 
 	// Verify response body
 	var resp map[string]interface{} // Using generic map to avoid model import cycling if it happens
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.NoError(t, err)
+	err = json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
 	// data.results
-	data := resp["data"].(map[string]interface{})
-	res := data["results"].(map[string]interface{})
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok, "data field should be a map")
+	res, ok := data["results"].(map[string]interface{})
+	require.True(t, ok, "results field should be a map")
 	assert.Equal(t, true, res["/api/v1/users:GET"])
 }
 

@@ -70,7 +70,10 @@ export default function SettingsForm({ currentUser }: { currentUser: User }) {
     startTransition(async () => {
       try {
         if (currentUser.picture && isImageChanged) {
-          await removeUserOldImageFromCDN(data.picture ?? "", currentUser.picture);
+          await removeUserOldImageFromCDN(
+            data.picture ?? "",
+            currentUser.picture
+          );
         }
         await updateUser(currentUser.id, data);
         toast({ title: "Updated successfully!" });

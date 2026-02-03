@@ -255,7 +255,7 @@ func (ctrl *OrganizationController) GetMyOrganizations(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        request body model.AcceptInvitationRequest true "Invitation Acceptance Request"
-// @Success      200  {object}  response.Response   "Success"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper   "Success"
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper  "Bad Request"
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper  "Unauthorized"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper  "Internal server error"

@@ -113,6 +113,29 @@ definitions:
       user:
         $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.UserInfo'
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.RegisterRequest:
+    properties:
+      email:
+        maxLength: 100
+        type: string
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - username
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.ResetPasswordRequest:
     properties:
       new_password:
@@ -160,19 +183,61 @@ definitions:
     required:
     - token
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.AcceptInvitationRequest:
+    properties:
+      name:
+        description: Optional
+        type: string
+      password:
+        description: Required for new users
+        type: string
+      token:
+        type: string
+    required:
+    - token
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.CreateOrganizationRequest:
     properties:
       name:
-        maxLength: 255
-        minLength: 2
+        maxLength: 100
+        minLength: 3
         type: string
       slug:
         maxLength: 100
-        minLength: 2
+        minLength: 3
         type: string
     required:
     - name
-    - slug
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.InviteMemberRequest:
+    properties:
+      email:
+        type: string
+      role_id:
+        type: string
+      user_id:
+        description: Optional, if inviting generic email
+        type: string
+    required:
+    - email
+    - role_id
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.MemberResponse:
+    properties:
+      id:
+        type: string
+      joined_at:
+        type: integer
+      organization_id:
+        type: string
+      role_id:
+        type: string
+      status:
+        type: string
+      user:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse'
+      user_id:
+        type: string
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse:
     properties:
@@ -191,17 +256,29 @@ definitions:
       updated_at:
         type: integer
     type: object
-  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UpdateOrganizationRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UpdateMemberRequest:
     properties:
-      name:
-        maxLength: 255
-        minLength: 2
+      role_id:
         type: string
       status:
         enum:
         - active
         - suspended
-        - inactive
+        type: string
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UpdateOrganizationRequest:
+    properties:
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      settings:
+        additionalProperties: true
+        type: object
+      status:
+        enum:
+        - active
+        - suspended
         type: string
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UserOrganizationsResponse:
@@ -278,14 +355,14 @@ definitions:
       new_permission:
         items:
           type: string
-        maxItems: 3
-        minItems: 3
+        maxItems: 4
+        minItems: 4
         type: array
       old_permission:
         items:
           type: string
-        maxItems: 3
-        minItems: 3
+        maxItems: 4
+        minItems: 4
         type: array
     required:
     - new_permission
@@ -940,6 +1017,44 @@ paths:
       summary: Refresh access token
       tags:
       - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account and auto-provisions a default workspace.
+      parameters:
+      - description: Registration request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerLoginResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "409":
+          description: Username or Email already exists
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      summary: Register new user
+      tags:
+      - auth
   /auth/resend-verification:
     post:
       consumes:
@@ -1309,6 +1424,242 @@ paths:
       security:
       - BearerAuth: []
       summary: Update organization
+      tags:
+      - organizations
+  /organizations/{id}/members:
+    get:
+      description: Retrieves all members of an organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.MemberResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Organization not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get organization members
+      tags:
+      - organizations
+    post:
+      consumes:
+      - application/json
+      description: Invites a user by user ID to join an organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Invite member request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.InviteMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.MemberResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Organization not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "409":
+          description: User already a member
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Invite member to organization
+      tags:
+      - organizations
+  /organizations/{id}/members/{userId}:
+    delete:
+      description: Removes a member from an organization (owner cannot be removed)
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "403":
+          description: Forbidden - cannot remove owner
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Member not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Remove member from organization
+      tags:
+      - organizations
+    patch:
+      consumes:
+      - application/json
+      description: Updates a member's role or status in an organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Update member request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UpdateMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.MemberResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Member not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Update member role
+      tags:
+      - organizations
+  /organizations/invitations/accept:
+    post:
+      consumes:
+      - application/json
+      description: Accepts an invitation to join an organization. If user is new (shadow),
+        sets password and activates account.
+      parameters:
+      - description: Invitation Acceptance Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.AcceptInvitationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      summary: Accept invitation
       tags:
       - organizations
   /organizations/me:
@@ -1787,6 +2138,39 @@ paths:
       security:
       - BearerAuth: []
       summary: Get permissions for role
+      tags:
+      - permissions
+  /permissions/roles/{role}/users:
+    get:
+      description: Retrieves all user IDs assigned to a specific role.
+      parameters:
+      - description: Role name
+        in: path
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of user IDs
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Role is required
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get users for role
       tags:
       - permissions
   /roles:

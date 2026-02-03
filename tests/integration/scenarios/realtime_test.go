@@ -43,7 +43,7 @@ func TestScenario_RealTime_LoginBroadcast(t *testing.T) {
 	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis)
 	go wsManager.Run()
 
-	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Logger)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, wsManager, nil, env.Enforcer, nil, nil)
 
 	pubsub := env.Redis.Subscribe(context.Background(), "ws_broadcast:global_notifications")
