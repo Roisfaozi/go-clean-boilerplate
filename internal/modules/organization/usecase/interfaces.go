@@ -40,4 +40,27 @@ type OrganizationMemberUseCase interface {
 
 	// RemoveMember removes a member from an organization
 	RemoveMember(ctx context.Context, orgID, userID string) error
+
+	// AcceptInvitation accepts an invitation
+	AcceptInvitation(ctx context.Context, request *model.AcceptInvitationRequest) error
+}
+
+// IOrganizationReader provides high-performance membership validation with caching.
+// Used by TenantMiddleware to avoid direct database hits on every request.
+type IOrganizationReader interface {
+	// ValidateMembership checks if a user is an active member of an organization.
+	// Uses Redis cache for performance, falls back to database on cache miss.
+	ValidateMembership(ctx context.Context, orgID, userID string) (bool, error)
+
+	// GetMemberRole returns the role of a user in an organization (owner, admin, member).
+	// Returns empty string if not a member.
+	GetMemberRole(ctx context.Context, orgID, userID string) (string, error)
+
+	// InvalidateMembershipCache removes the cached membership data for a user-org pair.
+	// Must be called when membership changes (add, remove, role update).
+	InvalidateMembershipCache(ctx context.Context, orgID, userID string) error
+
+	// InvalidateOrganizationCache removes all cached membership data for an organization.
+	// Must be called when organization is deleted.
+	InvalidateOrganizationCache(ctx context.Context, orgID string) error
 }
