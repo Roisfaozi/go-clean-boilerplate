@@ -8,6 +8,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
+	permissionMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	txMock "github.com/Roisfaozi/go-clean-boilerplate/pkg/tx/mocks"
 	"github.com/sirupsen/logrus"
@@ -15,16 +16,17 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func setupOrganizationUseCase() (*mocks.MockOrganizationRepository, *mocks.MockOrganizationMemberRepository, *txMock.MockTransactionManager, usecase.OrganizationUseCase) {
+func setupOrganizationUseCase() (*mocks.MockOrganizationRepository, *mocks.MockOrganizationMemberRepository, *txMock.MockTransactionManager, *permissionMocks.IEnforcer, usecase.OrganizationUseCase) {
 	log := logrus.New()
 	log.SetLevel(logrus.ErrorLevel) // Suppress log output in tests
 
 	orgRepo := new(mocks.MockOrganizationRepository)
 	memberRepo := new(mocks.MockOrganizationMemberRepository)
 	tm := new(txMock.MockTransactionManager)
+	enforcer := new(permissionMocks.IEnforcer)
 
-	uc := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo)
-	return orgRepo, memberRepo, tm, uc
+	uc := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, enforcer)
+	return orgRepo, memberRepo, tm, enforcer, uc
 }
 
 // ===============================================
@@ -32,7 +34,7 @@ func setupOrganizationUseCase() (*mocks.MockOrganizationRepository, *mocks.MockO
 // ===============================================
 
 func TestCreateOrganization_Success(t *testing.T) {
-	orgRepo, _, tm, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, enforcer, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	request := &model.CreateOrganizationRequest{
@@ -49,6 +51,7 @@ func TestCreateOrganization_Success(t *testing.T) {
 
 	orgRepo.On("SlugExists", ctx, "acme-corp").Return(false, nil)
 	orgRepo.On("Create", ctx, mock.AnythingOfType("*entity.Organization"), usecase.DefaultOwnerRoleID).Return(nil)
+	enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
 	// Execute
 	response, err := uc.CreateOrganization(ctx, userID, request)
@@ -66,7 +69,7 @@ func TestCreateOrganization_Success(t *testing.T) {
 }
 
 func TestCreateOrganization_SlugExists(t *testing.T) {
-	orgRepo, _, tm, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	request := &model.CreateOrganizationRequest{
@@ -100,7 +103,7 @@ func TestCreateOrganization_SlugExists(t *testing.T) {
 // ===============================================
 
 func TestGetOrganization_Success(t *testing.T) {
-	orgRepo, _, _, uc := setupOrganizationUseCase()
+	orgRepo, _, _, _, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	org := &entity.Organization{
@@ -126,7 +129,7 @@ func TestGetOrganization_Success(t *testing.T) {
 }
 
 func TestGetOrganization_NotFound(t *testing.T) {
-	orgRepo, _, _, uc := setupOrganizationUseCase()
+	orgRepo, _, _, _, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	orgRepo.On("FindByID", ctx, "non-existent").Return(nil, nil)
@@ -147,7 +150,7 @@ func TestGetOrganization_NotFound(t *testing.T) {
 // ===============================================
 
 func TestGetOrganizationBySlug_Success(t *testing.T) {
-	orgRepo, _, _, uc := setupOrganizationUseCase()
+	orgRepo, _, _, _, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	org := &entity.Organization{
@@ -176,7 +179,7 @@ func TestGetOrganizationBySlug_Success(t *testing.T) {
 // ===============================================
 
 func TestUpdateOrganization_Success(t *testing.T) {
-	orgRepo, _, tm, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	existingOrg := &entity.Organization{
@@ -212,7 +215,7 @@ func TestUpdateOrganization_Success(t *testing.T) {
 }
 
 func TestUpdateOrganization_NotFound(t *testing.T) {
-	orgRepo, _, tm, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	request := &model.UpdateOrganizationRequest{
@@ -242,7 +245,7 @@ func TestUpdateOrganization_NotFound(t *testing.T) {
 // ===============================================
 
 func TestGetUserOrganizations_Success(t *testing.T) {
-	orgRepo, _, _, uc := setupOrganizationUseCase()
+	orgRepo, _, _, _, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	orgs := []*entity.Organization{
@@ -265,7 +268,7 @@ func TestGetUserOrganizations_Success(t *testing.T) {
 }
 
 func TestGetUserOrganizations_Empty(t *testing.T) {
-	orgRepo, _, _, uc := setupOrganizationUseCase()
+	orgRepo, _, _, _, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	orgRepo.On("FindUserOrganizations", ctx, "user-no-orgs").Return([]*entity.Organization{}, nil)
@@ -287,7 +290,7 @@ func TestGetUserOrganizations_Empty(t *testing.T) {
 // ===============================================
 
 func TestDeleteOrganization_Success(t *testing.T) {
-	orgRepo, _, tm, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	org := &entity.Organization{
@@ -316,7 +319,7 @@ func TestDeleteOrganization_Success(t *testing.T) {
 }
 
 func TestDeleteOrganization_NotOwner(t *testing.T) {
-	orgRepo, _, tm, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	org := &entity.Organization{
@@ -343,7 +346,7 @@ func TestDeleteOrganization_NotOwner(t *testing.T) {
 }
 
 func TestDeleteOrganization_NotFound(t *testing.T) {
-	orgRepo, _, tm, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	tm.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {

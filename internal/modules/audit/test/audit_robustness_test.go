@@ -16,8 +16,13 @@ import (
 
 func setupAuditTest() (*mocks.MockAuditRepository, usecase.AuditUseCase) {
 	mockRepo := new(mocks.MockAuditRepository)
+	mockWS := new(mocks.MockWebSocketManager)
 	logger := logrus.New()
-	return mockRepo, usecase.NewAuditUseCase(mockRepo, logger)
+	
+	// Mock broadcast call if needed (optional for robustness tests unless specifically testing WS)
+	mockWS.On("BroadcastToChannel", mock.Anything, mock.Anything).Return()
+
+	return mockRepo, usecase.NewAuditUseCase(mockRepo, logger, mockWS)
 }
 
 // CircularRefStruct simulates a structure with circular references

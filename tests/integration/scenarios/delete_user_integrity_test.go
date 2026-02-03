@@ -14,6 +14,7 @@ import (
 	auditUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	authUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	userUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
@@ -38,7 +39,8 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, env.Enforcer, realAuditUC, nil)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Logger)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, env.Enforcer, realAuditUC, nil)
 
 	setupService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, realAuditUC, authService, nil)
 	regReq := &userModel.RegisterUserRequest{

@@ -13,6 +13,7 @@ import (
 	auditUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	authUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
@@ -38,7 +39,8 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
 	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, mockEnforcer, auditService, nil)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Logger)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, mockEnforcer, auditService, nil)
 
 	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, mockEnforcer, auditService, authService, nil)
 

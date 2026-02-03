@@ -49,10 +49,10 @@ func RunMigrations(t *testing.T, db *gorm.DB) {
 
 func SeedTestData(t *testing.T, db *gorm.DB) {
 	roles := []roleEntity.Role{
-		{ID: "role:superadmin", Name: "role:superadmin", Description: "Super Administrator role"},
-		{ID: "role:admin", Name: "role:admin", Description: "Administrator role"},
-		{ID: "role:user", Name: "role:user", Description: "Regular user role"},
-		{ID: "role:moderator", Name: "role:moderator", Description: "Moderator role"},
+		{ID: "role:superadmin", Name: "role:superadmin", OrganizationID: "global", Description: "Super Administrator role"},
+		{ID: "role:admin", Name: "role:admin", OrganizationID: "global", Description: "Administrator role"},
+		{ID: "role:user", Name: "role:user", OrganizationID: "global", Description: "Regular user role"},
+		{ID: "role:moderator", Name: "role:moderator", OrganizationID: "global", Description: "Moderator role"},
 	}
 
 	for _, role := range roles {
@@ -60,13 +60,13 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 	}
 
 	policies := [][]string{
-		{"role:user", "/api/v1/users/me", "GET"},
-		{"role:user", "/api/v1/users/me", "PUT"},
-		{"role:user", "/api/v1/auth/logout", "POST"},
+		{"role:user", "global", "/api/v1/users/me", "GET"},
+		{"role:user", "global", "/api/v1/users/me", "PUT"},
+		{"role:user", "global", "/api/v1/auth/logout", "POST"},
 	}
 
 	for _, p := range policies {
-		db.Exec("INSERT IGNORE INTO casbin_rule (ptype, v0, v1, v2) VALUES (?, ?, ?, ?)", "p", p[0], p[1], p[2])
+		db.Exec("INSERT IGNORE INTO casbin_rule (ptype, v0, v1, v2, v3) VALUES (?, ?, ?, ?, ?)", "p", p[0], p[1], p[2], p[3])
 	}
 }
 
@@ -111,9 +111,10 @@ func CreateTestUser(t *testing.T, db *gorm.DB, username, email, password string)
 
 func CreateTestRole(t *testing.T, db *gorm.DB, name string) *roleEntity.Role {
 	role := &roleEntity.Role{
-		ID:          uuid.New().String(),
-		Name:        name,
-		Description: "Test role " + name,
+		ID:             uuid.New().String(),
+		Name:           name,
+		OrganizationID: "global",
+		Description:    "Test role " + name,
 	}
 
 	err := db.Create(role).Error
