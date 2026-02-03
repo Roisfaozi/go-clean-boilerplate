@@ -12,16 +12,18 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { authApi } from "~/lib/api/auth";
 
-const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
-  username: z.string().min(3, "Username must be at least 3 characters."),
-  email: z.string().email("Please enter a valid email address."),
-  password: z.string().min(8, "Password must be at least 8 characters."),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const registerSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters."),
+    username: z.string().min(3, "Username must be at least 3 characters."),
+    email: z.string().email("Please enter a valid email address."),
+    password: z.string().min(8, "Password must be at least 8 characters."),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type FormData = z.infer<typeof registerSchema>;
 
@@ -98,7 +100,7 @@ export default function RegisterForm() {
               {...register("name")}
             />
             {errors?.name && (
-              <p className="px-1 text-xs text-destructive">
+              <p className="text-destructive px-1 text-xs">
                 {errors.name.message}
               </p>
             )}
@@ -117,7 +119,7 @@ export default function RegisterForm() {
               {...register("username")}
             />
             {errors?.username && (
-              <p className="px-1 text-xs text-destructive">
+              <p className="text-destructive px-1 text-xs">
                 {errors.username.message}
               </p>
             )}
@@ -136,7 +138,7 @@ export default function RegisterForm() {
               {...register("email")}
             />
             {errors?.email && (
-              <p className="px-1 text-xs text-destructive">
+              <p className="text-destructive px-1 text-xs">
                 {errors.email.message}
               </p>
             )}
@@ -153,22 +155,22 @@ export default function RegisterForm() {
               {...register("password")}
             />
             {errors?.password && (
-              <p className="px-1 text-xs text-destructive">
+              <p className="text-destructive px-1 text-xs">
                 {errors.password.message}
               </p>
             )}
-            <div className="mt-1 flex h-1 w-full gap-1 overflow-hidden rounded-full bg-muted">
+            <div className="bg-muted mt-1 flex h-1 w-full gap-1 overflow-hidden rounded-full">
               <div
                 className={cn(
                   "h-full transition-all duration-500",
-                  strength === 1 && "w-1/3 bg-destructive",
-                  strength === 2 && "w-2/3 bg-warning",
-                  strength === 3 && "w-full bg-success",
+                  strength === 1 && "bg-destructive w-1/3",
+                  strength === 2 && "bg-warning w-2/3",
+                  strength === 3 && "bg-success w-full",
                   strength === 0 && "w-0"
                 )}
               />
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-muted-foreground text-[10px]">
               Minimum 8 characters with numbers and symbols
             </p>
           </div>
@@ -184,7 +186,7 @@ export default function RegisterForm() {
               {...register("confirmPassword")}
             />
             {errors?.confirmPassword && (
-              <p className="px-1 text-xs text-destructive">
+              <p className="text-destructive px-1 text-xs">
                 {errors.confirmPassword.message}
               </p>
             )}
@@ -204,7 +206,7 @@ export default function RegisterForm() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">
+          <span className="bg-background text-muted-foreground px-2">
             Or continue with
           </span>
         </div>

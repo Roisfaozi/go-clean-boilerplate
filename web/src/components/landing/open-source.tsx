@@ -4,17 +4,21 @@ import { Github } from "lucide-react";
 
 export default function OpenSource() {
   return (
-    <section className="py-24 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+    <section className="border-t border-slate-200 bg-white py-24 dark:border-slate-800 dark:bg-slate-950">
       <div className="container px-4 md:px-6">
-        <div className="flex flex-col items-center justify-center text-center space-y-8">
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
+        <div className="flex flex-col items-center justify-center space-y-8 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-slate-50">
             Open Source & Community
           </h2>
           <p className="max-w-[600px] text-lg text-slate-500 dark:text-slate-400">
-            NexusOS is built on top of open standards. Join our community to contribute, report bugs, or request features.
+            NexusOS is built on top of open standards. Join our community to
+            contribute, report bugs, or request features.
           </p>
-          <Link href="https://github.com/Roisfaozi/go-clean-boilerplate" target="_blank">
-            <Button size="lg" variant="outline" className="h-12 px-8 gap-2">
+          <Link
+            href="https://github.com/Roisfaozi/go-clean-boilerplate"
+            target="_blank"
+          >
+            <Button size="lg" variant="outline" className="h-12 gap-2 px-8">
               <Github className="h-5 w-5" />
               Star on GitHub
             </Button>

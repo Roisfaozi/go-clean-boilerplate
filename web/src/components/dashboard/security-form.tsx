@@ -19,14 +19,20 @@ import { toast } from "sonner";
 import { Icon } from "~/components/shared/icon";
 import { usersApi } from "~/lib/api/users";
 
-const securitySchema = z.object({
-  current_password: z.string().min(8, "Password must be at least 8 characters."),
-  new_password: z.string().min(8, "Password must be at least 8 characters."),
-  confirm_password: z.string().min(8, "Password must be at least 8 characters."),
-}).refine((data) => data.new_password === data.confirm_password, {
-  message: "Passwords do not match",
-  path: ["confirm_password"],
-});
+const securitySchema = z
+  .object({
+    current_password: z
+      .string()
+      .min(8, "Password must be at least 8 characters."),
+    new_password: z.string().min(8, "Password must be at least 8 characters."),
+    confirm_password: z
+      .string()
+      .min(8, "Password must be at least 8 characters."),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    message: "Passwords do not match",
+    path: ["confirm_password"],
+  });
 
 type SecurityFormValues = z.infer<typeof securitySchema>;
 
@@ -45,13 +51,13 @@ export function SecurityForm() {
   async function onSubmit(data: SecurityFormValues) {
     setIsLoading(true);
     try {
-        await usersApi.updateMe({ password: data.new_password });
-        toast.success("Password updated successfully");
-        form.reset();
+      await usersApi.updateMe({ password: data.new_password });
+      toast.success("Password updated successfully");
+      form.reset();
     } catch (error: any) {
-        toast.error(error.message || "Failed to update password");
+      toast.error(error.message || "Failed to update password");
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   }
 
@@ -104,10 +110,16 @@ export function SecurityForm() {
         />
 
         <div className="pt-4">
-            <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-            {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full sm:w-auto"
+          >
+            {isLoading && (
+              <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
+            )}
             Change Password
-            </Button>
+          </Button>
         </div>
       </form>
     </Form>

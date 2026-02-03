@@ -13,8 +13,6 @@ import Icons from "../shared/icons";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 
-
-
 type FormData = z.infer<typeof loginSchema>;
 
 export default function AuthForm() {
@@ -78,12 +76,12 @@ export default function AuthForm() {
                 className="pr-10"
                 {...register("username")}
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-primary cursor-help transition-colors">
+              <div className="text-muted-foreground/50 hover:text-primary absolute top-1/2 right-3 -translate-y-1/2 cursor-help transition-colors">
                 <Icons.user className="h-4 w-4" />
               </div>
             </div>
             {errors?.username && (
-              <p className="px-1 text-xs text-destructive">
+              <p className="text-destructive px-1 text-xs">
                 {errors.username.message}
               </p>
             )}
@@ -94,7 +92,7 @@ export default function AuthForm() {
               <Label htmlFor="password">Password</Label>
               <Link
                 href="/forgot-password"
-                className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+                className="text-primary text-xs font-medium underline-offset-4 hover:underline"
               >
                 Forgot password?
               </Link>
@@ -108,7 +106,7 @@ export default function AuthForm() {
               {...register("password")}
             />
             {errors?.password && (
-              <p className="px-1 text-xs text-destructive">
+              <p className="text-destructive px-1 text-xs">
                 {errors.password.message}
               </p>
             )}
@@ -132,7 +130,7 @@ export default function AuthForm() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">
+          <span className="bg-background text-muted-foreground px-2">
             Or continue with
           </span>
         </div>

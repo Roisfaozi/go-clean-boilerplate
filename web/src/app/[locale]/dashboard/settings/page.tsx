@@ -2,8 +2,15 @@ import { type Metadata } from "next";
 import { getCurrentSession } from "~/lib/server/auth/session";
 import { ProfileForm } from "~/components/dashboard/profile-form";
 import { SecurityForm } from "~/components/dashboard/security-form";
+import { EmailVerificationBanner } from "~/components/dashboard/email-verification-banner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Icon } from "~/components/shared/icon";
 import { Button } from "~/components/ui/button";
 
@@ -56,7 +63,11 @@ export default async function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="security">
+        <TabsContent value="security" className="space-y-4">
+          <EmailVerificationBanner
+            isVerified={!!user?.emailVerifiedAt}
+            email={user?.email || ""}
+          />
           <Card>
             <CardHeader>
               <CardTitle>Security Settings</CardTitle>
@@ -81,27 +92,45 @@ export default async function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col gap-6 max-w-2xl py-4">
-                 <div className="flex items-center justify-between border-b pb-4">
-                    <div className="space-y-0.5">
-                        <div className="text-sm font-medium">Interface Density</div>
-                        <div className="text-xs text-muted-foreground">Choose between Comfort and Compact modes.</div>
+              <div className="flex max-w-2xl flex-col gap-6 py-4">
+                <div className="flex items-center justify-between border-b pb-4">
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">Interface Density</div>
+                    <div className="text-muted-foreground text-xs">
+                      Choose between Comfort and Compact modes.
                     </div>
-                    <div className="flex bg-muted p-1 rounded-md">
-                        <Button variant="ghost" size="sm" className="h-7 px-3 text-xs bg-background shadow-sm">Comfort</Button>
-                        <Button variant="ghost" size="sm" className="h-7 px-3 text-xs">Compact</Button>
-                    </div>
-                 </div>
+                  </div>
+                  <div className="bg-muted flex rounded-md p-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="bg-background h-7 px-3 text-xs shadow-sm"
+                    >
+                      Comfort
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-3 text-xs"
+                    >
+                      Compact
+                    </Button>
+                  </div>
+                </div>
 
-                 <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                        <div className="text-sm font-medium">Email Notifications</div>
-                        <div className="text-xs text-muted-foreground">Receive security alerts via email.</div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">
+                      Email Notifications
                     </div>
-                    <div className="h-6 w-11 bg-primary rounded-full relative">
-                        <div className="absolute right-1 top-1 h-4 w-4 bg-white rounded-full shadow-sm" />
+                    <div className="text-muted-foreground text-xs">
+                      Receive security alerts via email.
                     </div>
-                 </div>
+                  </div>
+                  <div className="bg-primary relative h-6 w-11 rounded-full">
+                    <div className="absolute top-1 right-1 h-4 w-4 rounded-full bg-white shadow-sm" />
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

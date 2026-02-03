@@ -41,4 +41,8 @@ export const authApi = {
   getCurrentUser: () => {
     return api.get<{ user: any }>("/auth/me");
   },
+
+  resendVerification: () => {
+    return api.post("/auth/resend-verification", {});
+  },
 };

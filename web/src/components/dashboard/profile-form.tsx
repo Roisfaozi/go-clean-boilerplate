@@ -22,14 +22,14 @@ import { usersApi } from "~/lib/api/users";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
-  email: z.string().email(), 
+  email: z.string().email(),
   username: z.string().min(3),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 interface ProfileFormProps {
-  user: any; 
+  user: any;
 }
 
 export function ProfileForm({ user }: ProfileFormProps) {
@@ -48,12 +48,12 @@ export function ProfileForm({ user }: ProfileFormProps) {
   async function onSubmit(data: ProfileFormValues) {
     setIsLoading(true);
     try {
-        await usersApi.updateMe({ name: data.name });
-        toast.success("Profile updated successfully");
+      await usersApi.updateMe({ name: data.name });
+      toast.success("Profile updated successfully");
     } catch (error: any) {
-        toast.error(error.message || "Failed to update profile");
+      toast.error(error.message || "Failed to update profile");
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   }
 
@@ -63,14 +63,14 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
     setIsUploading(true);
     try {
-        await usersApi.uploadAvatar(file);
-        toast.success("Avatar updated successfully");
-        // Reload page or update local state to see new avatar
-        window.location.reload();
+      await usersApi.uploadAvatar(file);
+      toast.success("Avatar updated successfully");
+      // Reload page or update local state to see new avatar
+      window.location.reload();
     } catch (error: any) {
-        toast.error(error.message || "Failed to upload avatar");
+      toast.error(error.message || "Failed to upload avatar");
     } finally {
-        setIsUploading(false);
+      setIsUploading(false);
     }
   };
 
@@ -79,30 +79,40 @@ export function ProfileForm({ user }: ProfileFormProps) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         {/* Avatar Section */}
         <div className="flex items-center gap-x-6">
-            <Avatar className="h-20 w-20 border-2 border-muted">
-                <AvatarImage src={user?.avatar_url} />
-                <AvatarFallback className="text-lg bg-primary/5">
-                    {user?.username?.slice(0, 2).toUpperCase() || "JD"}
-                </AvatarFallback>
-            </Avatar>
-            <div className="relative">
-                <Input 
-                    type="file" 
-                    className="hidden" 
-                    id="avatar-upload" 
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    disabled={isUploading}
-                />
-                <label htmlFor="avatar-upload">
-                    <Button variant="outline" type="button" size="sm" className="cursor-pointer" asChild>
-                        <span>
-                            {isUploading ? <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" /> : <Icon name="Upload" className="mr-2 h-4 w-4" />}
-                            Change Avatar
-                        </span>
-                    </Button>
-                </label>
-            </div>
+          <Avatar className="border-muted h-20 w-20 border-2">
+            <AvatarImage src={user?.avatar_url} />
+            <AvatarFallback className="bg-primary/5 text-lg">
+              {user?.username?.slice(0, 2).toUpperCase() || "JD"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="relative">
+            <Input
+              type="file"
+              className="hidden"
+              id="avatar-upload"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              disabled={isUploading}
+            />
+            <label htmlFor="avatar-upload">
+              <Button
+                variant="outline"
+                type="button"
+                size="sm"
+                className="cursor-pointer"
+                asChild
+              >
+                <span>
+                  {isUploading ? (
+                    <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Icon name="Upload" className="mr-2 h-4 w-4" />
+                  )}
+                  Change Avatar
+                </span>
+              </Button>
+            </label>
+          </div>
         </div>
 
         <FormField
@@ -122,7 +132,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="name"
@@ -155,7 +165,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
         />
 
         <Button type="submit" disabled={isLoading}>
-          {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading && (
+            <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
+          )}
           Update Profile
         </Button>
       </form>
