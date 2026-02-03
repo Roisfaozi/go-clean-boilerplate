@@ -9,6 +9,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	auditHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
+	organizationHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	permissionHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
@@ -51,9 +53,11 @@ func SetupRouter(
 	permissionModule *permission.PermissionModule,
 	accessModule *access.AccessModule,
 	roleModule *role.RoleModule,
+	organizationModule *organization.OrganizationModule,
 	auditModule *audit.AuditModule,
 	authMiddleware *middleware.AuthMiddleware,
 	casbinMiddleware gin.HandlerFunc,
+	tenantMiddleware *middleware.TenantMiddleware,
 	wsController *ws.WebSocketController,
 	sseManager *sse.Manager,
 	db *gorm.DB,
@@ -192,7 +196,18 @@ func SetupRouter(
 		authGroup.POST("/resend-verification", authModule.AuthController.ResendVerification)
 
 		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
+		organizationHttp.RegisterAuthenticatedRoutes(authenticated, organizationModule.OrganizationController)
 		permissionHttp.RegisterBatchCheckRoute(authenticated, permissionModule.PermissionController)
+	}
+
+	tenant := apiV1.Group("")
+	tenant.Use(authMiddleware.ValidateToken())
+	tenant.Use(tenantMiddleware.RequireOrganization())
+	if authLimiter != nil {
+		tenant.Use(authLimiter)
+	}
+	{
+		organizationHttp.RegisterTenantRoutes(tenant, organizationModule.OrganizationController)
 	}
 
 	authorized := apiV1.Group("")

@@ -9,6 +9,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
@@ -142,6 +143,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	accessModule := access.NewAccessModule(dbConnection, logger, validate)
 
+	organizationModule := organization.NewOrganizationModule(dbConnection, logger, validate, tm)
+
 	logger.Info("Application modules initialized.")
 
 	// Worker Handlers
@@ -172,6 +175,12 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	authUseCase := authModule.AuthController.AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger)
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
+	tenantMiddleware := middleware.NewTenantMiddleware(
+		organizationModule.OrgRepo,
+		organizationModule.MemberRepo,
+		redisClient,
+		logger,
+	)
 	logger.Info("Middleware initialized.")
 
 	configRouter := router.RouterConfig{
@@ -201,9 +210,11 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		permissionModule,
 		accessModule,
 		roleModule,
+		organizationModule,
 		auditModule,
 		authMiddleware,
 		casbinMiddleware,
+		tenantMiddleware,
 		wsController,
 		sseManager,
 		dbConnection,

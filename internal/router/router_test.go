@@ -9,6 +9,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
@@ -18,6 +19,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
 )
 
 func createTestRouter(cfg RouterConfig) *gin.Engine {
@@ -28,12 +30,14 @@ func createTestRouter(cfg RouterConfig) *gin.Engine {
 		&permission.PermissionModule{},
 		&access.AccessModule{},
 		&role.RoleModule{},
+		&organization.OrganizationModule{},
 		&audit.AuditModule{},
 		&middleware.AuthMiddleware{},
 		func(c *gin.Context) { c.Next() },
+		&middleware.TenantMiddleware{},
 		&ws.WebSocketController{},
 		sse.NewManager(),
-		nil,
+		&gorm.DB{},
 		&redis.Client{},
 		logrus.New(),
 	)
