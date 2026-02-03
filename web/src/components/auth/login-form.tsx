@@ -8,6 +8,8 @@ import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { toast } from "~/hooks/use-toast";
 import { authApi, loginSchema } from "~/lib/api/auth";
+import { accessApi } from "~/lib/api/access";
+import { usePermissionStore } from "~/stores/use-permission-store";
 import { cn } from "~/lib/utils";
 import Icons from "../shared/icons";
 import { Input } from "../ui/input";
@@ -18,6 +20,7 @@ type FormData = z.infer<typeof loginSchema>;
 export default function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGithubLoading, setIsGithubLoading] = useState(false);
+  const setPermissions = usePermissionStore((state) => state.setPermissions);
 
   const {
     register,
@@ -36,7 +39,18 @@ export default function AuthForm() {
         username: data.username,
         password: data.password,
       });
-      console.log(response.data);
+      
+      // 1. Fetch permissions for the logged in user's role
+      const roleName = response.data.user.role;
+      try {
+        const permsResp = await accessApi.getPermissionsForRole(roleName);
+        if (permsResp.data) {
+            setPermissions(permsResp.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch permissions", err);
+        // We continue even if perms fail, but UI might be restricted
+      }
 
       toast({
         title: "Successfully logged in!",

@@ -25,6 +25,7 @@ import { Badge } from "~/components/ui/badge";
 import { usersApi, User } from "~/lib/api/users";
 import { toast } from "sonner";
 import { UserDialog } from "~/components/dashboard/users/user-dialog";
+import { usePermission } from "~/hooks/use-permission";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +44,11 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
+
+  // Permission Checks
+  const canCreate = usePermission("/api/v1/users", "POST");
+  const canDelete = usePermission("/api/v1/users/:id", "DELETE");
+  const canUpdate = usePermission("/api/v1/users/:id", "PUT");
 
   // Dialog States
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -121,10 +127,12 @@ export default function UsersPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button onClick={handleCreate}>
-            <Icon name="UserPlus" className="mr-2 h-4 w-4" />
-            Add User
-          </Button>
+          {canCreate && (
+            <Button onClick={handleCreate}>
+                <Icon name="UserPlus" className="mr-2 h-4 w-4" />
+                Add User
+            </Button>
+          )}
         </div>
       </div>
 
@@ -180,7 +188,7 @@ export default function UsersPage() {
               <TableHead>Username</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Joined</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+              {(canUpdate || canDelete) && <TableHead className="w-[50px]"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -235,29 +243,35 @@ export default function UsersPage() {
                   <TableCell className="text-muted-foreground text-right">
                     {new Date(user.created_at * 1000).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Icon name="Ellipsis" className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(user)}>
-                          <Icon name="Pencil" className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(user)}
-                          className="text-destructive"
-                        >
-                          <Icon name="Trash" className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                  {(canUpdate || canDelete) && (
+                    <TableCell>
+                        <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Icon name="Ellipsis" className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            {canUpdate && (
+                                <DropdownMenuItem onClick={() => handleEdit(user)}>
+                                    <Icon name="Pencil" className="mr-2 h-4 w-4" />
+                                    Edit
+                                </DropdownMenuItem>
+                            )}
+                            {canDelete && (
+                                <DropdownMenuItem
+                                    onClick={() => handleDelete(user)}
+                                    className="text-destructive"
+                                >
+                                    <Icon name="Trash" className="mr-2 h-4 w-4" />
+                                    Delete
+                                </DropdownMenuItem>
+                            )}
+                        </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}
