@@ -181,6 +181,7 @@ func SetupRouter(
 		authGroup.POST("/verify-email", authModule.AuthController.VerifyEmail)
 
 		userHttp.RegisterPublicRoutes(public, userModule.UserController)
+		organizationHttp.RegisterPublicRoutes(public, organizationModule.OrganizationController)
 	}
 
 	authenticated := apiV1.Group("")

@@ -10,6 +10,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
@@ -112,11 +113,13 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 	logger.Infof("Storage provider initialized: %s", cfg.Storage.Driver)
 
+
+
 	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
+	organizationRepository := orgRepo.NewOrganizationRepository(dbConnection)
 
 	// Audit Module (Initialize early to inject into others)
-	// Audit Module (Initialize early to inject into others)
-	auditModule := audit.NewAuditModule(dbConnection, logger, validate)
+	auditModule := audit.NewAuditModule(dbConnection, logger, validate, wsManager)
 
 	// Inject TaskDistributor to AuthModule
 	authModule := auth.NewAuthModule(
@@ -133,6 +136,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		enforcer,
 		auditModule,
 		taskDistributor,
+		organizationRepository,
 	)
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, storageProvider)
@@ -143,7 +147,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	accessModule := access.NewAccessModule(dbConnection, logger, validate)
 
-	organizationModule := organization.NewOrganizationModule(dbConnection, logger, validate, tm)
+	organizationModule := organization.NewOrganizationModule(dbConnection, redisClient, taskDistributor, userModule.UserRepo, logger, validate, tm, enforcer)
 
 	logger.Info("Application modules initialized.")
 
@@ -177,8 +181,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	tenantMiddleware := middleware.NewTenantMiddleware(
 		organizationModule.OrgRepo,
-		organizationModule.MemberRepo,
-		redisClient,
+		organizationModule.Reader(),
 		logger,
 	)
 	logger.Info("Middleware initialized.")
