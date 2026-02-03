@@ -15,8 +15,10 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        success: "border-transparent bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-        warning: "border-transparent bg-amber-500/10 text-amber-600 dark:text-amber-400",
+        success:
+          "border-transparent bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+        warning:
+          "border-transparent bg-amber-500/10 text-amber-600 dark:text-amber-400",
         info: "border-transparent bg-blue-500/10 text-blue-600 dark:text-blue-400",
         subtle: "border-transparent bg-primary/10 text-primary",
       },
@@ -28,7 +30,7 @@ const badgeVariants = cva(
         comfort: "rounded-full",
         compact: "rounded-sm",
         auto: "rounded-[var(--radius-sm)]", // Use dynamic radius
-      }
+      },
     },
     defaultVariants: {
       variant: "default",
@@ -44,7 +46,10 @@ export interface BadgeProps
 
 function Badge({ className, variant, size, density, ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant, size, density }), className)} {...props} />
+    <div
+      className={cn(badgeVariants({ variant, size, density }), className)}
+      {...props}
+    />
   );
 }
 

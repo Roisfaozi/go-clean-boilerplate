@@ -20,7 +20,7 @@ const ToastViewport = React.forwardRef<
       // Default / Comfort: Top Right
       "top-0 right-0 sm:flex-col",
       // Compact: Bottom Right
-      "[data-density=compact]:top-auto [data-density=compact]:bottom-0 [data-density=compact]:right-0",
+      "[data-density=compact]:top-auto [data-density=compact]:right-0 [data-density=compact]:bottom-0",
       className
     )}
     {...props}
@@ -36,8 +36,10 @@ const toastVariants = cva(
         default: "border bg-background text-foreground",
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
-        success: "border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-50",
-        warning: "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-900 dark:text-amber-50",
+        success:
+          "border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-50",
+        warning:
+          "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-900 dark:text-amber-50",
         info: "border-blue-500 bg-blue-50 text-blue-900 dark:bg-blue-900 dark:text-blue-50",
         ai: "border-violet-500 bg-violet-50 text-violet-900 dark:bg-violet-900 dark:text-violet-50 animate-pulse",
       },

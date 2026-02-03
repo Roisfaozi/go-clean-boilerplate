@@ -35,17 +35,17 @@ export default function Navbar({
       <div className="hidden items-center gap-6 md:flex">
         <Link
           href="/changelog"
-          className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          className="text-muted-foreground hover:text-primary text-sm font-medium transition-colors"
         >
           {headerText.changelog}
         </Link>
         <Link
           href="/about"
-          className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          className="text-muted-foreground hover:text-primary text-sm font-medium transition-colors"
         >
           {headerText.about}
         </Link>
-        
+
         {session ? (
           <div className="flex items-center gap-4">
             <Link
@@ -57,10 +57,7 @@ export default function Navbar({
             <LogoutButton />
           </div>
         ) : (
-          <Link
-            href="/login"
-            className={cn(buttonVariants({ size: "sm" }))}
-          >
+          <Link href="/login" className={cn(buttonVariants({ size: "sm" }))}>
             {headerText.login}
           </Link>
         )}

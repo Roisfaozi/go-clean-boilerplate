@@ -29,10 +29,7 @@ export default function CopyButton({
     <Button
       size="icon"
       variant="ghost"
-      className={cn(
-        "absolute right-2 top-2 h-6 w-6 z-10",
-        className
-      )}
+      className={cn("absolute top-2 right-2 z-10 h-6 w-6", className)}
       onClick={() => {
         navigator.clipboard.writeText(content);
         setHasCopied(true);

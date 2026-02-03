@@ -9,7 +9,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm [data-density=compact]:shadow-none",
+        default:
+          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm [data-density=compact]:shadow-none",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
@@ -18,11 +19,14 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        magic: "border border-transparent bg-linear-to-r from-indigo-500 to-violet-500 text-white hover:opacity-90 shadow-md",
-        "outline-solid": "border border-primary bg-primary/5 text-primary hover:bg-primary/10",
+        magic:
+          "border border-transparent bg-linear-to-r from-indigo-500 to-violet-500 text-white hover:opacity-90 shadow-md",
+        "outline-solid":
+          "border border-primary bg-primary/5 text-primary hover:bg-primary/10",
       },
       size: {
-        default: "h-[var(--button-height)] px-[var(--button-padding-x)] rounded-[var(--radius-md)] text-[var(--font-size-base)]",
+        default:
+          "h-[var(--button-height)] px-[var(--button-padding-x)] rounded-[var(--radius-md)] text-[var(--font-size-base)]",
         sm: "h-8 px-3 rounded-sm text-xs",
         lg: "h-11 px-8 rounded-xl text-base",
         icon: "h-[var(--button-height)] w-[var(--button-height)] rounded-[var(--radius-md)]",

@@ -11,13 +11,15 @@ import { cn } from "~/lib/utils";
 
 export function DashboardHeader() {
   return (
-    <header className={cn(
-      "sticky top-0 z-30 flex items-center gap-4 border-b bg-background px-6 transition-all",
-      // Density: Comfort 80px, Compact 56px
-      "h-[var(--navbar-height)]"
-    )}>
+    <header
+      className={cn(
+        "bg-background sticky top-0 z-30 flex items-center gap-4 border-b px-6 transition-all",
+        // Density: Comfort 80px, Compact 56px
+        "h-[var(--navbar-height)]"
+      )}
+    >
       {/* Left: Search & Trigger */}
-      <div className="flex items-center gap-4 flex-1">
+      <div className="flex flex-1 items-center gap-4">
         <GlobalSearch />
       </div>
 

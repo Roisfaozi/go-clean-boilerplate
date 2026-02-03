@@ -56,13 +56,14 @@ const CommandInput = React.forwardRef<
 
 const CommandList = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>>(({ className, ...props }, ref) => (
-    <CommandPrimitive.List
-      ref={ref}
-      className={cn("max-h-[300px] overflow-x-hidden overflow-y-auto", className)}
-      {...props}
-    />
-  ));
+  React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
+>(({ className, ...props }, ref) => (
+  <CommandPrimitive.List
+    ref={ref}
+    className={cn("max-h-[300px] overflow-x-hidden overflow-y-auto", className)}
+    {...props}
+  />
+));
 
 CommandList.displayName = CommandPrimitive.List.displayName;
 
@@ -79,25 +80,21 @@ const CommandEmpty = React.forwardRef<
 
 CommandEmpty.displayName = CommandPrimitive.Empty.displayName;
 
-
 const CommandGroup = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Group>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Group>
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.Group
     ref={ref}
-    className={
-      cn(
-        "text-foreground **:[[cmdk-group-heading]]:text-muted-foreground overflow-hidden p-1 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-1.5 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium",
-        className
-      )
-    }
+    className={cn(
+      "text-foreground **:[[cmdk-group-heading]]:text-muted-foreground overflow-hidden p-1 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-1.5 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium",
+      className
+    )}
     {...props}
   />
 ));
 
 CommandGroup.displayName = CommandPrimitive.Group.displayName;
-
 
 const CommandItem = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Item>,
@@ -113,7 +110,6 @@ const CommandItem = React.forwardRef<
     {...props}
   />
 ));
-
 
 const CommandSeparator = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Separator>,
@@ -148,7 +144,12 @@ CommandShortcut.displayName = "CommandShortcut";
 
 export {
   Command,
-  CommandDialog, CommandEmpty,
-  CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, CommandShortcut
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
 };
-

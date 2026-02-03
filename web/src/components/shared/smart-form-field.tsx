@@ -26,13 +26,29 @@ interface SmartFormFieldProps extends React.ComponentProps<typeof Input> {
  * Combines Label, Input, Error, and AI features.
  * Adapts layout based on global density: Vertical (Comfort) vs Horizontal (Compact).
  */
-export const SmartFormField = React.forwardRef<HTMLInputElement, SmartFormFieldProps>(
-  ({ label, error, hint, isAI, onAiClick, isLoadingAi, className, id, ...props }, ref) => {
+export const SmartFormField = React.forwardRef<
+  HTMLInputElement,
+  SmartFormFieldProps
+>(
+  (
+    {
+      label,
+      error,
+      hint,
+      isAI,
+      onAiClick,
+      isLoadingAi,
+      className,
+      id,
+      ...props
+    },
+    ref
+  ) => {
     const generatedId = React.useId();
     const fieldId = id || generatedId;
 
     return (
-      <div 
+      <div
         className={cn(
           "group flex flex-col gap-2",
           // Density adaptation: Horizontal layout in compact mode
@@ -40,18 +56,18 @@ export const SmartFormField = React.forwardRef<HTMLInputElement, SmartFormFieldP
         )}
       >
         <div className="flex flex-col gap-1 [data-density=compact]:w-1/3">
-          <Label 
+          <Label
             htmlFor={fieldId}
             className={cn(
-              "text-sm font-medium transition-colors group-focus-within:text-primary",
-              "[data-density=compact]:text-xs [data-density=compact]:text-muted-foreground"
+              "group-focus-within:text-primary text-sm font-medium transition-colors",
+              "[data-density=compact]:text-muted-foreground [data-density=compact]:text-xs"
             )}
           >
             {label}
-            {props.required && <span className="ml-1 text-destructive">*</span>}
+            {props.required && <span className="text-destructive ml-1">*</span>}
           </Label>
           {hint && !error && (
-            <p className="text-xs text-muted-foreground [data-density=compact]:hidden">
+            <p className="text-muted-foreground text-xs [data-density=compact]:hidden">
               {hint}
             </p>
           )}
@@ -70,7 +86,7 @@ export const SmartFormField = React.forwardRef<HTMLInputElement, SmartFormFieldP
           />
 
           {isAI && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <div className="absolute top-1/2 right-3 -translate-y-1/2">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -79,13 +95,15 @@ export const SmartFormField = React.forwardRef<HTMLInputElement, SmartFormFieldP
                       onClick={onAiClick}
                       disabled={isLoadingAi || props.disabled}
                       className={cn(
-                        "flex items-center justify-center rounded-sm transition-all hover:bg-accent",
-                        isLoadingAi ? "animate-pulse text-violet-500" : "text-muted-foreground hover:text-violet-500"
+                        "hover:bg-accent flex items-center justify-center rounded-sm transition-all",
+                        isLoadingAi
+                          ? "animate-pulse text-violet-500"
+                          : "text-muted-foreground hover:text-violet-500"
                       )}
                     >
-                      <Icon 
-                        name={(isLoadingAi ? "Loader2" : "Sparkles") as any} 
-                        size="sm" 
+                      <Icon
+                        name={(isLoadingAi ? "Loader2" : "Sparkles") as any}
+                        size="sm"
                         className={cn(isLoadingAi && "animate-spin")}
                       />
                     </button>
@@ -99,7 +117,7 @@ export const SmartFormField = React.forwardRef<HTMLInputElement, SmartFormFieldP
           )}
 
           {error && (
-            <p className="mt-1 text-xs text-destructive animate-in fade-in slide-in-from-top-1">
+            <p className="text-destructive animate-in fade-in slide-in-from-top-1 mt-1 text-xs">
               {error}
             </p>
           )}

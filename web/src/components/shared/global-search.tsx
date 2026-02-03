@@ -49,11 +49,11 @@ export function GlobalSearch() {
       <Button
         variant="outline"
         className={cn(
-          "relative justify-start text-muted-foreground transition-all hover:bg-accent",
+          "text-muted-foreground hover:bg-accent relative justify-start transition-all",
           // Comfort: Full width input-like
           "w-full md:w-64 lg:w-80",
           // Compact: Icon only or smaller width
-          "[data-density=compact]:w-10 [data-density=compact]:px-0 [data-density=compact]:justify-center"
+          "[data-density=compact]:w-10 [data-density=compact]:justify-center [data-density=compact]:px-0"
         )}
         onClick={() => setOpen(true)}
       >
@@ -61,11 +61,11 @@ export function GlobalSearch() {
         <span className="inline-flex [data-density=compact]:hidden">
           Search...
         </span>
-        <kbd className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 md:flex [data-density=compact]:hidden">
+        <kbd className="bg-muted pointer-events-none absolute top-1/2 right-2 hidden h-5 -translate-y-1/2 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 select-none md:flex [data-density=compact]:hidden">
           <span className="text-xs">⌘</span>K
         </kbd>
       </Button>
-      
+
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>

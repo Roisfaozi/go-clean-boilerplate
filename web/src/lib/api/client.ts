@@ -29,7 +29,11 @@ class ApiClient {
       ...options,
       headers,
       credentials: "include" as RequestCredentials, // Important for cookies
-      body: isFormData ? options.body : (options.body && typeof options.body === 'object' ? JSON.stringify(options.body) : options.body),
+      body: isFormData
+        ? options.body
+        : options.body && typeof options.body === "object"
+          ? JSON.stringify(options.body)
+          : options.body,
     };
 
     try {
