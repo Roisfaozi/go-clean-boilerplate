@@ -12,10 +12,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Badge } from "~/components/ui/badge";
-import {
-  Card,
-  CardContent,
-} from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import {
   Accordion,
   AccordionContent,
@@ -69,13 +66,24 @@ export default function AccessPage() {
     );
   };
 
-  const togglePermission = async (role: string, path: string, method: string) => {
+  const togglePermission = async (
+    role: string,
+    path: string,
+    method: string
+  ) => {
     const exists = hasPermission(role, path, method);
     try {
       if (exists) {
         await accessApi.revokePermission(role, path, method);
         setPermissions((prev) =>
-          prev.filter((p) => !(p[SUB_IDX] === role && p[OBJ_IDX] === path && p[ACT_IDX] === method))
+          prev.filter(
+            (p) =>
+              !(
+                p[SUB_IDX] === role &&
+                p[OBJ_IDX] === path &&
+                p[ACT_IDX] === method
+              )
+          )
         );
         toast.success(`Revoked ${method} on ${path} for ${role}`);
       } else {
@@ -92,7 +100,9 @@ export default function AccessPage() {
   // Find endpoints that are NOT in any access right but are in permissions
   const ungroupedEndpoints = useMemo(() => {
     const allEndpointsInRights = new Set(
-      accessRights.flatMap((ar) => ar.endpoints.map((e) => `${e.method}:${e.path}`))
+      accessRights.flatMap((ar) =>
+        ar.endpoints.map((e) => `${e.method}:${e.path}`)
+      )
     );
 
     const ungrouped = new Map<string, { method: string; path: string }>();
@@ -100,7 +110,7 @@ export default function AccessPage() {
     permissions.forEach((p) => {
       // Ignore g rules or invalid p rules
       if (p.length < 4) return;
-      
+
       const path = p[OBJ_IDX];
       const method = p[ACT_IDX];
 
@@ -118,7 +128,7 @@ export default function AccessPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between">
           <Skeleton className="h-10 w-48" />
           <Skeleton className="h-10 w-32" />
         </div>
@@ -133,7 +143,8 @@ export default function AccessPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Access Control</h2>
           <p className="text-muted-foreground">
-            Manage granular permissions by grouping endpoints into Access Rights.
+            Manage granular permissions by grouping endpoints into Access
+            Rights.
           </p>
         </div>
         <div className="flex gap-2">
@@ -148,30 +159,44 @@ export default function AccessPage() {
         </div>
       </div>
 
-      <Accordion type="multiple" defaultValue={accessRights.map((ar) => ar.id)} className="space-y-4">
+      <Accordion
+        type="multiple"
+        defaultValue={accessRights.map((ar) => ar.id)}
+        className="space-y-4"
+      >
         {accessRights.map((group) => (
-          <AccordionItem key={group.id} value={group.id} className="border rounded-lg px-4 bg-card">
-            <AccordionTrigger className="hover:no-underline py-4">
+          <AccordionItem
+            key={group.id}
+            value={group.id}
+            className="bg-card rounded-lg border px-4"
+          >
+            <AccordionTrigger className="py-4 hover:no-underline">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-md">
+                <div className="bg-primary/10 rounded-md p-2">
                   <Icon name="Shield" className="text-primary h-5 w-5" />
                 </div>
-                <div className="text-left text-foreground">
-                  <div className="font-bold text-lg leading-none mb-1">{group.name}</div>
-                  <div className="text-xs text-muted-foreground font-normal">
-                    {group.endpoints?.length || 0} endpoints • {group.description || "No description"}
+                <div className="text-foreground text-left">
+                  <div className="mb-1 text-lg leading-none font-bold">
+                    {group.name}
+                  </div>
+                  <div className="text-muted-foreground text-xs font-normal">
+                    {group.endpoints?.length || 0} endpoints •{" "}
+                    {group.description || "No description"}
                   </div>
                 </div>
               </div>
             </AccordionTrigger>
             <AccordionContent className="pt-2 pb-6">
-              <div className="rounded-md border overflow-hidden bg-background">
+              <div className="bg-background overflow-hidden rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead className="w-[300px]">Endpoint</TableHead>
                       {roles.map((role) => (
-                        <TableHead key={role.id} className="text-center font-bold">
+                        <TableHead
+                          key={role.id}
+                          className="text-center font-bold"
+                        >
                           {role.name}
                         </TableHead>
                       ))}
@@ -182,26 +207,44 @@ export default function AccessPage() {
                       <TableRow key={ep.id}>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="font-mono text-[10px] bg-muted/30 uppercase">
+                            <Badge
+                              variant="outline"
+                              className="bg-muted/30 font-mono text-[10px] uppercase"
+                            >
                               {ep.method}
                             </Badge>
-                            <span className="font-mono text-xs truncate max-w-[200px]" title={ep.path}>
+                            <span
+                              className="max-w-[200px] truncate font-mono text-xs"
+                              title={ep.path}
+                            >
                               {ep.path}
                             </span>
                           </div>
                         </TableCell>
                         {roles.map((role) => {
-                          const active = hasPermission(role.name, ep.path, ep.method);
+                          const active = hasPermission(
+                            role.name,
+                            ep.path,
+                            ep.method
+                          );
                           return (
-                            <TableCell key={`${role.id}-${ep.id}`} className="text-center">
+                            <TableCell
+                              key={`${role.id}-${ep.id}`}
+                              className="text-center"
+                            >
                               <div
-                                onClick={() => togglePermission(role.name, ep.path, ep.method)}
-                                className={`
-                                  mx-auto h-6 w-6 flex items-center justify-center rounded-md cursor-pointer transition-all
-                                  ${active 
-                                    ? "bg-primary text-primary-foreground shadow-sm hover:scale-110" 
-                                    : "bg-muted text-muted-foreground/30 hover:bg-muted/80 hover:text-muted-foreground"}
-                                `}
+                                onClick={() =>
+                                  togglePermission(
+                                    role.name,
+                                    ep.path,
+                                    ep.method
+                                  )
+                                }
+                                className={`mx-auto flex h-6 w-6 cursor-pointer items-center justify-center rounded-md transition-all ${
+                                  active
+                                    ? "bg-primary text-primary-foreground shadow-sm hover:scale-110"
+                                    : "bg-muted text-muted-foreground/30 hover:bg-muted/80 hover:text-muted-foreground"
+                                } `}
                               >
                                 {active ? (
                                   <Icon name="Check" className="h-4 w-4" />
@@ -214,13 +257,17 @@ export default function AccessPage() {
                         })}
                       </TableRow>
                     ))}
-                    {!group.endpoints || group.endpoints.length === 0 && (
+                    {!group.endpoints ||
+                      (group.endpoints.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={roles.length + 1} className="h-24 text-center text-muted-foreground italic">
-                                No endpoints linked to this Access Right.
-                            </TableCell>
+                          <TableCell
+                            colSpan={roles.length + 1}
+                            className="text-muted-foreground h-24 text-center italic"
+                          >
+                            No endpoints linked to this Access Right.
+                          </TableCell>
                         </TableRow>
-                    )}
+                      ))}
                   </TableBody>
                 </Table>
               </div>
@@ -229,28 +276,40 @@ export default function AccessPage() {
         ))}
 
         {ungroupedEndpoints.length > 0 && (
-          <AccordionItem value="ungrouped" className="border rounded-lg px-4 bg-muted/20">
-            <AccordionTrigger className="hover:no-underline py-4">
+          <AccordionItem
+            value="ungrouped"
+            className="bg-muted/20 rounded-lg border px-4"
+          >
+            <AccordionTrigger className="py-4 hover:no-underline">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-500/10 rounded-md">
-                  <Icon name="TriangleAlert" className="text-yellow-600 h-5 w-5" />
+                <div className="rounded-md bg-yellow-500/10 p-2">
+                  <Icon
+                    name="TriangleAlert"
+                    className="h-5 w-5 text-yellow-600"
+                  />
                 </div>
-                <div className="text-left text-foreground">
-                  <div className="font-bold text-lg leading-none mb-1 text-yellow-700">Ungrouped Policies</div>
-                  <div className="text-xs text-muted-foreground font-normal">
-                    {ungroupedEndpoints.length} active Casbin rules not mapped to any Access Right.
+                <div className="text-foreground text-left">
+                  <div className="mb-1 text-lg leading-none font-bold text-yellow-700">
+                    Ungrouped Policies
+                  </div>
+                  <div className="text-muted-foreground text-xs font-normal">
+                    {ungroupedEndpoints.length} active Casbin rules not mapped
+                    to any Access Right.
                   </div>
                 </div>
               </div>
             </AccordionTrigger>
             <AccordionContent className="pt-2 pb-6">
-              <div className="rounded-md border overflow-hidden bg-background">
+              <div className="bg-background overflow-hidden rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead className="w-[300px]">Endpoint</TableHead>
                       {roles.map((role) => (
-                        <TableHead key={role.id} className="text-center font-bold">
+                        <TableHead
+                          key={role.id}
+                          className="text-center font-bold"
+                        >
                           {role.name}
                         </TableHead>
                       ))}
@@ -261,24 +320,39 @@ export default function AccessPage() {
                       <TableRow key={`ungrouped-${idx}`}>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="font-mono text-[10px] uppercase">
+                            <Badge
+                              variant="outline"
+                              className="font-mono text-[10px] uppercase"
+                            >
                               {ep.method}
                             </Badge>
                             <span className="font-mono text-xs">{ep.path}</span>
                           </div>
                         </TableCell>
                         {roles.map((role) => {
-                          const active = hasPermission(role.name, ep.path, ep.method);
+                          const active = hasPermission(
+                            role.name,
+                            ep.path,
+                            ep.method
+                          );
                           return (
-                            <TableCell key={`${role.id}-ungrouped-${idx}`} className="text-center">
+                            <TableCell
+                              key={`${role.id}-ungrouped-${idx}`}
+                              className="text-center"
+                            >
                               <div
-                                onClick={() => togglePermission(role.name, ep.path, ep.method)}
-                                className={`
-                                  mx-auto h-6 w-6 flex items-center justify-center rounded-md cursor-pointer transition-all
-                                  ${active 
-                                    ? "bg-yellow-500 text-white shadow-sm hover:scale-110" 
-                                    : "bg-muted text-muted-foreground/30 hover:bg-muted/80"}
-                                `}
+                                onClick={() =>
+                                  togglePermission(
+                                    role.name,
+                                    ep.path,
+                                    ep.method
+                                  )
+                                }
+                                className={`mx-auto flex h-6 w-6 cursor-pointer items-center justify-center rounded-md transition-all ${
+                                  active
+                                    ? "bg-yellow-500 text-white shadow-sm hover:scale-110"
+                                    : "bg-muted text-muted-foreground/30 hover:bg-muted/80"
+                                } `}
                               >
                                 {active ? (
                                   <Icon name="Check" className="h-4 w-4" />
@@ -302,12 +376,16 @@ export default function AccessPage() {
       {accessRights.length === 0 && !isLoading && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="p-4 bg-muted rounded-full mb-4">
-              <Icon name="ShieldOff" className="h-8 w-8 text-muted-foreground" />
+            <div className="bg-muted mb-4 rounded-full p-4">
+              <Icon
+                name="ShieldOff"
+                className="text-muted-foreground h-8 w-8"
+              />
             </div>
             <h3 className="text-lg font-semibold">No Access Rights Defined</h3>
-            <p className="text-sm text-muted-foreground mb-6 text-center max-w-xs">
-              Start by creating an Access Right group and linking API endpoints to it.
+            <p className="text-muted-foreground mb-6 max-w-xs text-center text-sm">
+              Start by creating an Access Right group and linking API endpoints
+              to it.
             </p>
             <Button>
               <Icon name="Plus" className="mr-2 h-4 w-4" />

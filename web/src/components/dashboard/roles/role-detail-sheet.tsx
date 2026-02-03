@@ -57,19 +57,21 @@ export function RoleDetailSheet({
       // 1. Get user IDs from Casbin
       const resp = await accessApi.getUsersForRole(role.name);
       const userIds = resp.data || [];
-      
+
       if (userIds.length === 0) {
         setMembers([]);
         return;
       }
 
       // 2. Fetch full user objects
-      // Note: Backend might not have batch get users, so we might need to fetch one by one 
+      // Note: Backend might not have batch get users, so we might need to fetch one by one
       // or use search with filter if supported.
       // For now, let's try to fetch them individually or use a placeholder if many.
-      const userPromises = userIds.slice(0, 50).map(id => usersApi.getById(id));
+      const userPromises = userIds
+        .slice(0, 50)
+        .map((id) => usersApi.getById(id));
       const userResps = await Promise.all(userPromises);
-      setMembers(userResps.map(r => r.data).filter(Boolean) as User[]);
+      setMembers(userResps.map((r) => r.data).filter(Boolean) as User[]);
     } catch (error) {
       console.error("Failed to fetch role members", error);
       toast.error("Failed to load members");
@@ -96,8 +98,8 @@ export function RoleDetailSheet({
       const resp = await usersApi.getAll(1, 10, query);
       if (resp.data) {
         // Filter out those who are already members
-        const memberIds = new Set(members.map(m => m.id));
-        setSearchResults(resp.data.filter(u => !memberIds.has(u.id)));
+        const memberIds = new Set(members.map((m) => m.id));
+        setSearchResults(resp.data.filter((u) => !memberIds.has(u.id)));
       }
     } catch (error) {
       console.error("Search failed", error);
@@ -111,7 +113,7 @@ export function RoleDetailSheet({
     try {
       await accessApi.assignRole(user.id, role.name);
       toast.success(`${user.username} added to ${role.name}`);
-      setMembers(prev => [...prev, user]);
+      setMembers((prev) => [...prev, user]);
       setSearchQuery("");
       setSearchResults([]);
     } catch (error) {
@@ -124,7 +126,7 @@ export function RoleDetailSheet({
     try {
       await accessApi.revokeRole(userId, role.name);
       toast.success(`${username} removed from ${role.name}`);
-      setMembers(prev => prev.filter(m => m.id !== userId));
+      setMembers((prev) => prev.filter((m) => m.id !== userId));
     } catch (error) {
       toast.error("Failed to remove member");
     }
@@ -132,26 +134,27 @@ export function RoleDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md flex flex-col h-full">
+      <SheetContent className="flex h-full flex-col sm:max-w-md">
         <SheetHeader>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 bg-primary/10 rounded-md text-primary">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="bg-primary/10 text-primary rounded-md p-2">
               <Icon name="Shield" className="h-5 w-5" />
             </div>
             <SheetTitle className="text-xl">{role?.name}</SheetTitle>
           </div>
           <SheetDescription>
-            {role?.description || "Manage members and permissions for this role."}
+            {role?.description ||
+              "Manage members and permissions for this role."}
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
-              <Icon name="Users" className="h-4 w-4 text-muted-foreground" />
+        <div className="mt-6 flex min-h-0 flex-1 flex-col">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Icon name="Users" className="text-muted-foreground h-4 w-4" />
               Members ({members.length})
             </h3>
-            
+
             <Popover>
               <PopoverTrigger asChild>
                 <Button size="sm" variant="outline" className="h-8">
@@ -159,25 +162,32 @@ export function RoleDetailSheet({
                   Add Member
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="p-0 w-[300px]" align="end">
+              <PopoverContent className="w-[300px] p-0" align="end">
                 <Command shouldFilter={false}>
-                  <CommandInput 
-                    placeholder="Search users..." 
+                  <CommandInput
+                    placeholder="Search users..."
                     value={searchQuery}
                     onValueChange={handleSearch}
                   />
                   <CommandList>
                     {isSearching && (
                       <div className="p-4 text-center">
-                        <Icon name="Loader" className="h-4 w-4 animate-spin mx-auto mb-2" />
-                        <span className="text-xs text-muted-foreground">Searching...</span>
+                        <Icon
+                          name="Loader"
+                          className="mx-auto mb-2 h-4 w-4 animate-spin"
+                        />
+                        <span className="text-muted-foreground text-xs">
+                          Searching...
+                        </span>
                       </div>
                     )}
-                    {!isSearching && searchResults.length === 0 && searchQuery.length >= 2 && (
-                      <CommandEmpty>No users found.</CommandEmpty>
-                    )}
+                    {!isSearching &&
+                      searchResults.length === 0 &&
+                      searchQuery.length >= 2 && (
+                        <CommandEmpty>No users found.</CommandEmpty>
+                      )}
                     {!isSearching && searchQuery.length < 2 && (
-                      <div className="p-4 text-center text-xs text-muted-foreground">
+                      <div className="text-muted-foreground p-4 text-center text-xs">
                         Type at least 2 characters to search...
                       </div>
                     )}
@@ -186,17 +196,26 @@ export function RoleDetailSheet({
                         <CommandItem
                           key={user.id}
                           onSelect={() => addMember(user)}
-                          className="flex items-center gap-2 cursor-pointer"
+                          className="flex cursor-pointer items-center gap-2"
                         >
                           <Avatar className="h-6 w-6">
                             <AvatarImage src={user.avatar_url} />
-                            <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+                            <AvatarFallback>
+                              {user.username[0].toUpperCase()}
+                            </AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col">
-                            <span className="text-sm font-medium">{user.username}</span>
-                            <span className="text-[10px] text-muted-foreground">{user.email}</span>
+                            <span className="text-sm font-medium">
+                              {user.username}
+                            </span>
+                            <span className="text-muted-foreground text-[10px]">
+                              {user.email}
+                            </span>
                           </div>
-                          <Icon name="Plus" className="ml-auto h-3 w-3 text-muted-foreground" />
+                          <Icon
+                            name="Plus"
+                            className="text-muted-foreground ml-auto h-3 w-3"
+                          />
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -206,41 +225,52 @@ export function RoleDetailSheet({
             </Popover>
           </div>
 
-          <ScrollArea className="flex-1 -mx-2 px-2">
+          <ScrollArea className="-mx-2 flex-1 px-2">
             <div className="space-y-2">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="flex items-center gap-3 p-2">
                     <Skeleton className="h-9 w-9 rounded-full" />
-                    <div className="space-y-1 flex-1">
+                    <div className="flex-1 space-y-1">
                       <Skeleton className="h-4 w-24" />
                       <Skeleton className="h-3 w-32" />
                     </div>
                   </div>
                 ))
               ) : members.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                  <Icon name="Users" className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No members assigned yet.</p>
+                <div className="rounded-lg border-2 border-dashed py-12 text-center">
+                  <Icon
+                    name="Users"
+                    className="text-muted-foreground/30 mx-auto mb-2 h-8 w-8"
+                  />
+                  <p className="text-muted-foreground text-sm">
+                    No members assigned yet.
+                  </p>
                 </div>
               ) : (
                 members.map((member) => (
-                  <div 
-                    key={member.id} 
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 group transition-colors"
+                  <div
+                    key={member.id}
+                    className="hover:bg-muted/50 group flex items-center gap-3 rounded-md p-2 transition-colors"
                   >
                     <Avatar className="h-9 w-9 border">
                       <AvatarImage src={member.avatar_url} />
-                      <AvatarFallback>{member.username[0].toUpperCase()}</AvatarFallback>
+                      <AvatarFallback>
+                        {member.username[0].toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium leading-none mb-1">{member.username}</div>
-                      <div className="text-xs text-muted-foreground truncate">{member.email}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 text-sm leading-none font-medium">
+                        {member.username}
+                      </div>
+                      <div className="text-muted-foreground truncate text-xs">
+                        {member.email}
+                      </div>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10"
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:bg-destructive/10 h-8 w-8 opacity-0 group-hover:opacity-100"
                       onClick={() => removeMember(member.id, member.username)}
                     >
                       <Icon name="UserMinus" className="h-4 w-4" />
@@ -252,8 +282,12 @@ export function RoleDetailSheet({
           </ScrollArea>
         </div>
 
-        <div className="mt-auto pt-6 border-t">
-          <Button variant="outline" className="w-full" onClick={() => onOpenChange(false)}>
+        <div className="mt-auto border-t pt-6">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => onOpenChange(false)}
+          >
             Close
           </Button>
         </div>

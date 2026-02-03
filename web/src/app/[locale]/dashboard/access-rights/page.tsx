@@ -40,7 +40,7 @@ export default function AccessRightsPage() {
   const [accessRights, setAccessRights] = useState<AccessRight[]>([]);
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Create Access Right state
   const [newArName, setNewArName] = useState("");
   const [newArDesc, setNewArDesc] = useState("");
@@ -124,11 +124,11 @@ export default function AccessRightsPage() {
   const handleLink = async (endpointId: string) => {
     if (!selectedAr) return;
     try {
-        await accessApi.linkEndpoint(selectedAr.id, endpointId);
-        toast.success("Endpoint linked");
-        fetchData(); // Refresh to update mappings
+      await accessApi.linkEndpoint(selectedAr.id, endpointId);
+      toast.success("Endpoint linked");
+      fetchData(); // Refresh to update mappings
     } catch (error) {
-        toast.error("Failed to link endpoint");
+      toast.error("Failed to link endpoint");
     }
   };
 
@@ -136,7 +136,9 @@ export default function AccessRightsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Access Rights & Endpoints</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Access Rights & Endpoints
+          </h2>
           <p className="text-muted-foreground">
             Define resource groups and register API endpoints.
           </p>
@@ -148,9 +150,9 @@ export default function AccessRightsPage() {
           <TabsTrigger value="access-rights">Access Rights</TabsTrigger>
           <TabsTrigger value="endpoints">All Endpoints</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="access-rights" className="mt-4">
-          <div className="flex justify-end mb-4">
+          <div className="mb-4 flex justify-end">
             <Dialog open={isArDialogOpen} onOpenChange={setIsArDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm">
@@ -168,15 +170,30 @@ export default function AccessRightsPage() {
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="name">Name</Label>
-                    <Input id="name" value={newArName} onChange={(e) => setNewArName(e.target.value)} placeholder="e.g. User Management" />
+                    <Input
+                      id="name"
+                      value={newArName}
+                      onChange={(e) => setNewArName(e.target.value)}
+                      placeholder="e.g. User Management"
+                    />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="desc">Description</Label>
-                    <Input id="desc" value={newArDesc} onChange={(e) => setNewArDesc(e.target.value)} placeholder="Manage all user related operations" />
+                    <Input
+                      id="desc"
+                      value={newArDesc}
+                      onChange={(e) => setNewArDesc(e.target.value)}
+                      placeholder="Manage all user related operations"
+                    />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsArDialogOpen(false)}>Cancel</Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsArDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
                   <Button onClick={handleCreateAr}>Create</Button>
                 </DialogFooter>
               </DialogContent>
@@ -189,33 +206,57 @@ export default function AccessRightsPage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{ar.name}</CardTitle>
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteAr(ar.id)}>
-                      <Icon name="Trash2" className="h-4 w-4 text-destructive" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteAr(ar.id)}
+                    >
+                      <Icon
+                        name="Trash2"
+                        className="text-destructive h-4 w-4"
+                      />
                     </Button>
                   </div>
-                  <CardDescription>{ar.description || "No description"}</CardDescription>
+                  <CardDescription>
+                    {ar.description || "No description"}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                    <div className="text-muted-foreground flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
                       Linked Endpoints ({ar.endpoints?.length || 0})
-                      <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => {
-                        setSelectedAr(ar);
-                        setIsLinkDialogOpen(true);
-                      }}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[10px]"
+                        onClick={() => {
+                          setSelectedAr(ar);
+                          setIsLinkDialogOpen(true);
+                        }}
+                      >
                         Manage
                       </Button>
                     </div>
                     <ScrollArea className="h-[120px] pr-4">
                       <div className="space-y-1">
                         {ar.endpoints?.map((ep) => (
-                          <div key={ep.id} className="flex items-center gap-2 p-1 rounded hover:bg-muted/50 text-xs">
-                            <Badge variant="outline" className="h-4 px-1 text-[8px] font-mono">{ep.method}</Badge>
-                            <span className="font-mono truncate flex-1">{ep.path}</span>
+                          <div
+                            key={ep.id}
+                            className="hover:bg-muted/50 flex items-center gap-2 rounded p-1 text-xs"
+                          >
+                            <Badge
+                              variant="outline"
+                              className="h-4 px-1 font-mono text-[8px]"
+                            >
+                              {ep.method}
+                            </Badge>
+                            <span className="flex-1 truncate font-mono">
+                              {ep.path}
+                            </span>
                           </div>
                         ))}
                         {(!ar.endpoints || ar.endpoints.length === 0) && (
-                          <div className="text-center py-4 text-muted-foreground text-xs italic">
+                          <div className="text-muted-foreground py-4 text-center text-xs italic">
                             No endpoints linked.
                           </div>
                         )}
@@ -229,7 +270,7 @@ export default function AccessRightsPage() {
         </TabsContent>
 
         <TabsContent value="endpoints" className="mt-4">
-          <div className="flex justify-end mb-4">
+          <div className="mb-4 flex justify-end">
             <Dialog open={isEpDialogOpen} onOpenChange={setIsEpDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm">
@@ -247,25 +288,35 @@ export default function AccessRightsPage() {
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="path">Path</Label>
-                    <Input id="path" value={newEpPath} onChange={(e) => setNewEpPath(e.target.value)} placeholder="/api/v1/users" />
+                    <Input
+                      id="path"
+                      value={newEpPath}
+                      onChange={(e) => setNewEpPath(e.target.value)}
+                      placeholder="/api/v1/users"
+                    />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="method">Method</Label>
-                    <select 
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={newEpMethod} 
-                        onChange={(e) => setNewEpMethod(e.target.value)}
+                    <select
+                      className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                      value={newEpMethod}
+                      onChange={(e) => setNewEpMethod(e.target.value)}
                     >
-                        <option value="GET">GET</option>
-                        <option value="POST">POST</option>
-                        <option value="PUT">PUT</option>
-                        <option value="PATCH">PATCH</option>
-                        <option value="DELETE">DELETE</option>
+                      <option value="GET">GET</option>
+                      <option value="POST">POST</option>
+                      <option value="PUT">PUT</option>
+                      <option value="PATCH">PATCH</option>
+                      <option value="DELETE">DELETE</option>
                     </select>
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsEpDialogOpen(false)}>Cancel</Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEpDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
                   <Button onClick={handleCreateEp}>Register</Button>
                 </DialogFooter>
               </DialogContent>
@@ -286,15 +337,26 @@ export default function AccessRightsPage() {
                 {endpoints.map((ep) => (
                   <TableRow key={ep.id}>
                     <TableCell>
-                      <Badge variant="outline" className="font-mono">{ep.method}</Badge>
+                      <Badge variant="outline" className="font-mono">
+                        {ep.method}
+                      </Badge>
                     </TableCell>
-                    <TableCell className="font-mono text-sm">{ep.path}</TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {ep.path}
+                    </TableCell>
                     <TableCell className="text-muted-foreground text-xs">
                       {new Date(ep.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteEp(ep.id)}>
-                        <Icon name="Trash2" className="h-4 w-4 text-destructive" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteEp(ep.id)}
+                      >
+                        <Icon
+                          name="Trash2"
+                          className="text-destructive h-4 w-4"
+                        />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -314,22 +376,26 @@ export default function AccessRightsPage() {
               Select endpoints to include in this Access Right group.
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="h-[300px] mt-4 border rounded-md p-4">
+          <ScrollArea className="mt-4 h-[300px] rounded-md border p-4">
             <div className="space-y-4">
               {endpoints.map((ep) => {
-                const isLinked = selectedAr?.endpoints?.some(e => e.id === ep.id);
+                const isLinked = selectedAr?.endpoints?.some(
+                  (e) => e.id === ep.id
+                );
                 return (
                   <div key={ep.id} className="flex items-center space-x-2">
-                    <Checkbox 
-                        id={`ep-${ep.id}`} 
-                        checked={isLinked} 
-                        onCheckedChange={() => handleLink(ep.id)}
+                    <Checkbox
+                      id={`ep-${ep.id}`}
+                      checked={isLinked}
+                      onCheckedChange={() => handleLink(ep.id)}
                     />
                     <label
                       htmlFor={`ep-${ep.id}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                      className="flex items-center gap-2 text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      <Badge variant="outline" className="text-[10px] h-4 px-1">{ep.method}</Badge>
+                      <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                        {ep.method}
+                      </Badge>
                       <span className="font-mono">{ep.path}</span>
                     </label>
                   </div>

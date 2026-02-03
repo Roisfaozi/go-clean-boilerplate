@@ -31,7 +31,7 @@ export interface AccessRightListResponse {
 
 export const accessApi = {
   // --- Permissions (Casbin) ---
-  
+
   // Get all permissions
   getAllPermissions: () => {
     return api.get<{ data: string[][] }>("/permissions");
@@ -39,7 +39,10 @@ export const accessApi = {
 
   // Update permission (policy)
   updatePermission: (oldPermission: string[], newPermission: string[]) => {
-    return api.put("/permissions", { old_permission: oldPermission, new_permission: newPermission });
+    return api.put("/permissions", {
+      old_permission: oldPermission,
+      new_permission: newPermission,
+    });
   },
 
   // Assign role to user
@@ -64,7 +67,10 @@ export const accessApi = {
 
   // Check batch permissions
   checkBatch: (items: { resource: string; action: string }[]) => {
-    return api.post<{ data: { results: Record<string, boolean> } }>("/permissions/check-batch", { items });
+    return api.post<{ data: { results: Record<string, boolean> } }>(
+      "/permissions/check-batch",
+      { items }
+    );
   },
 
   // Get permissions for role
@@ -84,14 +90,17 @@ export const accessApi = {
 
   // Add inheritance
   addInheritance: (childRole: string, parentRole: string) => {
-    return api.post("/permissions/inheritance", { child_role: childRole, parent_role: parentRole });
+    return api.post("/permissions/inheritance", {
+      child_role: childRole,
+      parent_role: parentRole,
+    });
   },
 
   // Remove inheritance
   removeInheritance: (childRole: string, parentRole: string) => {
-    return api.delete("/permissions/inheritance", { 
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ child_role: childRole, parent_role: parentRole }) 
+    return api.delete("/permissions/inheritance", {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ child_role: childRole, parent_role: parentRole }),
     } as any);
   },
 
@@ -102,7 +111,10 @@ export const accessApi = {
   },
 
   createAccessRight: (name: string, description: string) => {
-    return api.post<{ data: AccessRight }>("/access-rights", { name, description });
+    return api.post<{ data: AccessRight }>("/access-rights", {
+      name,
+      description,
+    });
   },
 
   deleteAccessRight: (id: string) => {
@@ -110,7 +122,10 @@ export const accessApi = {
   },
 
   linkEndpoint: (accessRightId: string, endpointId: string) => {
-    return api.post("/access-rights/link", { access_right_id: accessRightId, endpoint_id: endpointId });
+    return api.post("/access-rights/link", {
+      access_right_id: accessRightId,
+      endpoint_id: endpointId,
+    });
   },
 
   // --- Endpoints ---
@@ -122,8 +137,8 @@ export const accessApi = {
   deleteEndpoint: (id: string) => {
     return api.delete(`/endpoints/${id}`);
   },
-  
+
   searchEndpoints: (filter: any) => {
-      return api.post<{ data: Endpoint[] }>("/endpoints/search", filter);
-  }
+    return api.post<{ data: Endpoint[] }>("/endpoints/search", filter);
+  },
 };

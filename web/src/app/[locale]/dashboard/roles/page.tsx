@@ -106,64 +106,80 @@ export default function RolesPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader className="h-24 bg-muted/50" />
-              <CardContent className="h-32" />
-            </Card>
-          ))
-        ) : (
-          roles.map((role) => (
-            <Card key={role.id} className="group hover:border-primary/50 transition-colors">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 bg-primary/10 rounded-md text-primary">
-                      <Icon name="Shield" className="h-5 w-5" />
+        {isLoading
+          ? Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardHeader className="bg-muted/50 h-24" />
+                <CardContent className="h-32" />
+              </Card>
+            ))
+          : roles.map((role) => (
+              <Card
+                key={role.id}
+                className="group hover:border-primary/50 transition-colors"
+              >
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-primary/10 text-primary rounded-md p-2">
+                        <Icon name="Shield" className="h-5 w-5" />
+                      </div>
+                      <CardTitle className="text-lg">{role.name}</CardTitle>
                     </div>
-                    <CardTitle className="text-lg">{role.name}</CardTitle>
+                    {role.name.startsWith("role:") ? (
+                      <Badge
+                        variant="secondary"
+                        className="bg-primary/5 text-primary border-primary/10"
+                      >
+                        System
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">Custom</Badge>
+                    )}
                   </div>
-                  {role.name.startsWith("role:") ? (
-                     <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10">System</Badge>
-                  ) : (
-                    <Badge variant="outline">Custom</Badge>
-                  )}
-                </div>
-                <CardDescription className="line-clamp-2 min-h-[2.5rem]">{role.description || "No description provided."}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-muted-foreground space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Icon name="Users" className="h-4 w-4" />
-                    <span>Manage members</span>
+                  <CardDescription className="line-clamp-2 min-h-[2.5rem]">
+                    {role.description || "No description provided."}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-muted-foreground space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Icon name="Users" className="h-4 w-4" />
+                      <span>Manage members</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Icon name="Lock" className="h-4 w-4" />
+                      <span>View permissions</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Icon name="Lock" className="h-4 w-4" />
-                    <span>View permissions</span>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2 border-t bg-muted/20 p-4">
-                <Button variant="outline" size="sm" onClick={() => handleDetail(role)}>
-                  Manage
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleEdit(role)}>
-                  Edit
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10" 
-                  onClick={() => handleDelete(role)}
-                  disabled={role.name === "role:superadmin"}
-                >
-                  <Icon name="Trash2" className="h-4 w-4" />
-                </Button>
-              </CardFooter>
-            </Card>
-          ))
-        )}
+                </CardContent>
+                <CardFooter className="bg-muted/20 flex justify-end gap-2 border-t p-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDetail(role)}
+                  >
+                    Manage
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(role)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleDelete(role)}
+                    disabled={role.name === "role:superadmin"}
+                  >
+                    <Icon name="Trash2" className="h-4 w-4" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
       </div>
 
       <RoleDialog
@@ -184,13 +200,16 @@ export default function RolesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the role
-              and remove all associated permissions.
+              This action cannot be undone. This will permanently delete the
+              role and remove all associated permissions.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

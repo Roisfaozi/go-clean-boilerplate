@@ -41,7 +41,12 @@ interface RoleDialogProps {
   onSuccess: () => void;
 }
 
-export function RoleDialog({ open, onOpenChange, role, onSuccess }: RoleDialogProps) {
+export function RoleDialog({
+  open,
+  onOpenChange,
+  role,
+  onSuccess,
+}: RoleDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const isEdit = !!role;
 
@@ -104,7 +109,11 @@ export function RoleDialog({ open, onOpenChange, role, onSuccess }: RoleDialogPr
                 <FormItem>
                   <FormLabel>Role Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Moderator" {...field} disabled={isEdit} />
+                    <Input
+                      placeholder="e.g. Moderator"
+                      {...field}
+                      disabled={isEdit}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -129,7 +138,9 @@ export function RoleDialog({ open, onOpenChange, role, onSuccess }: RoleDialogPr
             />
             <DialogFooter>
               <Button type="submit" disabled={isLoading}>
-                {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading && (
+                  <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {isEdit ? "Save Changes" : "Create Role"}
               </Button>
             </DialogFooter>
