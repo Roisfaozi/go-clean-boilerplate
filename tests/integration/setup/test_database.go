@@ -6,6 +6,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 	auditEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/google/uuid"
@@ -23,6 +24,8 @@ func RunMigrations(t *testing.T, db *gorm.DB) {
 		&auditEntity.AuditLog{},
 		&authEntity.PasswordResetToken{},
 		&authEntity.EmailVerificationToken{},
+		&orgEntity.Organization{},
+		&orgEntity.OrganizationMember{},
 	)
 	if t != nil {
 		require.NoError(t, err, "Failed to run migrations")
@@ -69,6 +72,8 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 
 func CleanupDatabase(t *testing.T, db *gorm.DB) {
 	tables := []string{
+		"organization_members",
+		"organizations",
 		"audit_logs",
 		"access_rights",
 		"endpoints",
