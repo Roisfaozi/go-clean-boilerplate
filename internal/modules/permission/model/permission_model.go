@@ -12,8 +12,8 @@ type GrantPermissionRequest struct {
 }
 
 type UpdatePermissionRequest struct {
-	OldPermission []string `json:"old_permission" validate:"required,min=3,max=3,dive,xss"`
-	NewPermission []string `json:"new_permission" validate:"required,min=3,max=3,dive,xss"`
+	OldPermission []string `json:"old_permission" validate:"required,min=4,max=4,dive,xss"`
+	NewPermission []string `json:"new_permission" validate:"required,min=4,max=4,dive,xss"`
 }
 
 type RoleInheritanceRequest struct {

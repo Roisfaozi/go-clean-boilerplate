@@ -182,6 +182,34 @@ func (h *PermissionController) GetPermissionsForRole(c *gin.Context) {
 	response.Success(c, permissions)
 }
 
+// GetUsersForRole godoc
+// @Summary      Get users for role
+// @Description  Retrieves all user IDs assigned to a specific role.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        role path string true "Role name"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "List of user IDs"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Role is required"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/roles/{role}/users [get]
+func (h *PermissionController) GetUsersForRole(c *gin.Context) {
+	role := c.Param("role")
+	if role == "" {
+		response.BadRequest(c, nil, "role is required")
+		return
+	}
+
+	users, err := h.useCase.GetUsersForRole(c.Request.Context(), role)
+	if err != nil {
+		response.HandleError(c, err, "failed to get users for role")
+		return
+	}
+
+	response.Success(c, users)
+}
+
 // UpdatePermission godoc
 // @Summary      Update permission
 // @Description  Updates an existing Casbin policy.
