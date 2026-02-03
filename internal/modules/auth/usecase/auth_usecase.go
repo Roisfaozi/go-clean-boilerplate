@@ -121,7 +121,7 @@ func (s *Service) Register(ctx context.Context, request model.RegisterRequest) (
 
 		// Add Default Role (Casbin)
 		if s.Enforcer != nil {
-			if _, err := s.Enforcer.AddGroupingPolicy(user.ID, "role:user"); err != nil {
+			if _, err := s.Enforcer.AddGroupingPolicy(user.ID, "role:user", "global"); err != nil {
 				return err
 			}
 		}
@@ -268,7 +268,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 
 	var userRole string
 	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		roles, err := s.Enforcer.GetRolesForUser(user.ID, "global")
 		if err != nil {
 			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during login")
 			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
@@ -349,7 +349,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 
 	var userRole string
 	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		roles, err := s.Enforcer.GetRolesForUser(user.ID, "global")
 		if err != nil {
 			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during refresh token")
 			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
@@ -460,7 +460,7 @@ func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
 func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
 	var userRole string
 	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		roles, err := s.Enforcer.GetRolesForUser(user.ID, "global")
 		if err != nil {
 			s.log.WithContext(context.Background()).WithError(err).Error("Failed to get roles for user when generating access token")
 			return "", fmt.Errorf("failed to get user roles: %w", err)
@@ -481,7 +481,7 @@ func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
 func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
 	var userRole string
 	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		roles, err := s.Enforcer.GetRolesForUser(user.ID, "global")
 		if err != nil {
 			s.log.WithContext(context.Background()).WithError(err).Error("Failed to get roles for user when generating refresh token")
 			return "", fmt.Errorf("failed to get user roles: %w", err)
