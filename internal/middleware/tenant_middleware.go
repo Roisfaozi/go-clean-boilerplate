@@ -2,16 +2,13 @@ package middleware
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,41 +17,26 @@ const (
 	OrgIDHeader = "X-Organization-ID"
 	// OrgSlugHeader is the header name for organization slug
 	OrgSlugHeader = "X-Organization-Slug"
-	// MembershipCacheTTL is the TTL for membership cache in Redis
-	MembershipCacheTTL = 5 * time.Minute
-	// MembershipCachePrefix is the Redis key prefix for membership cache
-	MembershipCachePrefix = "membership:"
 )
 
-// MembershipCache represents cached membership data
-type MembershipCache struct {
-	OrgID  string `json:"org_id"`
-	RoleID string `json:"role_id"`
-	Status string `json:"status"`
-}
-
-// TenantMiddleware validates organization membership and sets org context
+// TenantMiddleware validates organization membership and sets org context.
+// Uses IOrganizationReader for cached membership validation.
 type TenantMiddleware struct {
-	OrgRepo       repository.OrganizationRepository
-	MemberRepo    repository.OrganizationMemberRepository
-	Redis         *redis.Client
-	Log           *logrus.Logger
-	EnableCache   bool
+	OrgRepo repository.OrganizationRepository
+	Reader  usecase.IOrganizationReader
+	Log     *logrus.Logger
 }
 
 // NewTenantMiddleware creates a new TenantMiddleware instance
 func NewTenantMiddleware(
 	orgRepo repository.OrganizationRepository,
-	memberRepo repository.OrganizationMemberRepository,
-	redisClient *redis.Client,
+	reader usecase.IOrganizationReader,
 	log *logrus.Logger,
 ) *TenantMiddleware {
 	return &TenantMiddleware{
-		OrgRepo:     orgRepo,
-		MemberRepo:  memberRepo,
-		Redis:       redisClient,
-		Log:         log,
-		EnableCache: redisClient != nil,
+		OrgRepo: orgRepo,
+		Reader:  reader,
+		Log:     log,
 	}
 }
 
@@ -97,26 +79,25 @@ func (m *TenantMiddleware) RequireOrganization() gin.HandlerFunc {
 			orgID = org.ID
 		}
 
-		// Check membership (with Redis cache)
-		membership, err := m.checkMembership(c.Request.Context(), orgID, userID)
+		// Check membership using cached reader
+		isMember, err := m.Reader.ValidateMembership(c.Request.Context(), orgID, userID)
 		if err != nil {
-			m.Log.WithError(err).Error("Failed to check membership")
+			m.Log.WithError(err).Error("Failed to validate membership")
 			response.InternalServerError(c, err, "internal server error")
 			c.Abort()
 			return
 		}
 
-		if membership == nil {
+		if !isMember {
 			response.Forbidden(c, errors.New("user is not a member of this organization"), "access denied")
 			c.Abort()
 			return
 		}
 
-		// Check if member is active
-		if membership.Status != "active" {
-			response.Forbidden(c, fmt.Errorf("membership status is %s", membership.Status), "access denied")
-			c.Abort()
-			return
+		// Get member role for context
+		role, err := m.Reader.GetMemberRole(c.Request.Context(), orgID, userID)
+		if err != nil {
+			m.Log.WithError(err).Warn("Failed to get member role, proceeding without role context")
 		}
 
 		// Set organization context for downstream handlers and repository scopes
@@ -125,69 +106,92 @@ func (m *TenantMiddleware) RequireOrganization() gin.HandlerFunc {
 
 		// Set organization info in Gin context for easy access
 		c.Set("organization_id", orgID)
-		c.Set("member_role_id", membership.RoleID)
-		c.Set("member_status", membership.Status)
+		c.Set("member_role", role)
 
 		c.Next()
 	}
 }
 
-// checkMembership checks if a user is a member of an organization
-// Uses Redis cache if available
-func (m *TenantMiddleware) checkMembership(ctx context.Context, orgID, userID string) (*MembershipCache, error) {
-	cacheKey := fmt.Sprintf("%s%s:%s", MembershipCachePrefix, orgID, userID)
+// OptionalOrganization extracts organization context if provided but does not require it.
+// Useful for routes that work with or without organization context.
+func (m *TenantMiddleware) OptionalOrganization() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, exists := GetUserIDFromContext(c)
+		if !exists {
+			// No authenticated user, skip organization context
+			c.Next()
+			return
+		}
 
-	// Try cache first
-	if m.EnableCache && m.Redis != nil {
-		cached, err := m.Redis.Get(ctx, cacheKey).Result()
-		if err == nil {
-			var membership MembershipCache
-			if json.Unmarshal([]byte(cached), &membership) == nil {
-				return &membership, nil
+		orgID := c.GetHeader(OrgIDHeader)
+		orgSlug := c.GetHeader(OrgSlugHeader)
+
+		if orgID == "" && orgSlug == "" {
+			// No org specified, proceed without org context
+			c.Next()
+			return
+		}
+
+		// Resolve org ID from slug if needed
+		if orgID == "" && orgSlug != "" {
+			org, err := m.OrgRepo.FindBySlug(c.Request.Context(), orgSlug)
+			if err != nil || org == nil {
+				// Org not found, proceed without org context
+				c.Next()
+				return
 			}
+			orgID = org.ID
 		}
-		// Cache miss or error - continue to DB lookup
-	}
 
-	// Lookup from database
-	status, err := m.MemberRepo.GetMemberStatus(ctx, orgID, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	if status == "" {
-		// Not a member - cache negative result
-		if m.EnableCache && m.Redis != nil {
-			// Cache "not a member" for shorter duration
-			_ = m.Redis.Set(ctx, cacheKey, "null", time.Minute).Err()
+		// Validate membership
+		isMember, err := m.Reader.ValidateMembership(c.Request.Context(), orgID, userID)
+		if err != nil || !isMember {
+			// Not a member, proceed without org context
+			c.Next()
+			return
 		}
-		return nil, nil
-	}
 
-	// Build membership cache
-	membership := &MembershipCache{
-		OrgID:  orgID,
-		Status: status,
-		// Note: RoleID would need additional lookup - simplified for now
-	}
+		// Get member role
+		role, _ := m.Reader.GetMemberRole(c.Request.Context(), orgID, userID)
 
-	// Cache the result
-	if m.EnableCache && m.Redis != nil {
-		if data, err := json.Marshal(membership); err == nil {
-			_ = m.Redis.Set(ctx, cacheKey, data, MembershipCacheTTL).Err()
-		}
-	}
+		// Set organization context
+		ctx := database.SetOrganizationContext(c.Request.Context(), orgID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Set("organization_id", orgID)
+		c.Set("member_role", role)
 
-	return membership, nil
+		c.Next()
+	}
 }
 
-// InvalidateMembershipCache invalidates the membership cache for a user in an org
-func (m *TenantMiddleware) InvalidateMembershipCache(ctx context.Context, orgID, userID string) error {
-	if !m.EnableCache || m.Redis == nil {
-		return nil
+// RequireOrgRole validates that the user has a specific role (or higher) in the organization.
+// Must be used after RequireOrganization middleware.
+func (m *TenantMiddleware) RequireOrgRole(allowedRoles ...string) gin.HandlerFunc {
+	roleHierarchy := map[string]int{
+		"owner":  3,
+		"admin":  2,
+		"member": 1,
 	}
-	cacheKey := fmt.Sprintf("%s%s:%s", MembershipCachePrefix, orgID, userID)
-	return m.Redis.Del(ctx, cacheKey).Err()
+
+	return func(c *gin.Context) {
+		role, exists := GetMemberRoleFromContext(c)
+		if !exists {
+			response.Forbidden(c, errors.New("organization role not found"), "access denied")
+			c.Abort()
+			return
+		}
+
+		userLevel := roleHierarchy[role]
+		for _, allowedRole := range allowedRoles {
+			if roleHierarchy[allowedRole] <= userLevel {
+				c.Next()
+				return
+			}
+		}
+
+		response.Forbidden(c, errors.New("insufficient permissions"), "access denied")
+		c.Abort()
+	}
 }
 
 // GetOrganizationIDFromContext extracts organization ID from Gin context
@@ -203,15 +207,20 @@ func GetOrganizationIDFromContext(c *gin.Context) (string, bool) {
 	return orgIDStr, true
 }
 
-// GetMemberRoleIDFromContext extracts member's role ID from Gin context
-func GetMemberRoleIDFromContext(c *gin.Context) (string, bool) {
-	roleID, exists := c.Get("member_role_id")
+// GetMemberRoleFromContext extracts member's role from Gin context
+func GetMemberRoleFromContext(c *gin.Context) (string, bool) {
+	role, exists := c.Get("member_role")
 	if !exists {
 		return "", false
 	}
-	roleIDStr, ok := roleID.(string)
-	if !ok || roleIDStr == "" {
+	roleStr, ok := role.(string)
+	if !ok || roleStr == "" {
 		return "", false
 	}
-	return roleIDStr, true
+	return roleStr, true
+}
+
+// InvalidateMembershipCache delegates cache invalidation to the reader
+func (m *TenantMiddleware) InvalidateMembershipCache(ctx context.Context, orgID, userID string) error {
+	return m.Reader.InvalidateMembershipCache(ctx, orgID, userID)
 }

@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redismock/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -66,47 +64,29 @@ func (m *MockOrganizationRepository) Delete(ctx context.Context, id string) erro
 	return args.Error(0)
 }
 
-// MockOrganizationMemberRepository is a mock implementation of OrganizationMemberRepository
-type MockOrganizationMemberRepository struct {
+// MockOrganizationReader is a mock implementation of IOrganizationReader
+type MockOrganizationReader struct {
 	mock.Mock
 }
 
-func (m *MockOrganizationMemberRepository) CheckMembership(ctx context.Context, orgID, userID string) (bool, error) {
+func (m *MockOrganizationReader) ValidateMembership(ctx context.Context, orgID, userID string) (bool, error) {
 	args := m.Called(ctx, orgID, userID)
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockOrganizationMemberRepository) GetMemberStatus(ctx context.Context, orgID, userID string) (string, error) {
+func (m *MockOrganizationReader) GetMemberRole(ctx context.Context, orgID, userID string) (string, error) {
 	args := m.Called(ctx, orgID, userID)
 	return args.String(0), args.Error(1)
 }
 
-func (m *MockOrganizationMemberRepository) AddMember(ctx context.Context, member *entity.OrganizationMember) error {
-	args := m.Called(ctx, member)
-	return args.Error(0)
-}
-
-func (m *MockOrganizationMemberRepository) RemoveMember(ctx context.Context, orgID, userID string) error {
+func (m *MockOrganizationReader) InvalidateMembershipCache(ctx context.Context, orgID, userID string) error {
 	args := m.Called(ctx, orgID, userID)
 	return args.Error(0)
 }
 
-func (m *MockOrganizationMemberRepository) UpdateMemberRole(ctx context.Context, orgID, userID, roleID string) error {
-	args := m.Called(ctx, orgID, userID, roleID)
-	return args.Error(0)
-}
-
-func (m *MockOrganizationMemberRepository) UpdateMemberStatus(ctx context.Context, orgID, userID, status string) error {
-	args := m.Called(ctx, orgID, userID, status)
-	return args.Error(0)
-}
-
-func (m *MockOrganizationMemberRepository) FindMembers(ctx context.Context, orgID string) ([]*entity.OrganizationMember, error) {
+func (m *MockOrganizationReader) InvalidateOrganizationCache(ctx context.Context, orgID string) error {
 	args := m.Called(ctx, orgID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*entity.OrganizationMember), args.Error(1)
+	return args.Error(0)
 }
 
 func setupTestRouter(middleware *TenantMiddleware) *gin.Engine {
@@ -118,25 +98,18 @@ func setupTestRouter(middleware *TenantMiddleware) *gin.Engine {
 func TestTenantMiddleware_RequireOrganization_Success(t *testing.T) {
 	// Setup mocks
 	mockOrgRepo := new(MockOrganizationRepository)
-	mockMemberRepo := new(MockOrganizationMemberRepository)
-	redisClient, redisMock := redismock.NewClientMock()
+	mockReader := new(MockOrganizationReader)
 	log := logrus.New()
 
-	middleware := NewTenantMiddleware(mockOrgRepo, mockMemberRepo, redisClient, log)
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
 
 	// Setup expectations
 	orgID := "org-123"
 	userID := "user-456"
-	cacheKey := MembershipCachePrefix + orgID + ":" + userID
 
-	// Redis cache miss
-	redisMock.ExpectGet(cacheKey).RedisNil()
-	// DB lookup returns active member
-	mockMemberRepo.On("GetMemberStatus", mock.Anything, orgID, userID).Return("active", nil)
-	// Cache the result
-	membership := &MembershipCache{OrgID: orgID, Status: "active"}
-	membershipJSON, _ := json.Marshal(membership)
-	redisMock.ExpectSet(cacheKey, membershipJSON, MembershipCacheTTL).SetVal("OK")
+	// Mock reader validation
+	mockReader.On("ValidateMembership", mock.Anything, orgID, userID).Return(true, nil)
+	mockReader.On("GetMemberRole", mock.Anything, orgID, userID).Return("admin", nil)
 
 	// Setup router
 	r := setupTestRouter(middleware)
@@ -146,7 +119,10 @@ func TestTenantMiddleware_RequireOrganization_Success(t *testing.T) {
 	})
 	r.Use(middleware.RequireOrganization())
 	r.GET("/test", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"organization_id": c.GetString("organization_id")})
+		c.JSON(http.StatusOK, gin.H{
+			"organization_id": c.GetString("organization_id"),
+			"role":            c.GetString("member_role"),
+		})
 	})
 
 	// Make request
@@ -158,15 +134,16 @@ func TestTenantMiddleware_RequireOrganization_Success(t *testing.T) {
 	// Assertions
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), orgID)
-	mockMemberRepo.AssertExpectations(t)
+	assert.Contains(t, w.Body.String(), "admin")
+	mockReader.AssertExpectations(t)
 }
 
 func TestTenantMiddleware_RequireOrganization_MissingOrgHeader(t *testing.T) {
 	mockOrgRepo := new(MockOrganizationRepository)
-	mockMemberRepo := new(MockOrganizationMemberRepository)
+	mockReader := new(MockOrganizationReader)
 	log := logrus.New()
 
-	middleware := NewTenantMiddleware(mockOrgRepo, mockMemberRepo, nil, log)
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
 
 	r := setupTestRouter(middleware)
 	r.Use(func(c *gin.Context) {
@@ -188,10 +165,10 @@ func TestTenantMiddleware_RequireOrganization_MissingOrgHeader(t *testing.T) {
 
 func TestTenantMiddleware_RequireOrganization_NotAuthenticated(t *testing.T) {
 	mockOrgRepo := new(MockOrganizationRepository)
-	mockMemberRepo := new(MockOrganizationMemberRepository)
+	mockReader := new(MockOrganizationReader)
 	log := logrus.New()
 
-	middleware := NewTenantMiddleware(mockOrgRepo, mockMemberRepo, nil, log)
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
 
 	r := setupTestRouter(middleware)
 	// No auth middleware - user_id not set
@@ -210,16 +187,16 @@ func TestTenantMiddleware_RequireOrganization_NotAuthenticated(t *testing.T) {
 
 func TestTenantMiddleware_RequireOrganization_NotMember(t *testing.T) {
 	mockOrgRepo := new(MockOrganizationRepository)
-	mockMemberRepo := new(MockOrganizationMemberRepository)
+	mockReader := new(MockOrganizationReader)
 	log := logrus.New()
 
-	middleware := NewTenantMiddleware(mockOrgRepo, mockMemberRepo, nil, log)
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
 
 	orgID := "org-123"
 	userID := "user-456"
 
-	// DB lookup returns empty (not a member)
-	mockMemberRepo.On("GetMemberStatus", mock.Anything, orgID, userID).Return("", nil)
+	// Mock reader returns not member
+	mockReader.On("ValidateMembership", mock.Anything, orgID, userID).Return(false, nil)
 
 	r := setupTestRouter(middleware)
 	r.Use(func(c *gin.Context) {
@@ -237,47 +214,15 @@ func TestTenantMiddleware_RequireOrganization_NotMember(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
-	mockMemberRepo.AssertExpectations(t)
-}
-
-func TestTenantMiddleware_RequireOrganization_BannedMember(t *testing.T) {
-	mockOrgRepo := new(MockOrganizationRepository)
-	mockMemberRepo := new(MockOrganizationMemberRepository)
-	log := logrus.New()
-
-	middleware := NewTenantMiddleware(mockOrgRepo, mockMemberRepo, nil, log)
-
-	orgID := "org-123"
-	userID := "user-456"
-
-	// DB lookup returns banned status
-	mockMemberRepo.On("GetMemberStatus", mock.Anything, orgID, userID).Return("banned", nil)
-
-	r := setupTestRouter(middleware)
-	r.Use(func(c *gin.Context) {
-		c.Set("user_id", userID)
-		c.Next()
-	})
-	r.Use(middleware.RequireOrganization())
-	r.GET("/test", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"ok": true})
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	req.Header.Set(OrgIDHeader, orgID)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusForbidden, w.Code)
-	mockMemberRepo.AssertExpectations(t)
+	mockReader.AssertExpectations(t)
 }
 
 func TestTenantMiddleware_RequireOrganization_SlugLookup(t *testing.T) {
 	mockOrgRepo := new(MockOrganizationRepository)
-	mockMemberRepo := new(MockOrganizationMemberRepository)
+	mockReader := new(MockOrganizationReader)
 	log := logrus.New()
 
-	middleware := NewTenantMiddleware(mockOrgRepo, mockMemberRepo, nil, log)
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
 
 	orgID := "org-123"
 	orgSlug := "my-org"
@@ -288,8 +233,9 @@ func TestTenantMiddleware_RequireOrganization_SlugLookup(t *testing.T) {
 		ID:   orgID,
 		Slug: orgSlug,
 	}, nil)
-	// Membership check
-	mockMemberRepo.On("GetMemberStatus", mock.Anything, orgID, userID).Return("active", nil)
+	// Membership check via reader
+	mockReader.On("ValidateMembership", mock.Anything, orgID, userID).Return(true, nil)
+	mockReader.On("GetMemberRole", mock.Anything, orgID, userID).Return("owner", nil)
 
 	r := setupTestRouter(middleware)
 	r.Use(func(c *gin.Context) {
@@ -309,15 +255,15 @@ func TestTenantMiddleware_RequireOrganization_SlugLookup(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), orgID)
 	mockOrgRepo.AssertExpectations(t)
-	mockMemberRepo.AssertExpectations(t)
+	mockReader.AssertExpectations(t)
 }
 
 func TestTenantMiddleware_RequireOrganization_OrgNotFound(t *testing.T) {
 	mockOrgRepo := new(MockOrganizationRepository)
-	mockMemberRepo := new(MockOrganizationMemberRepository)
+	mockReader := new(MockOrganizationReader)
 	log := logrus.New()
 
-	middleware := NewTenantMiddleware(mockOrgRepo, mockMemberRepo, nil, log)
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
 
 	orgSlug := "non-existent-org"
 	userID := "user-456"
@@ -344,57 +290,18 @@ func TestTenantMiddleware_RequireOrganization_OrgNotFound(t *testing.T) {
 	mockOrgRepo.AssertExpectations(t)
 }
 
-func TestTenantMiddleware_RequireOrganization_CacheHit(t *testing.T) {
+func TestTenantMiddleware_RequireOrganization_Error(t *testing.T) {
 	mockOrgRepo := new(MockOrganizationRepository)
-	mockMemberRepo := new(MockOrganizationMemberRepository)
-	redisClient, redisMock := redismock.NewClientMock()
+	mockReader := new(MockOrganizationReader)
 	log := logrus.New()
 
-	middleware := NewTenantMiddleware(mockOrgRepo, mockMemberRepo, redisClient, log)
-
-	orgID := "org-123"
-	userID := "user-456"
-	cacheKey := MembershipCachePrefix + orgID + ":" + userID
-
-	// Redis returns cached membership
-	membership := &MembershipCache{OrgID: orgID, Status: "active"}
-	membershipJSON, _ := json.Marshal(membership)
-	redisMock.ExpectGet(cacheKey).SetVal(string(membershipJSON))
-
-	// No DB call expected!
-
-	r := setupTestRouter(middleware)
-	r.Use(func(c *gin.Context) {
-		c.Set("user_id", userID)
-		c.Next()
-	})
-	r.Use(middleware.RequireOrganization())
-	r.GET("/test", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"organization_id": c.GetString("organization_id")})
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	req.Header.Set(OrgIDHeader, orgID)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	// Verify no DB call was made
-	mockMemberRepo.AssertNotCalled(t, "GetMemberStatus")
-}
-
-func TestTenantMiddleware_RequireOrganization_DBError(t *testing.T) {
-	mockOrgRepo := new(MockOrganizationRepository)
-	mockMemberRepo := new(MockOrganizationMemberRepository)
-	log := logrus.New()
-
-	middleware := NewTenantMiddleware(mockOrgRepo, mockMemberRepo, nil, log)
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
 
 	orgID := "org-123"
 	userID := "user-456"
 
-	// DB returns error
-	mockMemberRepo.On("GetMemberStatus", mock.Anything, orgID, userID).Return("", errors.New("database error"))
+	// Reader returns error
+	mockReader.On("ValidateMembership", mock.Anything, orgID, userID).Return(false, errors.New("reader error"))
 
 	r := setupTestRouter(middleware)
 	r.Use(func(c *gin.Context) {
@@ -412,7 +319,7 @@ func TestTenantMiddleware_RequireOrganization_DBError(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	mockMemberRepo.AssertExpectations(t)
+	mockReader.AssertExpectations(t)
 }
 
 func TestGetOrganizationIDFromContext(t *testing.T) {
@@ -447,20 +354,19 @@ func TestGetOrganizationIDFromContext(t *testing.T) {
 
 func TestInvalidateMembershipCache(t *testing.T) {
 	mockOrgRepo := new(MockOrganizationRepository)
-	mockMemberRepo := new(MockOrganizationMemberRepository)
-	redisClient, redisMock := redismock.NewClientMock()
+	mockReader := new(MockOrganizationReader)
 	log := logrus.New()
 
-	middleware := NewTenantMiddleware(mockOrgRepo, mockMemberRepo, redisClient, log)
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
 
 	orgID := "org-123"
 	userID := "user-456"
-	cacheKey := MembershipCachePrefix + orgID + ":" + userID
 
-	redisMock.ExpectDel(cacheKey).SetVal(1)
+	mockReader.On("InvalidateMembershipCache", mock.Anything, orgID, userID).Return(nil)
 
 	err := middleware.InvalidateMembershipCache(context.Background(), orgID, userID)
 	assert.NoError(t, err)
+	mockReader.AssertExpectations(t)
 }
 
 // Unused import guard
