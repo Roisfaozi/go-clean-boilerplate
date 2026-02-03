@@ -32,16 +32,17 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
       try {
         // Parallel data fetching
-        const [usersResp, rolesResp, auditResp, recentLogsResp] = await Promise.all([
-          usersApi.search({ page: 1, page_size: 1 }), // Just need count
-          rolesApi.search({ page: 1, page_size: 1 }), // Just need count
-          auditApi.search({ page: 1, page_size: 1 }), // Just need count
-          auditApi.search({ 
-             page: 1, 
-             page_size: 5, 
-             sort: [{ colId: "created_at", sort: "desc" }] 
-          }),
-        ]);
+        const [usersResp, rolesResp, auditResp, recentLogsResp] =
+          await Promise.all([
+            usersApi.search({ page: 1, page_size: 1 }), // Just need count
+            rolesApi.search({ page: 1, page_size: 1 }), // Just need count
+            auditApi.search({ page: 1, page_size: 1 }), // Just need count
+            auditApi.search({
+              page: 1,
+              page_size: 5,
+              sort: [{ colId: "created_at", sort: "desc" }],
+            }),
+          ]);
 
         setStats({
           users: usersResp.paging?.total || 0,
@@ -52,7 +53,6 @@ export default function DashboardPage() {
         if (recentLogsResp.data) {
           setRecentLogs(recentLogsResp.data);
         }
-
       } catch (error) {
         console.error("Dashboard fetch error:", error);
         toast.error("Failed to load dashboard data");
@@ -79,7 +79,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-[var(--spacing-gap)]">
       {/* Zone A: KPI Cards */}
-      <div className="grid gap-[var(--spacing-gap)] grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-[var(--spacing-gap)] md:grid-cols-2 lg:grid-cols-4">
         <KPICard
           title="Total Users"
           value={isLoading ? "..." : stats.users.toLocaleString()}
@@ -116,19 +116,20 @@ export default function DashboardPage() {
 
       {/* Zone B & C: Main Content + Quick Actions */}
       <div className="grid gap-[var(--spacing-gap)] md:grid-cols-7">
-        
         {/* Recent Activity Table (Span 5) */}
-        <div className="md:col-span-5 flex flex-col gap-4">
+        <div className="flex flex-col gap-4 md:col-span-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold tracking-tight">Recent Activity</h2>
+            <h2 className="text-lg font-semibold tracking-tight">
+              Recent Activity
+            </h2>
             <Link href="/dashboard/audit">
               <Button variant="ghost" size="sm" className="gap-1">
                 View All <Icon name="ArrowRight" className="h-4 w-4" />
               </Button>
             </Link>
           </div>
-          
-          <div className="rounded-[var(--radius-lg)] border bg-card text-card-foreground shadow-sm overflow-hidden">
+
+          <div className="bg-card text-card-foreground overflow-hidden rounded-[var(--radius-lg)] border shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -141,33 +142,57 @@ export default function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                   Array.from({ length: 5 }).map((_, i) => (
+                  Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell><div className="h-4 w-24 bg-muted/50 rounded animate-pulse" /></TableCell>
-                      <TableCell><div className="h-4 w-16 bg-muted/50 rounded animate-pulse" /></TableCell>
-                      <TableCell><div className="h-4 w-20 bg-muted/50 rounded animate-pulse" /></TableCell>
-                      <TableCell><div className="h-4 w-24 bg-muted/50 rounded animate-pulse" /></TableCell>
-                      <TableCell className="text-right"><div className="h-4 w-12 bg-muted/50 rounded animate-pulse ml-auto" /></TableCell>
+                      <TableCell>
+                        <div className="bg-muted/50 h-4 w-24 animate-pulse rounded" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="bg-muted/50 h-4 w-16 animate-pulse rounded" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="bg-muted/50 h-4 w-20 animate-pulse rounded" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="bg-muted/50 h-4 w-24 animate-pulse rounded" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="bg-muted/50 ml-auto h-4 w-12 animate-pulse rounded" />
+                      </TableCell>
                     </TableRow>
-                   ))
+                  ))
                 ) : recentLogs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell
+                      colSpan={5}
+                      className="text-muted-foreground py-8 text-center"
+                    >
                       No recent activity found.
                     </TableCell>
                   </TableRow>
                 ) : (
                   recentLogs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell className="font-medium text-xs">{log.user_id}</TableCell>
+                      <TableCell className="text-xs font-medium">
+                        {log.user_id}
+                      </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-[10px] font-mono uppercase bg-muted/50">
+                        <Badge
+                          variant="outline"
+                          className="bg-muted/50 font-mono text-[10px] uppercase"
+                        >
                           {log.action}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{log.entity}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{log.ip_address}</TableCell>
-                      <TableCell className="text-right text-muted-foreground text-xs">{formatTimeAgo(log.created_at)}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {log.entity}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {log.ip_address}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-right text-xs">
+                        {formatTimeAgo(log.created_at)}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -177,55 +202,68 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions (Span 2) */}
-        <div className="md:col-span-2 flex flex-col gap-4">
-          <h2 className="text-lg font-semibold tracking-tight">Quick Actions</h2>
+        <div className="flex flex-col gap-4 md:col-span-2">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Quick Actions
+          </h2>
           <div className="grid gap-3">
             <Link href="/dashboard/users">
-                <Button className="w-full justify-start h-auto py-4" variant="outline">
+              <Button
+                className="h-auto w-full justify-start py-4"
+                variant="outline"
+              >
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-md text-primary">
+                  <div className="bg-primary/10 text-primary rounded-md p-2">
                     <Icon name="UserPlus" className="h-5 w-5" />
-                    </div>
-                    <div className="text-left">
+                  </div>
+                  <div className="text-left">
                     <div className="font-semibold">Manage Users</div>
-                    <div className="text-xs text-muted-foreground">Add or edit accounts</div>
+                    <div className="text-muted-foreground text-xs">
+                      Add or edit accounts
                     </div>
+                  </div>
                 </div>
-                </Button>
-            </Link>
-            
-            <Link href="/dashboard/roles">
-                <Button className="w-full justify-start h-auto py-4" variant="outline">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-accent/10 rounded-md text-accent">
-                    <Icon name="Shield" className="h-5 w-5" />
-                    </div>
-                    <div className="text-left">
-                    <div className="font-semibold">Configure Roles</div>
-                    <div className="text-xs text-muted-foreground">Update permissions</div>
-                    </div>
-                </div>
-                </Button>
+              </Button>
             </Link>
 
-            <Button 
-                className="w-full justify-start h-auto py-4" 
+            <Link href="/dashboard/roles">
+              <Button
+                className="h-auto w-full justify-start py-4"
                 variant="outline"
-                onClick={() => window.open(auditApi.export(), '_blank')}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-accent/10 text-accent rounded-md p-2">
+                    <Icon name="Shield" className="h-5 w-5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold">Configure Roles</div>
+                    <div className="text-muted-foreground text-xs">
+                      Update permissions
+                    </div>
+                  </div>
+                </div>
+              </Button>
+            </Link>
+
+            <Button
+              className="h-auto w-full justify-start py-4"
+              variant="outline"
+              onClick={() => window.open(auditApi.export(), "_blank")}
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-secondary/10 rounded-md text-secondary">
+                <div className="bg-secondary/10 text-secondary rounded-md p-2">
                   <Icon name="Download" className="h-5 w-5" />
                 </div>
                 <div className="text-left">
                   <div className="font-semibold">Export Logs</div>
-                  <div className="text-xs text-muted-foreground">Download audit trail</div>
+                  <div className="text-muted-foreground text-xs">
+                    Download audit trail
+                  </div>
                 </div>
               </div>
             </Button>
           </div>
         </div>
-
       </div>
     </div>
   );

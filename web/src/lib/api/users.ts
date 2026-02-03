@@ -38,7 +38,7 @@ export const usersApi = {
     params.append("limit", limit.toString());
     if (username) params.append("username", username);
     if (email) params.append("email", email);
-    
+
     return api.get<UserListResponse>(`/users?${params.toString()}`);
   },
 
@@ -83,17 +83,17 @@ export const usersApi = {
     // We might need a raw request method or modify client to handle FormData.
     // For now, assuming we might need a specific override or update client.ts
     // Let's assume we update client.ts or use fetch directly for this specific case if needed.
-    // But since I can't modify client.ts easily in this turn without reading/writing it again, 
+    // But since I can't modify client.ts easily in this turn without reading/writing it again,
     // I'll stick to the pattern.
     // Actually, checking client.ts, it sets Content-Type to json by default.
     // We need to allow overriding it.
-    
-    // Workaround: We'll implement a custom request for multipart in the component 
+
+    // Workaround: We'll implement a custom request for multipart in the component
     // or assume the client will be updated to support FormData.
     return api.request<{ data: User }>("/users/me/avatar", {
-        method: "PATCH",
-        body: formData,
-        headers: {} // Let browser set Content-Type for FormData
+      method: "PATCH",
+      body: formData,
+      headers: {}, // Let browser set Content-Type for FormData
     });
-  }
+  },
 };

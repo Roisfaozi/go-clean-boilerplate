@@ -148,7 +148,11 @@ export default function UsersPage() {
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="ml-auto h-8 hidden lg:flex">
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto hidden h-8 lg:flex"
+            >
               <Icon name="Settings" className="mr-2 h-4 w-4" />
               View
             </Button>
@@ -199,9 +203,13 @@ export default function UsersPage() {
               users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium overflow-hidden">
+                    <div className="bg-muted flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-xs font-medium">
                       {user.avatar_url ? (
-                        <img src={user.avatar_url} alt={user.name} className="h-full w-full object-cover" />
+                        <img
+                          src={user.avatar_url}
+                          alt={user.name}
+                          className="h-full w-full object-cover"
+                        />
                       ) : (
                         user.name.charAt(0).toUpperCase()
                       )}
@@ -211,14 +219,20 @@ export default function UsersPage() {
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.username}</TableCell>
                   <TableCell>
-                    <Badge 
-                      variant={user.status === "active" ? "default" : "secondary"}
-                      className={user.status === "active" ? "bg-emerald-500 hover:bg-emerald-600" : ""}
+                    <Badge
+                      variant={
+                        user.status === "active" ? "default" : "secondary"
+                      }
+                      className={
+                        user.status === "active"
+                          ? "bg-emerald-500 hover:bg-emerald-600"
+                          : ""
+                      }
                     >
                       {user.status || "Unknown"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
+                  <TableCell className="text-muted-foreground text-right">
                     {new Date(user.created_at * 1000).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
@@ -234,7 +248,10 @@ export default function UsersPage() {
                           <Icon name="Pencil" className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(user)} className="text-destructive">
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(user)}
+                          className="text-destructive"
+                        >
                           <Icon name="Trash" className="mr-2 h-4 w-4" />
                           Delete
                         </DropdownMenuItem>
@@ -250,21 +267,22 @@ export default function UsersPage() {
 
       {/* Pagination */}
       <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} results
+        <div className="text-muted-foreground flex-1 text-sm">
+          Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of{" "}
+          {total} results
         </div>
         <div className="space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => handlePageChange(page - 1)}
             disabled={page === 1 || isLoading}
           >
             Previous
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => handlePageChange(page + 1)}
             disabled={page >= Math.ceil(total / limit) || isLoading}
           >
@@ -273,11 +291,11 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <UserDialog 
-        open={isDialogOpen} 
-        onOpenChange={setIsDialogOpen} 
-        user={selectedUser} 
-        onSuccess={fetchUsers} 
+      <UserDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        user={selectedUser}
+        onSuccess={fetchUsers}
       />
 
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
@@ -285,13 +303,16 @@ export default function UsersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user
-              account and remove their data from our servers.
+              This action cannot be undone. This will permanently delete the
+              user account and remove their data from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

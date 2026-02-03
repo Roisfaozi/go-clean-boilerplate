@@ -51,7 +51,12 @@ interface UserDialogProps {
   onSuccess: () => void;
 }
 
-export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogProps) {
+export function UserDialog({
+  open,
+  onOpenChange,
+  user,
+  onSuccess,
+}: UserDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const isEdit = !!user;
 
@@ -90,25 +95,30 @@ export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogPr
         // Assuming we can update status via updateStatus and profile via a different endpoint if available.
         // usersApi.updateMe updates the CURRENT user. Admin updating OTHER users isn't explicitly in users.ts getAll/getById section yet.
         // Let's check swagger.json: PUT /users/{id} exists? No, only /users/me and /users/{id}/status PATCH.
-        // Wait, swagger.json has PUT /users/me but DELETE /users/{id}. 
+        // Wait, swagger.json has PUT /users/me but DELETE /users/{id}.
         // It seems there is NO admin endpoint to update another user's profile details (name/email), only status.
-        // Checking swagger.json again... 
+        // Checking swagger.json again...
         // /users/{id} GET, DELETE.
         // /users/{id}/status PATCH.
         // So Admin can only update Status or Delete.
         // I will only allow Status update for edit mode then.
-        
+
         if (user.status !== data.status && data.status) {
-             await usersApi.updateStatus(user.id, data.status as "active" | "suspended" | "banned");
+          await usersApi.updateStatus(
+            user.id,
+            data.status as "active" | "suspended" | "banned"
+          );
         }
-        
+
         toast.success("User updated successfully");
       } else {
         // Create User (Register)
         if (!data.password) {
-            form.setError("password", { message: "Password is required for new users" });
-            setIsLoading(false);
-            return;
+          form.setError("password", {
+            message: "Password is required for new users",
+          });
+          setIsLoading(false);
+          return;
         }
         await authApi.register({
           name: data.name,
@@ -147,7 +157,11 @@ export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogPr
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} disabled={isEdit} />
+                    <Input
+                      placeholder="John Doe"
+                      {...field}
+                      disabled={isEdit}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -173,13 +187,18 @@ export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogPr
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="john@example.com" type="email" {...field} disabled={isEdit} />
+                    <Input
+                      placeholder="john@example.com"
+                      type="email"
+                      {...field}
+                      disabled={isEdit}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             {!isEdit && (
               <FormField
                 control={form.control}
@@ -188,7 +207,11 @@ export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogPr
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input placeholder="••••••••" type="password" {...field} />
+                      <Input
+                        placeholder="••••••••"
+                        type="password"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -203,7 +226,10 @@ export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogPr
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
@@ -223,7 +249,9 @@ export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogPr
 
             <DialogFooter>
               <Button type="submit" disabled={isLoading}>
-                {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading && (
+                  <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {isEdit ? "Save Changes" : "Create User"}
               </Button>
             </DialogFooter>
