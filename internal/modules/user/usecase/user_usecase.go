@@ -100,10 +100,9 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 
 		roleAdded := false
 		if u.Enforcer != nil {
-			_, err := u.Enforcer.AddGroupingPolicy(user.ID, "role:user")
+			_, err := u.Enforcer.AddGroupingPolicy(user.ID, "role:user", "global")
 			if err != nil {
 				u.Log.Errorf("Failed to assign default role: %v", err)
-
 				return exception.ErrInternalServer
 			}
 			roleAdded = true
@@ -122,7 +121,7 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 				u.Log.Errorf("Failed to create audit log (rollback triggered): %v", err)
 
 				if roleAdded && u.Enforcer != nil {
-					if _, errComp := u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID); errComp != nil {
+					if _, errComp := u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID, "", "global"); errComp != nil {
 						u.Log.Errorf("Failed to rollback Casbin policy: %v", errComp)
 					}
 				}
@@ -396,12 +395,12 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 		if u.Enforcer != nil {
 
 			var err error
-			oldRoles, err = u.Enforcer.GetRolesForUser(user.ID)
+			oldRoles, err = u.Enforcer.GetRolesForUser(user.ID, "global")
 			if err != nil {
 				u.Log.Warnf("Failed to fetch roles for backup in delete: %v", err)
 			}
 
-			_, err = u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID)
+			_, err = u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID, "", "global")
 			if err != nil {
 				u.Log.Errorf("Failed to remove user policies: %v", err)
 				return exception.ErrInternalServer
@@ -424,7 +423,7 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 
 				if u.Enforcer != nil && len(oldRoles) > 0 {
 					for _, role := range oldRoles {
-						if _, errComp := u.Enforcer.AddGroupingPolicy(user.ID, role); errComp != nil {
+						if _, errComp := u.Enforcer.AddGroupingPolicy(user.ID, role, "global"); errComp != nil {
 							u.Log.Errorf("Failed to restore role %s during rollback: %v", role, errComp)
 						}
 					}
