@@ -47,6 +47,14 @@ func (m *MockAuthUseCase) RefreshToken(ctx context.Context, refreshToken string)
 	return args.Get(0).(*model.TokenResponse), args.String(1), args.Error(2)
 }
 
+func (m *MockAuthUseCase) Register(ctx context.Context, req model.RegisterRequest) (*model.LoginResponse, string, error) {
+	args := m.Called(ctx, req)
+	if args.Get(0) == nil {
+		return nil, args.String(1), args.Error(2)
+	}
+	return args.Get(0).(*model.LoginResponse), args.String(1), args.Error(2)
+}
+
 func (m *MockAuthUseCase) ValidateAccessToken(token string) (*jwt.Claims, error) {
 	args := m.Called(token)
 	if args.Get(0) == nil {
