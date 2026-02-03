@@ -9,24 +9,26 @@ export default function Register() {
       <div className="flex flex-1 flex-col justify-center px-6 py-12 md:px-12 lg:px-24 xl:px-32">
         <div className="mx-auto w-full max-w-sm lg:mx-0">
           <Link href="/" className="mb-10 flex items-center gap-2">
-            <Icons.logo className="h-10 w-10 text-primary" />
+            <Icons.logo className="text-primary h-10 w-10" />
             <span className="text-2xl font-bold tracking-tighter">NexusOS</span>
           </Link>
-          
+
           <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight">Create an account</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <h1 className="text-3xl font-bold tracking-tight">
+              Create an account
+            </h1>
+            <p className="text-muted-foreground mt-2 text-sm">
               Enter your details to get started with NexusOS
             </p>
           </div>
 
           <RegisterForm />
 
-          <p className="mt-8 text-center text-sm text-muted-foreground lg:text-left">
+          <p className="text-muted-foreground mt-8 text-center text-sm lg:text-left">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-medium text-primary underline-offset-4 hover:underline"
+              className="text-primary font-medium underline-offset-4 hover:underline"
             >
               Sign in
             </Link>
@@ -35,24 +37,24 @@ export default function Register() {
       </div>
 
       {/* Right Panel: Visual/Branding Zone */}
-      <div className="relative hidden w-full flex-1 items-center justify-center overflow-hidden bg-primary lg:flex">
+      <div className="bg-primary relative hidden w-full flex-1 items-center justify-center overflow-hidden lg:flex">
         {/* Background Decorative Elements */}
         <div className="absolute inset-0 bg-linear-to-br from-indigo-600 to-violet-700 opacity-90" />
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20" />
-        
+
         <div className="relative z-10 p-12 text-white">
           <div className="max-w-md">
             <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-md">
               <Icons.logo className="h-8 w-8" />
             </div>
-            <h2 className="mb-6 text-4xl font-bold leading-tight tracking-tight">
+            <h2 className="mb-6 text-4xl leading-tight font-bold tracking-tight">
               Start Building Secure Applications in Minutes.
             </h2>
             <p className="mb-10 text-lg text-indigo-100">
               NexusOS gives you all the tools you need to build enterprise-grade
               SaaS with a focus on speed and security.
             </p>
-            
+
             <ul className="space-y-4">
               {[
                 "Role-Based Access Control (Casbin)",
@@ -75,7 +77,9 @@ export default function Register() {
                       />
                     </svg>
                   </div>
-                  <span className="text-sm font-medium text-indigo-50">{item}</span>
+                  <span className="text-sm font-medium text-indigo-50">
+                    {item}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -83,8 +87,8 @@ export default function Register() {
         </div>
 
         {/* Animated Orbs */}
-        <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-violet-500/20 blur-3xl animate-pulse" />
-        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-indigo-400/20 blur-3xl animate-pulse" />
+        <div className="absolute -right-24 -bottom-24 h-96 w-96 animate-pulse rounded-full bg-violet-500/20 blur-3xl" />
+        <div className="absolute -top-24 -left-24 h-96 w-96 animate-pulse rounded-full bg-indigo-400/20 blur-3xl" />
       </div>
     </div>
   );
