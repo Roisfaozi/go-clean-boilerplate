@@ -16,7 +16,9 @@ export const organizationsApi = {
   },
 
   getMyOrganizations: () => {
-    return api.get<{ data: { organizations: Organization[], total: number } }>("/organizations/me");
+    return api.get<{ data: { organizations: Organization[]; total: number } }>(
+      "/organizations/me"
+    );
   },
 
   getBySlug: (slug: string) => {
@@ -27,11 +29,14 @@ export const organizationsApi = {
     return api.get<{ data: Organization }>(`/organizations/${id}`);
   },
 
-  update: (id: string, data: { name?: string; status?: "active" | "suspended" | "inactive" }) => {
+  update: (
+    id: string,
+    data: { name?: string; status?: "active" | "suspended" | "inactive" }
+  ) => {
     return api.put<{ data: Organization }>(`/organizations/${id}`, data);
   },
 
   delete: (id: string) => {
     return api.delete(`/organizations/${id}`);
-  }
+  },
 };

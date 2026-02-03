@@ -1,7 +1,14 @@
 "use client";
 
 import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { toast } from "~/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -39,17 +46,18 @@ export function BillingForm({ subscriptionPlan }: BillingFormProps) {
         <CardHeader>
           <CardTitle>Subscription Plan</CardTitle>
           <CardDescription>
-            You are currently on the <strong>{subscriptionPlan.isPro ? "Pro" : "Free"}</strong> plan.
+            You are currently on the{" "}
+            <strong>{subscriptionPlan.isPro ? "Pro" : "Free"}</strong> plan.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {subscriptionPlan.isPro
               ? "Manage your subscription details here."
               : "Upgrade to Pro to unlock all features."}
           </p>
         </CardContent>
-        <CardFooter className="flex flex-col items-start space-y-2 md:flex-row md:justify-between md:space-x-0 text-sm">
+        <CardFooter className="flex flex-col items-start space-y-2 text-sm md:flex-row md:justify-between md:space-x-0">
           <Button type="submit" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {subscriptionPlan.isPro ? "Manage Subscription" : "Upgrade to Pro"}
@@ -60,7 +68,9 @@ export function BillingForm({ subscriptionPlan }: BillingFormProps) {
                 ? "Your plan will be canceled on "
                 : "Your plan renews on "}
               {subscriptionPlan.stripeCurrentPeriodEnd
-                ? new Date(subscriptionPlan.stripeCurrentPeriodEnd * 1000).toLocaleDateString()
+                ? new Date(
+                    subscriptionPlan.stripeCurrentPeriodEnd * 1000
+                  ).toLocaleDateString()
                 : null}
             </p>
           )}

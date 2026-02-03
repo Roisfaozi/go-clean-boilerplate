@@ -1,14 +1,15 @@
 // Placeholder for payment service
 export const stripe = {
   subscriptions: {
-    retrieve: async (id: string) => ({
-      id: "placeholder-sub-id",
-      customer: "placeholder-cust-id",
-      cancel_at_period_end: false,
-      items: {
-        data: [{ price: { id: "placeholder-price-id" } }],
-      },
-    }) as any,
+    retrieve: async (id: string) =>
+      ({
+        id: "placeholder-sub-id",
+        customer: "placeholder-cust-id",
+        cancel_at_period_end: false,
+        items: {
+          data: [{ price: { id: "placeholder-price-id" } }],
+        },
+      }) as any,
   },
   billingPortal: {
     sessions: {
