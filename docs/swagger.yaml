@@ -126,6 +126,19 @@ definitions:
     - new_password
     - token
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_at:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.UserInfo:
     properties:
       email:
@@ -147,6 +160,137 @@ definitions:
     required:
     - token
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.CreateOrganizationRequest:
+    properties:
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      slug:
+        maxLength: 100
+        minLength: 2
+        type: string
+    required:
+    - name
+    - slug
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse:
+    properties:
+      created_at:
+        type: integer
+      id:
+        type: string
+      name:
+        type: string
+      owner_id:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: integer
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UpdateOrganizationRequest:
+    properties:
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      status:
+        enum:
+        - active
+        - suspended
+        - inactive
+        type: string
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UserOrganizationsResponse:
+    properties:
+      organizations:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignRoleRequest:
+    properties:
+      role:
+        type: string
+      user_id:
+        type: string
+    required:
+    - role
+    - user_id
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.BatchPermissionCheckRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.PermissionCheckItem'
+        minItems: 1
+        type: array
+    required:
+    - items
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.BatchPermissionCheckResponse:
+    properties:
+      results:
+        additionalProperties:
+          type: boolean
+        type: object
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.GrantPermissionRequest:
+    properties:
+      method:
+        type: string
+      path:
+        type: string
+      role:
+        type: string
+    required:
+    - method
+    - path
+    - role
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.PermissionCheckItem:
+    properties:
+      action:
+        type: string
+      resource:
+        type: string
+    required:
+    - action
+    - resource
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleInheritanceRequest:
+    properties:
+      child_role:
+        type: string
+      parent_role:
+        type: string
+    required:
+    - child_role
+    - parent_role
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.UpdatePermissionRequest:
+    properties:
+      new_permission:
+        items:
+          type: string
+        maxItems: 3
+        minItems: 3
+        type: array
+      old_permission:
+        items:
+          type: string
+        maxItems: 3
+        minItems: 3
+        type: array
+    required:
+    - new_permission
+    - old_permission
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.CreateRoleRequest:
     properties:
       description:
@@ -165,6 +309,13 @@ definitions:
         type: string
       name:
         type: string
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.UpdateRoleRequest:
+    properties:
+      description:
+        type: string
+    required:
+    - description
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.RegisterUserRequest:
     properties:
@@ -317,6 +468,16 @@ definitions:
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAuditLogListResponseWrapper:
+    properties:
+      data:
+        items:
+          additionalProperties: true
+          type: object
+        type: array
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointListResponseWrapper:
     properties:
       data:
@@ -356,6 +517,17 @@ definitions:
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerPermissionListResponseWrapper:
+    properties:
+      data:
+        items:
+          items:
+            type: string
+          type: array
+        type: array
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleListResponseWrapper:
     properties:
       data:
@@ -369,6 +541,19 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.RoleResponse'
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper:
+    properties:
+      data: {}
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerTokenResponseWrapper:
+    properties:
+      data:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.TokenResponse'
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
@@ -563,6 +748,78 @@ paths:
       summary: Get access rights with dynamic filters
       tags:
       - access-rights
+  /audit-logs/export:
+    get:
+      description: Exports audit logs to CSV format within a date range.
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: from_date
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: to_date
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: CSV file download
+          schema:
+            type: file
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Export audit logs
+      tags:
+      - audit-logs
+  /audit-logs/search:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves audit logs with dynamic filtering and pagination.
+      parameters:
+      - description: Dynamic filter and sort criteria
+        in: body
+        name: filter
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAuditLogListResponseWrapper'
+        "400":
+          description: Invalid filter format
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Search audit logs
+      tags:
+      - audit-logs
   /auth/forgot-password:
     post:
       consumes:
@@ -658,6 +915,29 @@ paths:
       security:
       - BearerAuth: []
       summary: Logout user
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refreshes access and refresh tokens using the refresh token cookie.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerTokenResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      summary: Refresh access token
       tags:
       - auth
   /auth/resend-verification:
@@ -863,6 +1143,652 @@ paths:
       summary: Get endpoints with dynamic filters
       tags:
       - endpoints
+  /organizations:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new organization with the current user as owner
+      parameters:
+      - description: Organization creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.CreateOrganizationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "409":
+          description: Slug already exists
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Create organization
+      tags:
+      - organizations
+  /organizations/{id}:
+    delete:
+      description: Deletes an organization (owner only)
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "403":
+          description: Forbidden (not owner)
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Organization not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Delete organization
+      tags:
+      - organizations
+    get:
+      description: Retrieves organization details by its ID
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Organization not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get organization by ID
+      tags:
+      - organizations
+    put:
+      consumes:
+      - application/json
+      description: Updates organization details (name, settings)
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UpdateOrganizationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Organization not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Update organization
+      tags:
+      - organizations
+  /organizations/me:
+    get:
+      description: Retrieves all organizations the current user is a member of
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UserOrganizationsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get my organizations
+      tags:
+      - organizations
+  /organizations/slug/{slug}:
+    get:
+      description: Retrieves organization details by its slug
+      parameters:
+      - description: Organization Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Organization not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get organization by slug
+      tags:
+      - organizations
+  /permissions:
+    get:
+      description: Retrieves all Casbin policies.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerPermissionListResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get all permissions
+      tags:
+      - permissions
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing Casbin policy.
+      parameters:
+      - description: Update Permission Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.UpdatePermissionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Permission updated successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Update permission
+      tags:
+      - permissions
+  /permissions/assign-role:
+    post:
+      consumes:
+      - application/json
+      description: Assigns a role to a specified user (Casbin).
+      parameters:
+      - description: Assign Role Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role assigned successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Assign role to user
+      tags:
+      - permissions
+  /permissions/check-batch:
+    post:
+      consumes:
+      - application/json
+      description: Checks multiple permissions for the current user in a single request.
+      parameters:
+      - description: Batch Check Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.BatchPermissionCheckRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.BatchPermissionCheckResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Batch check permissions
+      tags:
+      - permissions
+  /permissions/grant:
+    post:
+      consumes:
+      - application/json
+      description: Grants a permission (path + method) to a role (Casbin).
+      parameters:
+      - description: Grant Permission Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.GrantPermissionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Permission granted successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Grant permission to role
+      tags:
+      - permissions
+  /permissions/inheritance:
+    delete:
+      consumes:
+      - application/json
+      description: Removes a parent-child relationship between two roles.
+      parameters:
+      - description: Role Inheritance Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleInheritanceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role inheritance removed successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Remove role inheritance
+      tags:
+      - permissions
+    post:
+      consumes:
+      - application/json
+      description: Creates a parent-child relationship between two roles.
+      parameters:
+      - description: Role Inheritance Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleInheritanceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role inheritance added successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Add role inheritance
+      tags:
+      - permissions
+  /permissions/parents/{role}:
+    get:
+      description: Retrieves all parent roles for a given role.
+      parameters:
+      - description: Role name
+        in: path
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of parent roles
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Role is required
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get parent roles
+      tags:
+      - permissions
+  /permissions/revoke:
+    post:
+      consumes:
+      - application/json
+      description: Revokes a permission (path + method) from a role (Casbin).
+      parameters:
+      - description: Revoke Permission Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.GrantPermissionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Permission revoked successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Revoke permission from role
+      tags:
+      - permissions
+  /permissions/revoke-role:
+    post:
+      consumes:
+      - application/json
+      description: Revokes a role from a specified user (Casbin).
+      parameters:
+      - description: Revoke Role Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role revoked successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Revoke role from user
+      tags:
+      - permissions
+  /permissions/roles/{role}:
+    get:
+      description: Retrieves all permissions assigned to a specific role.
+      parameters:
+      - description: Role name
+        in: path
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerPermissionListResponseWrapper'
+        "400":
+          description: Role is required
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get permissions for role
+      tags:
+      - permissions
   /roles:
     get:
       description: Get a list of all available roles.
@@ -952,6 +1878,48 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete role
+      tags:
+      - roles
+    put:
+      description: Update a role by ID.
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role Update Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Role not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Update role
       tags:
       - roles
   /roles/search:
