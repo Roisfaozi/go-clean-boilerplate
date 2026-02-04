@@ -18,6 +18,7 @@ import { auditApi, AuditLog } from "~/lib/api/audit";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Badge } from "~/components/ui/badge";
+import { ActivityChart } from "~/components/dashboard/activity-chart";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -112,6 +113,42 @@ export default function DashboardPage() {
           iconName="Activity"
           description="No incidents reported"
         />
+      </div>
+
+      <div className="grid grid-cols-1 gap-[var(--spacing-gap)] lg:grid-cols-2">
+        <ActivityChart />
+        <div className="rounded-[var(--radius-lg)] border bg-card p-6 text-card-foreground shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold tracking-tight text-primary">
+              System Insights
+            </h2>
+            <Badge variant="outline" className="bg-primary/5">
+              Experimental
+            </Badge>
+          </div>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-dashed bg-muted/30 p-4">
+              <p className="text-muted-foreground text-sm leading-relaxed italic">
+                "User engagement has increased by 12% compared to last week.
+                Most active role: role:admin."
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-md border p-3">
+                <span className="text-muted-foreground text-[10px] font-bold uppercase">
+                  Latency
+                </span>
+                <div className="text-xl font-mono">24ms</div>
+              </div>
+              <div className="rounded-md border p-3">
+                <span className="text-muted-foreground text-[10px] font-bold uppercase">
+                  Errors
+                </span>
+                <div className="text-emerald-500 text-xl font-mono">0.0%</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Zone B & C: Main Content + Quick Actions */}
