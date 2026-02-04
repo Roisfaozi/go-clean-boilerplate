@@ -67,10 +67,10 @@ func TestScenario_RBAC_Orchestration(t *testing.T) {
 	err = permService.AssignRoleToUser(ctx, user.ID, roleName)
 	require.NoError(t, err)
 
-	ok, err := env.Enforcer.Enforce(user.ID, endpoint.Path, endpoint.Method)
+	ok, err := env.Enforcer.Enforce(user.ID, "global", endpoint.Path, endpoint.Method)
 	require.NoError(t, err)
 	assert.True(t, ok, "User should be able to access the endpoint granted via role")
 
-	ok, _ = env.Enforcer.Enforce(user.ID, endpoint.Path, "DELETE")
+	ok, _ = env.Enforcer.Enforce(user.ID, "global", endpoint.Path, "DELETE")
 	assert.False(t, ok, "User should not have DELETE permission")
 }

@@ -100,10 +100,9 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 
 		roleAdded := false
 		if u.Enforcer != nil {
-			_, err := u.Enforcer.AddGroupingPolicy(user.ID, "role:user")
+			_, err := u.Enforcer.AddGroupingPolicy(user.ID, "role:user", "global")
 			if err != nil {
 				u.Log.Errorf("Failed to assign default role: %v", err)
-
 				return exception.ErrInternalServer
 			}
 			roleAdded = true
@@ -122,7 +121,7 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 				u.Log.Errorf("Failed to create audit log (rollback triggered): %v", err)
 
 				if roleAdded && u.Enforcer != nil {
-					if _, errComp := u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID); errComp != nil {
+					if _, errComp := u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID, "", "global"); errComp != nil {
 						u.Log.Errorf("Failed to rollback Casbin policy: %v", errComp)
 					}
 				}
@@ -227,27 +226,37 @@ func (u *userUseCaseImpl) Update(ctx context.Context, request *model.UpdateUserR
 		user.Password = string(hashedPassword)
 	}
 
-	if err := u.Repo.Update(ctx, user); err != nil {
-		u.Log.Errorf("Failed to update user: %v", err)
-		return nil, exception.ErrInternalServer
-	}
+	err = u.DB.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := u.Repo.Update(txCtx, user); err != nil {
+			u.Log.Errorf("Failed to update user: %v", err)
+			return exception.ErrInternalServer
+		}
 
-	if u.AuditUC != nil {
-		newVals := make(map[string]interface{})
-		if request.Name != "" {
-			newVals["name"] = request.Name
+		if u.AuditUC != nil {
+			newVals := make(map[string]interface{})
+			if request.Name != "" {
+				newVals["name"] = request.Name
+			}
+			if request.Username != "" {
+				newVals["username"] = request.Username
+			}
+
+			if err := u.AuditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+				UserID:    user.ID,
+				Action:    "UPDATE",
+				Entity:    "User",
+				EntityID:  user.ID,
+				NewValues: newVals,
+			}); err != nil {
+				u.Log.Errorf("Failed to log activity for update: %v", err)
+				return exception.ErrInternalServer
+			}
 		}
-		if request.Username != "" {
-			newVals["username"] = request.Username
-		}
-		
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
-			UserID:    user.ID,
-			Action:    "UPDATE",
-			Entity:    "User",
-			EntityID:  user.ID,
-			NewValues: newVals,
-		})
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return converter.UserToResponse(user), nil
@@ -263,32 +272,35 @@ func (u *userUseCaseImpl) UpdateStatus(ctx context.Context, userID, status strin
 		return exception.ErrNotFound
 	}
 
-	if err := u.Repo.UpdateStatus(ctx, userID, status); err != nil {
-		u.Log.Errorf("Failed to update user status: %v", err)
-		return exception.ErrInternalServer
-	}
+	return u.DB.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := u.Repo.UpdateStatus(txCtx, userID, status); err != nil {
+			u.Log.Errorf("Failed to update user status: %v", err)
+			return exception.ErrInternalServer
+		}
 
-	if status == entity.UserStatusBanned || status == entity.UserStatusSuspended {
-		if u.AuthUC != nil {
-			if err := u.AuthUC.RevokeAllSessions(ctx, userID); err != nil {
-				u.Log.Errorf("Failed to revoke sessions for user %s: %v", userID, err)
+		if status == entity.UserStatusBanned || status == entity.UserStatusSuspended {
+			if u.AuthUC != nil {
+				if err := u.AuthUC.RevokeAllSessions(txCtx, userID); err != nil {
+					u.Log.Errorf("Failed to revoke sessions for user %s: %v", userID, err)
+					return exception.ErrInternalServer
+				}
 			}
 		}
-	}
 
-	if u.AuditUC != nil {
-		if err := u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
-			UserID:    userID,
-			Action:    "UPDATE_STATUS",
-			Entity:    "User",
-			EntityID:  userID,
-			NewValues: map[string]interface{}{"status": status},
-		}); err != nil {
-			u.Log.Warnf("Failed to log activity: %v", err)
+		if u.AuditUC != nil {
+			if err := u.AuditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+				UserID:    userID,
+				Action:    "UPDATE_STATUS",
+				Entity:    "User",
+				EntityID:  userID,
+				NewValues: map[string]interface{}{"status": status},
+			}); err != nil {
+				u.Log.Errorf("Failed to log activity for status update: %v", err)
+				return exception.ErrInternalServer
+			}
 		}
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error) {
@@ -383,12 +395,12 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 		if u.Enforcer != nil {
 
 			var err error
-			oldRoles, err = u.Enforcer.GetRolesForUser(user.ID)
+			oldRoles, err = u.Enforcer.GetRolesForUser(user.ID, "global")
 			if err != nil {
 				u.Log.Warnf("Failed to fetch roles for backup in delete: %v", err)
 			}
 
-			_, err = u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID)
+			_, err = u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID, "", "global")
 			if err != nil {
 				u.Log.Errorf("Failed to remove user policies: %v", err)
 				return exception.ErrInternalServer
@@ -411,7 +423,7 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 
 				if u.Enforcer != nil && len(oldRoles) > 0 {
 					for _, role := range oldRoles {
-						if _, errComp := u.Enforcer.AddGroupingPolicy(user.ID, role); errComp != nil {
+						if _, errComp := u.Enforcer.AddGroupingPolicy(user.ID, role, "global"); errComp != nil {
 							u.Log.Errorf("Failed to restore role %s during rollback: %v", role, errComp)
 						}
 					}
@@ -431,4 +443,3 @@ func (u *userUseCaseImpl) HardDeleteSoftDeletedUsers(ctx context.Context, retent
 	}
 	return nil
 }
-

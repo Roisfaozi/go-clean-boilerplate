@@ -2,12 +2,19 @@ package model
 
 import (
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
 type LoginRequest struct {
 	Username  string `json:"username" validate:"required,min=3,max=50,xss"`
+	Password  string `json:"password" validate:"required,min=8,max=72"`
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
+}
+
+type RegisterRequest struct {
+	Name      string `json:"name" validate:"required,min=3,max=100,xss"`
+	Username  string `json:"username" validate:"required,min=3,max=50,xss"`
+	Email     string `json:"email" validate:"required,email,max=100"`
 	Password  string `json:"password" validate:"required,min=8,max=72"`
 	IPAddress string `json:"-"`
 	UserAgent string `json:"-"`
@@ -64,14 +71,4 @@ type ResetPasswordRequest struct {
 
 type VerifyEmailRequest struct {
 	Token string `json:"token" validate:"required,max=500"`
-}
-
-func (r *LoginRequest) Validate() error {
-	validate := validator.New()
-	return validate.Struct(r)
-}
-
-func (r *RefreshRequest) Validate() error {
-	validate := validator.New()
-	return validate.Struct(r)
 }

@@ -9,6 +9,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
@@ -111,10 +113,13 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 	logger.Infof("Storage provider initialized: %s", cfg.Storage.Driver)
 
+
+
 	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
+	organizationRepository := orgRepo.NewOrganizationRepository(dbConnection)
 
 	// Audit Module (Initialize early to inject into others)
-	auditModule := audit.NewAuditModule(dbConnection, logger)
+	auditModule := audit.NewAuditModule(dbConnection, logger, validate, wsManager)
 
 	// Inject TaskDistributor to AuthModule
 	authModule := auth.NewAuthModule(
@@ -131,6 +136,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		enforcer,
 		auditModule,
 		taskDistributor,
+		organizationRepository,
 	)
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, storageProvider)
@@ -140,6 +146,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	roleModule := role.NewRoleModule(dbConnection, logger, validate, tm)
 
 	accessModule := access.NewAccessModule(dbConnection, logger, validate)
+
+	organizationModule := organization.NewOrganizationModule(dbConnection, redisClient, taskDistributor, userModule.UserRepo, logger, validate, tm, enforcer)
 
 	logger.Info("Application modules initialized.")
 
@@ -151,7 +159,19 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		logger,
 	)
 
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler)
+	// Map AppConfig to WorkerConfig (Manual mapping to avoid cycle)
+	workerCfg := worker.WorkerConfig{
+		SMTP: worker.SMTPConfig{
+			Host:       cfg.SMTP.Host,
+			Port:       cfg.SMTP.Port,
+			Username:   cfg.SMTP.Username,
+			Password:   cfg.SMTP.Password,
+			FromSender: cfg.SMTP.FromSender,
+			FromEmail:  cfg.SMTP.FromEmail,
+		},
+	}
+
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler, workerCfg)
 	scheduler := worker.NewScheduler(redisOpt, logger)
 	scheduler.RegisterScheduledTasks()
 
@@ -159,6 +179,11 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	authUseCase := authModule.AuthController.AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger)
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
+	tenantMiddleware := middleware.NewTenantMiddleware(
+		organizationModule.OrgRepo,
+		organizationModule.Reader(),
+		logger,
+	)
 	logger.Info("Middleware initialized.")
 
 	configRouter := router.RouterConfig{
@@ -188,9 +213,11 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		permissionModule,
 		accessModule,
 		roleModule,
+		organizationModule,
 		auditModule,
 		authMiddleware,
 		casbinMiddleware,
+		tenantMiddleware,
 		wsController,
 		sseManager,
 		dbConnection,

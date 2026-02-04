@@ -126,7 +126,7 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 }
 
 func (env *TestEnvironment) Cleanup() {
-	
+
 }
 
 func connectWithRetry(connStr string, maxRetries int) (*gorm.DB, error) {
@@ -185,13 +185,13 @@ func SetupRedisContainer(ctx context.Context) (*redisContainer.RedisContainer, s
 	// The function signature in test expects (container, port), but actually it uses it as Addr.
 	// Let's return the full address as "port" string for simplicity in the test usage which does fmt.Sprintf("localhost:%s", port) - WAIT.
 	// If test does `fmt.Sprintf("localhost:%s", redisPort)`, it expects ONLY port.
-	
+
 	// Let's get the mapped port.
 	p, err := redisC.MappedPort(ctx, "6379")
 	if err != nil {
 		return nil, "", err
 	}
-	
+
 	return redisC, p.Port(), nil
 }
 

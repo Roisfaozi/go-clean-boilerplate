@@ -30,8 +30,8 @@ func TestAuditExportE2E(t *testing.T) {
 		u.Email = "export@admin.com"
 		u.Password = passHash
 	})
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
 	server.Enforcer.SavePolicy()
 
 	// Login Admin
@@ -79,7 +79,7 @@ func TestAuditExportE2E(t *testing.T) {
 	// Test Export
 	// Get today's date (UTC to match server handling)
 	today := time.Now().UTC().Format("2006-01-02")
-	
+
 	resp = client.GET("/api/v1/audit-logs/export?from_date="+today+"&to_date="+today, setup.WithAuth(adminToken))
 	require.Equal(t, 200, resp.StatusCode)
 

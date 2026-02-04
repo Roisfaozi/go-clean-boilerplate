@@ -630,7 +630,6 @@ func (_mock *MockTokenRepository) IncrementLoginAttempts(ctx context.Context, us
 	} else {
 		r0 = ret.Get(0).(int)
 	}
-
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, username)
 	} else {
@@ -669,8 +668,8 @@ func (_c *MockTokenRepository_IncrementLoginAttempts_Call) Run(run func(ctx cont
 	return _c
 }
 
-func (_c *MockTokenRepository_IncrementLoginAttempts_Call) Return(attempts int, err error) *MockTokenRepository_IncrementLoginAttempts_Call {
-	_c.Call.Return(attempts, err)
+func (_c *MockTokenRepository_IncrementLoginAttempts_Call) Return(n int, err error) *MockTokenRepository_IncrementLoginAttempts_Call {
+	_c.Call.Return(n, err)
 	return _c
 }
 

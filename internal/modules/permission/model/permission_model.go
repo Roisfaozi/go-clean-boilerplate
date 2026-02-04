@@ -1,19 +1,19 @@
 package model
 
 type AssignRoleRequest struct {
-	UserID string `json:"user_id" validate:"required"`
-	Role   string `json:"role" validate:"required"`
+	UserID string `json:"user_id" validate:"required,xss"`
+	Role   string `json:"role" validate:"required,xss"`
 }
 
 type GrantPermissionRequest struct {
-	Role   string `json:"role" validate:"required"`
-	Path   string `json:"path" validate:"required"`
-	Method string `json:"method" validate:"required"`
+	Role   string `json:"role" validate:"required,xss"`
+	Path   string `json:"path" validate:"required,xss"`
+	Method string `json:"method" validate:"required,xss"`
 }
 
 type UpdatePermissionRequest struct {
-	OldPermission []string `json:"old_permission" validate:"required,min=3,max=3"`
-	NewPermission []string `json:"new_permission" validate:"required,min=3,max=3"`
+	OldPermission []string `json:"old_permission" validate:"required,min=4,max=4,dive,xss"`
+	NewPermission []string `json:"new_permission" validate:"required,min=4,max=4,dive,xss"`
 }
 
 type RoleInheritanceRequest struct {
@@ -22,8 +22,8 @@ type RoleInheritanceRequest struct {
 }
 
 type PermissionCheckItem struct {
-	Resource string `json:"resource" validate:"required"`
-	Action   string `json:"action" validate:"required"`
+	Resource string `json:"resource" validate:"required,xss"`
+	Action   string `json:"action" validate:"required,xss"`
 }
 
 type BatchPermissionCheckRequest struct {

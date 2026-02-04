@@ -11,7 +11,7 @@ type CreateAccessRightRequest struct {
 
 type CreateEndpointRequest struct {
 	Path   string `json:"path" validate:"required,min=1,max=191,xss"`
-	Method string `json:"method" validate:"required,min=1,max=10"`
+	Method string `json:"method" validate:"required,min=1,max=10,xss"`
 }
 
 type LinkEndpointRequest struct {

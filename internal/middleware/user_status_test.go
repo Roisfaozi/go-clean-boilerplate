@@ -18,11 +18,11 @@ import (
 func setupUserStatusTest() (*gin.Engine, *mocks.MockUserRepository, *logrus.Logger) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	
+
 	mockRepo := new(mocks.MockUserRepository)
 	log := logrus.New()
 	log.SetOutput(io.Discard)
-	
+
 	return router, mockRepo, log
 }
 
@@ -32,7 +32,7 @@ func setupUserStatusTest() (*gin.Engine, *mocks.MockUserRepository, *logrus.Logg
 
 func TestUserStatusMiddleware_ActiveUser(t *testing.T) {
 	router, mockRepo, log := setupUserStatusTest()
-	
+
 	userID := "user-123"
 	activeUser := &entity.User{
 		ID:       userID,
@@ -48,14 +48,14 @@ func TestUserStatusMiddleware_ActiveUser(t *testing.T) {
 		c.Next()
 	})
 	router.Use(UserStatusMiddleware(mockRepo, log))
-	
+
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "success"})
 	})
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
-	
+
 	router.ServeHTTP(w, req)
 
 	// Assert
@@ -68,7 +68,7 @@ func TestUserStatusMiddleware_ActiveUser(t *testing.T) {
 
 func TestUserStatusMiddleware_SuspendedUser(t *testing.T) {
 	router, mockRepo, log := setupUserStatusTest()
-	
+
 	userID := "user-456"
 	suspendedUser := &entity.User{
 		ID:       userID,
@@ -84,14 +84,14 @@ func TestUserStatusMiddleware_SuspendedUser(t *testing.T) {
 		c.Next()
 	})
 	router.Use(UserStatusMiddleware(mockRepo, log))
-	
+
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "success"})
 	})
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
-	
+
 	router.ServeHTTP(w, req)
 
 	// Assert
@@ -102,7 +102,7 @@ func TestUserStatusMiddleware_SuspendedUser(t *testing.T) {
 
 func TestUserStatusMiddleware_BannedUser(t *testing.T) {
 	router, mockRepo, log := setupUserStatusTest()
-	
+
 	userID := "user-789"
 	bannedUser := &entity.User{
 		ID:       userID,
@@ -118,14 +118,14 @@ func TestUserStatusMiddleware_BannedUser(t *testing.T) {
 		c.Next()
 	})
 	router.Use(UserStatusMiddleware(mockRepo, log))
-	
+
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "success"})
 	})
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
-	
+
 	router.ServeHTTP(w, req)
 
 	// Assert
@@ -136,17 +136,17 @@ func TestUserStatusMiddleware_BannedUser(t *testing.T) {
 
 func TestUserStatusMiddleware_NoUserContext(t *testing.T) {
 	router, mockRepo, log := setupUserStatusTest()
-	
+
 	// Don't set user_id in context
 	router.Use(UserStatusMiddleware(mockRepo, log))
-	
+
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "success"})
 	})
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
-	
+
 	router.ServeHTTP(w, req)
 
 	// Assert
@@ -159,7 +159,7 @@ func TestUserStatusMiddleware_NoUserContext(t *testing.T) {
 
 func TestUserStatusMiddleware_UserNotFoundInDB(t *testing.T) {
 	router, mockRepo, log := setupUserStatusTest()
-	
+
 	userID := "nonexistent-user"
 
 	// Mock repository - User not found
@@ -170,14 +170,14 @@ func TestUserStatusMiddleware_UserNotFoundInDB(t *testing.T) {
 		c.Next()
 	})
 	router.Use(UserStatusMiddleware(mockRepo, log))
-	
+
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "success"})
 	})
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
-	
+
 	router.ServeHTTP(w, req)
 
 	// Assert
@@ -188,7 +188,7 @@ func TestUserStatusMiddleware_UserNotFoundInDB(t *testing.T) {
 
 func TestUserStatusMiddleware_DatabaseError(t *testing.T) {
 	router, mockRepo, log := setupUserStatusTest()
-	
+
 	userID := "user-101"
 
 	// Mock repository - Database error
@@ -199,14 +199,14 @@ func TestUserStatusMiddleware_DatabaseError(t *testing.T) {
 		c.Next()
 	})
 	router.Use(UserStatusMiddleware(mockRepo, log))
-	
+
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "success"})
 	})
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
-	
+
 	router.ServeHTTP(w, req)
 
 	// Assert

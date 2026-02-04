@@ -46,8 +46,8 @@ func TestAssignRoleToUser_Success(t *testing.T) {
 	// Mock RoleRepo
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(&roleEntity.Role{Name: roleName}, nil)
 
-	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID).Return(true, nil)
-	deps.Enforcer.On("AddGroupingPolicy", userID, roleName).Return(true, nil)
+	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, "", "global").Return(true, nil)
+	deps.Enforcer.On("AddGroupingPolicy", userID, roleName, "global").Return(true, nil)
 
 	err := uc.AssignRoleToUser(context.Background(), userID, roleName)
 
@@ -124,7 +124,7 @@ func TestAssignRoleToUser_EnforcerRemoveError(t *testing.T) {
 	deps.UserRepo.On("FindByID", mock.Anything, userID).Return(&userEntity.User{ID: userID}, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(&roleEntity.Role{Name: roleName}, nil)
 
-	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID).Return(false, errors.New("casbin error"))
+	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, "", "global").Return(false, errors.New("casbin error"))
 
 	err := uc.AssignRoleToUser(context.Background(), userID, roleName)
 
@@ -139,8 +139,8 @@ func TestAssignRoleToUser_EnforcerAddError(t *testing.T) {
 	deps.UserRepo.On("FindByID", mock.Anything, userID).Return(&userEntity.User{ID: userID}, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(&roleEntity.Role{Name: roleName}, nil)
 
-	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID).Return(true, nil)
-	deps.Enforcer.On("AddGroupingPolicy", userID, roleName).Return(false, errors.New("casbin error"))
+	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, "", "global").Return(true, nil)
+	deps.Enforcer.On("AddGroupingPolicy", userID, roleName, "global").Return(false, errors.New("casbin error"))
 
 	err := uc.AssignRoleToUser(context.Background(), userID, roleName)
 
@@ -163,7 +163,7 @@ func TestGrantPermissionToRole_Success(t *testing.T) {
 
 	role, path, method := "editor", "/api/v1/articles", "POST"
 	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(&roleEntity.Role{Name: role}, nil)
-	deps.Enforcer.On("AddPolicy", role, path, method).Return(true, nil)
+	deps.Enforcer.On("AddPolicy", role, "global", path, method).Return(true, nil)
 
 	err := uc.GrantPermissionToRole(context.Background(), role, path, method)
 
@@ -201,7 +201,7 @@ func TestGrantPermissionToRole_EnforcerError(t *testing.T) {
 	role, path, method := "role", "/path", "POST"
 
 	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(&roleEntity.Role{Name: role}, nil)
-	deps.Enforcer.On("AddPolicy", role, path, method).Return(false, errors.New("casbin error"))
+	deps.Enforcer.On("AddPolicy", role, "global", path, method).Return(false, errors.New("casbin error"))
 
 	err := uc.GrantPermissionToRole(context.Background(), role, path, method)
 	assert.Error(t, err)
@@ -220,7 +220,7 @@ func TestRevokePermissionFromRole_Success(t *testing.T) {
 
 	role, path, method := "editor", "/api/v1/articles", "DELETE"
 	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(&roleEntity.Role{Name: role}, nil)
-	deps.Enforcer.On("RemovePolicy", role, path, method).Return(true, nil)
+	deps.Enforcer.On("RemovePolicy", role, "global", path, method).Return(true, nil)
 
 	err := uc.RevokePermissionFromRole(context.Background(), role, path, method)
 
@@ -256,7 +256,7 @@ func TestRevokePermissionFromRole_EnforcerError(t *testing.T) {
 	deps, uc := setupPermissionTest()
 	role, path, method := "role", "/path", "DELETE"
 	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(&roleEntity.Role{Name: role}, nil)
-	deps.Enforcer.On("RemovePolicy", role, path, method).Return(false, errors.New("casbin error"))
+	deps.Enforcer.On("RemovePolicy", role, "global", path, method).Return(false, errors.New("casbin error"))
 
 	err := uc.RevokePermissionFromRole(context.Background(), role, path, method)
 	assert.Error(t, err)
@@ -267,11 +267,11 @@ func TestRevokePermissionFromRole_PolicyNotFound(t *testing.T) {
 	deps, uc := setupPermissionTest()
 	role, path, method := "role", "/path", "DELETE"
 	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(&roleEntity.Role{Name: role}, nil)
-	deps.Enforcer.On("RemovePolicy", role, path, method).Return(false, nil)
+	deps.Enforcer.On("RemovePolicy", role, "global", path, method).Return(false, nil)
 
 	err := uc.RevokePermissionFromRole(context.Background(), role, path, method)
 	assert.Error(t, err)
-	assert.Equal(t, errors.New("policy to revoke not found"), err)
+	assert.Equal(t, errors.New("policy to revoke not found in domain global"), err)
 }
 
 func TestRevokePermissionFromRole_EmptyInput(t *testing.T) {

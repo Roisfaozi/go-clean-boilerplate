@@ -14,6 +14,7 @@ import (
 	authModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	authRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	authUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
@@ -36,9 +37,10 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
+	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB)
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, oRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
 	userUC := userUseCase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil)
 
 	ctx := context.Background()

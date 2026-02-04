@@ -34,7 +34,7 @@ func TestPermissionIntegration_AssignRoleToUser(t *testing.T) {
 	err := permUC.AssignRoleToUser(context.Background(), user.ID, roleName)
 	assert.NoError(t, err)
 
-	roles, err := env.Enforcer.GetRolesForUser(user.ID)
+	roles, err := env.Enforcer.GetRolesForUser(user.ID, "global")
 	assert.NoError(t, err)
 	assert.Contains(t, roles, roleName)
 }
@@ -51,7 +51,7 @@ func TestPermissionIntegration_GrantPermission(t *testing.T) {
 	err := permUC.GrantPermissionToRole(context.Background(), roleName, "/api/v1/articles", "POST")
 	assert.NoError(t, err)
 
-	ok, _ := env.Enforcer.Enforce(roleName, "/api/v1/articles", "POST")
+	ok, _ := env.Enforcer.Enforce(roleName, "global", "/api/v1/articles", "POST")
 	assert.True(t, ok)
 }
 
@@ -63,12 +63,12 @@ func TestPermissionIntegration_RevokePermission(t *testing.T) {
 	permUC := setupPermissionIntegration(env)
 	roleName := "viewer"
 	setup.CreateTestRole(t, env.DB, roleName)
-	_, _ = env.Enforcer.AddPolicy(roleName, "/api/v1/articles", "GET")
+	_, _ = env.Enforcer.AddPolicy(roleName, "global", "/api/v1/articles", "GET")
 
 	err := permUC.RevokePermissionFromRole(context.Background(), roleName, "/api/v1/articles", "GET")
 	assert.NoError(t, err)
 
-	ok, _ := env.Enforcer.Enforce(roleName, "/api/v1/articles", "GET")
+	ok, _ := env.Enforcer.Enforce(roleName, "global", "/api/v1/articles", "GET")
 	assert.False(t, ok)
 }
 
@@ -80,16 +80,16 @@ func TestPermissionIntegration_UpdatePermission(t *testing.T) {
 	permUC := setupPermissionIntegration(env)
 	roleName := "manager"
 	setup.CreateTestRole(t, env.DB, roleName)
-	oldP := []string{roleName, "/api/v1/old", "GET"}
-	newP := []string{roleName, "/api/v1/new", "POST"}
+	oldP := []string{roleName, "global", "/api/v1/old", "GET"}
+	newP := []string{roleName, "global", "/api/v1/new", "POST"}
 
-	_, _ = env.Enforcer.AddPolicy(oldP[0], oldP[1], oldP[2])
+	_, _ = env.Enforcer.AddPolicy(oldP[0], oldP[1], oldP[2], oldP[3])
 
 	ok, err := permUC.UpdatePermission(context.Background(), oldP, newP)
 	assert.NoError(t, err)
 	assert.True(t, ok)
 
-	ok, _ = env.Enforcer.Enforce(newP[0], newP[1], newP[2])
+	ok, _ = env.Enforcer.Enforce(newP[0], "global", newP[2], newP[3])
 	assert.True(t, ok)
 }
 
@@ -111,7 +111,7 @@ func TestPermissionIntegration_GetPermissionsForRole(t *testing.T) {
 	permUC := setupPermissionIntegration(env)
 	roleName := "role_for_list"
 	setup.CreateTestRole(t, env.DB, roleName)
-	_, _ = env.Enforcer.AddPolicy(roleName, "/res", "GET")
+	_, _ = env.Enforcer.AddPolicy(roleName, "global", "/res", "GET")
 
 	policies, err := permUC.GetPermissionsForRole(context.Background(), roleName)
 	assert.NoError(t, err)
@@ -130,8 +130,8 @@ func TestPermissionIntegration_FullLifecycle(t *testing.T) {
 	err := permUC.GrantPermissionToRole(context.Background(), roleName, "/api/v1/data", "GET")
 	require.NoError(t, err)
 
-	oldP := []string{roleName, "/api/v1/data", "GET"}
-	newP := []string{roleName, "/api/v1/data/updated", "POST"}
+	oldP := []string{roleName, "global", "/api/v1/data", "GET"}
+	newP := []string{roleName, "global", "/api/v1/data/updated", "POST"}
 	_, err = permUC.UpdatePermission(context.Background(), oldP, newP)
 	require.NoError(t, err)
 
@@ -175,6 +175,6 @@ func TestPermissionIntegration_Negative_RevokeNonExistentPermission(t *testing.T
 	setup.CreateTestRole(t, env.DB, roleName)
 
 	err := permUC.RevokePermissionFromRole(context.Background(), roleName, "/ghost", "GET")
-	
+
 	_ = err
 }

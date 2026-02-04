@@ -15,6 +15,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	authRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
@@ -37,7 +38,7 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
+	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
 	wsConfig := &ws.WebSocketConfig{}
 	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis)
@@ -48,12 +49,15 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 	enforcer := env.Enforcer
 	logger := env.Logger
 
+	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
+
 	return usecase.NewAuthUsecase(
 		5,              // MaxLoginAttempts
 		30*time.Minute, // LockoutDuration
 		jwtManager,
 		tokenRepo,
 		userRepo,
+		orgRepo,
 		tm,
 		logger,
 		wsManager,
@@ -72,7 +76,7 @@ func TestAuthIntegration_Login(t *testing.T) {
 	authUC, _ := setupAuthIntegration(env)
 	password := "SecurePass123!"
 	testUser := setup.CreateTestUser(t, env.DB, "authuser", "auth@example.com", password)
-	_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+	_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
 
 	t.Run("Success with Valid Credentials", func(t *testing.T) {
 		loginReq := model.LoginRequest{Username: "authuser", Password: password, IPAddress: "127.0.0.1", UserAgent: "Mozilla/5.0"}
@@ -163,7 +167,7 @@ func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 	authUC, jwtManager := setupAuthIntegration(env)
 	password := "password123"
 	testUser := setup.CreateTestUser(t, env.DB, "tokenuser", "token@example.com", password)
-	_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+	_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
 
 	_, refreshToken, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "tokenuser", Password: password})
 
@@ -280,7 +284,7 @@ func TestAuthIntegration_Security(t *testing.T) {
 
 	t.Run("Token Rotation Reuse Protection", func(t *testing.T) {
 		testUser := setup.CreateTestUser(t, env.DB, "reuse", "reuse@example.com", "pass")
-		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
 		_, rt1, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "reuse", Password: "pass"})
 
 		_, rt2, _ := authUC.RefreshToken(context.Background(), rt1)
@@ -294,7 +298,7 @@ func TestAuthIntegration_Security(t *testing.T) {
 
 	t.Run("Session Hijacking Prevention (Device Differentiation)", func(t *testing.T) {
 		testUser := setup.CreateTestUser(t, env.DB, "hijack", "hijack@example.com", "pass")
-		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
 
 		r1, _, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "hijack", Password: "pass", UserAgent: "D1"})
 		r2, _, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "hijack", Password: "pass", UserAgent: "D2"})
@@ -303,7 +307,7 @@ func TestAuthIntegration_Security(t *testing.T) {
 
 	t.Run("XSS in UserAgent Handling", func(t *testing.T) {
 		testUser := setup.CreateTestUser(t, env.DB, "xss", "xss@example.com", "pass")
-		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
 		_, _, err := authUC.Login(context.Background(), model.LoginRequest{Username: "xss", Password: "pass", UserAgent: "<script>alert(1)</script>"})
 		assert.NoError(t, err)
 	})

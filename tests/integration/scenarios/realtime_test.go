@@ -12,6 +12,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	authRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	authUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
@@ -42,7 +43,8 @@ func TestScenario_RealTime_LoginBroadcast(t *testing.T) {
 	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis)
 	go wsManager.Run()
 
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, tm, env.Logger, wsManager, nil, env.Enforcer, nil, nil)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, wsManager, nil, env.Enforcer, nil, nil)
 
 	pubsub := env.Redis.Subscribe(context.Background(), "ws_broadcast:global_notifications")
 	defer pubsub.Close()

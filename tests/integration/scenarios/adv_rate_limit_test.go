@@ -50,9 +50,9 @@ func TestScenario_AdvancedRateLimit_Tiers(t *testing.T) {
 	router := gin.New()
 
 	// Define limiters exactly as in router.go
-	publicLimiter := middleware.RateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeIP, 2, 60*time.Second) // 2 RPS for test
+	publicLimiter := middleware.RateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeIP, 2, 60*time.Second)   // 2 RPS for test
 	criticalLimiter := middleware.RateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeIP, 1, 60*time.Second) // 1 RPM for test
-	authLimiter := middleware.RateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeUser, 5, 60*time.Second) // 5 RPS for test
+	authLimiter := middleware.RateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeUser, 5, 60*time.Second)   // 5 RPS for test
 
 	// Mock Routes
 	router.GET("/public", publicLimiter, func(c *gin.Context) {

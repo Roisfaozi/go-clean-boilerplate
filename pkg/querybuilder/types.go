@@ -7,7 +7,7 @@ type Filter struct {
 }
 
 type SortModel struct {
-	ColId string `json:"colId" validate:"required,max=100"`
+	ColId string `json:"colId" validate:"required,max=100,xss"`
 	Sort  string `json:"sort" validate:"required,oneof=asc desc ASC DESC"`
 }
 
