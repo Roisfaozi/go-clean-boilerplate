@@ -59,16 +59,31 @@ func TestWebSocketE2E_NotificationFlow(t *testing.T) {
 
 	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
-	var notification struct {
-		Type    string `json:"type"`
-		UserID  string `json:"user_id"`
-		Message string `json:"message"`
+	// The WebSocket Manager wraps messages in an envelope:
+	// { "type": "message", "channel": "...", "data": { ... } }
+	var envelope struct {
+		Type    string          `json:"type"`
+		Channel string          `json:"channel"`
+		Data    json.RawMessage `json:"data"`
 	}
 
 	_, message, err := conn.ReadMessage()
 	require.NoError(t, err)
 
-	err = json.Unmarshal(message, &notification)
+	err = json.Unmarshal(message, &envelope)
+	require.NoError(t, err)
+
+	// Verify Envelope
+	assert.Equal(t, "message", envelope.Type)
+	assert.Equal(t, "global_notifications", envelope.Channel)
+
+	// Verify Inner Payload
+	var notification struct {
+		Type    string `json:"type"`
+		UserID  string `json:"user_id"`
+		Message string `json:"message"`
+	}
+	err = json.Unmarshal(envelope.Data, &notification)
 	require.NoError(t, err)
 
 	assert.Equal(t, "user_login", notification.Type)
