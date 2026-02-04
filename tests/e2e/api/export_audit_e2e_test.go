@@ -30,8 +30,8 @@ func TestAuditExportE2E(t *testing.T) {
 		u.Email = "export@admin.com"
 		u.Password = passHash
 	})
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
 	server.Enforcer.SavePolicy()
 
 	// Login Admin
