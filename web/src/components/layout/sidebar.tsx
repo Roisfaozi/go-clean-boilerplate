@@ -19,12 +19,22 @@ const navItems = [
   {
     title: "Dashboard",
     href: "/dashboard",
-    iconName: "LayoutDashboard" as const, // Lucide icon name
+    iconName: "LayoutDashboard" as const,
   },
   {
     title: "Users",
     href: "/dashboard/users",
+    iconName: "UserSearch" as const,
+  },
+  {
+    title: "Team Members",
+    href: "/dashboard/organization/members",
     iconName: "Users" as const,
+  },
+  {
+    title: "Org Settings",
+    href: "/dashboard/organization/settings",
+    iconName: "Building" as const,
   },
   {
     title: "Roles",
