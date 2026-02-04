@@ -47,7 +47,7 @@ func main() {
 		newRole := entity.Role{
 			ID:             newRoleID.String(),
 			Name:           superAdminRoleName,
-			OrganizationID: "global",
+			OrganizationID: ptrString("global"),
 			Description:    "Super Administrator with full access",
 			CreatedAt:      time.Now().UnixMilli(),
 			UpdatedAt:      time.Now().UnixMilli(),
@@ -100,17 +100,18 @@ func main() {
 			}
 			userID = newUserID.String()
 
-			newUser := userEntity.User{
-				ID:        userID,
-				Username:  adminUsername,
-				Email:     adminEmail,
-				Password:  string(hashedPwd),
-				Name:      "Super Admin",
-				Token:     "",
-				CreatedAt: time.Now().UnixMilli(),
-				UpdatedAt: time.Now().UnixMilli(),
-			}
-			if err := db.Create(&newUser).Error; err != nil {
+			now := time.Now().UnixMilli()
+			// Use map to create user to avoid issues with missing columns like 'avatar_url' in the database schema
+			if err := db.Table("users").Create(map[string]interface{}{
+				"id":         userID,
+				"username":   adminUsername,
+				"email":      adminEmail,
+				"password":   string(hashedPwd),
+				"name":       "Super Admin",
+				"token":      "",
+				"created_at": now,
+				"updated_at": now,
+			}).Error; err != nil {
 				log.Fatalf("Failed to create user: %v", err)
 			}
 			log.Printf("User '%s' created with ID: %s", adminUsername, userID)
@@ -140,4 +141,8 @@ func main() {
 	}
 
 	log.Println("Seeding process completed successfully.")
+}
+
+func ptrString(s string) *string {
+	return &s
 }
