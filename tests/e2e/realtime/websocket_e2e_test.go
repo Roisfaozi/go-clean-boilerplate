@@ -59,6 +59,7 @@ func TestWebSocketE2E_NotificationFlow(t *testing.T) {
 
 	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
+	// Parse the envelope first (WebSocketManager wraps messages in standard format)
 	var envelope struct {
 		Type    string          `json:"type"`
 		Channel string          `json:"channel"`
