@@ -42,7 +42,7 @@ func (_m *MockIEnforcer) EXPECT() *MockIEnforcer_Expecter {
 func (_mock *MockIEnforcer) AddGroupingPolicy(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments
 	if len(params) > 0 {
-		tmpRet = _mock.Called(params...)
+		tmpRet = _mock.Called(params)
 	} else {
 		tmpRet = _mock.Called()
 	}
@@ -111,7 +111,7 @@ func (_c *MockIEnforcer_AddGroupingPolicy_Call) RunAndReturn(run func(params ...
 func (_mock *MockIEnforcer) AddPolicy(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments
 	if len(params) > 0 {
-		tmpRet = _mock.Called(params...)
+		tmpRet = _mock.Called(params)
 	} else {
 		tmpRet = _mock.Called()
 	}
@@ -180,7 +180,7 @@ func (_c *MockIEnforcer_AddPolicy_Call) RunAndReturn(run func(params ...interfac
 func (_mock *MockIEnforcer) Enforce(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments
 	if len(params) > 0 {
-		tmpRet = _mock.Called(params...)
+		tmpRet = _mock.Called(params)
 	} else {
 		tmpRet = _mock.Called()
 	}
@@ -610,7 +610,7 @@ func (_c *MockIEnforcer_RemoveFilteredGroupingPolicy_Call) RunAndReturn(run func
 func (_mock *MockIEnforcer) RemovePolicy(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments
 	if len(params) > 0 {
-		tmpRet = _mock.Called(params...)
+		tmpRet = _mock.Called(params)
 	} else {
 		tmpRet = _mock.Called()
 	}

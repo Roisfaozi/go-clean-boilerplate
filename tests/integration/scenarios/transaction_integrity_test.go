@@ -46,7 +46,16 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 
 	expectedErr := errors.New("casbin connection error")
 
-	mockEnforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, "global").Return(false, expectedErr)
+	mockEnforcer.On("AddGroupingPolicy", mock.MatchedBy(func(args []interface{}) bool {
+		// The auto-generated mock passes variadic args as a single slice.
+		// We expect 3 args: UserID, Role, Domain.
+		if len(args) != 3 {
+			return false
+		}
+		// Verify domain is "global"
+		domain, ok := args[2].(string)
+		return ok && domain == "global"
+	})).Return(false, expectedErr)
 
 	req := &userModel.RegisterUserRequest{
 		Username: "rollback_user",

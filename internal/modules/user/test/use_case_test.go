@@ -45,6 +45,7 @@ func setupUserTest() (*userTestDeps, usecase.UserUseCase) {
 
 	log := logrus.New()
 	log.SetOutput(io.Discard)
+	log.SetLevel(logrus.FatalLevel)
 
 	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
 

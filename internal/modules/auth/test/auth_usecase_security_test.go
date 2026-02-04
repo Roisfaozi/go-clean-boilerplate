@@ -16,6 +16,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	mock_auth "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	mock_org "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	mock_permission "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
@@ -424,6 +425,7 @@ func TestLogin_NilEnforcer(t *testing.T) {
 
 	tokenRepo := new(mock_auth.MockTokenRepository)
 	userRepo := new(mock_user.MockUserRepository)
+	orgRepo := new(mock_org.MockOrganizationRepository)
 	tm := new(mocking.MockWithTransactionManager)
 	wsManager := new(mocking.MockManager)
 	auditUC := new(auditMocks.MockAuditUseCase)
@@ -438,7 +440,7 @@ func TestLogin_NilEnforcer(t *testing.T) {
 		jwtManager,
 		tokenRepo,
 		userRepo,
-		new(mock_org.MockOrganizationRepository),
+		orgRepo,
 		tm,
 		log,
 		wsManager,
@@ -461,7 +463,7 @@ func TestLogin_NilEnforcer(t *testing.T) {
 
 	userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 	tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 	auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
@@ -480,6 +482,7 @@ func TestLogin_NilAuditUC(t *testing.T) {
 
 	tokenRepo := new(mock_auth.MockTokenRepository)
 	userRepo := new(mock_user.MockUserRepository)
+	orgRepo := new(mock_org.MockOrganizationRepository)
 	tm := new(mocking.MockWithTransactionManager)
 	wsManager := new(mocking.MockManager)
 	enforcer := new(mock_permission.IEnforcer)
@@ -494,7 +497,7 @@ func TestLogin_NilAuditUC(t *testing.T) {
 		jwtManager,
 		tokenRepo,
 		userRepo,
-		new(mock_org.MockOrganizationRepository),
+		orgRepo,
 		tm,
 		log,
 		wsManager,
@@ -518,7 +521,7 @@ func TestLogin_NilAuditUC(t *testing.T) {
 	userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 	enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
 	tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)

@@ -3,6 +3,7 @@ package test
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -23,7 +24,8 @@ func TestUserXSSValidation(t *testing.T) {
 	v := validator.New()
 	_ = validation.RegisterCustomValidations(v)
 	logger := logrus.New()
-
+	logger.SetOutput(io.Discard)
+	logger.SetLevel(logrus.FatalLevel)
 	tests := []struct {
 		name         string
 		method       string

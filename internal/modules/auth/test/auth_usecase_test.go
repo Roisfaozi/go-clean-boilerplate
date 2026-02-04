@@ -119,7 +119,7 @@ func TestLogin_Success(t *testing.T) {
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{TestRole}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
 	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == user.ID && req.Action == "LOGIN" && req.Entity == "Auth" && req.IPAddress == loginReq.IPAddress
@@ -258,7 +258,7 @@ func TestLogin_AuditError(t *testing.T) {
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{TestRole}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
 	deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
 
@@ -938,7 +938,7 @@ func TestLogin_Success_NoRoles(t *testing.T) {
 
 	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
 	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == user.ID && req.Action == "LOGIN"
@@ -1246,8 +1246,8 @@ func TestRegister_Success(t *testing.T) {
 	// StoreToken
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	
-	// Broadcast
-	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	// FindUserOrganizations (Login)
+	deps.orgRepo.On("FindUserOrganizations", mock.Anything, createdUser.ID).Return([]*orgEntity.Organization{}, nil)
 	
 	// Audit Login
 	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {

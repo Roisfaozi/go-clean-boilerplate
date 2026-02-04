@@ -4,32 +4,40 @@ import (
 	"context"
 	"testing"
 
+	"fmt"
+	"io"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/glebarez/sqlite"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
-import (
-	"fmt"
-	"github.com/google/uuid"
-)
+
 
 func setupRoleRepo(t *testing.T) (repository.RoleRepository, *gorm.DB) {
 	uid, _ := uuid.NewV7()
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", uid.String())
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	require.NoError(t, err)
 
 	err = db.AutoMigrate(&entity.Role{})
 	require.NoError(t, err)
 
-	logger := logrus.New()
-	repo := repository.NewRoleRepository(db, logger)
+	// Silent Logrus
+	l := logrus.New()
+	l.SetOutput(io.Discard)
+	l.SetLevel(logrus.FatalLevel)
+
+	repo := repository.NewRoleRepository(db, l)
 	return repo, db
 }
 

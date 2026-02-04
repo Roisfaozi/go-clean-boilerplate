@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
@@ -28,7 +29,9 @@ func setupRoleTest() (*roleTestDeps, usecase.RoleUseCase) {
 		Repo: new(mocks.MockRoleRepository),
 		TM:   new(mocking.MockWithTransactionManager),
 	}
-	uc := usecase.NewRoleUseCase(logrus.New(), deps.TM, deps.Repo)
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+	uc := usecase.NewRoleUseCase(log, deps.TM, deps.Repo)
 	return deps, uc
 }
 

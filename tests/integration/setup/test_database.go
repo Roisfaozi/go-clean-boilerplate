@@ -26,6 +26,7 @@ func RunMigrations(t *testing.T, db *gorm.DB) {
 		&authEntity.EmailVerificationToken{},
 		&orgEntity.Organization{},
 		&orgEntity.OrganizationMember{},
+		&orgEntity.InvitationToken{},
 	)
 	if t != nil {
 		require.NoError(t, err, "Failed to run migrations")
@@ -48,11 +49,12 @@ func RunMigrations(t *testing.T, db *gorm.DB) {
 }
 
 func SeedTestData(t *testing.T, db *gorm.DB) {
+	globalOrg := "global"
 	roles := []roleEntity.Role{
-		{ID: "role:superadmin", Name: "role:superadmin", OrganizationID: "global", Description: "Super Administrator role"},
-		{ID: "role:admin", Name: "role:admin", OrganizationID: "global", Description: "Administrator role"},
-		{ID: "role:user", Name: "role:user", OrganizationID: "global", Description: "Regular user role"},
-		{ID: "role:moderator", Name: "role:moderator", OrganizationID: "global", Description: "Moderator role"},
+		{ID: "role:superadmin", Name: "role:superadmin", OrganizationID: &globalOrg, Description: "Super Administrator role"},
+		{ID: "role:admin", Name: "role:admin", OrganizationID: &globalOrg, Description: "Administrator role"},
+		{ID: "role:user", Name: "role:user", OrganizationID: &globalOrg, Description: "Regular user role"},
+		{ID: "role:moderator", Name: "role:moderator", OrganizationID: &globalOrg, Description: "Moderator role"},
 	}
 
 	for _, role := range roles {
@@ -82,6 +84,7 @@ func CleanupDatabase(t *testing.T, db *gorm.DB) {
 		"roles",
 		"password_reset_tokens",
 		"email_verification_tokens",
+		"invitation_tokens",
 	}
 
 	db.Exec("SET FOREIGN_KEY_CHECKS = 0")
@@ -110,10 +113,11 @@ func CreateTestUser(t *testing.T, db *gorm.DB, username, email, password string)
 }
 
 func CreateTestRole(t *testing.T, db *gorm.DB, name string) *roleEntity.Role {
+	globalOrg := "global"
 	role := &roleEntity.Role{
 		ID:             uuid.New().String(),
 		Name:           name,
-		OrganizationID: "global",
+		OrganizationID: &globalOrg,
 		Description:    "Test role " + name,
 	}
 

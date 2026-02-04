@@ -50,17 +50,11 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 			name:        "Block Polyglot (PNG with PHP payload)",
 			filename:    "poly.png",
 			contentType: "image/png",
-			// Valid PNG header but followed by PHP
 			fileContent: io.MultiReader(
 				strings.NewReader("\x89PNG\r\n\x1a\n"),
 				strings.NewReader("<?php echo 'malicious'; ?>"),
 			),
-			// Note: http.DetectContentType might still see this as image/png
-			// because it only looks at the header.
-			// Our current usecase logic only checks http.DetectContentType.
-			// If it passes detection, it will be uploaded.
-			// This test will verify current behavior vs desired security.
-			errExpected: nil, // Current implementation allows this if header matches
+			errExpected: nil, 
 		},
 		{
 			name:        "Block Script File",

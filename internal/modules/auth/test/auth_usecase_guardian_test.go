@@ -14,6 +14,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	mock_auth "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	mock_org "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	mock_permission "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
@@ -107,7 +108,7 @@ func TestAuthUseCase_Edge_UnicodeInUsername(t *testing.T) {
 	deps.userRepo.On("FindByUsername", mock.Anything, unicodeUsername).Return(user, nil)
 	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
 	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == user.ID && req.Action == "LOGIN"
@@ -140,7 +141,7 @@ func TestAuthUseCase_Edge_LongUsername(t *testing.T) {
 	deps.userRepo.On("FindByUsername", mock.Anything, longUsername).Return(user, nil)
 	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
 	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == user.ID && req.Action == "LOGIN"

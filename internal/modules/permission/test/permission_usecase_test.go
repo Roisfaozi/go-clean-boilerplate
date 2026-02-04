@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
@@ -31,7 +32,9 @@ func setupPermissionTest() (*permissionTestDeps, usecase.IPermissionUseCase) {
 		UserRepo: new(userMocks.MockUserRepository),
 	}
 
-	uc := usecase.NewPermissionUseCase(deps.Enforcer, logrus.New(), deps.RoleRepo, deps.UserRepo)
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+	uc := usecase.NewPermissionUseCase(deps.Enforcer, log, deps.RoleRepo, deps.UserRepo)
 	return deps, uc
 }
 
@@ -62,7 +65,6 @@ func TestAssignRoleToUser_UserNotFound(t *testing.T) {
 
 	userID, roleName := "user123", "editor"
 
-	// Mock UserRepo Fail
 	deps.UserRepo.On("FindByID", mock.Anything, userID).Return(nil, gorm.ErrRecordNotFound)
 
 	err := uc.AssignRoleToUser(context.Background(), userID, roleName)
