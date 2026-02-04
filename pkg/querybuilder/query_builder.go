@@ -135,7 +135,6 @@ func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 		}
 	}
 
-
 	if !found || isSensitiveField(field.Name) {
 		return "", false
 	}

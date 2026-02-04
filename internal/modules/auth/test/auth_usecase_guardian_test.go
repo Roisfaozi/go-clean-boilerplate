@@ -14,6 +14,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	mock_auth "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	mock_org "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	mock_permission "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	mock_user "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
@@ -29,6 +30,7 @@ type authGuardianTestDeps struct {
 	jwtManager      *jwt.JWTManager
 	tokenRepo       *mock_auth.MockTokenRepository
 	userRepo        *mock_user.MockUserRepository
+	orgRepo         *mock_org.MockOrganizationRepository
 	tm              *mocking.MockWithTransactionManager
 	wsManager       *mocking.MockManager
 	enforcer        *mock_permission.IEnforcer
@@ -44,6 +46,7 @@ func setupAuthGuardianTest(t *testing.T) (usecase.AuthUseCase, *authGuardianTest
 		jwtManager:      jwtManager,
 		tokenRepo:       new(mock_auth.MockTokenRepository),
 		userRepo:        new(mock_user.MockUserRepository),
+		orgRepo:         new(mock_org.MockOrganizationRepository),
 		tm:              new(mocking.MockWithTransactionManager),
 		wsManager:       new(mocking.MockManager),
 		enforcer:        new(mock_permission.IEnforcer),
@@ -60,6 +63,7 @@ func setupAuthGuardianTest(t *testing.T) (usecase.AuthUseCase, *authGuardianTest
 		deps.jwtManager,
 		deps.tokenRepo,
 		deps.userRepo,
+		deps.orgRepo,
 		deps.tm,
 		deps.log,
 		deps.wsManager,
@@ -101,7 +105,7 @@ func TestAuthUseCase_Edge_UnicodeInUsername(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, unicodeUsername).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{"role:user"}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
 
@@ -134,7 +138,7 @@ func TestAuthUseCase_Edge_LongUsername(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, longUsername).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{"role:user"}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
 
@@ -192,7 +196,7 @@ func TestAuthUseCase_Failure_GenerateAndStoreTokenPairError(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{"role:user"}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
 
 	// FORCE ERROR HERE
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(errors.New("redis store failed"))

@@ -18,22 +18,30 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 		}
 	}
 
-	// Security: If wildcard is used, AllowCredentials must be false
-	allowCredentials := true
+	// Check for wildcard
+	allowAllOrigins := true
 	for _, origin := range allowedOrigins {
 		if origin == "*" {
-			allowCredentials = false
+			allowAllOrigins = false
 			break
 		}
 	}
 
-
-	return cors.New(cors.Config{
-		AllowOrigins:     allowedOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+	config := cors.Config{
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-Organization-ID", "X-Organization-Slug"},
 		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: allowCredentials,
+		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
-	})
+	}
+
+	if allowAllOrigins {
+		config.AllowOriginFunc = func(origin string) bool {
+			return true
+		}
+	} else {
+		config.AllowOrigins = allowedOrigins
+	}
+
+	return cors.New(config)
 }

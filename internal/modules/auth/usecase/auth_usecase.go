@@ -13,6 +13,8 @@ import (
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
@@ -35,6 +37,7 @@ type Service struct {
 	jwtManager       *jwt.JWTManager
 	tokenRepo        repository.TokenRepository
 	userRepo         userRepository.UserRepository
+	orgRepo          orgRepo.OrganizationRepository
 	tm               tx.WithTransactionManager
 	log              *logrus.Logger
 	wsManager        ws.Manager
@@ -51,6 +54,7 @@ func NewAuthUsecase(
 	jwtManager *jwt.JWTManager,
 	tokenRepo repository.TokenRepository,
 	userRepo userRepository.UserRepository,
+	orgRepo orgRepo.OrganizationRepository,
 	tm tx.WithTransactionManager,
 	log *logrus.Logger,
 	wsManager ws.Manager,
@@ -65,6 +69,7 @@ func NewAuthUsecase(
 		jwtManager:       jwtManager,
 		tokenRepo:        tokenRepo,
 		userRepo:         userRepo,
+		orgRepo:          orgRepo,
 		tm:               tm,
 		log:              log,
 		wsManager:        wsManager,
@@ -80,6 +85,87 @@ func NewAuthUsecase(
 	s.dummyHash = hash
 
 	return s
+}
+
+func (s *Service) Register(ctx context.Context, request model.RegisterRequest) (*model.LoginResponse, string, error) {
+	// 1. Check if user exists
+	if existing, _ := s.userRepo.FindByUsername(ctx, request.Username); existing != nil {
+		return nil, "", fmt.Errorf("username already exists")
+	}
+	if existing, _ := s.userRepo.FindByEmail(ctx, request.Email); existing != nil {
+		return nil, "", fmt.Errorf("email already exists")
+	}
+
+	// 2. Hash Password
+	hashedPassword, err := pkg.HashPassword(request.Password)
+	if err != nil {
+		return nil, "", err
+	}
+
+	userID, _ := uuid.NewV7()
+	user := &entity.User{
+		ID:       userID.String(),
+		Username: request.Username,
+		Email:    request.Email,
+		Password: hashedPassword,
+		Name:     request.Name,
+		Status:   entity.UserStatusActive,
+	}
+
+	// 3. Transaction: Create User -> Create Default Workspace -> Add Member
+	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+		// Create User
+		if err := s.userRepo.Create(txCtx, user); err != nil {
+			return err
+		}
+
+		// Add Default Role (Casbin)
+		if s.Enforcer != nil {
+			if _, err := s.Enforcer.AddGroupingPolicy(user.ID, "role:user", "global"); err != nil {
+				return err
+			}
+		}
+
+		// Auto-Provisioning: Create Default Workspace
+		defaultOrgName := fmt.Sprintf("%s's Workspace", user.Name)
+		defaultOrg := &orgEntity.Organization{
+			ID:      uuid.New().String(),
+			Name:    defaultOrgName,
+			Slug:    pkg.Slugify(defaultOrgName + "-" + user.Username), // Simple slug generation
+			OwnerID: user.ID,
+			Status:  "active",
+		}
+
+		// Create Organization (Repo handles adding owner member)
+		if err := s.orgRepo.Create(txCtx, defaultOrg, "owner"); err != nil {
+			return err
+		}
+
+		// Audit Log
+		if s.auditUC != nil {
+			_ = s.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+				UserID:   user.ID,
+				Action:   "REGISTER",
+				Entity:   "User",
+				EntityID: user.ID,
+			})
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	telemetry.UserRegistrationsTotal.Inc()
+
+	// 4. Login (Generate Token)
+	return s.Login(ctx, model.LoginRequest{
+		Username:  request.Username,
+		Password:  request.Password,
+		IPAddress: request.IPAddress,
+		UserAgent: request.UserAgent,
+	})
 }
 
 func (s *Service) generateAndStoreTokenPair(ctx context.Context, user *entity.User, role, username string) (string, string, string, error) {
@@ -182,7 +268,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 
 	var userRole string
 	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		roles, err := s.Enforcer.GetRolesForUser(user.ID, "global")
 		if err != nil {
 			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during login")
 			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
@@ -263,7 +349,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 
 	var userRole string
 	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		roles, err := s.Enforcer.GetRolesForUser(user.ID, "global")
 		if err != nil {
 			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during refresh token")
 			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
@@ -374,7 +460,7 @@ func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
 func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
 	var userRole string
 	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		roles, err := s.Enforcer.GetRolesForUser(user.ID, "global")
 		if err != nil {
 			s.log.WithContext(context.Background()).WithError(err).Error("Failed to get roles for user when generating access token")
 			return "", fmt.Errorf("failed to get user roles: %w", err)
@@ -395,7 +481,7 @@ func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
 func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
 	var userRole string
 	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		roles, err := s.Enforcer.GetRolesForUser(user.ID, "global")
 		if err != nil {
 			s.log.WithContext(context.Background()).WithError(err).Error("Failed to get roles for user when generating refresh token")
 			return "", fmt.Errorf("failed to get user roles: %w", err)

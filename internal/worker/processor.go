@@ -18,12 +18,14 @@ type RedisTaskProcessor struct {
 	server         *asynq.Server
 	logger         *logrus.Logger
 	cleanupHandler *handlers.CleanupTaskHandler
+	cfg            WorkerConfig
 }
 
 func NewRedisTaskProcessor(
 	redisOpt asynq.RedisClientOpt,
 	logger *logrus.Logger,
 	cleanupHandler *handlers.CleanupTaskHandler,
+	cfg WorkerConfig,
 ) TaskProcessor {
 	server := asynq.NewServer(
 		redisOpt,
@@ -44,13 +46,24 @@ func NewRedisTaskProcessor(
 		server:         server,
 		logger:         logger,
 		cleanupHandler: cleanupHandler,
+		cfg:            cfg,
 	}
 }
 
 func (processor *RedisTaskProcessor) Start() error {
 	mux := asynq.NewServeMux()
 
-	emailHandler := handlers.NewEmailTaskHandler(processor.logger)
+	// Map WorkerConfig to Handler Config
+	smtpCfg := handlers.SMTPConfig{
+		Host:       processor.cfg.SMTP.Host,
+		Port:       processor.cfg.SMTP.Port,
+		Username:   processor.cfg.SMTP.Username,
+		Password:   processor.cfg.SMTP.Password,
+		FromSender: processor.cfg.SMTP.FromSender,
+		FromEmail:  processor.cfg.SMTP.FromEmail,
+	}
+
+	emailHandler := handlers.NewEmailTaskHandler(processor.logger, smtpCfg)
 	mux.HandleFunc(tasks.TypeSendEmail, emailHandler.ProcessTaskSendEmail)
 
 	// Register Cleanup Handlers

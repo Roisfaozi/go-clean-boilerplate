@@ -45,11 +45,12 @@ func main() {
 			log.Fatalf("Failed to generate UUID for role: %v", err)
 		}
 		newRole := entity.Role{
-			ID:          newRoleID.String(),
-			Name:        superAdminRoleName,
-			Description: "Super Administrator with full access",
-			CreatedAt:   time.Now().UnixMilli(),
-			UpdatedAt:   time.Now().UnixMilli(),
+			ID:             newRoleID.String(),
+			Name:           superAdminRoleName,
+			OrganizationID: "global",
+			Description:    "Super Administrator with full access",
+			CreatedAt:      time.Now().UnixMilli(),
+			UpdatedAt:      time.Now().UnixMilli(),
 		}
 		if err := db.Create(&newRole).Error; err != nil {
 			log.Printf("Error creating role %s: %v", superAdminRoleName, err)
@@ -61,17 +62,18 @@ func main() {
 	}
 
 	var policyCount int64
-	db.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "p", superAdminRoleName, "*", "*").Count(&policyCount)
+	db.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ? AND v3 = ?", "p", superAdminRoleName, "*", "*", "*").Count(&policyCount)
 	if policyCount == 0 {
 		if err := db.Table("casbin_rule").Create(map[string]interface{}{
 			"ptype": "p",
 			"v0":    superAdminRoleName,
 			"v1":    "*",
 			"v2":    "*",
+			"v3":    "*",
 		}).Error; err != nil {
 			log.Printf("Error creating policy for superadmin: %v", err)
 		} else {
-			log.Println("Policy 'p, role:superadmin, *, *' created.")
+			log.Println("Policy 'p, role:superadmin, *, *, *' created.")
 		}
 	}
 
@@ -97,7 +99,7 @@ func main() {
 				log.Fatalf("Failed to generate UUID for user: %v", err)
 			}
 			userID = newUserID.String()
-			
+
 			newUser := userEntity.User{
 				ID:        userID,
 				Username:  adminUsername,
@@ -121,19 +123,20 @@ func main() {
 	}
 
 	var gCount int64
-	db.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v1 = ?", "g", userID, superAdminRoleName).Count(&gCount)
+	db.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "g", userID, superAdminRoleName, "global").Count(&gCount)
 	if gCount == 0 {
 		if err := db.Table("casbin_rule").Create(map[string]interface{}{
 			"ptype": "g",
 			"v0":    userID,
 			"v1":    superAdminRoleName,
+			"v2":    "global",
 		}).Error; err != nil {
 			log.Printf("Error assigning role: %v", err)
 		} else {
-			log.Printf("Role '%s' assigned to user '%s' (ID: %s)", superAdminRoleName, adminUsername, userID)
+			log.Printf("Role '%s' assigned to user '%s' in domain 'global' (ID: %s)", superAdminRoleName, adminUsername, userID)
 		}
 	} else {
-		log.Printf("User '%s' already has role '%s'", adminUsername, superAdminRoleName)
+		log.Printf("User '%s' already has role '%s' in domain 'global'", adminUsername, superAdminRoleName)
 	}
 
 	log.Println("Seeding process completed successfully.")

@@ -13,6 +13,7 @@ import (
 	authModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	authRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	authUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	permissionUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	roleModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	roleRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
@@ -37,10 +38,11 @@ func TestScenario_AdminSecurity_AccountSuspension(t *testing.T) {
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
 
-	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger)
+	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger, nil)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)
 
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, env.Enforcer, auditService, nil)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, env.Enforcer, auditService, nil)
 
 	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, auditService, authService, nil)
 
@@ -91,11 +93,11 @@ func TestScenario_AdminSecurity_RBAC_Lifecycle(t *testing.T) {
 	err = permService.AssignRoleToUser(context.Background(), user.ID, roleName)
 	require.NoError(t, err)
 
-	ok, err := env.Enforcer.Enforce(roleName, path, method)
+	ok, err := env.Enforcer.Enforce(roleName, "global", path, method)
 	assert.NoError(t, err)
 	assert.True(t, ok, "Role should have permission")
 
-	userRoles, _ := env.Enforcer.GetRolesForUser(user.ID)
+	userRoles, _ := env.Enforcer.GetRolesForUser(user.ID, "global")
 	assert.Contains(t, userRoles, roleName)
 }
 
@@ -108,7 +110,8 @@ func TestScenario_AdminSecurity_TokenRotation(t *testing.T) {
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, env.Enforcer, nil, nil)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, env.Enforcer, nil, nil)
 
 	user := setup.CreateTestUser(t, env.DB, "rotator", "rot@test.com", "pass")
 	_, rt1, err := authService.Login(context.Background(), authModel.LoginRequest{Username: user.Username, Password: "pass"})

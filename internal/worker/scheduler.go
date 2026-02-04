@@ -16,7 +16,7 @@ type Scheduler struct {
 
 func NewScheduler(redisOpt asynq.RedisClientOpt, logger *logrus.Logger) *Scheduler {
 	location, _ := time.LoadLocation("Asia/Jakarta") // Adjust timezone as needed
-	
+
 	scheduler := asynq.NewScheduler(
 		redisOpt,
 		&asynq.SchedulerOpts{

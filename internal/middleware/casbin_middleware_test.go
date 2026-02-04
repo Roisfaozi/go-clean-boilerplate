@@ -40,7 +40,7 @@ func TestCasbinMiddleware_Authorized(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	mockEnforcer.On("Enforce", userID, "/api/v1/users", "GET").Return(true, nil)
+	mockEnforcer.On("Enforce", userID, "global", "/api/v1/users", "GET").Return(true, nil)
 
 	casbinMiddleware := middleware.CasbinMiddleware(mockEnforcer, logger)
 
@@ -64,7 +64,7 @@ func TestCasbinMiddleware_Unauthorized(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	mockEnforcer.On("Enforce", userID, "/api/v1/users", "POST").Return(false, nil)
+	mockEnforcer.On("Enforce", userID, "global", "/api/v1/users", "POST").Return(false, nil)
 
 	casbinMiddleware := middleware.CasbinMiddleware(mockEnforcer, logger)
 
@@ -89,7 +89,7 @@ func TestCasbinMiddleware_EnforcerError(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	mockEnforcer.On("Enforce", userID, "/api/v1/users", "GET").Return(false, errors.New("casbin error"))
+	mockEnforcer.On("Enforce", userID, "global", "/api/v1/users", "GET").Return(false, errors.New("casbin error"))
 
 	casbinMiddleware := middleware.CasbinMiddleware(mockEnforcer, logger)
 

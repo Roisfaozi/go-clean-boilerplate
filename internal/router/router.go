@@ -9,6 +9,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	auditHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
+	organizationHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	permissionHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
@@ -51,9 +53,11 @@ func SetupRouter(
 	permissionModule *permission.PermissionModule,
 	accessModule *access.AccessModule,
 	roleModule *role.RoleModule,
+	organizationModule *organization.OrganizationModule,
 	auditModule *audit.AuditModule,
 	authMiddleware *middleware.AuthMiddleware,
 	casbinMiddleware gin.HandlerFunc,
+	tenantMiddleware *middleware.TenantMiddleware,
 	wsController *ws.WebSocketController,
 	sseManager *sse.Manager,
 	db *gorm.DB,
@@ -163,13 +167,13 @@ func SetupRouter(
 	}
 	{
 		// Special handling for Login to use Critical Limiter
-		authGroup := public.Group("/auth") 
+		authGroup := public.Group("/auth")
 		if criticalLimiter != nil {
 			authGroup.POST("/login", criticalLimiter, authModule.AuthController.Login)
 		} else {
 			authGroup.POST("/login", authModule.AuthController.Login)
 		}
-		
+
 		// Other Auth Routes (Standard Public Limit)
 		authGroup.POST("/refresh", authModule.AuthController.RefreshToken)
 		authGroup.POST("/forgot-password", authModule.AuthController.ForgotPassword)
@@ -177,6 +181,7 @@ func SetupRouter(
 		authGroup.POST("/verify-email", authModule.AuthController.VerifyEmail)
 
 		userHttp.RegisterPublicRoutes(public, userModule.UserController)
+		organizationHttp.RegisterPublicRoutes(public, organizationModule.OrganizationController)
 	}
 
 	authenticated := apiV1.Group("")
@@ -190,9 +195,20 @@ func SetupRouter(
 		authGroup := authenticated.Group("/auth")
 		authGroup.POST("/logout", authModule.AuthController.Logout)
 		authGroup.POST("/resend-verification", authModule.AuthController.ResendVerification)
-		
+
 		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
+		organizationHttp.RegisterAuthenticatedRoutes(authenticated, organizationModule.OrganizationController)
 		permissionHttp.RegisterBatchCheckRoute(authenticated, permissionModule.PermissionController)
+	}
+
+	tenant := apiV1.Group("")
+	tenant.Use(authMiddleware.ValidateToken())
+	tenant.Use(tenantMiddleware.RequireOrganization())
+	if authLimiter != nil {
+		tenant.Use(authLimiter)
+	}
+	{
+		organizationHttp.RegisterTenantRoutes(tenant, organizationModule.OrganizationController)
 	}
 
 	authorized := apiV1.Group("")

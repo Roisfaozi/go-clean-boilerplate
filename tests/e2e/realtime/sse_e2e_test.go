@@ -57,7 +57,7 @@ func TestSSE_EventSubscription(t *testing.T) {
 		// Use raw http.Client with timeout
 		client := &http.Client{Timeout: 5 * time.Second}
 		sseResp, err := client.Do(req)
-		
+
 		// SSE endpoint may not be implemented yet, so we check for reasonable responses
 		if err != nil {
 			t.Logf("SSE connection error (may be expected if not implemented): %v", err)

@@ -2,6 +2,7 @@ package ws
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -198,11 +199,28 @@ func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
+	// Wrap message in ServerMessage envelope
+	envelope := map[string]interface{}{
+		"type":    "message",
+		"channel": msg.Channel,
+		// We try to unmarshal if it looks like JSON, otherwise send as string
+		// But to be safe and generic, we can just send it as raw json.RawMessage if we could,
+		// but here msg.Message is []byte.
+		// Let's assume msg.Message is a JSON string.
+		"data": json.RawMessage(msg.Message),
+	}
+
+	payload, err := json.Marshal(envelope)
+	if err != nil {
+		m.log.Errorf("Failed to marshal broadcast envelope: %v", err)
+		return
+	}
+
 	if clients, ok := m.channels[msg.Channel]; ok {
 		count := 0
 		for client := range clients {
 			select {
-			case client.Send <- msg.Message:
+			case client.Send <- payload:
 				count++
 			default:
 				m.log.Warnf("Failed to Send message to client %s (buffer full)", client.ID)

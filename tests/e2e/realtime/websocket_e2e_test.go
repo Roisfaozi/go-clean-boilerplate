@@ -65,20 +65,11 @@ func TestWebSocketE2E_NotificationFlow(t *testing.T) {
 		Message string `json:"message"`
 	}
 
-	// Read messages until we get the expected type or timeout
-	// This handles potential noise or unexpected messages (e.g. "message" type seen in CI)
-	for {
-		_, message, err := conn.ReadMessage()
-		require.NoError(t, err, "Failed to read message from WebSocket")
+	_, message, err := conn.ReadMessage()
+	require.NoError(t, err)
 
-		err = json.Unmarshal(message, &notification)
-		require.NoError(t, err, "Failed to unmarshal WebSocket message")
-
-		if notification.Type == "user_login" {
-			break
-		}
-		t.Logf("Received unexpected message type: %s, waiting for user_login...", notification.Type)
-	}
+	err = json.Unmarshal(message, &notification)
+	require.NoError(t, err)
 
 	assert.Equal(t, "user_login", notification.Type)
 	assert.Equal(t, user.ID, notification.UserID)

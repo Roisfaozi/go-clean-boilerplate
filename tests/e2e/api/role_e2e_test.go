@@ -27,8 +27,8 @@ func createRoleAdminAndLogin(t *testing.T, server *setup.TestServer) string {
 		u.Password = string(hash)
 	})
 
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
 	server.Enforcer.SavePolicy()
 
 	resp := server.Client.POST("/api/v1/auth/login", map[string]any{

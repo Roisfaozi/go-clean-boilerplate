@@ -1,14 +1,14 @@
 package model
 
 type CreateAuditLogRequest struct {
-	UserID    string      `json:"user_id" validate:"required"`
-	Action    string      `json:"action" validate:"required"`
-	Entity    string      `json:"entity" validate:"required"`
-	EntityID  string      `json:"entity_id" validate:"required"`
+	UserID    string      `json:"user_id" validate:"required,xss"`
+	Action    string      `json:"action" validate:"required,xss"`
+	Entity    string      `json:"entity" validate:"required,xss"`
+	EntityID  string      `json:"entity_id" validate:"required,xss"`
 	OldValues interface{} `json:"old_values"`
 	NewValues interface{} `json:"new_values"`
-	IPAddress string      `json:"ip_address"`
-	UserAgent string      `json:"user_agent"`
+	IPAddress string      `json:"ip_address" validate:"xss"`
+	UserAgent string      `json:"user_agent" validate:"xss"`
 }
 
 type AuditLogResponse struct {

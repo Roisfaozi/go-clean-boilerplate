@@ -10,15 +10,15 @@ import (
 )
 
 var (
-	ErrInvalidCredentials        = exception.ErrUnauthorized
-	ErrInvalidToken              = exception.ErrUnauthorized
-	ErrExpiredToken              = exception.ErrUnauthorized
-	ErrTokenRevoked              = exception.ErrUnauthorized
-	ErrInvalidResetToken         = exception.ErrBadRequest
-	ErrInvalidVerificationToken  = exception.ErrBadRequest
-	ErrAlreadyVerified           = exception.ErrBadRequest
-	ErrAccountSuspended          = exception.ErrForbidden
-	ErrAccountLocked             = exception.ErrForbidden
+	ErrInvalidCredentials       = exception.ErrUnauthorized
+	ErrInvalidToken             = exception.ErrUnauthorized
+	ErrExpiredToken             = exception.ErrUnauthorized
+	ErrTokenRevoked             = exception.ErrUnauthorized
+	ErrInvalidResetToken        = exception.ErrBadRequest
+	ErrInvalidVerificationToken = exception.ErrBadRequest
+	ErrAlreadyVerified          = exception.ErrBadRequest
+	ErrAccountSuspended         = exception.ErrForbidden
+	ErrAccountLocked            = exception.ErrForbidden
 )
 
 type AuthUseCase interface {
@@ -28,6 +28,7 @@ type AuthUseCase interface {
 	ValidateRefreshToken(token string) (*jwt.Claims, error)
 	RevokeToken(ctx context.Context, userID, sessionID string) error
 
+	Register(ctx context.Context, request model.RegisterRequest) (*model.LoginResponse, string, error)
 	Login(ctx context.Context, request model.LoginRequest) (*model.LoginResponse, string, error)
 	RefreshToken(ctx context.Context, refreshToken string) (*model.TokenResponse, string, error)
 	Verify(ctx context.Context, userID string, sessionID string) (*model.Auth, error)

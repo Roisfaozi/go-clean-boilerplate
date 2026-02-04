@@ -433,6 +433,80 @@ func (_c *MockAuthUseCase_RefreshToken_Call) RunAndReturn(run func(ctx context.C
 	return _c
 }
 
+// Register provides a mock function for the type MockAuthUseCase
+func (_mock *MockAuthUseCase) Register(ctx context.Context, request model.RegisterRequest) (*model.LoginResponse, string, error) {
+	ret := _mock.Called(ctx, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Register")
+	}
+
+	var r0 *model.LoginResponse
+	var r1 string
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, model.RegisterRequest) (*model.LoginResponse, string, error)); ok {
+		return returnFunc(ctx, request)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, model.RegisterRequest) *model.LoginResponse); ok {
+		r0 = returnFunc(ctx, request)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.LoginResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, model.RegisterRequest) string); ok {
+		r1 = returnFunc(ctx, request)
+	} else {
+		r1 = ret.Get(1).(string)
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, model.RegisterRequest) error); ok {
+		r2 = returnFunc(ctx, request)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockAuthUseCase_Register_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Register'
+type MockAuthUseCase_Register_Call struct {
+	*mock.Call
+}
+
+// Register is a helper method to define mock.On call
+//   - ctx context.Context
+//   - request model.RegisterRequest
+func (_e *MockAuthUseCase_Expecter) Register(ctx interface{}, request interface{}) *MockAuthUseCase_Register_Call {
+	return &MockAuthUseCase_Register_Call{Call: _e.mock.On("Register", ctx, request)}
+}
+
+func (_c *MockAuthUseCase_Register_Call) Run(run func(ctx context.Context, request model.RegisterRequest)) *MockAuthUseCase_Register_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 model.RegisterRequest
+		if args[1] != nil {
+			arg1 = args[1].(model.RegisterRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthUseCase_Register_Call) Return(loginResponse *model.LoginResponse, s string, err error) *MockAuthUseCase_Register_Call {
+	_c.Call.Return(loginResponse, s, err)
+	return _c
+}
+
+func (_c *MockAuthUseCase_Register_Call) RunAndReturn(run func(ctx context.Context, request model.RegisterRequest) (*model.LoginResponse, string, error)) *MockAuthUseCase_Register_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RequestVerification provides a mock function for the type MockAuthUseCase
 func (_mock *MockAuthUseCase) RequestVerification(ctx context.Context, userID string) error {
 	ret := _mock.Called(ctx, userID)

@@ -9,6 +9,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,12 +20,14 @@ var (
 type auditUseCase struct {
 	repo AuditRepository
 	log  *logrus.Logger
+	ws   ws.Manager
 }
 
-func NewAuditUseCase(repo AuditRepository, log *logrus.Logger) AuditUseCase {
+func NewAuditUseCase(repo AuditRepository, log *logrus.Logger, ws ws.Manager) AuditUseCase {
 	return &auditUseCase{
 		repo: repo,
 		log:  log,
+		ws:   ws,
 	}
 }
 
@@ -52,6 +55,29 @@ func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLo
 		uc.log.WithContext(ctx).WithError(err).Error("Failed to create audit log")
 		return err
 	}
+
+	// Broadcast event
+	// Response model mapping logic here or simple map
+	eventData := model.AuditLogResponse{
+		ID:        logEntity.ID,
+		UserID:    logEntity.UserID,
+		Action:    logEntity.Action,
+		Entity:    logEntity.Entity,
+		EntityID:  logEntity.EntityID,
+		OldValues: req.OldValues,
+		NewValues: req.NewValues,
+		IPAddress: logEntity.IPAddress,
+		UserAgent: logEntity.UserAgent,
+		CreatedAt: logEntity.CreatedAt,
+	}
+
+	msg, err := json.Marshal(eventData)
+	if err == nil && uc.ws != nil {
+		uc.ws.BroadcastToChannel("audit", msg)
+	} else if err != nil {
+		uc.log.WithContext(ctx).Warnf("Failed to marshal audit log event: %v", err)
+	}
+
 	return nil
 }
 

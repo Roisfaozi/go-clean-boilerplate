@@ -71,9 +71,6 @@ func (h *AuthController) Login(c *gin.Context) {
 	response.Success(c, res)
 }
 
-
-
-
 // RefreshToken godoc
 // @Summary      Refresh access token
 // @Description  Refreshes access and refresh tokens using the refresh token cookie.
@@ -84,7 +81,6 @@ func (h *AuthController) Login(c *gin.Context) {
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /auth/refresh [post]
-
 func (h *AuthController) RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
@@ -133,7 +129,6 @@ func (h *AuthController) Logout(c *gin.Context) {
 	response.Success(c, gin.H{"message": "logged out successfully"})
 }
 
-
 // ForgotPassword godoc
 // @Summary      Request password reset
 // @Description  Sends a password reset email if the account exists.
@@ -168,7 +163,6 @@ func (h *AuthController) ForgotPassword(c *gin.Context) {
 	// Always return success for security reasons (don't reveal if email exists)
 	response.Success(c, gin.H{"message": "If the email is registered, a reset link will be sent shortly."})
 }
-
 
 // ResetPassword godoc
 // @Summary      Reset password
@@ -266,3 +260,46 @@ func (h *AuthController) ResendVerification(c *gin.Context) {
 	response.Success(c, gin.H{"message": "verification email sent successfully"})
 }
 
+// Register godoc
+// @Summary      Register new user
+// @Description  Creates a new user account and auto-provisions a default workspace.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.RegisterRequest true "Registration request"
+// @Success      201  {object}  response.SwaggerLoginResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      409  {object}  response.SwaggerErrorResponseWrapper "Username or Email already exists"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/register [post]
+func (h *AuthController) Register(c *gin.Context) {
+	var req model.RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.log.WithContext(c.Request.Context()).WithError(err).Error("Register failed: could not bind request")
+		response.BadRequest(c, err, "could not bind request")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		h.log.WithContext(c.Request.Context()).WithError(err).Error("Register failed: validation error")
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, errors.New("validation error"), msg)
+		return
+	}
+
+	req.IPAddress = c.ClientIP()
+	req.UserAgent = c.Request.UserAgent()
+
+	res, refreshToken, err := h.AuthUseCase.Register(c.Request.Context(), req)
+	if err != nil {
+		h.log.WithContext(c.Request.Context()).Errorf("Register failed for user: %s", req.Username)
+		response.HandleError(c, err, "Register failed")
+		return
+	}
+
+	// Set refresh token in HttpOnly cookie
+	c.SetCookie("refresh_token", refreshToken, 3600*24*30, "/", "", false, true)
+
+	response.Created(c, res)
+}

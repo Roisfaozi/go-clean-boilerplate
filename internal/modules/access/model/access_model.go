@@ -1,10 +1,7 @@
 package model
 
 import (
-	"strings"
-
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 )
 
 type CreateAccessRightRequest struct {
@@ -64,21 +61,6 @@ type ErrorResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
 	Error   string `json:"error,omitempty"`
-}
-
-func (r *CreateAccessRightRequest) Sanitize() {
-	r.Name = validation.SanitizeString(strings.TrimSpace(r.Name))
-	r.Description = validation.SanitizeString(strings.TrimSpace(r.Description))
-}
-
-func (r *CreateEndpointRequest) Sanitize() {
-	r.Path = validation.SanitizeString(strings.TrimSpace(r.Path))
-	r.Method = validation.SanitizeString(strings.TrimSpace(r.Method))
-}
-
-func (r *UpdateAccessRightRequest) Sanitize() {
-	r.Name = validation.SanitizeString(strings.TrimSpace(r.Name))
-	r.Description = validation.SanitizeString(strings.TrimSpace(r.Description))
 }
 
 func ConvertAccessRightToResponse(accessRight *entity.AccessRight) *AccessRightResponse {

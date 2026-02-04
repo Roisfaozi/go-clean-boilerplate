@@ -34,7 +34,6 @@ func NewAccessUseCase(repo repository.AccessRepository, log *logrus.Logger) IAcc
 }
 
 func (uc *AccessUseCase) CreateAccessRight(ctx context.Context, req model.CreateAccessRightRequest) (*model.AccessRightResponse, error) {
-	req.Sanitize()
 	accessRightEntity := &entity.AccessRight{
 		Name:        req.Name,
 		Description: req.Description,
@@ -62,7 +61,6 @@ func (uc *AccessUseCase) GetAllAccessRights(ctx context.Context) (*model.AccessR
 }
 
 func (uc *AccessUseCase) CreateEndpoint(ctx context.Context, req model.CreateEndpointRequest) (*model.EndpointResponse, error) {
-	req.Sanitize()
 	endpointEntity := &entity.Endpoint{
 		Path:   req.Path,
 		Method: req.Method,

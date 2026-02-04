@@ -3,9 +3,16 @@ package response
 import (
 	accessModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
 	authModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
+	orgModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
 	roleModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 )
+
+// SwaggerSuccessResponseWrapper is a generic success response wrapper for Swagger documentation
+type SwaggerSuccessResponseWrapper struct {
+	Data   interface{}   `json:"data"`
+	Paging *PageMetadata `json:"paging,omitempty"`
+}
 
 type SwaggerUserResponseWrapper struct {
 	Data   userModel.UserResponse `json:"data"`
@@ -70,4 +77,23 @@ type SwaggerEndpointListResponseWrapper struct {
 type SwaggerPermissionListResponseWrapper struct {
 	Data   [][]string    `json:"data"`
 	Paging *PageMetadata `json:"paging,omitempty"`
+}
+
+// Organization Swagger Types
+
+type SwaggerOrganizationResponseWrapper struct {
+	Data   orgModel.OrganizationResponse `json:"data"`
+	Paging *PageMetadata                 `json:"paging,omitempty"`
+}
+
+type SwaggerOrganizationListResponseWrapper struct {
+	Data   orgModel.UserOrganizationsResponse `json:"data"`
+	Paging *PageMetadata                      `json:"paging,omitempty"`
+}
+
+// Audit Swagger Types
+
+type SwaggerAuditLogListResponseWrapper struct {
+	Data   []map[string]interface{} `json:"data"`
+	Paging *PageMetadata            `json:"paging,omitempty"`
 }
