@@ -149,6 +149,69 @@ func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {
 	deps.Storage.AssertExpectations(t)
 }
 
+// Mock Reader that returns error
+type errReader struct{}
+
+func (e *errReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("read error")
+}
+
+func TestUserUseCase_UpdateAvatar_ReadError(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-505"
+	filename := "file.jpg"
+	contentType := "image/png"
+	// Mock Reader that fails immediately
+	fileContent := &errReader{}
+
+	existingUser := &entity.User{
+		ID:       userID,
+	}
+
+	// Mock FindByID
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+
+	// Execute
+	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, exception.ErrBadRequest, err)
+	deps.Repo.AssertExpectations(t)
+}
+
+func TestUserUseCase_UpdateAvatar_ShortFile(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-606"
+	filename := "tiny.jpg"
+	contentType := "image/png"
+	// File smaller than 512 bytes
+	fileContent := strings.NewReader("tiny file")
+
+	existingUser := &entity.User{
+		ID:       userID,
+	}
+
+	// Mock FindByID
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+
+	// Execute
+	// It should detect content type as "text/plain" (default for "tiny file") and reject it
+	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	// Should be validation error due to disallowed content type (text/plain)
+	assert.Equal(t, exception.ErrValidationError, err)
+	deps.Repo.AssertExpectations(t)
+}
+
 // ============================================================================
 // ❌ NEGATIVE CASES
 // ============================================================================

@@ -859,3 +859,53 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 	assert.Equal(t, expectedName, result.Name)
 	deps.Repo.AssertExpectations(t)
 }
+
+func TestUserUseCase_Create_AuditError_RollbackFail(t *testing.T) {
+	deps, uc := setupUserTest()
+	req := &model.RegisterUserRequest{
+		Username: "rollbackfail", Email: "fail@rollback.com", Password: "password123", Name: "Rollback Fail",
+	}
+
+	deps.Repo.On("FindByUsername", mock.Anything, "rollbackfail").Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByEmail", mock.Anything, "fail@rollback.com").Return(nil, gorm.ErrRecordNotFound)
+
+	// Mock Transaction
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+
+	deps.Repo.On("Create", mock.Anything, mock.Anything).Return(nil)
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
+	// Simulate Rollback Failure
+	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, "", "global").Return(false, errors.New("rollback failed"))
+	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
+
+	_, err := uc.Create(context.Background(), req)
+	// Should still return InternalServer error, not panic, and ideally log the rollback failure
+	assert.ErrorIs(t, err, exception.ErrInternalServer)
+	deps.Enforcer.AssertExpectations(t)
+}
+
+func TestUserUseCase_Update_SameUsername(t *testing.T) {
+	deps, uc := setupUserTest()
+	request := &model.UpdateUserRequest{
+		ID: "user123", Username: "sameuser",
+	}
+	// Existing user has the SAME username as the request
+	existingUser := &entity.User{ID: "user123", Username: "sameuser"}
+
+	deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+
+	// Crucial: FindByUsername should NOT be called because usernames match
+	deps.Repo.AssertNotCalled(t, "FindByUsername", mock.Anything, mock.Anything)
+
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+	deps.Repo.On("Update", mock.Anything, mock.Anything).Return(nil)
+	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+	_, err := uc.Update(context.Background(), request)
+	assert.NoError(t, err)
+	deps.Repo.AssertExpectations(t)
+}
