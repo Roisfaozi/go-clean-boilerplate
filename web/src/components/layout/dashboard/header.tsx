@@ -1,11 +1,13 @@
 "use client";
 
 import { GlobalSearch } from "~/components/shared/global-search";
+import { DashboardBreadcrumbs } from "./breadcrumbs";
 import { DensitySwitcher } from "~/components/shared/density-switcher";
+import { NotificationCenter } from "~/components/dashboard/notification-center";
 import ThemeToggle from "~/components/shared/theme-toggle";
 import LocaleToggler from "~/components/shared/locale-toggler";
-import { UserNav } from "~/components/dashboard/user-nav"; // Need to create this
-import { SidebarTrigger } from "~/components/ui/sidebar"; // From shadcn/sidebar if available? Or custom.
+import { UserNav } from "~/components/dashboard/user-nav";
+import { SidebarTrigger } from "~/components/ui/sidebar"; 
 import { Separator } from "~/components/ui/separator";
 import { cn } from "~/lib/utils";
 
@@ -21,11 +23,14 @@ export function DashboardHeader() {
       {/* Left: Search & Trigger */}
       <div className="flex flex-1 items-center gap-4">
         <GlobalSearch />
+        <Separator orientation="vertical" className="h-6 hidden md:block" />
+        <DashboardBreadcrumbs />
       </div>
 
       {/* Right: Actions */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1">
+          <NotificationCenter />
           <DensitySwitcher />
           <ThemeToggle />
           <LocaleToggler />

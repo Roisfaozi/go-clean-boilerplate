@@ -12,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
+import { OrganizationSwitcher } from "../dashboard/organization-switcher";
 
 // Define Navigation Items
 const navItems = [
@@ -63,14 +64,12 @@ export function Sidebar({ className }: { className?: string }) {
         className
       )}
     >
-      {/* Header / Logo */}
-      <div className="flex h-[var(--navbar-height)] items-center border-b px-4">
-        <Link href="/" className="flex items-center gap-2 overflow-hidden">
-          <Icon name="Command" size="lg" className="text-primary" />
-          <span className="truncate text-lg font-bold tracking-tight [data-density=compact]:hidden">
-            NexusOS
-          </span>
+      {/* Header / Logo + Switcher */}
+      <div className="flex h-[var(--navbar-height)] items-center border-b px-3 gap-2">
+        <Link href="/" className="flex items-center gap-2 overflow-hidden shrink-0">
+          <Icon name="Command" size="md" className="text-primary" />
         </Link>
+        <OrganizationSwitcher />
       </div>
 
       {/* Navigation */}
