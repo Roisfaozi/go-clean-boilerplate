@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"gorm.io/gorm"
 )
 
@@ -23,7 +22,6 @@ func NewOrganizationMemberRepository(db *gorm.DB) OrganizationMemberRepository {
 func (r *organizationMemberRepository) CheckMembership(ctx context.Context, orgID, userID string) (bool, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
-		Scopes(database.OrganizationScope(ctx)).
 		Model(&entity.OrganizationMember{}).
 		Where("organization_id = ? AND user_id = ? AND status = ?", orgID, userID, entity.MemberStatusActive).
 		Count(&count).Error
@@ -37,7 +35,6 @@ func (r *organizationMemberRepository) CheckMembership(ctx context.Context, orgI
 func (r *organizationMemberRepository) GetMemberStatus(ctx context.Context, orgID, userID string) (string, error) {
 	var member entity.OrganizationMember
 	err := r.db.WithContext(ctx).
-		Scopes(database.OrganizationScope(ctx)).
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		First(&member).Error
 	if err != nil {
@@ -57,7 +54,6 @@ func (r *organizationMemberRepository) AddMember(ctx context.Context, member *en
 // RemoveMember removes a user from an organization.
 func (r *organizationMemberRepository) RemoveMember(ctx context.Context, orgID, userID string) error {
 	return r.db.WithContext(ctx).
-		Scopes(database.OrganizationScope(ctx)).
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		Delete(&entity.OrganizationMember{}).Error
 }
@@ -65,7 +61,6 @@ func (r *organizationMemberRepository) RemoveMember(ctx context.Context, orgID, 
 // UpdateMemberRole updates a member's role in an organization.
 func (r *organizationMemberRepository) UpdateMemberRole(ctx context.Context, orgID, userID, roleID string) error {
 	return r.db.WithContext(ctx).
-		Scopes(database.OrganizationScope(ctx)).
 		Model(&entity.OrganizationMember{}).
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		Update("role_id", roleID).Error
@@ -74,7 +69,6 @@ func (r *organizationMemberRepository) UpdateMemberRole(ctx context.Context, org
 // UpdateMemberStatus updates a member's status (active, suspended, banned).
 func (r *organizationMemberRepository) UpdateMemberStatus(ctx context.Context, orgID, userID, status string) error {
 	return r.db.WithContext(ctx).
-		Scopes(database.OrganizationScope(ctx)).
 		Model(&entity.OrganizationMember{}).
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		Update("status", status).Error
@@ -84,7 +78,8 @@ func (r *organizationMemberRepository) UpdateMemberStatus(ctx context.Context, o
 func (r *organizationMemberRepository) FindMembers(ctx context.Context, orgID string) ([]*entity.OrganizationMember, error) {
 	var members []*entity.OrganizationMember
 	err := r.db.WithContext(ctx).
-		Scopes(database.OrganizationScope(ctx)).
+		Preload("User").
+		Preload("Role").
 		Where("organization_id = ?", orgID).
 		Find(&members).Error
 	if err != nil {

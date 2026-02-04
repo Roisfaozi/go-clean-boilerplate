@@ -4,6 +4,7 @@ import "gorm.io/gorm"
 
 type AuditLog struct {
 	ID        string         `gorm:"primaryKey;type:varchar(36)"`
+	OrganizationID *string   `gorm:"index;type:varchar(36)"`
 	UserID    string         `gorm:"index;type:varchar(36);not null"`
 	Action    string         `gorm:"size:50;not null"`
 	Entity    string         `gorm:"size:50;not null"`

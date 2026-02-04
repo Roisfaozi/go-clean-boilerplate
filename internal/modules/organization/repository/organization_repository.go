@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -48,7 +47,6 @@ func (r *organizationRepository) Create(ctx context.Context, org *entity.Organiz
 func (r *organizationRepository) FindByID(ctx context.Context, id string) (*entity.Organization, error) {
 	var org entity.Organization
 	err := r.db.WithContext(ctx).
-		Scopes(database.OrganizationScope(ctx)).
 		Where("id = ?", id).
 		First(&org).Error
 	if err != nil {
@@ -64,7 +62,6 @@ func (r *organizationRepository) FindByID(ctx context.Context, id string) (*enti
 func (r *organizationRepository) FindBySlug(ctx context.Context, slug string) (*entity.Organization, error) {
 	var org entity.Organization
 	err := r.db.WithContext(ctx).
-		Scopes(database.OrganizationScope(ctx)).
 		Where("slug = ?", slug).
 		First(&org).Error
 	if err != nil {
@@ -106,14 +103,12 @@ func (r *organizationRepository) FindUserOrganizations(ctx context.Context, user
 // Update updates an organization's details.
 func (r *organizationRepository) Update(ctx context.Context, org *entity.Organization) error {
 	return r.db.WithContext(ctx).
-		Scopes(database.OrganizationScope(ctx)).
 		Save(org).Error
 }
 
 // Delete soft-deletes an organization.
 func (r *organizationRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).
-		Scopes(database.OrganizationScope(ctx)).
 		Where("id = ?", id).
 		Delete(&entity.Organization{}).Error
 }

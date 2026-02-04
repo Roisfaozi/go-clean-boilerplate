@@ -8,6 +8,7 @@ import (
 
 type AccessRight struct {
 	ID          string                `gorm:"primaryKey;column:id"`
+	OrganizationID *string            `gorm:"column:organization_id;index"`
 	Name        string                `gorm:"column:name;type:varchar(191);unique;not null"`
 	Description string                `gorm:"column:description;type:text"`
 	Endpoints   []Endpoint            `gorm:"many2many:access_right_endpoints;"`

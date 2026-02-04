@@ -179,6 +179,7 @@ func SetupRouter(
 		authGroup.POST("/forgot-password", authModule.AuthController.ForgotPassword)
 		authGroup.POST("/reset-password", authModule.AuthController.ResetPassword)
 		authGroup.POST("/verify-email", authModule.AuthController.VerifyEmail)
+		authGroup.POST("/register", authModule.AuthController.Register)
 
 		userHttp.RegisterPublicRoutes(public, userModule.UserController)
 		organizationHttp.RegisterPublicRoutes(public, organizationModule.OrganizationController)

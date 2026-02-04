@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	querybuilder2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/sirupsen/logrus"
@@ -56,7 +57,7 @@ func (r *roleRepository) FindByName(ctx context.Context, name string) (*entity.R
 
 func (r *roleRepository) FindAll(ctx context.Context) ([]*entity.Role, error) {
 	var roles []*entity.Role
-	result := r.getDB(ctx).Find(&roles)
+	result := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Find(&roles)
 	if result.Error != nil {
 		r.log.WithError(result.Error).Error("Error in FindAll")
 		return nil, result.Error
@@ -73,7 +74,7 @@ func (r *roleRepository) FindAll(ctx context.Context) ([]*entity.Role, error) {
 
 func (r *roleRepository) FindAllDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.Role, error) {
 	var roles []*entity.Role
-	query := r.getDB(ctx).Model(&entity.Role{})
+	query := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Model(&entity.Role{})
 
 	// Apply Dynamic Filter
 	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.Role{}, filter)

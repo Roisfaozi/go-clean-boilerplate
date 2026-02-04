@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	querybuilder2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/sirupsen/logrus"
@@ -36,7 +37,8 @@ func (r *accessRepository) CreateEndpoint(ctx context.Context, endpoint *entity.
 
 func (r *accessRepository) GetEndpoints(ctx context.Context) ([]*entity.Endpoint, error) {
 	var endpoints []*entity.Endpoint
-	if err := r.getDB(ctx).Find(&endpoints).Error; err != nil {
+	// Endpoints are usually global, but if we want per-tenant endpoints in future:
+	if err := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Find(&endpoints).Error; err != nil {
 		return nil, err
 	}
 	return endpoints, nil
@@ -45,7 +47,7 @@ func (r *accessRepository) GetEndpoints(ctx context.Context) ([]*entity.Endpoint
 func (r *accessRepository) FindEndpointsDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.Endpoint, int64, error) {
 	var endpoints []*entity.Endpoint
 	var total int64
-	query := r.getDB(ctx).Model(&entity.Endpoint{})
+	query := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Model(&entity.Endpoint{})
 
 	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.Endpoint{}, filter)
 	if err != nil {
@@ -90,7 +92,7 @@ func (r *accessRepository) CreateAccessRight(ctx context.Context, accessRight *e
 
 func (r *accessRepository) GetAccessRights(ctx context.Context) ([]*entity.AccessRight, error) {
 	var accessRights []*entity.AccessRight
-	if err := r.getDB(ctx).Preload("Endpoints").Find(&accessRights).Error; err != nil {
+	if err := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Preload("Endpoints").Find(&accessRights).Error; err != nil {
 		return nil, err
 	}
 	return accessRights, nil
@@ -99,7 +101,7 @@ func (r *accessRepository) GetAccessRights(ctx context.Context) ([]*entity.Acces
 func (r *accessRepository) FindAccessRightsDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.AccessRight, int64, error) {
 	var accessRights []*entity.AccessRight
 	var total int64
-	query := r.getDB(ctx).Model(&entity.AccessRight{}).Preload("Endpoints")
+	query := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Model(&entity.AccessRight{}).Preload("Endpoints")
 
 	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.AccessRight{}, filter)
 	if err != nil {
