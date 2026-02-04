@@ -297,6 +297,14 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		}
 	}
 
+	// Broadcast to organization channels
+	// 1. Get user organizations
+	orgs, err := s.orgRepo.FindUserOrganizations(ctx, user.ID)
+	if err != nil {
+		// Log but don't fail the request
+		s.log.WithContext(ctx).Warnf("Failed to fetch user organizations for notification: %v", err)
+	}
+
 	notification := map[string]string{
 		"type":    "user_login",
 		"user_id": user.ID,
@@ -304,11 +312,17 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		"time":    time.Now().Format(time.RFC3339),
 	}
 	notificationJSON, _ := json.Marshal(notification)
+
 	if s.wsManager != nil {
-		s.wsManager.BroadcastToChannel("global_notifications", notificationJSON)
+		for _, org := range orgs {
+			channel := fmt.Sprintf("org_%s_notifications", org.ID)
+			s.wsManager.BroadcastToChannel(channel, notificationJSON)
+		}
 	}
 
 	if s.sseManager != nil {
+		// SSE might need similar scoping, but for now we focus on WS
+		// TODO: Scope SSE as well if needed
 		s.sseManager.Broadcast("user_login", notification)
 	}
 
