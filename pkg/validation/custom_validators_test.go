@@ -113,7 +113,7 @@ func TestSanitizeString(t *testing.T) {
 		{
 			name:     "String with script tags",
 			input:    "Hello <script>alert(1)</script> World",
-			expected: "Hello  World", // Bluemonday strict policy strips content of script tags
+			expected: "Hello  World", // Bluemonday strict policy strips tags and content
 		},
 		{
 			name:     "String with image tags",
@@ -123,7 +123,7 @@ func TestSanitizeString(t *testing.T) {
 		{
 			name:     "String with mixed HTML tags",
 			input:    "<b>Bold</b> and <i>Italic</i> <a href=\"#\">Link</a> <script>alert(1)</script>.",
-			expected: "Bold and Italic Link .", // Bluemonday strict policy strips content of script tags
+			expected: "Bold and Italic Link .", // Bluemonday strict policy strips tags and content
 		},
 		{
 			name:     "Empty string",
