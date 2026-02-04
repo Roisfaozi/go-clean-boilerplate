@@ -113,8 +113,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 	logger.Infof("Storage provider initialized: %s", cfg.Storage.Driver)
 
-
-
 	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
 	organizationRepository := orgRepo.NewOrganizationRepository(dbConnection)
 

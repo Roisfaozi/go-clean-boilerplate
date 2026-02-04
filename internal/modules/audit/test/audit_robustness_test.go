@@ -18,7 +18,7 @@ func setupAuditTest() (*mocks.MockAuditRepository, usecase.AuditUseCase) {
 	mockRepo := new(mocks.MockAuditRepository)
 	mockWS := new(mocks.MockWebSocketManager)
 	logger := logrus.New()
-	
+
 	// Mock broadcast call if needed (optional for robustness tests unless specifically testing WS)
 	mockWS.On("BroadcastToChannel", mock.Anything, mock.Anything).Return()
 

@@ -19,8 +19,6 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-
-
 func setupRoleRepo(t *testing.T) (repository.RoleRepository, *gorm.DB) {
 	uid, _ := uuid.NewV7()
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", uid.String())

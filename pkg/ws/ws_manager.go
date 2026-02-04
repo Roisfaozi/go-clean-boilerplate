@@ -204,12 +204,12 @@ func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 		"type":    "message",
 		"channel": msg.Channel,
 		// We try to unmarshal if it looks like JSON, otherwise send as string
-		// But to be safe and generic, we can just send it as raw json.RawMessage if we could, 
+		// But to be safe and generic, we can just send it as raw json.RawMessage if we could,
 		// but here msg.Message is []byte.
 		// Let's assume msg.Message is a JSON string.
 		"data": json.RawMessage(msg.Message),
 	}
-	
+
 	payload, err := json.Marshal(envelope)
 	if err != nil {
 		m.log.Errorf("Failed to marshal broadcast envelope: %v", err)

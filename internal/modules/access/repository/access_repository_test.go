@@ -29,7 +29,7 @@ func setupAccessRepo(t *testing.T) (repository.AccessRepository, *gorm.DB) {
 	l := logrus.New()
 	l.SetOutput(io.Discard)
 	l.SetLevel(logrus.FatalLevel)
-	
+
 	repo := repository.NewAccessRepository(db, l)
 	return repo, db
 }

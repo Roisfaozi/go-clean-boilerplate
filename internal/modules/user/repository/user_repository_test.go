@@ -26,7 +26,7 @@ func setupUserRepo(t *testing.T) (repository.UserRepository, *gorm.DB) {
 	// Use unique DB name to prevent shared state issues in tests
 	dbName := uuid.New().String()
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", dbName)
-	
+
 	// Create a new Logrus logger that discards output
 	logrusLogger := logrus.New()
 	logrusLogger.SetOutput(io.Discard)

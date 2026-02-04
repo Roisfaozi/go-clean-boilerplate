@@ -38,7 +38,8 @@ func TestScenario_AdvancedRateLimit_Tiers(t *testing.T) {
 	}()
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: fmt.Sprintf("localhost:%s", redisPort),
+		Addr:     fmt.Sprintf("localhost:%s", redisPort),
+		Protocol: 2, // Added Protocol: 2 as per instruction
 	})
 	require.NoError(t, redisClient.Ping(context.Background()).Err())
 

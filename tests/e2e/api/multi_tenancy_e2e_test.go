@@ -25,7 +25,7 @@ func TestMultiTenancyE2E_MemberFlow(t *testing.T) {
 	// 1. Setup Owner
 	f := fixtures.NewUserFactory(server.DB)
 	hash, _ := bcrypt.GenerateFromPassword([]byte("OwnerPass123!"), bcrypt.DefaultCost)
-	
+
 	owner := f.Create(func(u *userEntity.User) {
 		u.Username = "org_owner"
 		u.Email = "owner@org.com"
@@ -64,7 +64,7 @@ func TestMultiTenancyE2E_MemberFlow(t *testing.T) {
 	// 3. Create Custom Role in Organization
 	// Note: Role creation might need OrgID context if roles are org-scoped.
 	// Current implementation: Roles table has organization_id column.
-	// But RoleController.Create currently takes name/desc. 
+	// But RoleController.Create currently takes name/desc.
 	// Let's assume roles created via API default to global or we need to pass org_id?
 	// Checking RoleController.Create: it doesn't seem to take org_id from body, maybe defaults to global?
 	// Let's check role repository Create. It uses struct.
@@ -72,19 +72,19 @@ func TestMultiTenancyE2E_MemberFlow(t *testing.T) {
 	// BUT, for this test, we can use a system role or create one manually in DB for the org.
 	// Or simply use a standard "role:member" if available.
 	// Let's create a role manually in DB for this org to be safe and "multi-tenant" compliant.
-	
+
 	memberRoleID := uuid.New().String()
 	server.DB.Create(&roleEntity.Role{
-		ID: memberRoleID,
-		Name: "Viewer",
+		ID:             memberRoleID,
+		Name:           "Viewer",
 		OrganizationID: &orgID,
-		Description: "View only",
+		Description:    "View only",
 	})
 
 	// 4. Invite New User
 	inviteEmail := "new_member@test.com"
 	resp = client.POST("/api/v1/organizations/"+orgID+"/members/invite", map[string]any{
-		"email": inviteEmail,
+		"email":   inviteEmail,
 		"role_id": memberRoleID,
 	}, setup.WithAuth(ownerToken), setup.WithOrg(orgID))
 	require.Equal(t, 201, resp.StatusCode)
@@ -93,30 +93,30 @@ func TestMultiTenancyE2E_MemberFlow(t *testing.T) {
 	var tokenRecord orgEntity.InvitationToken
 	err := server.DB.Where("email = ? AND organization_id = ?", inviteEmail, orgID).First(&tokenRecord).Error
 	require.NoError(t, err, "Invitation token should exist in DB")
-	
+
 	// 6. Accept Invitation
 	resp = client.POST("/api/v1/organizations/invitations/accept", map[string]any{
-		"token": tokenRecord.Token,
+		"token":    tokenRecord.Token,
 		"password": "MemberPass123!",
-		"name": "New Member",
+		"name":     "New Member",
 	})
 	require.Equal(t, 200, resp.StatusCode)
 
 	// 7. Verify Member is Active
 	resp = client.GET("/api/v1/organizations/"+orgID+"/members", setup.WithAuth(ownerToken), setup.WithOrg(orgID))
 	require.Equal(t, 200, resp.StatusCode)
-	
+
 	var membersRes struct {
 		Data []struct {
 			UserID string `json:"user_id"`
 			Status string `json:"status"`
-			User struct {
+			User   struct {
 				Email string `json:"email"`
 			} `json:"user"`
 		} `json:"data"`
 	}
 	resp.JSON(&membersRes)
-	
+
 	found := false
 	for _, m := range membersRes.Data {
 		if m.User.Email == inviteEmail {
@@ -131,7 +131,7 @@ func TestMultiTenancyE2E_MemberFlow(t *testing.T) {
 	// Get User ID from member list or DB
 	var newUser userEntity.User
 	server.DB.Where("email = ?", inviteEmail).First(&newUser)
-	
+
 	ok, _ := server.Enforcer.HasGroupingPolicy(newUser.ID, memberRoleID, orgID)
 	assert.True(t, ok, "Casbin grouping policy should exist for (user, role, org)")
 
@@ -156,7 +156,7 @@ func TestMultiTenancyE2E_MemberFlow(t *testing.T) {
 	// This is a limitation found!
 	// But we can check if they can access "Get Organization" which implies membership check in middleware?
 	// Let's check GetOrganization endpoint.
-	
+
 	resp = client.GET("/api/v1/organizations/"+orgID, setup.WithAuth(memberToken), setup.WithOrg(orgID))
 	// Should be allowed if they are a member.
 	assert.Equal(t, 200, resp.StatusCode)

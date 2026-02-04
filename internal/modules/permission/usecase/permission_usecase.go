@@ -52,7 +52,7 @@ func (uc *PermissionUseCase) BatchCheckPermission(ctx context.Context, userID st
 	for _, item := range items {
 		key := fmt.Sprintf("%s:%s", item.Resource, item.Action)
 
-		// For now, batch check defaults to global domain. 
+		// For now, batch check defaults to global domain.
 		// Future: support domain in PermissionCheckItem
 		allowed, err := uc.enforcer.Enforce(userID, "global", item.Resource, item.Action)
 		if err != nil {

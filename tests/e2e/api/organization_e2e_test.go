@@ -20,7 +20,7 @@ import (
 func createUserAndLogin(t *testing.T, server *setup.TestServer) (string, *userEntity.User) {
 	f := fixtures.NewUserFactory(server.DB)
 	hash, _ := bcrypt.GenerateFromPassword([]byte("UserPass123!"), bcrypt.DefaultCost)
-	
+
 	uniqueSuffix := fmt.Sprintf("%d", time.Now().UnixNano())
 
 	user := f.Create(func(u *userEntity.User) {
@@ -56,9 +56,9 @@ func TestOrganizationE2E_Create_Success(t *testing.T) {
 			"name": "My Tech Startup",
 			"slug": "my-tech-startup",
 		}
-		
+
 		resp := server.Client.POST("/api/v1/organizations", payload, setup.WithAuth(token))
-		
+
 		if resp.StatusCode != 201 {
 			var errRes map[string]interface{}
 			_ = resp.JSON(&errRes)
@@ -86,7 +86,7 @@ func TestOrganizationE2E_Create_Success(t *testing.T) {
 			"name": "Another Startup",
 			"slug": "my-tech-startup", // Duplicate
 		}
-		
+
 		resp := server.Client.POST("/api/v1/organizations", payload, setup.WithAuth(token))
 		assert.Equal(t, 409, resp.StatusCode)
 	})
@@ -97,18 +97,18 @@ func TestOrganizationE2E_CRUD(t *testing.T) {
 	defer server.Cleanup()
 
 	token, _ := createUserAndLogin(t, server)
-	
+
 	// Prepare organization
 	var orgID string
 	var orgSlug = "crud-org-test"
-	
+
 	t.Run("1. Create", func(t *testing.T) {
 		resp := server.Client.POST("/api/v1/organizations", map[string]string{
 			"name": "CRUD Test Org",
 			"slug": orgSlug,
 		}, setup.WithAuth(token))
 		require.Equal(t, 201, resp.StatusCode)
-		
+
 		var result struct {
 			Data struct {
 				ID string `json:"id"`
@@ -119,23 +119,23 @@ func TestOrganizationE2E_CRUD(t *testing.T) {
 	})
 
 	t.Run("2. Get By ID", func(t *testing.T) {
-		resp := server.Client.GET("/api/v1/organizations/" + orgID, setup.WithAuth(token))
+		resp := server.Client.GET("/api/v1/organizations/"+orgID, setup.WithAuth(token))
 		assert.Equal(t, 200, resp.StatusCode)
 	})
 
 	t.Run("3. Get By Slug", func(t *testing.T) {
-		resp := server.Client.GET("/api/v1/organizations/slug/" + orgSlug, setup.WithAuth(token))
+		resp := server.Client.GET("/api/v1/organizations/slug/"+orgSlug, setup.WithAuth(token))
 		assert.Equal(t, 200, resp.StatusCode)
 	})
 
 	t.Run("4. Update", func(t *testing.T) {
-		resp := server.Client.PUT("/api/v1/organizations/" + orgID, map[string]string{
+		resp := server.Client.PUT("/api/v1/organizations/"+orgID, map[string]string{
 			"name": "Updated Org Name",
 		}, setup.WithAuth(token))
 		assert.Equal(t, 200, resp.StatusCode)
-		
+
 		// Verify update
-		getResp := server.Client.GET("/api/v1/organizations/" + orgID, setup.WithAuth(token))
+		getResp := server.Client.GET("/api/v1/organizations/"+orgID, setup.WithAuth(token))
 		var result struct {
 			Data struct {
 				Name string `json:"name"`
@@ -148,7 +148,7 @@ func TestOrganizationE2E_CRUD(t *testing.T) {
 	t.Run("5. List My Organizations", func(t *testing.T) {
 		resp := server.Client.GET("/api/v1/organizations/me", setup.WithAuth(token))
 		assert.Equal(t, 200, resp.StatusCode)
-		
+
 		var result struct {
 			Data struct {
 				Organizations []struct {
@@ -162,11 +162,11 @@ func TestOrganizationE2E_CRUD(t *testing.T) {
 	})
 
 	t.Run("6. Delete", func(t *testing.T) {
-		resp := server.Client.DELETE("/api/v1/organizations/" + orgID, setup.WithAuth(token))
+		resp := server.Client.DELETE("/api/v1/organizations/"+orgID, setup.WithAuth(token))
 		assert.Equal(t, 200, resp.StatusCode)
-		
+
 		// Verify retrieval fails
-		getResp := server.Client.GET("/api/v1/organizations/" + orgID, setup.WithAuth(token))
+		getResp := server.Client.GET("/api/v1/organizations/"+orgID, setup.WithAuth(token))
 		assert.Equal(t, 404, getResp.StatusCode)
 	})
 }

@@ -47,7 +47,7 @@ func TestAccessRightsFlowE2E(t *testing.T) {
 
 	// 2. Create Access Right (Resource Group)
 	resp = client.POST("/api/v1/access-rights", map[string]any{
-		"name": "User Management",
+		"name":        "User Management",
 		"description": "Operations related to user accounts",
 	}, setup.WithAuth(adminToken))
 	require.Equal(t, 201, resp.StatusCode)
@@ -61,7 +61,7 @@ func TestAccessRightsFlowE2E(t *testing.T) {
 
 	// 3. Create Endpoint
 	resp = client.POST("/api/v1/endpoints", map[string]any{
-		"path": "/api/v1/users",
+		"path":   "/api/v1/users",
 		"method": "GET",
 	}, setup.WithAuth(adminToken))
 	require.Equal(t, 201, resp.StatusCode)
@@ -76,7 +76,7 @@ func TestAccessRightsFlowE2E(t *testing.T) {
 	// 4. Link Endpoint to Access Right
 	resp = client.POST("/api/v1/access-rights/link", map[string]any{
 		"access_right_id": arID,
-		"endpoint_id": epID,
+		"endpoint_id":     epID,
 	}, setup.WithAuth(adminToken))
 	assert.Equal(t, 200, resp.StatusCode)
 
@@ -87,8 +87,8 @@ func TestAccessRightsFlowE2E(t *testing.T) {
 	// 6. Grant Permission via the Endpoint details
 	// (Simulating what the Access Matrix UI does)
 	resp = client.POST("/api/v1/permissions/grant", map[string]any{
-		"role": "UserManager",
-		"path": "/api/v1/users",
+		"role":   "UserManager",
+		"path":   "/api/v1/users",
 		"method": "GET",
 	}, setup.WithAuth(adminToken))
 	assert.Equal(t, 201, resp.StatusCode)
@@ -98,7 +98,7 @@ func TestAccessRightsFlowE2E(t *testing.T) {
 	user := f.Create(func(u *userEntity.User) { u.Username = "manager_user"; u.Password = string(hash) })
 	client.POST("/api/v1/permissions/assign-role", map[string]any{
 		"user_id": user.ID,
-		"role": "UserManager",
+		"role":    "UserManager",
 	}, setup.WithAuth(adminToken))
 
 	// Enforce check (sub, dom, obj, act)

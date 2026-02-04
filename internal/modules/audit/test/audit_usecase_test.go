@@ -29,7 +29,7 @@ func setupAuditTest() (*auditTestDeps, usecase.AuditUseCase) {
 	}
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
-	
+
 	// Default mock behavior
 	deps.MockWS.On("BroadcastToChannel", mock.Anything, mock.Anything).Return()
 

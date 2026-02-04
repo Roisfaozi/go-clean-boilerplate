@@ -197,5 +197,3 @@ func (uc *organizationUseCase) DeleteOrganization(ctx context.Context, id string
 		return nil
 	})
 }
-
-

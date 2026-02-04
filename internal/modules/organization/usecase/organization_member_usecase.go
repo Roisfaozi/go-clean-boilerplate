@@ -117,7 +117,7 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 		if err != nil {
 			return err
 		}
-		
+
 		if existingStatus == "" {
 			if err := uc.memberRepo.AddMember(txCtx, member); err != nil {
 				return err
@@ -157,7 +157,7 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 			Subject: "Invitation to join organization",
 			Body:    "You have been invited to join " + org.Name + ". Click here to accept: " + "http://localhost:3000/accept-invite?token=" + tokenString, // TODO: Use config for URL
 		}
-		
+
 		if err := uc.taskDistributor.DistributeTaskSendEmail(txCtx, payload); err != nil {
 			uc.log.WithError(err).Warn("Failed to queue invitation email")
 			// Don't fail the transaction if email fails, user can resend
@@ -330,7 +330,7 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 				return err
 			}
 		}
-        // If already active, do nothing (idempotent).
+		// If already active, do nothing (idempotent).
 
 		// Add Casbin Grouping Policy for new active member
 		if uc.enforcer != nil {

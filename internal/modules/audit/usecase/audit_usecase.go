@@ -70,7 +70,7 @@ func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLo
 		UserAgent: logEntity.UserAgent,
 		CreatedAt: logEntity.CreatedAt,
 	}
-	
+
 	msg, err := json.Marshal(eventData)
 	if err == nil && uc.ws != nil {
 		uc.ws.BroadcastToChannel("audit", msg)

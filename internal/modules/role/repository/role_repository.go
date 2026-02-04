@@ -30,7 +30,6 @@ func (r *roleRepository) getDB(ctx context.Context) *gorm.DB {
 	return r.db.WithContext(ctx)
 }
 
-
 func (r *roleRepository) Create(ctx context.Context, role *entity.Role) error {
 	return r.getDB(ctx).Create(role).Error
 }

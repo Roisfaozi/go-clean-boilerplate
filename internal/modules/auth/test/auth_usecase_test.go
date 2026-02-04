@@ -1230,7 +1230,7 @@ func TestRegister_Success(t *testing.T) {
 	// Login logic mocks:
 	deps.tokenRepo.On("IsAccountLocked", mock.Anything, req.Username).Return(false, time.Duration(0), nil)
 	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, req.Username).Return(nil)
-	
+
 	// FindByUsername for Login (Second call) - MUST RETURN USER with matching password
 	createdUser := &entity.User{
 		ID:       "new-user-id",
@@ -1242,13 +1242,13 @@ func TestRegister_Success(t *testing.T) {
 
 	// Enforcer GetRolesForUser (Login)
 	deps.enforcer.On("GetRolesForUser", createdUser.ID, "global").Return([]string{"role:user"}, nil)
-	
+
 	// StoreToken
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	
+
 	// FindUserOrganizations (Login)
 	deps.orgRepo.On("FindUserOrganizations", mock.Anything, createdUser.ID).Return([]*orgEntity.Organization{}, nil)
-	
+
 	// Audit Login
 	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.Action == "LOGIN"
@@ -1263,7 +1263,7 @@ func TestRegister_Success(t *testing.T) {
 	assert.NotEmpty(t, refreshToken)
 	assert.Equal(t, req.Username, loginResp.User.Username)
 	assert.Equal(t, "new-user-id", loginResp.User.ID)
-	
+
 	deps.userRepo.AssertExpectations(t)
 	deps.orgRepo.AssertExpectations(t)
 	deps.enforcer.AssertExpectations(t)

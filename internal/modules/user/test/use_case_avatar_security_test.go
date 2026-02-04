@@ -54,7 +54,7 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 				strings.NewReader("\x89PNG\r\n\x1a\n"),
 				strings.NewReader("<?php echo 'malicious'; ?>"),
 			),
-			errExpected: nil, 
+			errExpected: nil,
 		},
 		{
 			name:        "Block Script File",

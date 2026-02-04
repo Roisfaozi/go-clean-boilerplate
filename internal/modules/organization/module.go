@@ -69,4 +69,3 @@ func (m *OrganizationModule) Controller() *http.OrganizationController {
 func (m *OrganizationModule) Reader() usecase.IOrganizationReader {
 	return m.OrgReader
 }
-

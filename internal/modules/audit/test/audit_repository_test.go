@@ -25,7 +25,6 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-
 func TestAuditRepository_Create(t *testing.T) {
 	db := setupTestDB(t)
 	logger := logrus.New()

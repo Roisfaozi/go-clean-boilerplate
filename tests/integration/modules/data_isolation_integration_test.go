@@ -21,7 +21,7 @@ func TestDataIsolation_User_FindAll(t *testing.T) {
 		return // Setup skipped
 	}
 	// Defer cleanup if needed, though SetupIntegrationEnvironment reuses containers via singleton
-	
+
 	repo := repository.NewUserRepository(env.DB, env.Logger)
 
 	// Setup Headers
@@ -60,12 +60,16 @@ func TestDataIsolation_User_FindAll(t *testing.T) {
 	ctxOrgA := database.SetOrganizationContext(ctx, orgA)
 	usersA, _, err := repo.FindAll(ctxOrgA, &model.GetUserListRequest{})
 	assert.NoError(t, err)
-	
+
 	foundA := false
 	foundB := false
 	for _, u := range usersA {
-		if u.ID == userA.ID { foundA = true }
-		if u.ID == userB.ID { foundB = true }
+		if u.ID == userA.ID {
+			foundA = true
+		}
+		if u.ID == userB.ID {
+			foundB = true
+		}
 	}
 	assert.True(t, foundA, "Should find user A in Org A context")
 	assert.False(t, foundB, "Should NOT find user B in Org A context")
@@ -78,8 +82,12 @@ func TestDataIsolation_User_FindAll(t *testing.T) {
 	foundA = false
 	foundB = false
 	for _, u := range usersB {
-		if u.ID == userA.ID { foundA = true }
-		if u.ID == userB.ID { foundB = true }
+		if u.ID == userA.ID {
+			foundA = true
+		}
+		if u.ID == userB.ID {
+			foundB = true
+		}
 	}
 	assert.False(t, foundA, "Should NOT find user A in Org B context")
 	assert.True(t, foundB, "Should find user B in Org B context")

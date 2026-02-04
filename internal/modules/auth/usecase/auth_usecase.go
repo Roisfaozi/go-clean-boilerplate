@@ -135,7 +135,7 @@ func (s *Service) Register(ctx context.Context, request model.RegisterRequest) (
 			OwnerID: user.ID,
 			Status:  "active",
 		}
-		
+
 		// Create Organization (Repo handles adding owner member)
 		if err := s.orgRepo.Create(txCtx, defaultOrg, "owner"); err != nil {
 			return err

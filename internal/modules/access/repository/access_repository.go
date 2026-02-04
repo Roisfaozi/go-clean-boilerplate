@@ -30,7 +30,6 @@ func (r *accessRepository) getDB(ctx context.Context) *gorm.DB {
 	return r.db.WithContext(ctx)
 }
 
-
 func (r *accessRepository) CreateEndpoint(ctx context.Context, endpoint *entity.Endpoint) error {
 	return r.getDB(ctx).Create(endpoint).Error
 }

@@ -31,7 +31,6 @@ func (r *auditRepository) getDB(ctx context.Context) *gorm.DB {
 	return r.db.WithContext(ctx)
 }
 
-
 func (r *auditRepository) Create(ctx context.Context, log *entity.AuditLog) error {
 	if log.ID == "" {
 		id, err := uuid.NewV7()
