@@ -859,3 +859,56 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 	assert.Equal(t, expectedName, result.Name)
 	deps.Repo.AssertExpectations(t)
 }
+
+func TestUserUseCase_Update_Username_Sanitization(t *testing.T) {
+	deps, uc := setupUserTest()
+
+	inputUsername := "<b>bold</b>"
+	// pkg.SanitizeString uses html.EscapeString, so < > becomes &lt; &gt;
+	expectedUsername := "&lt;b&gt;bold&lt;/b&gt;"
+
+	request := &model.UpdateUserRequest{
+		ID:       "user123",
+		Username: inputUsername,
+	}
+
+	existingUser := &entity.User{ID: "user123", Username: "olduser"}
+
+	deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+	// The usecase checks uniqueness using the value in the request.
+	// Before fix: it checks "<b>bold</b>"
+	// After fix: it checks "&lt;b&gt;bold&lt;/b&gt;"
+	// So we need to match arguments loosely or handle both cases if we want the test to be robust during transition?
+	// No, we want to prove it FAILS now.
+	// Currently, it passes "<b>bold</b>" to FindByUsername.
+	// But the Mock expects what?
+	// If I set expectation for SANITIZED, and it passes RAW, the mock verification for Update will fail.
+	// But FindByUsername is called before Update.
+
+	// If I want to verify Update is called with sanitized, I should probably allow FindByUsername to receive anything or specific based on what the code does.
+	// Currently code does:
+	// if request.Username != "" { ... FindByUsername(..., request.Username) ... user.Username = request.Username }
+
+	// So currently FindByUsername receives "<b>bold</b>".
+	// After fix, FindByUsername will receive "&lt;b&gt;bold&lt;/b&gt;".
+
+	// To make the test fail on UPDATE (which is the persistence), I will make FindByUsername permissive.
+	deps.Repo.On("FindByUsername", mock.Anything, mock.Anything).Return(nil, gorm.ErrRecordNotFound)
+
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+
+	// EXPECTATION: The repository should be called with the SANITIZED username
+	deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+		return u.Username == expectedUsername
+	})).Return(nil)
+
+	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+	_, err := uc.Update(context.Background(), request)
+
+	// We assert NoError, but if the Mock expectation for Update fails (because it received raw string), AssertExpectations will fail.
+	assert.NoError(t, err)
+	deps.Repo.AssertExpectations(t)
+}
