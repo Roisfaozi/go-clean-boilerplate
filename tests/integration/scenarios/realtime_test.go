@@ -6,6 +6,7 @@ package scenarios
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -30,6 +31,7 @@ func TestScenario_RealTime_LoginBroadcast(t *testing.T) {
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 
 	wsConfig := &ws.WebSocketConfig{
@@ -43,25 +45,44 @@ func TestScenario_RealTime_LoginBroadcast(t *testing.T) {
 	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis)
 	go wsManager.Run()
 
-	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, wsManager, nil, env.Enforcer, nil, nil)
 
-	pubsub := env.Redis.Subscribe(context.Background(), "ws_broadcast:global_notifications")
+	// Register user to ensure default organization is created
+	registerReq := model.RegisterRequest{
+		Username: "ws_user",
+		Email:    "ws@test.com",
+		Password: "password123",
+		Name:     "WS User",
+	}
+	_, _, err := authService.Register(context.Background(), registerReq)
+	require.NoError(t, err)
+
+	// Find the user to get ID
+	user, err := uRepo.FindByUsername(context.Background(), "ws_user")
+	require.NoError(t, err)
+
+	// Find the user's organization
+	orgs, err := oRepo.FindUserOrganizations(context.Background(), user.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, orgs, "User should belong to at least one organization")
+
+	// Subscribe to the correct organization channel
+	channelName := fmt.Sprintf("ws_broadcast:org_%s_notifications", orgs[0].ID)
+	pubsub := env.Redis.Subscribe(context.Background(), channelName)
 	defer pubsub.Close()
 
-	_, err := pubsub.Receive(context.Background())
+	_, err = pubsub.Receive(context.Background())
 	require.NoError(t, err)
 
 	time.Sleep(100 * time.Millisecond)
 
-	user := setup.CreateTestUser(t, env.DB, "ws_user", "ws@test.com", "pass")
-	_, _, err = authService.Login(context.Background(), model.LoginRequest{Username: "ws_user", Password: "pass"})
+	// Login
+	_, _, err = authService.Login(context.Background(), model.LoginRequest{Username: "ws_user", Password: "password123"})
 	require.NoError(t, err)
 
 	select {
 	case msg := <-pubsub.Channel():
-
-		assert.Equal(t, "ws_broadcast:global_notifications", msg.Channel)
+		assert.Equal(t, channelName, msg.Channel)
 
 		var notification map[string]interface{}
 		err := json.Unmarshal([]byte(msg.Payload), &notification)
