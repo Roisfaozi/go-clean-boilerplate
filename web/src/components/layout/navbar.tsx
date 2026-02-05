@@ -8,6 +8,7 @@ import { cn } from "~/lib/utils";
 import Icons from "../shared/icons";
 import { useState } from "react";
 import { MenuIcon } from "lucide-react";
+import DensityToggle from "../shared/density-toggle";
 
 export default function Navbar({
   session,
@@ -45,6 +46,9 @@ export default function Navbar({
         >
           {headerText.about}
         </Link>
+
+        <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
+        <DensityToggle />
 
         {session ? (
           <div className="flex items-center gap-4">
@@ -87,6 +91,12 @@ export default function Navbar({
             >
               {headerText.about}
             </Link>
+            
+            <div className="flex items-center justify-between border-t border-slate-200 pt-4 dark:border-slate-800">
+              <span className="text-sm font-medium">Density Mode</span>
+              <DensityToggle />
+            </div>
+
             {session ? (
               <>
                 <Link
