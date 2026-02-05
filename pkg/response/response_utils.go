@@ -15,7 +15,12 @@ func SuccessResponse(c *gin.Context, statusCode int, data interface{}) {
 }
 
 func ErrorResponse(c *gin.Context, statusCode int, err error, msg string) {
-	errorMsg := err.Error()
+	var errorMsg string
+	if err != nil {
+		errorMsg = err.Error()
+	} else {
+		errorMsg = http.StatusText(statusCode)
+	}
 
 	if statusCode == http.StatusInternalServerError && gin.Mode() == gin.ReleaseMode {
 		errorMsg = "Internal Server Error"
