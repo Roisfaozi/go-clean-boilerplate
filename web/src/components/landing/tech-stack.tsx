@@ -1,4 +1,5 @@
 import Marquee from "~/components/magicui/marquee";
+import Image from "next/image";
 
 const tech = [
   { name: "Next.js 16", logo: "https://cdn.worldvectorlogo.com/logos/next-js.svg" },
@@ -21,7 +22,13 @@ export default function TechStack() {
         <Marquee pauseOnHover className="[--duration:20s]">
           {tech.map((item) => (
             <div key={item.name} className="flex items-center gap-2 px-8 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all cursor-default">
-              <img src={item.logo} alt={item.name} className="h-8 w-auto" />
+              <Image 
+                src={item.logo} 
+                alt={item.name} 
+                height={32} 
+                width={32} 
+                className="h-8 w-auto" 
+              />
               <span className="text-xl font-bold text-slate-700 dark:text-slate-300">{item.name}</span>
             </div>
           ))}

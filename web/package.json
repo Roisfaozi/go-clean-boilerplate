@@ -9,7 +9,7 @@
     "build:content": "velite build --clean",
     "build": "pnpm build:content && next build",
     "start": "next start",
-    "lint": "next lint --dir src",
+    "lint": "eslint src",
     "format": "prettier --write 'src/**/*.{ts,tsx,js,jsx,css}'",
     "preinstall": "lefthook install",
     "release": "release-it"
@@ -76,6 +76,9 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^9.39.2",
+    "@next/eslint-plugin-next": "^16.1.6",
     "@tailwindcss/line-clamp": "^0.4.4",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/typography": "^0.5.16",

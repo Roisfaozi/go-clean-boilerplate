@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useOrganizationStore } from "~/stores/use-organization-store";
-import { organizationsApi } from "~/lib/api/organizations";
+import { organizationsApi, OrganizationSettings } from "~/lib/api/organizations";
 import { Button } from "~/components/ui/button";
 import { Icon } from "~/components/shared/icon";
 import { Input } from "~/components/ui/input";
@@ -11,10 +11,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import { Separator } from "~/components/ui/separator";
 import { useRouter } from "next/navigation";
+import { Switch } from "~/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 
 export default function OrganizationSettingsPage() {
   const { currentOrganization, setCurrentOrganization } = useOrganizationStore();
   const [name, setName] = useState(currentOrganization?.name || "");
+  const [settings, setSettings] = useState<OrganizationSettings>(currentOrganization?.settings || {});
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
@@ -22,6 +31,7 @@ export default function OrganizationSettingsPage() {
   useEffect(() => {
     if (currentOrganization) {
       setName(currentOrganization.name);
+      setSettings(currentOrganization.settings || {});
     }
   }, [currentOrganization]);
 
@@ -29,7 +39,10 @@ export default function OrganizationSettingsPage() {
     if (!currentOrganization) return;
     setIsLoading(true);
     try {
-      const resp = await organizationsApi.update(currentOrganization.id, { name });
+      const resp = await organizationsApi.update(currentOrganization.id, { 
+        name,
+        settings 
+      });
       if (resp.data) {
         setCurrentOrganization(resp.data);
         toast.success("Organization updated successfully");
@@ -41,21 +54,11 @@ export default function OrganizationSettingsPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!currentOrganization) return;
-    if (!confirm(`Are you sure you want to permanently delete ${currentOrganization.name}? This action cannot be undone.`)) return;
-
-    setIsDeleting(true);
-    try {
-      await organizationsApi.delete(currentOrganization.id);
-      toast.success("Organization deleted successfully");
-      setCurrentOrganization(null);
-      router.push("/dashboard");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete organization");
-    } finally {
-      setIsDeleting(false);
-    }
+  const updateSetting = (key: keyof OrganizationSettings, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
   };
 
   if (!currentOrganization) {
@@ -66,13 +69,22 @@ export default function OrganizationSettingsPage() {
     );
   }
 
+  const hasChanges = name !== currentOrganization.name || 
+                     JSON.stringify(settings) !== JSON.stringify(currentOrganization.settings || {});
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Organization Settings</h2>
-        <p className="text-muted-foreground">
-          Update your organization profile and general settings.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Organization Settings</h2>
+          <p className="text-muted-foreground">
+            Update your organization profile and general settings.
+          </p>
+        </div>
+        <Button onClick={handleUpdate} disabled={isLoading || !hasChanges}>
+          {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
+          Save All Changes
+        </Button>
       </div>
 
       <div className="grid gap-6 max-w-3xl">
@@ -104,12 +116,54 @@ export default function OrganizationSettingsPage() {
               <p className="text-[10px] text-muted-foreground italic">Slug cannot be changed after creation.</p>
             </div>
           </CardContent>
-          <CardFooter className="border-t bg-muted/20 px-6 py-4">
-            <Button onClick={handleUpdate} disabled={isLoading || name === currentOrganization.name}>
-              {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
-            </Button>
-          </CardFooter>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Preferences & Security</CardTitle>
+            <CardDescription>
+              Configure organization-wide behavior and security policies.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between space-x-2">
+              <div className="flex flex-col space-y-1">
+                <Label htmlFor="theme">Default Theme</Label>
+                <p className="text-xs text-muted-foreground">
+                  The default visual theme for all members of this organization.
+                </p>
+              </div>
+              <Select 
+                value={settings.theme || "system"} 
+                onValueChange={(v) => updateSetting("theme", v)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select theme" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">Light</SelectItem>
+                  <SelectItem value="dark">Dark</SelectItem>
+                  <SelectItem value="system">System</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between space-x-2">
+              <div className="flex flex-col space-y-1">
+                <Label htmlFor="mfa">Require MFA</Label>
+                <p className="text-xs text-muted-foreground">
+                  Force all members to enable Multi-Factor Authentication to access this organization.
+                </p>
+              </div>
+              <Switch 
+                id="mfa" 
+                checked={settings.mfa_required || false}
+                onCheckedChange={(checked) => updateSetting("mfa_required", checked)}
+              />
+            </div>
+          </CardContent>
         </Card>
 
         <Card className="border-destructive/20 bg-destructive/5">

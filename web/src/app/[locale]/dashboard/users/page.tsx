@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { Button } from "~/components/ui/button";
 import {
   Table,
@@ -213,9 +214,11 @@ export default function UsersPage() {
                   <TableCell>
                     <div className="bg-muted flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-xs font-medium">
                       {user.avatar_url ? (
-                        <img
+                        <Image
                           src={user.avatar_url}
                           alt={user.name}
+                          width={32}
+                          height={32}
                           className="h-full w-full object-cover"
                         />
                       ) : (

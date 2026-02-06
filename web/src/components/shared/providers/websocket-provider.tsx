@@ -29,6 +29,13 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     new Map()
   );
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectRef = useRef<() => void>(() => {});
+
+  const sendJson = useCallback((data: any) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify(data));
+    }
+  }, []);
 
   const connect = useCallback(() => {
     if (socketRef.current?.readyState === WebSocket.OPEN) return;
@@ -49,33 +56,6 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     socket.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        // Message format: { type: "message", channel: "audit", data: {...} }
-        // Or sometimes just { channel: "audit", ... } depending on backend implementation
-        // Our backend seems to send raw bytes from Redis or JSON.
-        // Let's assume standard format from ws_client.go: BroadcastMessage
-
-        // Wait, ws_client.go WritePump sends raw bytes from 'Send' channel.
-        // ws_manager broadcasts []byte.
-        // The broadcast message from backend audit usecase is just the Log JSON.
-        // But ws_manager doesn't wrap it in envelope?
-        // Checking ws_client.go again...
-        // WritePump just writes whatever is in Send channel.
-        // Manager sends msg.Message directly.
-        // So the message received here is whatever UseCase marshaled.
-
-        // ISSUE: If multiple channels exist, how do we know which channel it belongs to?
-        // ws_manager.go `handleBroadcast` -> sends `msg.Message` to `client.Send`.
-        // It DOES NOT wrap it with channel name.
-        // This is a flaw in the backend implementation if we want multiplexing on a single connection.
-        // Ideally, the backend should wrap it: { channel: "audit", data: ... }
-
-        // For now, let's assume the data itself might contain a "type" or we infer it,
-        // OR we fix the backend to wrap messages.
-        // Fixing backend is safer.
-
-        // Let's implement the frontend assuming the backend WILL send:
-        // { channel: "audit", payload: ... }
-
         const channel = message.channel || "global";
         const listeners = subscriptions.current.get(channel);
         if (listeners) {
@@ -91,17 +71,24 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       setIsConnected(false);
       socketRef.current = null;
       // Reconnect logic
-      reconnectTimeoutRef.current = setTimeout(connect, RECONNECT_INTERVAL);
+      reconnectTimeoutRef.current = setTimeout(
+        () => connectRef.current(),
+        RECONNECT_INTERVAL
+      );
     };
 
     socket.onerror = (error) => {
       console.error("WebSocket error", error);
       socket.close();
     };
-  }, []);
+  }, [sendJson]);
 
   useEffect(() => {
-    connect();
+    connectRef.current = connect;
+  }, [connect]);
+
+  useEffect(() => {
+    connectRef.current();
     return () => {
       if (socketRef.current) {
         socketRef.current.close();
@@ -110,13 +97,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [connect]);
-
-  const sendJson = (data: any) => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(data));
-    }
-  };
+  }, []);
 
   const subscribe = useCallback(
     (channel: string, callback: (data: any) => void) => {
@@ -127,7 +108,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       }
       subscriptions.current.get(channel)?.add(callback);
     },
-    []
+    [sendJson]
   );
 
   const unsubscribe = useCallback(
@@ -141,7 +122,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         }
       }
     },
-    []
+    [sendJson]
   );
 
   return (

@@ -129,8 +129,8 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="rounded-lg border border-dashed bg-muted/30 p-4">
               <p className="text-muted-foreground text-sm leading-relaxed italic">
-                "User engagement has increased by 12% compared to last week.
-                Most active role: role:admin."
+                &quot;User engagement has increased by 12% compared to last week.
+                Most active role: role:admin.&quot;
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">

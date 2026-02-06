@@ -6,8 +6,16 @@ export interface Organization {
   slug: string;
   status: string;
   owner_id: string;
+  settings?: OrganizationSettings;
   created_at: number;
   updated_at: number;
+}
+
+export interface OrganizationSettings {
+  theme?: "light" | "dark" | "system";
+  mfa_required?: boolean;
+  allowed_domains?: string[];
+  [key: string]: any;
 }
 
 export const organizationsApi = {
@@ -31,7 +39,11 @@ export const organizationsApi = {
 
   update: (
     id: string,
-    data: { name?: string; status?: "active" | "suspended" | "inactive" }
+    data: { 
+      name?: string; 
+      status?: "active" | "suspended" | "inactive";
+      settings?: OrganizationSettings;
+    }
   ) => {
     return api.put<{ data: Organization }>(`/organizations/${id}`, data);
   },
