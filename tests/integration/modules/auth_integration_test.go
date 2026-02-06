@@ -41,7 +41,8 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
 	wsConfig := &ws.WebSocketConfig{}
-	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis)
+	presenceManager := ws.NewPresenceManager(env.Redis, env.Logger, 5*time.Minute)
+	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis, presenceManager)
 	sseManager := sse.NewManager()
 
 	taskDistributor := worker.NewRedisTaskDistributor(asynq.RedisClientOpt{Addr: env.RedisAddr})

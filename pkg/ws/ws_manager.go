@@ -19,6 +19,8 @@ type Manager interface {
 	SubscribeToChannel(client *Client, channel string)
 	UnsubscribeFromChannel(client *Client, channel string)
 	GetChannelClients(channel string) int
+	PresenceUpdate(orgID string, event string, userData *PresenceUser)
+	GetPresenceManager() PresenceManager
 }
 
 type WebSocketManager struct {
@@ -45,6 +47,8 @@ type WebSocketManager struct {
 	stopChan chan struct{}
 
 	redisClient *redis.Client
+
+	presence PresenceManager
 }
 
 type BroadcastMessage struct {
@@ -67,7 +71,7 @@ type WebSocketConfig struct {
 	RedisPrefix        string
 }
 
-func NewWebSocketManager(config *WebSocketConfig, log *logrus.Logger, redisClient *redis.Client) *WebSocketManager {
+func NewWebSocketManager(config *WebSocketConfig, log *logrus.Logger, redisClient *redis.Client, presence PresenceManager) *WebSocketManager {
 	return &WebSocketManager{
 		clients:     make(map[*Client]bool),
 		channels:    make(map[string]map[*Client]bool),
@@ -80,6 +84,7 @@ func NewWebSocketManager(config *WebSocketConfig, log *logrus.Logger, redisClien
 		config:      config,
 		stopChan:    make(chan struct{}),
 		redisClient: redisClient,
+		presence:    presence,
 	}
 }
 
@@ -153,6 +158,22 @@ func (m *WebSocketManager) handleRegister(client *Client) {
 	m.clients[client] = true
 	telemetry.ActiveWSConnections.Inc()
 	m.log.Infof("Client registered: %s, total clients: %d", client.ID, len(m.clients))
+
+	// Track Presence if user info is available
+	if client.UserID != "" && client.OrgID != "" {
+		userData := &PresenceUser{
+			UserID: client.UserID,
+			// Details should ideally be fetched or passed. 
+			// For now we set basic info, and assume frontend syncs the rest.
+			Status: "online",
+		}
+		if err := m.presence.SetUserOnline(context.Background(), client.OrgID, client.UserID, userData); err != nil {
+			m.log.WithError(err).Error("Failed to set user online in presence manager")
+		} else {
+			// Broadcast Join Event
+			m.PresenceUpdate(client.OrgID, "join", userData)
+		}
+	}
 }
 
 func (m *WebSocketManager) handleUnregister(client *Client) {
@@ -160,6 +181,17 @@ func (m *WebSocketManager) handleUnregister(client *Client) {
 	defer m.mu.Unlock()
 
 	if _, ok := m.clients[client]; ok {
+		// Update Presence
+		if client.UserID != "" && client.OrgID != "" {
+			// Only set offline if no other connections for this user?
+			// For simplicity in MVP, we just set offline. 
+			// Better: Reference counting or checking other clients.
+			if err := m.presence.SetUserOffline(context.Background(), client.OrgID, client.UserID); err != nil {
+				m.log.WithError(err).Error("Failed to set user offline in presence manager")
+			} else {
+				m.PresenceUpdate(client.OrgID, "leave", &PresenceUser{UserID: client.UserID})
+			}
+		}
 
 		for channel, clients := range m.channels {
 			if _, exists := clients[client]; exists {
@@ -320,6 +352,20 @@ func (m *WebSocketManager) GetChannelClients(channel string) int {
 		return len(clients)
 	}
 	return 0
+}
+
+func (m *WebSocketManager) PresenceUpdate(orgID string, event string, userData *PresenceUser) {
+	channel := "presence:org:" + orgID
+	payload, _ := json.Marshal(map[string]interface{}{
+		"event": event,
+		"user":  userData,
+	})
+
+	m.BroadcastToChannel(channel, payload)
+}
+
+func (m *WebSocketManager) GetPresenceManager() PresenceManager {
+	return m.presence
 }
 
 func (m *WebSocketManager) ClientCount() int {

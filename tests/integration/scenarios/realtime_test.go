@@ -40,7 +40,8 @@ func TestScenario_RealTime_LoginBroadcast(t *testing.T) {
 		DistributedEnabled: true,
 		RedisPrefix:        "ws_broadcast:",
 	}
-	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis)
+	presenceManager := ws.NewPresenceManager(env.Redis, env.Logger, 5*time.Minute)
+	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis, presenceManager)
 	go wsManager.Run()
 
 	tm := tx.NewTransactionManager(env.DB, env.Logger)

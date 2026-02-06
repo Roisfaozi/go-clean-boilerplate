@@ -141,6 +141,9 @@ func (uc *organizationUseCase) UpdateOrganization(ctx context.Context, id string
 		if request.Name != "" {
 			org.Name = request.Name
 		}
+		if request.Settings != nil {
+			org.Settings = request.Settings
+		}
 		if request.Status != "" {
 			org.Status = request.Status
 		}

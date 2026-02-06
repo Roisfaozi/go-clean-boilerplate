@@ -9,10 +9,11 @@ type OrganizationResponse struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
 	Slug      string `json:"slug"`
-	OwnerID   string `json:"owner_id"`
-	Status    string `json:"status"`
-	CreatedAt int64  `json:"created_at"`
-	UpdatedAt int64  `json:"updated_at"`
+	OwnerID   string                 `json:"owner_id"`
+	Settings  map[string]interface{} `json:"settings"`
+	Status    string                 `json:"status"`
+	CreatedAt int64                  `json:"created_at"`
+	UpdatedAt int64                  `json:"updated_at"`
 }
 
 type UserOrganizationsResponse struct {

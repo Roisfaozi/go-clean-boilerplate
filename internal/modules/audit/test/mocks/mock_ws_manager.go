@@ -37,3 +37,15 @@ func (m *MockWebSocketManager) GetChannelClients(channel string) int {
 	args := m.Called(channel)
 	return args.Int(0)
 }
+
+func (m *MockWebSocketManager) PresenceUpdate(orgID string, event string, userData *ws.PresenceUser) {
+	m.Called(orgID, event, userData)
+}
+
+func (m *MockWebSocketManager) GetPresenceManager() ws.PresenceManager {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(ws.PresenceManager)
+}

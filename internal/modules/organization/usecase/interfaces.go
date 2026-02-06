@@ -43,6 +43,9 @@ type OrganizationMemberUseCase interface {
 
 	// AcceptInvitation accepts an invitation
 	AcceptInvitation(ctx context.Context, request *model.AcceptInvitationRequest) error
+
+	// GetPresence retrieves online members of an organization
+	GetPresence(ctx context.Context, orgID string) ([]interface{}, error)
 }
 
 // IOrganizationReader provides high-performance membership validation with caching.

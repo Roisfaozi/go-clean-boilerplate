@@ -56,6 +56,9 @@ func RegisterTenantRoutes(router *gin.RouterGroup, controller *OrganizationContr
 
 			// Remove member
 			membersGroup.DELETE("/:userId", controller.RemoveMember)
+
+			// Get online members (Presence)
+			orgGroup.GET("/:id/presence", controller.GetPresence)
 		}
 	}
 }

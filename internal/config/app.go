@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
@@ -92,10 +93,32 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		cfg.JWT.AccessTokenDuration,
 		cfg.JWT.RefreshTokenDuration,
 	)
+
+	// Online Presence Manager
+	presenceManager := ws2.NewPresenceManager(redisClient, logger, 5*time.Minute)
+
 	wsConfig := NewDefaultWebSocketConfig()
-	wsManager := ws2.NewWebSocketManager(wsConfig.ToPkgConfig(), logger, redisClient)
-	wsController := ws2.NewWebSocketController(logger, wsManager, cfg.CORS.AllowedOrigins)
+	wsManager := ws2.NewWebSocketManager(wsConfig.ToPkgConfig(), logger, redisClient, presenceManager)
 	go wsManager.Run()
+
+	// Pruning Loop for Presence
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		for range ticker.C {
+			removed, err := presenceManager.PruneStaleUsers(context.Background(), 1*time.Minute)
+			if err != nil {
+				logger.WithError(err).Error("Failed to prune stale users")
+				continue
+			}
+			// Broadcast leave event for each pruned user
+			for orgID, userIDs := range removed {
+				for _, uid := range userIDs {
+					wsManager.PresenceUpdate(orgID, "leave", &ws2.PresenceUser{UserID: uid})
+				}
+			}
+		}
+	}()
+
 	logger.Info("Shared dependencies initialized.")
 
 	sseManager := sse.NewManager()
@@ -145,7 +168,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	accessModule := access.NewAccessModule(dbConnection, logger, validate)
 
-	organizationModule := organization.NewOrganizationModule(dbConnection, redisClient, taskDistributor, userModule.UserRepo, logger, validate, tm, enforcer)
+	organizationModule := organization.NewOrganizationModule(dbConnection, redisClient, taskDistributor, userModule.UserRepo, logger, validate, tm, enforcer, presenceManager)
 
 	logger.Info("Application modules initialized.")
 
@@ -182,6 +205,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		organizationModule.Reader(),
 		logger,
 	)
+	wsController := ws2.NewWebSocketController(logger, wsManager, cfg.CORS.AllowedOrigins, userModule.UserRepo, enforcer)
 	logger.Info("Middleware initialized.")
 
 	configRouter := router.RouterConfig{

@@ -34,6 +34,7 @@ func NewOrganizationModule(
 	validate *validator.Validate,
 	tm tx.WithTransactionManager,
 	enforcer permissionUseCase.IEnforcer,
+	presenceReader usecase.PresenceReader,
 ) *OrganizationModule {
 	// Create repositories
 	orgRepo := repository.NewOrganizationRepository(db)
@@ -45,7 +46,7 @@ func NewOrganizationModule(
 
 	// Create use cases
 	orgUseCase := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, enforcer)
-	memberUseCase := usecase.NewOrganizationMemberUseCase(log, tm, memberRepo, orgRepo, invitationRepo, userRepo, taskDistributor, enforcer)
+	memberUseCase := usecase.NewOrganizationMemberUseCase(log, tm, memberRepo, orgRepo, invitationRepo, userRepo, taskDistributor, enforcer, presenceReader)
 
 	// Create controller
 	orgController := http.NewOrganizationController(orgUseCase, memberUseCase, log, validate)

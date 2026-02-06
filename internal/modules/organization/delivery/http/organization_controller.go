@@ -442,3 +442,27 @@ func (ctrl *OrganizationController) RemoveMember(c *gin.Context) {
 
 	response.Success(c, nil)
 }
+
+// GetPresence retrieves online members of an organization
+// @Summary      Get online members
+// @Description  Retrieves list of members who are currently online via WebSocket
+// @Tags         organizations
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path      string  true  "Organization ID"
+// @Success      200  {object}  response.SwaggerSuccessResponseWrapper{data=[]interface{}}
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper  "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper  "Internal server error"
+// @Router       /organizations/{id}/presence [get]
+func (ctrl *OrganizationController) GetPresence(c *gin.Context) {
+	orgID := c.Param("id")
+
+	result, err := ctrl.MemberUseCase.GetPresence(c.Request.Context(), orgID)
+	if err != nil {
+		ctrl.Log.WithError(err).Error("Failed to get presence")
+		response.InternalServerError(c, err, "failed to get presence")
+		return
+	}
+
+	response.Success(c, result)
+}

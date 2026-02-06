@@ -16,6 +16,7 @@ func OrganizationToResponse(org *entity.Organization) *model.OrganizationRespons
 		Name:      org.Name,
 		Slug:      org.Slug,
 		OwnerID:   org.OwnerID,
+		Settings:  org.Settings,
 		Status:    org.Status,
 		CreatedAt: org.CreatedAt,
 		UpdatedAt: org.UpdatedAt,

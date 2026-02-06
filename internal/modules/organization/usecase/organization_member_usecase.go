@@ -18,6 +18,7 @@ import (
 	pkgUtil "github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	wsPkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -31,6 +32,12 @@ type organizationMemberUseCase struct {
 	userRepo        userRepo.UserRepository
 	taskDistributor worker.TaskDistributor
 	enforcer        permissionUseCase.IEnforcer
+	presence        PresenceReader
+}
+
+// PresenceReader defines the read-only presence operations to avoid circular dependency
+type PresenceReader interface {
+	GetOnlineUsers(ctx context.Context, orgID string) ([]wsPkg.PresenceUser, error)
 }
 
 // NewOrganizationMemberUseCase creates a new OrganizationMemberUseCase
@@ -43,6 +50,7 @@ func NewOrganizationMemberUseCase(
 	userRepo userRepo.UserRepository,
 	taskDistributor worker.TaskDistributor,
 	enforcer permissionUseCase.IEnforcer,
+	presence PresenceReader,
 ) OrganizationMemberUseCase {
 	return &organizationMemberUseCase{
 		log:             log,
@@ -53,6 +61,7 @@ func NewOrganizationMemberUseCase(
 		userRepo:        userRepo,
 		taskDistributor: taskDistributor,
 		enforcer:        enforcer,
+		presence:        presence,
 	}
 }
 
@@ -381,4 +390,18 @@ func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, us
 
 		return uc.memberRepo.RemoveMember(txCtx, orgID, userID)
 	})
+}
+
+// GetPresence retrieves online members of an organization
+func (uc *organizationMemberUseCase) GetPresence(ctx context.Context, orgID string) ([]interface{}, error) {
+	users, err := uc.presence.GetOnlineUsers(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]interface{}, len(users))
+	for i, u := range users {
+		result[i] = u
+	}
+	return result, nil
 }

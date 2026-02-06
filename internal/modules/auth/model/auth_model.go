@@ -49,11 +49,12 @@ type LoginResponse struct {
 }
 
 type UserInfo struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	Username  string `json:"username"`
+	Role      string `json:"role"`
+	AvatarURL string `json:"avatar_url"`
 }
 
 type RefreshRequest struct {

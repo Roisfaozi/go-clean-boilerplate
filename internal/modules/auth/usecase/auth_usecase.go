@@ -334,11 +334,12 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		ExpiresIn:   int64(accessTokenDuration.Seconds()),
 		ExpiresAt:   time.Now().Add(accessTokenDuration),
 		User: model.UserInfo{
-			ID:       user.ID,
-			Name:     user.Name,
-			Email:    user.Email,
-			Username: user.Username,
-			Role:     userRole,
+			ID:        user.ID,
+			Name:      user.Name,
+			Email:     user.Email,
+			Username:  user.Username,
+			Role:      userRole,
+			AvatarURL: user.AvatarURL,
 		},
 	}
 

@@ -53,6 +53,18 @@ func (m *MockManager) Run() {
 	m.Called()
 }
 
+func (m *MockManager) PresenceUpdate(orgID string, event string, userData *PresenceUser) {
+	m.Called(orgID, event, userData)
+}
+
+func (m *MockManager) GetPresenceManager() PresenceManager {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(PresenceManager)
+}
+
 // TestNewWebSocketController_CheckOrigin is a placeholder for the logic test, but verification is done in TestWebSocketOrigin
 
 // Simplified test checking the logic by making `upgrader` public or adding a getter?
@@ -96,7 +108,7 @@ func TestWebSocketOrigin(t *testing.T) {
 			manager.On("RegisterClient", mock.Anything).Return().Maybe()
 			manager.On("UnregisterClient", mock.Anything).Return().Maybe()
 
-			ctrl := NewWebSocketController(log, manager, tt.allowedOrigins)
+			ctrl := NewWebSocketController(log, manager, tt.allowedOrigins, nil, nil)
 
 			// Start a test server
 			r := http.NewServeMux()
