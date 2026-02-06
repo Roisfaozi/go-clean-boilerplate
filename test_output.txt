@@ -1,0 +1,197 @@
+go: downloading github.com/tidwall/gjson v1.18.0
+go: downloading github.com/testcontainers/testcontainers-go v0.40.0
+go: downloading github.com/testcontainers/testcontainers-go/modules/mysql v0.40.0
+go: downloading github.com/testcontainers/testcontainers-go/modules/redis v0.40.0
+go: downloading github.com/tidwall/match v1.1.1
+go: downloading github.com/tidwall/pretty v1.2.0
+go: downloading dario.cat/mergo v1.0.2
+go: downloading github.com/cenkalti/backoff/v4 v4.3.0
+go: downloading github.com/containerd/errdefs v1.0.0
+go: downloading github.com/containerd/platforms v0.2.1
+go: downloading github.com/cpuguy83/dockercfg v0.3.2
+go: downloading github.com/docker/docker v28.5.1+incompatible
+go: downloading github.com/docker/go-connections v0.6.0
+go: downloading github.com/moby/patternmatcher v0.6.0
+go: downloading github.com/moby/go-archive v0.1.0
+go: downloading github.com/moby/term v0.5.0
+go: downloading github.com/opencontainers/image-spec v1.1.1
+go: downloading github.com/mdelapenya/tlscert v0.2.0
+go: downloading github.com/containerd/log v0.1.0
+go: downloading github.com/moby/docker-image-spec v1.3.1
+go: downloading github.com/opencontainers/go-digest v1.0.0
+go: downloading github.com/docker/go-units v0.5.0
+go: downloading github.com/morikuni/aec v1.0.0
+go: downloading github.com/containerd/errdefs/pkg v0.3.0
+go: downloading github.com/distribution/reference v0.6.0
+go: downloading go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0
+go: downloading github.com/magiconair/properties v1.8.10
+go: downloading github.com/shirou/gopsutil/v4 v4.25.6
+go: downloading github.com/moby/sys/sequential v0.6.0
+go: downloading github.com/moby/sys/user v0.4.0
+go: downloading github.com/moby/sys/userns v0.1.0
+go: downloading github.com/klauspost/compress v1.18.0
+go: downloading github.com/felixge/httpsnoop v1.0.4
+go: downloading github.com/tklauser/go-sysconf v0.3.12
+go: downloading github.com/tklauser/numcpus v0.6.1
+?   	github.com/Roisfaozi/go-clean-boilerplate/cmd/api	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/cmd/gen	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/db/seeds	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/docs	[no test files]
+2026/02/06 11:51:54 No .env file found, reading configuration from environment variables
+--- FAIL: TestNewConfig_DefaultValues (0.00s)
+    config_test.go:29:
+		Error Trace:	/app/internal/config/config_test.go:29
+		Error:      	Not equal:
+				expected: 3307
+				actual  : 3306
+		Test:       	TestNewConfig_DefaultValues
+    config_test.go:31:
+		Error Trace:	/app/internal/config/config_test.go:31
+		Error:      	Not equal:
+				expected: true
+				actual  : false
+		Test:       	TestNewConfig_DefaultValues
+2026/02/06 11:51:54 No .env file found, reading configuration from environment variables
+--- FAIL: TestNewConfig_JWTDurations (0.00s)
+    config_test.go:44:
+		Error Trace:	/app/internal/config/config_test.go:44
+		Error:      	Not equal:
+				expected: 24h0m0s
+				actual  : 720h0m0s
+		Test:       	TestNewConfig_JWTDurations
+2026/02/06 11:51:54 No .env file found, reading configuration from environment variables
+2026/02/06 11:51:54 No .env file found, reading configuration from environment variables
+2026/02/06 11:51:54 No .env file found, reading configuration from environment variables
+2026/02/06 11:51:54 No .env file found, reading configuration from environment variables
+2026/02/06 11:51:54 No .env file found, reading configuration from environment variables
+2026/02/06 11:51:54 No .env file found, reading configuration from environment variables
+FAIL
+FAIL	github.com/Roisfaozi/go-clean-boilerplate/internal/config	0.053s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/middleware	0.049s
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/mocking	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository	0.152s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test	0.019s
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/usecase	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test	0.163s
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository	0.023s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test	14.616s
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model/converter	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase	0.017s
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test	0.141s
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model	0.007s
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model/converter	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository	0.014s
+time="2026-02-06T11:52:02Z" level=error msg="failed to bind request body for create role" error="invalid character 'i' looking for beginning of value"
+time="2026-02-06T11:52:02Z" level=error msg="failed to create role" error="data already exists"
+time="2026-02-06T11:52:02Z" level=error msg="failed to get all roles" error="some database error"
+time="2026-02-06T11:52:02Z" level=error msg="failed to delete role" error="not found"
+time="2026-02-06T11:52:02Z" level=error msg="failed to delete role" error=forbidden
+time="2026-02-06T11:52:02Z" level=warning msg="Attempt to delete superadmin role blocked"
+--- FAIL: TestRoleXSSValidation (0.00s)
+    --- FAIL: TestRoleXSSValidation/CreateRole_XSS_in_Name (0.00s)
+panic:
+	assert: mock: I don't know what to return because the method call was unexpected.
+		Either do Mock.On("Create").Return(...) first, or remove the Create() call.
+		This method was unexpected:
+			Create(context.backgroundCtx,*model.CreateRoleRequest)
+			0: context.backgroundCtx{emptyCtx:context.emptyCtx{}}
+			1: &model.CreateRoleRequest{Name:"alert(1)", Description:"A role"}
+		at: [/app/internal/modules/role/test/mocks/mock_role_usecase.go:44 /app/internal/modules/role/delivery/http/role_controller.go:64 /app/internal/modules/role/test/role_validation_test.go:78] [recovered, repanicked]
+
+goroutine 57 [running]:
+testing.tRunner.func1.2({0x118bce0, 0xc000460f20})
+	/home/jules/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.5.linux-amd64/src/testing/testing.go:1872 +0x237
+testing.tRunner.func1()
+	/home/jules/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.5.linux-amd64/src/testing/testing.go:1875 +0x35b
+panic({0x118bce0?, 0xc000460f20?})
+	/home/jules/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.5.linux-amd64/src/runtime/panic.go:783 +0x132
+github.com/stretchr/testify/mock.(*Mock).fail(0xc000462050, {0x13be21c?, 0x4?}, {0xc000435400?, 0x2?, 0x2?})
+	/home/jules/go/pkg/mod/github.com/stretchr/testify@v1.11.1/mock/mock.go:359 +0x125
+github.com/stretchr/testify/mock.(*Mock).MethodCalled(0xc000462050, {0x16aee03, 0x6}, {0xc000443040, 0x2, 0x2})
+	/home/jules/go/pkg/mod/github.com/stretchr/testify@v1.11.1/mock/mock.go:527 +0x77b
+github.com/stretchr/testify/mock.(*Mock).Called(0xc000462050, {0xc000443040, 0x2, 0x2})
+	/home/jules/go/pkg/mod/github.com/stretchr/testify@v1.11.1/mock/mock.go:491 +0x125
+github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test/mocks.(*MockRoleUseCase).Create(0xc000462050, {0x15b33c8, 0x1ef6e80}, 0xc000442ce0)
+	/app/internal/modules/role/test/mocks/mock_role_usecase.go:44 +0xb8
+github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/delivery/http.(*RoleController).Create(0xc0000edf40, 0xc00038ee00)
+	/app/internal/modules/role/delivery/http/role_controller.go:64 +0x150
+github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test.TestRoleXSSValidation.func1(0xc00045e1c0)
+	/app/internal/modules/role/test/role_validation_test.go:78 +0x2b7
+testing.tRunner(0xc00045e1c0, 0xc0003ef320)
+	/home/jules/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.5.linux-amd64/src/testing/testing.go:1934 +0xea
+created by testing.(*T).Run in goroutine 56
+	/home/jules/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.5.linux-amd64/src/testing/testing.go:1997 +0x465
+FAIL	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test	0.025s
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test/mocks	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model/converter	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository	0.032s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test	0.589s
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/router	0.047s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/worker	0.013s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers	0.019s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks	0.010s
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/worker/test/mocks	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg	0.432s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/circuitbreaker	1.110s
+?   	github.com/Roisfaozi/go-clean-boilerplate/pkg/constants	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/database	0.008s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/exception	0.006s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt	0.017s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder	0.012s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/response	0.010s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/sse	0.058s
+?   	github.com/Roisfaozi/go-clean-boilerplate/pkg/storage	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/local	0.018s
+?   	github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/mocks	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/s3	0.020s
+?   	github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/tx	0.016s
+?   	github.com/Roisfaozi/go-clean-boilerplate/pkg/tx/mocks	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/validation	0.012s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/ws	0.171s
+?   	github.com/Roisfaozi/go-clean-boilerplate/tests/e2e/setup	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/tests/fixtures	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/tests/helpers	[no test files]
+ok  	github.com/Roisfaozi/go-clean-boilerplate/tests/integration/modules	6.062s
+ok  	github.com/Roisfaozi/go-clean-boilerplate/tests/integration/scenarios	5.737s
+?   	github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup	[no test files]
+FAIL
