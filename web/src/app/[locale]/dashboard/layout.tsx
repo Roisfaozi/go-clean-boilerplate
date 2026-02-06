@@ -1,11 +1,16 @@
+"use client";
+
 import { DashboardHeader } from "~/components/layout/dashboard/header";
 import { Sidebar } from "~/components/layout/sidebar";
+import { usePresence } from "~/hooks/use-presence";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  usePresence();
+
   return (
     <div className="bg-background flex min-h-screen">
       {/* Sidebar */}

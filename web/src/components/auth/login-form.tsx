@@ -10,6 +10,7 @@ import { toast } from "~/hooks/use-toast";
 import { authApi, loginSchema } from "~/lib/api/auth";
 import { accessApi } from "~/lib/api/access";
 import { usePermissionStore } from "~/stores/use-permission-store";
+import { useAuthStore } from "~/stores/use-auth-store";
 import { cn } from "~/lib/utils";
 import Icons from "../shared/icons";
 import { Input } from "../ui/input";
@@ -21,6 +22,7 @@ export default function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGithubLoading, setIsGithubLoading] = useState(false);
   const setPermissions = usePermissionStore((state) => state.setPermissions);
+  const setUser = useAuthStore((state) => state.setUser);
 
   const {
     register,
@@ -40,6 +42,11 @@ export default function AuthForm() {
         password: data.password,
       });
       
+      // Store user in auth store
+      if (response.data.user) {
+          setUser(response.data.user);
+      }
+
       // 1. Fetch permissions for the logged in user's role
       const roleName = response.data.user.role;
       try {

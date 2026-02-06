@@ -14,6 +14,7 @@ interface WebSocketContextType {
   isConnected: boolean;
   subscribe: (channel: string, callback: (data: any) => void) => void;
   unsubscribe: (channel: string, callback: (data: any) => void) => void;
+  sendJson: (data: any) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
@@ -144,7 +145,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <WebSocketContext.Provider value={{ isConnected, subscribe, unsubscribe }}>
+    <WebSocketContext.Provider value={{ isConnected, subscribe, unsubscribe, sendJson }}>
       {children}
     </WebSocketContext.Provider>
   );

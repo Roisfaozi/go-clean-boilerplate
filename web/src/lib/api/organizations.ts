@@ -61,6 +61,10 @@ export const organizationsApi = {
   acceptInvitation: (data: { token: string; password?: string; name?: string }) => {
     return api.post("/organizations/invitations/accept", data);
   },
+
+  getPresence: (orgId: string) => {
+    return api.get<{ data: Member[] }>(`/organizations/${orgId}/presence`);
+  },
 };
 
 export interface Member {
