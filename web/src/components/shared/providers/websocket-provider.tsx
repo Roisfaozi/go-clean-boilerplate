@@ -126,7 +126,9 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <WebSocketContext.Provider value={{ isConnected, subscribe, unsubscribe, sendJson }}>
+    <WebSocketContext.Provider
+      value={{ isConnected, subscribe, unsubscribe, sendJson }}
+    >
       {children}
     </WebSocketContext.Provider>
   );

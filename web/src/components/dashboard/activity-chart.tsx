@@ -72,11 +72,11 @@ export function ActivityChart() {
                 });
               }}
             />
-            <YAxis 
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                fontSize={10}
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+              fontSize={10}
             />
             <ChartTooltip
               cursor={false}

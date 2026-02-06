@@ -130,8 +130,8 @@ export default function UsersPage() {
         <div className="flex items-center space-x-2">
           {canCreate && (
             <Button onClick={handleCreate}>
-                <Icon name="UserPlus" className="mr-2 h-4 w-4" />
-                Add User
+              <Icon name="UserPlus" className="mr-2 h-4 w-4" />
+              Add User
             </Button>
           )}
         </div>
@@ -189,7 +189,9 @@ export default function UsersPage() {
               <TableHead>Username</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Joined</TableHead>
-              {(canUpdate || canDelete) && <TableHead className="w-[50px]"></TableHead>}
+              {(canUpdate || canDelete) && (
+                <TableHead className="w-[50px]"></TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -248,31 +250,35 @@ export default function UsersPage() {
                   </TableCell>
                   {(canUpdate || canDelete) && (
                     <TableCell>
-                        <DropdownMenu>
+                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
                             <Icon name="Ellipsis" className="h-4 w-4" />
                             <span className="sr-only">Open menu</span>
-                            </Button>
+                          </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            {canUpdate && (
-                                <DropdownMenuItem onClick={() => handleEdit(user)}>
-                                    <Icon name="Pencil" className="mr-2 h-4 w-4" />
-                                    Edit
-                                </DropdownMenuItem>
-                            )}
-                            {canDelete && (
-                                <DropdownMenuItem
-                                    onClick={() => handleDelete(user)}
-                                    className="text-destructive"
-                                >
-                                    <Icon name="Trash" className="mr-2 h-4 w-4" />
-                                    Delete
-                                </DropdownMenuItem>
-                            )}
+                          {canUpdate && (
+                            <DropdownMenuItem onClick={() => handleEdit(user)}>
+                              <Icon name="Pencil" className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && (
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(user)}
+                              className="text-destructive"
+                            >
+                              <Icon name="Trash" className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
-                        </DropdownMenu>
+                      </DropdownMenu>
                     </TableCell>
                   )}
                 </TableRow>

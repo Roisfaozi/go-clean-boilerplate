@@ -2,12 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { useOrganizationStore } from "~/stores/use-organization-store";
-import { organizationsApi, OrganizationSettings } from "~/lib/api/organizations";
+import {
+  organizationsApi,
+  OrganizationSettings,
+} from "~/lib/api/organizations";
 import { Button } from "~/components/ui/button";
 import { Icon } from "~/components/shared/icon";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { toast } from "sonner";
 import { Separator } from "~/components/ui/separator";
 import { useRouter } from "next/navigation";
@@ -21,9 +31,12 @@ import {
 } from "~/components/ui/select";
 
 export default function OrganizationSettingsPage() {
-  const { currentOrganization, setCurrentOrganization } = useOrganizationStore();
+  const { currentOrganization, setCurrentOrganization } =
+    useOrganizationStore();
   const [name, setName] = useState(currentOrganization?.name || "");
-  const [settings, setSettings] = useState<OrganizationSettings>(currentOrganization?.settings || {});
+  const [settings, setSettings] = useState<OrganizationSettings>(
+    currentOrganization?.settings || {}
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
@@ -39,9 +52,9 @@ export default function OrganizationSettingsPage() {
     if (!currentOrganization) return;
     setIsLoading(true);
     try {
-      const resp = await organizationsApi.update(currentOrganization.id, { 
+      const resp = await organizationsApi.update(currentOrganization.id, {
         name,
-        settings 
+        settings,
       });
       if (resp.data) {
         setCurrentOrganization(resp.data);
@@ -55,9 +68,9 @@ export default function OrganizationSettingsPage() {
   };
 
   const updateSetting = (key: keyof OrganizationSettings, value: any) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
@@ -69,25 +82,31 @@ export default function OrganizationSettingsPage() {
     );
   }
 
-  const hasChanges = name !== currentOrganization.name || 
-                     JSON.stringify(settings) !== JSON.stringify(currentOrganization.settings || {});
+  const hasChanges =
+    name !== currentOrganization.name ||
+    JSON.stringify(settings) !==
+      JSON.stringify(currentOrganization.settings || {});
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Organization Settings</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Organization Settings
+          </h2>
           <p className="text-muted-foreground">
             Update your organization profile and general settings.
           </p>
         </div>
         <Button onClick={handleUpdate} disabled={isLoading || !hasChanges}>
-          {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading && (
+            <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
+          )}
           Save All Changes
         </Button>
       </div>
 
-      <div className="grid gap-6 max-w-3xl">
+      <div className="grid max-w-3xl gap-6">
         <Card>
           <CardHeader>
             <CardTitle>General Information</CardTitle>
@@ -98,22 +117,24 @@ export default function OrganizationSettingsPage() {
           <CardContent className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Organization Name</Label>
-              <Input 
-                id="name" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                placeholder="e.g. Acme Corp" 
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Acme Corp"
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="slug">Organization Slug (URL)</Label>
-              <Input 
-                id="slug" 
-                value={currentOrganization.slug} 
-                disabled 
+              <Input
+                id="slug"
+                value={currentOrganization.slug}
+                disabled
                 className="bg-muted font-mono text-xs"
               />
-              <p className="text-[10px] text-muted-foreground italic">Slug cannot be changed after creation.</p>
+              <p className="text-muted-foreground text-[10px] italic">
+                Slug cannot be changed after creation.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -129,12 +150,12 @@ export default function OrganizationSettingsPage() {
             <div className="flex items-center justify-between space-x-2">
               <div className="flex flex-col space-y-1">
                 <Label htmlFor="theme">Default Theme</Label>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   The default visual theme for all members of this organization.
                 </p>
               </div>
-              <Select 
-                value={settings.theme || "system"} 
+              <Select
+                value={settings.theme || "system"}
                 onValueChange={(v) => updateSetting("theme", v)}
               >
                 <SelectTrigger className="w-[180px]">
@@ -153,14 +174,17 @@ export default function OrganizationSettingsPage() {
             <div className="flex items-center justify-between space-x-2">
               <div className="flex flex-col space-y-1">
                 <Label htmlFor="mfa">Require MFA</Label>
-                <p className="text-xs text-muted-foreground">
-                  Force all members to enable Multi-Factor Authentication to access this organization.
+                <p className="text-muted-foreground text-xs">
+                  Force all members to enable Multi-Factor Authentication to
+                  access this organization.
                 </p>
               </div>
-              <Switch 
-                id="mfa" 
+              <Switch
+                id="mfa"
                 checked={settings.mfa_required || false}
-                onCheckedChange={(checked) => updateSetting("mfa_required", checked)}
+                onCheckedChange={(checked) =>
+                  updateSetting("mfa_required", checked)
+                }
               />
             </div>
           </CardContent>
@@ -174,18 +198,26 @@ export default function OrganizationSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Once you delete an organization, there is no going back. Please be certain.
+            <p className="text-muted-foreground text-sm">
+              Once you delete an organization, there is no going back. Please be
+              certain.
             </p>
           </CardContent>
-          <CardFooter className="border-t border-destructive/10 px-6 py-4 flex justify-between items-center">
-            <div className="text-xs text-muted-foreground italic">Owned by {currentOrganization.owner_id === "me" ? "you" : "another admin"}</div>
-            <Button 
-                variant="destructive" 
-                onClick={handleDelete} 
-                disabled={isDeleting}
+          <CardFooter className="border-destructive/10 flex items-center justify-between border-t px-6 py-4">
+            <div className="text-muted-foreground text-xs italic">
+              Owned by{" "}
+              {currentOrganization.owner_id === "me" ? "you" : "another admin"}
+            </div>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
             >
-              {isDeleting ? <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" /> : <Icon name="Trash2" className="mr-2 h-4 w-4" />}
+              {isDeleting ? (
+                <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Icon name="Trash2" className="mr-2 h-4 w-4" />
+              )}
               Delete Organization
             </Button>
           </CardFooter>

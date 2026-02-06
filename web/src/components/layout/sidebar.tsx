@@ -75,8 +75,11 @@ export function Sidebar({ className }: { className?: string }) {
       )}
     >
       {/* Header / Logo + Switcher */}
-      <div className="flex h-[var(--navbar-height)] items-center border-b px-3 gap-2">
-        <Link href="/" className="flex items-center gap-2 overflow-hidden shrink-0">
+      <div className="flex h-[var(--navbar-height)] items-center gap-2 border-b px-3">
+        <Link
+          href="/"
+          className="flex shrink-0 items-center gap-2 overflow-hidden"
+        >
           <Icon name="Command" size="md" className="text-primary" />
         </Link>
         <OrganizationSwitcher />

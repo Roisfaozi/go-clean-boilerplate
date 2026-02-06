@@ -41,10 +41,10 @@ export default function AuthForm() {
         username: data.username,
         password: data.password,
       });
-      
+
       // Store user in auth store
       if (response.data.user) {
-          setUser(response.data.user);
+        setUser(response.data.user);
       }
 
       // 1. Fetch permissions for the logged in user's role
@@ -52,7 +52,7 @@ export default function AuthForm() {
       try {
         const permsResp = await accessApi.getPermissionsForRole(roleName);
         if (permsResp.data) {
-            setPermissions(permsResp.data);
+          setPermissions(permsResp.data);
         }
       } catch (err) {
         console.error("Failed to fetch permissions", err);

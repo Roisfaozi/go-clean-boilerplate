@@ -42,7 +42,7 @@ export default function OrganizationMembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Invite state
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRoleId, setInviteRoleId] = useState("");
@@ -73,8 +73,8 @@ export default function OrganizationMembersPage() {
 
   const handleInvite = async () => {
     if (!currentOrganization || !inviteEmail || !inviteRoleId) {
-        toast.error("Please fill all fields");
-        return;
+      toast.error("Please fill all fields");
+      return;
     }
     setIsInviting(true);
     try {
@@ -96,7 +96,10 @@ export default function OrganizationMembersPage() {
 
   const handleRemoveMember = async (userId: string, name: string) => {
     if (!currentOrganization) return;
-    if (!confirm(`Are you sure you want to remove ${name} from the organization?`)) return;
+    if (
+      !confirm(`Are you sure you want to remove ${name} from the organization?`)
+    )
+      return;
 
     try {
       await organizationsApi.removeMember(currentOrganization.id, userId);
@@ -110,7 +113,9 @@ export default function OrganizationMembersPage() {
   const handleUpdateRole = async (userId: string, roleId: string) => {
     if (!currentOrganization) return;
     try {
-      await organizationsApi.updateMemberRole(currentOrganization.id, userId, { role_id: roleId });
+      await organizationsApi.updateMemberRole(currentOrganization.id, userId, {
+        role_id: roleId,
+      });
       toast.success("Member role updated");
       fetchData();
     } catch (error) {
@@ -122,8 +127,13 @@ export default function OrganizationMembersPage() {
     return (
       <div className="flex h-[400px] items-center justify-center rounded-lg border-2 border-dashed">
         <div className="text-center">
-          <Icon name="Building2" className="mx-auto h-8 w-8 text-muted-foreground/50" />
-          <p className="mt-2 text-muted-foreground">Please select an organization first.</p>
+          <Icon
+            name="Building2"
+            className="text-muted-foreground/50 mx-auto h-8 w-8"
+          />
+          <p className="text-muted-foreground mt-2">
+            Please select an organization first.
+          </p>
         </div>
       </div>
     );
@@ -133,12 +143,15 @@ export default function OrganizationMembersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Organization Members</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Organization Members
+          </h2>
           <p className="text-muted-foreground">
-            Manage who has access to <strong>{currentOrganization.name}</strong>.
+            Manage who has access to <strong>{currentOrganization.name}</strong>
+            .
           </p>
         </div>
-        
+
         <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
           <DialogTrigger asChild>
             <Button size="sm">
@@ -150,18 +163,19 @@ export default function OrganizationMembersPage() {
             <DialogHeader>
               <DialogTitle>Invite new member</DialogTitle>
               <DialogDescription>
-                Invite someone to join {currentOrganization.name} by their email address.
+                Invite someone to join {currentOrganization.name} by their email
+                address.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="email">Email address</Label>
-                <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="colleague@example.com" 
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="colleague@example.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
                 />
               </div>
               <div className="grid gap-2">
@@ -181,9 +195,13 @@ export default function OrganizationMembersPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsInviteOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsInviteOpen(false)}>
+                Cancel
+              </Button>
               <Button onClick={handleInvite} disabled={isInviting}>
-                {isInviting && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
+                {isInviting && (
+                  <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Send Invitation
               </Button>
             </DialogFooter>
@@ -191,7 +209,7 @@ export default function OrganizationMembersPage() {
         </Dialog>
       </div>
 
-      <div className="rounded-md border bg-card">
+      <div className="bg-card rounded-md border">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -206,12 +224,18 @@ export default function OrganizationMembersPage() {
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={5} className="h-16 animate-pulse bg-muted/10" />
+                  <TableCell
+                    colSpan={5}
+                    className="bg-muted/10 h-16 animate-pulse"
+                  />
                 </TableRow>
               ))
             ) : members.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground italic">
+                <TableCell
+                  colSpan={5}
+                  className="text-muted-foreground h-24 text-center italic"
+                >
                   No members found.
                 </TableCell>
               </TableRow>
@@ -222,25 +246,38 @@ export default function OrganizationMembersPage() {
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8 border">
                         <AvatarImage src={member.user?.avatar_url} />
-                        <AvatarFallback>{member.user?.name?.[0] || member.user?.email?.[0].toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>
+                          {member.user?.name?.[0] ||
+                            member.user?.email?.[0].toUpperCase()}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
-                        <span className="font-medium text-sm">{member.user?.name || "Invited User"}</span>
-                        <span className="text-[10px] text-muted-foreground">{member.user?.email}</span>
+                        <span className="text-sm font-medium">
+                          {member.user?.name || "Invited User"}
+                        </span>
+                        <span className="text-muted-foreground text-[10px]">
+                          {member.user?.email}
+                        </span>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Select 
-                        defaultValue={member.role_id} 
-                        onValueChange={(val) => handleUpdateRole(member.user_id, val)}
+                    <Select
+                      defaultValue={member.role_id}
+                      onValueChange={(val) =>
+                        handleUpdateRole(member.user_id, val)
+                      }
                     >
                       <SelectTrigger className="h-8 w-[140px] text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {roles.map((role) => (
-                          <SelectItem key={role.id} value={role.id} className="text-xs">
+                          <SelectItem
+                            key={role.id}
+                            value={role.id}
+                            className="text-xs"
+                          >
                             {role.name}
                           </SelectItem>
                         ))}
@@ -248,20 +285,32 @@ export default function OrganizationMembersPage() {
                     </Select>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={member.status === "active" ? "success" : "secondary"} className="text-[10px] uppercase">
+                    <Badge
+                      variant={
+                        member.status === "active" ? "success" : "secondary"
+                      }
+                      className="text-[10px] uppercase"
+                    >
                       {member.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {member.joined_at ? new Date(member.joined_at).toLocaleDateString() : "-"}
+                  <TableCell className="text-muted-foreground text-xs">
+                    {member.joined_at
+                      ? new Date(member.joined_at).toLocaleDateString()
+                      : "-"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                        onClick={() => handleRemoveMember(member.user_id, member.user?.name || member.user?.email || "")}
-                        disabled={member.user_id === currentOrganization.owner_id}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:bg-destructive/10 h-8 w-8"
+                      onClick={() =>
+                        handleRemoveMember(
+                          member.user_id,
+                          member.user?.name || member.user?.email || ""
+                        )
+                      }
+                      disabled={member.user_id === currentOrganization.owner_id}
                     >
                       <Icon name="UserMinus" className="h-4 w-4" />
                     </Button>

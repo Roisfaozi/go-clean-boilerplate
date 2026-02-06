@@ -76,8 +76,8 @@ export default function ImageUploadModal({
   };
 
   return (
-    <Dialog 
-      open={showModal} 
+    <Dialog
+      open={showModal}
       onOpenChange={(open) => {
         setShowModal(open);
         if (!open) {

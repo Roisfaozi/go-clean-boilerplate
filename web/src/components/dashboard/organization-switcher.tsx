@@ -28,7 +28,8 @@ export function OrganizationSwitcher() {
   const [open, setOpen] = React.useState(false);
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
   const [organizations, setOrganizations] = React.useState<Organization[]>([]);
-  const { currentOrganization, setCurrentOrganization } = useOrganizationStore();
+  const { currentOrganization, setCurrentOrganization } =
+    useOrganizationStore();
   const [isLoading, setIsLoading] = React.useState(true);
 
   const fetchOrgs = React.useCallback(async () => {
@@ -61,15 +62,17 @@ export function OrganizationSwitcher() {
             role="combobox"
             aria-expanded={open}
             aria-label="Select an organization"
-            className={cn("w-[200px] justify-between bg-background/50 backdrop-blur-sm border-muted-foreground/20", 
-              "[data-density=compact]:w-[40px] [data-density=compact]:px-0 [data-density=compact]:justify-center")}
+            className={cn(
+              "bg-background/50 border-muted-foreground/20 w-[200px] justify-between backdrop-blur-sm",
+              "[data-density=compact]:w-[40px] [data-density=compact]:justify-center [data-density=compact]:px-0"
+            )}
           >
             <div className="flex items-center gap-2 overflow-hidden">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <Building2 className="h-4 w-4" />
+              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-md">
+                <Building2 className="h-4 w-4" />
               </div>
               <span className="truncate font-medium [data-density=compact]:hidden">
-                  {currentOrganization?.name || "Select Org..."}
+                {currentOrganization?.name || "Select Org..."}
               </span>
             </div>
             <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50 [data-density=compact]:hidden" />
@@ -89,11 +92,11 @@ export function OrganizationSwitcher() {
                       setOpen(false);
                       toast.success(`Switched to ${org.name}`);
                       // Optional: Refresh page or trigger context update
-                      // window.location.reload(); 
+                      // window.location.reload();
                     }}
-                    className="text-sm cursor-pointer"
+                    className="cursor-pointer text-sm"
                   >
-                    <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <Building2 className="text-muted-foreground mr-2 h-4 w-4" />
                     {org.name}
                     <Check
                       className={cn(
@@ -126,8 +129,8 @@ export function OrganizationSwitcher() {
         </PopoverContent>
       </Popover>
 
-      <CreateOrganizationModal 
-        open={createModalOpen} 
+      <CreateOrganizationModal
+        open={createModalOpen}
         onOpenChange={setCreateModalOpen}
         onSuccess={() => fetchOrgs()}
       />

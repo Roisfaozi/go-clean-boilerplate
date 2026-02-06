@@ -91,7 +91,7 @@ export default function Navbar({
             >
               {headerText.about}
             </Link>
-            
+
             <div className="flex items-center justify-between border-t border-slate-200 pt-4 dark:border-slate-800">
               <span className="text-sm font-medium">Density Mode</span>
               <DensityToggle />

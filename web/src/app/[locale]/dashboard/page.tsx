@@ -117,9 +117,9 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-[var(--spacing-gap)] lg:grid-cols-2">
         <ActivityChart />
-        <div className="rounded-[var(--radius-lg)] border bg-card p-6 text-card-foreground shadow-sm">
+        <div className="bg-card text-card-foreground rounded-[var(--radius-lg)] border p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold tracking-tight text-primary">
+            <h2 className="text-primary text-lg font-semibold tracking-tight">
               System Insights
             </h2>
             <Badge variant="outline" className="bg-primary/5">
@@ -127,10 +127,10 @@ export default function DashboardPage() {
             </Badge>
           </div>
           <div className="space-y-4">
-            <div className="rounded-lg border border-dashed bg-muted/30 p-4">
+            <div className="bg-muted/30 rounded-lg border border-dashed p-4">
               <p className="text-muted-foreground text-sm leading-relaxed italic">
-                &quot;User engagement has increased by 12% compared to last week.
-                Most active role: role:admin.&quot;
+                &quot;User engagement has increased by 12% compared to last
+                week. Most active role: role:admin.&quot;
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -138,13 +138,13 @@ export default function DashboardPage() {
                 <span className="text-muted-foreground text-[10px] font-bold uppercase">
                   Latency
                 </span>
-                <div className="text-xl font-mono">24ms</div>
+                <div className="font-mono text-xl">24ms</div>
               </div>
               <div className="rounded-md border p-3">
                 <span className="text-muted-foreground text-[10px] font-bold uppercase">
                   Errors
                 </span>
-                <div className="text-emerald-500 text-xl font-mono">0.0%</div>
+                <div className="font-mono text-xl text-emerald-500">0.0%</div>
               </div>
             </div>
           </div>

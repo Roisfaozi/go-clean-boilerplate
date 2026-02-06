@@ -4,7 +4,12 @@ import { useDensityStore } from "~/stores/use-density-store";
 import { Button } from "~/components/ui/button";
 import { Layout, LayoutGrid } from "lucide-react";
 import { useEffect } from "react";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "~/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "~/components/ui/tooltip";
 
 export default function DensityToggle() {
   const { density, toggleDensity } = useDensityStore();
