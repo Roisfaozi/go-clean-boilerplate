@@ -22,9 +22,6 @@ const nextConfig = {
     ];
   },
   trailingSlash: true,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   // Required for Next.js 16+ when webpack config is added by plugins like @serwist/next
   turbopack: {},
 }
