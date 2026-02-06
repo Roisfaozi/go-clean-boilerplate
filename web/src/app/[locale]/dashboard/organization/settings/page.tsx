@@ -74,6 +74,28 @@ export default function OrganizationSettingsPage() {
     }));
   };
 
+  const handleDelete = async () => {
+    if (!currentOrganization) return;
+    if (
+      !confirm(
+        `Are you sure you want to permanently delete ${currentOrganization.name}? This action cannot be undone.`
+      )
+    )
+      return;
+
+    setIsDeleting(true);
+    try {
+      await organizationsApi.delete(currentOrganization.id);
+      toast.success("Organization deleted successfully");
+      setCurrentOrganization(null);
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete organization");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (!currentOrganization) {
     return (
       <div className="flex h-[400px] items-center justify-center rounded-lg border-2 border-dashed">

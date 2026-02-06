@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -77,7 +77,11 @@ export function CreateOrganizationModal({
   };
 
   // Auto-generate slug from name
-  const name = form.watch("name");
+  const name = useWatch({
+    control: form.control,
+    name: "name",
+  });
+
   React.useEffect(() => {
     if (name && !form.getFieldState("slug").isDirty) {
       const slug = name
