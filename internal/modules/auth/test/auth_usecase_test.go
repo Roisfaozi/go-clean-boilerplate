@@ -1268,3 +1268,40 @@ func TestRegister_Success(t *testing.T) {
 	deps.orgRepo.AssertExpectations(t)
 	deps.enforcer.AssertExpectations(t)
 }
+
+func TestRegister_Fail_UsernameExists(t *testing.T) {
+	authService, deps := setupTest(t)
+	req := model.RegisterRequest{
+		Username: "existing",
+		Email:    "new@example.com",
+		Password: "password123",
+	}
+
+	deps.userRepo.On("FindByUsername", mock.Anything, req.Username).Return(&entity.User{ID: "existing-id"}, nil)
+
+	loginResp, refreshToken, err := authService.Register(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "username already exists")
+	assert.Nil(t, loginResp)
+	assert.Empty(t, refreshToken)
+}
+
+func TestRegister_Fail_EmailExists(t *testing.T) {
+	authService, deps := setupTest(t)
+	req := model.RegisterRequest{
+		Username: "newuser",
+		Email:    "existing@example.com",
+		Password: "password123",
+	}
+
+	deps.userRepo.On("FindByUsername", mock.Anything, req.Username).Return(nil, gorm.ErrRecordNotFound)
+	deps.userRepo.On("FindByEmail", mock.Anything, req.Email).Return(&entity.User{ID: "existing-id"}, nil)
+
+	loginResp, refreshToken, err := authService.Register(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "email already exists")
+	assert.Nil(t, loginResp)
+	assert.Empty(t, refreshToken)
+}

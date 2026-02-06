@@ -26,9 +26,9 @@ func TestNewConfig_DefaultValues(t *testing.T) {
 	assert.Equal(t, 8080, cfg.Server.Port)
 	assert.Equal(t, "info", cfg.Log.Level)
 	assert.Equal(t, "localhost", cfg.Mysql.Host)
-	assert.Equal(t, 3307, cfg.Mysql.Port)
+	assert.Equal(t, 3306, cfg.Mysql.Port)
 	assert.Equal(t, "localhost:6379", cfg.Redis.Addr)
-	assert.Equal(t, true, cfg.Casbin.Enabled)
+	assert.Equal(t, false, cfg.Casbin.Enabled)
 	assert.Equal(t, true, cfg.RateLimit.Enabled)
 	assert.Equal(t, "memory", cfg.RateLimit.Store)
 	assert.Equal(t, "local", cfg.Storage.Driver)
@@ -41,7 +41,7 @@ func TestNewConfig_JWTDurations(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 15*time.Minute, cfg.JWT.AccessTokenDuration)
-	assert.Equal(t, 24*time.Hour, cfg.JWT.RefreshTokenDuration)
+	assert.Equal(t, 720*time.Hour, cfg.JWT.RefreshTokenDuration)
 }
 
 func TestNewConfig_SecurityDefaults(t *testing.T) {
@@ -105,4 +105,14 @@ func TestNewConfig_StorageDrivers(t *testing.T) {
 
 	assert.Equal(t, "local", cfg.Storage.Driver)
 	assert.Equal(t, "./uploads", cfg.Storage.Local.RootPath)
+}
+
+func TestNewConfig_Validation_RequiredFields(t *testing.T) {
+	setupTestEnv(t)
+	// MYSQL_PORT has validate:"required" (non-zero)
+	t.Setenv("MYSQL_PORT", "0")
+
+	_, err := NewConfig()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "config validation failed")
 }

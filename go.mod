@@ -1,6 +1,6 @@
 module github.com/Roisfaozi/go-clean-boilerplate
 
-go 1.25.5
+go 1.24.3
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.1
