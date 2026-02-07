@@ -26,7 +26,7 @@ func TestNewConfig_DefaultValues(t *testing.T) {
 	assert.Equal(t, 8080, cfg.Server.Port)
 	assert.Equal(t, "info", cfg.Log.Level)
 	assert.Equal(t, "localhost", cfg.Mysql.Host)
-	assert.Equal(t, 3307, cfg.Mysql.Port)
+	assert.Equal(t, 3306, cfg.Mysql.Port)
 	assert.Equal(t, "localhost:6379", cfg.Redis.Addr)
 	assert.Equal(t, true, cfg.Casbin.Enabled)
 	assert.Equal(t, true, cfg.RateLimit.Enabled)
@@ -39,7 +39,6 @@ func TestNewConfig_JWTDurations(t *testing.T) {
 
 	cfg, err := NewConfig()
 	require.NoError(t, err)
-
 	assert.Equal(t, 15*time.Minute, cfg.JWT.AccessTokenDuration)
 	assert.Equal(t, 24*time.Hour, cfg.JWT.RefreshTokenDuration)
 }
