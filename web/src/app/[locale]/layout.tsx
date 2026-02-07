@@ -7,6 +7,7 @@ import Header from "~/components/layout/header";
 import ThemeProvider from "~/components/shared/providers/theme-provider";
 import { DensityProvider } from "~/components/shared/providers/density-provider";
 import { WebSocketProvider } from "~/components/shared/providers/websocket-provider";
+import { AuthProvider } from "~/components/shared/providers/auth-provider";
 import { Toaster } from "~/components/ui/toaster";
 import { siteConfig, siteUrl } from "~/config/site";
 import { cn } from "~/lib/utils";
@@ -134,18 +135,20 @@ export default async function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <DensityProvider>
-            <WebSocketProvider>
-              <AnnouncementBanner />
-              <Header />
-              <main>
-                {children}
-                {loginDialog}
-              </main>
-              <I18nProviderClient locale={locale}>
-                <Footer />
-              </I18nProviderClient>
-              <Toaster />
-            </WebSocketProvider>
+            <AuthProvider>
+              <WebSocketProvider>
+                <AnnouncementBanner />
+                <Header />
+                <main>
+                  {children}
+                  {loginDialog}
+                </main>
+                <I18nProviderClient locale={locale}>
+                  <Footer />
+                </I18nProviderClient>
+                <Toaster />
+              </WebSocketProvider>
+            </AuthProvider>
           </DensityProvider>
         </ThemeProvider>
       </body>

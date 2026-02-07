@@ -3,13 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { authActionClient } from "~/lib/client/safe-action";
-import { deleteSessionTokenCookie } from "~/lib/server/auth/cookies";
-import { invalidateSession } from "~/lib/server/auth/session";
+import { logoutAction } from "../actions/auth";
 
 export const logout = authActionClient.action(
-  async ({ ctx: { sessionId } }) => {
-    await invalidateSession(sessionId);
-    await deleteSessionTokenCookie();
+  async () => {
+    await logoutAction();
     revalidatePath("/");
     return redirect("/login");
   }
