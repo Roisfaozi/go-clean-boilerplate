@@ -999,6 +999,27 @@ paths:
       summary: Logout user
       tags:
       - auth
+  /auth/me:
+    get:
+      consumes:
+      - application/json
+      description: Returns the currently authenticated user's information.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - auth
   /auth/refresh:
     post:
       consumes:
@@ -1121,6 +1142,31 @@ paths:
           schema:
             $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       summary: Reset password
+      tags:
+      - auth
+  /auth/ticket:
+    post:
+      consumes:
+      - application/json
+      description: Generates a one-time ticket for WebSocket authentication.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get WebSocket Ticket
       tags:
       - auth
   /auth/verify-email:
