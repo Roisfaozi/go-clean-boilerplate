@@ -61,8 +61,21 @@ func TestWebSocketE2E_NotificationFlow(t *testing.T) {
 	require.NotEmpty(t, orgResp.Data.Organizations, "User should have at least one organization")
 	orgID := orgResp.Data.Organizations[0].ID
 
-	// 3. Connect to WebSocket
-	wsURL := strings.Replace(server.BaseURL, "http", "ws", 1) + "/ws?token=" + accessToken
+	// 3. Request Ticket
+	wTicket := server.Client.POST("/api/v1/auth/ticket?org_id="+orgID, nil, setup.WithAuth(accessToken))
+	require.Equal(t, 200, wTicket.StatusCode)
+
+	var ticketResp struct {
+		Data struct {
+			Ticket string `json:"ticket"`
+		} `json:"data"`
+	}
+	err = json.Unmarshal(wTicket.BodyBytes, &ticketResp)
+	require.NoError(t, err)
+	ticket := ticketResp.Data.Ticket
+
+	// 4. Connect to WebSocket
+	wsURL := strings.Replace(server.BaseURL, "http", "ws", 1) + "/ws?ticket=" + ticket
 	u, _ := url.Parse(wsURL)
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	require.NoError(t, err)
@@ -181,10 +194,23 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 	}
 
 	connectWS := func(token, orgID string) *websocket.Conn {
-		wsURL := strings.Replace(server.BaseURL, "http", "ws", 1) + "/ws?token=" + token
+		// Request Ticket
+		urlPath := "/api/v1/auth/ticket"
 		if orgID != "" {
-			wsURL += "&org_id=" + orgID
+			urlPath += "?org_id=" + orgID
 		}
+		wTicket := server.Client.POST(urlPath, nil, setup.WithAuth(token))
+		require.Equal(t, 200, wTicket.StatusCode)
+
+		var ticketResp struct {
+			Data struct {
+				Ticket string `json:"ticket"`
+			} `json:"data"`
+		}
+		err := json.Unmarshal(wTicket.BodyBytes, &ticketResp)
+		require.NoError(t, err)
+
+		wsURL := strings.Replace(server.BaseURL, "http", "ws", 1) + "/ws?ticket=" + ticketResp.Data.Ticket
 		u, _ := url.Parse(wsURL)
 		conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 		require.NoError(t, err)
@@ -218,53 +244,53 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 	_, _, err := connA.ReadMessage()
 	require.NoError(t, err)
 
-		tokenC, _, org2ID := createUser("UserC")
-		connC := connectWS(tokenC, org2ID)
-		defer connC.Close()
-		channelOrg2 := "presence:org:" + org2ID
-		connC.WriteJSON(map[string]string{"type": "subscribe", "channel": channelOrg2})
-	
-			// Trigger event in Org 1 again (A3 connects)
-			connA3 := connectWS(tokenA, org1ID)
-			defer connA3.Close()
-			connA3.WriteJSON(map[string]string{"type": "subscribe", "channel": channelOrg1})	
-		// A should receive A3 join event (drain buffer)
-		connA.SetReadDeadline(time.Now().Add(5 * time.Second))
-		
-		// Read loop to find the join event
-		foundJoin := false
-		for {
-			_, msg, err := connA.ReadMessage()
-			if err != nil {
-				break
-			}
-			t.Logf("A received (looking for Join): %s", string(msg))
-			if strings.Contains(string(msg), "\"event\":\"join\"") {
-				foundJoin = true
-				break
-			}
+	tokenC, _, org2ID := createUser("UserC")
+	connC := connectWS(tokenC, org2ID)
+	defer connC.Close()
+	channelOrg2 := "presence:org:" + org2ID
+	connC.WriteJSON(map[string]string{"type": "subscribe", "channel": channelOrg2})
+
+	// Trigger event in Org 1 again (A3 connects)
+	connA3 := connectWS(tokenA, org1ID)
+	defer connA3.Close()
+	connA3.WriteJSON(map[string]string{"type": "subscribe", "channel": channelOrg1})
+	// A should receive A3 join event (drain buffer)
+	connA.SetReadDeadline(time.Now().Add(5 * time.Second))
+
+	// Read loop to find the join event
+	foundJoin := false
+	for {
+		_, msg, err := connA.ReadMessage()
+		if err != nil {
+			break
 		}
-		require.True(t, foundJoin, "Did not receive join event")
-	
-		// C should NOT receive Org 1 events
-		// ... (rest of the test)
-	
-		connA3.Close() 
-	
-		connA.SetReadDeadline(time.Now().Add(5 * time.Second))
-		
-		// Read loop to find the leave event
-		foundLeave := false
-		for {
-			_, msg, err := connA.ReadMessage()
-			if err != nil {
-				break
-			}
-			t.Logf("A received (looking for Leave): %s", string(msg))
-			if strings.Contains(string(msg), "\"event\":\"leave\"") {
-				foundLeave = true
-				break
-			}
+		t.Logf("A received (looking for Join): %s", string(msg))
+		if strings.Contains(string(msg), "\"event\":\"join\"") {
+			foundJoin = true
+			break
 		}
-		require.True(t, foundLeave, "Did not receive leave event")
 	}
+	require.True(t, foundJoin, "Did not receive join event")
+
+	// C should NOT receive Org 1 events
+	// ... (rest of the test)
+
+	connA3.Close()
+
+	connA.SetReadDeadline(time.Now().Add(5 * time.Second))
+
+	// Read loop to find the leave event
+	foundLeave := false
+	for {
+		_, msg, err := connA.ReadMessage()
+		if err != nil {
+			break
+		}
+		t.Logf("A received (looking for Leave): %s", string(msg))
+		if strings.Contains(string(msg), "\"event\":\"leave\"") {
+			foundLeave = true
+			break
+		}
+	}
+	require.True(t, foundLeave, "Did not receive leave event")
+}
