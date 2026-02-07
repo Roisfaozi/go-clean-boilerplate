@@ -226,6 +226,9 @@ func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 		if err != nil {
 			m.log.Errorf("Failed to publish to Redis for channel %s: %v", msg.Channel, err)
 		}
+		// In distributed mode, we rely on Redis Pub/Sub to echo the message back to us (and other nodes).
+		// So we return here to prevent sending the message twice (once locally, once via Redis echo).
+		return
 	}
 
 	m.mu.RLock()
