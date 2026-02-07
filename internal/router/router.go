@@ -76,7 +76,7 @@ func SetupRouter(
 	if cfg.MetricsEnabled {
 		router.Use(middleware.PrometheusMiddleware())
 	}
-	router.GET("/ws", wsController.HandleWebSocket)
+	router.GET("/ws", authMiddleware.ValidateWebSocketToken(), wsController.HandleWebSocket)
 	router.GET("/events", sseManager.ServeHTTP())
 
 	router.Use(middleware.RequestLogger(logger))
@@ -196,6 +196,7 @@ func SetupRouter(
 		authGroup := authenticated.Group("/auth")
 		authGroup.POST("/logout", authModule.AuthController.Logout)
 		authGroup.POST("/resend-verification", authModule.AuthController.ResendVerification)
+		authGroup.GET("/me", authModule.AuthController.Me)
 
 		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
 		organizationHttp.RegisterAuthenticatedRoutes(authenticated, organizationModule.OrganizationController)

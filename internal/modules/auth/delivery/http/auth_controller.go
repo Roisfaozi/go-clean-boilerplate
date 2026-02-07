@@ -303,3 +303,32 @@ func (h *AuthController) Register(c *gin.Context) {
 
 	response.Created(c, res)
 }
+
+// Me godoc
+// @Summary      Get current user
+// @Description  Returns the currently authenticated user's information.
+// @Tags         auth
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Router       /auth/me [get]
+func (h *AuthController) Me(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	username, _ := c.Get("username")
+	role, _ := c.Get("user_role")
+
+	if userID == nil {
+		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+
+	response.Success(c, gin.H{
+		"user": gin.H{
+			"id":       userID,
+			"username": username,
+			"role":     role,
+		},
+	})
+}

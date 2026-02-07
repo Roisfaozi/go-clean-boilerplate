@@ -76,6 +76,68 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 	}
 }
 
+func (m *AuthMiddleware) ValidateWebSocketToken() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.Query("token")
+		if token == "" {
+			// Fallback to header if needed, but usually WS uses query
+			authHeader := c.GetHeader("Authorization")
+			if authHeader != "" {
+				parts := strings.Split(authHeader, " ")
+				if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+					token = parts[1]
+				}
+			}
+		}
+
+		if token == "" {
+			response.Unauthorized(c, errors.New("token is required"), "unauthorized")
+			c.Abort()
+			return
+		}
+
+		claims, err := m.AuthUseCase.ValidateAccessToken(token)
+		if err != nil {
+			m.Log.WithError(err).Warn("Token validation failed")
+			response.Unauthorized(c, err, "unauthorized")
+			c.Abort()
+			return
+		}
+
+		session, err := m.AuthUseCase.Verify(c.Request.Context(), claims.UserID, claims.SessionID)
+		if err != nil {
+			m.Log.WithError(err).Warn("Session verification failed with database/redis error")
+			response.InternalServerError(c, errors.New("could not verify session"), "internal server error")
+			c.Abort()
+			return
+		}
+		if session == nil {
+			m.Log.Warn("Session is not valid or has been revoked")
+			response.Unauthorized(c, errors.New("invalid or expired session"), "unauthorized")
+			c.Abort()
+			return
+		}
+
+		c.Set("user_id", claims.UserID)
+		c.Set("session_id", claims.SessionID)
+		c.Set("user_role", claims.Role)
+		c.Set("username", claims.Username)
+		
+		orgID := c.Query("org_id")
+		if orgID != "" {
+			c.Set("organization_id", orgID)
+		} else {
+             // Try organization_id too just in case
+             orgID = c.Query("organization_id")
+             if orgID != "" {
+                 c.Set("organization_id", orgID)
+             }
+        }
+
+		c.Next()
+	}
+}
+
 func GetUserIDFromContext(c *gin.Context) (string, bool) {
 	userID, exists := c.Get("user_id")
 	if !exists {
