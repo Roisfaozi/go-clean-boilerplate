@@ -97,6 +97,9 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	// Online Presence Manager
 	presenceManager := ws2.NewPresenceManager(redisClient, logger, 5*time.Minute)
 
+	// Ticket Manager
+	ticketManager := ws2.NewRedisTicketManager(redisClient, 30*time.Second)
+
 	wsConfig := NewDefaultWebSocketConfig()
 	wsManager := ws2.NewWebSocketManager(wsConfig.ToPkgConfig(), logger, redisClient, presenceManager)
 	go wsManager.Run()
@@ -158,6 +161,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		auditModule,
 		taskDistributor,
 		organizationRepository,
+		ticketManager,
 	)
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, storageProvider)
@@ -198,7 +202,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	// Access AuthUseCase via AuthController
 	authUseCase := authModule.AuthController.AuthUseCase
-	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger)
+	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger, ticketManager)
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	tenantMiddleware := middleware.NewTenantMiddleware(
 		organizationModule.OrgRepo,

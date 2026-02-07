@@ -6,19 +6,22 @@ import (
 
 	authUsecase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
 type AuthMiddleware struct {
-	AuthUseCase authUsecase.AuthUseCase
-	Log         *logrus.Logger
+	AuthUseCase   authUsecase.AuthUseCase
+	Log           *logrus.Logger
+	TicketManager ws.TicketManager
 }
 
-func NewAuthMiddleware(authUseCase authUsecase.AuthUseCase, log *logrus.Logger) *AuthMiddleware {
+func NewAuthMiddleware(authUseCase authUsecase.AuthUseCase, log *logrus.Logger, ticketManager ws.TicketManager) *AuthMiddleware {
 	return &AuthMiddleware{
-		AuthUseCase: authUseCase,
-		Log:         log,
+		AuthUseCase:   authUseCase,
+		Log:           log,
+		TicketManager: ticketManager,
 	}
 }
 
@@ -78,60 +81,33 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 
 func (m *AuthMiddleware) ValidateWebSocketToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.Query("token")
-		if token == "" {
-			// Fallback to header if needed, but usually WS uses query
-			authHeader := c.GetHeader("Authorization")
-			if authHeader != "" {
-				parts := strings.Split(authHeader, " ")
-				if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
-					token = parts[1]
-				}
-			}
-		}
-
-		if token == "" {
-			response.Unauthorized(c, errors.New("token is required"), "unauthorized")
+		ticket := c.Query("ticket")
+		if ticket == "" {
+			response.Unauthorized(c, errors.New("ticket is required"), "unauthorized")
 			c.Abort()
 			return
 		}
 
-		claims, err := m.AuthUseCase.ValidateAccessToken(token)
+		userCtx, err := m.TicketManager.ValidateTicket(c.Request.Context(), ticket)
 		if err != nil {
-			m.Log.WithError(err).Warn("Token validation failed")
-			response.Unauthorized(c, err, "unauthorized")
+			m.Log.WithError(err).Warn("Invalid or expired WebSocket ticket")
+			response.Unauthorized(c, errors.New("invalid or expired ticket"), "unauthorized")
 			c.Abort()
 			return
 		}
 
-		session, err := m.AuthUseCase.Verify(c.Request.Context(), claims.UserID, claims.SessionID)
-		if err != nil {
-			m.Log.WithError(err).Warn("Session verification failed with database/redis error")
-			response.InternalServerError(c, errors.New("could not verify session"), "internal server error")
-			c.Abort()
-			return
-		}
-		if session == nil {
-			m.Log.Warn("Session is not valid or has been revoked")
-			response.Unauthorized(c, errors.New("invalid or expired session"), "unauthorized")
-			c.Abort()
-			return
-		}
+		c.Set("user_id", userCtx.UserID)
+		c.Set("session_id", userCtx.SessionID)
+		c.Set("user_role", userCtx.Role)
+		c.Set("username", userCtx.Username)
 
-		c.Set("user_id", claims.UserID)
-		c.Set("session_id", claims.SessionID)
-		c.Set("user_role", claims.Role)
-		c.Set("username", claims.Username)
-
-		orgID := c.Query("org_id")
-		if orgID != "" {
-			c.Set("organization_id", orgID)
+		// Context from ticket takes precedence.
+		if userCtx.OrganizationID != "" {
+			c.Set("organization_id", userCtx.OrganizationID)
 		} else {
-			// Try organization_id too just in case
-			orgID = c.Query("organization_id")
-			if orgID != "" {
-				c.Set("organization_id", orgID)
-			}
+			// Fallback to query param if ticket was created without orgID (though CreateTicket expects it)
+			// But for strict security, we should rely on ticket content.
+			// Let's keep it simple: Ticket is the source of truth.
 		}
 
 		c.Next()

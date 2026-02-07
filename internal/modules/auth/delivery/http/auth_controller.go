@@ -8,22 +8,25 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
 
 type AuthController struct {
-	AuthUseCase usecase.AuthUseCase
-	log         *logrus.Logger
-	validate    *validator.Validate
+	AuthUseCase   usecase.AuthUseCase
+	TicketManager ws.TicketManager
+	log           *logrus.Logger
+	validate      *validator.Validate
 }
 
-func NewAuthController(useCase usecase.AuthUseCase, log *logrus.Logger, validate *validator.Validate) *AuthController {
+func NewAuthController(useCase usecase.AuthUseCase, log *logrus.Logger, validate *validator.Validate, ticketManager ws.TicketManager) *AuthController {
 	return &AuthController{
-		AuthUseCase: useCase,
-		log:         log,
-		validate:    validate,
+		AuthUseCase:   useCase,
+		TicketManager: ticketManager,
+		log:           log,
+		validate:      validate,
 	}
 }
 
@@ -331,4 +334,92 @@ func (h *AuthController) Me(c *gin.Context) {
 			"role":     role,
 		},
 	})
+}
+
+// GetTicket godoc
+// @Summary      Get WebSocket Ticket
+// @Description  Generates a one-time ticket for WebSocket authentication.
+// @Tags         auth
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/ticket [post]
+func (h *AuthController) GetTicket(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	if userID == nil {
+		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+
+	sessionID, _ := GetSessionIDFromContext(c)
+	role, _ := GetRoleFromContext(c)
+	username, _ := GetUsernameFromContext(c)
+
+	orgID := c.Query("org_id")
+	if orgID == "" {
+		orgID = c.Query("organization_id")
+	}
+
+	// If orgID is still empty, try checking if user has a default context or require it depending on logic.
+	// For now, we allow empty orgID if the ticket is just for connection, but usually we need context.
+	// However, the TicketManager supports storing it.
+
+	ticket, err := h.TicketManager.CreateTicket(
+		c.Request.Context(),
+		userID.(string),
+		orgID,
+		sessionID,
+		role,
+		username,
+	)
+	if err != nil {
+		h.log.WithError(err).Error("Failed to generate WebSocket ticket")
+		response.InternalServerError(c, errors.New("failed to generate ticket"), "internal server error")
+		return
+	}
+
+	response.Success(c, gin.H{
+		"ticket":     ticket,
+		"expires_in": 30, // seconds
+	})
+}
+
+// Helper functions to get data from context safely (duplicated from middleware for now, or ensure middleware sets them)
+func GetSessionIDFromContext(c *gin.Context) (string, bool) {
+	sessionID, exists := c.Get("session_id")
+	if !exists {
+		return "", false
+	}
+	sessionIDStr, ok := sessionID.(string)
+	if !ok || sessionIDStr == "" {
+		return "", false
+	}
+	return sessionIDStr, true
+}
+
+func GetRoleFromContext(c *gin.Context) (string, bool) {
+	role, exists := c.Get("user_role")
+	if !exists {
+		return "", false
+	}
+	roleStr, ok := role.(string)
+	if !ok || roleStr == "" {
+		return "", false
+	}
+	return roleStr, true
+}
+
+func GetUsernameFromContext(c *gin.Context) (string, bool) {
+	username, exists := c.Get("username")
+	if !exists {
+		return "", false
+	}
+	usernameStr, ok := username.(string)
+	if !ok || usernameStr == "" {
+		return "", false
+	}
+	return usernameStr, true
 }
