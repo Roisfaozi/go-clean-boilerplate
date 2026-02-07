@@ -1,11 +1,11 @@
 "use server";
 
-import { type Project } from "~/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "~/lib/server/auth/session";
 import { prisma } from "~/lib/server/db";
 import { getUserSubscriptionPlan } from "~/lib/server/payment";
+import { type Project } from "~/types";
 
 interface Payload {
   name: string;
@@ -14,6 +14,10 @@ interface Payload {
 
 export async function createProject(payload: Payload) {
   const { user } = await getCurrentSession();
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
 
   await prisma.project.create({
     data: {
