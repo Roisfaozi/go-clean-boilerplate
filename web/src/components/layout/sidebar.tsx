@@ -3,16 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { buttonVariants } from "~/components/ui/button";
-import { cn } from "~/lib/utils";
-import Icons from "../shared/icons";
-import { Icon } from "../shared/icon"; // Use the density-aware icon
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
+import { cn } from "~/lib/utils";
 import { OrganizationSwitcher } from "../dashboard/organization-switcher";
+import { Icon } from "../shared/icon"; // Use the density-aware icon
 
 // Define Navigation Items
 const navItems = [
@@ -20,6 +19,11 @@ const navItems = [
     title: "Dashboard",
     href: "/dashboard",
     iconName: "LayoutDashboard" as const,
+  },
+  {
+    title: "Projects",
+    href: "/dashboard/projects",
+    iconName: "Folder" as const,
   },
   {
     title: "Users",
@@ -104,7 +108,7 @@ export function Sidebar({ className }: { className?: string }) {
                       }),
                       "w-full justify-start overflow-hidden",
                       isActive &&
-                        "bg-primary/10 text-primary hover:bg-primary/20",
+                      "bg-primary/10 text-primary hover:bg-primary/20",
                       // Compact Mode: Center icon, hide text
                       "[data-density=compact]:justify-center [data-density=compact]:px-0"
                     )}
