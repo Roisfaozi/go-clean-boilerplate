@@ -266,6 +266,12 @@ func (m *WebSocketManager) handleSubscribe(req *SubscriptionRequest) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	// Check if client is still valid/registered
+	if _, registered := m.clients[req.Client]; !registered {
+		m.log.Warnf("Client %s tried to subscribe but is not registered", req.Client.ID)
+		return
+	}
+
 	if _, ok := m.channels[req.Channel]; !ok {
 		m.channels[req.Channel] = make(map[*Client]bool)
 		m.log.Infof("Channel created: %s", req.Channel)

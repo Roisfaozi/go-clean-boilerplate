@@ -62,7 +62,7 @@ func TestWebSocketE2E_NotificationFlow(t *testing.T) {
 	orgID := orgResp.Data.Organizations[0].ID
 
 	// 3. Connect to WebSocket
-	wsURL := strings.Replace(server.BaseURL, "http", "ws", 1) + "/ws"
+	wsURL := strings.Replace(server.BaseURL, "http", "ws", 1) + "/ws?token=" + accessToken
 	u, _ := url.Parse(wsURL)
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	require.NoError(t, err)
