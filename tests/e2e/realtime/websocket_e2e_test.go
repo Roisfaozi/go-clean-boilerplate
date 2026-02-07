@@ -200,7 +200,7 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 		"type":    "subscribe",
 		"channel": channelOrg1,
 	})
-	_, _, _ = connA.ReadMessage() 
+	_, _, _ = connA.ReadMessage()
 
 	// Wait for async registration
 	time.Sleep(500 * time.Millisecond)
@@ -212,15 +212,15 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 	connA2 := connectWS(tokenA, org1ID)
 	defer connA2.Close()
 	connA2.WriteJSON(map[string]string{"type": "subscribe", "channel": channelOrg1})
-	
+
 	connA.SetReadDeadline(time.Now().Add(5 * time.Second))
 	_, msgA, err := connA.ReadMessage()
 	require.NoError(t, err)
 	t.Logf("A received: %s", string(msgA))
-	
+
 	assert.Contains(t, string(msgA), "\"event\":\"join\"")
 	assert.Contains(t, string(msgA), uidA)
-	
+
 	tokenC, _, org2ID := createUser("UserC")
 	connC := connectWS(tokenC, org2ID)
 	defer connC.Close()
@@ -230,13 +230,13 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 	connA3 := connectWS(tokenA, org1ID)
 	defer connA3.Close()
 	connA3.WriteJSON(map[string]string{"type": "subscribe", "channel": channelOrg1})
-	
+
 	// A should receive A3 join event (drain buffer)
 	connA.SetReadDeadline(time.Now().Add(5 * time.Second))
 	_, msgA3Join, err := connA.ReadMessage()
 	require.NoError(t, err)
 	assert.Contains(t, string(msgA3Join), "\"event\":\"join\"")
-	
+
 	// C should NOT receive Org 1 events
 	// C might receive its own join event, so we must check the channel if a message arrives
 	connC.SetReadDeadline(time.Now().Add(1 * time.Second))
@@ -247,8 +247,8 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 		// If it is from channelOrg2, that is acceptable (own join event)
 	}
 
-	connA3.Close() 
-	
+	connA3.Close()
+
 	connA.SetReadDeadline(time.Now().Add(5 * time.Second))
 	_, msgLeave, err := connA.ReadMessage()
 	require.NoError(t, err)

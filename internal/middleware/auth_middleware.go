@@ -122,17 +122,17 @@ func (m *AuthMiddleware) ValidateWebSocketToken() gin.HandlerFunc {
 		c.Set("session_id", claims.SessionID)
 		c.Set("user_role", claims.Role)
 		c.Set("username", claims.Username)
-		
+
 		orgID := c.Query("org_id")
 		if orgID != "" {
 			c.Set("organization_id", orgID)
 		} else {
-             // Try organization_id too just in case
-             orgID = c.Query("organization_id")
-             if orgID != "" {
-                 c.Set("organization_id", orgID)
-             }
-        }
+			// Try organization_id too just in case
+			orgID = c.Query("organization_id")
+			if orgID != "" {
+				c.Set("organization_id", orgID)
+			}
+		}
 
 		c.Next()
 	}

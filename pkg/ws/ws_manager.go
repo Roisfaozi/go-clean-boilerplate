@@ -163,7 +163,7 @@ func (m *WebSocketManager) handleRegister(client *Client) {
 	if client.UserID != "" && client.OrgID != "" {
 		userData := &PresenceUser{
 			UserID: client.UserID,
-			// Details should ideally be fetched or passed. 
+			// Details should ideally be fetched or passed.
 			// For now we set basic info, and assume frontend syncs the rest.
 			Status: "online",
 		}
@@ -184,7 +184,7 @@ func (m *WebSocketManager) handleUnregister(client *Client) {
 		// Update Presence
 		if client.UserID != "" && client.OrgID != "" {
 			// Only set offline if no other connections for this user?
-			// For simplicity in MVP, we just set offline. 
+			// For simplicity in MVP, we just set offline.
 			// Better: Reference counting or checking other clients.
 			if err := m.presence.SetUserOffline(context.Background(), client.OrgID, client.UserID); err != nil {
 				m.log.WithError(err).Error("Failed to set user offline in presence manager")
