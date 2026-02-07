@@ -1,17 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Button } from "~/components/ui/button";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Icon } from "~/components/shared/icon";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import {
   Card,
   CardContent,
@@ -19,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
+import { Checkbox } from "~/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -30,11 +24,17 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { accessApi, AccessRight, Endpoint } from "~/lib/api/access";
-import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { Checkbox } from "~/components/ui/checkbox";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { accessApi, AccessRight, Endpoint } from "~/lib/api/access";
 
 export default function AccessRightsPage() {
   const [accessRights, setAccessRights] = useState<AccessRight[]>([]);
@@ -201,7 +201,7 @@ export default function AccessRightsPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {accessRights.map((ar) => (
+            {accessRights && accessRights.length > 0 && accessRights.map((ar) => (
               <Card key={ar.id}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
