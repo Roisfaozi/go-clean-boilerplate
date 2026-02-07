@@ -77,12 +77,13 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         console.log("WebSocket disconnected", event.reason);
         setIsConnected(false);
         socketRef.current = null;
-        
+
         // Don't reconnect if it was a normal closure or if there was an auth error (4001 custom code)
         if (event.code === 1000 || event.code === 4001) return;
 
         // Reconnect logic
-        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+        if (reconnectTimeoutRef.current)
+          clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = setTimeout(
           () => connectRef.current(),
           RECONNECT_INTERVAL
@@ -95,7 +96,8 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Failed to establish WebSocket connection:", error);
       // Retry after interval
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      if (reconnectTimeoutRef.current)
+        clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = setTimeout(
         () => connectRef.current(),
         RECONNECT_INTERVAL

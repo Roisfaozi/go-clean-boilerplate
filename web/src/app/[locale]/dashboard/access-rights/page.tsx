@@ -201,71 +201,73 @@ export default function AccessRightsPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {accessRights && accessRights.length > 0 && accessRights.map((ar) => (
-              <Card key={ar.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{ar.name}</CardTitle>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteAr(ar.id)}
-                    >
-                      <Icon
-                        name="Trash2"
-                        className="text-destructive h-4 w-4"
-                      />
-                    </Button>
-                  </div>
-                  <CardDescription>
-                    {ar.description || "No description"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="text-muted-foreground flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
-                      Linked Endpoints ({ar.endpoints?.length || 0})
+            {accessRights &&
+              accessRights.length > 0 &&
+              accessRights.map((ar) => (
+                <Card key={ar.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{ar.name}</CardTitle>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        className="h-6 text-[10px]"
-                        onClick={() => {
-                          setSelectedAr(ar);
-                          setIsLinkDialogOpen(true);
-                        }}
+                        size="icon"
+                        onClick={() => handleDeleteAr(ar.id)}
                       >
-                        Manage
+                        <Icon
+                          name="Trash2"
+                          className="text-destructive h-4 w-4"
+                        />
                       </Button>
                     </div>
-                    <ScrollArea className="h-[120px] pr-4">
-                      <div className="space-y-1">
-                        {ar.endpoints?.map((ep) => (
-                          <div
-                            key={ep.id}
-                            className="hover:bg-muted/50 flex items-center gap-2 rounded p-1 text-xs"
-                          >
-                            <Badge
-                              variant="outline"
-                              className="h-4 px-1 font-mono text-[8px]"
-                            >
-                              {ep.method}
-                            </Badge>
-                            <span className="flex-1 truncate font-mono">
-                              {ep.path}
-                            </span>
-                          </div>
-                        ))}
-                        {(!ar.endpoints || ar.endpoints.length === 0) && (
-                          <div className="text-muted-foreground py-4 text-center text-xs italic">
-                            No endpoints linked.
-                          </div>
-                        )}
+                    <CardDescription>
+                      {ar.description || "No description"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="text-muted-foreground flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
+                        Linked Endpoints ({ar.endpoints?.length || 0})
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px]"
+                          onClick={() => {
+                            setSelectedAr(ar);
+                            setIsLinkDialogOpen(true);
+                          }}
+                        >
+                          Manage
+                        </Button>
                       </div>
-                    </ScrollArea>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      <ScrollArea className="h-[120px] pr-4">
+                        <div className="space-y-1">
+                          {ar.endpoints?.map((ep) => (
+                            <div
+                              key={ep.id}
+                              className="hover:bg-muted/50 flex items-center gap-2 rounded p-1 text-xs"
+                            >
+                              <Badge
+                                variant="outline"
+                                className="h-4 px-1 font-mono text-[8px]"
+                              >
+                                {ep.method}
+                              </Badge>
+                              <span className="flex-1 truncate font-mono">
+                                {ep.path}
+                              </span>
+                            </div>
+                          ))}
+                          {(!ar.endpoints || ar.endpoints.length === 0) && (
+                            <div className="text-muted-foreground py-4 text-center text-xs italic">
+                              No endpoints linked.
+                            </div>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         </TabsContent>
 

@@ -15,7 +15,10 @@ import { Icon } from "~/components/shared/icon";
 import { usersApi } from "~/lib/api/users";
 import { rolesApi } from "~/lib/api/roles";
 import { auditApi, AuditLog } from "~/lib/api/audit";
-import { statsApi, SystemInsights as SystemInsightsType } from "~/lib/api/stats";
+import {
+  statsApi,
+  SystemInsights as SystemInsightsType,
+} from "~/lib/api/stats";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Badge } from "~/components/ui/badge";
@@ -35,16 +38,15 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
       try {
         // Parallel data fetching
-        const [summaryResp, insightsResp, recentLogsResp] =
-          await Promise.all([
-            statsApi.getSummary(),
-            statsApi.getInsights(),
-            auditApi.search({
-              page: 1,
-              page_size: 5,
-              sort: [{ colId: "created_at", sort: "desc" }],
-            }),
-          ]);
+        const [summaryResp, insightsResp, recentLogsResp] = await Promise.all([
+          statsApi.getSummary(),
+          statsApi.getInsights(),
+          auditApi.search({
+            page: 1,
+            page_size: 5,
+            sort: [{ colId: "created_at", sort: "desc" }],
+          }),
+        ]);
 
         if (summaryResp) {
           setStats({
@@ -136,11 +138,9 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="bg-muted/30 rounded-lg border border-dashed p-4">
               <p className="text-muted-foreground text-sm leading-relaxed italic">
-                {insights ? (
-                  `User engagement is stable. Most active role currently: ${insights.most_active_role}.`
-                ) : (
-                  "Analyzing system performance and user engagement patterns..."
-                )}
+                {insights
+                  ? `User engagement is stable. Most active role currently: ${insights.most_active_role}.`
+                  : "Analyzing system performance and user engagement patterns..."}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -157,7 +157,9 @@ export default function DashboardPage() {
                   Errors
                 </span>
                 <div className="font-mono text-xl text-emerald-500">
-                  {isLoading ? "..." : `${(insights?.error_rate || 0 * 100).toFixed(1)}%`}
+                  {isLoading
+                    ? "..."
+                    : `${(insights?.error_rate || 0 * 100).toFixed(1)}%`}
                 </div>
               </div>
             </div>
