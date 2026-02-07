@@ -15,6 +15,7 @@ import { Icon } from "~/components/shared/icon";
 import { usersApi } from "~/lib/api/users";
 import { rolesApi } from "~/lib/api/roles";
 import { auditApi, AuditLog } from "~/lib/api/audit";
+import { statsApi, SystemInsights as SystemInsightsType } from "~/lib/api/stats";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Badge } from "~/components/ui/badge";
@@ -26,6 +27,7 @@ export default function DashboardPage() {
     roles: 0,
     auditLogs: 0,
   });
+  const [insights, setInsights] = useState<SystemInsightsType | null>(null);
   const [recentLogs, setRecentLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,11 +35,10 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
       try {
         // Parallel data fetching
-        const [usersResp, rolesResp, auditResp, recentLogsResp] =
+        const [summaryResp, insightsResp, recentLogsResp] =
           await Promise.all([
-            usersApi.search({ page: 1, page_size: 1 }), // Just need count
-            rolesApi.search({ page: 1, page_size: 1 }), // Just need count
-            auditApi.search({ page: 1, page_size: 1 }), // Just need count
+            statsApi.getSummary(),
+            statsApi.getInsights(),
             auditApi.search({
               page: 1,
               page_size: 5,
@@ -45,11 +46,17 @@ export default function DashboardPage() {
             }),
           ]);
 
-        setStats({
-          users: usersResp.paging?.total || 0,
-          roles: rolesResp.paging?.total || 0,
-          auditLogs: auditResp.paging?.total || 0,
-        });
+        if (summaryResp) {
+          setStats({
+            users: summaryResp.total_users,
+            roles: summaryResp.total_roles,
+            auditLogs: summaryResp.total_audit_logs,
+          });
+        }
+
+        if (insightsResp) {
+          setInsights(insightsResp);
+        }
 
         if (recentLogsResp.data) {
           setRecentLogs(recentLogsResp.data);
@@ -129,8 +136,11 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="bg-muted/30 rounded-lg border border-dashed p-4">
               <p className="text-muted-foreground text-sm leading-relaxed italic">
-                &quot;User engagement has increased by 12% compared to last
-                week. Most active role: role:admin.&quot;
+                {insights ? (
+                  `User engagement is stable. Most active role currently: ${insights.most_active_role}.`
+                ) : (
+                  "Analyzing system performance and user engagement patterns..."
+                )}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -138,13 +148,17 @@ export default function DashboardPage() {
                 <span className="text-muted-foreground text-[10px] font-bold uppercase">
                   Latency
                 </span>
-                <div className="font-mono text-xl">24ms</div>
+                <div className="font-mono text-xl">
+                  {isLoading ? "..." : `${insights?.avg_latency_ms || 0}ms`}
+                </div>
               </div>
               <div className="rounded-md border p-3">
                 <span className="text-muted-foreground text-[10px] font-bold uppercase">
                   Errors
                 </span>
-                <div className="font-mono text-xl text-emerald-500">0.0%</div>
+                <div className="font-mono text-xl text-emerald-500">
+                  {isLoading ? "..." : `${(insights?.error_rate || 0 * 100).toFixed(1)}%`}
+                </div>
               </div>
             </div>
           </div>

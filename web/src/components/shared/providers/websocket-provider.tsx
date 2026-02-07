@@ -8,7 +8,8 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { toast } from "sonner";
+import { authApi } from "~/lib/api/auth";
+import { useOrganizationStore } from "~/stores/use-organization-store";
 
 interface WebSocketContextType {
   isConnected: boolean;
@@ -20,10 +21,11 @@ interface WebSocketContextType {
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080/ws";
-const RECONNECT_INTERVAL = 3000;
+const RECONNECT_INTERVAL = 5000;
 
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
+  const { currentOrganization } = useOrganizationStore();
   const socketRef = useRef<WebSocket | null>(null);
   const subscriptions = useRef<Map<string, Set<(data: any) => void>>>(
     new Map()
@@ -37,61 +39,86 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (socketRef.current?.readyState === WebSocket.OPEN) return;
 
-    // Use built-in WebSocket (cookie authentication is automatic for same-origin/configured CORS)
-    const socket = new WebSocket(WS_URL);
-    socketRef.current = socket;
+    try {
+      // 1. Fetch short-lived ticket via Proxy (Secure HTTP context)
+      const ticketData = await authApi.getWsTicket(currentOrganization?.id);
+      const ticket = ticketData.ticket;
 
-    socket.onopen = () => {
-      console.log("WebSocket connected");
-      setIsConnected(true);
-      // Resubscribe to channels if any (after reconnect)
-      subscriptions.current.forEach((_, channel) => {
-        sendJson({ type: "subscribe", channel });
-      });
-    };
+      // 2. Connect using the ticket
+      const socket = new WebSocket(`${WS_URL}?ticket=${ticket}`);
+      socketRef.current = socket;
 
-    socket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        const channel = message.channel || "global";
-        const listeners = subscriptions.current.get(channel);
-        if (listeners) {
-          listeners.forEach((callback) => callback(message));
+      socket.onopen = () => {
+        console.log("WebSocket connected with ticket");
+        setIsConnected(true);
+        // Resubscribe to channels if any (after reconnect)
+        subscriptions.current.forEach((_, channel) => {
+          sendJson({ type: "subscribe", channel });
+        });
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          const channel = message.channel || "global";
+          const listeners = subscriptions.current.get(channel);
+          if (listeners) {
+            listeners.forEach((callback) => callback(message));
+          }
+        } catch (error) {
+          console.error("Failed to parse WS message", error);
         }
-      } catch (error) {
-        console.error("Failed to parse WS message", error);
-      }
-    };
+      };
 
-    socket.onclose = () => {
-      console.log("WebSocket disconnected");
-      setIsConnected(false);
-      socketRef.current = null;
-      // Reconnect logic
+      socket.onclose = (event) => {
+        console.log("WebSocket disconnected", event.reason);
+        setIsConnected(false);
+        socketRef.current = null;
+        
+        // Don't reconnect if it was a normal closure or if there was an auth error (4001 custom code)
+        if (event.code === 1000 || event.code === 4001) return;
+
+        // Reconnect logic
+        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = setTimeout(
+          () => connectRef.current(),
+          RECONNECT_INTERVAL
+        );
+      };
+
+      socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+    } catch (error) {
+      console.error("Failed to establish WebSocket connection:", error);
+      // Retry after interval
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = setTimeout(
         () => connectRef.current(),
         RECONNECT_INTERVAL
       );
-    };
-
-    socket.onerror = (error) => {
-      console.error("WebSocket error", error);
-      socket.close();
-    };
-  }, [sendJson]);
+    }
+  }, [sendJson, currentOrganization]);
 
   useEffect(() => {
     connectRef.current = connect;
   }, [connect]);
 
+  // Handle connection/reconnection based on organization context
   useEffect(() => {
+    if (socketRef.current) {
+      socketRef.current.close(1000, "Organization Context Changed");
+    }
     connectRef.current();
+  }, [currentOrganization?.id]);
+
+  useEffect(() => {
     return () => {
       if (socketRef.current) {
-        socketRef.current.close();
+        socketRef.current.close(1000, "Component Unmounted");
       }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -103,7 +130,6 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     (channel: string, callback: (data: any) => void) => {
       if (!subscriptions.current.has(channel)) {
         subscriptions.current.set(channel, new Set());
-        // Send subscribe request to server
         sendJson({ type: "subscribe", channel });
       }
       subscriptions.current.get(channel)?.add(callback);
