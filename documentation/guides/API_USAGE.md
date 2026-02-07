@@ -42,7 +42,7 @@ Setiap pengguna baru yang mendaftar akan secara otomatis diberikan peran **`role
 
 ### 1.2. Login (Autentikasi)
 
-Gunakan username dan password untuk mendapatkan **Access Token** (JWT) dan Refresh Token (via Cookie).
+Gunakan username dan password untuk mendapatkan sesi.
 
 *   **Endpoint:** `POST /api/v1/auth/login`
 *   **Akses:** Publik
@@ -57,19 +57,25 @@ Gunakan username dan password untuk mendapatkan **Access Token** (JWT) dan Refre
     ```json
     {
       "data": {
-        "access_token": "eyJhbGciOiJIUzI1NiIs...",
-        "token_type": "Bearer",
-        "expires_in": 900
+        "user": {
+          "id": "uuid",
+          "username": "johndoe",
+          "role": "role:user"
+        },
+        "access_token": "eyJ...",
+        "refresh_token": "eyJ..."
       }
     }
     ```
-    > **Penting:** Gunakan `access_token` ini di header `Authorization: Bearer <token>` untuk setiap request ke endpoint terproteksi.
+    > **Keamanan Baru:** Pada Frontend (Next.js), token ini **otomatis disimpan di HttpOnly Cookies** oleh Server Action. Anda tidak perlu menyertakan header `Authorization` secara manual jika memanggil API lewat proxy `/api/v1/...`.
 
-### 1.3. Melihat Profil Pengguna
+### 1.3. Melihat Profil Pengguna Aktif
 
-*   **Endpoint:** `GET /api/v1/users/me`
-*   **Akses:** Terproteksi (Perlu Token)
-*   **Header:** `Authorization: Bearer <access_token>`
+Gunakan endpoint ini untuk memverifikasi sesi dan mendapatkan data user terbaru.
+
+*   **Endpoint:** `GET /api/v1/auth/me`
+*   **Akses:** Terproteksi (Sesi Aktif)
+*   **Response:** Mengembalikan objek user yang sedang terotentikasi.
 
 ---
 
