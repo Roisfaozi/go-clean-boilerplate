@@ -1,13 +1,12 @@
 import { type Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
-import { AnnouncementBanner } from "~/components/layout/announcement-banner";
 import Footer from "~/components/layout/footer";
 import Header from "~/components/layout/header";
-import ThemeProvider from "~/components/shared/providers/theme-provider";
-import { DensityProvider } from "~/components/shared/providers/density-provider";
-import { WebSocketProvider } from "~/components/shared/providers/websocket-provider";
 import { AuthProvider } from "~/components/shared/providers/auth-provider";
+import { DensityProvider } from "~/components/shared/providers/density-provider";
+import ThemeProvider from "~/components/shared/providers/theme-provider";
+import { WebSocketProvider } from "~/components/shared/providers/websocket-provider";
 import { Toaster } from "~/components/ui/toaster";
 import { siteConfig, siteUrl } from "~/config/site";
 import { cn } from "~/lib/utils";
@@ -137,7 +136,7 @@ export default async function RootLayout({
           <DensityProvider>
             <AuthProvider>
               <WebSocketProvider>
-                <AnnouncementBanner />
+                {/* <AnnouncementBanner /> */}
                 <Header />
                 <main>
                   {children}
