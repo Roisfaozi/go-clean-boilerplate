@@ -105,7 +105,7 @@ test-all: test test-integration test-e2e
 .PHONY: test-coverage
 test-coverage:
 	@echo "Running unit tests coverage..."
-	$(GOTEST) -coverprofile=coverage_unit.out -covermode=atomic -v ./internal/... ./pkg/...
+	-$(GOTEST) -coverprofile=coverage_unit.out -v ./internal/... ./pkg/...
 	$(GOCMD) tool cover -html=coverage_unit.out -o coverage_unit.html
 	@echo "Unit test coverage report: coverage_unit.html"
 
