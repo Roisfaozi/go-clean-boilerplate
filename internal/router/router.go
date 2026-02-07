@@ -195,6 +195,7 @@ func SetupRouter(
 		// Manually register auth routes that need authentication
 		authGroup := authenticated.Group("/auth")
 		authGroup.POST("/logout", authModule.AuthController.Logout)
+		authGroup.POST("/ticket", authModule.AuthController.GetTicket)
 		authGroup.POST("/resend-verification", authModule.AuthController.ResendVerification)
 		authGroup.GET("/me", authModule.AuthController.Me)
 
