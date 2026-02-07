@@ -794,6 +794,7 @@ func TestUserUseCase_UpdateAvatar(t *testing.T) {
 		deps.Repo.On("FindByID", mock.Anything, userID).Return(user, nil)
 		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("url", nil)
 		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error"))
+		deps.Storage.On("DeleteFile", mock.Anything, "avatars/user123.png").Return(nil)
 
 		_, err := uc.UpdateAvatar(context.Background(), userID, createValidImageReader(""), "f.png", "image/png")
 		assert.Equal(t, exception.ErrInternalServer, err)
@@ -859,4 +860,32 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Equal(t, expectedName, result.Name)
 	deps.Repo.AssertExpectations(t)
+}
+
+func TestUserUseCase_Create_PasswordTooLong(t *testing.T) {
+	deps, uc := setupUserTest()
+	// 73 chars
+	longPassword := "1234567890123456789012345678901234567890123456789012345678901234567890123"
+	req := &model.RegisterUserRequest{
+		Username: "user", Email: "test@example.com", Password: longPassword, Name: "Test",
+	}
+
+	deps.Repo.On("FindByUsername", mock.Anything, "user").Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, gorm.ErrRecordNotFound)
+
+	_, err := uc.Create(context.Background(), req)
+	assert.Equal(t, exception.ErrInternalServer, err)
+}
+
+func TestUserUseCase_Update_PasswordTooLong(t *testing.T) {
+	deps, uc := setupUserTest()
+	longPassword := "1234567890123456789012345678901234567890123456789012345678901234567890123"
+	request := &model.UpdateUserRequest{
+		ID: "user123", Password: longPassword,
+	}
+
+	deps.Repo.On("FindByID", mock.Anything, "user123").Return(&entity.User{ID: "user123"}, nil)
+
+	_, err := uc.Update(context.Background(), request)
+	assert.Equal(t, exception.ErrInternalServer, err)
 }

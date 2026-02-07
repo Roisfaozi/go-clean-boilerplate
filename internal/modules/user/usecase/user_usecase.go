@@ -352,6 +352,7 @@ func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file 
 	user.AvatarURL = url
 	if err := u.Repo.Update(ctx, user); err != nil {
 		u.Log.Errorf("Failed to update user avatar URL: %v", err)
+		_ = u.Storage.DeleteFile(ctx, newFilename)
 		return nil, exception.ErrInternalServer
 	}
 
@@ -397,7 +398,8 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 			var err error
 			oldRoles, err = u.Enforcer.GetRolesForUser(user.ID, "global")
 			if err != nil {
-				u.Log.Warnf("Failed to fetch roles for backup in delete: %v", err)
+				u.Log.Errorf("Failed to fetch roles for backup in delete: %v", err)
+				return exception.ErrInternalServer
 			}
 
 			_, err = u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID, "", "global")

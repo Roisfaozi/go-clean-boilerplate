@@ -238,6 +238,9 @@ func TestUserUseCase_UpdateAvatar_DatabaseUpdateError(t *testing.T) {
 	// Mock Update - Error
 	deps.Repo.On("Update", ctx, mock.Anything).Return(errors.New("database connection lost"))
 
+	// Mock Cleanup (Expected behavior after fix)
+	deps.Storage.On("DeleteFile", ctx, "avatars/user-101.png").Return(nil)
+
 	// Execute
 	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
 
