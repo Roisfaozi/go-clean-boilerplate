@@ -8,7 +8,9 @@ export async function GET(request: NextRequest) {
   const returnTo = searchParams.get("returnTo") || "/dashboard";
 
   if (!token) {
-    return NextResponse.redirect(new URL("/login?error=unauthorized", request.url));
+    return NextResponse.redirect(
+      new URL("/login?error=unauthorized", request.url)
+    );
   }
 
   const cookieStore = await cookies();
@@ -33,5 +35,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  return NextResponse.redirect(new URL(decodeURIComponent(returnTo), request.url));
+  return NextResponse.redirect(
+    new URL(decodeURIComponent(returnTo), request.url)
+  );
 }

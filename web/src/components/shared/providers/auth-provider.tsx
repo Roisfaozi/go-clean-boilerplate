@@ -17,9 +17,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userResp = await authApi.getCurrentUser();
         if (userResp.user) {
           setUser(userResp.user);
-          
+
           // 2. Sync permissions for this user's role
-          const permsResp = await accessApi.getPermissionsForRole(userResp.user.role);
+          const permsResp = await accessApi.getPermissionsForRole(
+            userResp.user.role
+          );
           if (permsResp.data) {
             setPermissions(permsResp.data);
           }

@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { actionClient } from "~/lib/client/safe-action";
 import { loginSchema } from "~/lib/api/auth";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
 export const loginAction = actionClient
   .metadata({ actionName: "login" })
@@ -37,7 +38,7 @@ export const loginAction = actionClient
       });
 
       // Set Refresh Token (extract from Set-Cookie header of backend or use JSON if provided)
-      // Note: In our previous check, backend sets refresh_token cookie. 
+      // Note: In our previous check, backend sets refresh_token cookie.
       // But since Next.js is proxying, we might need to manually set it if fetch doesn't forward it.
       // For now, let's assume it's in the data response as per authApi.ts interface
       if (data.refresh_token) {

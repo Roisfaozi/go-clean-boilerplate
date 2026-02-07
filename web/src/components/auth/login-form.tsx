@@ -47,7 +47,7 @@ export default function AuthForm() {
       }
 
       const { user } = result.data;
-      
+
       // Store user in auth store for UI
       if (user) {
         setUser(user);

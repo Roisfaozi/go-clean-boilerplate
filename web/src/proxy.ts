@@ -11,15 +11,23 @@ export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   // 1. Protect /dashboard routes
-  const isDashboardPath = pathname.match(/^\/([a-z]{2})\/dashboard/) || pathname.startsWith("/dashboard");
-  const isAuthPath = pathname.match(/^\/([a-z]{2})\/(login|register)/) || pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isDashboardPath =
+    pathname.match(/^\/([a-z]{2})\/dashboard/) ||
+    pathname.startsWith("/dashboard");
+  const isAuthPath =
+    pathname.match(/^\/([a-z]{2})\/(login|register)/) ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register");
 
   if (isDashboardPath) {
     if (!token) {
       const returnTo = encodeURIComponent(pathname + search);
       const localeMatch = pathname.match(/^\/([a-z]{2})/);
       const localePrefix = localeMatch ? `/${localeMatch[1]}` : "";
-      const loginUrl = new URL(`${localePrefix}/login?returnTo=${returnTo}`, request.url);
+      const loginUrl = new URL(
+        `${localePrefix}/login?returnTo=${returnTo}`,
+        request.url
+      );
       return NextResponse.redirect(loginUrl);
     }
   }
@@ -28,7 +36,9 @@ export function proxy(request: NextRequest) {
   if (isAuthPath && token) {
     const localeMatch = pathname.match(/^\/([a-z]{2})/);
     const localePrefix = localeMatch ? `/${localeMatch[1]}` : "";
-    return NextResponse.redirect(new URL(`${localePrefix}/dashboard`, request.url));
+    return NextResponse.redirect(
+      new URL(`${localePrefix}/dashboard`, request.url)
+    );
   }
 
   // 3. Handle Internationalization
