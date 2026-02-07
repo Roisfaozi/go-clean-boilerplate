@@ -13,8 +13,10 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
 	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/router"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
@@ -172,6 +174,10 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	accessModule := access.NewAccessModule(dbConnection, logger, validate)
 
+	statsModule := stats.NewStatsModule(dbConnection, logger)
+
+	projectModule := project.NewProjectModule(dbConnection, validate)
+
 	organizationModule := organization.NewOrganizationModule(dbConnection, redisClient, taskDistributor, userModule.UserRepo, logger, validate, tm, enforcer, presenceManager)
 
 	logger.Info("Application modules initialized.")
@@ -241,6 +247,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		roleModule,
 		organizationModule,
 		auditModule,
+		statsModule,
+		projectModule,
 		authMiddleware,
 		casbinMiddleware,
 		tenantMiddleware,

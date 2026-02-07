@@ -104,10 +104,6 @@ func (m *AuthMiddleware) ValidateWebSocketToken() gin.HandlerFunc {
 		// Context from ticket takes precedence.
 		if userCtx.OrganizationID != "" {
 			c.Set("organization_id", userCtx.OrganizationID)
-		} else {
-			// Fallback to query param if ticket was created without orgID (though CreateTicket expects it)
-			// But for strict security, we should rely on ticket content.
-			// Let's keep it simple: Ticket is the source of truth.
 		}
 
 		c.Next()

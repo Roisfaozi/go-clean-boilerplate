@@ -36,8 +36,8 @@ func (r *accessRepository) CreateEndpoint(ctx context.Context, endpoint *entity.
 
 func (r *accessRepository) GetEndpoints(ctx context.Context) ([]*entity.Endpoint, error) {
 	var endpoints []*entity.Endpoint
-	// Endpoints are usually global, but if we want per-tenant endpoints in future:
-	if err := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Find(&endpoints).Error; err != nil {
+	// Endpoints are global system resources, no org scope
+	if err := r.getDB(ctx).Find(&endpoints).Error; err != nil {
 		return nil, err
 	}
 	return endpoints, nil
@@ -46,7 +46,8 @@ func (r *accessRepository) GetEndpoints(ctx context.Context) ([]*entity.Endpoint
 func (r *accessRepository) FindEndpointsDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.Endpoint, int64, error) {
 	var endpoints []*entity.Endpoint
 	var total int64
-	query := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Model(&entity.Endpoint{})
+	// Endpoints are global system resources
+	query := r.getDB(ctx).Model(&entity.Endpoint{})
 
 	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.Endpoint{}, filter)
 	if err != nil {

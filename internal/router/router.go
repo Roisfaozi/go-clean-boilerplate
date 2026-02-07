@@ -13,8 +13,10 @@ import (
 	organizationHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	permissionHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
 	roleHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	userHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
@@ -55,6 +57,8 @@ func SetupRouter(
 	roleModule *role.RoleModule,
 	organizationModule *organization.OrganizationModule,
 	auditModule *audit.AuditModule,
+	statsModule *stats.StatsModule,
+	projectModule *project.ProjectModule,
 	authMiddleware *middleware.AuthMiddleware,
 	casbinMiddleware gin.HandlerFunc,
 	tenantMiddleware *middleware.TenantMiddleware,
@@ -65,6 +69,8 @@ func SetupRouter(
 	logger *logrus.Logger,
 ) *gin.Engine {
 	router := gin.New()
+	router.RedirectTrailingSlash = true
+	router.RedirectFixedPath = true
 
 	if cfg.OTEL.Enabled {
 		router.Use(otelgin.Middleware(cfg.OTEL.ServiceName))
@@ -199,6 +205,14 @@ func SetupRouter(
 		authGroup.POST("/resend-verification", authModule.AuthController.ResendVerification)
 		authGroup.GET("/me", authModule.AuthController.Me)
 
+		// Stats Routes
+		statsGroup := authenticated.Group("/stats")
+		{
+			statsGroup.GET("/summary", statsModule.StatsController.GetSummary)
+			statsGroup.GET("/activity", statsModule.StatsController.GetActivity)
+			statsGroup.GET("/insights", statsModule.StatsController.GetInsights)
+		}
+
 		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
 		organizationHttp.RegisterAuthenticatedRoutes(authenticated, organizationModule.OrganizationController)
 		permissionHttp.RegisterBatchCheckRoute(authenticated, permissionModule.PermissionController)
@@ -212,6 +226,16 @@ func SetupRouter(
 	}
 	{
 		organizationHttp.RegisterTenantRoutes(tenant, organizationModule.OrganizationController)
+
+		// Project Routes
+		projectGroup := tenant.Group("/projects")
+		{
+			projectGroup.POST("", projectModule.ProjectController.Create)
+			projectGroup.GET("", projectModule.ProjectController.GetAll)
+			projectGroup.GET("/:id", projectModule.ProjectController.GetByID)
+			projectGroup.PUT("/:id", projectModule.ProjectController.Update)
+			projectGroup.DELETE("/:id", projectModule.ProjectController.Delete)
+		}
 	}
 
 	authorized := apiV1.Group("")
