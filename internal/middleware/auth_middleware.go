@@ -27,21 +27,23 @@ func NewAuthMiddleware(authUseCase authUsecase.AuthUseCase, log *logrus.Logger, 
 
 func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		token := ""
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			response.Unauthorized(c, errors.New("authorization header is required"), "unauthorized")
-			c.Abort()
-			return
+		if authHeader != "" {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+				token = parts[1]
+			}
 		}
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			response.Unauthorized(c, errors.New("invalid authorization header format"), "unauthorized")
-			c.Abort()
-			return
+		// Fallback: Check for access_token cookie
+		if token == "" {
+			cookieToken, err := c.Cookie("access_token")
+			if err == nil && cookieToken != "" {
+				token = cookieToken
+			}
 		}
 
-		token := parts[1]
 		if token == "" {
 			response.Unauthorized(c, errors.New("token is required"), "unauthorized")
 			c.Abort()

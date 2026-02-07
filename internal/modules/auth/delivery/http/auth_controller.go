@@ -70,6 +70,8 @@ func (h *AuthController) Login(c *gin.Context) {
 
 	// Set refresh token in HttpOnly cookie
 	c.SetCookie("refresh_token", refreshToken, 3600*24*30, "/", "", false, true)
+	// Set access token in HttpOnly cookie (short lived)
+	c.SetCookie("access_token", res.AccessToken, int(res.ExpiresIn), "/", "", false, true)
 
 	response.Success(c, res)
 }
@@ -99,6 +101,7 @@ func (h *AuthController) RefreshToken(c *gin.Context) {
 	}
 
 	c.SetCookie("refresh_token", newRefreshToken, 3600*24*30, "/", "", false, true)
+	c.SetCookie("access_token", res.AccessToken, int(res.ExpiresIn), "/", "", false, true)
 	response.Success(c, res)
 }
 
@@ -129,6 +132,7 @@ func (h *AuthController) Logout(c *gin.Context) {
 	}
 
 	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
+	c.SetCookie("access_token", "", -1, "/", "", false, true)
 	response.Success(c, gin.H{"message": "logged out successfully"})
 }
 
@@ -303,6 +307,7 @@ func (h *AuthController) Register(c *gin.Context) {
 
 	// Set refresh token in HttpOnly cookie
 	c.SetCookie("refresh_token", refreshToken, 3600*24*30, "/", "", false, true)
+	c.SetCookie("access_token", res.AccessToken, int(res.ExpiresIn), "/", "", false, true)
 
 	response.Created(c, res)
 }
