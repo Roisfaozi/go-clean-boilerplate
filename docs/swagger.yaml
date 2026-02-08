@@ -830,6 +830,43 @@ paths:
       summary: Get access rights with dynamic filters
       tags:
       - access-rights
+  /access-rights/unlink:
+    post:
+      consumes:
+      - application/json
+      description: Removes an association between an endpoint and a specific access
+        right.
+      parameters:
+      - description: Unlink Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.LinkEndpointRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Endpoint unlinked successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Unlink endpoint from access right
+      tags:
+      - access-rights
   /audit-logs/export:
     get:
       description: Exports audit logs to CSV format within a date range.
