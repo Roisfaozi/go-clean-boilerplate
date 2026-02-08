@@ -3,15 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Icon } from "~/components/shared/icon";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "~/components/ui/accordion";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
   Dialog,
@@ -24,7 +23,6 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { ScrollArea } from "~/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -53,7 +51,6 @@ export default function AccessRightsPage() {
 
   // Link state
   const [selectedAr, setSelectedAr] = useState<AccessRight | null>(null);
-  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -62,7 +59,7 @@ export default function AccessRightsPage() {
         accessApi.getAllAccessRights(),
         accessApi.searchEndpoints({ page: 1, page_size: 1000 }),
       ]);
-      if (arResp && arResp.data) setAccessRights(arResp.data);
+      if (arResp && arResp.data) setAccessRights(arResp.data.data);
       if (epResp && epResp.data) setEndpoints(epResp.data);
     } catch (error) {
       toast.error("Failed to fetch data");
@@ -121,16 +118,36 @@ export default function AccessRightsPage() {
     }
   };
 
-  const handleLink = async (endpointId: string) => {
-    if (!selectedAr) return;
+  const handleToggleLink = async (
+    accessRightId: string,
+    endpointId: string,
+    isLinked: boolean
+  ) => {
     try {
-      await accessApi.linkEndpoint(selectedAr.id, endpointId);
-      toast.success("Endpoint linked");
+      if (isLinked) {
+        await accessApi.unlinkEndpoint(accessRightId, endpointId);
+        toast.success("Endpoint unlinked");
+      } else {
+        await accessApi.linkEndpoint(accessRightId, endpointId);
+        toast.success("Endpoint linked");
+      }
       fetchData(); // Refresh to update mappings
     } catch (error) {
-      toast.error("Failed to link endpoint");
+      toast.error("Failed to update access right link");
     }
   };
+
+  const groupedEndpoints = endpoints.reduce(
+    (acc, ep) => {
+      // Group by the first segment after /api/v1/ (e.g. users, projects, etc)
+      const segments = ep.path.split("/");
+      const groupName = segments[3] || "other";
+      if (!acc[groupName]) acc[groupName] = [];
+      acc[groupName].push(ep);
+      return acc;
+    },
+    {} as Record<string, Endpoint[]>
+  );
 
   return (
     <div className="space-y-6">
@@ -200,74 +217,129 @@ export default function AccessRightsPage() {
             </Dialog>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {accessRights &&
-              accessRights.length > 0 &&
-              accessRights.map((ar) => (
-                <Card key={ar.id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{ar.name}</CardTitle>
+          <div className="bg-card rounded-md border">
+            <Accordion type="multiple" className="w-full">
+              {accessRights && accessRights.length > 0 ? (
+                accessRights.map((ar) => (
+                  <AccordionItem key={ar.id} value={ar.id} className="px-6">
+                    <div className="flex items-center">
+                      <AccordionTrigger className="py-6 hover:no-underline">
+                        <div className="flex flex-col items-start gap-1 text-left">
+                          <span className="text-lg font-semibold">
+                            {ar.name}
+                          </span>
+                          <span className="text-muted-foreground text-sm font-normal">
+                            {ar.description || "No description"} •{" "}
+                            {ar.endpoints?.length || 0} endpoints
+                          </span>
+                        </div>
+                      </AccordionTrigger>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDeleteAr(ar.id)}
+                        className="text-destructive ml-4 h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAr(ar.id);
+                        }}
                       >
-                        <Icon
-                          name="Trash2"
-                          className="text-destructive h-4 w-4"
-                        />
+                        <Icon name="Trash2" className="h-4 w-4" />
                       </Button>
                     </div>
-                    <CardDescription>
-                      {ar.description || "No description"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="text-muted-foreground flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
-                        Linked Endpoints ({ar.endpoints?.length || 0})
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-[10px]"
-                          onClick={() => {
-                            setSelectedAr(ar);
-                            setIsLinkDialogOpen(true);
-                          }}
+                    <AccordionContent className="pb-6">
+                      <div className="bg-muted/30 rounded-lg border p-4">
+                        <Accordion
+                          type="multiple"
+                          className="w-full border-none"
                         >
-                          Manage
-                        </Button>
+                          {Object.entries(groupedEndpoints)
+                            .sort(([a], [b]) => a.localeCompare(b))
+                            .map(([groupName, eps]) => {
+                              const selectedInGroup = eps.filter((ep) =>
+                                ar.endpoints?.some((e) => e.id === ep.id)
+                              ).length;
+
+                              return (
+                                <AccordionItem
+                                  key={`${ar.id}-${groupName}`}
+                                  value={groupName}
+                                  className="border-none"
+                                >
+                                  <AccordionTrigger className="py-2 hover:no-underline">
+                                    <div className="flex flex-1 items-center justify-between pr-4">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-medium capitalize">
+                                          {groupName}
+                                        </span>
+                                        <Badge
+                                          variant="outline"
+                                          className="h-4 text-[10px]"
+                                        >
+                                          {selectedInGroup} / {eps.length}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </AccordionTrigger>
+                                  <AccordionContent className="pt-2">
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                                      {eps.map((ep) => {
+                                        const isLinked = ar.endpoints?.some(
+                                          (e) => e.id === ep.id
+                                        );
+                                        return (
+                                          <div
+                                            key={ep.id}
+                                            className="hover:bg-muted/50 hover:border-border flex items-center space-x-3 rounded-md border border-transparent p-2 transition-colors"
+                                          >
+                                            <Checkbox
+                                              id={`ar-${ar.id}-ep-${ep.id}`}
+                                              checked={isLinked}
+                                              onCheckedChange={() =>
+                                                handleToggleLink(
+                                                  ar.id,
+                                                  ep.id,
+                                                  !!isLinked
+                                                )
+                                              }
+                                            />
+                                            <label
+                                              htmlFor={`ar-${ar.id}-ep-${ep.id}`}
+                                              className="flex flex-1 cursor-pointer items-center gap-2 text-xs leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                            >
+                                              <Badge
+                                                variant="outline"
+                                                className="h-4 px-1 font-mono text-[8px]"
+                                              >
+                                                {ep.method}
+                                              </Badge>
+                                              <span
+                                                className="truncate font-mono text-[10px] opacity-80"
+                                                title={ep.path}
+                                              >
+                                                {ep.path}
+                                              </span>
+                                            </label>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              );
+                            })}
+                        </Accordion>
                       </div>
-                      <ScrollArea className="h-[120px] pr-4">
-                        <div className="space-y-1">
-                          {ar.endpoints?.map((ep) => (
-                            <div
-                              key={ep.id}
-                              className="hover:bg-muted/50 flex items-center gap-2 rounded p-1 text-xs"
-                            >
-                              <Badge
-                                variant="outline"
-                                className="h-4 px-1 font-mono text-[8px]"
-                              >
-                                {ep.method}
-                              </Badge>
-                              <span className="flex-1 truncate font-mono">
-                                {ep.path}
-                              </span>
-                            </div>
-                          ))}
-                          {(!ar.endpoints || ar.endpoints.length === 0) && (
-                            <div className="text-muted-foreground py-4 text-center text-xs italic">
-                              No endpoints linked.
-                            </div>
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))
+              ) : (
+                <div className="py-12 text-center">
+                  <p className="text-muted-foreground italic">
+                    No access rights created yet.
+                  </p>
+                </div>
+              )}
+            </Accordion>
           </div>
         </TabsContent>
 
@@ -368,48 +440,6 @@ export default function AccessRightsPage() {
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Link Endpoint Dialog */}
-      <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Manage Endpoints for {selectedAr?.name}</DialogTitle>
-            <DialogDescription>
-              Select endpoints to include in this Access Right group.
-            </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="mt-4 h-[300px] rounded-md border p-4">
-            <div className="space-y-4">
-              {endpoints.map((ep) => {
-                const isLinked = selectedAr?.endpoints?.some(
-                  (e) => e.id === ep.id
-                );
-                return (
-                  <div key={ep.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`ep-${ep.id}`}
-                      checked={isLinked}
-                      onCheckedChange={() => handleLink(ep.id)}
-                    />
-                    <label
-                      htmlFor={`ep-${ep.id}`}
-                      className="flex items-center gap-2 text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                        {ep.method}
-                      </Badge>
-                      <span className="font-mono">{ep.path}</span>
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
-          <DialogFooter>
-            <Button onClick={() => setIsLinkDialogOpen(false)}>Done</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

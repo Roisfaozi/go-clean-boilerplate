@@ -23,9 +23,11 @@ export interface Endpoint {
 }
 
 export interface AccessRightListResponse {
-  data: AccessRight[];
-  meta: {
-    total: number;
+  data: {
+    data: AccessRight[];
+    meta: {
+      total: number;
+    };
   };
 }
 
@@ -123,6 +125,12 @@ export const accessApi = {
 
   linkEndpoint: (accessRightId: string, endpointId: string) => {
     return api.post("/access-rights/link", {
+      access_right_id: accessRightId,
+      endpoint_id: endpointId,
+    });
+  },
+  unlinkEndpoint: (accessRightId: string, endpointId: string) => {
+    return api.post("/access-rights/unlink", {
       access_right_id: accessRightId,
       endpoint_id: endpointId,
     });
