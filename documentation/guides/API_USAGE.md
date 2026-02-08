@@ -5,18 +5,18 @@ Dokumen ini menjelaskan alur kerja utama (workflow) dalam menggunakan API Casbin
 ## Daftar Isi
 
 1.  [Manajemen Pengguna (User Management)](#1-manajemen-pengguna-user-management)
-    *   [Registrasi Pengguna Baru](#11-registrasi-pengguna-baru)
-    *   [Login (Autentikasi)](#12-login-autentikasi)
-    *   [Melihat Profil Pengguna](#13-melihat-profil-pengguna)
+    - [Registrasi Pengguna Baru](#11-registrasi-pengguna-baru)
+    - [Login (Autentikasi)](#12-login-autentikasi)
+    - [Melihat Profil Pengguna](#13-melihat-profil-pengguna)
 2.  [Manajemen Peran (Role Management)](#2-manajemen-peran-role-management)
-    *   [Membuat Peran Baru](#21-membuat-peran-baru)
-    *   [Menetapkan Peran ke Pengguna (Assign Role)](#22-menetapkan-peran-ke-pengguna-assign-role)
+    - [Membuat Peran Baru](#21-membuat-peran-baru)
+    - [Menetapkan Peran ke Pengguna (Assign Role)](#22-menetapkan-peran-ke-pengguna-assign-role)
 3.  [Manajemen Izin & Akses (Permission & Access Management)](#3-manajemen-izin--akses-permission--access-management)
-    *   [Konsep Dasar](#konsep-dasar)
-    *   [Langkah 1: Daftarkan Endpoint](#langkah-1-daftarkan-endpoint)
-    *   [Langkah 2: Buat Access Right](#langkah-2-buat-access-right)
-    *   [Langkah 3: Hubungkan Endpoint ke Access Right](#langkah-3-hubungkan-endpoint-ke-access-right)
-    *   [Langkah 4: Berikan Izin ke Peran (Grant Permission)](#langkah-4-berikan-izin-ke-peran-grant-permission)
+    - [Konsep Dasar](#konsep-dasar)
+    - [Langkah 1: Daftarkan Endpoint](#langkah-1-daftarkan-endpoint)
+    - [Langkah 2: Buat Access Right](#langkah-2-buat-access-right)
+    - [Langkah 3: Hubungkan Endpoint ke Access Right](#langkah-3-hubungkan-endpoint-ke-access-right)
+    - [Langkah 4: Berikan Izin ke Peran (Grant Permission)](#langkah-4-berikan-izin-ke-peran-grant-permission)
 
 ---
 
@@ -26,56 +26,56 @@ Dokumen ini menjelaskan alur kerja utama (workflow) dalam menggunakan API Casbin
 
 Setiap pengguna baru yang mendaftar akan secara otomatis diberikan peran **`role:user`**.
 
-*   **Endpoint:** `POST /api/v1/users/register`
-*   **Akses:** Publik (Tanpa Token)
-*   **Payload:**
-    ```json
-    {
-      "username": "johndoe",
-      "password": "password123",
-      "name": "John Doe",
-      "email": "johndoe@example.com"
-    }
-    ```
-*   **Response Sukses (201 Created):**
-    Mengembalikan data pengguna yang baru dibuat beserta ID-nya. Simpan `id` ini untuk keperluan administrasi selanjutnya.
+- **Endpoint:** `POST /api/v1/users/register`
+- **Akses:** Publik (Tanpa Token)
+- **Payload:**
+  ```json
+  {
+    "username": "johndoe",
+    "password": "password123",
+    "name": "John Doe",
+    "email": "johndoe@example.com"
+  }
+  ```
+- **Response Sukses (201 Created):**
+  Mengembalikan data pengguna yang baru dibuat beserta ID-nya. Simpan `id` ini untuk keperluan administrasi selanjutnya.
 
 ### 1.2. Login (Autentikasi)
 
 Gunakan username dan password untuk mendapatkan sesi.
 
-*   **Endpoint:** `POST /api/v1/auth/login`
-*   **Akses:** Publik
-*   **Payload:**
-    ```json
-    {
-      "username": "johndoe",
-      "password": "password123"
+- **Endpoint:** `POST /api/v1/auth/login`
+- **Akses:** Publik
+- **Payload:**
+  ```json
+  {
+    "username": "johndoe",
+    "password": "password123"
+  }
+  ```
+- **Response Sukses (200 OK):**
+  ```json
+  {
+    "data": {
+      "user": {
+        "id": "uuid",
+        "username": "johndoe",
+        "role": "role:user"
+      },
+      "access_token": "eyJ...",
+      "refresh_token": "eyJ..."
     }
-    ```
-*   **Response Sukses (200 OK):**
-    ```json
-    {
-      "data": {
-        "user": {
-          "id": "uuid",
-          "username": "johndoe",
-          "role": "role:user"
-        },
-        "access_token": "eyJ...",
-        "refresh_token": "eyJ..."
-      }
-    }
-    ```
-    > **Keamanan Baru:** Pada Frontend (Next.js), token ini **otomatis disimpan di HttpOnly Cookies** oleh Server Action. Anda tidak perlu menyertakan header `Authorization` secara manual jika memanggil API lewat proxy `/api/v1/...`.
+  }
+  ```
+  > **Keamanan Baru:** Pada Frontend (Next.js), token ini **otomatis disimpan di HttpOnly Cookies** oleh Server Action. Anda tidak perlu menyertakan header `Authorization` secara manual jika memanggil API lewat proxy `/api/v1/...`.
 
 ### 1.3. Melihat Profil Pengguna Aktif
 
 Gunakan endpoint ini untuk memverifikasi sesi dan mendapatkan data user terbaru.
 
-*   **Endpoint:** `GET /api/v1/auth/me`
-*   **Akses:** Terproteksi (Sesi Aktif)
-*   **Response:** Mengembalikan objek user yang sedang terotentikasi.
+- **Endpoint:** `GET /api/v1/auth/me`
+- **Akses:** Terproteksi (Sesi Aktif)
+- **Response:** Mengembalikan objek user yang sedang terotentikasi.
 
 ---
 
@@ -87,29 +87,29 @@ Hanya pengguna dengan peran Admin (atau yang memiliki izin khusus) yang dapat me
 
 Jika peran standar (`role:user`, `role:admin`) belum cukup, Anda bisa membuat peran baru.
 
-*   **Endpoint:** `POST /api/v1/roles`
-*   **Akses:** Admin
-*   **Payload:**
-    ```json
-    {
-      "name": "role:editor",
-      "description": "Editor konten dengan akses tulis terbatas"
-    }
-    ```
+- **Endpoint:** `POST /api/v1/roles`
+- **Akses:** Admin
+- **Payload:**
+  ```json
+  {
+    "name": "role:editor",
+    "description": "Editor konten dengan akses tulis terbatas"
+  }
+  ```
 
 ### 2.2. Menetapkan Peran ke Pengguna (Assign Role)
 
 Untuk menjadikan seorang pengguna sebagai Admin atau peran lainnya.
 
-*   **Endpoint:** `POST /api/v1/permissions/assign-role`
-*   **Akses:** Admin
-*   **Payload:**
-    ```json
-    {
-      "user_id": "uuid-user-yang-disimpan-tadi",
-      "role": "role:admin"
-    }
-    ```
+- **Endpoint:** `POST /api/v1/permissions/assign-role`
+- **Akses:** Admin
+- **Payload:**
+  ```json
+  {
+    "user_id": "uuid-user-yang-disimpan-tadi",
+    "role": "role:admin"
+  }
+  ```
 
 ---
 
@@ -127,56 +127,69 @@ Sistem ini memisahkan definisi endpoint fisik dari hak akses logis untuk fleksib
 
 Misalnya Anda membuat fitur baru untuk melihat laporan penjualan.
 
-*   **Endpoint:** `POST /api/v1/endpoints`
-*   **Payload:**
-    ```json
-    {
-      "path": "/api/v1/sales/reports",
-      "method": "GET"
-    }
-    ```
-    *Simpan `id` endpoint yang dihasilkan (misal: 10).*
+- **Endpoint:** `POST /api/v1/endpoints`
+- **Payload:**
+  ```json
+  {
+    "path": "/api/v1/sales/reports",
+    "method": "GET"
+  }
+  ```
+  _Simpan `id` endpoint yang dihasilkan (misal: 10)._
 
 ### Langkah 2: Buat Access Right
 
 Buat representasi logis dari hak akses tersebut.
 
-*   **Endpoint:** `POST /api/v1/access-rights`
-*   **Payload:**
-    ```json
-    {
-      "name": "sales:view_reports",
-      "description": "Izinkan melihat laporan penjualan"
-    }
-    ```
-    *Simpan `id` access right yang dihasilkan (misal: 5).*
+- **Endpoint:** `POST /api/v1/access-rights`
+- **Payload:**
+  ```json
+  {
+    "name": "sales:view_reports",
+    "description": "Izinkan melihat laporan penjualan"
+  }
+  ```
+  _Simpan `id` access right yang dihasilkan (misal: 5)._
 
 ### Langkah 3: Hubungkan Endpoint ke Access Right
 
 Hubungkan endpoint fisik ke hak akses logis. Satu Access Right bisa memiliki banyak Endpoint.
 
-*   **Endpoint:** `POST /api/v1/access-rights/link`
-*   **Payload:**
-    ```json
-    {
-      "access_right_id": 5,
-      "endpoint_id": 10
-    }
-    ```
+- **Endpoint:** `POST /api/v1/access-rights/link`
+- **Payload:**
+  ```json
+  {
+    "access_right_id": "uuid-access-right",
+    "endpoint_id": "uuid-endpoint"
+  }
+  ```
+
+### Langkah 3.1: Hapus Hubungan Endpoint (Unlink)
+
+Jika Anda ingin menghapus endpoint dari grup hak akses tertentu.
+
+- **Endpoint:** `POST /api/v1/access-rights/unlink`
+- **Payload:** (Sama dengan payload link)
+  ```json
+  {
+    "access_right_id": "uuid-access-right",
+    "endpoint_id": "uuid-endpoint"
+  }
+  ```
 
 ### Langkah 4: Berikan Izin ke Peran (Grant Permission)
 
 Ini adalah langkah yang mengaktifkan akses di level **Casbin**. Tanpa langkah ini, Role tidak bisa mengakses Endpoint meskipun Access Right sudah dibuat.
 
-*   **Endpoint:** `POST /api/v1/permissions/grant`
-*   **Payload:**
-    ```json
-    {
-      "role": "role:editor",
-      "path": "/api/v1/sales/reports",
-      "method": "GET"
-    }
-    ```
+- **Endpoint:** `POST /api/v1/permissions/grant`
+- **Payload:**
+  ```json
+  {
+    "role": "role:editor",
+    "path": "/api/v1/sales/reports",
+    "method": "GET"
+  }
+  ```
 
 Sekarang, semua pengguna yang memiliki peran `role:editor` dapat mengakses endpoint `GET /api/v1/sales/reports`.
 
@@ -186,17 +199,14 @@ Sekarang, semua pengguna yang memiliki peran `role:editor` dapat mengakses endpo
 
 Sistem secara otomatis mencatat aktivitas penting seperti Login, Register, dan perubahan User.
 
-*   **Endpoint:** `POST /api/v1/audit-logs/search`
-*   **Akses:** Superadmin
-*   **Contoh Filter (Mencari aksi LOGIN):**
-    ```json
-    {
-      "filter": {
-        "action": { "type": "equals", "from": "LOGIN" }
-      },
-      "sort": [
-        { "colId": "created_at", "sort": "desc" }
-      ]
-    }
-    ```
-
+- **Endpoint:** `POST /api/v1/audit-logs/search`
+- **Akses:** Superadmin
+- **Contoh Filter (Mencari aksi LOGIN):**
+  ```json
+  {
+    "filter": {
+      "action": { "type": "equals", "from": "LOGIN" }
+    },
+    "sort": [{ "colId": "created_at", "sort": "desc" }]
+  }
+  ```

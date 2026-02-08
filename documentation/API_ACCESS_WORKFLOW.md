@@ -90,13 +90,18 @@ We use **Casbin** with a RESTful model `(Subject, Object, Action)`.
 | `PATCH`  | `/api/v1/organizations/:id/members/:uid`   | Update Member Role    | Owner/Admin   |
 | `DELETE` | `/api/v1/organizations/:id`                | Delete Organization   | Owner         |
 
-### 5. Audit & Access Configuration
+### 6. Audit & Access Configuration
 
-| Method | Path                        | Description         | Required Role     |
-| :----- | :-------------------------- | :------------------ | :---------------- |
-| `POST` | `/api/v1/audit-logs/search` | Search Audit Logs   | `role:superadmin` |
-| `POST` | `/api/v1/access-rights`     | Create Access Right | `role:superadmin` |
-| `POST` | `/api/v1/endpoints`         | Create API Endpoint | `role:superadmin` |
+| Method   | Path                           | Description                | Required Role     |
+| :------- | :----------------------------- | :------------------------- | :---------------- |
+| `POST`   | `/api/v1/audit-logs/search`    | Search Audit Logs          | `role:superadmin` |
+| `POST`   | `/api/v1/access-rights`        | Create Access Right        | `role:superadmin` |
+| `POST`   | `/api/v1/access-rights/link`   | Link Endpoint to Group     | `role:superadmin` |
+| `POST`   | `/api/v1/access-rights/unlink` | Unlink Endpoint from Group | `role:superadmin` |
+| `DELETE` | `/api/v1/access-rights/:id`    | Delete Access Right        | `role:superadmin` |
+| `POST`   | `/api/v1/endpoints`            | Create API Endpoint        | `role:superadmin` |
+| `POST`   | `/api/v1/endpoints/search`     | Search Endpoints           | `role:superadmin` |
+| `DELETE` | `/api/v1/endpoints/:id`        | Delete Endpoint            | `role:superadmin` |
 
 ---
 
