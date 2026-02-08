@@ -1,8 +1,18 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Button } from "~/components/ui/button";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Icon } from "~/components/shared/icon";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "~/components/ui/accordion";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { Skeleton } from "~/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -11,18 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { Badge } from "~/components/ui/badge";
-import { Card, CardContent } from "~/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "~/components/ui/accordion";
 import { accessApi, AccessRight } from "~/lib/api/access";
-import { rolesApi, Role } from "~/lib/api/roles";
-import { toast } from "sonner";
-import { Skeleton } from "~/components/ui/skeleton";
+import { Role, rolesApi } from "~/lib/api/roles";
 
 export default function AccessPage() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -40,7 +40,7 @@ export default function AccessPage() {
 
       if (rolesResp.data) setRoles(rolesResp.data);
       if (permsResp.data) setPermissions(permsResp.data);
-      if (accessResp.data) setAccessRights(accessResp.data);
+      if (accessResp.data.data) setAccessRights(accessResp.data.data);
     } catch (error) {
       console.error("Failed to fetch access data", error);
       toast.error("Failed to load permissions");
