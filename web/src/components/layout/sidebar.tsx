@@ -108,7 +108,7 @@ export function Sidebar({ className }: { className?: string }) {
                       }),
                       "w-full justify-start overflow-hidden",
                       isActive &&
-                      "bg-primary/10 text-primary hover:bg-primary/20",
+                        "bg-primary/10 text-primary hover:bg-primary/20",
                       // Compact Mode: Center icon, hide text
                       "[data-density=compact]:justify-center [data-density=compact]:px-0"
                     )}

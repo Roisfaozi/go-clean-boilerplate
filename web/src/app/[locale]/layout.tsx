@@ -2,7 +2,6 @@ import { type Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import Footer from "~/components/layout/footer";
-import Header from "~/components/layout/header";
 import { AuthProvider } from "~/components/shared/providers/auth-provider";
 import { DensityProvider } from "~/components/shared/providers/density-provider";
 import ThemeProvider from "~/components/shared/providers/theme-provider";
@@ -137,7 +136,6 @@ export default async function RootLayout({
             <AuthProvider>
               <WebSocketProvider>
                 {/* <AnnouncementBanner /> */}
-                <Header />
                 <main>
                   {children}
                   {loginDialog}
