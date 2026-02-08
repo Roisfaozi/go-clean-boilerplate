@@ -54,7 +54,7 @@ func (u *statsUseCase) GetDashboardActivity(ctx context.Context, days int) (*mod
 	for i := 0; i < days; i++ {
 		date := now.AddDate(0, 0, -i)
 		dateStr := date.Format("2006-01-02")
-		
+
 		startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location()).UnixMilli()
 		endOfDay := time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 999, date.Location()).UnixMilli()
 
@@ -86,9 +86,9 @@ func (u *statsUseCase) GetSystemInsights(ctx context.Context) (*model.SystemInsi
 	// For now, return some plausible but real-ish data
 	// In a real system, these would come from Prometheus or specialized metrics tables
 	return &model.SystemInsights{
-		AvgLatencyMs: 24.5,
-		ErrorRate:    0.02,
-		Uptime:       "99.99%",
+		AvgLatencyMs:   24.5,
+		ErrorRate:      0.02,
+		Uptime:         "99.99%",
 		MostActiveRole: "role:admin",
 	}, nil
 }
