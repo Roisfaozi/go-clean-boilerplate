@@ -77,7 +77,7 @@ export const accessApi = {
 
   // Get permissions for role
   getPermissionsForRole: (role: string) => {
-    return api.get<{ data: string[][] }>(`/permissions/roles/${role}`);
+    return api.get<{ data: string[][] }>(`/permissions/${role}`);
   },
 
   // Get users for role
