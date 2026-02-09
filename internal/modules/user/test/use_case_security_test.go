@@ -59,11 +59,6 @@ func TestUserUseCase_Update_Security_Sanitization(t *testing.T) {
 	// or "FindByUsername" might be called with the raw input.
 	// However, for reproduction, we write the test asserting correct behavior.
 
-	if err != nil {
-		// Just to make sure we don't crash if mocks are not met in a way we didn't expect
-		// But assert.NoError should handle it.
-	}
-
 	assert.NoError(t, err)
 	if result != nil {
 		assert.Equal(t, expectedUsername, result.Username)
