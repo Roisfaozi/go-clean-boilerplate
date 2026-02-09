@@ -9,8 +9,13 @@ const I18nMiddleware = createI18nMiddleware({
 const locales = ["en", "fr"];
 
 export function proxy(request: NextRequest) {
-  const token = request.cookies.get("access_token")?.value;
   const { pathname, search } = request.nextUrl;
+
+  if (request.method === "POST") {
+    return I18nMiddleware(request);
+  }
+
+  const token = request.cookies.get("access_token")?.value;
 
   // Helper to extract locale from path safely
   const localeMatch = pathname.match(/^\/([a-z]{2})(?:\/|$)/);

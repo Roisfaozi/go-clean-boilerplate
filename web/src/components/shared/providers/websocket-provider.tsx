@@ -2,13 +2,14 @@
 
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
   useState,
-  useCallback,
 } from "react";
 import { authApi } from "~/lib/api/auth";
+import { useAuthStore } from "~/stores/use-auth-store";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 
 interface WebSocketContextType {
@@ -26,6 +27,7 @@ const RECONNECT_INTERVAL = 5000;
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   const { currentOrganization } = useOrganizationStore();
+  const { user } = useAuthStore();
   const socketRef = useRef<WebSocket | null>(null);
   const subscriptions = useRef<Map<string, Set<(data: any) => void>>>(
     new Map()
@@ -41,6 +43,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
   const connect = useCallback(async () => {
     if (socketRef.current?.readyState === WebSocket.OPEN) return;
+    if (!currentOrganization?.id || !user) return;
 
     try {
       // 1. Fetch short-lived ticket via Proxy (Secure HTTP context)
@@ -62,14 +65,30 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
       socket.onmessage = (event) => {
         try {
-          const message = JSON.parse(event.data);
-          const channel = message.channel || "global";
-          const listeners = subscriptions.current.get(channel);
-          if (listeners) {
-            listeners.forEach((callback) => callback(message));
+          // The backend might send multiple JSON objects separated by newlines in one frame
+          const rawData = event.data as string;
+          const lines = rawData
+            .split("\n")
+            .filter((line) => line.trim() !== "");
+
+          for (const line of lines) {
+            try {
+              const message = JSON.parse(line);
+              const channel = message.channel || "global";
+              const listeners = subscriptions.current.get(channel);
+              if (listeners) {
+                listeners.forEach((callback) => callback(message));
+              }
+            } catch (parseError) {
+              console.error(
+                "Failed to parse WS message line:",
+                line,
+                parseError
+              );
+            }
           }
         } catch (error) {
-          console.error("Failed to parse WS message", error);
+          console.error("Failed to process WS message", error);
         }
       };
 
@@ -95,7 +114,15 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       };
     } catch (error) {
       console.error("Failed to establish WebSocket connection:", error);
-      // Retry after interval
+
+      const isAuthError =
+        error instanceof Error &&
+        (error.message.includes("401") ||
+          error.message.toLowerCase().includes("unauthorized") ||
+          error.message.toLowerCase().includes("token"));
+
+      if (isAuthError) return;
+
       if (reconnectTimeoutRef.current)
         clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = setTimeout(
@@ -103,7 +130,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         RECONNECT_INTERVAL
       );
     }
-  }, [sendJson, currentOrganization]);
+  }, [sendJson, currentOrganization, user]);
 
   useEffect(() => {
     connectRef.current = connect;

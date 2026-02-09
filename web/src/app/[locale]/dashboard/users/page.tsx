@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 import { UserDialog } from "~/components/dashboard/users/user-dialog";
@@ -35,12 +35,10 @@ export default function UsersPage() {
   const pathname = usePathname();
   const { replace } = useRouter();
 
-  // URL State
   const page = Number(searchParams.get("page")) || 1;
   const limit = Number(searchParams.get("limit")) || 10;
   const searchTerm = searchParams.get("search") || "";
 
-  // Data Fetching with SWR
   const {
     data: response,
     error,
@@ -53,17 +51,19 @@ export default function UsersPage() {
   const users = response?.data || [];
   const total = response?.paging.total || 0;
 
-  // Permission Checks
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const canCreate = usePermission("/api/v1/users", "POST");
   const canDelete = usePermission("/api/v1/users/:id", "DELETE");
   const canUpdate = usePermission("/api/v1/users/:id", "PUT");
 
-  // Dialog States
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
 
-  // Search Debounce Handler
   const handleSearch = useCallback(
     (term: string) => {
       const params = new URLSearchParams(searchParams);
@@ -72,7 +72,7 @@ export default function UsersPage() {
       } else {
         params.delete("search");
       }
-      params.set("page", "1"); // Reset to first page on search
+      params.set("page", "1");
 
       if (params.toString() !== searchParams.toString()) {
         replace(`${pathname}?${params.toString()}`);
@@ -133,7 +133,7 @@ export default function UsersPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          {canCreate && (
+          {isMounted && canCreate && (
             <Button onClick={handleCreate}>
               <Icon name="UserPlus" className="mr-2 h-4 w-4" />
               Add User
@@ -189,8 +189,8 @@ export default function UsersPage() {
         users={users}
         isLoading={isLoading}
         error={error}
-        canUpdate={canUpdate}
-        canDelete={canDelete}
+        canUpdate={isMounted && canUpdate}
+        canDelete={isMounted && canDelete}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
@@ -225,7 +225,7 @@ export default function UsersPage() {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         user={selectedUser}
-        onSuccess={() => mutate()} // Revalidate SWR
+        onSuccess={() => mutate()}
       />
 
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
