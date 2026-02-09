@@ -15,23 +15,33 @@ export async function GET(request: NextRequest) {
 
   const cookieStore = await cookies();
 
-  // Save Access Token (Short-lived)
+  const isSecure =
+    process.env.NEXT_PUBLIC_COOKIE_SECURE === "true" ||
+    (process.env.NODE_ENV === "production" &&
+      process.env.NEXT_PUBLIC_COOKIE_SECURE !== "false");
+
+  const ACCESS_TOKEN_MAX_AGE = Number(
+    process.env.NEXT_PUBLIC_ACCESS_TOKEN_MAX_AGE || 60 * 15
+  );
+  const REFRESH_TOKEN_MAX_AGE = Number(
+    process.env.NEXT_PUBLIC_REFRESH_TOKEN_MAX_AGE || 60 * 60 * 24
+  );
+
   cookieStore.set("access_token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecure,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 15, // 15 minutes
+    maxAge: ACCESS_TOKEN_MAX_AGE,
   });
 
-  // Save Refresh Token (Long-lived)
   if (refreshToken) {
     cookieStore.set("refresh_token", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecure,
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: REFRESH_TOKEN_MAX_AGE,
     });
   }
 
