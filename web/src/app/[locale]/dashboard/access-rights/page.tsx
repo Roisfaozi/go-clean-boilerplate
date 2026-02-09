@@ -38,18 +38,17 @@ export default function AccessRightsPage() {
   const [accessRights, setAccessRights] = useState<AccessRight[]>([]);
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
-  // Create Access Right state
   const [newArName, setNewArName] = useState("");
   const [newArDesc, setNewArDesc] = useState("");
   const [isArDialogOpen, setIsArDialogOpen] = useState(false);
 
-  // Create Endpoint state
   const [newEpPath, setNewEpPath] = useState("");
   const [newEpMethod, setNewEpMethod] = useState("GET");
   const [isEpDialogOpen, setIsEpDialogOpen] = useState(false);
 
-  // Link state
   const [selectedAr, setSelectedAr] = useState<AccessRight | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -73,6 +72,8 @@ export default function AccessRightsPage() {
   }, [fetchData]);
 
   const handleCreateAr = async () => {
+    if (!newArName) return;
+    setIsCreating(true);
     try {
       await accessApi.createAccessRight(newArName, newArDesc);
       toast.success("Access Right created");
@@ -82,10 +83,14 @@ export default function AccessRightsPage() {
       fetchData();
     } catch (error) {
       toast.error("Failed to create Access Right");
+    } finally {
+      setIsCreating(false);
     }
   };
 
   const handleCreateEp = async () => {
+    if (!newEpPath) return;
+    setIsCreating(true);
     try {
       await accessApi.createEndpoint(newEpMethod, newEpPath);
       toast.success("Endpoint created");
@@ -95,26 +100,34 @@ export default function AccessRightsPage() {
       fetchData();
     } catch (error) {
       toast.error("Failed to create Endpoint");
+    } finally {
+      setIsCreating(false);
     }
   };
 
   const handleDeleteAr = async (id: string) => {
+    setIsProcessing(id);
     try {
       await accessApi.deleteAccessRight(id);
       toast.success("Access Right deleted");
       fetchData();
     } catch (error) {
       toast.error("Failed to delete Access Right");
+    } finally {
+      setIsProcessing(null);
     }
   };
 
   const handleDeleteEp = async (id: string) => {
+    setIsProcessing(id);
     try {
       await accessApi.deleteEndpoint(id);
       toast.success("Endpoint deleted");
       fetchData();
     } catch (error) {
       toast.error("Failed to delete Endpoint");
+    } finally {
+      setIsProcessing(null);
     }
   };
 
@@ -123,6 +136,8 @@ export default function AccessRightsPage() {
     endpointId: string,
     isLinked: boolean
   ) => {
+    const processId = `${accessRightId}-${endpointId}`;
+    setIsProcessing(processId);
     try {
       if (isLinked) {
         await accessApi.unlinkEndpoint(accessRightId, endpointId);
@@ -131,15 +146,16 @@ export default function AccessRightsPage() {
         await accessApi.linkEndpoint(accessRightId, endpointId);
         toast.success("Endpoint linked");
       }
-      fetchData(); // Refresh to update mappings
+      fetchData();
     } catch (error) {
       toast.error("Failed to update access right link");
+    } finally {
+      setIsProcessing(null);
     }
   };
 
   const groupedEndpoints = endpoints.reduce(
     (acc, ep) => {
-      // Group by the first segment after /api/v1/ (e.g. users, projects, etc)
       const segments = ep.path.split("/");
       const groupName = segments[3] || "other";
       if (!acc[groupName]) acc[groupName] = [];
@@ -208,10 +224,19 @@ export default function AccessRightsPage() {
                   <Button
                     variant="outline"
                     onClick={() => setIsArDialogOpen(false)}
+                    disabled={isCreating}
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateAr}>Create</Button>
+                  <Button onClick={handleCreateAr} disabled={isCreating}>
+                    {isCreating && (
+                      <Icon
+                        name="Loader"
+                        className="mr-2 h-4 w-4 animate-spin"
+                      />
+                    )}
+                    Create
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -238,12 +263,20 @@ export default function AccessRightsPage() {
                         variant="ghost"
                         size="icon"
                         className="text-destructive ml-4 h-8 w-8"
+                        disabled={isProcessing === ar.id}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteAr(ar.id);
                         }}
                       >
-                        <Icon name="Trash2" className="h-4 w-4" />
+                        {isProcessing === ar.id ? (
+                          <Icon
+                            name="Loader"
+                            className="h-4 w-4 animate-spin"
+                          />
+                        ) : (
+                          <Icon name="Trash2" className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                     <AccordionContent className="pb-6">
@@ -294,6 +327,10 @@ export default function AccessRightsPage() {
                                             <Checkbox
                                               id={`ar-${ar.id}-ep-${ep.id}`}
                                               checked={isLinked}
+                                              disabled={
+                                                isProcessing ===
+                                                `${ar.id}-${ep.id}`
+                                              }
                                               onCheckedChange={() =>
                                                 handleToggleLink(
                                                   ar.id,
@@ -388,10 +425,19 @@ export default function AccessRightsPage() {
                   <Button
                     variant="outline"
                     onClick={() => setIsEpDialogOpen(false)}
+                    disabled={isCreating}
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateEp}>Register</Button>
+                  <Button onClick={handleCreateEp} disabled={isCreating}>
+                    {isCreating && (
+                      <Icon
+                        name="Loader"
+                        className="mr-2 h-4 w-4 animate-spin"
+                      />
+                    )}
+                    Register
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -425,12 +471,20 @@ export default function AccessRightsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        disabled={isProcessing === ep.id}
                         onClick={() => handleDeleteEp(ep.id)}
                       >
-                        <Icon
-                          name="Trash2"
-                          className="text-destructive h-4 w-4"
-                        />
+                        {isProcessing === ep.id ? (
+                          <Icon
+                            name="Loader"
+                            className="text-muted-foreground h-4 w-4 animate-spin"
+                          />
+                        ) : (
+                          <Icon
+                            name="Trash2"
+                            className="text-destructive h-4 w-4"
+                          />
+                        )}
                       </Button>
                     </TableCell>
                   </TableRow>

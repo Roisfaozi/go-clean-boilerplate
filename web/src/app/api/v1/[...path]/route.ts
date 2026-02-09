@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080/api/v1";
 
 export async function ALL(
   request: NextRequest,
@@ -56,4 +56,4 @@ export async function ALL(
   }
 }
 
-export { ALL as GET, ALL as POST, ALL as PUT, ALL as PATCH, ALL as DELETE };
+export { ALL as DELETE, ALL as GET, ALL as PATCH, ALL as POST, ALL as PUT };

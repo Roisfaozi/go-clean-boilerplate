@@ -48,6 +48,7 @@ export function RoleDetailSheet({
   const [members, setMembers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -56,7 +57,6 @@ export function RoleDetailSheet({
     if (!role) return;
     setIsLoading(true);
     try {
-      // 1. Get user IDs from Casbin
       const resp = await accessApi.getUsersForRole(role.name);
       const userIds = resp.data || [];
 
@@ -65,10 +65,6 @@ export function RoleDetailSheet({
         return;
       }
 
-      // 2. Fetch full user objects
-      // Note: Backend might not have batch get users, so we might need to fetch one by one
-      // or use search with filter if supported.
-      // For now, let's try to fetch them individually or use a placeholder if many.
       const userPromises = userIds
         .slice(0, 50)
         .map((id) => usersApi.getById(id));
@@ -99,7 +95,6 @@ export function RoleDetailSheet({
     try {
       const resp = await usersApi.getAll(1, 10, query);
       if (resp.data) {
-        // Filter out those who are already members
         const memberIds = new Set(members.map((m) => m.id));
         setSearchResults(resp.data.filter((u) => !memberIds.has(u.id)));
       }
@@ -112,6 +107,7 @@ export function RoleDetailSheet({
 
   const addMember = async (user: User) => {
     if (!role) return;
+    setIsAdding(true);
     try {
       await accessApi.assignRole(user.id, role.name);
       toast.success(`${user.username} added to ${role.name}`);
@@ -120,17 +116,22 @@ export function RoleDetailSheet({
       setSearchResults([]);
     } catch (error) {
       toast.error("Failed to add member");
+    } finally {
+      setIsAdding(false);
     }
   };
 
   const removeMember = async (userId: string, username: string) => {
     if (!role) return;
+    setIsProcessing(userId);
     try {
       await accessApi.revokeRole(userId, role.name);
       toast.success(`${username} removed from ${role.name}`);
       setMembers((prev) => prev.filter((m) => m.id !== userId));
     } catch (error) {
       toast.error("Failed to remove member");
+    } finally {
+      setIsProcessing(null);
     }
   };
 
@@ -285,9 +286,17 @@ export function RoleDetailSheet({
                         variant="ghost"
                         size="icon"
                         className="text-destructive hover:bg-destructive/10 h-8 w-8 opacity-0 group-hover:opacity-100"
+                        disabled={isProcessing === member.id}
                         onClick={() => removeMember(member.id, member.username)}
                       >
-                        <Icon name="UserMinus" className="h-4 w-4" />
+                        {isProcessing === member.id ? (
+                          <Icon
+                            name="Loader"
+                            className="h-4 w-4 animate-spin"
+                          />
+                        ) : (
+                          <Icon name="UserMinus" className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   ))
@@ -333,7 +342,6 @@ function RolePermissionsTab({ role }: { role?: Role }) {
         accessApi.getPermissionsForRole(role.name),
       ]);
 
-      // Handle nested data.data structure from previous fix
       if (accessResp.data.data) {
         setAccessRights(accessResp.data.data);
       }

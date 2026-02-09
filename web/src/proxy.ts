@@ -6,24 +6,30 @@ const I18nMiddleware = createI18nMiddleware({
   defaultLocale: "en",
 });
 
+const locales = ["en", "fr"];
+
 export function proxy(request: NextRequest) {
   const token = request.cookies.get("access_token")?.value;
   const { pathname, search } = request.nextUrl;
 
+  // Helper to extract locale from path safely
+  const localeMatch = pathname.match(/^\/([a-z]{2})(?:\/|$)/);
+  const detectedLocale =
+    localeMatch && locales.includes(localeMatch[1]) ? localeMatch[1] : null;
+  const localePrefix = detectedLocale ? `/${detectedLocale}` : "";
+
   // 1. Protect /dashboard routes
   const isDashboardPath =
-    pathname.match(/^\/([a-z]{2})\/dashboard/) ||
+    pathname.startsWith(`${localePrefix}/dashboard`) ||
     pathname.startsWith("/dashboard");
   const isAuthPath =
-    pathname.match(/^\/([a-z]{2})\/(login|register)/) ||
+    pathname.match(/^\/([a-z]{2})\/(login|register)(?:\/|$)/) ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/register");
 
   if (isDashboardPath) {
     if (!token) {
       const returnTo = encodeURIComponent(pathname + search);
-      const localeMatch = pathname.match(/^\/([a-z]{2})/);
-      const localePrefix = localeMatch ? `/${localeMatch[1]}` : "";
       const loginUrl = new URL(
         `${localePrefix}/login?returnTo=${returnTo}`,
         request.url
@@ -34,8 +40,6 @@ export function proxy(request: NextRequest) {
 
   // 2. Redirect logged-in users away from auth pages
   if (isAuthPath && token) {
-    const localeMatch = pathname.match(/^\/([a-z]{2})/);
-    const localePrefix = localeMatch ? `/${localeMatch[1]}` : "";
     return NextResponse.redirect(
       new URL(`${localePrefix}/dashboard`, request.url)
     );

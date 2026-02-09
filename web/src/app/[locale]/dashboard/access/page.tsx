@@ -29,6 +29,7 @@ export default function AccessPage() {
   const [permissions, setPermissions] = useState<string[][]>([]);
   const [accessRights, setAccessRights] = useState<AccessRight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const fetchAll = async () => {
     try {
@@ -71,7 +72,11 @@ export default function AccessPage() {
     path: string,
     method: string
   ) => {
+    const processId = `${role}-${path}-${method}`;
+    if (isProcessing) return;
+
     const exists = hasPermission(role, path, method);
+    setIsProcessing(processId);
     try {
       if (exists) {
         await accessApi.revokePermission(role, path, method);
@@ -88,16 +93,17 @@ export default function AccessPage() {
         toast.success(`Revoked ${method} on ${path} for ${role}`);
       } else {
         await accessApi.grantPermission(role, path, method);
-        // Optimistically add to local state
+
         setPermissions((prev) => [...prev, [role, "global", path, method]]);
         toast.success(`Granted ${method} on ${path} to ${role}`);
       }
     } catch (error) {
       toast.error("Failed to update permission");
+    } finally {
+      setIsProcessing(null);
     }
   };
 
-  // Find endpoints that are NOT in any access right but are in permissions
   const ungroupedEndpoints = useMemo(() => {
     const allEndpointsInRights = new Set(
       accessRights.flatMap((ar) =>
@@ -234,6 +240,7 @@ export default function AccessPage() {
                             >
                               <div
                                 onClick={() =>
+                                  !isProcessing &&
                                   togglePermission(
                                     role.name,
                                     ep.path,
@@ -241,12 +248,21 @@ export default function AccessPage() {
                                   )
                                 }
                                 className={`mx-auto flex h-6 w-6 cursor-pointer items-center justify-center rounded-md transition-all ${
-                                  active
-                                    ? "bg-primary text-primary-foreground shadow-sm hover:scale-110"
-                                    : "bg-muted text-muted-foreground/30 hover:bg-muted/80 hover:text-muted-foreground"
+                                  isProcessing ===
+                                  `${role.name}-${ep.path}-${ep.method}`
+                                    ? "bg-muted scale-90"
+                                    : active
+                                      ? "bg-primary text-primary-foreground shadow-sm hover:scale-110"
+                                      : "bg-muted text-muted-foreground/30 hover:bg-muted/80 hover:text-muted-foreground"
                                 } `}
                               >
-                                {active ? (
+                                {isProcessing ===
+                                `${role.name}-${ep.path}-${ep.method}` ? (
+                                  <Icon
+                                    name="Loader"
+                                    className="text-muted-foreground h-3 w-3 animate-spin"
+                                  />
+                                ) : active ? (
                                   <Icon name="Check" className="h-4 w-4" />
                                 ) : (
                                   <Icon name="Lock" className="h-3 w-3" />
@@ -342,6 +358,7 @@ export default function AccessPage() {
                             >
                               <div
                                 onClick={() =>
+                                  !isProcessing &&
                                   togglePermission(
                                     role.name,
                                     ep.path,
@@ -349,12 +366,21 @@ export default function AccessPage() {
                                   )
                                 }
                                 className={`mx-auto flex h-6 w-6 cursor-pointer items-center justify-center rounded-md transition-all ${
-                                  active
-                                    ? "bg-yellow-500 text-white shadow-sm hover:scale-110"
-                                    : "bg-muted text-muted-foreground/30 hover:bg-muted/80"
+                                  isProcessing ===
+                                  `${role.name}-${ep.path}-${ep.method}`
+                                    ? "bg-muted scale-90"
+                                    : active
+                                      ? "bg-yellow-500 text-white shadow-sm hover:scale-110"
+                                      : "bg-muted text-muted-foreground/30 hover:bg-muted/80"
                                 } `}
                               >
-                                {active ? (
+                                {isProcessing ===
+                                `${role.name}-${ep.path}-${ep.method}` ? (
+                                  <Icon
+                                    name="Loader"
+                                    className="text-muted-foreground h-3 w-3 animate-spin"
+                                  />
+                                ) : active ? (
                                   <Icon name="Check" className="h-4 w-4" />
                                 ) : (
                                   <Icon name="Lock" className="h-3 w-3" />
