@@ -300,7 +300,7 @@ func (h *AuthController) Register(c *gin.Context) {
 
 	res, refreshToken, err := h.AuthUseCase.Register(c.Request.Context(), req)
 	if err != nil {
-		h.log.WithContext(c.Request.Context()).Errorf("Register failed for user: %s", req.Username)
+		h.log.WithContext(c.Request.Context()).Errorf("Register failed for user: %s\n with error: %v", req.Username, err)
 		response.HandleError(c, err, "Register failed")
 		return
 	}
