@@ -1,14 +1,14 @@
 package model
 
 type CreateProjectRequest struct {
-	Name   string `json:"name" validate:"required,min=1"`
-	Domain string `json:"domain" validate:"required,min=1"`
+	Name   string `json:"name" validate:"required,min=1,xss"`
+	Domain string `json:"domain" validate:"required,min=1,xss"`
 }
 
 type UpdateProjectRequest struct {
-	Name   string `json:"name" validate:"omitempty,min=1"`
-	Domain string `json:"domain" validate:"omitempty,min=1"`
-	Status string `json:"status" validate:"omitempty"`
+	Name   string `json:"name" validate:"omitempty,min=1,xss"`
+	Domain string `json:"domain" validate:"omitempty,min=1,xss"`
+	Status string `json:"status" validate:"omitempty,xss"`
 }
 
 type ProjectResponse struct {
