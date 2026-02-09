@@ -329,10 +329,11 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	accessTokenDuration := s.jwtManager.GetAccessTokenDuration()
 	telemetry.UserLoginsTotal.WithLabelValues("success").Inc()
 	loginResponse := &model.LoginResponse{
-		AccessToken: accessToken,
-		TokenType:   "Bearer",
-		ExpiresIn:   int64(accessTokenDuration.Seconds()),
-		ExpiresAt:   time.Now().Add(accessTokenDuration),
+		AccessToken:  accessToken,
+		TokenType:    "Bearer",
+		ExpiresIn:    int64(accessTokenDuration.Seconds()),
+		RefreshToken: refreshToken,
+		ExpiresAt:    time.Now().Add(accessTokenDuration),
 		User: model.UserInfo{
 			ID:        user.ID,
 			Name:      user.Name,
@@ -384,8 +385,9 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 	}
 
 	tokenResponse := &model.TokenResponse{
-		AccessToken: newAccessToken,
-		TokenType:   "Bearer",
+		AccessToken:  newAccessToken,
+		TokenType:    "Bearer",
+		RefreshToken: newRefreshToken,
 	}
 
 	return tokenResponse, newRefreshToken, nil
