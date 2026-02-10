@@ -111,9 +111,88 @@ Untuk menjadikan seorang pengguna sebagai Admin atau peran lainnya.
   }
   ```
 
+### 2.2.1. Memberikan Peran Organisasi (Organization Role)
+
+Peran dalam organisasi diatur terpisah dari peran global.
+
+- **Owner**: Pemilik organisasi, akses penuh.
+- **Admin**: Mengelola anggota dan pengaturan.
+- **Member**: Akses standar ke resource.
+- **Viewer**: Akses baca saja.
+
 ---
 
-## 3. Manajemen Izin & Akses (Permission & Access Management)
+## 3. Manajemen Organisasi (Organization Management)
+
+Organisasi adalah unit isolasi data utama (Multi-tenancy).
+
+### 3.1. Membuat Organisasi
+
+- **Endpoint:** `POST /api/v1/organizations`
+- **Payload:**
+  ```json
+  { "name": "Acme Corp", "slug": "acme-corp" }
+  ```
+- **Catatan:** Pengguna yang membuat otomatis menjadi **Owner**.
+
+### 3.2. Mengundang Anggota
+
+Hanya Owner/Admin organisasi yang bisa mengundang.
+
+- **Endpoint:** `POST /api/v1/organizations/:org_id/members/invite`
+- **Header:** `X-Org-ID: <org_uuid>` (otomatis dihandle frontend via URL context)
+- **Payload:**
+  ```json
+  { "email": "colleague@acme.com", "role": "member" }
+  ```
+
+### 3.3. Menerima Undangan
+
+- **Endpoint:** `POST /api/v1/organizations/invitations/accept`
+- **Payload:**
+  ```json
+  { "token": "jwt_token_from_email_link" }
+  ```
+
+---
+
+## 4. Manajemen Proyek (Project Management)
+
+Proyek adalah resource yang terikat pada organisasi.
+
+### 4.1. Membuat Proyek
+
+- **Endpoint:** `POST /api/v1/projects`
+- **Payload:**
+  ```json
+  { "name": "Project Alpha", "description": "Top Secret" }
+  ```
+- **Konteks:** Organisasi harus ditentukan (biasanya via context session di backend atau header jika API langsung).
+
+### 4.2. Melihat Daftar Proyek
+
+- **Endpoint:** `GET /api/v1/projects`
+- **Response:** Mengembalikan daftar proyek milik organisasi aktif pengguna.
+
+---
+
+## 5. Dashboard & Statistik (Stats)
+
+Endpoint untuk data visualisasi dashboard.
+
+### 5.1. Ringkasan (Summary)
+
+- **Endpoint:** `GET /api/v1/stats/summary`
+- **Output:** Total User, Total Org, Active Sessions.
+
+### 5.2. Aktivitas (Activity)
+
+- **Endpoint:** `GET /api/v1/stats/activity`
+- **Output:** Grafik login/registrasi 7 hari terakhir.
+
+---
+
+## 6. Manajemen Izin Global (Global Permissions)
 
 Sistem ini memisahkan definisi endpoint fisik dari hak akses logis untuk fleksibilitas yang lebih baik.
 
@@ -195,7 +274,7 @@ Sekarang, semua pengguna yang memiliki peran `role:editor` dapat mengakses endpo
 
 ---
 
-## 4. Melihat Jejak Audit (Audit Logs)
+## 7. Melihat Jejak Audit (Audit Logs)
 
 Sistem secara otomatis mencatat aktivitas penting seperti Login, Register, dan perubahan User.
 
