@@ -1,24 +1,35 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import React, { useEffect } from "react";
+import { accessApi } from "~/lib/api/access";
+import { authApi } from "~/lib/api/auth";
 import { useAuthStore } from "~/stores/use-auth-store";
 import { usePermissionStore } from "~/stores/use-permission-store";
-import { authApi } from "~/lib/api/auth";
-import { accessApi } from "~/lib/api/access";
+
+const AUTH_PATHS = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { user, setUser, logout } = useAuthStore();
   const { setPermissions, clearPermissions } = usePermissionStore();
+  const pathname = usePathname();
+
+  const isAuthPage = AUTH_PATHS.some((p) => pathname?.includes(p));
 
   useEffect(() => {
+    if (isAuthPage) return;
+
     async function syncAuth() {
       try {
-        // 1. Fetch current user from /auth/me via Proxy
         const userResp = await authApi.getCurrentUser();
         if (userResp.user) {
           setUser(userResp.user);
 
-          // 2. Sync permissions for this user's role
           const permsResp = await accessApi.getPermissionsForRole(
             userResp.user.role
           );
@@ -26,20 +37,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setPermissions(permsResp.data);
           }
         } else {
-          // No user found, clear state
           logout();
           clearPermissions();
         }
       } catch (error) {
         console.error("Auth sync failed:", error);
-        // On error (e.g. 401), we clear local state
         logout();
         clearPermissions();
       }
     }
 
     syncAuth();
-  }, [setUser, logout, setPermissions, clearPermissions]);
+  }, [isAuthPage, setUser, logout, setPermissions, clearPermissions]);
 
   return <>{children}</>;
 }

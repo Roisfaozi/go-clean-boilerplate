@@ -6,6 +6,10 @@ type FetchOptions = RequestInit & {
 
 const BASE_URL = "/api/v1";
 
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+let isLoggingOut = false;
+
 class ApiClient {
   public async request<T>(
     endpoint: string,
@@ -15,7 +19,6 @@ class ApiClient {
 
     const isFormData = options.body instanceof FormData;
 
-    // Default headers
     const headers: Record<string, string> = {
       ...options.headers,
     };
@@ -24,12 +27,10 @@ class ApiClient {
       headers["Content-Type"] = "application/json";
     }
 
-    // Note: We don't need to manually send Authorization header if we use HttpOnly cookies.
-    // The browser automatically sends cookies with credentials: "include".
     const config = {
       ...options,
       headers,
-      credentials: "include" as RequestCredentials, // Important for cookies
+      credentials: "include" as RequestCredentials,
       body: isFormData
         ? options.body
         : options.body && typeof options.body === "object"
@@ -40,48 +41,66 @@ class ApiClient {
     try {
       const response = await fetch(url, config);
 
-      // Handle 401 Unauthorized
       if (response.status === 401) {
-        // Prevent infinite loop if /auth/refresh itself returns 401
         if (endpoint === "/auth/refresh") {
-          this.handleHardLogout();
           return response as any;
         }
 
-        try {
-          const refreshResponse = await fetch(`${BASE_URL}/auth/refresh`, {
-            method: "POST",
-            credentials: "include",
-          });
+        const refreshed = await this.tryRefresh();
 
-          if (refreshResponse.ok) {
-            return await fetch(url, config).then((res) => {
-              if (res.status === 401) {
-                this.handleHardLogout();
-              }
-              return this.parseResponse<T>(res);
-            });
-          } else {
-            this.handleHardLogout();
-          }
-        } catch (refreshError) {
-          console.error("Token refresh failed:", refreshError);
+        if (refreshed) {
+          return await fetch(url, config).then((res) => {
+            if (res.status === 401) {
+              this.handleHardLogout();
+            }
+            return this.parseResponse<T>(res);
+          });
+        } else {
           this.handleHardLogout();
+          throw new Error("Session expired");
         }
       }
 
       return await this.parseResponse<T>(response);
     } catch (error) {
+      if (error instanceof Error && error.message === "Session expired") {
+        throw error;
+      }
       console.error("API Request Failed:", error);
       throw error;
     }
   }
 
+  private async tryRefresh(): Promise<boolean> {
+    if (isRefreshing && refreshPromise) {
+      return refreshPromise;
+    }
+
+    isRefreshing = true;
+    refreshPromise = (async () => {
+      try {
+        const refreshResponse = await fetch(`${BASE_URL}/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+        });
+        return refreshResponse.ok;
+      } catch {
+        return false;
+      } finally {
+        isRefreshing = false;
+        refreshPromise = null;
+      }
+    })();
+
+    return refreshPromise;
+  }
+
   private handleHardLogout() {
-    // 1. Clear Zustand Store
+    if (isLoggingOut) return;
+    isLoggingOut = true;
+
     useAuthStore.getState().logout();
 
-    // 2. Redirect to login if on client side
     if (
       typeof window !== "undefined" &&
       !window.location.pathname.includes("/login")
@@ -89,7 +108,17 @@ class ApiClient {
       const returnTo = encodeURIComponent(
         window.location.pathname + window.location.search
       );
-      window.location.href = `/login?returnTo=${returnTo}`;
+
+      // Clear HttpOnly cookies via server-side API route, then redirect
+      fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      }).finally(() => {
+        isLoggingOut = false;
+        window.location.href = `/login?returnTo=${returnTo}`;
+      });
+    } else {
+      isLoggingOut = false;
     }
   }
 
@@ -108,8 +137,6 @@ class ApiClient {
           data?.message ||
           "Gagal terhubung ke API Server. Pastikan backend sudah menyala.";
 
-        // We use dynamic import for toast to avoid issues in RSC if this file is imported there,
-        // although ApiClient is primarily for client-side usage.
         if (typeof window !== "undefined") {
           import("sonner").then(({ toast }) => {
             toast.error("Koneksi Server Gagal", {
