@@ -168,14 +168,7 @@ deploy: ## Run Blue-Green deployment
 .PHONY: docs
 docs:
 	@echo "Generating Swagger/OpenAPI documentation..."
-	$(SWAG_CLI) init -g cmd/api/main.go --parseDependency --parseInternal --parseDepth 1
-	# sanitize generated file: remove LeftDelim/RightDelim if present (compatibility across swag versions)
-	@{ \
-		if [ -f ./docs/docs.go ]; then \
-			sed -i '/LeftDelim/d' ./docs/docs.go || true; \
-			sed -i '/RightDelim/d' ./docs/docs.go || true; \
-		fi; \
-	}
+	$(SWAG_CLI) init -g cmd/api/main.go --parseDependency --parseInternal
 
 # Tidy go.mod and go.sum files
 .PHONY: tidy

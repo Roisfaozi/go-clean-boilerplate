@@ -335,6 +335,13 @@ definitions:
     - path
     - role
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.InheritanceTreeResponse:
+    properties:
+      roles:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleNode'
+        type: array
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.PermissionCheckItem:
     properties:
       action:
@@ -345,6 +352,37 @@ definitions:
     - action
     - resource
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceAggregationResponse:
+    properties:
+      resources:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourcePermission'
+        type: array
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceCRUD:
+    properties:
+      create:
+        type: boolean
+      delete:
+        type: boolean
+      read:
+        type: boolean
+      update:
+        type: boolean
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourcePermission:
+    properties:
+      base_path:
+        type: string
+      endpoint_count:
+        type: integer
+      name:
+        type: string
+      role_permissions:
+        additionalProperties:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceCRUD'
+        type: object
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleInheritanceRequest:
     properties:
       child_role:
@@ -354,6 +392,39 @@ definitions:
     required:
     - child_role
     - parent_role
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleNode:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleNode'
+        type: array
+      description:
+        type: string
+      effective_permissions:
+        items:
+          items:
+            type: string
+          type: array
+        type: array
+      id:
+        type: string
+      inherited_permissions:
+        items:
+          items:
+            type: string
+          type: array
+        type: array
+      name:
+        type: string
+      own_permissions:
+        items:
+          items:
+            type: string
+          type: array
+        type: array
+      parent_id:
+        type: string
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.UpdatePermissionRequest:
     properties:
@@ -2118,6 +2189,34 @@ paths:
       summary: Add role inheritance
       tags:
       - permissions
+  /permissions/inheritance-tree:
+    get:
+      description: Retrieves role hierarchy with inherited and effective permissions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Inheritance tree retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.InheritanceTreeResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get role inheritance tree
+      tags:
+      - permissions
   /permissions/parents/{role}:
     get:
       description: Retrieves all parent roles for a given role.
@@ -2149,6 +2248,34 @@ paths:
       security:
       - BearerAuth: []
       summary: Get parent roles
+      tags:
+      - permissions
+  /permissions/resources:
+    get:
+      description: Retrieves permissions aggregated by resource with CRUD mapping
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Resource aggregation retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceAggregationResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get resource aggregation
       tags:
       - permissions
   /permissions/revoke:

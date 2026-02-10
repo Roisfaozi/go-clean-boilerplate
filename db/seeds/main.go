@@ -172,6 +172,8 @@ func seedAccessRightsAndPolicies(db *gorm.DB) {
 			{Path: "/api/v1/permissions/:role", Method: "GET"},
 			{Path: "/api/v1/permissions/roles/:role/users", Method: "GET"},
 			{Path: "/api/v1/permissions/:role/parents", Method: "GET"},
+			{Path: "/api/v1/permissions/resources", Method: "GET"},
+			{Path: "/api/v1/permissions/inheritance-tree", Method: "GET"},
 		},
 		"permission:manage": {
 			{Path: "/api/v1/permissions/assign-role", Method: "POST"},
@@ -191,6 +193,7 @@ func seedAccessRightsAndPolicies(db *gorm.DB) {
 			{Path: "/api/v1/access-rights", Method: "POST"},
 			{Path: "/api/v1/access-rights/:id", Method: "DELETE"},
 			{Path: "/api/v1/access-rights/link", Method: "POST"},
+			{Path: "/api/v1/access-rights/unlink", Method: "POST"},
 			{Path: "/api/v1/endpoints", Method: "POST"},
 			{Path: "/api/v1/endpoints/:id", Method: "DELETE"},
 		},
