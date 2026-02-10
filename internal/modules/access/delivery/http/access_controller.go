@@ -141,8 +141,7 @@ func (h *AccessController) CreateEndpoint(c *gin.Context) {
 // @Router       /access-rights/link [post]
 func (h *AccessController) LinkEndpointToAccessRight(c *gin.Context) {
 	var req model.LinkEndpointRequest
-	if err := h.validate.Struct(req); err == nil { // dummy check to avoid empty struct lint but we bind below
-	}
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
