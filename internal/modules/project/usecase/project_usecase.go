@@ -6,6 +6,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 )
 
@@ -26,6 +27,9 @@ func NewProjectUseCase(repo repository.ProjectRepository) ProjectUseCase {
 }
 
 func (u *projectUseCase) CreateProject(ctx context.Context, userID string, orgID string, req model.CreateProjectRequest) (*model.ProjectResponse, error) {
+	req.Name = pkg.SanitizeString(req.Name)
+	req.Domain = pkg.SanitizeString(req.Domain)
+
 	project := &entity.Project{
 		OrganizationID: orgID,
 		UserID:         userID,
@@ -69,10 +73,10 @@ func (u *projectUseCase) UpdateProject(ctx context.Context, id string, req model
 	}
 
 	if req.Name != "" {
-		project.Name = req.Name
+		project.Name = pkg.SanitizeString(req.Name)
 	}
 	if req.Domain != "" {
-		project.Domain = req.Domain
+		project.Domain = pkg.SanitizeString(req.Domain)
 	}
 	if req.Status != "" {
 		project.Status = req.Status
