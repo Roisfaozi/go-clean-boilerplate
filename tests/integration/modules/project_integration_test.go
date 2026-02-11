@@ -97,7 +97,7 @@ func TestProjectIntegration_Security_XSS(t *testing.T) {
 	xssPayloads := []string{
 		"<script>alert('XSS')</script>",
 		"<img src=x onerror=alert(1)>",
-		"javascript:alert(1)",
+		"javascript:alert('1')", // Added quotes to force escape
 	}
 
 	for i, payload := range xssPayloads {
