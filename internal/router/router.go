@@ -19,7 +19,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	userHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse" // Import local tus pkg
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -27,6 +27,7 @@ import (
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/tus/tusd/v2/pkg/handler" // Import tusd handler
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"gorm.io/gorm"
 )
@@ -66,6 +67,7 @@ func SetupRouter(
 	sseManager *sse.Manager,
 	db *gorm.DB,
 	redisClient *redis.Client,
+	tusHandler *handler.Handler, 
 	logger *logrus.Logger,
 ) *gin.Engine {
 	router := gin.New()
@@ -251,6 +253,15 @@ func SetupRouter(
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
 		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
 		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
+	}
+
+	// TUS Upload Handler
+	uploadGroup := router.Group("/api/v1/upload")
+	uploadGroup.Use(authMiddleware.ValidateToken())
+	{
+		// StripPrefix is required for tusd to handle relative paths correctly
+		// TUS_BASE_PATH should match what is stripped.
+		uploadGroup.Any("/files/*any", gin.WrapH(http.StripPrefix("/api/v1/upload/files/", tusHandler)))
 	}
 
 	return router
