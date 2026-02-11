@@ -15,7 +15,7 @@ func (uc *PermissionUseCase) GetResourceAggregation(ctx context.Context) (*model
 	accessRepo, ok := uc.RoleRepo.(interface {
 		GetAccessRepository() repository.AccessRepository
 	})
-	
+
 	// If we can't get access repository, fall back to permission-based aggregation
 	if !ok {
 		return uc.getResourceAggregationFromPermissions(ctx)
@@ -52,7 +52,7 @@ func (uc *PermissionUseCase) GetResourceAggregation(ctx context.Context) (*model
 
 		for _, endpoint := range ar.Endpoints {
 			resourceName, basePath := extractResourceFromPath(endpoint.Path)
-			
+
 			if _, exists := resourceMap[resourceName]; !exists {
 				resourceMap[resourceName] = &model.ResourcePermission{
 					Name:            resourceName,
@@ -67,7 +67,7 @@ func (uc *PermissionUseCase) GetResourceAggregation(ctx context.Context) (*model
 			// Map permissions for each role
 			for _, role := range roles {
 				crud := resourceMap[resourceName].RolePermissions[role.Name]
-				
+
 				// Check if this role has permission for this endpoint
 				if hasPermission(allPerms, role.Name, endpoint.Path, endpoint.Method) {
 					crud = mapMethodToCRUD(endpoint.Method, crud)
@@ -178,7 +178,7 @@ func extractResourceFromPath(path string) (string, string) {
 // mapMethodToCRUD maps HTTP method to CRUD operation
 func mapMethodToCRUD(method string, current model.ResourceCRUD) model.ResourceCRUD {
 	method = strings.ToUpper(method)
-	
+
 	switch method {
 	case "GET":
 		current.Read = true
