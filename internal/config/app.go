@@ -228,10 +228,10 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	// TUS Initialization
 	// ---------------------------------------------------------
 	tusRegistry := tus.NewRegistry()
-	
+
 	// Register Avatar Hook
 	tusRegistry.Register("avatar", &userUseCase.AvatarHook{UserUseCase: userModule.UserUseCase})
-	
+
 	// Initialize AWS S3 Client for TUS
 	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(),
 		awsconfig.WithRegion(cfg.Storage.S3.Region),

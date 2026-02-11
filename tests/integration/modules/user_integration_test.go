@@ -166,7 +166,6 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 
-
 	password := "password123"
 	user := setup.CreateTestUser(t, env.DB, "banneduser", "banned@example.com", password)
 

@@ -134,11 +134,11 @@ func TestSSE_BroadcastWithComplexData(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	complexData := map[string]interface{}{
-		"user_id":    "u123",
-		"action":     "login",
-		"timestamp":  1234567890,
-		"nested":     map[string]string{"key": "val"},
-		"list":       []int{1, 2, 3},
+		"user_id":   "u123",
+		"action":    "login",
+		"timestamp": 1234567890,
+		"nested":    map[string]string{"key": "val"},
+		"list":      []int{1, 2, 3},
 	}
 
 	manager.Broadcast("complex-event", complexData)

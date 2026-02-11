@@ -67,7 +67,7 @@ func SetupRouter(
 	sseManager *sse.Manager,
 	db *gorm.DB,
 	redisClient *redis.Client,
-	tusHandler *handler.Handler, 
+	tusHandler *handler.Handler,
 	logger *logrus.Logger,
 ) *gin.Engine {
 	router := gin.New()
