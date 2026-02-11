@@ -52,9 +52,9 @@ Common enterprise features required by most applications.
   - [x] TenantMiddleware for automatic organization context isolation.
   - [x] Organization CRUD API endpoints (create, read, update, delete).
   - [x] Complete Swagger documentation (39 total endpoints).
-  - [ ] Tenant-scoped data isolation for existing modules (User, Role, Access, Audit).
-  - [ ] Organization invitation system with email notifications.
-  - [ ] Organization-level settings and configuration management.
+  - [x] Tenant-scoped data isolation for existing modules (User, Role, Access, Audit).
+  - [x] Organization invitation system with email notifications.
+  - [x] Organization-level settings and configuration management.
 - [ ] **Advanced Security (Remaining)**
   - [ ] **Rate Limiting Granularity**: Upgrade to Per-IP/Per-User limits.
   - [ ] **Circuit Breaker**: Implement `gobreaker` for external calls.

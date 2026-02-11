@@ -24,7 +24,7 @@ func TestRedisPresenceManager(t *testing.T) {
 		Addr: mr.Addr(),
 	})
 	logger := logrus.New()
-	
+
 	// SUT (System Under Test)
 	manager := NewPresenceManager(redisClient, logger, 5*time.Minute)
 
@@ -51,7 +51,7 @@ func TestRedisPresenceManager(t *testing.T) {
 		val, err := mr.Get(fmt.Sprintf("presence:user:%s", userID))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, val)
-		
+
 		var storedUser PresenceUser
 		err = json.Unmarshal([]byte(val), &storedUser)
 		assert.NoError(t, err)
@@ -88,7 +88,7 @@ func TestRedisPresenceManager(t *testing.T) {
 	t.Run("PruneStaleUsers - Removes inactive users", func(t *testing.T) {
 		// 1. Add an active user
 		_ = manager.SetUserOnline(ctx, "org-A", "user-active", &PresenceUser{Name: "Active"})
-		
+
 		// 2. Add a stale user manually to miniredis ZSET with old score
 		_, _ = mr.ZAdd("presence:org:org-A", 1000, "user-stale") // Very old timestamp
 		_ = mr.Set("presence:user:user-stale", `{"name":"Stale"}`)
@@ -96,7 +96,7 @@ func TestRedisPresenceManager(t *testing.T) {
 		// 3. Prune with 1 minute threshold
 		removed, err := manager.PruneStaleUsers(ctx, 1*time.Minute)
 		assert.NoError(t, err)
-		
+
 		// Verify "user-stale" is in removed list for "org-A"
 		assert.Contains(t, removed["org-A"], "user-stale")
 		assert.NotContains(t, removed["org-A"], "user-active")
@@ -105,7 +105,7 @@ func TestRedisPresenceManager(t *testing.T) {
 		members, _ := mr.ZMembers("presence:org:org-A")
 		assert.NotContains(t, members, "user-stale")
 		assert.Contains(t, members, "user-active")
-		
+
 		val, _ := mr.Get("presence:user:user-stale")
 		assert.Empty(t, val)
 	})

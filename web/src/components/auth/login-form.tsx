@@ -7,7 +7,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { toast } from "~/hooks/use-toast";
-import { authApi, loginSchema } from "~/lib/api/auth";
+import { loginAction } from "~/app/actions/auth";
+import { loginSchema } from "~/lib/api/auth";
 import { accessApi } from "~/lib/api/access";
 import { usePermissionStore } from "~/stores/use-permission-store";
 import { useAuthStore } from "~/stores/use-auth-store";
@@ -15,6 +16,7 @@ import { cn } from "~/lib/utils";
 import Icons from "../shared/icons";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { useSearchParams } from "next/navigation";
 
 type FormData = z.infer<typeof loginSchema>;
 
@@ -23,6 +25,8 @@ export default function AuthForm() {
   const [isGithubLoading, setIsGithubLoading] = useState(false);
   const setPermissions = usePermissionStore((state) => state.setPermissions);
   const setUser = useAuthStore((state) => state.setUser);
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get("returnTo") || "/dashboard";
 
   const {
     register,
@@ -36,36 +40,36 @@ export default function AuthForm() {
     setIsLoading(true);
 
     try {
-      // Call the Go Backend API via our proxy client
-      const response = await authApi.login({
-        username: data.username,
-        password: data.password,
-      });
-      
-      // Store user in auth store
-      if (response.data.user) {
-          setUser(response.data.user);
+      const result = await loginAction(data);
+
+      if (!result?.data?.success) {
+        throw new Error(result?.data?.message || "Login failed");
       }
 
-      // 1. Fetch permissions for the logged in user's role
-      const roleName = response.data.user.role;
+      const { user } = result.data;
+
+      // Store user in auth store for UI
+      if (user) {
+        setUser(user);
+      }
+
+      // Fetch permissions for the role
       try {
-        const permsResp = await accessApi.getPermissionsForRole(roleName);
+        const permsResp = await accessApi.getPermissionsForRole(user.role);
         if (permsResp.data) {
-            setPermissions(permsResp.data);
+          setPermissions(permsResp.data);
         }
       } catch (err) {
         console.error("Failed to fetch permissions", err);
-        // We continue even if perms fail, but UI might be restricted
       }
 
       toast({
         title: "Successfully logged in!",
-        description: `Welcome back, ${response.data.user.name || "User"}`,
+        description: `Welcome back, ${user.name || "User"}`,
       });
 
-      // Redirect to dashboard
-      window.location.href = "/dashboard";
+      // Redirect to target page or dashboard
+      window.location.href = decodeURIComponent(returnTo);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Invalid username or password";

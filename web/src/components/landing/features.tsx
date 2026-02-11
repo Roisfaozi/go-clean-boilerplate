@@ -9,7 +9,9 @@ const features = [
     icon: Layout,
     href: "#",
     cta: "Learn more",
-    background: <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent" />,
+    background: (
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent" />
+    ),
     className: "lg:col-span-2 lg:row-span-1",
   },
   {
@@ -18,7 +20,9 @@ const features = [
     icon: Shield,
     href: "#",
     cta: "Learn more",
-    background: <div className="absolute inset-0 bg-gradient-to-tr from-teal-500/10 to-transparent" />,
+    background: (
+      <div className="absolute inset-0 bg-gradient-to-tr from-teal-500/10 to-transparent" />
+    ),
     className: "lg:col-span-1 lg:row-span-1",
   },
   {
@@ -27,7 +31,9 @@ const features = [
     icon: Zap,
     href: "#",
     cta: "Learn more",
-    background: <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent" />,
+    background: (
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent" />
+    ),
     className: "lg:col-span-1 lg:row-span-1",
   },
   {
@@ -36,7 +42,9 @@ const features = [
     icon: Lock,
     href: "#",
     cta: "Learn more",
-    background: <div className="absolute inset-0 bg-gradient-to-bl from-amber-500/10 to-transparent" />,
+    background: (
+      <div className="absolute inset-0 bg-gradient-to-bl from-amber-500/10 to-transparent" />
+    ),
     className: "lg:col-span-2 lg:row-span-1",
   },
 ];

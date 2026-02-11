@@ -1,8 +1,6 @@
 import { api } from "./client";
 
 export interface Permission {
-  // Structure depends on backend response, usually array of strings
-  // [sub, obj, act]
   [key: string]: any;
 }
 
@@ -22,22 +20,53 @@ export interface Endpoint {
   created_at: number;
 }
 
+export interface ResourceCRUD {
+  create: boolean;
+  read: boolean;
+  update: boolean;
+  delete: boolean;
+}
+
+export interface ResourcePermission {
+  name: string;
+  base_path: string;
+  role_permissions: Record<string, ResourceCRUD>;
+  endpoint_count: number;
+}
+
+export interface ResourceAggregationResponse {
+  resources: ResourcePermission[];
+}
+
+export interface RoleNode {
+  id: string;
+  name: string;
+  description?: string;
+  parent_id?: string | null;
+  children?: RoleNode[];
+  own_permissions: string[][];
+  inherited_permissions: string[][];
+  effective_permissions: string[][];
+}
+
+export interface InheritanceTreeResponse {
+  roles: RoleNode[];
+}
+
 export interface AccessRightListResponse {
-  data: AccessRight[];
-  meta: {
-    total: number;
+  data: {
+    data: AccessRight[];
+    meta: {
+      total: number;
+    };
   };
 }
 
 export const accessApi = {
-  // --- Permissions (Casbin) ---
-
-  // Get all permissions
   getAllPermissions: () => {
     return api.get<{ data: string[][] }>("/permissions");
   },
 
-  // Update permission (policy)
   updatePermission: (oldPermission: string[], newPermission: string[]) => {
     return api.put("/permissions", {
       old_permission: oldPermission,
@@ -45,27 +74,22 @@ export const accessApi = {
     });
   },
 
-  // Assign role to user
   assignRole: (userId: string, role: string) => {
     return api.post("/permissions/assign-role", { user_id: userId, role });
   },
 
-  // Revoke role from user
   revokeRole: (userId: string, role: string) => {
     return api.post("/permissions/revoke-role", { user_id: userId, role });
   },
 
-  // Grant permission to role
   grantPermission: (role: string, path: string, method: string) => {
     return api.post("/permissions/grant", { role, path, method });
   },
 
-  // Revoke permission from role
   revokePermission: (role: string, path: string, method: string) => {
     return api.post("/permissions/revoke", { role, path, method });
   },
 
-  // Check batch permissions
   checkBatch: (items: { resource: string; action: string }[]) => {
     return api.post<{ data: { results: Record<string, boolean> } }>(
       "/permissions/check-batch",
@@ -73,22 +97,18 @@ export const accessApi = {
     );
   },
 
-  // Get permissions for role
   getPermissionsForRole: (role: string) => {
-    return api.get<{ data: string[][] }>(`/permissions/roles/${role}`);
+    return api.get<{ data: string[][] }>(`/permissions/${role}`);
   },
 
-  // Get users for role
   getUsersForRole: (role: string) => {
     return api.get<{ data: string[] }>(`/permissions/roles/${role}/users`);
   },
 
-  // Get parent roles
   getParentRoles: (role: string) => {
     return api.get<{ data: string[] }>(`/permissions/parents/${role}`);
   },
 
-  // Add inheritance
   addInheritance: (childRole: string, parentRole: string) => {
     return api.post("/permissions/inheritance", {
       child_role: childRole,
@@ -96,7 +116,6 @@ export const accessApi = {
     });
   },
 
-  // Remove inheritance
   removeInheritance: (childRole: string, parentRole: string) => {
     return api.delete("/permissions/inheritance", {
       headers: { "Content-Type": "application/json" },
@@ -104,7 +123,17 @@ export const accessApi = {
     } as any);
   },
 
-  // --- Access Rights (Resource Groups) ---
+  getResourceAggregation: () => {
+    return api.get<{ data: ResourceAggregationResponse }>(
+      "/permissions/resources"
+    );
+  },
+
+  getInheritanceTree: () => {
+    return api.get<{ data: InheritanceTreeResponse }>(
+      "/permissions/inheritance-tree"
+    );
+  },
 
   getAllAccessRights: () => {
     return api.get<AccessRightListResponse>("/access-rights");
@@ -127,8 +156,12 @@ export const accessApi = {
       endpoint_id: endpointId,
     });
   },
-
-  // --- Endpoints ---
+  unlinkEndpoint: (accessRightId: string, endpointId: string) => {
+    return api.post("/access-rights/unlink", {
+      access_right_id: accessRightId,
+      endpoint_id: endpointId,
+    });
+  },
 
   createEndpoint: (method: string, path: string) => {
     return api.post<{ data: Endpoint }>("/endpoints", { method, path });

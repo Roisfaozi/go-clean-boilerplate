@@ -22,10 +22,18 @@ The project follows **Clean Architecture** principles to ensure independence fro
 
 ### 🔐 Authentication & Authorization
 -   **JWT**: Stateless authentication with stateful refresh tokens stored in Redis for instant revocation.
+-   **Server-Side Auth Proxy**: All client-side requests are proxied through Next.js server routes.
+    -   **Cookies**: Tokens are stored in `HttpOnly` secure cookies.
+    -   **Proxy Injection**: The Next.js proxy layer automatically injects the `Authorization: Bearer` header before forwarding requests to the Go backend.
 -   **Casbin (RBAC)**: Fine-grained access control.
     -   **Hierarchical Roles**: `role:superadmin` inherits `role:admin`.
     -   **Dynamic Policies**: Permission rules are stored in the database.
     -   **Access Rights**: Logical grouping of multiple physical API endpoints.
+
+### 🌐 Frontend Orchestration (Next.js 16)
+-   **`proxy.ts`**: The modern replacement for middleware, handling server-side route protection and internationalization at the edge.
+-   **Server Actions**: Login and Logout flows are implemented as Server Actions to handle sensitive cookie operations securely.
+-   **AuthProvider**: A client-side synchronization layer that hydrates the user's state and permissions from the backend on mount.
 
 ### 📊 Observability (OTEL)
 -   **Tracing**: Distributed tracing via OpenTelemetry and Jaeger.

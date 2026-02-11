@@ -54,12 +54,12 @@ func (m *RedisPresenceManager) SetUserOnline(ctx context.Context, orgID, userID 
 		Score:  float64(now),
 		Member: userID,
 	})
-	
+
 	keyUser := fmt.Sprintf("presence:user:%s", userID)
 	userData.Status = "online"
 	userData.LastSeen = time.Now().UnixMilli()
 	data, _ := json.Marshal(userData)
-	
+
 	pipe.Set(ctx, keyUser, data, m.ttl)
 
 	_, err := pipe.Exec(ctx)
@@ -81,7 +81,7 @@ func (m *RedisPresenceManager) SetUserOffline(ctx context.Context, orgID, userID
 
 func (m *RedisPresenceManager) GetOnlineUsers(ctx context.Context, orgID string) ([]PresenceUser, error) {
 	keyOrg := fmt.Sprintf("presence:org:%s", orgID)
-	
+
 	userIDs, err := m.redisClient.ZRange(ctx, keyOrg, 0, -1).Result()
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func (m *RedisPresenceManager) GetOnlineUsers(ctx context.Context, orgID string)
 
 	pipe := m.redisClient.Pipeline()
 	cmds := make([]*redis.StringCmd, len(userIDs))
-	
+
 	for i, uid := range userIDs {
 		keyUser := fmt.Sprintf("presence:user:%s", uid)
 		cmds[i] = pipe.Get(ctx, keyUser)
@@ -156,7 +156,7 @@ func (m *RedisPresenceManager) PruneStaleUsers(ctx context.Context, timeout time
 		for _, uid := range staleIDs {
 			pipe.Del(ctx, fmt.Sprintf("presence:user:%s", uid))
 		}
-		
+
 		if _, err := pipe.Exec(ctx); err == nil {
 			removedUsers[orgID] = staleIDs
 		}

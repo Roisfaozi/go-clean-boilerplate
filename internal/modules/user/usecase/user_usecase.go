@@ -205,6 +205,8 @@ func (u *userUseCaseImpl) Update(ctx context.Context, request *model.UpdateUserR
 	}
 
 	if request.Username != "" {
+		request.Username = pkg.SanitizeString(request.Username)
+
 		if request.Username != user.Username {
 			if existing, _ := u.Repo.FindByUsername(ctx, request.Username); existing != nil {
 				return nil, exception.ErrConflict
@@ -369,6 +371,33 @@ func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file 
 	}
 
 	return converter.UserToResponse(user), nil
+}
+
+func (u *userUseCaseImpl) SetAvatarURL(ctx context.Context, userID string, url string) error {
+	user, err := u.Repo.FindByID(ctx, userID)
+	if err != nil {
+		return exception.ErrNotFound
+	}
+
+	user.AvatarURL = url
+	if err := u.Repo.Update(ctx, user); err != nil {
+		u.Log.Errorf("Failed to update user avatar URL (TUS): %v", err)
+		return exception.ErrInternalServer
+	}
+
+	if u.AuditUC != nil {
+		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			UserID:   userID,
+			Action:   "UPDATE_AVATAR_TUS",
+			Entity:   "User",
+			EntityID: userID,
+			NewValues: map[string]interface{}{
+				"avatar_url": url,
+			},
+		})
+	}
+
+	return nil
 }
 
 func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error {

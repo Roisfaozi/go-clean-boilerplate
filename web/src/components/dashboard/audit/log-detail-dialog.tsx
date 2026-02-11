@@ -19,6 +19,30 @@ interface LogDetailDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const JsonViewer = ({ data, title }: { data: any; title: string }) => {
+  const jsonStr =
+    typeof data === "string" ? data : JSON.stringify(data, null, 2);
+  const isEmpty =
+    !data || jsonStr === "{}" || jsonStr === "[]" || jsonStr === "null";
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+        {title}
+      </h4>
+      <div className="bg-muted max-h-[300px] overflow-auto rounded-md p-4 font-mono text-xs">
+        {isEmpty ? (
+          <span className="text-muted-foreground italic">
+            No data available
+          </span>
+        ) : (
+          <pre className="break-all whitespace-pre-wrap">{jsonStr}</pre>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export function LogDetailDialog({
   log,
   open,
@@ -28,30 +52,6 @@ export function LogDetailDialog({
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
-  };
-
-  const JsonViewer = ({ data, title }: { data: any; title: string }) => {
-    const jsonStr =
-      typeof data === "string" ? data : JSON.stringify(data, null, 2);
-    const isEmpty =
-      !data || jsonStr === "{}" || jsonStr === "[]" || jsonStr === "null";
-
-    return (
-      <div className="space-y-2">
-        <h4 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-          {title}
-        </h4>
-        <div className="bg-muted max-h-[300px] overflow-auto rounded-md p-4 font-mono text-xs">
-          {isEmpty ? (
-            <span className="text-muted-foreground italic">
-              No data available
-            </span>
-          ) : (
-            <pre className="break-all whitespace-pre-wrap">{jsonStr}</pre>
-          )}
-        </div>
-      </div>
-    );
   };
 
   return (
