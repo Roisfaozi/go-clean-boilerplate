@@ -168,7 +168,7 @@ func (m *WebSocketManager) handleRegister(client *Client) {
 				Status: "online",
 			}
 		}
-
+		
 		if err := m.presence.SetUserOnline(context.Background(), client.OrgID, client.UserID, userData); err != nil {
 			m.log.WithError(err).Error("Failed to set user online in presence manager")
 		} else {
