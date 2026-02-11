@@ -18,6 +18,7 @@ import (
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
+	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/router"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
@@ -26,8 +27,13 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/storage"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tus"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	ws2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/casbin/casbin/v2"
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
@@ -218,6 +224,43 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	wsController := ws2.NewWebSocketController(logger, wsManager, cfg.CORS.AllowedOrigins, userModule.UserRepo, enforcer)
 	logger.Info("Middleware initialized.")
 
+	// ---------------------------------------------------------
+	// TUS Initialization
+	// ---------------------------------------------------------
+	tusRegistry := tus.NewRegistry()
+	
+	// Register Avatar Hook
+	tusRegistry.Register("avatar", &userUseCase.AvatarHook{UserUseCase: userModule.UserUseCase})
+	
+	// Initialize AWS S3 Client for TUS
+	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(),
+		awsconfig.WithRegion(cfg.Storage.S3.Region),
+		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.Storage.S3.AccessKey, cfg.Storage.S3.SecretKey, "")),
+	)
+	if err != nil {
+		logger.Errorf("Failed to load AWS config for TUS: %v", err)
+	}
+
+	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+		o.UsePathStyle = cfg.Storage.S3.ForcePathStyle
+		if cfg.Storage.S3.Endpoint != "" {
+			o.BaseEndpoint = aws.String(cfg.Storage.S3.Endpoint)
+		}
+	})
+
+	tusHandler, err := tus.NewHandler(tus.Config{
+		S3Bucket:   cfg.Storage.S3.Bucket,
+		S3Endpoint: cfg.Storage.S3.Endpoint,
+		BasePath:   cfg.Tus.BasePath,
+	}, tusRegistry, s3Client, logger)
+	if err != nil {
+		logger.Errorf("Failed to init TUS handler: %v", err)
+		// Don't kill app, just log? Or kill.
+		// If TUS is critical, kill. But better to log for now.
+	} else {
+		logger.Info("TUS Handler initialized.")
+	}
+
 	configRouter := router.RouterConfig{
 		AllowedOrigins:   cfg.CORS.AllowedOrigins,
 		TrustedProxies:   cfg.Server.TrustedProxies,
@@ -256,6 +299,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		sseManager,
 		dbConnection,
 		redisClient,
+		tusHandler, // Pass TUS Handler
 		logger,
 	)
 	logger.Info("Router setup complete.")
