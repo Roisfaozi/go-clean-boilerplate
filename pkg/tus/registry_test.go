@@ -56,7 +56,7 @@ func TestRegistry_EmptyType(t *testing.T) {
 	// Edge Case
 	registry := NewRegistry()
 	hook := &MockHook{}
-	
+
 	registry.Register("", hook)
 	assert.Equal(t, hook, registry.Get(""))
 }
