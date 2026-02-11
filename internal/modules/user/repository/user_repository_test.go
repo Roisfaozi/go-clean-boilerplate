@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"io"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
@@ -16,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/plugin/soft_delete"
 )
 
@@ -23,14 +26,21 @@ func setupUserRepo(t *testing.T) (repository.UserRepository, *gorm.DB) {
 	// Use unique DB name to prevent shared state issues in tests
 	dbName := uuid.New().String()
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", dbName)
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+
+	// Create a new Logrus logger that discards output
+	logrusLogger := logrus.New()
+	logrusLogger.SetOutput(io.Discard)
+	logrusLogger.SetLevel(logrus.FatalLevel)
+
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	require.NoError(t, err)
 
 	err = db.AutoMigrate(&entity.User{})
 	require.NoError(t, err)
 
-	logger := logrus.New()
-	repo := repository.NewUserRepository(db, logger)
+	repo := repository.NewUserRepository(db, logrusLogger)
 	return repo, db
 }
 

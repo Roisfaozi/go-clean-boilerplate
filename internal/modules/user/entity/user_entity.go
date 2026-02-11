@@ -10,6 +10,7 @@ const (
 
 type User struct {
 	ID              string                `gorm:"column:id;primaryKey"`
+	OrganizationID  *string               `gorm:"column:organization_id;index"`
 	Password        string                `gorm:"column:password"`
 	Email           string                `gorm:"column:email;unique;not null"`
 	Username        string                `gorm:"column:username;unique;not null"`

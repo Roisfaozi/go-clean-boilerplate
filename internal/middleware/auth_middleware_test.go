@@ -11,6 +11,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -25,6 +26,23 @@ func (w *NoOpWriter) Write([]byte) (int, error) {
 
 func (w *NoOpWriter) Levels() []logrus.Level {
 	return logrus.AllLevels
+}
+
+type MockTicketManager struct {
+	mock.Mock
+}
+
+func (m *MockTicketManager) CreateTicket(ctx context.Context, userID, orgID, sessionID, role, username string) (string, error) {
+	args := m.Called(ctx, userID, orgID, sessionID, role, username)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockTicketManager) ValidateTicket(ctx context.Context, ticket string) (*ws.UserContext, error) {
+	args := m.Called(ctx, ticket)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*ws.UserContext), args.Error(1)
 }
 
 type MockAuthUseCase struct {
@@ -45,6 +63,14 @@ func (m *MockAuthUseCase) RefreshToken(ctx context.Context, refreshToken string)
 		return nil, args.String(1), args.Error(2)
 	}
 	return args.Get(0).(*model.TokenResponse), args.String(1), args.Error(2)
+}
+
+func (m *MockAuthUseCase) Register(ctx context.Context, req model.RegisterRequest) (*model.LoginResponse, string, error) {
+	args := m.Called(ctx, req)
+	if args.Get(0) == nil {
+		return nil, args.String(1), args.Error(2)
+	}
+	return args.Get(0).(*model.LoginResponse), args.String(1), args.Error(2)
 }
 
 func (m *MockAuthUseCase) ValidateAccessToken(token string) (*jwt.Claims, error) {
@@ -141,7 +167,8 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	mockAuthUseCase.On("ValidateAccessToken", "valid_token").Return(claims, nil)
 	mockAuthUseCase.On("Verify", mock.Anything, claims.UserID, claims.SessionID).Return(&model.Auth{ID: claims.SessionID}, nil)
 
-	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger)
+	mockTicketManager := new(MockTicketManager)
+	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger, mockTicketManager)
 
 	authMiddleware.ValidateToken()(c)
 
@@ -164,7 +191,8 @@ func TestAuthMiddleware_NoToken(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger)
+	mockTicketManager := new(MockTicketManager)
+	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger, mockTicketManager)
 
 	authMiddleware.ValidateToken()(c)
 
@@ -186,7 +214,8 @@ func TestAuthMiddleware_InvalidTokenFormat(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger)
+	mockTicketManager := new(MockTicketManager)
+	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger, mockTicketManager)
 
 	authMiddleware.ValidateToken()(c)
 
@@ -210,7 +239,8 @@ func TestAuthMiddleware_InvalidTokenSignature(t *testing.T) {
 
 	mockAuthUseCase.On("ValidateAccessToken", "invalid.signature.token").Return(nil, errors.New("invalid signature"))
 
-	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger)
+	mockTicketManager := new(MockTicketManager)
+	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger, mockTicketManager)
 
 	authMiddleware.ValidateToken()(c)
 
@@ -234,7 +264,8 @@ func TestAuthMiddleware_ExpiredToken(t *testing.T) {
 
 	mockAuthUseCase.On("ValidateAccessToken", "expired_token").Return(nil, errors.New("token is expired"))
 
-	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger)
+	mockTicketManager := new(MockTicketManager)
+	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger, mockTicketManager)
 
 	authMiddleware.ValidateToken()(c)
 
@@ -266,7 +297,8 @@ func TestAuthMiddleware_SessionRevoked(t *testing.T) {
 	mockAuthUseCase.On("ValidateAccessToken", "valid_token").Return(claims, nil)
 	mockAuthUseCase.On("Verify", mock.Anything, claims.UserID, claims.SessionID).Return(nil, nil) // Return nil session = revoked
 
-	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger)
+	mockTicketManager := new(MockTicketManager)
+	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger, mockTicketManager)
 
 	authMiddleware.ValidateToken()(c)
 
@@ -297,7 +329,8 @@ func TestAuthMiddleware_SessionVerifyError(t *testing.T) {
 	mockAuthUseCase.On("ValidateAccessToken", "valid_token").Return(claims, nil)
 	mockAuthUseCase.On("Verify", mock.Anything, claims.UserID, claims.SessionID).Return(nil, errors.New("database error"))
 
-	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger)
+	mockTicketManager := new(MockTicketManager)
+	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger, mockTicketManager)
 
 	authMiddleware.ValidateToken()(c)
 
@@ -323,7 +356,8 @@ func TestAuthMiddleware_ContextSet(t *testing.T) {
 	mockAuthUseCase.On("ValidateAccessToken", "valid_token").Return(claims, nil)
 	mockAuthUseCase.On("Verify", mock.Anything, claims.UserID, claims.SessionID).Return(&model.Auth{ID: claims.SessionID}, nil)
 
-	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger)
+	mockTicketManager := new(MockTicketManager)
+	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger, mockTicketManager)
 
 	r := gin.New()
 	r.Use(authMiddleware.ValidateToken())

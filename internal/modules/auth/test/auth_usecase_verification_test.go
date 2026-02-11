@@ -22,6 +22,7 @@ import (
 	"gorm.io/gorm"
 
 	mock_auth "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
+	mock_org "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	mock_permission "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	mock_user "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 )
@@ -34,6 +35,7 @@ func setupVerificationTest(t *testing.T) (usecase.AuthUseCase, *testDependencies
 		jwtManager:      jwtManager,
 		tokenRepo:       new(mock_auth.MockTokenRepository),
 		userRepo:        new(mock_user.MockUserRepository),
+		orgRepo:         new(mock_org.MockOrganizationRepository),
 		tm:              new(mocking.MockWithTransactionManager),
 		wsManager:       new(mocking.MockManager),
 		enforcer:        new(mock_permission.IEnforcer),
@@ -50,6 +52,7 @@ func setupVerificationTest(t *testing.T) (usecase.AuthUseCase, *testDependencies
 		deps.jwtManager,
 		deps.tokenRepo,
 		deps.userRepo,
+		deps.orgRepo,
 		deps.tm,
 		deps.log,
 		deps.wsManager,

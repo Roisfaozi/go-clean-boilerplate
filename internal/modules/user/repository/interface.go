@@ -20,4 +20,5 @@ type UserRepository interface {
 	FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, int64, error)
 	FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, int64, error)
 	HardDeleteSoftDeletedUsers(ctx context.Context, retentionDays int) error
+	GetByOrganization(ctx context.Context, orgID string) ([]*entity.User, error)
 }

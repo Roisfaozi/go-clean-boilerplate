@@ -116,6 +116,12 @@ func WithHeader(key, value string) RequestOption {
 	}
 }
 
+func WithOrg(orgID string) RequestOption {
+	return func(req *http.Request) {
+		req.Header.Set("X-Organization-ID", orgID)
+	}
+}
+
 type Response struct {
 	*http.Response
 	BodyBytes []byte

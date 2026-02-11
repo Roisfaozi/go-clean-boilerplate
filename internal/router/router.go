@@ -9,13 +9,17 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	auditHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
+	organizationHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	permissionHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
 	roleHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	userHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse" // Import local tus pkg
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -23,6 +27,7 @@ import (
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/tus/tusd/v2/pkg/handler" // Import tusd handler
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"gorm.io/gorm"
 )
@@ -51,16 +56,23 @@ func SetupRouter(
 	permissionModule *permission.PermissionModule,
 	accessModule *access.AccessModule,
 	roleModule *role.RoleModule,
+	organizationModule *organization.OrganizationModule,
 	auditModule *audit.AuditModule,
+	statsModule *stats.StatsModule,
+	projectModule *project.ProjectModule,
 	authMiddleware *middleware.AuthMiddleware,
 	casbinMiddleware gin.HandlerFunc,
+	tenantMiddleware *middleware.TenantMiddleware,
 	wsController *ws.WebSocketController,
 	sseManager *sse.Manager,
 	db *gorm.DB,
 	redisClient *redis.Client,
+	tusHandler *handler.Handler,
 	logger *logrus.Logger,
 ) *gin.Engine {
 	router := gin.New()
+	router.RedirectTrailingSlash = true
+	router.RedirectFixedPath = true
 
 	if cfg.OTEL.Enabled {
 		router.Use(otelgin.Middleware(cfg.OTEL.ServiceName))
@@ -72,7 +84,7 @@ func SetupRouter(
 	if cfg.MetricsEnabled {
 		router.Use(middleware.PrometheusMiddleware())
 	}
-	router.GET("/ws", wsController.HandleWebSocket)
+	router.GET("/ws", authMiddleware.ValidateWebSocketToken(), wsController.HandleWebSocket)
 	router.GET("/events", sseManager.ServeHTTP())
 
 	router.Use(middleware.RequestLogger(logger))
@@ -175,8 +187,10 @@ func SetupRouter(
 		authGroup.POST("/forgot-password", authModule.AuthController.ForgotPassword)
 		authGroup.POST("/reset-password", authModule.AuthController.ResetPassword)
 		authGroup.POST("/verify-email", authModule.AuthController.VerifyEmail)
+		authGroup.POST("/register", authModule.AuthController.Register)
 
 		userHttp.RegisterPublicRoutes(public, userModule.UserController)
+		organizationHttp.RegisterPublicRoutes(public, organizationModule.OrganizationController)
 	}
 
 	authenticated := apiV1.Group("")
@@ -189,10 +203,41 @@ func SetupRouter(
 		// Manually register auth routes that need authentication
 		authGroup := authenticated.Group("/auth")
 		authGroup.POST("/logout", authModule.AuthController.Logout)
+		authGroup.POST("/ticket", authModule.AuthController.GetTicket)
 		authGroup.POST("/resend-verification", authModule.AuthController.ResendVerification)
+		authGroup.GET("/me", authModule.AuthController.Me)
+
+		// Stats Routes
+		statsGroup := authenticated.Group("/stats")
+		{
+			statsGroup.GET("/summary", statsModule.StatsController.GetSummary)
+			statsGroup.GET("/activity", statsModule.StatsController.GetActivity)
+			statsGroup.GET("/insights", statsModule.StatsController.GetInsights)
+		}
 
 		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
+		organizationHttp.RegisterAuthenticatedRoutes(authenticated, organizationModule.OrganizationController)
 		permissionHttp.RegisterBatchCheckRoute(authenticated, permissionModule.PermissionController)
+	}
+
+	tenant := apiV1.Group("")
+	tenant.Use(authMiddleware.ValidateToken())
+	tenant.Use(tenantMiddleware.RequireOrganization())
+	if authLimiter != nil {
+		tenant.Use(authLimiter)
+	}
+	{
+		organizationHttp.RegisterTenantRoutes(tenant, organizationModule.OrganizationController)
+
+		// Project Routes
+		projectGroup := tenant.Group("/projects")
+		{
+			projectGroup.POST("", projectModule.ProjectController.Create)
+			projectGroup.GET("", projectModule.ProjectController.GetAll)
+			projectGroup.GET("/:id", projectModule.ProjectController.GetByID)
+			projectGroup.PUT("/:id", projectModule.ProjectController.Update)
+			projectGroup.DELETE("/:id", projectModule.ProjectController.Delete)
+		}
 	}
 
 	authorized := apiV1.Group("")
@@ -208,6 +253,15 @@ func SetupRouter(
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
 		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
 		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
+	}
+
+	// TUS Upload Handler
+	uploadGroup := router.Group("/api/v1/upload")
+	uploadGroup.Use(authMiddleware.ValidateToken())
+	{
+		// StripPrefix is required for tusd to handle relative paths correctly
+		// TUS_BASE_PATH should match what is stripped.
+		uploadGroup.Any("/files/*any", gin.WrapH(http.StripPrefix("/api/v1/upload/files/", tusHandler)))
 	}
 
 	return router

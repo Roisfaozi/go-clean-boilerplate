@@ -31,14 +31,14 @@ func TestSecurityE2E_AdminBanUser(t *testing.T) {
 		u.Email = "admin@ban.com"
 		u.Password = passHash
 	})
-	server.Enforcer.AddGroupingPolicy(adminUser.ID, "role:superadmin")
+	server.Enforcer.AddGroupingPolicy(adminUser.ID, "role:superadmin", "global")
 
 	targetUser := f.Create(func(u *userEntity.User) {
 		u.Username = "target_user"
 		u.Email = "target@ban.com"
 		u.Password = passHash
 	})
-	server.Enforcer.AddGroupingPolicy(targetUser.ID, "role:user")
+	server.Enforcer.AddGroupingPolicy(targetUser.ID, "role:user", "global")
 
 	loginPayload := map[string]any{"username": targetUser.Username, "password": "StrongPass123!"}
 	resp := client.POST("/api/v1/auth/login", loginPayload)
@@ -83,10 +83,10 @@ func TestSecurityE2E_DynamicRBAC(t *testing.T) {
 		u.Password = passHash
 	})
 
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "/api/v1/permissions/grant", "POST")
-	server.Enforcer.AddPolicy("role:superadmin", "/api/v1/permissions/assign-role", "POST")
-	server.Enforcer.AddPolicy("role:superadmin", "/api/v1/roles", "GET")
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "/api/v1/permissions/grant", "POST")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "/api/v1/permissions/assign-role", "POST")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "/api/v1/roles", "GET")
 
 	server.Enforcer.SavePolicy()
 
@@ -136,11 +136,11 @@ func TestSecurityE2E_DynamicRBAC(t *testing.T) {
 
 	require.Equal(t, 200, resp.StatusCode)
 
-	userRoles, _ := server.Enforcer.GetRolesForUser(user.ID)
+	userRoles, _ := server.Enforcer.GetRolesForUser(user.ID, "global")
 
 	t.Logf("DEBUG: Roles for user %s: %v", user.ID, userRoles)
 
-	hasPermission, _ := server.Enforcer.HasPolicy(roleName, "/api/v1/roles", "GET")
+	hasPermission, _ := server.Enforcer.HasPolicy(roleName, "global", "/api/v1/roles", "GET")
 
 	t.Logf("DEBUG: Role %s has permission GET /api/v1/roles: %v", roleName, hasPermission)
 
@@ -165,7 +165,7 @@ func TestSecurityE2E_TokenRotation(t *testing.T) {
 		u.Email = "rot@test.com"
 		u.Password = string(hash)
 	})
-	server.Enforcer.AddGroupingPolicy(user.ID, "role:user")
+	server.Enforcer.AddGroupingPolicy(user.ID, "role:user", "global")
 
 	resp := client.POST("/api/v1/auth/login", map[string]any{
 		"username": user.Username, "password": "StrongPass123!",

@@ -44,9 +44,9 @@ func TestPermissionUseCase_BatchCheckPermission_Success_AllAllowed(t *testing.T)
 	}
 
 	// Mock Enforce - All allowed
-	enforcer.On("Enforce", userID, "/api/users", "GET").Return(true, nil)
-	enforcer.On("Enforce", userID, "/api/users", "POST").Return(true, nil)
-	enforcer.On("Enforce", userID, "/api/roles", "GET").Return(true, nil)
+	enforcer.On("Enforce", userID, "global", "/api/users", "GET").Return(true, nil)
+	enforcer.On("Enforce", userID, "global", "/api/users", "POST").Return(true, nil)
+	enforcer.On("Enforce", userID, "global", "/api/roles", "GET").Return(true, nil)
 
 	// Execute
 	results, err := uc.BatchCheckPermission(ctx, userID, items)
@@ -74,10 +74,10 @@ func TestPermissionUseCase_BatchCheckPermission_Success_Mixed(t *testing.T) {
 	}
 
 	// Mock Enforce - Mixed results
-	enforcer.On("Enforce", userID, "/api/users", "GET").Return(true, nil)
-	enforcer.On("Enforce", userID, "/api/users", "DELETE").Return(false, nil)
-	enforcer.On("Enforce", userID, "/api/roles", "POST").Return(true, nil)
-	enforcer.On("Enforce", userID, "/api/admin", "GET").Return(false, nil)
+	enforcer.On("Enforce", userID, "global", "/api/users", "GET").Return(true, nil)
+	enforcer.On("Enforce", userID, "global", "/api/users", "DELETE").Return(false, nil)
+	enforcer.On("Enforce", userID, "global", "/api/roles", "POST").Return(true, nil)
+	enforcer.On("Enforce", userID, "global", "/api/admin", "GET").Return(false, nil)
 
 	// Execute
 	results, err := uc.BatchCheckPermission(ctx, userID, items)
@@ -104,7 +104,7 @@ func TestPermissionUseCase_BatchCheckPermission_EmptyUserID(t *testing.T) {
 	}
 
 	// Mock Enforce - Should still be called with empty userID
-	enforcer.On("Enforce", userID, "/api/users", "GET").Return(false, nil)
+	enforcer.On("Enforce", userID, "global", "/api/users", "GET").Return(false, nil)
 
 	// Execute
 	results, err := uc.BatchCheckPermission(ctx, userID, items)
@@ -149,7 +149,7 @@ func TestPermissionUseCase_BatchCheckPermission_LargeItemList(t *testing.T) {
 			Action:   "GET",
 		}
 		// Mock each enforce call
-		enforcer.On("Enforce", userID, "/api/resource", "GET").Return(true, nil).Once()
+		enforcer.On("Enforce", userID, "global", "/api/resource", "GET").Return(true, nil).Once()
 	}
 
 	// Execute
@@ -176,10 +176,10 @@ func TestPermissionUseCase_BatchCheckPermission_EnforcerError(t *testing.T) {
 	}
 
 	// Mock Enforce - One with error
-	enforcer.On("Enforce", userID, "/api/users", "GET").Return(true, nil)
-	enforcer.On("Enforce", userID, "/api/roles", "POST").
+	enforcer.On("Enforce", userID, "global", "/api/users", "GET").Return(true, nil)
+	enforcer.On("Enforce", userID, "global", "/api/roles", "POST").
 		Return(false, errors.New("casbin database error"))
-	enforcer.On("Enforce", userID, "/api/admin", "GET").Return(false, nil)
+	enforcer.On("Enforce", userID, "global", "/api/admin", "GET").Return(false, nil)
 
 	// Execute
 	results, err := uc.BatchCheckPermission(ctx, userID, items)
@@ -206,7 +206,7 @@ func TestPermissionUseCase_BatchCheckPermission_DuplicateItems(t *testing.T) {
 	}
 
 	// Mock Enforce - Will be called 3 times for duplicates
-	enforcer.On("Enforce", userID, "/api/users", "GET").Return(true, nil).Times(3)
+	enforcer.On("Enforce", userID, "global", "/api/users", "GET").Return(true, nil).Times(3)
 
 	// Execute
 	results, err := uc.BatchCheckPermission(ctx, userID, items)
@@ -231,9 +231,9 @@ func TestPermissionUseCase_BatchCheckPermission_SpecialCharactersInResource(t *t
 	}
 
 	// Mock Enforce
-	enforcer.On("Enforce", userID, "/api/users/:id/profile", "GET").Return(true, nil)
-	enforcer.On("Enforce", userID, "/api/files/*.pdf", "READ").Return(true, nil)
-	enforcer.On("Enforce", userID, "/api/search?query=*", "POST").Return(false, nil)
+	enforcer.On("Enforce", userID, "global", "/api/users/:id/profile", "GET").Return(true, nil)
+	enforcer.On("Enforce", userID, "global", "/api/files/*.pdf", "READ").Return(true, nil)
+	enforcer.On("Enforce", userID, "global", "/api/search?query=*", "POST").Return(false, nil)
 
 	// Execute
 	results, err := uc.BatchCheckPermission(ctx, userID, items)

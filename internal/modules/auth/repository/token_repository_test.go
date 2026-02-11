@@ -17,6 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func getSessionKey(userID, sessionID string) string {
@@ -32,7 +33,9 @@ func getLockedKey(username string) string {
 }
 
 func setupGormDB(t *testing.T) *gorm.DB {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	assert.NoError(t, err)
 	err = db.AutoMigrate(&entity.PasswordResetToken{})
 	assert.NoError(t, err)

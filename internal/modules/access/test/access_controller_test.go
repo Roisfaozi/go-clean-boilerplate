@@ -457,3 +457,49 @@ func TestAccessHandler_GetAccessRightsDynamic_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	mockUseCase.AssertExpectations(t)
 }
+
+func TestAccessHandler_CreateAccessRight_XSS(t *testing.T) {
+	mockUseCase := new(mocks.MockIAccessUseCase)
+	handler := newTestAccessController(mockUseCase)
+	router := setupAccessTestRouter()
+	router.POST("/access-rights", handler.CreateAccessRight)
+
+	reqBody := model.CreateAccessRightRequest{
+		Name:        "<script>alert(1)</script>",
+		Description: "Safe description",
+	}
+
+	bodyBytes, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/access-rights", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Expect 422 because of xss tag
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	mockUseCase.AssertNotCalled(t, "CreateAccessRight", mock.Anything, mock.Anything)
+}
+
+func TestAccessHandler_CreateEndpoint_XSS(t *testing.T) {
+	mockUseCase := new(mocks.MockIAccessUseCase)
+	handler := newTestAccessController(mockUseCase)
+	router := setupAccessTestRouter()
+	router.POST("/endpoints", handler.CreateEndpoint)
+
+	reqBody := model.CreateEndpointRequest{
+		Path:   "/test/<script>alert(1)</script>",
+		Method: "GET",
+	}
+
+	bodyBytes, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/endpoints", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Expect 422 because of xss tag
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	mockUseCase.AssertNotCalled(t, "CreateEndpoint", mock.Anything, mock.Anything)
+}

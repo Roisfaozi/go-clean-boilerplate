@@ -7,6 +7,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
@@ -40,12 +41,14 @@ func NewAuthModule(
 	enforcer *casbin.Enforcer,
 	auditModule *audit.AuditModule,
 	taskDistributor worker.TaskDistributor,
+	orgRepo orgRepo.OrganizationRepository, // Injected dependency
+	ticketManager ws.TicketManager,
 ) *AuthModule {
 	tokenRepo := repository.NewTokenRepositoryRedis(redisClient, log, db)
 	userRepository := userRepo.NewUserRepository(db, log)
 
-	authUseCase := usecase.NewAuthUsecase(maxLoginAttempts, lockoutDuration, jwtManager, tokenRepo, userRepository, tm, log, wsManager, sseManager, enforcer, auditModule.AuditController.UseCase, taskDistributor)
-	authController := http.NewAuthController(authUseCase, log, validate)
+	authUseCase := usecase.NewAuthUsecase(maxLoginAttempts, lockoutDuration, jwtManager, tokenRepo, userRepository, orgRepo, tm, log, wsManager, sseManager, enforcer, auditModule.AuditController.UseCase, taskDistributor)
+	authController := http.NewAuthController(authUseCase, log, validate, ticketManager)
 
 	return &AuthModule{
 		AuthController: authController,

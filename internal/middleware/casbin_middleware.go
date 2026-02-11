@@ -34,7 +34,15 @@ func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFu
 		obj := c.Request.URL.Path
 		act := c.Request.Method
 
-		ok, err := enforcer.Enforce(userID.(string), obj, act)
+		// Get organization ID for multi-tenancy (domain in Casbin)
+		dom := "global"
+		if orgID, exists := c.Get("organization_id"); exists {
+			if idStr, ok := orgID.(string); ok && idStr != "" {
+				dom = idStr
+			}
+		}
+
+		ok, err := enforcer.Enforce(userID.(string), dom, obj, act)
 		if err != nil {
 			log.WithError(err).Error("Casbin enforce error")
 			response.InternalServerError(c, errors.New("authorization error"), "internal server error")
@@ -43,7 +51,7 @@ func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFu
 		}
 
 		if !ok {
-			log.Warnf("Casbin authorization failed for subject '%s' on %s %s", userID, act, obj)
+			log.Warnf("Casbin authorization failed for subject '%s' in domain '%s' on %s %s", userID, dom, act, obj)
 			response.Forbidden(c, errors.New("you don't have permission to access this resource"), "forbidden")
 			c.Abort()
 			return

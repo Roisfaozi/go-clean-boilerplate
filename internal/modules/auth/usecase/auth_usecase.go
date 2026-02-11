@@ -13,6 +13,8 @@ import (
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
@@ -35,6 +37,7 @@ type Service struct {
 	jwtManager       *jwt.JWTManager
 	tokenRepo        repository.TokenRepository
 	userRepo         userRepository.UserRepository
+	orgRepo          orgRepo.OrganizationRepository
 	tm               tx.WithTransactionManager
 	log              *logrus.Logger
 	wsManager        ws.Manager
@@ -51,6 +54,7 @@ func NewAuthUsecase(
 	jwtManager *jwt.JWTManager,
 	tokenRepo repository.TokenRepository,
 	userRepo userRepository.UserRepository,
+	orgRepo orgRepo.OrganizationRepository,
 	tm tx.WithTransactionManager,
 	log *logrus.Logger,
 	wsManager ws.Manager,
@@ -65,6 +69,7 @@ func NewAuthUsecase(
 		jwtManager:       jwtManager,
 		tokenRepo:        tokenRepo,
 		userRepo:         userRepo,
+		orgRepo:          orgRepo,
 		tm:               tm,
 		log:              log,
 		wsManager:        wsManager,
@@ -80,6 +85,87 @@ func NewAuthUsecase(
 	s.dummyHash = hash
 
 	return s
+}
+
+func (s *Service) Register(ctx context.Context, request model.RegisterRequest) (*model.LoginResponse, string, error) {
+	// 1. Check if user exists
+	if existing, _ := s.userRepo.FindByUsername(ctx, request.Username); existing != nil {
+		return nil, "", fmt.Errorf("username already exists")
+	}
+	if existing, _ := s.userRepo.FindByEmail(ctx, request.Email); existing != nil {
+		return nil, "", fmt.Errorf("email already exists")
+	}
+
+	// 2. Hash Password
+	hashedPassword, err := pkg.HashPassword(request.Password)
+	if err != nil {
+		return nil, "", err
+	}
+
+	userID, _ := uuid.NewV7()
+	user := &entity.User{
+		ID:       userID.String(),
+		Username: request.Username,
+		Email:    request.Email,
+		Password: hashedPassword,
+		Name:     request.Name,
+		Status:   entity.UserStatusActive,
+	}
+
+	// 3. Transaction: Create User -> Create Default Workspace -> Add Member
+	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+		// Create User
+		if err := s.userRepo.Create(txCtx, user); err != nil {
+			return err
+		}
+
+		// Add Default Role (Casbin)
+		if s.Enforcer != nil {
+			if _, err := s.Enforcer.AddGroupingPolicy(user.ID, "role:user", "global"); err != nil {
+				return err
+			}
+		}
+
+		// Auto-Provisioning: Create Default Workspace
+		defaultOrgName := fmt.Sprintf("%s's Workspace", user.Name)
+		defaultOrg := &orgEntity.Organization{
+			ID:      uuid.New().String(),
+			Name:    defaultOrgName,
+			Slug:    pkg.Slugify(defaultOrgName + "-" + user.Username), // Simple slug generation
+			OwnerID: user.ID,
+			Status:  "active",
+		}
+
+		// Create Organization (Repo handles adding owner member)
+		if err := s.orgRepo.Create(txCtx, defaultOrg, "owner"); err != nil {
+			return err
+		}
+
+		// Audit Log
+		if s.auditUC != nil {
+			_ = s.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+				UserID:   user.ID,
+				Action:   "REGISTER",
+				Entity:   "User",
+				EntityID: user.ID,
+			})
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	telemetry.UserRegistrationsTotal.Inc()
+
+	// 4. Login (Generate Token)
+	return s.Login(ctx, model.LoginRequest{
+		Username:  request.Username,
+		Password:  request.Password,
+		IPAddress: request.IPAddress,
+		UserAgent: request.UserAgent,
+	})
 }
 
 func (s *Service) generateAndStoreTokenPair(ctx context.Context, user *entity.User, role, username string) (string, string, string, error) {
@@ -182,7 +268,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 
 	var userRole string
 	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		roles, err := s.Enforcer.GetRolesForUser(user.ID, "global")
 		if err != nil {
 			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during login")
 			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
@@ -211,6 +297,14 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		}
 	}
 
+	// Broadcast to organization channels
+	// 1. Get user organizations
+	orgs, err := s.orgRepo.FindUserOrganizations(ctx, user.ID)
+	if err != nil {
+		// Log but don't fail the request
+		s.log.WithContext(ctx).Warnf("Failed to fetch user organizations for notification: %v", err)
+	}
+
 	notification := map[string]string{
 		"type":    "user_login",
 		"user_id": user.ID,
@@ -218,27 +312,35 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		"time":    time.Now().Format(time.RFC3339),
 	}
 	notificationJSON, _ := json.Marshal(notification)
+
 	if s.wsManager != nil {
-		s.wsManager.BroadcastToChannel("global_notifications", notificationJSON)
+		for _, org := range orgs {
+			channel := fmt.Sprintf("org_%s_notifications", org.ID)
+			s.wsManager.BroadcastToChannel(channel, notificationJSON)
+		}
 	}
 
 	if s.sseManager != nil {
+		// SSE might need similar scoping, but for now we focus on WS
+		// TODO: Scope SSE as well if needed
 		s.sseManager.Broadcast("user_login", notification)
 	}
 
 	accessTokenDuration := s.jwtManager.GetAccessTokenDuration()
 	telemetry.UserLoginsTotal.WithLabelValues("success").Inc()
 	loginResponse := &model.LoginResponse{
-		AccessToken: accessToken,
-		TokenType:   "Bearer",
-		ExpiresIn:   int64(accessTokenDuration.Seconds()),
-		ExpiresAt:   time.Now().Add(accessTokenDuration),
+		AccessToken:  accessToken,
+		TokenType:    "Bearer",
+		ExpiresIn:    int64(accessTokenDuration.Seconds()),
+		RefreshToken: refreshToken,
+		ExpiresAt:    time.Now().Add(accessTokenDuration),
 		User: model.UserInfo{
-			ID:       user.ID,
-			Name:     user.Name,
-			Email:    user.Email,
-			Username: user.Username,
-			Role:     userRole,
+			ID:        user.ID,
+			Name:      user.Name,
+			Email:     user.Email,
+			Username:  user.Username,
+			Role:      userRole,
+			AvatarURL: user.AvatarURL,
 		},
 	}
 
@@ -263,7 +365,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 
 	var userRole string
 	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		roles, err := s.Enforcer.GetRolesForUser(user.ID, "global")
 		if err != nil {
 			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during refresh token")
 			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
@@ -283,8 +385,9 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 	}
 
 	tokenResponse := &model.TokenResponse{
-		AccessToken: newAccessToken,
-		TokenType:   "Bearer",
+		AccessToken:  newAccessToken,
+		TokenType:    "Bearer",
+		RefreshToken: newRefreshToken,
 	}
 
 	return tokenResponse, newRefreshToken, nil
@@ -374,7 +477,7 @@ func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
 func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
 	var userRole string
 	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		roles, err := s.Enforcer.GetRolesForUser(user.ID, "global")
 		if err != nil {
 			s.log.WithContext(context.Background()).WithError(err).Error("Failed to get roles for user when generating access token")
 			return "", fmt.Errorf("failed to get user roles: %w", err)
@@ -395,7 +498,7 @@ func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
 func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
 	var userRole string
 	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+		roles, err := s.Enforcer.GetRolesForUser(user.ID, "global")
 		if err != nil {
 			s.log.WithContext(context.Background()).WithError(err).Error("Failed to get roles for user when generating refresh token")
 			return "", fmt.Errorf("failed to get user roles: %w", err)
@@ -414,19 +517,26 @@ func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
 }
 
 func (s *Service) ForgotPassword(ctx context.Context, email string) error {
-	user, err := s.userRepo.FindByEmail(ctx, email)
-	if err != nil {
-		// Security: Don't reveal if email exists
-		s.log.WithContext(ctx).Warnf("Forgot password attempt for non-existent email: %s", email)
-		return nil
-	}
-
-	// Generate 32-char hex token
+	// Generate 32-char hex token unconditionally to prevent timing leaks
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
 		return fmt.Errorf("failed to generate random token: %w", err)
 	}
 	token := hex.EncodeToString(b)
+
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		// Security: Don't reveal if email exists
+		s.log.WithContext(ctx).Warnf("Forgot password attempt for non-existent email: %s", email)
+
+		// Simulate DB/Network latency (20-50ms) to prevent user enumeration via timing attacks
+		// The success path involves a DB write and task enqueue which typically takes this amount of time.
+		// We use a simple modulo on UnixNano to get a pseudo-random duration without importing math/rand.
+		sleepDuration := time.Duration(20+(time.Now().UnixNano()%30)) * time.Millisecond
+		time.Sleep(sleepDuration)
+
+		return nil
+	}
 
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     email,
@@ -486,7 +596,10 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return ErrInvalidResetToken
 	}
 
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
 	user.Password = string(hashedPassword)
 
 	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {

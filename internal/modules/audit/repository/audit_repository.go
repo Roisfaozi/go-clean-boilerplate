@@ -6,6 +6,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -23,6 +24,13 @@ func NewAuditRepository(db *gorm.DB, log *logrus.Logger) usecase.AuditRepository
 	}
 }
 
+func (r *auditRepository) getDB(ctx context.Context) *gorm.DB {
+	if txDB, ok := tx.DBFromContext(ctx); ok {
+		return txDB
+	}
+	return r.db.WithContext(ctx)
+}
+
 func (r *auditRepository) Create(ctx context.Context, log *entity.AuditLog) error {
 	if log.ID == "" {
 		id, err := uuid.NewV7()
@@ -31,13 +39,13 @@ func (r *auditRepository) Create(ctx context.Context, log *entity.AuditLog) erro
 		}
 		log.ID = id.String()
 	}
-	return r.db.WithContext(ctx).Create(log).Error
+	return r.getDB(ctx).Create(log).Error
 }
 
 func (r *auditRepository) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AuditLog, int64, error) {
 	var logs []*entity.AuditLog
 	var total int64
-	query := r.db.WithContext(ctx).Model(&entity.AuditLog{})
+	query := r.getDB(ctx).Model(&entity.AuditLog{})
 
 	query, err := querybuilder.GenerateDynamicQuery(query, &entity.AuditLog{}, filter)
 	if err != nil {
@@ -73,7 +81,7 @@ func (r *auditRepository) DeleteLogsOlderThan(ctx context.Context, cutoffTime in
 
 	// Audit logs use created_at as unix milli
 
-	if err := r.db.WithContext(ctx).Where("created_at < ?", cutoffTime).Delete(&entity.AuditLog{}).Error; err != nil {
+	if err := r.getDB(ctx).Where("created_at < ?", cutoffTime).Delete(&entity.AuditLog{}).Error; err != nil {
 
 		r.log.WithContext(ctx).WithError(err).Error("Failed to prune old audit logs")
 
@@ -89,7 +97,7 @@ func (r *auditRepository) FindAllInBatches(ctx context.Context, startTime, endTi
 
 	var logs []*entity.AuditLog
 
-	query := r.db.WithContext(ctx).Model(&entity.AuditLog{})
+	query := r.getDB(ctx).Model(&entity.AuditLog{})
 
 	if startTime > 0 {
 

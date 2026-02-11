@@ -181,8 +181,8 @@ func TestUpdatePermission_XSS(t *testing.T) {
 		{
 			name: "Safe content",
 			payload: model.UpdatePermissionRequest{
-				OldPermission: []string{"role", "/path", "GET"},
-				NewPermission: []string{"role", "/new-path", "POST"},
+				OldPermission: []string{"role", "global", "/path", "GET"},
+				NewPermission: []string{"role", "global", "/new-path", "POST"},
 			},
 			expectedCode: http.StatusOK,
 		},

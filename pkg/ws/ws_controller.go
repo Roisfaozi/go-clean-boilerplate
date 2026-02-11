@@ -1,9 +1,12 @@
 package ws
 
 import (
+	"context"
 	"net/http"
 	"time"
 
+	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -13,9 +16,11 @@ type WebSocketController struct {
 	log      *logrus.Logger
 	manager  Manager
 	upgrader *websocket.Upgrader
+	userRepo userRepo.UserRepository
+	enforcer *casbin.Enforcer
 }
 
-func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins []string) *WebSocketController {
+func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins []string, userRepo userRepo.UserRepository, enforcer *casbin.Enforcer) *WebSocketController {
 	checkOrigin := func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
 		for _, o := range allowedOrigins {
@@ -40,6 +45,8 @@ func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins 
 		log:      log,
 		manager:  manager,
 		upgrader: upgrader,
+		userRepo: userRepo,
+		enforcer: enforcer,
 	}
 }
 
@@ -57,12 +64,46 @@ func (c *WebSocketController) HandleWebSocket(ctx *gin.Context) {
 		MaxMessageSize: 512 * 1024,
 	}
 
-	client := NewWebsocketClient(conn, c.manager, c.log, config)
+	userIDVal, exists := ctx.Get("user_id")
+	userID := ""
+	if exists && userIDVal != nil {
+		userID = userIDVal.(string)
+	}
+
+	orgIDVal, exists := ctx.Get("organization_id")
+	orgID := "global"
+	if exists && orgIDVal != nil && orgIDVal != "" {
+		orgID = orgIDVal.(string)
+	}
+
+	// Fetch User Details for Presence
+	var userData *PresenceUser
+	if userID != "" && c.userRepo != nil {
+		user, err := c.userRepo.FindByID(context.Background(), userID)
+		if err == nil && user != nil {
+			role := "member"
+			if c.enforcer != nil {
+				roles, _ := c.enforcer.GetRolesForUser(userID, orgID)
+				if len(roles) > 0 {
+					role = roles[0]
+				}
+			}
+			userData = &PresenceUser{
+				UserID:    userID,
+				Name:      user.Name,
+				AvatarURL: user.AvatarURL,
+				Role:      role,
+				Status:    "online",
+			}
+		}
+	}
+
+	client := NewWebsocketClient(conn, c.manager, c.log, config, userID, orgID, userData)
 
 	c.manager.RegisterClient(client)
 
 	go client.WritePump()
 	go client.ReadPump()
 
-	c.log.Infof("New WebSocket connection established: %s", client.ID)
+	c.log.Infof("New WebSocket connection established for user %s in org %s", userID, orgID)
 }

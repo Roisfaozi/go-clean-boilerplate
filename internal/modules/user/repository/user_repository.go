@@ -7,6 +7,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	querybuilder2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/sirupsen/logrus"
@@ -103,7 +104,7 @@ func (r *userRepositoryData) Delete(ctx context.Context, id string) error {
 func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, int64, error) {
 	var users []*entity.User
 	var total int64
-	query := r.getDB(ctx).Model(&entity.User{})
+	query := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Model(&entity.User{})
 
 	if filter.Username != "" {
 		query = query.Where("name LIKE ?", "%"+filter.Username+"%")
@@ -138,7 +139,7 @@ func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserL
 func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.User, int64, error) {
 	var users []*entity.User
 	var total int64
-	query := r.getDB(ctx).Model(&entity.User{})
+	query := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Model(&entity.User{})
 
 	// Apply Dynamic Filter
 	var err error
@@ -198,4 +199,14 @@ func (r *userRepositoryData) HardDeleteSoftDeletedUsers(ctx context.Context, ret
 		return err
 	}
 	return nil
+}
+
+func (r *userRepositoryData) GetByOrganization(ctx context.Context, orgID string) ([]*entity.User, error) {
+	var users []*entity.User
+	// Explicitly query by organization_id provided, regardless of context
+	if err := r.getDB(ctx).Where("organization_id = ?", orgID).Find(&users).Error; err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("failed to find users by organization")
+		return nil, err
+	}
+	return users, nil
 }

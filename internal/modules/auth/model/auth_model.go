@@ -11,6 +11,15 @@ type LoginRequest struct {
 	UserAgent string `json:"-"`
 }
 
+type RegisterRequest struct {
+	Name      string `json:"name" validate:"required,min=3,max=100,xss"`
+	Username  string `json:"username" validate:"required,min=3,max=50,xss"`
+	Email     string `json:"email" validate:"required,email,max=100"`
+	Password  string `json:"password" validate:"required,min=8,max=72"`
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
+}
+
 type Auth struct {
 	ID           string    `json:"id"`
 	UserID       string    `json:"user_id"`
@@ -40,11 +49,12 @@ type LoginResponse struct {
 }
 
 type UserInfo struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	Username  string `json:"username"`
+	Role      string `json:"role"`
+	AvatarURL string `json:"avatar_url"`
 }
 
 type RefreshRequest struct {

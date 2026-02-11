@@ -100,10 +100,9 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 
 		roleAdded := false
 		if u.Enforcer != nil {
-			_, err := u.Enforcer.AddGroupingPolicy(user.ID, "role:user")
+			_, err := u.Enforcer.AddGroupingPolicy(user.ID, "role:user", "global")
 			if err != nil {
 				u.Log.Errorf("Failed to assign default role: %v", err)
-
 				return exception.ErrInternalServer
 			}
 			roleAdded = true
@@ -122,7 +121,7 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 				u.Log.Errorf("Failed to create audit log (rollback triggered): %v", err)
 
 				if roleAdded && u.Enforcer != nil {
-					if _, errComp := u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID); errComp != nil {
+					if _, errComp := u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID, "", "global"); errComp != nil {
 						u.Log.Errorf("Failed to rollback Casbin policy: %v", errComp)
 					}
 				}
@@ -207,6 +206,7 @@ func (u *userUseCaseImpl) Update(ctx context.Context, request *model.UpdateUserR
 
 	if request.Username != "" {
 		request.Username = pkg.SanitizeString(request.Username)
+
 		if request.Username != user.Username {
 			if existing, _ := u.Repo.FindByUsername(ctx, request.Username); existing != nil {
 				return nil, exception.ErrConflict
@@ -373,6 +373,33 @@ func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file 
 	return converter.UserToResponse(user), nil
 }
 
+func (u *userUseCaseImpl) SetAvatarURL(ctx context.Context, userID string, url string) error {
+	user, err := u.Repo.FindByID(ctx, userID)
+	if err != nil {
+		return exception.ErrNotFound
+	}
+
+	user.AvatarURL = url
+	if err := u.Repo.Update(ctx, user); err != nil {
+		u.Log.Errorf("Failed to update user avatar URL (TUS): %v", err)
+		return exception.ErrInternalServer
+	}
+
+	if u.AuditUC != nil {
+		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			UserID:   userID,
+			Action:   "UPDATE_AVATAR_TUS",
+			Entity:   "User",
+			EntityID: userID,
+			NewValues: map[string]interface{}{
+				"avatar_url": url,
+			},
+		})
+	}
+
+	return nil
+}
+
 func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error {
 	if pkg.ContainsSQLInjection(request.ID) {
 		u.Log.Warnf("Potential SQL Injection in Delete User ID: %s", request.ID)
@@ -397,12 +424,12 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 		if u.Enforcer != nil {
 
 			var err error
-			oldRoles, err = u.Enforcer.GetRolesForUser(user.ID)
+			oldRoles, err = u.Enforcer.GetRolesForUser(user.ID, "global")
 			if err != nil {
 				u.Log.Warnf("Failed to fetch roles for backup in delete: %v", err)
 			}
 
-			_, err = u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID)
+			_, err = u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID, "", "global")
 			if err != nil {
 				u.Log.Errorf("Failed to remove user policies: %v", err)
 				return exception.ErrInternalServer
@@ -425,7 +452,7 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 
 				if u.Enforcer != nil && len(oldRoles) > 0 {
 					for _, role := range oldRoles {
-						if _, errComp := u.Enforcer.AddGroupingPolicy(user.ID, role); errComp != nil {
+						if _, errComp := u.Enforcer.AddGroupingPolicy(user.ID, role, "global"); errComp != nil {
 							u.Log.Errorf("Failed to restore role %s during rollback: %v", role, errComp)
 						}
 					}

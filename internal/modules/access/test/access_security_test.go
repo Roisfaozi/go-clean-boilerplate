@@ -49,12 +49,8 @@ func TestCreateEndpoint_DuplicateDetection(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.Equal(t, expectedErr, err)
 
-	// Case 2: Success
-	repo.On("CreateEndpoint", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		arg := args.Get(1)
-		// Simulate ID assignment (no-op in mock)
-		_ = arg
-	})
+	// Success case
+	repo.On("CreateEndpoint", mock.Anything, mock.Anything).Return(nil).Once()
 
 	// To make asserting response easier, we'd need to mock assignment or check logic.
 	// For this test, we care about error propagation logic.
