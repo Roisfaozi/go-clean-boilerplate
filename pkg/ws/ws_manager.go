@@ -161,12 +161,14 @@ func (m *WebSocketManager) handleRegister(client *Client) {
 
 	// Track Presence if user info is available
 	if client.UserID != "" && client.OrgID != "" {
-		userData := &PresenceUser{
-			UserID: client.UserID,
-			// Details should ideally be fetched or passed.
-			// For now we set basic info, and assume frontend syncs the rest.
-			Status: "online",
+		userData := client.UserData
+		if userData == nil {
+			userData = &PresenceUser{
+				UserID: client.UserID,
+				Status: "online",
+			}
 		}
+		
 		if err := m.presence.SetUserOnline(context.Background(), client.OrgID, client.UserID, userData); err != nil {
 			m.log.WithError(err).Error("Failed to set user online in presence manager")
 		} else {
