@@ -21,6 +21,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/tus/tusd/v2/pkg/handler"
 	"gorm.io/gorm"
 )
 
@@ -43,6 +44,7 @@ func createTestRouter(cfg RouterConfig) *gin.Engine {
 		sse.NewManager(),
 		&gorm.DB{},
 		&redis.Client{},
+		&handler.Handler{},
 		logrus.New(),
 	)
 }

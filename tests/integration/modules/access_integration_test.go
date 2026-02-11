@@ -24,7 +24,6 @@ func setupAccessIntegration(env *setup.TestEnvironment) usecase.IAccessUseCase {
 func TestAccessIntegration_CreateAccessRight_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
@@ -43,7 +42,6 @@ func TestAccessIntegration_CreateAccessRight_Success(t *testing.T) {
 func TestAccessIntegration_CreateAccessRight_Fail_Duplicate(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
@@ -58,7 +56,6 @@ func TestAccessIntegration_CreateAccessRight_Fail_Duplicate(t *testing.T) {
 func TestAccessIntegration_DeleteAccessRight_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
@@ -72,7 +69,6 @@ func TestAccessIntegration_DeleteAccessRight_Success(t *testing.T) {
 func TestAccessIntegration_DeleteAccessRight_Fail_NotFound(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 	err := uc.DeleteAccessRight(context.Background(), "ghost-id")
@@ -82,7 +78,6 @@ func TestAccessIntegration_DeleteAccessRight_Fail_NotFound(t *testing.T) {
 func TestAccessIntegration_CreateEndpoint_LinkToAccessRight(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
@@ -110,7 +105,6 @@ func TestAccessIntegration_CreateEndpoint_LinkToAccessRight(t *testing.T) {
 func TestAccessIntegration_DeleteEndpoint_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
@@ -122,7 +116,6 @@ func TestAccessIntegration_DeleteEndpoint_Success(t *testing.T) {
 func TestAccessIntegration_DynamicSearch_AccessRights(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
@@ -143,7 +136,6 @@ func TestAccessIntegration_DynamicSearch_AccessRights(t *testing.T) {
 func TestAccessIntegration_Security_SQLInjectionPrevention(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 

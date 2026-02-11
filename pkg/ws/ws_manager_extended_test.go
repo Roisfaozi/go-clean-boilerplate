@@ -260,7 +260,7 @@ func TestWebSocketManager_StopCleanup(t *testing.T) {
 
 	// Writing after stop should fail or be ignored
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
-	_, _, err = websocket.DefaultDialer.Dial(wsURL, nil)
+	_, _, _ = websocket.DefaultDialer.Dial(wsURL, nil)
 	// Connection may succeed but messages won't be processed
 	// The main check is no panic occurred during stop
 }
