@@ -6,7 +6,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/repository"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 )
 
 type ProjectUseCase interface {
@@ -29,8 +29,8 @@ func (u *projectUseCase) CreateProject(ctx context.Context, userID string, orgID
 	project := &entity.Project{
 		OrganizationID: orgID,
 		UserID:         userID,
-		Name:           req.Name,
-		Domain:         req.Domain,
+		Name:           pkg.SanitizeString(req.Name),
+		Domain:         pkg.SanitizeString(req.Domain),
 		Status:         "active",
 	}
 
@@ -57,7 +57,7 @@ func (u *projectUseCase) GetProjects(ctx context.Context, orgID string) ([]*mode
 func (u *projectUseCase) GetProjectByID(ctx context.Context, id string) (*model.ProjectResponse, error) {
 	project, err := u.repo.GetByID(ctx, id)
 	if err != nil {
-		return nil, exception.ErrNotFound
+		return nil, err
 	}
 	return u.mapToResponse(project), nil
 }
@@ -65,14 +65,14 @@ func (u *projectUseCase) GetProjectByID(ctx context.Context, id string) (*model.
 func (u *projectUseCase) UpdateProject(ctx context.Context, id string, req model.UpdateProjectRequest) (*model.ProjectResponse, error) {
 	project, err := u.repo.GetByID(ctx, id)
 	if err != nil {
-		return nil, exception.ErrNotFound
+		return nil, err
 	}
 
 	if req.Name != "" {
-		project.Name = req.Name
+		project.Name = pkg.SanitizeString(req.Name)
 	}
 	if req.Domain != "" {
-		project.Domain = req.Domain
+		project.Domain = pkg.SanitizeString(req.Domain)
 	}
 	if req.Status != "" {
 		project.Status = req.Status

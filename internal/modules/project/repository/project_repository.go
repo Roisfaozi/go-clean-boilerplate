@@ -2,8 +2,11 @@ package repository
 
 import (
 	"context"
+	"errors"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"gorm.io/gorm"
 )
@@ -39,6 +42,9 @@ func (r *projectRepository) Create(ctx context.Context, project *entity.Project)
 func (r *projectRepository) GetByID(ctx context.Context, id string) (*entity.Project, error) {
 	var project entity.Project
 	if err := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).First(&project, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, exception.ErrNotFound
+		}
 		return nil, err
 	}
 	return &project, nil
