@@ -17,6 +17,7 @@ import (
 type UserModule struct {
 	UserController *http.UserController
 	UserRepo       userRepository.UserRepository
+	UserUseCase    usecase.UserUseCase
 }
 
 func NewUserModule(
@@ -38,6 +39,7 @@ func NewUserModule(
 	return &UserModule{
 		UserController: userController,
 		UserRepo:       userRepo,
+		UserUseCase:    userUseCase,
 	}
 }
 

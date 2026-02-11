@@ -41,6 +41,17 @@ type TestEnvironment struct {
 	Ctx       context.Context
 	MySQLAddr string
 	RedisAddr string
+	Closers   []func()
+}
+
+func (env *TestEnvironment) AddCloser(closer func()) {
+	env.Closers = append(env.Closers, closer)
+}
+
+func (env *TestEnvironment) Cleanup() {
+	for i := len(env.Closers) - 1; i >= 0; i-- {
+		env.Closers[i]()
+	}
 }
 
 func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
@@ -129,10 +140,6 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 		MySQLAddr: mysqlAddr,
 		RedisAddr: redisAddr,
 	}
-}
-
-func (env *TestEnvironment) Cleanup() {
-
 }
 
 func connectWithRetry(connStr string, maxRetries int) (*gorm.DB, error) {

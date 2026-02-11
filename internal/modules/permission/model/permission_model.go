@@ -42,10 +42,10 @@ type ResourceCRUD struct {
 }
 
 type ResourcePermission struct {
-	Name              string                  `json:"name"`
-	BasePath          string                  `json:"base_path"`
-	RolePermissions   map[string]ResourceCRUD `json:"role_permissions"`
-	EndpointCount     int                     `json:"endpoint_count"`
+	Name            string                  `json:"name"`
+	BasePath        string                  `json:"base_path"`
+	RolePermissions map[string]ResourceCRUD `json:"role_permissions"`
+	EndpointCount   int                     `json:"endpoint_count"`
 }
 
 type ResourceAggregationResponse struct {
@@ -53,14 +53,14 @@ type ResourceAggregationResponse struct {
 }
 
 type RoleNode struct {
-	ID                     string       `json:"id"`
-	Name                   string       `json:"name"`
-	Description            string       `json:"description,omitempty"`
-	ParentID               *string      `json:"parent_id,omitempty"`
-	Children               []RoleNode   `json:"children,omitempty"`
-	OwnPermissions         [][]string   `json:"own_permissions"`
-	InheritedPermissions   [][]string   `json:"inherited_permissions"`
-	EffectivePermissions   [][]string   `json:"effective_permissions"`
+	ID                   string     `json:"id"`
+	Name                 string     `json:"name"`
+	Description          string     `json:"description,omitempty"`
+	ParentID             *string    `json:"parent_id,omitempty"`
+	Children             []RoleNode `json:"children,omitempty"`
+	OwnPermissions       [][]string `json:"own_permissions"`
+	InheritedPermissions [][]string `json:"inherited_permissions"`
+	EffectivePermissions [][]string `json:"effective_permissions"`
 }
 type InheritanceTreeResponse struct {
 	Roles []RoleNode `json:"roles"`

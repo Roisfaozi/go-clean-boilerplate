@@ -28,7 +28,6 @@ func setupRoleIntegration(env *setup.TestEnvironment) usecase.RoleUseCase {
 func TestRoleIntegration_Create_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -48,7 +47,6 @@ func TestRoleIntegration_Create_Success(t *testing.T) {
 func TestRoleIntegration_Delete_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -66,7 +64,6 @@ func TestRoleIntegration_Delete_Success(t *testing.T) {
 func TestRoleIntegration_GetAll_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -89,7 +86,6 @@ func TestRoleIntegration_GetAll_Success(t *testing.T) {
 func TestRoleIntegration_DynamicSearch_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -121,7 +117,6 @@ func TestRoleIntegration_DynamicSearch_Success(t *testing.T) {
 func TestRoleIntegration_Create_Negative_DuplicateName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -137,7 +132,6 @@ func TestRoleIntegration_Create_Negative_DuplicateName(t *testing.T) {
 func TestRoleIntegration_Create_Negative_EmptyName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -153,7 +147,6 @@ func TestRoleIntegration_Create_Negative_EmptyName(t *testing.T) {
 func TestRoleIntegration_Delete_Negative_NonExistentRole(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -164,7 +157,6 @@ func TestRoleIntegration_Delete_Negative_NonExistentRole(t *testing.T) {
 func TestRoleIntegration_Edge_Create_LongName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -178,7 +170,6 @@ func TestRoleIntegration_Edge_Create_LongName(t *testing.T) {
 func TestRoleIntegration_Edge_SpecialCharactersInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -199,7 +190,6 @@ func TestRoleIntegration_Edge_SpecialCharactersInName(t *testing.T) {
 func TestRoleIntegration_Edge_UnicodeInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -220,7 +210,6 @@ func TestRoleIntegration_Edge_UnicodeInName(t *testing.T) {
 func TestRoleIntegration_Edge_MinimumNameLength(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -233,7 +222,6 @@ func TestRoleIntegration_Edge_MinimumNameLength(t *testing.T) {
 func TestRoleIntegration_Security_SQLInjectionInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -254,7 +242,6 @@ func TestRoleIntegration_Security_SQLInjectionInName(t *testing.T) {
 func TestRoleIntegration_Security_XSSInDescription(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -279,7 +266,6 @@ func TestRoleIntegration_Security_XSSInDescription(t *testing.T) {
 func TestRoleIntegration_Security_Delete_SuperadminForbidden(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -290,7 +276,6 @@ func TestRoleIntegration_Security_Delete_SuperadminForbidden(t *testing.T) {
 func TestRoleIntegration_Update_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
