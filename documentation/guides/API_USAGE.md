@@ -11,12 +11,12 @@ Dokumen ini menjelaskan alur kerja utama (workflow) dalam menggunakan API Casbin
 2.  [Manajemen Peran (Role Management)](#2-manajemen-peran-role-management)
     - [Membuat Peran Baru](#21-membuat-peran-baru)
     - [Menetapkan Peran ke Pengguna (Assign Role)](#22-menetapkan-peran-ke-pengguna-assign-role)
-3.  [Manajemen Izin & Akses (Permission & Access Management)](#3-manajemen-izin--akses-permission--access-management)
-    - [Konsep Dasar](#konsep-dasar)
-    - [Langkah 1: Daftarkan Endpoint](#langkah-1-daftarkan-endpoint)
-    - [Langkah 2: Buat Access Right](#langkah-2-buat-access-right)
-    - [Langkah 3: Hubungkan Endpoint ke Access Right](#langkah-3-hubungkan-endpoint-ke-access-right)
-    - [Langkah 4: Berikan Izin ke Peran (Grant Permission)](#langkah-4-berikan-izin-ke-peran-grant-permission)
+3.  [Manajemen Organisasi (Organization Management)](#3-manajemen-organisasi-organization-management)
+4.  [Manajemen Proyek (Project Management)](#4-manajemen-proyek-project-management)
+5.  [Dashboard & Statistik (Stats)](#5-dashboard--statistik-stats)
+6.  [Manajemen Izin Global (Global Permissions)](#6-manajemen-izin-global-global-permissions)
+7.  [Resumable Upload (Tus)](#7-resumable-upload-tus)
+8.  [Melihat Jejak Audit (Audit Logs)](#8-melihat-jejak-audit-audit-logs)
 
 ---
 
@@ -270,11 +270,26 @@ Ini adalah langkah yang mengaktifkan akses di level **Casbin**. Tanpa langkah in
   }
   ```
 
-Sekarang, semua pengguna yang memiliki peran `role:editor` dapat mengakses endpoint `GET /api/v1/sales/reports`.
+Now, semua pengguna yang memiliki peran `role:editor` dapat mengakses endpoint `GET /api/v1/sales/reports`.
 
 ---
 
-## 7. Melihat Jejak Audit (Audit Logs)
+## 7. Resumable Upload (Tus)
+
+Layanan upload terpusat yang mendukung fitur _pause_ dan _resume_. Digunakan untuk file besar atau koneksi tidak stabil.
+
+- **Endpoint Utama:** `POST /api/v1/upload/files/`
+- **Akses:** Terproteksi (Sesi Aktif)
+- **Alur Kerja:**
+  1.  **Inisialisasi**: Kirim `POST` dengan header `Upload-Length` dan `Upload-Metadata` (berisi target/tipe upload).
+  2.  **Upload**: Patch data binary ke URL yang diberikan di header `Location`.
+  3.  **Hook**: Setelah selesai, sistem akan memproses file sesuai tipenya (misal: update avatar).
+
+> **Detail Teknis:** Lihat panduan lengkap di [Panduan Resumable Upload (Tus)](RESUMABLE_UPLOAD.md).
+
+---
+
+## 8. Melihat Jejak Audit (Audit Logs)
 
 Sistem secara otomatis mencatat aktivitas penting seperti Login, Register, dan perubahan User.
 
