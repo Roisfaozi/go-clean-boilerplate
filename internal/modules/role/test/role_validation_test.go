@@ -15,6 +15,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestRoleXSSValidation(t *testing.T) {
@@ -30,6 +31,7 @@ func TestRoleXSSValidation(t *testing.T) {
 		url          string
 		payload      interface{}
 		expectedCode int
+		setupMock    func(*mocks.MockRoleUseCase)
 	}{
 		{
 			name:   "CreateRole XSS in Name",
@@ -39,7 +41,14 @@ func TestRoleXSSValidation(t *testing.T) {
 				Name:        "<script>alert(1)</script>",
 				Description: "A role",
 			},
-			expectedCode: http.StatusUnprocessableEntity,
+			expectedCode: http.StatusCreated, // Changed from 422 to 201 due to sanitization
+			setupMock: func(m *mocks.MockRoleUseCase) {
+				// Name sanitized to "alert(1)"
+				m.On("Create", mock.Anything, &model.CreateRoleRequest{
+					Name:        "alert(1)",
+					Description: "A role",
+				}).Return(&model.RoleResponse{ID: "1", Name: "alert(1)"}, nil)
+			},
 		},
 		{
 			name:   "CreateRole XSS in Description",
@@ -49,7 +58,14 @@ func TestRoleXSSValidation(t *testing.T) {
 				Name:        "admin",
 				Description: "<img src=x onerror=alert(2)>",
 			},
-			expectedCode: http.StatusUnprocessableEntity,
+			expectedCode: http.StatusCreated, // Changed from 422 to 201 due to sanitization
+			setupMock: func(m *mocks.MockRoleUseCase) {
+				// Description sanitized to empty string
+				m.On("Create", mock.Anything, &model.CreateRoleRequest{
+					Name:        "admin",
+					Description: "",
+				}).Return(&model.RoleResponse{ID: "2", Name: "admin"}, nil)
+			},
 		},
 		{
 			name:   "UpdateRole XSS in Description",
@@ -58,17 +74,27 @@ func TestRoleXSSValidation(t *testing.T) {
 			payload: model.UpdateRoleRequest{
 				Description: "<iframe src='javascript:alert(3)'></iframe>",
 			},
-			expectedCode: http.StatusUnprocessableEntity,
+			expectedCode: http.StatusUnprocessableEntity, // Still 422 because Description becomes empty and it's required
+			setupMock: func(m *mocks.MockRoleUseCase) {
+				// No call expected
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUC := new(mocks.MockRoleUseCase)
+			if tt.setupMock != nil {
+				tt.setupMock(mockUC)
+			}
+
 			controller := roleHandler.NewRoleController(mockUC, logger, v)
 
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
+
+			// Simulate Params for Update
+			c.Params = []gin.Param{{Key: "id", Value: "1"}}
 
 			jsonBytes, _ := json.Marshal(tt.payload)
 			c.Request, _ = http.NewRequest(tt.method, tt.url, bytes.NewBuffer(jsonBytes))
@@ -81,6 +107,7 @@ func TestRoleXSSValidation(t *testing.T) {
 			}
 
 			assert.Equal(t, tt.expectedCode, w.Code)
+			mockUC.AssertExpectations(t)
 		})
 	}
 }
