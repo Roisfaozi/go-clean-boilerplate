@@ -14,9 +14,10 @@ import { Badge } from "~/components/ui/badge";
 import { CreateProjectDialog } from "./create-project-dialog";
 import { memo } from "react";
 import { Project } from "~/lib/api/projects";
+import { EmptyState } from "~/components/shared/empty-state";
 
 export function ProjectsGrid() {
-  const { projects, isLoading } = useProjects();
+  const { projects, isLoading, createProject } = useProjects();
 
   if (isLoading && projects.length === 0) {
     return (
@@ -26,6 +27,19 @@ export function ProjectsGrid() {
             <div className="bg-muted h-48" />
           </Card>
         ))}
+      </div>
+    );
+  }
+
+  if (projects.length === 0) {
+    return (
+      <div className="space-y-6">
+        <CreateProjectDialog />
+        <EmptyState
+          case="generic"
+          title="No projects found"
+          description="Build your first environment to start using NexusOS."
+        />
       </div>
     );
   }

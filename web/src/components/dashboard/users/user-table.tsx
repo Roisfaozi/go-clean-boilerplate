@@ -21,6 +21,7 @@ import {
 } from "~/components/ui/table";
 import { User } from "~/lib/api/users";
 import { memo } from "react";
+import { EmptyState } from "~/components/shared/empty-state";
 
 interface UserTableProps {
   users: User[];
@@ -30,6 +31,9 @@ interface UserTableProps {
   canDelete: boolean;
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
+  searchTerm?: string;
+  onClearSearch?: () => void;
+  onCreateUser?: () => void;
 }
 
 export function UserTable({
@@ -40,7 +44,41 @@ export function UserTable({
   canDelete,
   onEdit,
   onDelete,
+  searchTerm,
+  onClearSearch,
+  onCreateUser,
 }: UserTableProps) {
+  if (!isLoading && !error && users.length === 0) {
+    return (
+      <div className="bg-muted/5 rounded-md border border-dashed">
+        {searchTerm ? (
+          <EmptyState
+            case="search"
+            searchTerm={searchTerm}
+            action={
+              onClearSearch
+                ? { label: "Clear search", onClick: onClearSearch }
+                : undefined
+            }
+          />
+        ) : (
+          <EmptyState
+            case="users"
+            action={
+              onCreateUser
+                ? {
+                    label: "Add Your First User",
+                    onClick: onCreateUser,
+                    icon: "UserPlus",
+                  }
+                : undefined
+            }
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -69,14 +107,14 @@ export function UserTable({
             </TableRow>
           ) : error ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center text-red-500">
-                Failed to load users.
-              </TableCell>
-            </TableRow>
-          ) : users.length === 0 ? (
-            <TableRow>
               <TableCell colSpan={7} className="h-24 text-center">
-                No users found.
+                <EmptyState
+                  case="error"
+                  action={{
+                    label: "Retry",
+                    onClick: () => window.location.reload(),
+                  }}
+                />
               </TableCell>
             </TableRow>
           ) : (

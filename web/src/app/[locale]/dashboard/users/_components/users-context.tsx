@@ -24,6 +24,7 @@ interface UsersContextType {
   error: any;
   mutate: KeyedMutator<any>;
   handleSearch: (term: string) => void;
+  clearSearch: () => void;
   handlePageChange: (newPage: number) => void;
   canCreate: boolean;
   canDelete: boolean;
@@ -88,6 +89,13 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     [searchParams, pathname, replace]
   );
 
+  const clearSearch = useCallback(() => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("search");
+    params.set("page", "1");
+    replace(`${pathname}?${params.toString()}`);
+  }, [searchParams, pathname, replace]);
+
   const handlePageChange = useCallback(
     (newPage: number) => {
       const params = new URLSearchParams(searchParams);
@@ -138,6 +146,7 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         error,
         mutate,
         handleSearch,
+        clearSearch,
         handlePageChange,
         canCreate,
         canDelete,

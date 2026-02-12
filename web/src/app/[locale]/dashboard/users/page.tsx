@@ -21,10 +21,13 @@ function UsersContent() {
     users,
     isLoading,
     error,
+    searchTerm,
     canUpdate,
     canDelete,
     handleEdit,
     handleDelete,
+    clearSearch,
+    handleCreate,
   } = useUsers();
 
   const isMounted = useMounted();
@@ -39,6 +42,9 @@ function UsersContent() {
         users={users}
         isLoading={isLoading}
         error={error}
+        searchTerm={searchTerm}
+        onClearSearch={clearSearch}
+        onCreateUser={handleCreate}
         canUpdate={isMounted && canUpdate}
         canDelete={isMounted && canDelete}
         onEdit={handleEdit}

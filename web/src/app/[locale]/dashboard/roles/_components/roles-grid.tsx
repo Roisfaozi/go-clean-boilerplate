@@ -14,9 +14,10 @@ import { Button } from "~/components/ui/button";
 import { Icon } from "~/components/shared/icon";
 import { Role } from "~/lib/api/roles";
 import { memo } from "react";
+import { EmptyState } from "~/components/shared/empty-state";
 
 export function RolesGrid() {
-  const { roles, isLoading } = useRoles();
+  const { roles, isLoading, handleCreate } = useRoles();
 
   if (isLoading && roles.length === 0) {
     return (
@@ -31,12 +32,44 @@ export function RolesGrid() {
     );
   }
 
+  if (roles.length === 0) {
+    return (
+      <EmptyState
+        case="roles"
+        action={{
+          label: "Create Your First Role",
+          onClick: handleCreate,
+          icon: "Plus",
+        }}
+      />
+    );
+  }
+
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <CreateRoleCard onClick={handleCreate} />
       {roles.map((role) => (
         <RoleCard key={role.id} role={role} />
       ))}
     </div>
+  );
+}
+
+function CreateRoleCard({ onClick }: { onClick: () => void }) {
+  return (
+    <Card
+      role="button"
+      onClick={onClick}
+      className="hover:bg-accent flex flex-col items-center justify-center gap-y-2.5 border-dashed p-8 text-center transition-colors"
+    >
+      <div className="bg-primary/10 text-primary rounded-full p-3">
+        <Icon name="Plus" className="h-6 w-6" />
+      </div>
+      <p className="text-lg font-semibold">Create Role</p>
+      <p className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
+        New RBAC Policy
+      </p>
+    </Card>
   );
 }
 
