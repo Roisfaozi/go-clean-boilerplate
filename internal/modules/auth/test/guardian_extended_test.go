@@ -9,6 +9,7 @@ import (
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -18,7 +19,7 @@ func TestAuthUseCase_GenerateAccessToken_Success(t *testing.T) {
 	authService, deps := setupAuthGuardianTest(t)
 	user, _ := createGuardianTestUser("password123")
 
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{"role:user"}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
 
 	accessToken, err := authService.GenerateAccessToken(user)
 
@@ -38,7 +39,7 @@ func TestAuthUseCase_GenerateRefreshToken_Success(t *testing.T) {
 	authService, deps := setupAuthGuardianTest(t)
 	user, _ := createGuardianTestUser("password123")
 
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{"role:user"}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
 
 	refreshToken, err := authService.GenerateRefreshToken(user)
 
@@ -174,7 +175,7 @@ func TestAuthUseCase_Login_Edge_EnforcerError(t *testing.T) {
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 
 	// FORCE ERROR HERE
-	deps.enforcer.On("GetRolesForUser", user.ID).Return(nil, errors.New("casbin error"))
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return(nil, errors.New("casbin error"))
 
 	loginResp, _, err := authService.Login(context.Background(), loginReq)
 
@@ -198,14 +199,15 @@ func TestAuthUseCase_Login_Edge_WSManagerError(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{"role:user"}, nil)
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 
 	// Mock WS Manager panic or error (although interface is void return usually, we simulate panic protection if needed,
 	// or just normal execution with internal error logging which we can't easily capture without log hooks.
 	// Here we just ensure the mock is called and it doesn't return error because interface is 'BroadcastToChannel(channel string, message []byte)' which has no return.
 	// So we verify it IS called.
-	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{{ID: "org1"}}, nil)
+	deps.wsManager.On("BroadcastToChannel", "org_org1_notifications", mock.Anything).Return()
 
 	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == user.ID && req.Action == "LOGIN"
@@ -233,10 +235,12 @@ func TestAuthUseCase_Login_Positive_VerifyClaims(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{"role:admin"}, nil) // Admin role
+	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:admin"}, nil) // Admin role
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	deps.wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{{ID: "org1"}}, nil)
+	deps.wsManager.On("BroadcastToChannel", "org_org1_notifications", mock.Anything).Return()
 	deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
 	loginResp, _, err := authService.Login(context.Background(), loginReq)
 

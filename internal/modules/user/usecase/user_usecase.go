@@ -206,7 +206,6 @@ func (u *userUseCaseImpl) Update(ctx context.Context, request *model.UpdateUserR
 	}
 
 	if request.Username != "" {
-		request.Username = pkg.SanitizeString(request.Username)
 
 		if request.Username != user.Username {
 			if existing, _ := u.Repo.FindByUsername(ctx, request.Username); existing != nil {
