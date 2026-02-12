@@ -45,10 +45,10 @@ interface UsersContextType {
 
 const UsersContext = createContext<UsersContextType | undefined>(undefined);
 
-export function UsersProvider({ 
+export function UsersProvider({
   children,
-  initialData
-}: { 
+  initialData,
+}: {
   children: ReactNode;
   initialData?: UserListResponse;
 }) {
@@ -65,8 +65,9 @@ export function UsersProvider({
     error,
     isLoading,
     mutate,
-  } = useSWR(["/api/v1/users", page, limit, searchTerm], ([_, p, l, s]) =>
-    usersApi.getAll(p, l, s),
+  } = useSWR(
+    ["/api/v1/users", page, limit, searchTerm],
+    ([_, p, l, s]) => usersApi.getAll(p, l, s),
     {
       fallbackData: initialData,
       keepPreviousData: true,

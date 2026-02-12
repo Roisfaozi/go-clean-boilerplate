@@ -26,7 +26,7 @@ import {
 import { Input } from "~/components/ui/input";
 import { toast } from "~/hooks/use-toast";
 import { FreePlanLimitError } from "~/lib/utils";
-import { checkIfFreePlanLimitReached, createProject } from "./action";
+import { checkIfFreePlanLimitReached } from "./action";
 
 export const projectSchema = z.object({
   name: z.string().min(1, { message: "Please enter a project name." }),
@@ -51,7 +51,7 @@ export default function CreateProjectModal() {
       if (limitReached) {
         throw new FreePlanLimitError();
       }
-      await createProject(values);
+      // await createProject(values);
       toast({
         title: "Project created successfully.",
       });

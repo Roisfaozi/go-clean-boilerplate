@@ -25,53 +25,30 @@ import { AuditLog } from "~/lib/api/audit";
 
 import { TableSkeleton } from "~/components/shared/skeletons";
 
-
-
 export function RecentActivity() {
-
   const { recentLogs, isLoading } = useDashboard();
-
-
 
   const [now, setNow] = useState<number | null>(null);
 
-
-
   useEffect(() => {
-
     const handle = requestAnimationFrame(() => {
-
       setNow(Date.now());
-
     });
 
     return () => cancelAnimationFrame(handle);
-
   }, []);
 
-
-
   if (isLoading && recentLogs.length === 0) {
-
     return (
-
-      <div className="md:col-span-5 space-y-4">
-
+      <div className="space-y-4 md:col-span-5">
         <div className="flex items-center justify-between">
-
-          <div className="h-6 w-32 bg-muted animate-pulse rounded" />
-
+          <div className="bg-muted h-6 w-32 animate-pulse rounded" />
         </div>
 
         <TableSkeleton rows={5} columns={5} />
-
       </div>
-
     );
-
   }
-
-
 
   return (
     <div className="flex flex-col gap-4 md:col-span-5">

@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useCallback,
-  ReactNode,
-} from "react";
+import { createContext, useContext, useCallback, ReactNode } from "react";
 import { Organization, organizationsApi } from "~/lib/api/organizations";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
@@ -23,10 +18,10 @@ const DashboardShellContext = createContext<
   DashboardShellContextType | undefined
 >(undefined);
 
-export function DashboardShellProvider({ 
+export function DashboardShellProvider({
   children,
-  initialData
-}: { 
+  initialData,
+}: {
   children: ReactNode;
   initialData?: Organization[];
 }) {
@@ -37,8 +32,12 @@ export function DashboardShellProvider({
     data: organizations = [],
     isLoading,
     mutate,
-  } = useSWR("/api/v1/organizations/me", () => 
-    organizationsApi.getMyOrganizations().then(res => res.data?.organizations || []),
+  } = useSWR(
+    "/api/v1/organizations/me",
+    () =>
+      organizationsApi
+        .getMyOrganizations()
+        .then((res) => res.data?.organizations || []),
     {
       fallbackData: initialData,
       keepPreviousData: true,
@@ -47,7 +46,7 @@ export function DashboardShellProvider({
         if (!currentOrganization && data.length > 0) {
           setCurrentOrganization(data[0]);
         }
-      }
+      },
     }
   );
 

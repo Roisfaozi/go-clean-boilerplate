@@ -4,7 +4,11 @@ import { DashboardHeader } from "~/components/layout/dashboard/header";
 import { Sidebar } from "~/components/layout/sidebar";
 import { usePresence } from "~/hooks/use-presence";
 
-export function DashboardLayoutClient({ children }: { children: React.ReactNode }) {
+export function DashboardLayoutClient({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   usePresence();
 
   return (

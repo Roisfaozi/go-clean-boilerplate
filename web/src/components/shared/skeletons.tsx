@@ -7,10 +7,16 @@ import { Card, CardContent, CardHeader } from "~/components/ui/card";
 /**
  * TableSkeleton - Standard pattern for data grids (Users, Audit, Members)
  */
-export function TableSkeleton({ rows = 5, columns = 5 }: { rows?: number; columns?: number }) {
+export function TableSkeleton({
+  rows = 5,
+  columns = 5,
+}: {
+  rows?: number;
+  columns?: number;
+}) {
   return (
     <div className="w-full space-y-4">
-      <div className="rounded-md border overflow-hidden">
+      <div className="overflow-hidden rounded-md border">
         <div className="bg-muted/50 border-b p-4">
           <div className="flex gap-4">
             {Array.from({ length: columns }).map((_, i) => (
@@ -20,9 +26,15 @@ export function TableSkeleton({ rows = 5, columns = 5 }: { rows?: number; column
         </div>
         <div className="divide-y">
           {Array.from({ length: rows }).map((_, i) => (
-            <div key={i} className="p-4 flex gap-4 items-center">
+            <div key={i} className="flex items-center gap-4 p-4">
               {Array.from({ length: columns }).map((_, j) => (
-                <Skeleton key={j} className={cn("h-4 flex-1", j === 0 && "h-8 w-8 rounded-full flex-none")} />
+                <Skeleton
+                  key={j}
+                  className={cn(
+                    "h-4 flex-1",
+                    j === 0 && "h-8 w-8 flex-none rounded-full"
+                  )}
+                />
               ))}
             </div>
           ))}
@@ -46,7 +58,7 @@ export function CardGridSkeleton({ count = 3 }: { count?: number }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <Skeleton className="h-20 w-full" />
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
               <Skeleton className="h-8 w-20" />
               <Skeleton className="h-8 w-8 rounded-full" />
             </div>
@@ -112,12 +124,12 @@ export function StatsChartSkeleton() {
         <Skeleton className="h-4 w-64" />
       </CardHeader>
       <CardContent>
-        <div className="h-[250px] flex items-end gap-2 px-2">
+        <div className="flex h-[250px] items-end gap-2 px-2">
           {barHeights.map((height, i) => (
-            <Skeleton 
-              key={i} 
-              className="flex-1 rounded-t-sm" 
-              style={{ height: `${height}%` }} 
+            <Skeleton
+              key={i}
+              className="flex-1 rounded-t-sm"
+              style={{ height: `${height}%` }}
             />
           ))}
         </div>

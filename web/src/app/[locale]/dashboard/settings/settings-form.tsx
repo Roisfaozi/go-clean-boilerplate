@@ -6,7 +6,6 @@ import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { type User } from "~/types";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import {
@@ -21,11 +20,8 @@ import {
 import { Input } from "~/components/ui/input";
 import { useToast } from "~/hooks/use-toast";
 import { settingsSchema, type SettingsValues } from "~/lib/validations";
-import {
-  removeNewImageFromCDN,
-  removeUserOldImageFromCDN,
-  updateUser,
-} from "./actions";
+import { type User } from "~/types";
+import { removeNewImageFromCDN, removeUserOldImageFromCDN } from "./actions";
 
 const ImageUploadModal = dynamic(
   () => import("~/components/layout/image-upload-modal")
@@ -75,7 +71,7 @@ export default function SettingsForm({ currentUser }: { currentUser: User }) {
             currentUser.picture
           );
         }
-        await updateUser(currentUser.id, data);
+        // await updateUser(currentUser.id, data);
         toast({ title: "Updated successfully!" });
       } catch (error) {
         console.log(JSON.stringify(error));

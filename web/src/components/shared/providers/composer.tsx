@@ -11,7 +11,10 @@ interface ProviderComposerProps {
  * ProviderComposer - Flattens nested providers into a single linear list.
  * Helps prevent the "wrapper hell" in root layouts.
  */
-export function ProviderComposer({ providers, children }: ProviderComposerProps) {
+export function ProviderComposer({
+  providers,
+  children,
+}: ProviderComposerProps) {
   return (
     <>
       {providers.reduceRight((acc, Provider) => {
