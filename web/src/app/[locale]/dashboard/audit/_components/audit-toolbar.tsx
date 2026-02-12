@@ -7,7 +7,8 @@ import { Input } from "~/components/ui/input";
 import { auditApi } from "~/lib/api/audit";
 
 export function AuditToolbar() {
-  const { searchTerm, setSearchTerm, setPage, isLoading, totalItems } = useAudit();
+  const { searchTerm, setSearchTerm, setPage, isLoading, totalItems } =
+    useAudit();
 
   return (
     <div className="space-y-4">

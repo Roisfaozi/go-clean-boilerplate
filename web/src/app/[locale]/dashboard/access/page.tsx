@@ -1,6 +1,9 @@
 "use client";
 
-import { AccessControlProvider, useAccessControl } from "./_components/access-control-context";
+import {
+  AccessControlProvider,
+  useAccessControl,
+} from "./_components/access-control-context";
 import { PermissionMatrixView } from "~/components/dashboard/access/permission-matrix-view";
 import { PolicyEditorView } from "~/components/dashboard/access/policy-editor-view";
 import { RoleCardsView } from "~/components/dashboard/access/role-cards-view";
@@ -18,12 +21,12 @@ export default function AccessPage() {
 }
 
 function AccessControlContent() {
-  const { 
-    activeTab, 
-    setActiveTab, 
-    roleDialogOpen, 
-    setRoleDialogOpen, 
-    handleRoleClick 
+  const {
+    activeTab,
+    setActiveTab,
+    roleDialogOpen,
+    setRoleDialogOpen,
+    handleRoleClick,
   } = useAccessControl();
 
   return (

@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
 import { Role } from "~/lib/api/roles";
 
 interface AccessControlContextType {
@@ -11,7 +17,9 @@ interface AccessControlContextType {
   handleRoleClick: (role: Role) => void;
 }
 
-const AccessControlContext = createContext<AccessControlContextType | undefined>(undefined);
+const AccessControlContext = createContext<
+  AccessControlContextType | undefined
+>(undefined);
 
 export function AccessControlProvider({ children }: { children: ReactNode }) {
   const [activeTab, setActiveTab] = useState("matrix");
@@ -40,7 +48,9 @@ export function AccessControlProvider({ children }: { children: ReactNode }) {
 export function useAccessControl() {
   const context = useContext(AccessControlContext);
   if (context === undefined) {
-    throw new Error("useAccessControl must be used within an AccessControlProvider");
+    throw new Error(
+      "useAccessControl must be used within an AccessControlProvider"
+    );
   }
   return context;
 }

@@ -35,11 +35,7 @@ export function PreferencesSettings() {
               >
                 Comfort
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-3 text-xs"
-              >
+              <Button variant="ghost" size="sm" className="h-7 px-3 text-xs">
                 Compact
               </Button>
             </div>
@@ -47,9 +43,7 @@ export function PreferencesSettings() {
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <div className="text-sm font-medium">
-                Email Notifications
-              </div>
+              <div className="text-sm font-medium">Email Notifications</div>
               <div className="text-muted-foreground text-xs">
                 Receive security alerts via email.
               </div>

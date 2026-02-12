@@ -7,9 +7,17 @@ interface UserSettingsContextType {
   user: any;
 }
 
-const UserSettingsContext = createContext<UserSettingsContextType | undefined>(undefined);
+const UserSettingsContext = createContext<UserSettingsContextType | undefined>(
+  undefined
+);
 
-export function UserSettingsProvider({ user, children }: { user: any, children: ReactNode }) {
+export function UserSettingsProvider({
+  user,
+  children,
+}: {
+  user: any;
+  children: ReactNode;
+}) {
   return (
     <UserSettingsContext.Provider value={{ user }}>
       {children}
@@ -20,7 +28,9 @@ export function UserSettingsProvider({ user, children }: { user: any, children: 
 export function useUserSettings() {
   const context = useContext(UserSettingsContext);
   if (context === undefined) {
-    throw new Error("useUserSettings must be used within a UserSettingsProvider");
+    throw new Error(
+      "useUserSettings must be used within a UserSettingsProvider"
+    );
   }
   return context;
 }

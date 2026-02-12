@@ -16,7 +16,14 @@ import { AuditLog } from "~/lib/api/audit";
 import { memo } from "react";
 
 export function AuditTable() {
-  const { logs, isLoading, handleRowClick, selectedLog, isDetailOpen, setIsDetailOpen } = useAudit();
+  const {
+    logs,
+    isLoading,
+    handleRowClick,
+    selectedLog,
+    isDetailOpen,
+    setIsDetailOpen,
+  } = useAudit();
 
   return (
     <>

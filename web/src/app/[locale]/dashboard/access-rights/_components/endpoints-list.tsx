@@ -14,7 +14,8 @@ import { Button } from "~/components/ui/button";
 import { Icon } from "~/components/shared/icon";
 
 export function EndpointsList() {
-  const { endpoints, isLoading, isProcessing, deleteEndpoint } = useAccessRights();
+  const { endpoints, isLoading, isProcessing, deleteEndpoint } =
+    useAccessRights();
 
   return (
     <div className="rounded-md border">
@@ -65,7 +66,10 @@ export function EndpointsList() {
                         className="text-muted-foreground h-4 w-4 animate-spin"
                       />
                     ) : (
-                      <Icon name="Trash2" className="text-destructive h-4 w-4" />
+                      <Icon
+                        name="Trash2"
+                        className="text-destructive h-4 w-4"
+                      />
                     )}
                   </Button>
                 </TableCell>

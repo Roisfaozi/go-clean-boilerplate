@@ -170,7 +170,10 @@ function EndpointGroup({
                   htmlFor={`ar-${accessRight.id}-ep-${ep.id}`}
                   className="flex flex-1 cursor-pointer items-center gap-2 text-xs leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  <Badge variant="outline" className="h-4 px-1 font-mono text-[8px]">
+                  <Badge
+                    variant="outline"
+                    className="h-4 px-1 font-mono text-[8px]"
+                  >
                     {ep.method}
                   </Badge>
                   <span
