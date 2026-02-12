@@ -1,30 +1,21 @@
-import Link from "next/link";
-import { Card } from "~/components/ui/card";
-import { getProjects } from "./action";
-import CreateProjectModal from "./create-project-modal";
+"use client";
 
-export default async function Projects() {
-  const projects = await getProjects();
+import { ProjectsProvider } from "./_components/projects-context";
+import { ProjectsGrid } from "./_components/projects-grid";
 
+export default function ProjectsPage() {
   return (
-    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
-      <CreateProjectModal />
-      {projects.map((project) => (
-        <Card
-          role="button"
-          key={project.id}
-          className="hover:bg-accent relative flex flex-col items-center justify-center gap-y-2.5 p-8 text-center"
-        >
-          <h4 className="font-medium">{project.name}</h4>
-          <p className="text-muted-foreground">{`https://${project.domain}`}</p>
-          <Link
-            href={`/dashboard/projects/${project.id}`}
-            className="absolute inset-0"
-          >
-            <span className="sr-only">View project details</span>
-          </Link>
-        </Card>
-      ))}
-    </div>
+    <ProjectsProvider>
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Projects</h2>
+          <p className="text-muted-foreground">
+            Manage your application environments and deployments.
+          </p>
+        </div>
+
+        <ProjectsGrid />
+      </div>
+    </ProjectsProvider>
   );
 }

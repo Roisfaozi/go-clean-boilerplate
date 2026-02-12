@@ -1,6 +1,7 @@
 import { api } from "./client";
-
 import { Project } from "~/types";
+
+export type { Project };
 
 export interface CreateProjectRequest {
   name: string;
