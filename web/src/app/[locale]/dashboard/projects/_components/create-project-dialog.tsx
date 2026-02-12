@@ -27,6 +27,8 @@ import {
 import { Input } from "~/components/ui/input";
 import { toast } from "sonner";
 import { useProjects } from "./projects-context";
+import { useAction } from "next-safe-action/hooks";
+import { createProjectAction } from "../action";
 
 const projectSchema = z.object({
   name: z.string().min(1, { message: "Please enter a project name." }),
@@ -37,7 +39,19 @@ type ProjectFormValues = z.infer<typeof projectSchema>;
 
 export function CreateProjectDialog() {
   const [isOpen, setIsOpen] = useState(false);
-  const { createProject } = useProjects();
+  const { fetchProjects } = useProjects();
+
+  const { execute, isPending } = useAction(createProjectAction, {
+    onSuccess: () => {
+      toast.success("Project created successfully");
+      form.reset();
+      setIsOpen(false);
+      fetchProjects();
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError || "Failed to create project");
+    }
+  });
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
@@ -48,13 +62,7 @@ export function CreateProjectDialog() {
   });
 
   async function onSubmit(values: ProjectFormValues) {
-    try {
-      await createProject(values);
-      form.reset();
-      setIsOpen(false);
-    } catch (error) {
-      console.error(error);
-    }
+    execute(values);
   }
 
   return (
@@ -113,11 +121,11 @@ export function CreateProjectDialog() {
             />
             <DialogFooter className="pt-4">
               <Button
-                disabled={form.formState.isSubmitting}
+                disabled={isPending}
                 type="submit"
                 className="w-full"
               >
-                {form.formState.isSubmitting && (
+                {isPending && (
                   <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 Create Project
