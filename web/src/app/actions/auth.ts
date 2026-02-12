@@ -21,7 +21,6 @@ const REFRESH_TOKEN_MAX_AGE = Number(
 );
 
 export const loginAction = actionClient
-  .metadata({ actionName: "login" })
   .schema(loginSchema)
   .action(async ({ parsedInput: { username, password } }) => {
     try {

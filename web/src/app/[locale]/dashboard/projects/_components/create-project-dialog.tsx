@@ -50,7 +50,7 @@ export function CreateProjectDialog() {
     },
     onError: ({ error }) => {
       toast.error(error.serverError || "Failed to create project");
-    }
+    },
   });
 
   const form = useForm<ProjectFormValues>({
@@ -120,11 +120,7 @@ export function CreateProjectDialog() {
               )}
             />
             <DialogFooter className="pt-4">
-              <Button
-                disabled={isPending}
-                type="submit"
-                className="w-full"
-              >
+              <Button disabled={isPending} type="submit" className="w-full">
                 {isPending && (
                   <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
                 )}

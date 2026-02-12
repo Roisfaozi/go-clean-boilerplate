@@ -7,7 +7,10 @@ import { z } from "zod";
 
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
-  username: z.string().min(3, "Username must be at least 3 characters").optional(),
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .optional(),
 });
 
 export const updateUserAction = authActionClient

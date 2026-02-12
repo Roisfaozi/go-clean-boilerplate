@@ -55,7 +55,7 @@ export const deleteProjectAction = authActionClient
 export async function checkIfFreePlanLimitReached() {
   const orgId = await getOrgId();
   if (!orgId) return true;
-  
+
   try {
     const projects = await projectsApi.getAll(orgId);
     return (projects?.length || 0) >= 3;
@@ -67,7 +67,7 @@ export async function checkIfFreePlanLimitReached() {
 export async function getProjects() {
   const orgId = await getOrgId();
   if (!orgId) return [];
-  
+
   try {
     const projects = await projectsApi.getAll(orgId);
     return projects || [];
@@ -80,7 +80,7 @@ export async function getProjects() {
 export async function getProjectById(id: string) {
   const orgId = await getOrgId();
   if (!orgId) return null;
-  
+
   try {
     const project = await projectsApi.getByID(orgId, id);
     return project;
