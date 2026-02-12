@@ -14,6 +14,7 @@ import { Icon } from "~/components/shared/icon";
 import { LogDetailDialog } from "~/components/dashboard/audit/log-detail-dialog";
 import { AuditLog } from "~/lib/api/audit";
 import { memo } from "react";
+import { EmptyState } from "~/components/shared/empty-state";
 
 export function AuditTable() {
   const {
@@ -23,7 +24,25 @@ export function AuditTable() {
     selectedLog,
     isDetailOpen,
     setIsDetailOpen,
+    searchTerm,
+    clearSearch,
   } = useAudit();
+
+  if (!isLoading && logs.length === 0) {
+    return (
+      <div className="bg-muted/5 rounded-md border border-dashed">
+        {searchTerm ? (
+          <EmptyState
+            case="search"
+            searchTerm={searchTerm}
+            action={{ label: "Clear search", onClick: clearSearch }}
+          />
+        ) : (
+          <EmptyState case="activity" />
+        )}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -47,15 +66,6 @@ export function AuditTable() {
                     <Icon name="Loader" className="h-4 w-4 animate-spin" />
                     Loading logs...
                   </div>
-                </TableCell>
-              </TableRow>
-            ) : logs.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-muted-foreground h-24 text-center italic"
-                >
-                  No logs found.
                 </TableCell>
               </TableRow>
             ) : (

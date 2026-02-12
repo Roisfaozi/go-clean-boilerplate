@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { ResourceCRUD } from "~/lib/api/access";
+import { EmptyState } from "~/components/shared/empty-state";
 
 export function MatrixGrid() {
   const { resources, roles, isLoading } = usePermissionMatrix();
@@ -28,6 +29,18 @@ export function MatrixGrid() {
           <Skeleton key={i} className="h-14 w-full" />
         ))}
       </div>
+    );
+  }
+
+  if (resources.length === 0) {
+    return (
+      <EmptyState
+        case="resources"
+        action={{
+          label: "Add Endpoints",
+          onClick: () => (window.location.href = "/dashboard/access-rights"),
+        }}
+      />
     );
   }
 

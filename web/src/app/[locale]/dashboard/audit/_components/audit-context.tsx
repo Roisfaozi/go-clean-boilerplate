@@ -27,6 +27,7 @@ interface AuditContextType {
   setIsDetailOpen: (open: boolean) => void;
   fetchLogs: () => Promise<void>;
   handleRowClick: (log: AuditLog) => void;
+  clearSearch: () => void;
 }
 
 const AuditContext = createContext<AuditContextType | undefined>(undefined);
@@ -92,6 +93,11 @@ export function AuditProvider({ children }: { children: ReactNode }) {
     setIsDetailOpen(true);
   }, []);
 
+  const clearSearch = useCallback(() => {
+    setSearchTerm("");
+    setPage(1);
+  }, []);
+
   return (
     <AuditContext.Provider
       value={{
@@ -109,6 +115,7 @@ export function AuditProvider({ children }: { children: ReactNode }) {
         setIsDetailOpen,
         fetchLogs,
         handleRowClick,
+        clearSearch,
       }}
     >
       {children}
