@@ -14,16 +14,16 @@ import (
 )
 
 type AuthController struct {
-	AuthUseCase   usecase.AuthUseCase
-	log           *logrus.Logger
-	validate      *validator.Validate
+	AuthUseCase usecase.AuthUseCase
+	log         *logrus.Logger
+	validate    *validator.Validate
 }
 
 func NewAuthController(useCase usecase.AuthUseCase, log *logrus.Logger, validate *validator.Validate) *AuthController {
 	return &AuthController{
-		AuthUseCase:   useCase,
-		log:           log,
-		validate:      validate,
+		AuthUseCase: useCase,
+		log:         log,
+		validate:    validate,
 	}
 }
 

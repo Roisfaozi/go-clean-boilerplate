@@ -14,7 +14,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-
 func TestUserE2E_GetAllUsers(t *testing.T) {
 	server := setup.SetupTestServer(t)
 	defer server.Cleanup()

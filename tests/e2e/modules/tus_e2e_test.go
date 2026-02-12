@@ -38,20 +38,19 @@ func TestTUS_E2E_Lifecycle(t *testing.T) {
 		location := resp.Header.Get("Location")
 		require.NotEmpty(t, location)
 
-
 		client := &http.Client{}
-		
+
 		patchReq, _ := http.NewRequest("PATCH", location, strings.NewReader("hello"))
 		patchReq.Header.Set("Authorization", "Bearer "+adminToken)
 		patchReq.Header.Set("Tus-Resumable", "1.0.0")
 		patchReq.Header.Set("Upload-Offset", "0")
 		patchReq.Header.Set("Content-Type", "application/offset+octet-stream")
-		
+
 		patchResp, err := client.Do(patchReq)
 		require.NoError(t, err)
 		defer patchResp.Body.Close()
 		require.Equal(t, http.StatusNoContent, patchResp.StatusCode)
-		
+
 		newOffset := patchResp.Header.Get("Upload-Offset")
 		assert.Equal(t, "5", newOffset)
 
@@ -60,12 +59,12 @@ func TestTUS_E2E_Lifecycle(t *testing.T) {
 		patchReq2.Header.Set("Tus-Resumable", "1.0.0")
 		patchReq2.Header.Set("Upload-Offset", "5")
 		patchReq2.Header.Set("Content-Type", "application/offset+octet-stream")
-		
+
 		patchResp2, err := client.Do(patchReq2)
 		require.NoError(t, err)
 		defer patchResp2.Body.Close()
 		require.Equal(t, http.StatusNoContent, patchResp2.StatusCode)
-		
+
 		finalOffset := patchResp2.Header.Get("Upload-Offset")
 		assert.Equal(t, "10", finalOffset)
 	})
@@ -100,7 +99,7 @@ func TestTUS_E2E_Lifecycle(t *testing.T) {
 			resp := server.Client.POST("/api/v1/upload/files/", nil, reqHeaders...)
 			assert.Equal(t, http.StatusCreated, resp.StatusCode)
 		}()
-		
+
 		wg.Wait()
 	})
 

@@ -74,7 +74,7 @@ func TestTUS_Integration_Lifecycle(t *testing.T) {
 	ctx := context.Background()
 
 	s3URL, s3Bucket := setup.SetupRustFS(t, ctx)
-	
+
 	awsCfg, _ := awsconfig.LoadDefaultConfig(ctx,
 		awsconfig.WithRegion(rustfsRegion),
 		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("rustfsadmin", "rustfsadmin", "")),
@@ -83,7 +83,7 @@ func TestTUS_Integration_Lifecycle(t *testing.T) {
 		o.BaseEndpoint = aws.String(s3URL)
 		o.UsePathStyle = true
 	})
-	
+
 	// Wait and create bucket
 	time.Sleep(2 * time.Second)
 	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
@@ -104,7 +104,7 @@ func TestTUS_Integration_Lifecycle(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/files/", nil)
 		req.Header.Set("Tus-Resumable", "1.0.0")
 		req.Header.Set("Upload-Length", "5")
-		
+
 		userIDBase64 := base64.StdEncoding.EncodeToString([]byte(userID))
 		req.Header.Set("Upload-Metadata", fmt.Sprintf("filename dGVzdC50eHQ=,type YXZhdGFy,user_id %s", userIDBase64))
 
@@ -119,7 +119,7 @@ func TestTUS_Integration_Lifecycle(t *testing.T) {
 		parts := strings.Split(location, "/")
 		uploadID := parts[len(parts)-1]
 		require.NotEmpty(t, uploadID)
-		
+
 		t.Run("Upload Chunk", func(t *testing.T) {
 			body := []byte("hello")
 			req, _ := http.NewRequest("PATCH", location, bytes.NewReader(body))
@@ -139,7 +139,7 @@ func TestTUS_Integration_Lifecycle(t *testing.T) {
 			var user struct{ AvatarURL string }
 			err := env.DB.Table("users").Select("avatar_url").Where("id = ?", userID).Scan(&user).Error
 			require.NoError(t, err)
-			
+
 			assert.Contains(t, user.AvatarURL, rustfsBucket)
 			assert.Contains(t, user.AvatarURL, uploadID)
 		})

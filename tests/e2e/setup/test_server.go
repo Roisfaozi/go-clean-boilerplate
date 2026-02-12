@@ -251,7 +251,7 @@ func CreateAdminAndLogin(t *testing.T, server *TestServer) string {
 
 	resp := server.Client.POST("/api/v1/auth/login", map[string]any{
 		"username": admin.Username,
-		"password": "AdminPass123!",	
+		"password": "AdminPass123!",
 	})
 	require.Equal(t, 200, resp.StatusCode)
 
