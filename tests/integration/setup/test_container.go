@@ -80,7 +80,7 @@ func SetupRustFS(t *testing.T, ctx context.Context) (string, string) {
 	}
 
 	t.Cleanup(func() {
-		rustfsC.Terminate(ctx)
+		_ = rustfsC.Terminate(ctx)
 	})
 
 	host, err := rustfsC.Host(ctx)

@@ -242,13 +242,16 @@ func CreateAdminAndLogin(t *testing.T, server *TestServer) string {
 		u.Password = string(hash)
 	})
 
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
-	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
-	server.Enforcer.SavePolicy()
+	_, err := server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	require.NoError(t, err)
+	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
+	require.NoError(t, err)
+	err = server.Enforcer.SavePolicy()
+	require.NoError(t, err)
 
 	resp := server.Client.POST("/api/v1/auth/login", map[string]any{
 		"username": admin.Username,
-		"password": "AdminPass123!",
+		"password": "AdminPass123!",	
 	})
 	require.Equal(t, 200, resp.StatusCode)
 
@@ -257,6 +260,7 @@ func CreateAdminAndLogin(t *testing.T, server *TestServer) string {
 			AccessToken string `json:"access_token"`
 		} `json:"data"`
 	}
-	resp.JSON(&loginRes)
+	err = resp.JSON(&loginRes)
+	require.NoError(t, err)
 	return loginRes.Data.AccessToken
 }
