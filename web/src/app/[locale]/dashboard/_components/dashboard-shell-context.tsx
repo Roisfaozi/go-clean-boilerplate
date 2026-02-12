@@ -3,14 +3,13 @@
 import {
   createContext,
   useContext,
-  useState,
   useCallback,
-  useEffect,
   ReactNode,
 } from "react";
 import { Organization, organizationsApi } from "~/lib/api/organizations";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
+import useSWR from "swr";
 
 interface DashboardShellContextType {
   organizations: Organization[];
@@ -24,34 +23,37 @@ const DashboardShellContext = createContext<
   DashboardShellContextType | undefined
 >(undefined);
 
-export function DashboardShellProvider({ children }: { children: ReactNode }) {
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+export function DashboardShellProvider({ 
+  children,
+  initialData
+}: { 
+  children: ReactNode;
+  initialData?: Organization[];
+}) {
   const { currentOrganization, setCurrentOrganization } =
     useOrganizationStore();
-  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchOrgs = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const resp = await organizationsApi.getMyOrganizations();
-      if (resp.data?.organizations) {
-        setOrganizations(resp.data.organizations);
-        // Sync with store if needed or auto-select
-        if (!currentOrganization && resp.data.organizations.length > 0) {
-          setCurrentOrganization(resp.data.organizations[0]);
+  const {
+    data: organizations = [],
+    isLoading,
+    mutate,
+  } = useSWR("/api/v1/organizations/me", () => 
+    organizationsApi.getMyOrganizations().then(res => res.data?.organizations || []),
+    {
+      fallbackData: initialData,
+      keepPreviousData: true,
+      onSuccess: (data) => {
+        // Auto-select first org if none selected and we have data
+        if (!currentOrganization && data.length > 0) {
+          setCurrentOrganization(data[0]);
         }
       }
-    } catch (error) {
-      console.error("Failed to fetch organizations", error);
-      toast.error("Failed to load workspaces");
-    } finally {
-      setIsLoading(false);
     }
-  }, [currentOrganization, setCurrentOrganization]);
+  );
 
-  useEffect(() => {
-    fetchOrgs();
-  }, [fetchOrgs]);
+  const fetchOrgs = useCallback(async () => {
+    await mutate();
+  }, [mutate]);
 
   const setOrganization = useCallback(
     (org: Organization) => {
