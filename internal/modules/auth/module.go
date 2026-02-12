@@ -47,8 +47,8 @@ func NewAuthModule(
 	tokenRepo := repository.NewTokenRepositoryRedis(redisClient, log, db)
 	userRepository := userRepo.NewUserRepository(db, log)
 
-	authUseCase := usecase.NewAuthUsecase(maxLoginAttempts, lockoutDuration, jwtManager, tokenRepo, userRepository, orgRepo, tm, log, wsManager, sseManager, enforcer, auditModule.AuditController.UseCase, taskDistributor)
-	authController := http.NewAuthController(authUseCase, log, validate, ticketManager)
+	authUseCase := usecase.NewAuthUsecase(maxLoginAttempts, lockoutDuration, jwtManager, tokenRepo, userRepository, orgRepo, tm, log, wsManager, sseManager, enforcer, auditModule.AuditController.UseCase, taskDistributor, ticketManager)
+	authController := http.NewAuthController(authUseCase, log, validate)
 
 	return &AuthModule{
 		AuthController: authController,

@@ -42,4 +42,7 @@ type AuthUseCase interface {
 	// Email Verification
 	RequestVerification(ctx context.Context, userID string) error
 	VerifyEmail(ctx context.Context, token string) error
+
+	// Ticket
+	GetTicket(ctx context.Context, userID, orgID, sessionID, role, username string) (string, error)
 }
