@@ -38,7 +38,7 @@ type ProjectFormValues = z.infer<typeof projectSchema>;
 export function CreateProjectDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const { createProject } = useProjects();
-  
+
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -68,7 +68,9 @@ export function CreateProjectDialog() {
             <Icon name="Plus" className="h-8 w-8" />
           </div>
           <p className="text-xl font-semibold">Create a project</p>
-          <p className="text-muted-foreground text-sm">Launch a new environment</p>
+          <p className="text-muted-foreground text-sm">
+            Launch a new environment
+          </p>
         </Card>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
@@ -79,7 +81,10 @@ export function CreateProjectDialog() {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4 py-4"
+          >
             <FormField
               control={form.control}
               name="name"
@@ -107,7 +112,11 @@ export function CreateProjectDialog() {
               )}
             />
             <DialogFooter className="pt-4">
-              <Button disabled={form.formState.isSubmitting} type="submit" className="w-full">
+              <Button
+                disabled={form.formState.isSubmitting}
+                type="submit"
+                className="w-full"
+              >
                 {form.formState.isSubmitting && (
                   <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
                 )}

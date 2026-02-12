@@ -34,7 +34,10 @@ export function AuthLayoutShell({
       {/* Left Panel: Functional Zone */}
       <div className="flex flex-1 flex-col justify-center px-6 py-12 md:px-12 lg:px-24 xl:px-32">
         <div className="mx-auto w-full max-w-sm lg:mx-0">
-          <Link href="/" className="mb-10 flex items-center gap-2 transition-opacity hover:opacity-80">
+          <Link
+            href="/"
+            className="mb-10 flex items-center gap-2 transition-opacity hover:opacity-80"
+          >
             <Icons.logo className="text-primary h-10 w-10" />
             <span className="text-2xl font-bold tracking-tighter">NexusOS</span>
           </Link>
@@ -78,10 +81,14 @@ export function AuthLayoutShell({
                   &quot;{testimonial.quote}&quot;
                 </p>
                 <div className="mt-4 flex items-center gap-3">
-                  <div className="bg-indigo-300/50 h-10 w-10 rounded-full" />
+                  <div className="h-10 w-10 rounded-full bg-indigo-300/50" />
                   <div>
-                    <p className="text-sm font-semibold">{testimonial.author}</p>
-                    <p className="text-xs text-indigo-200">{testimonial.role}</p>
+                    <p className="text-sm font-semibold">
+                      {testimonial.author}
+                    </p>
+                    <p className="text-xs text-indigo-200">
+                      {testimonial.role}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -91,7 +98,7 @@ export function AuthLayoutShell({
               <ul className="space-y-4">
                 {features.map((item) => (
                   <li key={item} className="flex items-center gap-3">
-                    <div className="bg-indigo-400/30 text-indigo-200 flex h-5 w-5 items-center justify-center rounded-full">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-400/30 text-indigo-200">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 20 20"
@@ -105,7 +112,7 @@ export function AuthLayoutShell({
                         />
                       </svg>
                     </div>
-                    <span className="text-indigo-50 text-sm font-medium">
+                    <span className="text-sm font-medium text-indigo-50">
                       {item}
                     </span>
                   </li>

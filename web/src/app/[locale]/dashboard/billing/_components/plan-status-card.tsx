@@ -40,7 +40,7 @@ export function PlanStatusCard() {
           )}
           {subscriptionPlan.isPro ? "Manage Billing" : "Upgrade to Pro"}
         </Button>
-        
+
         {subscriptionPlan.isPro && (
           <div className="text-muted-foreground text-sm font-medium">
             {subscriptionPlan.isCanceled

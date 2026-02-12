@@ -58,7 +58,9 @@ export function PricingComparison() {
                       <span className="text-muted-foreground">—</span>
                     )
                   ) : (
-                    <span className="text-muted-foreground">{feature.free}</span>
+                    <span className="text-muted-foreground">
+                      {feature.free}
+                    </span>
                   )}
                 </div>
                 <div className="w-20 text-center font-semibold">

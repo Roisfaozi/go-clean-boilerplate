@@ -16,7 +16,13 @@ import {
 } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
 import { useProjectDetail } from "./project-detail-context";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 
 const projectSchema = z.object({
   name: z.string().min(1, { message: "Please enter a project name." }),
@@ -27,7 +33,7 @@ type ProjectFormValues = z.infer<typeof projectSchema>;
 
 export function ProjectDetailsForm() {
   const { project, updateProject, isLoading } = useProjectDetail();
-  
+
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -60,8 +66,16 @@ export function ProjectDetailsForm() {
               <FormLabel>Project ID</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <Input value={project.id} readOnly disabled className="bg-muted font-mono" />
-                  <CopyButton content={project.id} className="absolute right-2 top-1/2 -translate-y-1/2" />
+                  <Input
+                    value={project.id}
+                    readOnly
+                    disabled
+                    className="bg-muted font-mono"
+                  />
+                  <CopyButton
+                    content={project.id}
+                    className="absolute top-1/2 right-2 -translate-y-1/2"
+                  />
                 </div>
               </FormControl>
               <FormMessage />

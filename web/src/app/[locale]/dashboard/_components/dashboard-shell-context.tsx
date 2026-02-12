@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  ReactNode,
+} from "react";
 import { Organization, organizationsApi } from "~/lib/api/organizations";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
@@ -13,11 +20,14 @@ interface DashboardShellContextType {
   refreshOrganizations: () => Promise<void>;
 }
 
-const DashboardShellContext = createContext<DashboardShellContextType | undefined>(undefined);
+const DashboardShellContext = createContext<
+  DashboardShellContextType | undefined
+>(undefined);
 
 export function DashboardShellProvider({ children }: { children: ReactNode }) {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const { currentOrganization, setCurrentOrganization } = useOrganizationStore();
+  const { currentOrganization, setCurrentOrganization } =
+    useOrganizationStore();
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchOrgs = useCallback(async () => {
@@ -43,10 +53,13 @@ export function DashboardShellProvider({ children }: { children: ReactNode }) {
     fetchOrgs();
   }, [fetchOrgs]);
 
-  const setOrganization = useCallback((org: Organization) => {
-    setCurrentOrganization(org);
-    toast.success(`Switched to ${org.name}`);
-  }, [setCurrentOrganization]);
+  const setOrganization = useCallback(
+    (org: Organization) => {
+      setCurrentOrganization(org);
+      toast.success(`Switched to ${org.name}`);
+    },
+    [setCurrentOrganization]
+  );
 
   return (
     <DashboardShellContext.Provider
@@ -66,7 +79,9 @@ export function DashboardShellProvider({ children }: { children: ReactNode }) {
 export function useDashboardShell() {
   const context = useContext(DashboardShellContext);
   if (context === undefined) {
-    throw new Error("useDashboardShell must be used within a DashboardShellProvider");
+    throw new Error(
+      "useDashboardShell must be used within a DashboardShellProvider"
+    );
   }
   return context;
 }

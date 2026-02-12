@@ -24,7 +24,12 @@ import { CreateOrganizationModal } from "./create-organization-modal";
 export function OrganizationSwitcher() {
   const [open, setOpen] = React.useState(false);
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
-  const { organizations, currentOrganization, setOrganization, refreshOrganizations } = useDashboardShell();
+  const {
+    organizations,
+    currentOrganization,
+    setOrganization,
+    refreshOrganizations,
+  } = useDashboardShell();
 
   return (
     <>

@@ -34,7 +34,7 @@ export function NotificationCenter() {
     clearAll,
     markAsRead,
   } = useNotificationStore();
-  
+
   const newLog = useAuditStream();
   const [open, setOpen] = React.useState(false);
 
@@ -68,10 +68,10 @@ export function NotificationCenter() {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
-        <NotificationHeader 
-          unreadCount={unreadCount} 
-          onMarkAllRead={markAllAsRead} 
-          onClearAll={clearAll} 
+        <NotificationHeader
+          unreadCount={unreadCount}
+          onMarkAllRead={markAllAsRead}
+          onClearAll={clearAll}
         />
         <ScrollArea className="h-[350px]">
           {notifications.length === 0 ? (
@@ -79,10 +79,10 @@ export function NotificationCenter() {
           ) : (
             <div className="flex flex-col">
               {notifications.map((n) => (
-                <NotificationItem 
-                  key={n.id} 
-                  notification={n} 
-                  onRead={() => markAsRead(n.id)} 
+                <NotificationItem
+                  key={n.id}
+                  notification={n}
+                  onRead={() => markAsRead(n.id)}
                 />
               ))}
             </div>
@@ -103,14 +103,14 @@ export function NotificationCenter() {
   );
 }
 
-const NotificationHeader = React.memo(function NotificationHeader({ 
-  unreadCount, 
-  onMarkAllRead, 
-  onClearAll 
-}: { 
-  unreadCount: number, 
-  onMarkAllRead: () => void, 
-  onClearAll: () => void 
+const NotificationHeader = React.memo(function NotificationHeader({
+  unreadCount,
+  onMarkAllRead,
+  onClearAll,
+}: {
+  unreadCount: number;
+  onMarkAllRead: () => void;
+  onClearAll: () => void;
 }) {
   return (
     <div className="flex items-center justify-between border-b p-4">
@@ -146,19 +146,23 @@ const NotificationHeader = React.memo(function NotificationHeader({
   );
 });
 
-const NotificationItem = React.memo(function NotificationItem({ 
-  notification, 
-  onRead 
-}: { 
-  notification: Notification, 
-  onRead: () => void 
+const NotificationItem = React.memo(function NotificationItem({
+  notification,
+  onRead,
+}: {
+  notification: Notification;
+  onRead: () => void;
 }) {
   const getIcon = (type: Notification["type"]) => {
     switch (type) {
-      case "success": return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
-      case "warning": return <AlertTriangle className="h-4 w-4 text-amber-500" />;
-      case "error": return <AlertCircle className="text-destructive h-4 w-4" />;
-      default: return <Info className="h-4 w-4 text-blue-500" />;
+      case "success":
+        return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
+      case "warning":
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+      case "error":
+        return <AlertCircle className="text-destructive h-4 w-4" />;
+      default:
+        return <Info className="h-4 w-4 text-blue-500" />;
     }
   };
 
@@ -172,7 +176,12 @@ const NotificationItem = React.memo(function NotificationItem({
     >
       <div className="mt-0.5">{getIcon(notification.type)}</div>
       <div className="flex-1 space-y-1">
-        <p className={cn("text-xs leading-none font-semibold", !notification.read && "text-primary")}>
+        <p
+          className={cn(
+            "text-xs leading-none font-semibold",
+            !notification.read && "text-primary"
+          )}
+        >
           {notification.title}
         </p>
         <p className="text-muted-foreground line-clamp-2 text-[11px] leading-tight">

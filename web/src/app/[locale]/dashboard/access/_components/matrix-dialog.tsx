@@ -17,12 +17,13 @@ import { ResourceCRUD } from "~/lib/api/access";
 import { Icon } from "~/components/shared/icon";
 
 export function MatrixDialog() {
-  const { dialog, closeDialog, updatePermissions, isProcessing } = usePermissionMatrix();
-  
+  const { dialog, closeDialog, updatePermissions, isProcessing } =
+    usePermissionMatrix();
+
   // Use a key to force re-mounting/resetting state when dialog target changes
   // instead of using useEffect which triggers cascading renders
   return (
-    <MatrixDialogContent 
+    <MatrixDialogContent
       key={`${dialog.role}-${dialog.resource}`}
       dialog={dialog}
       closeDialog={closeDialog}
@@ -32,26 +33,31 @@ export function MatrixDialog() {
   );
 }
 
-function MatrixDialogContent({ 
-  dialog, 
-  closeDialog, 
-  updatePermissions, 
-  isProcessing 
-}: { 
-  dialog: any, 
-  closeDialog: () => void, 
-  updatePermissions: any, 
-  isProcessing: boolean 
+function MatrixDialogContent({
+  dialog,
+  closeDialog,
+  updatePermissions,
+  isProcessing,
+}: {
+  dialog: any;
+  closeDialog: () => void;
+  updatePermissions: any;
+  isProcessing: boolean;
 }) {
   const [localCRUD, setLocalCRUD] = useState<ResourceCRUD>(dialog.crud);
 
   const handleApply = async () => {
-    await updatePermissions(dialog.role, dialog.resource, localCRUD, dialog.crud);
+    await updatePermissions(
+      dialog.role,
+      dialog.resource,
+      localCRUD,
+      dialog.crud
+    );
     closeDialog();
   };
 
   const toggle = (key: keyof ResourceCRUD) => {
-    setLocalCRUD(prev => ({ ...prev, [key]: !prev[key] }));
+    setLocalCRUD((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   return (
@@ -59,20 +65,32 @@ function MatrixDialogContent({
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Icon name="Settings2" className="h-5 w-5 text-primary" />
+            <Icon name="Settings2" className="text-primary h-5 w-5" />
             Edit Permissions
           </DialogTitle>
           <DialogDescription>
-            Modify CRUD access for <span className="font-bold text-foreground">{dialog.role.replace("role:", "")}</span> on 
-            <span className="font-mono bg-muted px-1 rounded ml-1">/{dialog.resource.toLowerCase()}</span>
+            Modify CRUD access for{" "}
+            <span className="text-foreground font-bold">
+              {dialog.role.replace("role:", "")}
+            </span>{" "}
+            on
+            <span className="bg-muted ml-1 rounded px-1 font-mono">
+              /{dialog.resource.toLowerCase()}
+            </span>
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-6 py-6">
           {(["create", "read", "update", "delete"] as const).map((action) => (
-            <div key={action} className="flex items-center justify-between space-x-2 rounded-lg border p-3 transition-colors hover:bg-muted/50">
+            <div
+              key={action}
+              className="hover:bg-muted/50 flex items-center justify-between space-x-2 rounded-lg border p-3 transition-colors"
+            >
               <div className="flex flex-col gap-0.5">
-                <Label htmlFor={action} className="text-sm font-semibold capitalize">
+                <Label
+                  htmlFor={action}
+                  className="text-sm font-semibold capitalize"
+                >
                   {action}
                 </Label>
                 <p className="text-muted-foreground text-xs">
@@ -90,11 +108,17 @@ function MatrixDialogContent({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={closeDialog} disabled={isProcessing}>
+          <Button
+            variant="outline"
+            onClick={closeDialog}
+            disabled={isProcessing}
+          >
             Cancel
           </Button>
           <Button onClick={handleApply} disabled={isProcessing}>
-            {isProcessing && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
+            {isProcessing && (
+              <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
+            )}
             Apply Changes
           </Button>
         </DialogFooter>
@@ -105,10 +129,15 @@ function MatrixDialogContent({
 
 function getActionDescription(action: string) {
   switch (action) {
-    case "create": return "Allow creating new resources";
-    case "read": return "Allow viewing resource data";
-    case "update": return "Allow modifying existing resources";
-    case "delete": return "Allow removing resources";
-    default: return "";
+    case "create":
+      return "Allow creating new resources";
+    case "read":
+      return "Allow viewing resource data";
+    case "update":
+      return "Allow modifying existing resources";
+    case "delete":
+      return "Allow removing resources";
+    default:
+      return "";
   }
 }

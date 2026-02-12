@@ -1,7 +1,13 @@
 "use client";
 
 import { useProjects } from "./projects-context";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Icon } from "~/components/shared/icon";
 import Link from "next/link";
 import { Badge } from "~/components/ui/badge";
@@ -34,7 +40,11 @@ export function ProjectsGrid() {
   );
 }
 
-const MemoizedProjectCard = memo(function ProjectCard({ project }: { project: Project }) {
+const MemoizedProjectCard = memo(function ProjectCard({
+  project,
+}: {
+  project: Project;
+}) {
   return (
     <Card className="group hover:border-primary/50 relative flex flex-col transition-all">
       <CardHeader>
@@ -42,11 +52,13 @@ const MemoizedProjectCard = memo(function ProjectCard({ project }: { project: Pr
           <div className="bg-primary/10 text-primary rounded-md p-2">
             <Icon name="LayoutGrid" className="h-5 w-5" />
           </div>
-          <Badge variant={project.status === "active" ? "success" : "secondary"}>
+          <Badge
+            variant={project.status === "active" ? "success" : "secondary"}
+          >
             {project.status}
           </Badge>
         </div>
-        <CardTitle className="mt-4 line-wrap">{project.name}</CardTitle>
+        <CardTitle className="line-wrap mt-4">{project.name}</CardTitle>
       </CardHeader>
       <CardContent className="flex-1">
         <p className="text-muted-foreground font-mono text-xs">

@@ -1,22 +1,33 @@
-import { Shield, Zap, Layout, Lock, Database, BarChart, Server, Globe } from "lucide-react";
+import {
+  Shield,
+  Zap,
+  Layout,
+  Lock,
+  Database,
+  BarChart,
+  Server,
+  Globe,
+} from "lucide-react";
 import { BentoCard, BentoGrid } from "~/components/magicui/bento-grid";
 import { cn } from "~/lib/utils";
 
 const features = [
   {
     name: "Adaptive Density Engine",
-    description: "Switch between Comfort (SaaS) and Compact (Enterprise) modes instantly.",
+    description:
+      "Switch between Comfort (SaaS) and Compact (Enterprise) modes instantly.",
     icon: Layout,
     href: "/dashboard",
     cta: "Try it out",
     background: (
-      <div className="absolute inset-0 bg-linear-to-br from-primary/10 to-transparent transition-opacity group-hover:opacity-20" />
+      <div className="from-primary/10 absolute inset-0 bg-linear-to-br to-transparent transition-opacity group-hover:opacity-20" />
     ),
     className: "lg:col-span-2 lg:row-span-1",
   },
   {
     name: "Casbin RBAC",
-    description: "Enterprise-grade authorization with role inheritance and matrix management.",
+    description:
+      "Enterprise-grade authorization with role inheritance and matrix management.",
     icon: Shield,
     href: "/dashboard/access",
     cta: "Manage access",
@@ -27,7 +38,8 @@ const features = [
   },
   {
     name: "Multi-tenant Ready",
-    description: "Built-in organization switching and strict data isolation for every tenant.",
+    description:
+      "Built-in organization switching and strict data isolation for every tenant.",
     icon: Globe,
     href: "/dashboard/organization/settings",
     cta: "Configure org",
@@ -38,7 +50,8 @@ const features = [
   },
   {
     name: "Real-time Distributed WS",
-    description: "WebSocket scaling with Redis Pub/Sub and presence tracking out of the box.",
+    description:
+      "WebSocket scaling with Redis Pub/Sub and presence tracking out of the box.",
     icon: Zap,
     href: "/dashboard",
     cta: "See live activity",
@@ -61,8 +74,8 @@ export default function Features() {
             Enterprise foundation, SaaS speed.
           </h2>
           <p className="text-muted-foreground text-lg">
-            NexusOS provides the heavy lifting so you can focus on building your core features. 
-            All powered by Go and Next.js.
+            NexusOS provides the heavy lifting so you can focus on building your
+            core features. All powered by Go and Next.js.
           </p>
         </div>
 

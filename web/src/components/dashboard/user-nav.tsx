@@ -40,7 +40,10 @@ export const UserNav = memo(function UserNav() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full border">
+        <Button
+          variant="ghost"
+          className="relative h-10 w-10 rounded-full border"
+        >
           <Avatar className="h-9 w-9">
             <AvatarImage src={user.avatar_url} alt={user.name} />
             <AvatarFallback className="bg-primary/10 font-bold">
@@ -52,7 +55,9 @@ export const UserNav = memo(function UserNav() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm leading-none font-medium">{user.name || user.username}</p>
+            <p className="text-sm leading-none font-medium">
+              {user.name || user.username}
+            </p>
             <p className="text-muted-foreground text-xs leading-none">
               {user.email}
             </p>
@@ -60,12 +65,18 @@ export const UserNav = memo(function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => router.push("/dashboard/profile")} className="cursor-pointer">
+          <DropdownMenuItem
+            onClick={() => router.push("/dashboard/profile")}
+            className="cursor-pointer"
+          >
             <Icon name="User" className="mr-2 h-4 w-4" />
             Profile
             <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push("/dashboard/settings")} className="cursor-pointer">
+          <DropdownMenuItem
+            onClick={() => router.push("/dashboard/settings")}
+            className="cursor-pointer"
+          >
             <Icon name="Settings" className="mr-2 h-4 w-4" />
             Settings
             <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>

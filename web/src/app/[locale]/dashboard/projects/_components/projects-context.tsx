@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+  useEffect,
+} from "react";
 import { Project, projectsApi } from "~/lib/api/projects";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
@@ -14,7 +21,9 @@ interface ProjectsContextType {
   deleteProject: (id: string) => Promise<void>;
 }
 
-const ProjectsContext = createContext<ProjectsContextType | undefined>(undefined);
+const ProjectsContext = createContext<ProjectsContextType | undefined>(
+  undefined
+);
 
 export function ProjectsProvider({ children }: { children: ReactNode }) {
   const { currentOrganization } = useOrganizationStore();
@@ -39,39 +48,48 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     fetchProjects();
   }, [fetchProjects]);
 
-  const createProject = useCallback(async (data: { name: string; domain: string }) => {
-    if (!currentOrganization) return;
-    try {
-      await projectsApi.create(currentOrganization.id, data);
-      toast.success("Project created successfully");
-      await fetchProjects();
-    } catch (error) {
-      toast.error("Failed to create project");
-      throw error;
-    }
-  }, [currentOrganization, fetchProjects]);
+  const createProject = useCallback(
+    async (data: { name: string; domain: string }) => {
+      if (!currentOrganization) return;
+      try {
+        await projectsApi.create(currentOrganization.id, data);
+        toast.success("Project created successfully");
+        await fetchProjects();
+      } catch (error) {
+        toast.error("Failed to create project");
+        throw error;
+      }
+    },
+    [currentOrganization, fetchProjects]
+  );
 
-  const updateProject = useCallback(async (id: string, data: any) => {
-    if (!currentOrganization) return;
-    try {
-      await projectsApi.update(currentOrganization.id, id, data);
-      toast.success("Project updated successfully");
-      await fetchProjects();
-    } catch (error) {
-      toast.error("Failed to update project");
-    }
-  }, [currentOrganization, fetchProjects]);
+  const updateProject = useCallback(
+    async (id: string, data: any) => {
+      if (!currentOrganization) return;
+      try {
+        await projectsApi.update(currentOrganization.id, id, data);
+        toast.success("Project updated successfully");
+        await fetchProjects();
+      } catch (error) {
+        toast.error("Failed to update project");
+      }
+    },
+    [currentOrganization, fetchProjects]
+  );
 
-  const deleteProject = useCallback(async (id: string) => {
-    if (!currentOrganization) return;
-    try {
-      await projectsApi.delete(currentOrganization.id, id);
-      toast.success("Project deleted successfully");
-      await fetchProjects();
-    } catch (error) {
-      toast.error("Failed to delete project");
-    }
-  }, [currentOrganization, fetchProjects]);
+  const deleteProject = useCallback(
+    async (id: string) => {
+      if (!currentOrganization) return;
+      try {
+        await projectsApi.delete(currentOrganization.id, id);
+        toast.success("Project deleted successfully");
+        await fetchProjects();
+      } catch (error) {
+        toast.error("Failed to delete project");
+      }
+    },
+    [currentOrganization, fetchProjects]
+  );
 
   return (
     <ProjectsContext.Provider

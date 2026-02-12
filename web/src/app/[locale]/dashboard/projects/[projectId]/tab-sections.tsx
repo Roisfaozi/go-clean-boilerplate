@@ -14,11 +14,11 @@ export default function TabSections({ project }: { project: Project }) {
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="details">
           <ProjectDetailsForm />
         </TabsContent>
-        
+
         <TabsContent value="settings">
           <ProjectDangerZone />
         </TabsContent>

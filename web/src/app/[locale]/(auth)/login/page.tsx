@@ -10,9 +10,10 @@ export default function Login() {
       brandingTitle="Enterprise-grade RBAC and Real-time Monitoring."
       brandingDescription="NexusOS provides the most robust boilerplate for building complex, secure, and scalable multi-tenant applications."
       testimonial={{
-        quote: "NexusOS has significantly reduced our development time for internal tools. The Casbin integration is seamless and powerful.",
+        quote:
+          "NexusOS has significantly reduced our development time for internal tools. The Casbin integration is seamless and powerful.",
         author: "Sarah Jenkins",
-        role: "CTO at TechFlow"
+        role: "CTO at TechFlow",
       }}
       footer={
         <p className="text-muted-foreground text-sm">

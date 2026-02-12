@@ -9,7 +9,13 @@ interface ProfileContextType {
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
-export function ProfileProvider({ user, children }: { user: User | any, children: ReactNode }) {
+export function ProfileProvider({
+  user,
+  children,
+}: {
+  user: User | any;
+  children: ReactNode;
+}) {
   return (
     <ProfileContext.Provider value={{ user }}>
       {children}

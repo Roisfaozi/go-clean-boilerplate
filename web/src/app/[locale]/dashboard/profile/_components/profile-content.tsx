@@ -2,7 +2,13 @@
 
 import { useProfile } from "./profile-context";
 import { ProfileForm } from "~/components/dashboard/profile-form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 
 export function ProfileContent() {
   const { user } = useProfile();

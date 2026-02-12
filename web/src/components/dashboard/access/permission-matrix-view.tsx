@@ -21,15 +21,16 @@ export function PermissionMatrixView({
             <Icon name="Info" className="text-primary h-4 w-4" />
           </div>
           <p className="text-muted-foreground text-xs leading-relaxed">
-            The Permission Matrix provides a high-level overview of CRUD access across all system resources. 
-            Click a cell to modify granular permissions for a specific role and resource pair.
+            The Permission Matrix provides a high-level overview of CRUD access
+            across all system resources. Click a cell to modify granular
+            permissions for a specific role and resource pair.
           </p>
         </div>
-        
+
         <MatrixGrid />
         <MatrixDialog />
 
-        <div className="text-muted-foreground flex items-center gap-6 text-[10px] uppercase font-bold tracking-widest">
+        <div className="text-muted-foreground flex items-center gap-6 text-[10px] font-bold tracking-widest uppercase">
           <div className="flex items-center gap-2">
             <div className="bg-primary h-3 w-3 rounded-sm shadow-sm" />
             <span>Active Access</span>

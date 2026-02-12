@@ -69,7 +69,11 @@ const navItems = [
   },
 ];
 
-export const Sidebar = memo(function Sidebar({ className }: { className?: string }) {
+export const Sidebar = memo(function Sidebar({
+  className,
+}: {
+  className?: string;
+}) {
   const pathname = usePathname();
   const { currentOrganization } = useDashboardShell();
 
@@ -138,9 +142,11 @@ export const Sidebar = memo(function Sidebar({ className }: { className?: string
 
       {/* Footer / User Info Context (Optional) */}
       <div className="border-t p-4 [data-density=compact]:p-2">
-        <div className="text-muted-foreground flex flex-col gap-1 text-[10px] uppercase font-bold tracking-wider [data-density=compact]:hidden">
+        <div className="text-muted-foreground flex flex-col gap-1 text-[10px] font-bold tracking-wider uppercase [data-density=compact]:hidden">
           <span>Active Org</span>
-          <span className="text-primary truncate">{currentOrganization?.name || "None"}</span>
+          <span className="text-primary truncate">
+            {currentOrganization?.name || "None"}
+          </span>
         </div>
       </div>
     </aside>

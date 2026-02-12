@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
 import { toast } from "sonner";
 
 export interface SubscriptionPlan {
@@ -34,10 +40,10 @@ export function BillingProvider({
     try {
       // In a real app, this would call a server action or API to get the Stripe URL
       toast.info("Redirecting to Stripe billing portal...");
-      
+
       // Simulation
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       // window.location.href = stripeUrl;
     } catch (error) {
       toast.error("Failed to open billing portal");

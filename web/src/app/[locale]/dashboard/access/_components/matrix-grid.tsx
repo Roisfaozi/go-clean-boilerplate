@@ -32,12 +32,12 @@ export function MatrixGrid() {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border bg-card">
+    <div className="bg-card overflow-x-auto rounded-lg border">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-muted/50">
             <th
-              className={`text-muted-foreground bg-muted/50 sticky left-0 z-10 text-left text-xs font-semibold tracking-wider uppercase border-r ${
+              className={`text-muted-foreground bg-muted/50 sticky left-0 z-10 border-r text-left text-xs font-semibold tracking-wider uppercase ${
                 isCompact ? "px-2 py-2" : "px-4 py-3"
               }`}
             >
@@ -46,10 +46,10 @@ export function MatrixGrid() {
             {resources.map((resource) => (
               <th
                 key={resource.name}
-                className={`${isCompact ? "px-2 py-2" : "px-4 py-3"} text-center border-r last:border-r-0`}
+                className={`${isCompact ? "px-2 py-2" : "px-4 py-3"} border-r text-center last:border-r-0`}
               >
-                <div className="flex flex-col items-center gap-0.5 min-w-[80px]">
-                  <code className="font-mono text-[11px] font-bold text-primary">
+                <div className="flex min-w-[80px] flex-col items-center gap-0.5">
+                  <code className="text-primary font-mono text-[11px] font-bold">
                     /{resource.name.toLowerCase()}
                   </code>
                   <span className="text-muted-foreground text-[9px]">
@@ -76,9 +76,16 @@ export function MatrixGrid() {
                 }`}
               >
                 <div className="flex items-center justify-between gap-4">
-                  <span className="truncate">{role.name.replace("role:", "")}</span>
+                  <span className="truncate">
+                    {role.name.replace("role:", "")}
+                  </span>
                   {role.name === "role:superadmin" && (
-                    <Badge variant="secondary" className="h-4 px-1 text-[8px] uppercase">Root</Badge>
+                    <Badge
+                      variant="secondary"
+                      className="h-4 px-1 text-[8px] uppercase"
+                    >
+                      Root
+                    </Badge>
                   )}
                 </div>
               </td>
@@ -87,7 +94,14 @@ export function MatrixGrid() {
                   key={`${role.name}-${resource.name}`}
                   roleName={role.name}
                   resourceName={resource.name}
-                  crud={resource.role_permissions[role.name] || { create: false, read: false, update: false, delete: false }}
+                  crud={
+                    resource.role_permissions[role.name] || {
+                      create: false,
+                      read: false,
+                      update: false,
+                      delete: false,
+                    }
+                  }
                   isCompact={isCompact}
                 />
               ))}
@@ -116,7 +130,9 @@ const MatrixCell = memo(function MatrixCell({
   const flags = [crud.create, crud.read, crud.update, crud.delete];
 
   return (
-    <td className={`border-r last:border-r-0 ${isCompact ? "px-1 py-1" : "px-2 py-2"} text-center`}>
+    <td
+      className={`border-r last:border-r-0 ${isCompact ? "px-1 py-1" : "px-2 py-2"} text-center`}
+    >
       <div className="flex items-center justify-center">
         <TooltipProvider delayDuration={100}>
           <Tooltip>
@@ -124,24 +140,35 @@ const MatrixCell = memo(function MatrixCell({
               <button
                 type="button"
                 onClick={() => openDialog(roleName, resourceName, crud)}
-                className="group/cell hover:ring-primary/40 flex cursor-pointer items-center gap-[2px] rounded-md p-1.5 transition-all hover:scale-110 hover:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group/cell hover:ring-primary/40 flex cursor-pointer items-center gap-[2px] rounded-md p-1.5 transition-all hover:scale-110 hover:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={roleName === "role:superadmin"}
               >
                 {flags.map((enabled, i) => (
                   <div
                     key={CRUD_LABELS[i]}
                     className={`h-5 w-2.5 rounded-[2px] transition-colors ${
-                      enabled ? "bg-primary shadow-sm" : "bg-muted-foreground/15"
+                      enabled
+                        ? "bg-primary shadow-sm"
+                        : "bg-muted-foreground/15"
                     }`}
                   />
                 ))}
               </button>
             </TooltipTrigger>
             <TooltipContent side="top" className="text-[10px]">
-              <div className="font-semibold mb-1 uppercase tracking-wider">{resourceName}</div>
+              <div className="mb-1 font-semibold tracking-wider uppercase">
+                {resourceName}
+              </div>
               <div className="flex gap-2">
                 {CRUD_LABELS.map((label, i) => (
-                  <div key={label} className={flags[i] ? "text-primary font-bold" : "text-muted-foreground opacity-40"}>
+                  <div
+                    key={label}
+                    className={
+                      flags[i]
+                        ? "text-primary font-bold"
+                        : "text-muted-foreground opacity-40"
+                    }
+                  >
                     {label}
                   </div>
                 ))}

@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
 import { Project, projectsApi } from "~/lib/api/projects";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
@@ -13,33 +19,53 @@ interface ProjectDetailContextType {
   deleteProject: () => Promise<void>;
 }
 
-const ProjectDetailContext = createContext<ProjectDetailContextType | undefined>(undefined);
+const ProjectDetailContext = createContext<
+  ProjectDetailContextType | undefined
+>(undefined);
 
-export function ProjectDetailProvider({ initialProject, children }: { initialProject: Project, children: ReactNode }) {
+export function ProjectDetailProvider({
+  initialProject,
+  children,
+}: {
+  initialProject: Project;
+  children: ReactNode;
+}) {
   const { currentOrganization } = useOrganizationStore();
   const [project, setProject] = useState<Project>(initialProject);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const updateProject = useCallback(async (data: any) => {
-    if (!currentOrganization) return;
-    setIsLoading(true);
-    try {
-      const resp = await projectsApi.update(currentOrganization.id, project.id, data);
-      if (resp) {
-        setProject(resp);
-        toast.success("Project updated successfully");
+  const updateProject = useCallback(
+    async (data: any) => {
+      if (!currentOrganization) return;
+      setIsLoading(true);
+      try {
+        const resp = await projectsApi.update(
+          currentOrganization.id,
+          project.id,
+          data
+        );
+        if (resp) {
+          setProject(resp);
+          toast.success("Project updated successfully");
+        }
+      } catch (error) {
+        toast.error("Failed to update project");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      toast.error("Failed to update project");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentOrganization, project.id]);
+    },
+    [currentOrganization, project.id]
+  );
 
   const deleteProject = useCallback(async () => {
     if (!currentOrganization) return;
-    if (!confirm("Are you sure you want to delete this project? This action cannot be undone.")) return;
+    if (
+      !confirm(
+        "Are you sure you want to delete this project? This action cannot be undone."
+      )
+    )
+      return;
 
     setIsLoading(true);
     try {
@@ -70,7 +96,9 @@ export function ProjectDetailProvider({ initialProject, children }: { initialPro
 export function useProjectDetail() {
   const context = useContext(ProjectDetailContext);
   if (context === undefined) {
-    throw new Error("useProjectDetail must be used within a ProjectDetailProvider");
+    throw new Error(
+      "useProjectDetail must be used within a ProjectDetailProvider"
+    );
   }
   return context;
 }
