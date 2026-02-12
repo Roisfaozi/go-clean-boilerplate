@@ -15,20 +15,13 @@ import { CreateProjectDialog } from "./create-project-dialog";
 import { memo } from "react";
 import { Project } from "~/lib/api/projects";
 import { EmptyState } from "~/components/shared/empty-state";
+import { CardGridSkeleton } from "~/components/shared/skeletons";
 
 export function ProjectsGrid() {
   const { projects, isLoading, createProject } = useProjects();
 
   if (isLoading && projects.length === 0) {
-    return (
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <div className="bg-muted h-48" />
-          </Card>
-        ))}
-      </div>
-    );
+    return <CardGridSkeleton count={4} />;
   }
 
   if (projects.length === 0) {

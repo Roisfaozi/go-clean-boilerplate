@@ -15,21 +15,13 @@ import { Icon } from "~/components/shared/icon";
 import { Role } from "~/lib/api/roles";
 import { memo } from "react";
 import { EmptyState } from "~/components/shared/empty-state";
+import { CardGridSkeleton } from "~/components/shared/skeletons";
 
 export function RolesGrid() {
   const { roles, isLoading, handleCreate } = useRoles();
 
   if (isLoading && roles.length === 0) {
-    return (
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader className="bg-muted/50 h-24" />
-            <CardContent className="h-32" />
-          </Card>
-        ))}
-      </div>
-    );
+    return <CardGridSkeleton count={3} />;
   }
 
   if (roles.length === 0) {

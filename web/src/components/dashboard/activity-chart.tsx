@@ -17,6 +17,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "~/components/ui/chart";
+import { StatsChartSkeleton } from "~/components/shared/skeletons";
 
 const chartConfig = {
   audits: {
@@ -48,6 +49,10 @@ export function ActivityChart() {
     };
     fetchData();
   }, []);
+
+  if (isLoading && data.length === 0) {
+    return <StatsChartSkeleton />;
+  }
 
   return (
     <Card className="flex flex-col">
