@@ -39,6 +39,7 @@ type authGuardianTestDeps struct {
 	log             *logrus.Logger
 	auditUC         *auditMocks.MockAuditUseCase
 	taskDistributor *mocking.MockTaskDistributor
+	ticketManager   *mock_auth.MockTicketManager
 }
 
 func setupAuthGuardianTest(t *testing.T) (usecase.AuthUseCase, *authGuardianTestDeps) {
@@ -55,6 +56,7 @@ func setupAuthGuardianTest(t *testing.T) (usecase.AuthUseCase, *authGuardianTest
 		log:             logrus.New(),
 		auditUC:         new(auditMocks.MockAuditUseCase),
 		taskDistributor: new(mocking.MockTaskDistributor),
+		ticketManager:   new(mock_auth.MockTicketManager),
 	}
 
 	deps.log.SetOutput(io.Discard)
@@ -73,6 +75,7 @@ func setupAuthGuardianTest(t *testing.T) (usecase.AuthUseCase, *authGuardianTest
 		deps.enforcer,
 		deps.auditUC,
 		deps.taskDistributor,
+		deps.ticketManager,
 	)
 
 	return authService, deps

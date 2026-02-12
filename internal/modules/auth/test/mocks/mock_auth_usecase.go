@@ -217,6 +217,96 @@ func (_c *MockAuthUseCase_GenerateRefreshToken_Call) RunAndReturn(run func(user 
 	return _c
 }
 
+// GetTicket provides a mock function for the type MockAuthUseCase
+func (_mock *MockAuthUseCase) GetTicket(ctx context.Context, userID string, orgID string, sessionID string, role string, username string) (string, error) {
+	ret := _mock.Called(ctx, userID, orgID, sessionID, role, username)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetTicket")
+	}
+
+	var r0 string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, string, string) (string, error)); ok {
+		return returnFunc(ctx, userID, orgID, sessionID, role, username)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, string, string) string); ok {
+		r0 = returnFunc(ctx, userID, orgID, sessionID, role, username)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, string, string) error); ok {
+		r1 = returnFunc(ctx, userID, orgID, sessionID, role, username)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthUseCase_GetTicket_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetTicket'
+type MockAuthUseCase_GetTicket_Call struct {
+	*mock.Call
+}
+
+// GetTicket is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - orgID string
+//   - sessionID string
+//   - role string
+//   - username string
+func (_e *MockAuthUseCase_Expecter) GetTicket(ctx interface{}, userID interface{}, orgID interface{}, sessionID interface{}, role interface{}, username interface{}) *MockAuthUseCase_GetTicket_Call {
+	return &MockAuthUseCase_GetTicket_Call{Call: _e.mock.On("GetTicket", ctx, userID, orgID, sessionID, role, username)}
+}
+
+func (_c *MockAuthUseCase_GetTicket_Call) Run(run func(ctx context.Context, userID string, orgID string, sessionID string, role string, username string)) *MockAuthUseCase_GetTicket_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		var arg5 string
+		if args[5] != nil {
+			arg5 = args[5].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+			arg5,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthUseCase_GetTicket_Call) Return(s string, err error) *MockAuthUseCase_GetTicket_Call {
+	_c.Call.Return(s, err)
+	return _c
+}
+
+func (_c *MockAuthUseCase_GetTicket_Call) RunAndReturn(run func(ctx context.Context, userID string, orgID string, sessionID string, role string, username string) (string, error)) *MockAuthUseCase_GetTicket_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetUserSessions provides a mock function for the type MockAuthUseCase
 func (_mock *MockAuthUseCase) GetUserSessions(ctx context.Context, userID string) ([]*model.Auth, error) {
 	ret := _mock.Called(ctx, userID)

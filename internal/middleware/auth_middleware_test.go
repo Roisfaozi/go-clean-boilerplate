@@ -145,6 +145,11 @@ func (m *MockAuthUseCase) VerifyEmail(ctx context.Context, token string) error {
 	return args.Error(0)
 }
 
+func (m *MockAuthUseCase) GetTicket(ctx context.Context, userID, orgID, sessionID, role, username string) (string, error) {
+	args := m.Called(ctx, userID, orgID, sessionID, role, username)
+	return args.String(0), args.Error(1)
+}
+
 func TestAuthMiddleware_ValidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()

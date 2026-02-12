@@ -42,6 +42,7 @@ func setupVerificationTest(t *testing.T) (usecase.AuthUseCase, *testDependencies
 		log:             logrus.New(),
 		auditUC:         new(auditMocks.MockAuditUseCase),
 		taskDistributor: new(mocking.MockTaskDistributor),
+		ticketManager:   new(mock_auth.MockTicketManager),
 	}
 
 	deps.log.SetOutput(io.Discard)
@@ -60,6 +61,7 @@ func setupVerificationTest(t *testing.T) (usecase.AuthUseCase, *testDependencies
 		deps.enforcer,
 		deps.auditUC,
 		deps.taskDistributor,
+		deps.ticketManager,
 	)
 
 	return authService, deps
