@@ -21,6 +21,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
@@ -749,6 +750,27 @@ func (s *Service) GetTicket(ctx context.Context, userID, orgID, sessionID, role,
 		return "", ErrAccountSuspended
 	}
 
-	// 2. Delegate to TicketManager
+	// 2. Check organization membership if orgID is provided
+	if orgID != "" && orgID != "global" {
+		orgs, err := s.orgRepo.FindUserOrganizations(ctx, userID)
+		if err != nil {
+			s.log.WithContext(ctx).WithError(err).Error("GetTicket failed: could not fetch user organizations")
+			return "", fmt.Errorf("failed to fetch user organizations: %w", err)
+		}
+
+		isMember := false
+		for _, org := range orgs {
+			if org.ID == orgID {
+				isMember = true
+				break
+			}
+		}
+
+		if !isMember {
+			return "", fmt.Errorf("%w: user is not a member of the organization", exception.ErrForbidden)
+		}
+	}
+
+	// 3. Delegate to TicketManager
 	return s.ticketManager.CreateTicket(ctx, userID, orgID, sessionID, role, username)
 }
