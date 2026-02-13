@@ -23,10 +23,11 @@ import (
 func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 	deps, uc := setupAvatarSecurityTest()
 	ctx := context.Background()
-	userID := "user-sec-123"
+	userID := "019b9150-304e-79d0-aa16-4a2b44347a08" // Valid UUID
 
 	tests := []struct {
 		name        string
+		userID      string
 		filename    string
 		contentType string
 		fileContent io.Reader
@@ -34,6 +35,7 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 	}{
 		{
 			name:        "Block SVG (potential XSS)",
+			userID:      userID,
 			filename:    "image.svg",
 			contentType: "image/svg+xml",
 			fileContent: strings.NewReader(`<?xml version="1.0" standalone="no"?><!DOCTYPE sql SYSTEM "http://malicious.com"><svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"></svg>`),
@@ -41,6 +43,7 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 		},
 		{
 			name:        "Block HTML disguised as image",
+			userID:      userID,
 			filename:    "fake.png",
 			contentType: "image/png",
 			fileContent: strings.NewReader(`<html><body><h1>Not an image</h1><script>alert(1)</script></body></html>`),
@@ -48,6 +51,7 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 		},
 		{
 			name:        "Block Polyglot (PNG with PHP payload)",
+			userID:      userID,
 			filename:    "poly.png",
 			contentType: "image/png",
 			fileContent: io.MultiReader(
@@ -58,17 +62,34 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 		},
 		{
 			name:        "Block Script File",
+			userID:      userID,
 			filename:    "exploit.sh",
 			contentType: "text/x-shellscript",
 			fileContent: strings.NewReader("#!/bin/bash\necho 'hacked'"),
 			errExpected: exception.ErrValidationError,
 		},
+		{
+			name:        "Block Path Traversal in UserID",
+			userID:      "../etc/passwd",
+			filename:    "profile.png",
+			contentType: "image/png",
+			fileContent: strings.NewReader("fake-content"),
+			errExpected: exception.ErrBadRequest,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			existingUser := &entity.User{ID: userID, Username: "secuser"}
-			deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil).Once()
+			testUserID := tt.userID
+			if testUserID == "" {
+				testUserID = userID // Default to valid UUID
+			}
+
+			// For the BadRequest case (Path Traversal), FindByID should NOT be called.
+			if tt.errExpected != exception.ErrBadRequest {
+				existingUser := &entity.User{ID: testUserID, Username: "secuser"}
+				deps.Repo.On("FindByID", ctx, testUserID).Return(existingUser, nil).Once()
+			}
 
 			if tt.errExpected == nil {
 				deps.Storage.On("UploadFile", ctx, mock.Anything, mock.Anything, mock.Anything).Return("http://ok.com", nil).Once()
@@ -79,7 +100,7 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 				deps.AuditUC.On("LogActivity", ctx, mock.Anything).Return(nil).Once()
 			}
 
-			_, err := uc.UpdateAvatar(ctx, userID, tt.fileContent, tt.filename, tt.contentType)
+			_, err := uc.UpdateAvatar(ctx, testUserID, tt.fileContent, tt.filename, tt.contentType)
 
 			if tt.errExpected != nil {
 				assert.Error(t, err)

@@ -306,6 +306,11 @@ func (u *userUseCaseImpl) UpdateStatus(ctx context.Context, userID, status strin
 }
 
 func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error) {
+	if _, err := uuid.Parse(userID); err != nil {
+		u.Log.Warnf("Invalid user ID format in UpdateAvatar: %s", userID)
+		return nil, exception.ErrBadRequest
+	}
+
 	// 1. Get User
 	user, err := u.Repo.FindByID(ctx, userID)
 	if err != nil {
