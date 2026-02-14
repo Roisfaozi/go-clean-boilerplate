@@ -70,7 +70,11 @@ func TestRoleXSSValidation(t *testing.T) {
 
 			// Setup expectations for success cases
 			if tt.expectedCode == http.StatusCreated {
-				mockUC.On("Create", mock.Anything, mock.Anything).Return(&model.RoleResponse{ID: "uuid"}, nil)
+				if createReq, ok := tt.payload.(model.CreateRoleRequest); ok {
+					// Sanitize a copy to set a precise expectation for the use case call.
+					createReq.Sanitize()
+					mockUC.On("Create", mock.Anything, &createReq).Return(&model.RoleResponse{ID: "uuid"}, nil)
+				}
 			}
 
 			w := httptest.NewRecorder()
