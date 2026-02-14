@@ -21,6 +21,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
@@ -616,6 +617,13 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return err
 	}
 
+	// Security: Revoke all existing sessions upon password reset
+	if err := s.RevokeAllSessions(ctx, user.ID); err != nil {
+		s.log.WithContext(ctx).WithError(err).Error("Failed to revoke sessions after password reset")
+		// We don't fail the request here, but we log it. Ideally, session revocation failure should not block reset success,
+		// but it is a security concern. For now, proceeding is safer than rolling back password reset which might confuse user.
+	}
+
 	if s.auditUC != nil {
 		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   user.ID,
@@ -749,6 +757,28 @@ func (s *Service) GetTicket(ctx context.Context, userID, orgID, sessionID, role,
 		return "", ErrAccountSuspended
 	}
 
-	// 2. Delegate to TicketManager
+	// 2. Validate Organization Membership (Security Fix)
+	// User must be a member of the requested organization to get a ticket for it.
+	if orgID != "" {
+		userOrgs, err := s.orgRepo.FindUserOrganizations(ctx, userID)
+		if err != nil {
+			return "", fmt.Errorf("failed to check organization membership: %w", err)
+		}
+
+		isMember := false
+		for _, org := range userOrgs {
+			if org.ID == orgID {
+				isMember = true
+				break
+			}
+		}
+
+		if !isMember {
+			s.log.WithContext(ctx).Warnf("User %s attempted to access organization %s without membership", userID, orgID)
+			return "", exception.ErrForbidden
+		}
+	}
+
+	// 3. Delegate to TicketManager
 	return s.ticketManager.CreateTicket(ctx, userID, orgID, sessionID, role, username)
 }

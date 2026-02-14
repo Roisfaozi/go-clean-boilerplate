@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestAuthUseCase_GetTicket_Success(t *testing.T) {
@@ -29,6 +31,10 @@ func TestAuthUseCase_GetTicket_Success(t *testing.T) {
 
 	// Mock UserRepo
 	deps.userRepo.On("FindByID", ctx, userID).Return(user, nil)
+
+	// Mock Org Membership check
+	org := &orgEntity.Organization{ID: orgID}
+	deps.orgRepo.On("FindUserOrganizations", mock.Anything, userID).Return([]*orgEntity.Organization{org}, nil)
 
 	// Mock TicketManager
 	deps.ticketManager.On("CreateTicket", ctx, userID, orgID, sessionID, role, username).Return(ticket, nil)
@@ -114,6 +120,10 @@ func TestAuthUseCase_GetTicket_TicketManagerError(t *testing.T) {
 
 	// Mock UserRepo
 	deps.userRepo.On("FindByID", ctx, userID).Return(user, nil)
+
+	// Mock Org Membership check
+	org := &orgEntity.Organization{ID: orgID}
+	deps.orgRepo.On("FindUserOrganizations", mock.Anything, userID).Return([]*orgEntity.Organization{org}, nil)
 
 	// Mock TicketManager Error
 	deps.ticketManager.On("CreateTicket", ctx, userID, orgID, sessionID, role, username).Return("", errors.New("redis error"))
