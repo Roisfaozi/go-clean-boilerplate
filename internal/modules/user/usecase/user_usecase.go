@@ -305,7 +305,7 @@ func (u *userUseCaseImpl) UpdateStatus(ctx context.Context, userID, status strin
 	})
 }
 
-func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error) {
+func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, actorUserID string, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error) {
 	if _, err := uuid.Parse(userID); err != nil {
 		u.Log.Warnf("Invalid user ID format in UpdateAvatar: %s", userID)
 		return nil, exception.ErrBadRequest
@@ -366,7 +366,7 @@ func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file 
 		// 5. Audit Log
 		if u.AuditUC != nil {
 			if err := u.AuditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
-				UserID:   userID,
+				UserID:   actorUserID,
 				Action:   "UPDATE_AVATAR",
 				Entity:   "User",
 				EntityID: userID,

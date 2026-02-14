@@ -98,7 +98,7 @@ func TestUserUseCase_UpdateAvatar_Success(t *testing.T) {
 	})).Return(nil)
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert
 	assert.NoError(t, err)
@@ -150,7 +150,7 @@ func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {
 	deps.AuditUC.On("LogActivity", ctx, mock.Anything).Return(nil)
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert
 	assert.NoError(t, err)
@@ -179,7 +179,7 @@ func TestUserUseCase_UpdateAvatar_UserNotFound(t *testing.T) {
 	deps.Repo.On("FindByID", ctx, userID).Return(nil, gorm.ErrRecordNotFound)
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert
 	assert.Error(t, err)
@@ -213,7 +213,7 @@ func TestUserUseCase_UpdateAvatar_StorageUploadError(t *testing.T) {
 		Return("", errors.New("storage service unavailable"))
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert
 	assert.Error(t, err)
@@ -260,7 +260,7 @@ func TestUserUseCase_UpdateAvatar_DatabaseUpdateError(t *testing.T) {
 	deps.Storage.On("DeleteFile", ctx, "avatars/"+userID+".png").Return(nil)
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert
 	assert.Error(t, err)
@@ -309,7 +309,7 @@ func TestUserUseCase_UpdateAvatar_AuditLogError(t *testing.T) {
 	deps.Storage.On("DeleteFile", ctx, "avatars/"+userID+".png").Return(nil)
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert - Should fail now
 	assert.Error(t, err)
@@ -347,7 +347,7 @@ func TestUserUseCase_UpdateAvatar_InvalidFileType(t *testing.T) {
 	// deps.Storage.On("UploadFile", ...).Return(...)
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert
 	assert.Error(t, err)
@@ -382,7 +382,7 @@ func TestUserUseCase_UpdateAvatar_FileTooLarge(t *testing.T) {
 		Return("", errors.New("file size exceeds limit"))
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, largeContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, largeContent, filename, contentType)
 
 	// Assert
 	assert.Error(t, err)

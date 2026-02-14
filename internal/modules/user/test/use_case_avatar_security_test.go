@@ -100,7 +100,7 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 				deps.AuditUC.On("LogActivity", ctx, mock.Anything).Return(nil).Once()
 			}
 
-			_, err := uc.UpdateAvatar(ctx, testUserID, tt.fileContent, tt.filename, tt.contentType)
+			_, err := uc.UpdateAvatar(ctx, testUserID, testUserID, tt.fileContent, tt.filename, tt.contentType)
 
 			if tt.errExpected != nil {
 				assert.Error(t, err)

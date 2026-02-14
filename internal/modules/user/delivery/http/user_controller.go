@@ -197,7 +197,7 @@ func (h *UserController) UpdateAvatar(c *gin.Context) {
 	}
 
 	// 3. Call UseCase
-	user, err := h.UserUseCase.UpdateAvatar(ctx, userID.(string), file, header.Filename, header.Header.Get("Content-Type"))
+	user, err := h.UserUseCase.UpdateAvatar(ctx, userID.(string), userID.(string), file, header.Filename, header.Header.Get("Content-Type"))
 	if err != nil {
 		h.Log.WithError(err).Error("failed to update avatar")
 		response.HandleError(c, err, "failed to update avatar")
