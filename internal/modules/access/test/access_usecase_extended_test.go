@@ -50,8 +50,7 @@ func TestDeleteAccessRight_Extended(t *testing.T) {
 		deps.Repo.On("GetAccessRightByID", ctx, id).Return(nil, repoErr).Once()
 
 		err := uc.DeleteAccessRight(ctx, id)
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
+assert.ErrorIs(t, err, exception.ErrInternalServer)
 		deps.Repo.AssertExpectations(t)
 	})
 
