@@ -57,11 +57,12 @@ func TestUserUseCase_UpdateAvatar_Success(t *testing.T) {
 	deps, uc := setupAvatarTest()
 	ctx := context.Background()
 
-	userID := "user-123"
+	// Valid UUID
+	userID := "019b9150-304e-79d0-aa16-4a2b44347a08"
 	filename := "profile.jpg"
 	contentType := "image/png"
 	fileContent := createValidImageReader("fake-image-data")
-	uploadedURL := "https://storage.example.com/avatars/user-123.png"
+	uploadedURL := "https://storage.example.com/avatars/" + userID + ".png"
 
 	existingUser := &entity.User{
 		ID:        userID,
@@ -75,7 +76,7 @@ func TestUserUseCase_UpdateAvatar_Success(t *testing.T) {
 	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
 
 	// Mock Storage Upload
-	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-123.png", "image/png").
+	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/"+userID+".png", "image/png").
 		Return(uploadedURL, nil)
 
 	// Mock Update
@@ -92,7 +93,7 @@ func TestUserUseCase_UpdateAvatar_Success(t *testing.T) {
 	})).Return(nil)
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert
 	assert.NoError(t, err)
@@ -107,12 +108,13 @@ func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {
 	deps, uc := setupAvatarTest()
 	ctx := context.Background()
 
-	userID := "user-456"
+	// Valid UUID
+	userID := "019b9150-304e-79d0-aa16-4a2b44347a09"
 	filename := "new-avatar.png"
 	contentType := "image/png"
 	fileContent := createValidImageReader("new-fake-image-data")
-	oldAvatarURL := "https://storage.example.com/avatars/user-456-old.jpg"
-	newAvatarURL := "https://storage.example.com/avatars/user-456.png"
+	oldAvatarURL := "https://storage.example.com/avatars/" + userID + "-old.jpg"
+	newAvatarURL := "https://storage.example.com/avatars/" + userID + ".png"
 
 	existingUser := &entity.User{
 		ID:        userID,
@@ -126,7 +128,7 @@ func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {
 	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
 
 	// Mock Storage Upload (replaces old one)
-	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-456.png", "image/png").
+	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/"+userID+".png", "image/png").
 		Return(newAvatarURL, nil)
 
 	// Mock Update
@@ -138,7 +140,7 @@ func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {
 	deps.AuditUC.On("LogActivity", ctx, mock.Anything).Return(nil)
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert
 	assert.NoError(t, err)
@@ -157,7 +159,8 @@ func TestUserUseCase_UpdateAvatar_UserNotFound(t *testing.T) {
 	deps, uc := setupAvatarTest()
 	ctx := context.Background()
 
-	userID := "nonexistent-user"
+	// Valid UUID format for input, but not in DB
+	userID := "019b9150-304e-79d0-aa16-4a2b44347a10"
 	filename := "profile.jpg"
 	contentType := "image/jpeg"
 	fileContent := strings.NewReader("fake-image-data")
@@ -166,7 +169,7 @@ func TestUserUseCase_UpdateAvatar_UserNotFound(t *testing.T) {
 	deps.Repo.On("FindByID", ctx, userID).Return(nil, gorm.ErrRecordNotFound)
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert
 	assert.Error(t, err)
@@ -180,7 +183,7 @@ func TestUserUseCase_UpdateAvatar_StorageUploadError(t *testing.T) {
 	deps, uc := setupAvatarTest()
 	ctx := context.Background()
 
-	userID := "user-789"
+	userID := "019b9150-304e-79d0-aa16-4a2b44347a11"
 	filename := "profile.jpg"
 	contentType := "image/png"
 	fileContent := createValidImageReader("fake-image-data")
@@ -196,11 +199,11 @@ func TestUserUseCase_UpdateAvatar_StorageUploadError(t *testing.T) {
 	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
 
 	// Mock Storage Upload - Error
-	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-789.png", "image/png").
+	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/"+userID+".png", "image/png").
 		Return("", errors.New("storage service unavailable"))
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert
 	assert.Error(t, err)
@@ -215,11 +218,11 @@ func TestUserUseCase_UpdateAvatar_DatabaseUpdateError(t *testing.T) {
 	deps, uc := setupAvatarTest()
 	ctx := context.Background()
 
-	userID := "user-101"
+	userID := "019b9150-304e-79d0-aa16-4a2b44347a12"
 	filename := "profile.jpg"
 	contentType := "image/png"
 	fileContent := createValidImageReader("fake-image-data")
-	uploadedURL := "https://storage.example.com/avatars/user-101.png"
+	uploadedURL := "https://storage.example.com/avatars/" + userID + ".png"
 
 	existingUser := &entity.User{
 		ID:       userID,
@@ -232,14 +235,17 @@ func TestUserUseCase_UpdateAvatar_DatabaseUpdateError(t *testing.T) {
 	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
 
 	// Mock Storage Upload - Success
-	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-101.png", "image/png").
+	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/"+userID+".png", "image/png").
 		Return(uploadedURL, nil)
 
 	// Mock Update - Error
 	deps.Repo.On("Update", ctx, mock.Anything).Return(errors.New("database connection lost"))
 
+	// Mock Cleanup (Storage Delete) - Expect this to be called!
+	deps.Storage.On("DeleteFile", ctx, "avatars/"+userID+".png").Return(nil)
+
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert
 	assert.Error(t, err)
@@ -253,11 +259,11 @@ func TestUserUseCase_UpdateAvatar_AuditLogError(t *testing.T) {
 	deps, uc := setupAvatarTest()
 	ctx := context.Background()
 
-	userID := "user-202"
+	userID := "019b9150-304e-79d0-aa16-4a2b44347a13"
 	filename := "profile.jpg"
 	contentType := "image/png"
 	fileContent := createValidImageReader("fake-image-data")
-	uploadedURL := "https://storage.example.com/avatars/user-202.png"
+	uploadedURL := "https://storage.example.com/avatars/" + userID + ".png"
 
 	existingUser := &entity.User{
 		ID:       userID,
@@ -270,25 +276,26 @@ func TestUserUseCase_UpdateAvatar_AuditLogError(t *testing.T) {
 	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
 
 	// Mock Storage Upload
-	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-202.png", "image/png").
+	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/"+userID+".png", "image/png").
 		Return(uploadedURL, nil)
 
 	// Mock Update
 	deps.Repo.On("Update", ctx, mock.Anything).Return(nil)
 
-	// Mock Audit Log - Error (should not fail the operation)
+	// Mock Audit Log - Error (should NOT fail the operation)
 	deps.AuditUC.On("LogActivity", ctx, mock.Anything).Return(errors.New("audit service down"))
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
-	// Assert - Should still succeed even if audit fails
+	// Assert - Should succeed
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, uploadedURL, result.AvatarURL)
 	deps.Repo.AssertExpectations(t)
 	deps.Storage.AssertExpectations(t)
 	deps.AuditUC.AssertExpectations(t)
+	deps.Storage.AssertNotCalled(t, "DeleteFile")
 }
 
 // ============================================================================
@@ -299,7 +306,7 @@ func TestUserUseCase_UpdateAvatar_InvalidFileType(t *testing.T) {
 	deps, uc := setupAvatarTest()
 	ctx := context.Background()
 
-	userID := "user-303"
+	userID := "019b9150-304e-79d0-aa16-4a2b44347a14"
 	filename := "malicious.exe"
 	contentType := "application/x-msdownload"
 	fileContent := strings.NewReader("fake-exe-data")
@@ -318,7 +325,7 @@ func TestUserUseCase_UpdateAvatar_InvalidFileType(t *testing.T) {
 	// deps.Storage.On("UploadFile", ...).Return(...)
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, fileContent, filename, contentType)
 
 	// Assert
 	assert.Error(t, err)
@@ -332,7 +339,7 @@ func TestUserUseCase_UpdateAvatar_FileTooLarge(t *testing.T) {
 	deps, uc := setupAvatarTest()
 	ctx := context.Background()
 
-	userID := "user-404"
+	userID := "019b9150-304e-79d0-aa16-4a2b44347a15"
 	filename := "huge-image.jpg"
 	contentType := "image/png"
 	// Simulate large file with valid header
@@ -349,11 +356,11 @@ func TestUserUseCase_UpdateAvatar_FileTooLarge(t *testing.T) {
 	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
 
 	// Mock Storage Upload - Should reject file too large
-	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-404.png", "image/png").
+	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/"+userID+".png", "image/png").
 		Return("", errors.New("file size exceeds limit"))
 
 	// Execute
-	result, err := uc.UpdateAvatar(ctx, userID, largeContent, filename, contentType)
+	result, err := uc.UpdateAvatar(ctx, userID, userID, largeContent, filename, contentType)
 
 	// Assert
 	assert.Error(t, err)

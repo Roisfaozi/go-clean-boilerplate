@@ -6,11 +6,10 @@ import {
   useState,
   useCallback,
   ReactNode,
-  useEffect,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import useSWR, { KeyedMutator } from "swr";
-import { User, usersApi } from "~/lib/api/users";
+import { User, usersApi, UserListResponse } from "~/lib/api/users";
 import { toast } from "sonner";
 import { usePermission } from "~/hooks/use-permission";
 
@@ -24,6 +23,7 @@ interface UsersContextType {
   error: any;
   mutate: KeyedMutator<any>;
   handleSearch: (term: string) => void;
+  clearSearch: () => void;
   handlePageChange: (newPage: number) => void;
   canCreate: boolean;
   canDelete: boolean;
@@ -45,7 +45,13 @@ interface UsersContextType {
 
 const UsersContext = createContext<UsersContextType | undefined>(undefined);
 
-export function UsersProvider({ children }: { children: ReactNode }) {
+export function UsersProvider({ 
+  children,
+  initialData
+}: { 
+  children: ReactNode;
+  initialData?: UserListResponse;
+}) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
@@ -60,11 +66,15 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     isLoading,
     mutate,
   } = useSWR(["/api/v1/users", page, limit, searchTerm], ([_, p, l, s]) =>
-    usersApi.getAll(p, l, s)
+    usersApi.getAll(p, l, s),
+    {
+      fallbackData: initialData,
+      keepPreviousData: true,
+    }
   );
 
   const users = response?.data || [];
-  const total = response?.paging.total || 0;
+  const total = response?.paging?.total || 0;
 
   const canCreate = usePermission("/api/v1/users", "POST");
   const canDelete = usePermission("/api/v1/users/:id", "DELETE");
@@ -87,6 +97,13 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     },
     [searchParams, pathname, replace]
   );
+
+  const clearSearch = useCallback(() => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("search");
+    params.set("page", "1");
+    replace(`${pathname}?${params.toString()}`);
+  }, [searchParams, pathname, replace]);
 
   const handlePageChange = useCallback(
     (newPage: number) => {
@@ -138,6 +155,7 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         error,
         mutate,
         handleSearch,
+        clearSearch,
         handlePageChange,
         canCreate,
         canDelete,

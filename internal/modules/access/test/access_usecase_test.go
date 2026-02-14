@@ -360,9 +360,9 @@ func TestCreateAccessRight_Sanitization(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, createdAccessRight)
 
-	// Verify that the entity passed to repo was sanitized
-	assert.Equal(t, "Bold Right", capturedEntity.Name)
-	assert.Equal(t, "alert(&#39;xss&#39;) Description", capturedEntity.Description)
+	// Verify that the entity passed to repo was sanitized (escaped)
+	assert.Equal(t, "&lt;b&gt;Bold&lt;/b&gt; Right", capturedEntity.Name)
+	assert.Equal(t, "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt; Description", capturedEntity.Description)
 
 	deps.Repo.AssertExpectations(t)
 }

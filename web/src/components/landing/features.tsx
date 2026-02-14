@@ -1,49 +1,62 @@
-import { Shield, Zap, Layout, Lock, Database, BarChart } from "lucide-react";
+import {
+  Shield,
+  Zap,
+  Layout,
+  Lock,
+  Database,
+  BarChart,
+  Server,
+  Globe,
+} from "lucide-react";
 import { BentoCard, BentoGrid } from "~/components/magicui/bento-grid";
+import { cn } from "~/lib/utils";
 
 const features = [
   {
-    name: "Dual-Density Engine",
+    name: "Adaptive Density Engine",
     description:
-      "Switch instantly between Comfort mode for analytics and Compact mode for data-heavy operations.",
+      "Switch between Comfort (SaaS) and Compact (Enterprise) modes instantly.",
     icon: Layout,
-    href: "#",
-    cta: "Learn more",
+    href: "/dashboard",
+    cta: "Try it out",
     background: (
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent" />
+      <div className="from-primary/10 absolute inset-0 bg-linear-to-br to-transparent transition-opacity group-hover:opacity-20" />
     ),
     className: "lg:col-span-2 lg:row-span-1",
   },
   {
-    name: "Enterprise RBAC",
-    description: "Granular permission controls with role inheritance.",
+    name: "Casbin RBAC",
+    description:
+      "Enterprise-grade authorization with role inheritance and matrix management.",
     icon: Shield,
-    href: "#",
-    cta: "Learn more",
+    href: "/dashboard/access",
+    cta: "Manage access",
     background: (
-      <div className="absolute inset-0 bg-gradient-to-tr from-teal-500/10 to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-tr from-emerald-500/10 to-transparent transition-opacity group-hover:opacity-20" />
     ),
     className: "lg:col-span-1 lg:row-span-1",
   },
   {
-    name: "AI-Native Integration",
-    description: "Built-in support for Vercel AI SDK with streaming chat.",
+    name: "Multi-tenant Ready",
+    description:
+      "Built-in organization switching and strict data isolation for every tenant.",
+    icon: Globe,
+    href: "/dashboard/organization/settings",
+    cta: "Configure org",
+    background: (
+      <div className="absolute inset-0 bg-linear-to-br from-indigo-500/10 to-transparent transition-opacity group-hover:opacity-20" />
+    ),
+    className: "lg:col-span-1 lg:row-span-1",
+  },
+  {
+    name: "Real-time Distributed WS",
+    description:
+      "WebSocket scaling with Redis Pub/Sub and presence tracking out of the box.",
     icon: Zap,
-    href: "#",
-    cta: "Learn more",
+    href: "/dashboard",
+    cta: "See live activity",
     background: (
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent" />
-    ),
-    className: "lg:col-span-1 lg:row-span-1",
-  },
-  {
-    name: "Audit Logging",
-    description: "Comprehensive activity tracking for security compliance.",
-    icon: Lock,
-    href: "#",
-    cta: "Learn more",
-    background: (
-      <div className="absolute inset-0 bg-gradient-to-bl from-amber-500/10 to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-bl from-amber-500/10 to-transparent transition-opacity group-hover:opacity-20" />
     ),
     className: "lg:col-span-2 lg:row-span-1",
   },
@@ -51,19 +64,22 @@ const features = [
 
 export default function Features() {
   return (
-    <section className="py-24">
+    <section className="bg-background/50 py-24 backdrop-blur-sm">
       <div className="container px-4 md:px-6">
         <div className="mx-auto mb-16 max-w-3xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-slate-50">
-            Everything you need to build faster
+          <div className="text-primary mb-4 text-sm font-bold tracking-widest uppercase">
+            Core Capabilities
+          </div>
+          <h2 className="mb-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl dark:text-slate-50">
+            Enterprise foundation, SaaS speed.
           </h2>
-          <p className="mt-4 text-lg text-slate-500 dark:text-slate-400">
-            NexusOS combines the speed of modern SaaS templates with the
-            robustness of enterprise admin systems.
+          <p className="text-muted-foreground text-lg">
+            NexusOS provides the heavy lifting so you can focus on building your
+            core features. All powered by Go and Next.js.
           </p>
         </div>
 
-        <BentoGrid>
+        <BentoGrid className="lg:grid-rows-2">
           {features.map((feature) => (
             <BentoCard key={feature.name} {...feature} Icon={feature.icon} />
           ))}

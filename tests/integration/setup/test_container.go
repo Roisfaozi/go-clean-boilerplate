@@ -41,6 +41,8 @@ type TestEnvironment struct {
 	Ctx       context.Context
 	MySQLAddr string
 	RedisAddr string
+	S3URL     string
+	S3Bucket  string
 	Closers   []func()
 }
 
@@ -52,6 +54,46 @@ func (env *TestEnvironment) Cleanup() {
 	for i := len(env.Closers) - 1; i >= 0; i-- {
 		env.Closers[i]()
 	}
+}
+
+func SetupRustFS(t *testing.T, ctx context.Context) (string, string) {
+	bucket := "test-bucket"
+	req := testcontainers.ContainerRequest{
+		Image:        "rustfs/rustfs:latest",
+		ExposedPorts: []string{"9000/tcp"},
+		Env: map[string]string{
+			"RUSTFS_ACCESS_KEY":     "rustfsadmin",
+			"RUSTFS_SECRET_KEY":     "rustfsadmin",
+			"RUSTFS_CONSOLE_ENABLE": "true",
+			"RUSTFS_VOLUMES":        "/data",
+		},
+		WaitingFor: wait.ForListeningPort("9000/tcp").WithStartupTimeout(60 * time.Second),
+	}
+
+	rustfsC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+	if err != nil {
+		t.Skipf("Skipping: Failed to start RustFS: %v", err)
+		return "", ""
+	}
+
+	t.Cleanup(func() {
+		_ = rustfsC.Terminate(ctx)
+	})
+
+	host, err := rustfsC.Host(ctx)
+	require.NoError(t, err)
+
+	p, err := rustfsC.MappedPort(ctx, "9000/tcp")
+	require.NoError(t, err)
+
+	s3URL := fmt.Sprintf("http://%s:%s", host, p.Port())
+
+	// Create bucket using a temporary client
+	// We don't return the client here to keep the setup generic for E2E and specific module tests
+	return s3URL, bucket
 }
 
 func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
@@ -200,7 +242,7 @@ func SetupRedisContainer(ctx context.Context) (*redisContainer.RedisContainer, s
 }
 
 func IsDockerAvailable() bool {
-	cmd := exec.Command("docker", "info")
+	cmd := exec.Command("docker", "ps")
 	if err := cmd.Run(); err != nil {
 		return false
 	}

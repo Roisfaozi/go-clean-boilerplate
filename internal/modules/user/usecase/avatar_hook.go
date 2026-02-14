@@ -13,7 +13,6 @@ type AvatarHook struct {
 func (h *AvatarHook) HandleUpload(ctx context.Context, event tus.UploadEvent) error {
 	userID := event.Metadata["user_id"]
 	if userID == "" {
-		// Log warning?
 		return nil
 	}
 

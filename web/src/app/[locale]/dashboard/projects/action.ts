@@ -1,62 +1,64 @@
 "use server";
+
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { projectsApi } from "~/lib/api/projects";
+import { cookies } from "next/headers";
+import { authActionClient } from "~/lib/client/safe-action";
+import { z } from "zod";
 
 async function getOrgId() {
   const cookieStore = await cookies();
-  return cookieStore.get("organization_id")?.value || "";
+  return (await cookieStore).get("organization_id")?.value || "";
 }
 
-async function getAuthHeaders() {
-  const cookieStore = await cookies();
-  return { Cookie: cookieStore.toString() };
-}
-
-const createProjectSchema = z.object({
+const projectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   domain: z.string().min(1, "Domain is required"),
 });
 
-const updateProjectSchema = z.object({
-  name: z.string().optional(),
-  domain: z.string().optional(),
-  status: z.string().optional(),
-});
+export const createProjectAction = authActionClient
+  .schema(projectSchema)
+  .action(async ({ parsedInput }) => {
+    const orgId = await getOrgId();
+    if (!orgId) throw new Error("No organization selected");
 
-interface Payload {
-  name: string;
-  domain: string;
-}
+    const result = await projectsApi.create(orgId, parsedInput);
+    revalidatePath(`/dashboard/projects`);
+    return result;
+  });
 
-export async function createProject(payload: Payload) {
-  const validatedFields = createProjectSchema.safeParse(payload);
-  if (!validatedFields.success) {
-    throw new Error(
-      "Invalid input: " + validatedFields.error.flatten().fieldErrors
-    );
-  }
+export const updateProjectAction = authActionClient
+  .schema(projectSchema.extend({ id: z.string() }))
+  .action(async ({ parsedInput }) => {
+    const { id, ...payload } = parsedInput;
+    const orgId = await getOrgId();
+    if (!orgId) throw new Error("No organization selected");
 
-  const orgId = await getOrgId();
-  if (!orgId) throw new Error("No organization selected");
+    const result = await projectsApi.update(orgId, id, payload);
+    revalidatePath(`/dashboard/projects`);
+    return result;
+  });
 
-  const headers = await getAuthHeaders();
-  await projectsApi.create(orgId, validatedFields.data, { headers });
-  revalidatePath(`/dashboard/projects`);
-}
+export const deleteProjectAction = authActionClient
+  .schema(z.object({ id: z.string() }))
+  .action(async ({ parsedInput }) => {
+    const orgId = await getOrgId();
+    if (!orgId) throw new Error("No organization selected");
 
+    await projectsApi.delete(orgId, parsedInput.id);
+    revalidatePath(`/dashboard/projects`);
+    redirect("/dashboard/projects");
+  });
+
+// Non-action helpers for Server Components
 export async function checkIfFreePlanLimitReached() {
   const orgId = await getOrgId();
   if (!orgId) return true;
-
-  const headers = await getAuthHeaders();
+  
   try {
-    const response = await projectsApi.getAll(orgId, { headers });
-    // response.data is Project[]
-    const count = response?.length || 0;
-    return count >= 3;
+    const projects = await projectsApi.getAll(orgId);
+    return (projects?.length || 0) >= 3;
   } catch (error) {
     return false;
   }
@@ -65,11 +67,10 @@ export async function checkIfFreePlanLimitReached() {
 export async function getProjects() {
   const orgId = await getOrgId();
   if (!orgId) return [];
-
-  const headers = await getAuthHeaders();
+  
   try {
-    const response = await projectsApi.getAll(orgId, { headers });
-    return response || [];
+    const projects = await projectsApi.getAll(orgId);
+    return projects || [];
   } catch (error) {
     console.error("Failed to fetch projects:", error);
     return [];
@@ -79,36 +80,11 @@ export async function getProjects() {
 export async function getProjectById(id: string) {
   const orgId = await getOrgId();
   if (!orgId) return null;
-
-  const headers = await getAuthHeaders();
+  
   try {
-    const response = await projectsApi.getByID(orgId, id, { headers });
-    return response;
+    const project = await projectsApi.getByID(orgId, id);
+    return project;
   } catch (error) {
     return null;
   }
-}
-
-export async function updateProjectById(id: string, payload: Payload) {
-  const validatedFields = updateProjectSchema.safeParse(payload);
-  if (!validatedFields.success) {
-    throw new Error("Invalid input");
-  }
-
-  const orgId = await getOrgId();
-  if (!orgId) throw new Error("No organization selected");
-
-  const headers = await getAuthHeaders();
-  await projectsApi.update(orgId, id, validatedFields.data, { headers });
-  revalidatePath(`/dashboard/projects`);
-}
-
-export async function deleteProjectById(id: string) {
-  const orgId = await getOrgId();
-  if (!orgId) throw new Error("No organization selected");
-
-  const headers = await getAuthHeaders();
-  await projectsApi.delete(orgId, id, { headers });
-  revalidatePath(`/dashboard/projects`);
-  redirect("/dashboard/projects");
 }

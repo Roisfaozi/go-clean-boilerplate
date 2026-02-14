@@ -25,17 +25,17 @@ func setupAuthTestRouter() *gin.Engine {
 	router := gin.New()
 	return router
 }
-func newTestAuthController(mockUseCase *mocks.MockAuthUseCase, mockTicketManager *mocks.MockTicketManager) *authHandler.AuthController {
+func newTestAuthController(mockUseCase *mocks.MockAuthUseCase) *authHandler.AuthController {
 	log := logrus.New()
 	log.SetLevel(logrus.PanicLevel)
 	v := validator.New()
 	_ = validation.RegisterCustomValidations(v)
-	return authHandler.NewAuthController(mockUseCase, log, v, mockTicketManager)
+	return authHandler.NewAuthController(mockUseCase, log, v)
 }
 
 func TestAuthHandler_Login_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/login", handler.Login)
 
@@ -60,7 +60,7 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 
 func TestAuthHandler_ForgotPassword_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/forgot-password", handler.ForgotPassword)
 
@@ -83,7 +83,7 @@ func TestAuthHandler_ForgotPassword_Success(t *testing.T) {
 
 func TestAuthHandler_ForgotPassword_InvalidBody(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/forgot-password", handler.ForgotPassword)
 
@@ -99,7 +99,7 @@ func TestAuthHandler_ForgotPassword_InvalidBody(t *testing.T) {
 
 func TestAuthHandler_ForgotPassword_ValidationError(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/forgot-password", handler.ForgotPassword)
 
@@ -117,7 +117,7 @@ func TestAuthHandler_ForgotPassword_ValidationError(t *testing.T) {
 
 func TestAuthHandler_ForgotPassword_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/forgot-password", handler.ForgotPassword)
 
@@ -137,7 +137,7 @@ func TestAuthHandler_ForgotPassword_UseCaseError(t *testing.T) {
 
 func TestAuthHandler_ResetPassword_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/reset-password", handler.ResetPassword)
 
@@ -159,7 +159,7 @@ func TestAuthHandler_ResetPassword_Success(t *testing.T) {
 
 func TestAuthHandler_ResetPassword_InvalidBody(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/reset-password", handler.ResetPassword)
 
@@ -175,7 +175,7 @@ func TestAuthHandler_ResetPassword_InvalidBody(t *testing.T) {
 
 func TestAuthHandler_ResetPassword_ValidationError(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/reset-password", handler.ResetPassword)
 
@@ -196,7 +196,7 @@ func TestAuthHandler_ResetPassword_ValidationError(t *testing.T) {
 
 func TestAuthHandler_ResetPassword_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/reset-password", handler.ResetPassword)
 
@@ -220,7 +220,7 @@ func TestAuthHandler_ResetPassword_UseCaseError(t *testing.T) {
 
 func TestAuthHandler_Logout_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 
 	userID := "user-123"
 	sessionID := "session-abc"
@@ -242,7 +242,7 @@ func TestAuthHandler_Logout_Success(t *testing.T) {
 
 func TestAuthHandler_Login_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/login", handler.Login)
 
@@ -264,7 +264,7 @@ func TestAuthHandler_Login_UseCaseError(t *testing.T) {
 
 func TestAuthHandler_RefreshToken_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/refresh", handler.RefreshToken)
 
@@ -287,7 +287,7 @@ func TestAuthHandler_RefreshToken_Success(t *testing.T) {
 
 func TestAuthHandler_RefreshToken_NoCookie(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/refresh", handler.RefreshToken)
 
@@ -303,7 +303,7 @@ func TestAuthHandler_RefreshToken_NoCookie(t *testing.T) {
 
 func TestAuthHandler_RefreshToken_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/refresh", handler.RefreshToken)
 
@@ -322,7 +322,7 @@ func TestAuthHandler_RefreshToken_UseCaseError(t *testing.T) {
 
 func TestAuthHandler_Logout_Unauthorized(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -337,7 +337,7 @@ func TestAuthHandler_Logout_Unauthorized(t *testing.T) {
 
 func TestAuthHandler_Logout_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 
 	userID := "user-123"
 	sessionID := "session-abc"
@@ -359,7 +359,7 @@ func TestAuthHandler_Logout_UseCaseError(t *testing.T) {
 
 func TestAuthHandler_VerifyEmail_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/verify-email", handler.VerifyEmail)
 
@@ -382,7 +382,7 @@ func TestAuthHandler_VerifyEmail_Success(t *testing.T) {
 
 func TestAuthHandler_VerifyEmail_InvalidBody(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/verify-email", handler.VerifyEmail)
 
@@ -398,7 +398,7 @@ func TestAuthHandler_VerifyEmail_InvalidBody(t *testing.T) {
 
 func TestAuthHandler_VerifyEmail_ValidationError(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/verify-email", handler.VerifyEmail)
 
@@ -416,7 +416,7 @@ func TestAuthHandler_VerifyEmail_ValidationError(t *testing.T) {
 
 func TestAuthHandler_VerifyEmail_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 	router := setupAuthTestRouter()
 	router.POST("/auth/verify-email", handler.VerifyEmail)
 
@@ -436,7 +436,7 @@ func TestAuthHandler_VerifyEmail_UseCaseError(t *testing.T) {
 
 func TestAuthHandler_ResendVerification_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 
 	userID := "user-123"
 	mockUseCase.On("RequestVerification", mock.Anything, userID).Return(nil)
@@ -454,7 +454,7 @@ func TestAuthHandler_ResendVerification_Success(t *testing.T) {
 
 func TestAuthHandler_ResendVerification_Unauthenticated(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -469,7 +469,7 @@ func TestAuthHandler_ResendVerification_Unauthenticated(t *testing.T) {
 
 func TestAuthHandler_ResendVerification_AlreadyVerified(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 
 	userID := "user-123"
 	mockUseCase.On("RequestVerification", mock.Anything, userID).Return(usecase.ErrAlreadyVerified)
@@ -487,7 +487,7 @@ func TestAuthHandler_ResendVerification_AlreadyVerified(t *testing.T) {
 
 func TestAuthController_Login_XSS(t *testing.T) {
 	mockUseCase := new(mocks.MockAuthUseCase)
-	handler := newTestAuthController(mockUseCase, new(mocks.MockTicketManager))
+	handler := newTestAuthController(mockUseCase)
 
 	// Create request with XSS payload
 	reqBody := model.LoginRequest{

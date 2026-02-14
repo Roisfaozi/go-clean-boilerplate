@@ -8,25 +8,22 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
 
 type AuthController struct {
-	AuthUseCase   usecase.AuthUseCase
-	TicketManager ws.TicketManager
-	log           *logrus.Logger
-	validate      *validator.Validate
+	AuthUseCase usecase.AuthUseCase
+	log         *logrus.Logger
+	validate    *validator.Validate
 }
 
-func NewAuthController(useCase usecase.AuthUseCase, log *logrus.Logger, validate *validator.Validate, ticketManager ws.TicketManager) *AuthController {
+func NewAuthController(useCase usecase.AuthUseCase, log *logrus.Logger, validate *validator.Validate) *AuthController {
 	return &AuthController{
-		AuthUseCase:   useCase,
-		TicketManager: ticketManager,
-		log:           log,
-		validate:      validate,
+		AuthUseCase: useCase,
+		log:         log,
+		validate:    validate,
 	}
 }
 
@@ -372,7 +369,7 @@ func (h *AuthController) GetTicket(c *gin.Context) {
 	// For now, we allow empty orgID if the ticket is just for connection, but usually we need context.
 	// However, the TicketManager supports storing it.
 
-	ticket, err := h.TicketManager.CreateTicket(
+	ticket, err := h.AuthUseCase.GetTicket(
 		c.Request.Context(),
 		userID.(string),
 		orgID,

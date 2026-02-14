@@ -36,9 +36,6 @@ func NewAccessUseCase(repo repository.AccessRepository, log *logrus.Logger) IAcc
 }
 
 func (uc *AccessUseCase) CreateAccessRight(ctx context.Context, req model.CreateAccessRightRequest) (*model.AccessRightResponse, error) {
-	req.Name = validation.SanitizeString(req.Name)
-	req.Description = validation.SanitizeString(req.Description)
-
 	accessRightEntity := &entity.AccessRight{
 		Name:        pkg.SanitizeString(req.Name),
 		Description: pkg.SanitizeString(req.Description),

@@ -131,6 +131,15 @@ func TestWebSocketManager_Integration(t *testing.T) {
 	_, err = waitForMessage(conn, "info", "test-channel")
 	require.NoError(t, err)
 
+	// Wait for subscription to be processed by manager
+	for i := 0; i < 20; i++ {
+		if manager.GetChannelClients("test-channel") == 1 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	assert.Equal(t, 1, manager.GetChannelClients("test-channel"))
+
 	// Broadcast - Must send a message structure that client expects (ws.ServerMessage)
 	// to pass waitForMessage check
 	broadcastContent := ws.ServerMessage{
@@ -177,6 +186,16 @@ func TestBroadcastToChannel(t *testing.T) {
 	require.NoError(t, c3.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel2"}))
 	_, err = waitForMessage(c3, "info", "channel2")
 	require.NoError(t, err)
+
+	// Wait for subscriptions to be processed
+	for i := 0; i < 20; i++ {
+		if manager.GetChannelClients("channel1") == 2 && manager.GetChannelClients("channel2") == 1 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	assert.Equal(t, 2, manager.GetChannelClients("channel1"), "Should have 2 clients in channel1")
+	assert.Equal(t, 1, manager.GetChannelClients("channel2"), "Should have 1 client in channel2")
 
 	// Broadcast to channel1
 	broadcastContent := ws.ServerMessage{
