@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
@@ -765,13 +766,9 @@ func (s *Service) GetTicket(ctx context.Context, userID, orgID, sessionID, role,
 			return "", fmt.Errorf("failed to check organization membership: %w", err)
 		}
 
-		isMember := false
-		for _, org := range userOrgs {
-			if org.ID == orgID {
-				isMember = true
-				break
-			}
-		}
+		isMember := slices.ContainsFunc(userOrgs, func(org *orgEntity.Organization) bool {
+			return org.ID == orgID
+		})
 
 		if !isMember {
 			s.log.WithContext(ctx).Warnf("User %s attempted to access organization %s without membership", userID, orgID)
