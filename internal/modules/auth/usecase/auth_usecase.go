@@ -45,7 +45,6 @@ type Service struct {
 	Enforcer         permissionUseCase.IEnforcer
 	auditUC          auditUseCase.AuditUseCase
 	taskDistributor  worker.TaskDistributor
-	ticketManager    ws.TicketManager
 	dummyHash        string
 }
 
@@ -63,7 +62,6 @@ func NewAuthUsecase(
 	enforcer permissionUseCase.IEnforcer,
 	auditUC auditUseCase.AuditUseCase,
 	taskDistributor worker.TaskDistributor,
-	ticketManager ws.TicketManager,
 ) AuthUseCase {
 	s := &Service{
 		maxLoginAttempts: maxLoginAttempts,
@@ -79,7 +77,6 @@ func NewAuthUsecase(
 		Enforcer:         enforcer,
 		auditUC:          auditUC,
 		taskDistributor:  taskDistributor,
-		ticketManager:    ticketManager,
 	}
 
 	// Generate dummy hash for timing attack prevention
@@ -736,19 +733,4 @@ func (s *Service) VerifyEmail(ctx context.Context, token string) error {
 	}
 
 	return nil
-}
-
-func (s *Service) GetTicket(ctx context.Context, userID, orgID, sessionID, role, username string) (string, error) {
-	// 1. Check if user is active (Optional, but good practice since we are in UseCase now)
-	user, err := s.userRepo.FindByID(ctx, userID)
-	if err != nil {
-		s.log.WithContext(ctx).WithError(err).Error("GetTicket failed: could not find user")
-		return "", fmt.Errorf("failed to find user: %w", err)
-	}
-	if user.Status != entity.UserStatusActive {
-		return "", ErrAccountSuspended
-	}
-
-	// 2. Delegate to TicketManager
-	return s.ticketManager.CreateTicket(ctx, userID, orgID, sessionID, role, username)
 }

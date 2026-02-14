@@ -2,10 +2,14 @@ import { type Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import Footer from "~/components/layout/footer";
+import { AuthProvider } from "~/components/shared/providers/auth-provider";
+import { DensityProvider } from "~/components/shared/providers/density-provider";
+import ThemeProvider from "~/components/shared/providers/theme-provider";
+import { WebSocketProvider } from "~/components/shared/providers/websocket-provider";
+import { Toaster } from "~/components/ui/toaster";
 import { siteConfig, siteUrl } from "~/config/site";
 import { cn } from "~/lib/utils";
 import { I18nProviderClient } from "~/locales/client";
-import { GlobalProviders } from "~/components/shared/providers/global-providers";
 import "../globals.css";
 
 const fontSans = Geist({
@@ -127,16 +131,23 @@ export default async function RootLayout({
           fontMono.variable
         )}
       >
-        <GlobalProviders>
-          {/* <AnnouncementBanner /> */}
-          <main>
-            {children}
-            {loginDialog}
-          </main>
-          <I18nProviderClient locale={locale}>
-            <Footer />
-          </I18nProviderClient>
-        </GlobalProviders>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <DensityProvider>
+            <AuthProvider>
+              <WebSocketProvider>
+                {/* <AnnouncementBanner /> */}
+                <main>
+                  {children}
+                  {loginDialog}
+                </main>
+                <I18nProviderClient locale={locale}>
+                  <Footer />
+                </I18nProviderClient>
+                <Toaster />
+              </WebSocketProvider>
+            </AuthProvider>
+          </DensityProvider>
+        </ThemeProvider>
       </body>
       {/* remove this line when you are working on your own project */}
       {process.env.NODE_ENV === "production" && (

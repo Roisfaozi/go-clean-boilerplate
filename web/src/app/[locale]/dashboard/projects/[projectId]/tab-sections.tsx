@@ -1,28 +1,21 @@
-"use client";
-
-import { Project } from "~/lib/api/projects";
+import { type Project } from "~/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { ProjectDetailProvider } from "./_components/project-detail-context";
-import { ProjectDetailsForm } from "./_components/project-details-form";
-import { ProjectDangerZone } from "./_components/project-danger-zone";
+import DeleteCard from "./delete-card";
+import EditableDetails from "./editable-details";
 
 export default function TabSections({ project }: { project: Project }) {
   return (
-    <ProjectDetailProvider initialProject={project}>
-      <Tabs defaultValue="details" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="details">
-          <ProjectDetailsForm />
-        </TabsContent>
-
-        <TabsContent value="settings">
-          <ProjectDangerZone />
-        </TabsContent>
-      </Tabs>
-    </ProjectDetailProvider>
+    <Tabs defaultValue="details">
+      <TabsList>
+        <TabsTrigger value="details">Details</TabsTrigger>
+        <TabsTrigger value="settings">Settings</TabsTrigger>
+      </TabsList>
+      <TabsContent value="details">
+        <EditableDetails initialValues={project} />
+      </TabsContent>
+      <TabsContent value="settings">
+        <DeleteCard id={project.id} />
+      </TabsContent>
+    </Tabs>
   );
 }

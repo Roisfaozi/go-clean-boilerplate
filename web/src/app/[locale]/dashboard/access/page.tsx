@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  AccessControlProvider,
-  useAccessControl,
-} from "./_components/access-control-context";
+import { useState } from "react";
 import { PermissionMatrixView } from "~/components/dashboard/access/permission-matrix-view";
 import { PolicyEditorView } from "~/components/dashboard/access/policy-editor-view";
 import { RoleCardsView } from "~/components/dashboard/access/role-cards-view";
@@ -11,23 +8,16 @@ import { RoleDialog } from "~/components/dashboard/roles/role-dialog";
 import { Icon } from "~/components/shared/icon";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import type { Role } from "~/lib/api/roles";
 
 export default function AccessPage() {
-  return (
-    <AccessControlProvider>
-      <AccessControlContent />
-    </AccessControlProvider>
-  );
-}
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("matrix");
 
-function AccessControlContent() {
-  const {
-    activeTab,
-    setActiveTab,
-    roleDialogOpen,
-    setRoleDialogOpen,
-    handleRoleClick,
-  } = useAccessControl();
+  const handleRoleClick = (role: Role) => {
+    // TODO: open role slide-over panel
+    console.log("Role clicked:", role);
+  };
 
   return (
     <div className="space-y-6">

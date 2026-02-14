@@ -2,14 +2,9 @@
 
 import { useDashboard } from "./dashboard-context";
 import { KPICard } from "~/components/dashboard/kpi-card";
-import { KPISkeleton } from "~/components/shared/skeletons";
 
 export function DashboardStats() {
   const { stats, isLoading } = useDashboard();
-
-  if (isLoading && stats.users === 0) {
-    return <KPISkeleton />;
-  }
 
   return (
     <div className="grid grid-cols-1 gap-[var(--spacing-gap)] md:grid-cols-2 lg:grid-cols-4">

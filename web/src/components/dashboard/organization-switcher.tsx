@@ -18,18 +18,40 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
-import { useDashboardShell } from "~/app/[locale]/dashboard/_components/dashboard-shell-context";
+import { organizationsApi, Organization } from "~/lib/api/organizations";
+import { useOrganizationStore } from "~/stores/use-organization-store";
+import { toast } from "sonner";
+import { Icon } from "../shared/icon";
 import { CreateOrganizationModal } from "./create-organization-modal";
 
 export function OrganizationSwitcher() {
   const [open, setOpen] = React.useState(false);
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
-  const {
-    organizations,
-    currentOrganization,
-    setOrganization,
-    refreshOrganizations,
-  } = useDashboardShell();
+  const [organizations, setOrganizations] = React.useState<Organization[]>([]);
+  const { currentOrganization, setCurrentOrganization } =
+    useOrganizationStore();
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  const fetchOrgs = React.useCallback(async () => {
+    try {
+      const resp = await organizationsApi.getMyOrganizations();
+      if (resp.data?.organizations) {
+        setOrganizations(resp.data.organizations);
+        // Auto-select first org if none selected
+        if (!currentOrganization && resp.data.organizations.length > 0) {
+          setCurrentOrganization(resp.data.organizations[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch organizations", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentOrganization, setCurrentOrganization]);
+
+  React.useEffect(() => {
+    fetchOrgs();
+  }, [fetchOrgs]);
 
   return (
     <>
@@ -66,8 +88,11 @@ export function OrganizationSwitcher() {
                   <CommandItem
                     key={org.id}
                     onSelect={() => {
-                      setOrganization(org);
+                      setCurrentOrganization(org);
                       setOpen(false);
+                      toast.success(`Switched to ${org.name}`);
+                      // Optional: Refresh page or trigger context update
+                      // window.location.reload();
                     }}
                     className="cursor-pointer text-sm"
                   >
@@ -107,7 +132,7 @@ export function OrganizationSwitcher() {
       <CreateOrganizationModal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
-        onSuccess={() => refreshOrganizations()}
+        onSuccess={() => fetchOrgs()}
       />
     </>
   );

@@ -53,8 +53,6 @@ func (h *RoleController) Create(c *gin.Context) {
 		return
 	}
 
-	req.Sanitize()
-
 	if err := h.validate.Struct(req); err != nil {
 		msg := validation.FormatValidationErrors(err)
 		response.ValidationError(c, exception.ErrValidationError, msg)

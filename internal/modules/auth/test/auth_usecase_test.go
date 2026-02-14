@@ -51,7 +51,6 @@ type testDependencies struct {
 	log             *logrus.Logger
 	auditUC         *auditMocks.MockAuditUseCase
 	taskDistributor *mocking.MockTaskDistributor
-	ticketManager   *mock_auth.MockTicketManager
 }
 
 func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
@@ -69,7 +68,6 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		log:             logrus.New(),
 		auditUC:         new(auditMocks.MockAuditUseCase),
 		taskDistributor: new(mocking.MockTaskDistributor),
-		ticketManager:   new(mock_auth.MockTicketManager),
 	}
 
 	deps.log.SetOutput(io.Discard)
@@ -88,7 +86,6 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		deps.enforcer,
 		deps.auditUC,
 		deps.taskDistributor,
-		deps.ticketManager,
 	)
 
 	return authService, deps
@@ -292,7 +289,6 @@ func TestLogin_Security_BruteForceProtection(t *testing.T) {
 		deps.enforcer,
 		deps.auditUC,
 		deps.taskDistributor,
-		deps.ticketManager,
 	)
 
 	user, _ := createTestUser("password123")

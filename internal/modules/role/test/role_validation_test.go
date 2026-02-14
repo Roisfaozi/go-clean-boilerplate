@@ -15,7 +15,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestRoleXSSValidation(t *testing.T) {
@@ -40,7 +39,7 @@ func TestRoleXSSValidation(t *testing.T) {
 				Name:        "<script>alert(1)</script>",
 				Description: "A role",
 			},
-			expectedCode: http.StatusCreated,
+			expectedCode: http.StatusUnprocessableEntity,
 		},
 		{
 			name:   "CreateRole XSS in Description",
@@ -50,7 +49,7 @@ func TestRoleXSSValidation(t *testing.T) {
 				Name:        "admin",
 				Description: "<img src=x onerror=alert(2)>",
 			},
-			expectedCode: http.StatusCreated,
+			expectedCode: http.StatusUnprocessableEntity,
 		},
 		{
 			name:   "UpdateRole XSS in Description",
@@ -59,7 +58,7 @@ func TestRoleXSSValidation(t *testing.T) {
 			payload: model.UpdateRoleRequest{
 				Description: "<iframe src='javascript:alert(3)'></iframe>",
 			},
-			expectedCode: http.StatusUnprocessableEntity, // Still 422 because required field becomes empty
+			expectedCode: http.StatusUnprocessableEntity,
 		},
 	}
 
@@ -67,15 +66,6 @@ func TestRoleXSSValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUC := new(mocks.MockRoleUseCase)
 			controller := roleHandler.NewRoleController(mockUC, logger, v)
-
-			// Setup expectations for success cases
-			if tt.expectedCode == http.StatusCreated {
-				if createReq, ok := tt.payload.(model.CreateRoleRequest); ok {
-					// Sanitize a copy to set a precise expectation for the use case call.
-					createReq.Sanitize()
-					mockUC.On("Create", mock.Anything, &createReq).Return(&model.RoleResponse{ID: "uuid"}, nil)
-				}
-			}
 
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
