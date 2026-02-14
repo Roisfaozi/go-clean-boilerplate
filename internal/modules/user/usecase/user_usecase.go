@@ -356,37 +356,30 @@ func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, actorUserID string, 
 	}
 
 	// 4. Update Database
-	err = u.DB.WithinTransaction(ctx, func(txCtx context.Context) error {
-		user.AvatarURL = url
-		if err := u.Repo.Update(txCtx, user); err != nil {
-			u.Log.Errorf("Failed to update user avatar URL: %v", err)
-			return exception.ErrInternalServer
-		}
-
-		// 5. Audit Log
-		if u.AuditUC != nil {
-			if err := u.AuditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
-				UserID:   actorUserID,
-				Action:   "UPDATE_AVATAR",
-				Entity:   "User",
-				EntityID: userID,
-				NewValues: map[string]string{
-					"avatar_url": url,
-				},
-			}); err != nil {
-				u.Log.Errorf("Failed to create audit log for avatar update: %v", err)
-				return exception.ErrInternalServer
-			}
-		}
-		return nil
-	})
-
-	if err != nil {
-		// Cleanup orphaned file
+	user.AvatarURL = url
+	if err := u.Repo.Update(ctx, user); err != nil {
+		u.Log.Errorf("Failed to update user avatar URL: %v", err)
+		// Cleanup orphaned file on DB failure
 		if delErr := u.Storage.DeleteFile(ctx, newFilename); delErr != nil {
 			u.Log.Errorf("Failed to cleanup orphaned file %s: %v", newFilename, delErr)
 		}
-		return nil, err
+		return nil, exception.ErrInternalServer
+	}
+
+	// 5. Audit Log (Best effort)
+	if u.AuditUC != nil {
+		if err := u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			UserID:   actorUserID,
+			Action:   "UPDATE_AVATAR",
+			Entity:   "User",
+			EntityID: userID,
+			NewValues: map[string]string{
+				"avatar_url": url,
+			},
+		}); err != nil {
+			u.Log.Warnf("Failed to create audit log for avatar update: %v", err)
+			// Do not block or rollback on audit failure
+		}
 	}
 
 	return converter.UserToResponse(user), nil
