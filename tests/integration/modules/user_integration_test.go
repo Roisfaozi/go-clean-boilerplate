@@ -622,9 +622,10 @@ func TestUserIntegration_FindAllDynamic_Success(t *testing.T) {
 
 	userUC := setupUserUseCase(t, env)
 
-	_, _ = userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "alpha", Email: "a@e.com", Password: "p", Name: "Alpha"})
-	_, _ = userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "beta", Email: "b@e.com", Password: "p", Name: "Beta"})
-
+  	_, err := userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "alpha", Email: "a@e.com", Password: "p", Name: "Alpha"})  
+    require.NoError(t, err)  
+    _, err = userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "beta", Email: "b@e.com", Password: "p", Name: "Beta"})  
+    require.NoError(t, err)  
 	filter := &querybuilder.DynamicFilter{
 		Filter: map[string]querybuilder.Filter{
 			"username": {Type: "equals", From: "alpha"},
