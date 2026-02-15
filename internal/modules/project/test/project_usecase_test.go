@@ -140,7 +140,7 @@ func TestProjectUseCase_GetProjectByID_Success(t *testing.T) {
 func TestProjectUseCase_GetProjectByID_NotFound(t *testing.T) {
 	deps, uc := setupProjectTest()
 
-	deps.Repo.On("GetByID", mock.Anything, "1").Return(nil, exception.ErrNotFound)
+	deps.Repo.On("GetByID", mock.Anything, "1").Return(nil, gorm.ErrRecordNotFound)
 
 	res, err := uc.GetProjectByID(context.Background(), "1")
 
