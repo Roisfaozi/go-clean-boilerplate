@@ -63,21 +63,28 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	msgBytes, _ := json.Marshal(msgContent)
 
 	// Retry loop for ensuring c2 receives the message (Redis subscription propagation delay)
+	// We need to wait a bit longer for the initial subscription to propagate across the "cluster" (miniredis)
+	time.Sleep(500 * time.Millisecond)
+
 	var msg2 *ws.ServerMessage
-	maxRetries := 20
+	maxRetries := 30
 	for i := 0; i < maxRetries; i++ {
 		manager1.BroadcastToChannel("global-channel", msgBytes)
 
 		// Check if c2 received it
-		_ = c2.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+		_ = c2.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
 		var receivedMsg ws.ServerMessage
 		if err := c2.ReadJSON(&receivedMsg); err == nil {
 			if receivedMsg.Type == "message" && receivedMsg.Channel == "global-channel" {
 				msg2 = &receivedMsg
 				break
 			}
+		} else {
+			// Clear buffer/error
+			// If timeout, just continue
 		}
 
+		// Backoff slightly
 		time.Sleep(100 * time.Millisecond)
 	}
 	_ = c2.SetReadDeadline(time.Time{})
