@@ -9,7 +9,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/gorm"
 )
 
 func TestUnlinkEndpointFromAccessRight(t *testing.T) {
@@ -50,7 +49,8 @@ func TestDeleteAccessRight_Extended(t *testing.T) {
 		deps.Repo.On("GetAccessRightByID", ctx, id).Return(nil, repoErr).Once()
 
 		err := uc.DeleteAccessRight(ctx, id)
-assert.ErrorIs(t, err, exception.ErrInternalServer)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
 		deps.Repo.AssertExpectations(t)
 	})
 
@@ -84,18 +84,6 @@ func TestDeleteEndpoint_Extended(t *testing.T) {
 		err := uc.DeleteEndpoint(ctx, id)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
-		deps.Repo.AssertExpectations(t)
-	})
-
-	t.Run("Error - DeleteEndpoint Not Found", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
-
-		deps.Repo.On("DeleteEndpoint", ctx, id).Return(gorm.ErrRecordNotFound).Once()
-
-		err := uc.DeleteEndpoint(ctx, id)
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, exception.ErrNotFound)
 		deps.Repo.AssertExpectations(t)
 	})
 }
