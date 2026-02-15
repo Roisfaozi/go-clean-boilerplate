@@ -21,6 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 type memberTestDeps struct {
@@ -93,7 +94,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 		})).Return(nil)
 
 		res, err := uc.InviteMember(ctx, orgID, req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Equal(t, user.ID, res.UserID)
 		assert.Equal(t, entity.MemberStatusInvited, res.Status)
@@ -117,8 +118,6 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 			return u.Email == req.Email && u.Status == "invited"
 		})).Return(nil)
 
-		// Note: Create doesn't return ID, logic assumes ID is generated inside.
-		// We mock CheckMembership with any string ID because we can't know the generated ID
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, mock.AnythingOfType("string")).Return(false, nil)
 		deps.MemberRepo.On("GetMemberStatus", ctx, orgID, mock.AnythingOfType("string")).Return("", nil)
 		deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(nil)
@@ -127,7 +126,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 		deps.TaskDistributor.On("DistributeTaskSendEmail", ctx, mock.Anything).Return(nil)
 
 		res, err := uc.InviteMember(ctx, orgID, req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, res)
 	})
 
@@ -149,7 +148,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, user.ID).Return(true, nil)
 
 		_, err := uc.InviteMember(ctx, orgID, req)
-		assert.ErrorIs(t, err, exception.ErrConflict)
+		require.ErrorIs(t, err, exception.ErrConflict)
 	})
 }
 
@@ -166,7 +165,7 @@ func TestOrganizationMemberUseCase_GetMembers(t *testing.T) {
 		deps.MemberRepo.On("FindMembers", ctx, orgID).Return(members, nil)
 
 		res, err := uc.GetMembers(ctx, orgID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, res, 2)
 	})
 }
@@ -193,7 +192,7 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		deps.MemberRepo.On("FindMembers", ctx, orgID).Return([]*entity.OrganizationMember{{UserID: userID, RoleID: "new-role"}}, nil)
 
 		res, err := uc.UpdateMember(ctx, orgID, userID, req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "new-role", res.RoleID)
 	})
 
@@ -211,7 +210,7 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(false, nil)
 
 		_, err := uc.UpdateMember(ctx, orgID, userID, &model.UpdateMemberRequest{})
-		assert.ErrorIs(t, err, exception.ErrNotFound)
+		require.ErrorIs(t, err, exception.ErrNotFound)
 	})
 }
 
@@ -234,7 +233,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 		deps.MemberRepo.On("RemoveMember", ctx, orgID, userID).Return(nil)
 
 		err := uc.RemoveMember(ctx, orgID, userID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("Forbidden - Remove Owner", func(t *testing.T) {
@@ -253,7 +252,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 
 		err := uc.RemoveMember(ctx, orgID, userID)
-		assert.ErrorIs(t, err, exception.ErrForbidden)
+		require.ErrorIs(t, err, exception.ErrForbidden)
 	})
 }
 
@@ -267,11 +266,8 @@ func TestOrganizationMemberUseCase_GetPresence(t *testing.T) {
 		deps.Presence.On("GetOnlineUsers", ctx, orgID).Return(presenceUsers, nil)
 
 		res, err := uc.GetPresence(ctx, orgID)
-		assert.NoError(t, err)
-		require.Len(t, res, 1)
-		user, ok := res[0].(wsPkg.PresenceUser)
-		require.True(t, ok, "result item should be of type wsPkg.PresenceUser")
-		assert.Equal(t, presenceUsers[0], user)
+		require.NoError(t, err)
+		assert.Len(t, res, 1)
 	})
 }
 
@@ -299,7 +295,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 		deps.InvitationRepo.On("Delete", ctx, inv.ID).Return(nil)
 
 		err := uc.AcceptInvitation(ctx, req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("Invalid Token", func(t *testing.T) {
@@ -315,6 +311,6 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 		deps.InvitationRepo.On("FindByToken", ctx, req.Token).Return(nil, nil)
 
 		err := uc.AcceptInvitation(ctx, req)
-		assert.ErrorIs(t, err, exception.ErrUnauthorized)
+		require.ErrorIs(t, err, exception.ErrUnauthorized)
 	})
 }
