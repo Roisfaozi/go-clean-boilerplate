@@ -45,7 +45,8 @@ func setupTestDependencies(t *testing.T, env *setup.TestEnvironment) (usecase.Us
 	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
 
 	tmpDir := t.TempDir()
-	storageProvider, _ := local.NewLocalStorage(tmpDir, "http://test-bucket")
+	storageProvider, err := local.NewLocalStorage(tmpDir, "http://test-bucket")
+	require.NoError(t, err)
 
 	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, storageProvider), userRepo
 }
