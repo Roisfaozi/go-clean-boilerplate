@@ -8,6 +8,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -16,21 +17,22 @@ import (
 // Security Hardening Tests
 // ===============================================
 
-// TestCreateOrganization_XSS verifies that although we save raw input (as per requirements),
-// we verify that the system CAN handle potentially malicious strings without crashing.
-// Note: Sanitization usually happens at the frontend or response layer, but here we ensure storage integrity.
+// TestCreateOrganization_XSS verifies that input is sanitized before persistence
 func TestCreateOrganization_XSS(t *testing.T) {
 	orgRepo, _, tm, enforcer, uc := setupOrganizationUseCase()
 	ctx := context.Background()
 
 	xssPayload := "<script>alert('xss')</script>"
+	rawName := "Acme " + xssPayload
+	expectedName := pkg.SanitizeString(rawName)
+
 	request := &model.CreateOrganizationRequest{
-		Name: "Acme " + xssPayload,
+		Name: rawName,
 		Slug: "acme-xss",
 	}
 	userID := "user-123"
 
-	// Mock successful creating (Assuming we treat it as literal string)
+	// Mock successful creating
 	tm.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		fn := args.Get(1).(func(context.Context) error)
 		_ = fn(ctx)
@@ -38,7 +40,7 @@ func TestCreateOrganization_XSS(t *testing.T) {
 
 	orgRepo.On("SlugExists", ctx, "acme-xss").Return(false, nil)
 	orgRepo.On("Create", ctx, mock.MatchedBy(func(org *entity.Organization) bool {
-		return org.Name == request.Name // verifying raw persistence
+		return org.Name == expectedName // verifying sanitized persistence
 	}), usecase.DefaultOwnerRoleID).Return(nil)
 
 	enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
@@ -46,7 +48,7 @@ func TestCreateOrganization_XSS(t *testing.T) {
 	response, err := uc.CreateOrganization(ctx, userID, request)
 
 	assert.NoError(t, err)
-	assert.Equal(t, request.Name, response.Name)
+	assert.Equal(t, expectedName, response.Name)
 }
 
 // TestUpdateOrganization_Settings verifies that arbitrary JSON settings can be persisted correctly.
