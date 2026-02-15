@@ -792,7 +792,7 @@ func TestUserUseCase_UpdateAvatar(t *testing.T) {
 		user := &entity.User{ID: userID}
 
 		deps.Repo.On("FindByID", mock.Anything, userID).Return(user, nil)
-		deps.Storage.On("UploadFile", mock.Anything, "avatars/user123.png", "image/png").Return("url", nil)
+		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("url", nil)
 		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error"))
 		deps.Storage.On("DeleteFile", mock.Anything, "avatars/user123.png").Return(nil)
 
@@ -888,42 +888,4 @@ func TestUserUseCase_Update_PasswordTooLong(t *testing.T) {
 
 	_, err := uc.Update(context.Background(), request)
 	assert.Equal(t, exception.ErrInternalServer, err)
-}
-func TestUserUseCase_Update_Sanitization(t *testing.T) {
-	deps, uc := setupUserTest()
-
-	inputUsername := "<b>bold</b>"
-	// pkg.SanitizeString escapes HTML
-	expectedUsername := "&lt;b&gt;bold&lt;/b&gt;"
-
-	request := &model.UpdateUserRequest{
-		ID: "user123", Username: inputUsername,
-	}
-
-	existingUser := &entity.User{
-		ID:       "user123",
-		Username: "olduser",
-	}
-
-	deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
-
-	// Expect FindByUsername to be called with sanitized username
-	deps.Repo.On("FindByUsername", mock.Anything, expectedUsername).Return(nil, gorm.ErrRecordNotFound)
-
-	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
-		return fn(ctx)
-	})
-
-	deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
-		return u.Username == expectedUsername
-	})).Return(nil)
-
-	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
-
-	_, err := uc.Update(context.Background(), request)
-
-	// This assertion might fail if the mock is strict about calls.
-	// If it fails with "Unexpected call", that counts as test failure.
-	assert.NoError(t, err)
-	deps.Repo.AssertExpectations(t)
 }

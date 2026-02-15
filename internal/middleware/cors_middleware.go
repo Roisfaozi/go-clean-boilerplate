@@ -29,8 +29,8 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 
 	config := cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-Organization-ID", "X-Organization-Slug", "Tus-Resumable", "Upload-Length", "Upload-Metadata", "Upload-Offset", "Upload-Protocol", "Upload-Draft-Interop-Version"},
-		ExposeHeaders:    []string{"Content-Length", "Upload-Offset", "Location", "Upload-Length", "Tus-Version", "Tus-Resumable", "Tus-Max-Size", "Tus-Extension", "Upload-Metadata"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-Organization-ID", "X-Organization-Slug"},
+		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}

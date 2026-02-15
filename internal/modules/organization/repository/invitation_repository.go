@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"gorm.io/gorm"
 )
 
@@ -26,20 +25,13 @@ func NewInvitationRepository(db *gorm.DB) InvitationRepository {
 	return &invitationRepository{db: db}
 }
 
-func (r *invitationRepository) getDB(ctx context.Context) *gorm.DB {
-	if txDB, ok := tx.DBFromContext(ctx); ok {
-		return txDB
-	}
-	return r.db.WithContext(ctx)
-}
-
 func (r *invitationRepository) Create(ctx context.Context, invitation *entity.InvitationToken) error {
-	return r.getDB(ctx).Create(invitation).Error
+	return r.db.WithContext(ctx).Create(invitation).Error
 }
 
 func (r *invitationRepository) FindByToken(ctx context.Context, token string) (*entity.InvitationToken, error) {
 	var invitation entity.InvitationToken
-	err := r.getDB(ctx).Where("token = ?", token).First(&invitation).Error
+	err := r.db.WithContext(ctx).Where("token = ?", token).First(&invitation).Error
 	if err != nil {
 		return nil, err
 	}
@@ -47,13 +39,13 @@ func (r *invitationRepository) FindByToken(ctx context.Context, token string) (*
 }
 
 func (r *invitationRepository) Delete(ctx context.Context, id string) error {
-	return r.getDB(ctx).Delete(&entity.InvitationToken{}, "id = ?", id).Error
+	return r.db.WithContext(ctx).Delete(&entity.InvitationToken{}, "id = ?", id).Error
 }
 
 func (r *invitationRepository) DeleteByEmailAndOrg(ctx context.Context, email, orgID string) error {
-	return r.getDB(ctx).Where("email = ? AND organization_id = ?", email, orgID).Delete(&entity.InvitationToken{}).Error
+	return r.db.WithContext(ctx).Where("email = ? AND organization_id = ?", email, orgID).Delete(&entity.InvitationToken{}).Error
 }
 
 func (r *invitationRepository) CleanupExpired(ctx context.Context, now int64) error {
-	return r.getDB(ctx).Where("expires_at < ?", now).Delete(&entity.InvitationToken{}).Error
+	return r.db.WithContext(ctx).Where("expires_at < ?", now).Delete(&entity.InvitationToken{}).Error
 }

@@ -2,17 +2,18 @@
 
 import { LogOutIcon } from "lucide-react";
 import { Button } from "../ui/button";
-import { logoutAction } from "~/app/actions/auth";
+import { authApi } from "~/lib/api/auth";
 import { toast } from "~/hooks/use-toast";
 
 export default function LogoutButton({ className }: { className?: string }) {
   return (
     <div className={className}>
       <Button
-        type="button"
+        type="submit"
         onClick={async () => {
           try {
-            await logoutAction();
+            await authApi.logout();
+            window.location.href = "/login";
           } catch (error) {
             toast({
               title: "Logout failed",

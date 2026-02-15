@@ -1,30 +1,11 @@
 "use server";
+
+import { type Project } from "~/types";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { z } from "zod";
-import { projectsApi } from "~/lib/api/projects";
-
-async function getOrgId() {
-  const cookieStore = await cookies();
-  return cookieStore.get("organization_id")?.value || "";
-}
-
-async function getAuthHeaders() {
-  const cookieStore = await cookies();
-  return { Cookie: cookieStore.toString() };
-}
-
-const createProjectSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  domain: z.string().min(1, "Domain is required"),
-});
-
-const updateProjectSchema = z.object({
-  name: z.string().optional(),
-  domain: z.string().optional(),
-  status: z.string().optional(),
-});
+import { getCurrentSession } from "~/lib/server/auth/session";
+import { prisma } from "~/lib/server/db";
+import { getUserSubscriptionPlan } from "~/lib/server/payment";
 
 interface Payload {
   name: string;
@@ -32,83 +13,83 @@ interface Payload {
 }
 
 export async function createProject(payload: Payload) {
-  const validatedFields = createProjectSchema.safeParse(payload);
-  if (!validatedFields.success) {
-    throw new Error(
-      "Invalid input: " + validatedFields.error.flatten().fieldErrors
-    );
-  }
+  const { user } = await getCurrentSession();
 
-  const orgId = await getOrgId();
-  if (!orgId) throw new Error("No organization selected");
+  await prisma.project.create({
+    data: {
+      ...payload,
+      user: {
+        connect: {
+          id: user?.id,
+        },
+      },
+    },
+  });
 
-  const headers = await getAuthHeaders();
-  await projectsApi.create(orgId, validatedFields.data, { headers });
   revalidatePath(`/dashboard/projects`);
 }
 
 export async function checkIfFreePlanLimitReached() {
-  const orgId = await getOrgId();
-  if (!orgId) return true;
+  const { user } = await getCurrentSession();
+  const subscriptionPlan = await getUserSubscriptionPlan(user?.id as string);
 
-  const headers = await getAuthHeaders();
-  try {
-    const response = await projectsApi.getAll(orgId, { headers });
-    // response.data is Project[]
-    const count = response?.length || 0;
-    return count >= 3;
-  } catch (error) {
-    return false;
-  }
+  // If user is on a free plan.
+  // Check if user has reached limit of 3 projects.
+  if (subscriptionPlan?.isPro) return false;
+
+  const count = await prisma.project.count({
+    where: {
+      userId: user?.id,
+    },
+  });
+
+  return count >= 3;
 }
 
 export async function getProjects() {
-  const orgId = await getOrgId();
-  if (!orgId) return [];
-
-  const headers = await getAuthHeaders();
-  try {
-    const response = await projectsApi.getAll(orgId, { headers });
-    return response || [];
-  } catch (error) {
-    console.error("Failed to fetch projects:", error);
-    return [];
-  }
+  const { user } = await getCurrentSession();
+  const projects = await prisma.project.findMany({
+    where: {
+      userId: user?.id,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+  return projects as Project[];
 }
 
 export async function getProjectById(id: string) {
-  const orgId = await getOrgId();
-  if (!orgId) return null;
-
-  const headers = await getAuthHeaders();
-  try {
-    const response = await projectsApi.getByID(orgId, id, { headers });
-    return response;
-  } catch (error) {
-    return null;
-  }
+  const { user } = await getCurrentSession();
+  const project = await prisma.project.findFirst({
+    where: {
+      id,
+      userId: user?.id,
+    },
+  });
+  return project as Project;
 }
 
 export async function updateProjectById(id: string, payload: Payload) {
-  const validatedFields = updateProjectSchema.safeParse(payload);
-  if (!validatedFields.success) {
-    throw new Error("Invalid input");
-  }
-
-  const orgId = await getOrgId();
-  if (!orgId) throw new Error("No organization selected");
-
-  const headers = await getAuthHeaders();
-  await projectsApi.update(orgId, id, validatedFields.data, { headers });
+  const { user } = await getCurrentSession();
+  await prisma.project.update({
+    where: {
+      id,
+      userId: user?.id,
+    },
+    data: payload,
+  });
   revalidatePath(`/dashboard/projects`);
 }
 
 export async function deleteProjectById(id: string) {
-  const orgId = await getOrgId();
-  if (!orgId) throw new Error("No organization selected");
-
-  const headers = await getAuthHeaders();
-  await projectsApi.delete(orgId, id, { headers });
+  const { user } = await getCurrentSession();
+  await prisma.project.delete({
+    where: {
+      id,
+      userId: user?.id,
+    },
+  });
   revalidatePath(`/dashboard/projects`);
   redirect("/dashboard/projects");
 }

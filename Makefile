@@ -85,29 +85,17 @@ test:
 .PHONY: test-unit
 test-unit: test
 
-
 # Run integration tests (requires Docker)
 .PHONY: test-integration
 test-integration:
 	@echo "Running integration tests..."
-	@start_time=$$(date +%s); \
-	$(GOTEST) -v ./tests/integration/... -tags=integration -p 1 -timeout=20m; \
-	exit_code=$$?; \
-	end_time=$$(date +%s); \
-	echo "Total integration test time: $$(($$end_time - $$start_time))s"; \
-	exit $$exit_code
+	$(GOTEST) -v ./tests/integration/... -tags=integration -p 1 -timeout=10m
 
 # Run E2E tests (requires Docker)
 .PHONY: test-e2e
 test-e2e:
 	@echo "Running E2E tests..."
-	@start_time=$$(date +%s); \
-	$(GOTEST) -v ./tests/e2e/... -tags=e2e -p 1 -timeout=15m; \
-	exit_code=$$?; \
-	end_time=$$(date +%s); \
-	echo "Total E2E test time: $$(($$end_time - $$start_time))s"; \
-	exit $$exit_code
-
+	$(GOTEST) -v ./tests/e2e/... -tags=e2e -p 1 -timeout=15m
 
 # Run all tests (unit + integration + e2e)
 .PHONY: test-all
@@ -180,7 +168,14 @@ deploy: ## Run Blue-Green deployment
 .PHONY: docs
 docs:
 	@echo "Generating Swagger/OpenAPI documentation..."
-	$(SWAG_CLI) init -g cmd/api/main.go --parseDependency --parseInternal
+	$(SWAG_CLI) init -g cmd/api/main.go --parseDependency --parseInternal --parseDepth 1
+	# sanitize generated file: remove LeftDelim/RightDelim if present (compatibility across swag versions)
+	@{ \
+		if [ -f ./docs/docs.go ]; then \
+			sed -i '/LeftDelim/d' ./docs/docs.go || true; \
+			sed -i '/RightDelim/d' ./docs/docs.go || true; \
+		fi; \
+	}
 
 # Tidy go.mod and go.sum files
 .PHONY: tidy
