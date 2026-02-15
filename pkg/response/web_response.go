@@ -18,11 +18,12 @@ type PageResponse[T any] struct {
 type PageMetadata struct {
 	Page      int   `json:"page"`
 	Size      int   `json:"size"`
+	Limit     int   `json:"limit"`
+	Total     int64 `json:"total"`
 	TotalItem int64 `json:"total_item"`
 	TotalPage int64 `json:"total_page"`
 }
 
-// WebResponseAny is a non-generic wrapper for WebResponseSuccess to be used in Swagger docs
 type WebResponseAny struct {
 	Data   interface{}   `json:"data,omitempty"`
 	Paging *PageMetadata `json:"paging,omitempty"`

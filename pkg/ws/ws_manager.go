@@ -1,9 +1,12 @@
 package ws
 
 import (
+	"context"
 	"sync"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,12 +41,15 @@ type WebSocketManager struct {
 
 	config *WebSocketConfig
 
-	stopChan chan struct{} // Added for graceful shutdown
+	stopChan chan struct{}
+
+	redisClient *redis.Client
 }
 
 type BroadcastMessage struct {
-	Channel string
-	Message []byte
+	Channel    string
+	Message    []byte
+	FromRemote bool
 }
 
 type SubscriptionRequest struct {
@@ -52,19 +58,15 @@ type SubscriptionRequest struct {
 }
 
 type WebSocketConfig struct {
-	WriteWait      time.Duration
-	PongWait       time.Duration
-	PingPeriod     time.Duration
-	MaxMessageSize int64
+	WriteWait          time.Duration
+	PongWait           time.Duration
+	PingPeriod         time.Duration
+	MaxMessageSize     int64
+	DistributedEnabled bool
+	RedisPrefix        string
 }
 
-// NewWebSocketManager creates a new WebSocketManager with the provided configuration and logger.
-//
-// config: The WebSocket configuration options.
-// log: The logger to log manager events.
-//
-// Returns a pointer to the newly created WebSocketManager.
-func NewWebSocketManager(config *WebSocketConfig, log *logrus.Logger) *WebSocketManager {
+func NewWebSocketManager(config *WebSocketConfig, log *logrus.Logger, redisClient *redis.Client) *WebSocketManager {
 	return &WebSocketManager{
 		clients:     make(map[*Client]bool),
 		channels:    make(map[string]map[*Client]bool),
@@ -76,11 +78,16 @@ func NewWebSocketManager(config *WebSocketConfig, log *logrus.Logger) *WebSocket
 		log:         log,
 		config:      config,
 		stopChan:    make(chan struct{}),
+		redisClient: redisClient,
 	}
 }
 
 func (m *WebSocketManager) Run() {
 	m.log.Info("WebSocket Manager started")
+
+	if m.config.DistributedEnabled && m.redisClient != nil {
+		go m.listenToRedis()
+	}
 
 	for {
 		select {
@@ -106,11 +113,44 @@ func (m *WebSocketManager) Run() {
 	}
 }
 
+func (m *WebSocketManager) listenToRedis() {
+	ctx := context.Background()
+	prefix := m.config.RedisPrefix
+	if prefix == "" {
+		prefix = "ws_broadcast:"
+	}
+
+	pubsub := m.redisClient.PSubscribe(ctx, prefix+"*")
+	defer func() {
+		_ = pubsub.Close()
+	}()
+
+	ch := pubsub.Channel()
+	m.log.Infof("Listening to Redis Pub/Sub pattern: %s*", prefix)
+
+	for {
+		select {
+		case <-m.stopChan:
+			return
+		case msg := <-ch:
+
+			localChannel := msg.Channel[len(prefix):]
+
+			m.broadcast <- &BroadcastMessage{
+				Channel:    localChannel,
+				Message:    []byte(msg.Payload),
+				FromRemote: true,
+			}
+		}
+	}
+}
+
 func (m *WebSocketManager) handleRegister(client *Client) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.clients[client] = true
+	telemetry.ActiveWSConnections.Inc()
 	m.log.Infof("Client registered: %s, total clients: %d", client.ID, len(m.clients))
 }
 
@@ -135,11 +175,26 @@ func (m *WebSocketManager) handleUnregister(client *Client) {
 		delete(m.clients, client)
 		close(client.Send)
 
+		telemetry.ActiveWSConnections.Dec()
 		m.log.Infof("Client unregistered: %s, total clients: %d", client.ID, len(m.clients))
 	}
 }
 
 func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
+
+	if !msg.FromRemote && m.config.DistributedEnabled && m.redisClient != nil {
+		ctx := context.Background()
+		prefix := m.config.RedisPrefix
+		if prefix == "" {
+			prefix = "ws_broadcast:"
+		}
+
+		err := m.redisClient.Publish(ctx, prefix+msg.Channel, msg.Message).Err()
+		if err != nil {
+			m.log.Errorf("Failed to publish to Redis for channel %s: %v", msg.Channel, err)
+		}
+	}
+
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -150,11 +205,10 @@ func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 			case client.Send <- msg.Message:
 				count++
 			default:
-
 				m.log.Warnf("Failed to Send message to client %s (buffer full)", client.ID)
 			}
 		}
-		m.log.Debugf("Broadcast to channel %s: %d/%d clients", msg.Channel, count, len(clients))
+		m.log.Debugf("Local broadcast to channel %s: %d/%d clients", msg.Channel, count, len(clients))
 	}
 }
 
@@ -190,7 +244,6 @@ func (m *WebSocketManager) handleUnsubscribe(req *SubscriptionRequest) {
 	}
 }
 
-// RegisterClient registers a client with a timeout to prevent deadlocks
 func (m *WebSocketManager) RegisterClient(client *Client) {
 	select {
 	case m.register <- client:
@@ -201,7 +254,6 @@ func (m *WebSocketManager) RegisterClient(client *Client) {
 	}
 }
 
-// UnregisterClient unregisters a client with a timeout
 func (m *WebSocketManager) UnregisterClient(client *Client) {
 	select {
 	case m.unregister <- client:
@@ -212,10 +264,9 @@ func (m *WebSocketManager) UnregisterClient(client *Client) {
 	}
 }
 
-// BroadcastToChannel sends a message to a channel with a timeout
 func (m *WebSocketManager) BroadcastToChannel(channel string, message []byte) {
 	select {
-	case m.broadcast <- &BroadcastMessage{Channel: channel, Message: message}:
+	case m.broadcast <- &BroadcastMessage{Channel: channel, Message: message, FromRemote: false}:
 	case <-time.After(100 * time.Millisecond):
 		m.log.Warn("BroadcastToChannel timed out")
 	case <-m.stopChan:
@@ -223,7 +274,6 @@ func (m *WebSocketManager) BroadcastToChannel(channel string, message []byte) {
 	}
 }
 
-// SubscribeToChannel subscribes a client to a channel with a timeout
 func (m *WebSocketManager) SubscribeToChannel(client *Client, channel string) {
 	select {
 	case m.subscribe <- &SubscriptionRequest{Client: client, Channel: channel}:
@@ -234,7 +284,6 @@ func (m *WebSocketManager) SubscribeToChannel(client *Client, channel string) {
 	}
 }
 
-// UnsubscribeFromChannel unsubscribes a client from a channel with a timeout
 func (m *WebSocketManager) UnsubscribeFromChannel(client *Client, channel string) {
 	select {
 	case m.unsubscribe <- &SubscriptionRequest{Client: client, Channel: channel}:
@@ -255,28 +304,22 @@ func (m *WebSocketManager) GetChannelClients(channel string) int {
 	return 0
 }
 
-// ClientCount returns the total number of registered clients.
-// This is for testing purposes only.
 func (m *WebSocketManager) ClientCount() int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return len(m.clients)
 }
 
-// Channels returns the current map of channels and their subscribers.
-// This is for testing purposes only.
 func (m *WebSocketManager) Channels() map[string]map[*Client]bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.channels
 }
 
-// Stop sends a signal to stop the manager's run loop.
-// This is for testing purposes only.
 func (m *WebSocketManager) Stop() {
 	select {
 	case <-m.stopChan:
-		// Already closed
+
 	default:
 		close(m.stopChan)
 	}

@@ -11,7 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Client is a middleman between the websocket connection and the hub.
 type Client struct {
 	ID      string
 	Manager Manager
@@ -22,8 +21,8 @@ type Client struct {
 }
 
 type ClientMessage struct {
-	Type    string `json:"type"`
-	Channel string `json:"channel"`
+	Type    string          `json:"type"`
+	Channel string          `json:"channel"`
 	Data    json.RawMessage `json:"data"`
 }
 

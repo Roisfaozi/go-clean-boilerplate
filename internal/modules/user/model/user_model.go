@@ -1,11 +1,13 @@
 package model
 
 type UserResponse struct {
-	ID        string `json:"id,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Username  string `json:"username,omitempty"`
-	Email     string `json:"email,omitempty"`
-	Token     string `json:"token,omitempty"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	AvatarURL string `json:"avatar_url,omitempty"`
+	Token     string `json:"-"`
+	Status    string `json:"status,omitempty"`
 	CreatedAt int64  `json:"created_at,omitempty"`
 	UpdatedAt int64  `json:"updated_at,omitempty"`
 }
@@ -15,21 +17,27 @@ type VerifyUserRequest struct {
 }
 
 type RegisterUserRequest struct {
-	Username string `json:"username" validate:"required,min=6,max=100"`
-	Password string `json:"password" validate:"required,min=8,max=100"`
-	Name     string `json:"fullname" validate:"required,min=3,max=100"`
-	Email    string `json:"email" validate:"email"`
+	Username  string `json:"username" validate:"required,min=6,max=100,xss"`
+	Password  string `json:"password" validate:"required,min=8,max=72"`
+	Name      string `json:"fullname" validate:"required,min=3,max=100,xss"`
+	Email     string `json:"email" validate:"required,email,max=100"`
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
 }
 
 type UpdateUserRequest struct {
-	ID       string `json:"-" validate:"required,max=100"`
-	Password string `json:"password,omitempty" validate:"max=100"`
-	Name     string `json:"name,omitempty" validate:"max=100"`
+	ID        string `json:"-" validate:"required,max=100"`
+	Password  string `json:"password,omitempty" validate:"omitempty,min=8,max=72"`
+	Username  string `json:"username" validate:"required,min=6,max=100,xss"`
+	Name      string `json:"name,omitempty" validate:"max=100,xss"`
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
+	// Filled by controller
 }
 
 type LoginUserRequest struct {
 	ID       string `json:"id" validate:"required,max=100"`
-	Password string `json:"password" validate:"required,max=100"`
+	Password string `json:"password" validate:"required,max=72"`
 }
 
 type LogoutUserRequest struct {
@@ -41,8 +49,18 @@ type GetUserRequest struct {
 }
 
 type GetUserListRequest struct {
-	Page     int    `form:"page" json:"page"`
-	Limit    int    `form:"limit" json:"limit"`
-	Username string `form:"username" json:"username"`
-	Email    string `form:"email" json:"email"`
+	Page     int    `form:"page" json:"page" validate:"omitempty,min=1"`
+	Limit    int    `form:"limit" json:"limit" validate:"omitempty,min=1,max=100"`
+	Username string `form:"username" json:"username" validate:"omitempty,max=100,xss"`
+	Email    string `form:"email" json:"email" validate:"omitempty,max=100,xss"`
+}
+
+type DeleteUserRequest struct {
+	ID        string `json:"-" validate:"required"`
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
+}
+
+type UpdateUserStatusRequest struct {
+	Status string `json:"status" validate:"required,oneof=active suspended banned"`
 }

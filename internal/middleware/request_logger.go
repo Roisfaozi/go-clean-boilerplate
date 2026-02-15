@@ -1,33 +1,16 @@
 package middleware
 
 import (
-	"context"
 	"time"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/constants"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
-// RequestLogger middleware handles structured logging for HTTP requests
+// RequestLogger middleware handles structured logging for HTTP requests.
+// It relies on RequestIDMiddleware being called before it to inject the Trace ID.
 func RequestLogger(log *logrus.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 1. Generate Request ID
-		requestID := c.GetHeader("X-Request-ID")
-		if requestID == "" {
-			requestID = uuid.New().String()
-		}
-		c.Header("X-Request-ID", requestID)
-		
-		// Set request_id in Gin context
-		c.Set("request_id", requestID)
-
-		// Inject request_id into standard context.Context
-		// This ensures it travels down to UseCase and Repository layers
-		ctx := context.WithValue(c.Request.Context(), constants.RequestIDKey, requestID)
-		c.Request = c.Request.WithContext(ctx)
-
 		startTime := time.Now()
 
 		c.Next()
@@ -46,22 +29,18 @@ func RequestLogger(log *logrus.Logger) gin.HandlerFunc {
 			dataLength = 0
 		}
 
-		entry := log.WithFields(logrus.Fields{
+		// Use WithContext(c.Request.Context()) to automatically pick up the request_id via TraceContextHook
+		entry := log.WithContext(c.Request.Context()).WithFields(logrus.Fields{
 			"type":        "http_request",
-			"request_id":  requestID,
 			"method":      method,
 			"path":        path,
 			"status":      statusCode,
 			"latency_ns":  latency.Nanoseconds(),
-			"latency_ms":  float64(latency.Nanoseconds()) / 1e6, // Human readable
+			"latency_ms":  float64(latency.Nanoseconds()) / 1e6,
 			"client_ip":   clientIP,
 			"user_agent":  userAgent,
 			"data_length": dataLength,
 		})
-
-		if userID, exists := c.Get("user_id"); exists {
-			entry = entry.WithField("user_id", userID)
-		}
 
 		if len(c.Errors) > 0 {
 			entry.Error(c.Errors.String())

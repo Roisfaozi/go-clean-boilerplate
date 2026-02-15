@@ -22,8 +22,7 @@ func TestRegisterAndUnregisterClient(t *testing.T) {
 	client := &sse.Client{Channel: clientChan}
 
 	manager.RegisterClient(client)
-	
-	// Unregister triggers channel close
+
 	manager.UnregisterClient(client)
 }
 
@@ -35,7 +34,6 @@ func TestBroadcast(t *testing.T) {
 	client := &sse.Client{Channel: clientChan}
 	manager.RegisterClient(client)
 
-	// Allow time for registration to be processed by run loop
 	time.Sleep(50 * time.Millisecond)
 
 	eventName := "test-event"

@@ -14,14 +14,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type AccessHandler struct {
+type AccessController struct {
 	useCase  usecase.IAccessUseCase
 	validate *validator.Validate
 	log      *logrus.Logger
 }
 
-func NewAccessHandler(useCase usecase.IAccessUseCase, validate *validator.Validate, log *logrus.Logger) *AccessHandler {
-	return &AccessHandler{
+func NewAccessController(useCase usecase.IAccessUseCase, validate *validator.Validate, log *logrus.Logger) *AccessController {
+	return &AccessController{
 		useCase:  useCase,
 		validate: validate,
 		log:      log,
@@ -40,7 +40,7 @@ func NewAccessHandler(useCase usecase.IAccessUseCase, validate *validator.Valida
 // @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /access-rights [post]
-func (h *AccessHandler) CreateAccessRight(c *gin.Context) {
+func (h *AccessController) CreateAccessRight(c *gin.Context) {
 	var req model.CreateAccessRightRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err, "invalid request body")
@@ -76,7 +76,7 @@ func (h *AccessHandler) CreateAccessRight(c *gin.Context) {
 // @Success      200  {object}  response.SwaggerAccessRightListResponseWrapper
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /access-rights [get]
-func (h *AccessHandler) GetAllAccessRights(c *gin.Context) {
+func (h *AccessController) GetAllAccessRights(c *gin.Context) {
 	accessRights, err := h.useCase.GetAllAccessRights(c.Request.Context())
 	if err != nil {
 		h.log.WithError(err).Error("Failed to get all access rights")
@@ -99,7 +99,7 @@ func (h *AccessHandler) GetAllAccessRights(c *gin.Context) {
 // @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /endpoints [post]
-func (h *AccessHandler) CreateEndpoint(c *gin.Context) {
+func (h *AccessController) CreateEndpoint(c *gin.Context) {
 	var req model.CreateEndpointRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
@@ -139,7 +139,7 @@ func (h *AccessHandler) CreateEndpoint(c *gin.Context) {
 // @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /access-rights/link [post]
-func (h *AccessHandler) LinkEndpointToAccessRight(c *gin.Context) {
+func (h *AccessController) LinkEndpointToAccessRight(c *gin.Context) {
 	var req model.LinkEndpointRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
@@ -177,7 +177,7 @@ func (h *AccessHandler) LinkEndpointToAccessRight(c *gin.Context) {
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Access right not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /access-rights/{id} [delete]
-func (h *AccessHandler) DeleteAccessRight(c *gin.Context) {
+func (h *AccessController) DeleteAccessRight(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
@@ -202,7 +202,7 @@ func (h *AccessHandler) DeleteAccessRight(c *gin.Context) {
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Endpoint not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /endpoints/{id} [delete]
-func (h *AccessHandler) DeleteEndpoint(c *gin.Context) {
+func (h *AccessController) DeleteEndpoint(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
@@ -231,7 +231,7 @@ func (h *AccessHandler) DeleteEndpoint(c *gin.Context) {
 // @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /endpoints/search [post]
-func (h *AccessHandler) GetEndpointsDynamic(c *gin.Context) {
+func (h *AccessController) GetEndpointsDynamic(c *gin.Context) {
 	ctx := c.Request.Context()
 	var filter querybuilder.DynamicFilter
 
@@ -241,14 +241,18 @@ func (h *AccessHandler) GetEndpointsDynamic(c *gin.Context) {
 		return
 	}
 
-	endpoints, err := h.useCase.GetEndpointsDynamic(ctx, &filter)
+	endpoints, total, err := h.useCase.GetEndpointsDynamic(ctx, &filter)
 	if err != nil {
 		h.log.WithError(err).Error("failed to get endpoints dynamically")
 		response.InternalServerError(c, err, "failed to retrieve endpoints")
 		return
 	}
 
-	response.Success(c, endpoints)
+	response.SuccessResponseWithPaging(c, endpoints, &response.PageMetadata{
+		Page:  filter.Page,
+		Limit: filter.PageSize,
+		Total: total,
+	})
 }
 
 // GetAccessRightsDynamic retrieves access rights based on dynamic filters and sorting via POST request body
@@ -265,7 +269,7 @@ func (h *AccessHandler) GetEndpointsDynamic(c *gin.Context) {
 // @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /access-rights/search [post]
-func (h *AccessHandler) GetAccessRightsDynamic(c *gin.Context) {
+func (h *AccessController) GetAccessRightsDynamic(c *gin.Context) {
 	ctx := c.Request.Context()
 	var filter querybuilder.DynamicFilter
 
@@ -275,12 +279,16 @@ func (h *AccessHandler) GetAccessRightsDynamic(c *gin.Context) {
 		return
 	}
 
-	accessRights, err := h.useCase.GetAccessRightsDynamic(ctx, &filter)
+	accessRights, total, err := h.useCase.GetAccessRightsDynamic(ctx, &filter)
 	if err != nil {
 		h.log.WithError(err).Error("failed to get access rights dynamically")
 		response.InternalServerError(c, err, "failed to retrieve access rights")
 		return
 	}
 
-	response.Success(c, accessRights)
+	response.SuccessResponseWithPaging(c, accessRights, &response.PageMetadata{
+		Page:  filter.Page,
+		Limit: filter.PageSize,
+		Total: total,
+	})
 }

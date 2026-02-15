@@ -1,49 +1,40 @@
 package config
 
 import (
-	"log"
-	"net/http"
 	"time"
 
-	"github.com/gorilla/websocket"
+	wsPkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 )
 
-// WebSocketConfig holds WebSocket configuration
 type WebSocketConfig struct {
-	WriteWait      time.Duration `mapstructure:"write_wait"`
-	PongWait       time.Duration `mapstructure:"pong_wait"`
-	PingPeriod     time.Duration `mapstructure:"ping_period"`
-	MaxMessageSize int64         `mapstructure:"max_message_size"`
+	WriteWait          time.Duration `mapstructure:"write_wait"`
+	PongWait           time.Duration `mapstructure:"pong_wait"`
+	PingPeriod         time.Duration `mapstructure:"ping_period"`
+	MaxMessageSize     int64         `mapstructure:"max_message_size"`
+	DistributedEnabled bool          `mapstructure:"distributed_enabled"`
+	RedisPrefix        string        `mapstructure:"redis_prefix"`
 }
 
-// NewDefaultWebSocketConfig creates a WebSocket configuration with default values
 func NewDefaultWebSocketConfig() *WebSocketConfig {
-	// The PingPeriod must be less than the PongWait.
 	pongWait := 60 * time.Second
 	return &WebSocketConfig{
-		WriteWait:      10 * time.Second,
-		PongWait:       pongWait,
-		PingPeriod:     (pongWait * 9) / 10, // Recommended to be less than PongWait
-		MaxMessageSize: 512 * 1024,          // 512KB
+		WriteWait:          10 * time.Second,
+		PongWait:           pongWait,
+		PingPeriod:         (pongWait * 9) / 10,
+		MaxMessageSize:     512 * 1024,
+		DistributedEnabled: false,
+		RedisPrefix:        "ws_broadcast:",
 	}
 }
 
-// GetUpgrader returns a configured WebSocket upgrader
-func (c *WebSocketConfig) GetUpgrader() *websocket.Upgrader {
-	return &websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			// SECURITY: In a production environment, you MUST implement a proper origin check
-			// to prevent Cross-Site WebSocket Hijacking (CSWSH).
-			// Example:
-			// origin := r.Header.Get("Origin")
-			// return origin == "https://your-allowed-domain.com"
-
-			// For this boilerplate/demo, we log a warning but allow it.
-			// TODO: Configure allowed origins via config.
-			log.Println("WARNING: WebSocket CheckOrigin is permitting all origins. This is unsafe for production.")
-			return true
-		},
+// ToPkgConfig maps internal config to package-level config safely.
+func (c *WebSocketConfig) ToPkgConfig() *wsPkg.WebSocketConfig {
+	return &wsPkg.WebSocketConfig{
+		WriteWait:          c.WriteWait,
+		PongWait:           c.PongWait,
+		PingPeriod:         c.PingPeriod,
+		MaxMessageSize:     c.MaxMessageSize,
+		DistributedEnabled: c.DistributedEnabled,
+		RedisPrefix:        c.RedisPrefix,
 	}
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// NoOpWriter is a logrus.Hook that discards all log entries.
 type NoOpWriter struct{}
 
 func (w *NoOpWriter) Write([]byte) (int, error) {
@@ -34,15 +33,14 @@ func (w *NoOpWriter) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
-// setupRouter sets up a Gin router with the RoleHandler
-func setupRouter(uc usecase.RoleUseCase) *gin.Engine {
+func setupRoleTestRouter(uc usecase.RoleUseCase) *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	router := gin.Default()
+	router := gin.New()
 
 	v := validator.New()
-	_ = validation.RegisterCustomValidations(v) // Register custom validations like 'xss'
+	_ = validation.RegisterCustomValidations(v)
 
-	handler := roleHttp.NewRoleHandler(uc, logrus.New(), v)
+	handler := roleHttp.NewRoleController(uc, logrus.New(), v)
 	apiV1 := router.Group("/api/v1")
 	{
 		apiV1.POST("/roles", handler.Create)
@@ -55,7 +53,7 @@ func setupRouter(uc usecase.RoleUseCase) *gin.Engine {
 
 func TestRoleHandler_Create_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	createRequest := model.CreateRoleRequest{Name: "admin", Description: "Administrator role"}
 	requestBody, _ := json.Marshal(createRequest)
@@ -73,7 +71,7 @@ func TestRoleHandler_Create_Success(t *testing.T) {
 
 func TestRoleHandler_Create_BindingError(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/roles", bytes.NewBufferString("invalid json"))
@@ -87,7 +85,7 @@ func TestRoleHandler_Create_BindingError(t *testing.T) {
 
 func TestRoleHandler_Create_ValidationError(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	createRequest := model.CreateRoleRequest{Name: "", Description: "Administrator role"} // Invalid name
 	requestBody, _ := json.Marshal(createRequest)
@@ -104,7 +102,7 @@ func TestRoleHandler_Create_ValidationError(t *testing.T) {
 
 func TestRoleHandler_Create_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	createRequest := model.CreateRoleRequest{Name: "existing", Description: "Existing role"}
 	requestBody, _ := json.Marshal(createRequest)
@@ -122,9 +120,8 @@ func TestRoleHandler_Create_UseCaseError(t *testing.T) {
 
 func TestRoleHandler_GetAll_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
-	// Adjust mock return type to slice of values (not pointers) based on panic message
 	expectedRoles := []model.RoleResponse{
 		{ID: "1", Name: "admin"},
 		{ID: "2", Name: "user"},
@@ -146,7 +143,7 @@ func TestRoleHandler_GetAll_Success(t *testing.T) {
 
 func TestRoleHandler_GetAll_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	mockUseCase.On("GetAll", mock.Anything).Return(nil, errors.New("some database error"))
 
@@ -160,7 +157,7 @@ func TestRoleHandler_GetAll_UseCaseError(t *testing.T) {
 
 func TestRoleHandler_Delete_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	roleID := "test-uuid"
 	mockUseCase.On("Delete", mock.Anything, roleID).Return(nil)
@@ -175,7 +172,7 @@ func TestRoleHandler_Delete_Success(t *testing.T) {
 
 func TestRoleHandler_Delete_NotFound(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	roleID := "non-existent-uuid"
 	mockUseCase.On("Delete", mock.Anything, roleID).Return(exception.ErrNotFound)
@@ -190,7 +187,7 @@ func TestRoleHandler_Delete_NotFound(t *testing.T) {
 
 func TestRoleHandler_Delete_Forbidden(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	roleID := "superadmin-uuid"
 	mockUseCase.On("Delete", mock.Anything, roleID).Return(exception.ErrForbidden)
@@ -205,7 +202,7 @@ func TestRoleHandler_Delete_Forbidden(t *testing.T) {
 
 func TestRoleHandler_GetAllRolesDynamic_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
-	router := setupRouter(mockUseCase)
+	router := setupRoleTestRouter(mockUseCase)
 
 	dynamicFilter := &querybuilder.DynamicFilter{
 		Filter: map[string]querybuilder.Filter{
@@ -214,7 +211,6 @@ func TestRoleHandler_GetAllRolesDynamic_Success(t *testing.T) {
 	}
 	requestBody, _ := json.Marshal(dynamicFilter)
 
-	// Adjust mock return type to slice of values based on panic message
 	expectedRoles := []model.RoleResponse{
 		{ID: "1", Name: "test_role"},
 	}
@@ -232,4 +228,22 @@ func TestRoleHandler_GetAllRolesDynamic_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, responseBody.Data, 1)
 	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_Create_XSS_Name(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	createRequest := model.CreateRoleRequest{Name: "<script>alert(1)</script>", Description: "XSS role"}
+	requestBody, _ := json.Marshal(createRequest)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/roles", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	// Should return 422 Unprocessable Entity due to xss validation failure
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	assert.Contains(t, w.Body.String(), "validation error")
+	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
 }

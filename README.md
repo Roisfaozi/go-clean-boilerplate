@@ -1,40 +1,110 @@
-# Go Clean Boilerplate - Go Modular REST API
+# Go Clean Boilerplate - Enterprise Modular REST API
 
-![Go Version](https://img.shields.io/badge/Go-1.21%2B-blue)
+![Go Version](https://img.shields.io/badge/Go-1.25.5%2B-blue)
 ![License](https://img.shields.io/badge/License-Apache%202.0-green)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20%26%20Modular-orange)
-![Dynamic Search](https://img.shields.io/badge/Dynamic%20Search-Enabled-blueviolet)
-![Realtime](https://img.shields.io/badge/Realtime-SSE%20%26%20WS-ff69b4)
+![Testing](https://img.shields.io/badge/Testing-Unit%2C%20Integration%2C%20E2E-success)
+![Realtime](https://img.shields.io/badge/Realtime-Distributed%20WS%20%26%20SSE-ff69b4)
 
-This project is a production-ready, modular, **Role-Based Access Control (RBAC)** REST API built with Go. It leverages **Gin** for high-performance HTTP handling, **GORM** for database interactions, **Casbin** for robust authorization policy enforcement, and **Redis** for secure session management.
-
-It serves as a solid foundation for building scalable, secure, and maintainable backend services with advanced querying and real-time capabilities.
+Enterprise-ready Go boilerplate implementing Clean Architecture, RBAC with Casbin, Modular Audit Logging, and Distributed WebSocket scaling.
 
 ---
 
-## 🚀 Key Features
+## 🚀 Core Features
 
--   **Modular & Clean Architecture**: Codebase is strictly organized by feature modules (`user`, `auth`, `role`, `permission`, `access`) and layers (`Controller` -> `UseCase` -> `Repository`), ensuring scalability and testability.
--   **Advanced RBAC Authorization**: Fine-grained access control using [Casbin](https://casbin.org/). Policies are persisted in the database, allowing dynamic permission updates without restarting the server.
--   **Secure Authentication**:
-    -   **JWT (JSON Web Tokens)**: Stateless access tokens carrying user identity and role.
-    -   **Session Management**: Stateful refresh tokens stored in **Redis** for secure token rotation and instant revocation (logout/ban).
--   **Dynamic Search & Filtering**:
-    -   Powerful, reusable, and secure query builder.
-    -   Supports complex `WHERE` clauses with various operators (`contains`, `in_range`, `equals`, `is_null`, etc.).
-    -   Dynamic sorting on any field.
-    -   Automatically handles `snake_case` or `json` tags for flexible client requests.
--   **Real-time Communication**:
-    -   **WebSocket (WS)**: Integrated support for bidirectional communication.
-    -   **Server-Sent Events (SSE)**: Generic, reusable manager for one-way server-to-client event streaming (e.g., live notifications, dashboards).
--   **Robust Validation**: Centralized request validation using `go-playground/validator` with user-friendly error messages (HTTP 422).
--   **Standardized Response**: Unified JSON response structure for success (`data`, `paging`) and errors (`message`, `error`), making frontend integration seamless.
--   **Database Migrations**: Version-controlled schema management using `golang-migrate`.
--   **Observability**: Structured logging via `logrus`.
--   **Developer Experience**:
-    -   **Swagger/OpenAPI**: Auto-generated interactive API documentation.
-    -   **Hot Reload**: Development made easy with `air`.
-    -   **Postman Collections**: Ready-to-use collections for end-to-end testing and feature exploration.
+-   **Clean Architecture**: Strict separation of concerns (Delivery, UseCase, Repository, Entity).
+-   **Advanced RBAC with Casbin**: Fine-grained access control using GORM adapter. Policies are stored in the database for dynamic updates.
+-   **Distributed WebSockets**: Scalable WebSocket management using **Redis Pub/Sub** backplane, allowing multi-node synchronization.
+-   **Modular Audit Logging**: Synchronous activity tracking (LOGIN, REGISTER, UPDATE, DELETE) integrated directly into business UseCases.
+-   **Multi-Provider File Storage**: Pluggable storage abstraction supporting **Local Disk**, **AWS S3**, **MinIO**, and **Cloudflare R2**.
+-   **Automated Cleanup Jobs**: Integrated background worker scheduler for database maintenance (token pruning, soft-delete cleanup, log rotation).
+-   **Distributed Tracing (OTEL)**: Full visibility with **OpenTelemetry** integration, tracking request flow across HTTP, Database, and Workers.
+-   **Dynamic Search & Filtering**: Secure, reusable query builder supporting complex clauses, range filters, and dynamic sorting.
+-   **Secure Authentication**: JWT-based auth with stateful session management in Redis for instant token revocation.
+-   **Real-time SSE**: Server-Sent Events manager for live one-way data streaming.
+-   **Hardened Security**: 
+    -   UseCase-level validation (Regex email, password strength).
+    -   Automatic HTTP security headers.
+    -   Go 1.25.5 for critical security fixes.
+-   **Comprehensive Testing**:
+    -   **Unit Tests**: Fast, mock-based verification of logic.
+    -   **Integration Tests**: Lightweight testing using **Singleton Testcontainers** pattern.
+    -   **E2E Tests**: Full HTTP lifecycle validation.
+
+---
+
+## 🎛️ Toggleable Features & Configuration
+
+This project is designed with high flexibility. Many core features can be enabled/disabled via environment variables (`.env`).
+
+### Core Features
+
+| Feature | Env Variable | Default | Description |
+| :--- | :--- | :---: | :--- |
+| **RBAC Authorization** | `CASBIN_ENABLED` | `false` | Enables Casbin authorization checks. If `false`, authorization is bypassed. |
+| **Casbin Sync** | `CASBIN_WATCHER_ENABLED` | `false` | Enables policy sync across instances via Redis. Required for multi-replica setups. |
+| **Rate Limiter** | `RATE_LIMIT_ENABLED` | `true` | Limits requests per second (RPS) per IP to prevent DoS/Brute Force. |
+| **Distributed WS** | `WEBSOCKET_DISTRIBUTED_ENABLED` | `false` | Enables WebSocket message sync via Redis Pub/Sub. Required for horizontal scaling. |
+
+### Security & Network
+
+| Configuration | Env Variable | Default | Description |
+| :--- | :--- | :---: | :--- |
+| **Trusted Proxies** | `SERVER_TRUSTED_PROXIES` | *Empty* | Comma-separated list of trusted Load Balancer IPs/CIDRs. |
+| **CORS Origins** | `CORS_ALLOWED_ORIGINS` | `*` | Allowed domains for CORS. |
+| **JWT Secrets** | `JWT_ACCESS_SECRET`<br>`JWT_REFRESH_SECRET` | - | **Critical**: Must be random strings (min 32 chars). |
+
+### Telemetry & Observability
+
+| Configuration | Env Variable | Default | Description |
+| :--- | :--- | :---: | :--- |
+| **OTEL Tracing** | `OTEL_ENABLED` | `false` | Enables OpenTelemetry tracing. |
+| **OTEL Service** | `OTEL_SERVICE_NAME` | `go-clean-api` | Service name shown in Jaeger/Tempo. |
+| **Collector URL** | `OTEL_COLLECTOR_URL` | `localhost:4317` | OTLP gRPC collector endpoint (e.g. Jaeger). |
+
+### Storage
+
+| Configuration | Env Variable | Default | Description |
+| :--- | :--- | :---: | :--- |
+| **Driver** | `STORAGE_DRIVER` | `local` | Storage strategy: `local` or `s3`. |
+| **Root Path** | `STORAGE_LOCAL_ROOT_PATH` | `./uploads` | Local directory for file storage. |
+| **S3 Endpoint** | `STORAGE_S3_ENDPOINT` | - | Custom S3 endpoint (required for MinIO/R2). |
+
+### Performance
+
+| Configuration | Env Variable | Default | Description |
+| :--- | :--- | :---: | :--- |
+| **Rate Limit Store** | `RATE_LIMIT_STORE` | `memory` | Counter storage: `memory` (single instance) or `redis` (distributed). |
+| **WS Ping Period** | `WEBSOCKET_PING_PERIOD` | *Auto* | Keep-alive ping interval (default: 90% of Pong Wait). |
+
+---
+
+## 📦 Deployment Scenarios
+
+Choose the configuration that matches your infrastructure scale.
+
+### 1. Single Instance (Monolith)
+Suitable for development, small VPS, or simple deployments.
+
+```env
+# No need for distributed sync
+RATE_LIMIT_STORE=memory
+WEBSOCKET_DISTRIBUTED_ENABLED=false
+CASBIN_WATCHER_ENABLED=false
+```
+
+### 2. Distributed Cluster (Kubernetes/Load Balanced)
+Suitable for high-availability setups with multiple API replicas. Requires a shared Redis instance.
+
+```env
+# Sync state via Redis
+RATE_LIMIT_STORE=redis
+WEBSOCKET_DISTRIBUTED_ENABLED=true
+CASBIN_WATCHER_ENABLED=true
+
+# Security behind Load Balancer
+SERVER_TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12  # IPs of your LB/Ingress
+```
 
 ---
 
@@ -42,27 +112,20 @@ It serves as a solid foundation for building scalable, secure, and maintainable 
 
 | Category | Technology | Description |
 | :--- | :--- | :--- |
-| **Language** | [Go (Golang)](https://go.dev/) | Core programming language |
-| **Framework** | [Gin](https://github.com/gin-gonic/gin) | High-performance HTTP web framework |
-| **Database** | [MySQL](https://www.mysql.com/) | Primary relational database |
-| **ORM** | [GORM](https://gorm.io/) | Data access and relationship management |
-| **Cache/Session** | [Redis](https://redis.io/) | Session storage and token management |
-| **Authorization** | [Casbin](https://casbin.org/) | Authorization library (RBAC model) |
-| **Authentication** | [golang-jwt/jwt/v5](https://github.com/golang-jwt/jwt) | JWT implementation |
-| **Realtime** | [Gorilla WebSocket](https://github.com/gorilla/websocket) | WebSocket implementation |
-| **Realtime** | Custom SSE Manager | Server-Sent Events implementation |
-| **Migrations** | [golang-migrate](https://github.com/golang-migrate/migrate) | Database schema migrations |
-| **Docs** | [Swaggo](https://github.com/swaggo/swag) | Swagger documentation generator |
-| **Test** | [Testify](https://github.com/stretchr/testify) | Assertion and mocking toolkit |
-| **Test** | [Mockery](https://vektra.github.io/mockery/) | Automatic mock generation |
+| **Language** | [Go 1.25.5+](https://go.dev/) | Core programming language |
+| **Framework** | [Gin Gonic](https://github.com/gin-gonic/gin) | High-performance HTTP framework |
+| **Database** | [MySQL 8.0](https://www.mysql.com/) | Primary relational database |
+| **Cache/Session** | [Redis 7](https://redis.io/) | Session storage & WS Pub/Sub backplane |
+| **Authorization** | [Casbin](https://casbin.org/) | RBAC model & Policy enforcement |
+| **Migrations** | [golang-migrate](https://github.com/golang-migrate/migrate) | Database schema management |
+| **Testing** | [Testcontainers](https://testcontainers.com/) | Real instances for integration tests |
 
 ---
 
-## ⚙️ Prerequisites
+## 🏁 Getting Started
 
-Ensure you have the following installed on your system:
-
-1.  **Go**: Version 1.21 or higher.
+### Prerequisites
+1.  **Go**: Version 1.25.5 or higher.
 2.  **Docker & Docker Compose**: For running MySQL and Redis services easily.
 3.  **Make**: For running automation commands defined in `Makefile`.
 4.  **Air** (Optional): For live reloading during development.
@@ -74,103 +137,43 @@ Ensure you have the following installed on your system:
     go install github.com/swaggo/swag/cmd/swag@latest
     ```
 6.  **Golang Migrate** (Optional): If you want to run migrations manually without the Makefile helper.
-7.  **C/C++ Compiler (GCC/MinGW-w64)**: Required for running repository tests that use SQLite (due to CGO). Ensure `gcc` is in your system's PATH.
+
+
+### Installation
+1.  **Clone & Configure**:
+    ```bash
+    git clone https://github.com/Roisfaozi/go-clean-boilerplate.git
+    cd go-clean-boilerplate
+    cp .env.example .env
+    ```
+2.  **Start Infrastructure**:
+    ```bash
+    docker-compose up -d
+    ```
+3.  **Run Migrations & Seeding**:
+    ```bash
+    make migrate-up
+    ```
+4.  **Run Application**:
+    ```bash
+    make run
+    ```
 
 ---
 
-## 🚀 Getting Started
+## 🧪 Testing Strategy
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/Roisfaozi/go-clean-boilerplate.git
-cd go-clean-boilerplate
-```
+We use a layered testing strategy optimized for both speed and reliability.
 
-### 2. Environment Configuration
-Copy the example environment file and configure it according to your setup.
-```bash
-cp .env.example .env
-```
-*Tip: The default values in `.env.example` usually work out-of-the-box with the provided `docker-compose.yml`.*
+| Command | Type | Description |
+| :--- | :--- | :--- |
+| `make test-unit` | **Unit** | Runs mock-based tests for internal/pkg logic. |
+| `make test-integration` | **Integration** | Uses **Singleton Containers** for DB/Redis logic. |
+| `make test-e2e` | **E2E** | Validates full HTTP request/response flows. |
+| `make test-all` | **Full Suite** | Executes all test layers sequentially. |
+| `make test-coverage` | **Coverage** | Generates an interactive HTML coverage report. |
 
-### 3. Start Infrastructure (Database & Redis)
-Use Docker Compose to spin up MySQL and Redis containers.
-```bash
-docker-compose up -d
-```
-
-### 4. Run Database Migrations
-Apply the database schema and seed default data (like `role:admin` and `role:user`).
-```bash
-make migrate-up
-```
-
-### 5. Run the Application
-You can run the application in development mode (with hot reload) or standard mode.
-
-**Development Mode (Recommended):**
-```bash
-air
-```
-*Or if you don't have `air` installed:*
-```bash
-go run cmd/api/main.go
-```
-
-The server will start on **http://localhost:8080** (or the port defined in your `.env`).
-
----
-
-## 📖 API Usage Guides
-
-### Accessing API Documentation (Swagger UI)
-Interactive API documentation is available at:
-> **http://localhost:8080/api/docs/index.html**
-
-### Postman Collections
-Import the Postman collections from the `postman/` directory to explore and test the API:
--   `Casbin Project API.postman_collection.json`: Main collection for core CRUD, Auth, and RBAC flows.
--   `Casbin Project API - Dynamic Search.postman_collection.json`: Dedicated collection for testing all dynamic search endpoints with various filter/sort scenarios.
--   `Casbin Project API - Realtime.postman_collection.json`: Examples for WebSocket and Server-Sent Events (SSE).
-
-### Key Features & Endpoints
-
-| Feature | Method | Endpoint | Description | Access | Documentation |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Auth** | `POST` | `/auth/login` | User login (returns JWT) | Public | |
-| **Auth** | `POST` | `/auth/refresh` | Refresh access token | Public (Cookie) | |
-| **User** | `POST` | `/users/register` | Register new user | Public | |
-| **User** | `GET` | `/users/me` | Get current profile | User | |
-| **User** | `GET` | `/users` | List all users (basic filtering) | Admin | [GET vs Dynamic Search](#perbedaan-antara-findall-http-get-dan-dynamic-search-http-post-search) |
-| **User** | `POST` | `/users/search` | Dynamic search & filter for users | Admin | [Dynamic Search Examples](#dynamic-search-api-examples-curl) |
-| **Role** | `GET` | `/roles` | List all roles | Admin | [GET vs Dynamic Search](#perbedaan-antara-findall-http-get-dan-dynamic-search-http-post-search) |
-| **Role** | `POST` | `/roles/search` | Dynamic search & filter for roles | Admin | [Dynamic Search Examples](#dynamic-search-api-examples-curl) |
-| **Access** | `POST` | `/endpoints/search` | Dynamic search & filter for endpoints | Admin | [Dynamic Search Examples](#dynamic-search-api-examples-curl) |
-| **Access** | `POST` | `/access-rights/search` | Dynamic search & filter for access rights | Admin | [Dynamic Search Examples](#dynamic-search-api-examples-curl) |
-| **SSE** | `GET` | `/events` | Server-Sent Events stream | Public | [SSE Usage Guide](#server-sent-events-sse-usage-guide) |
-| **WebSocket** | `GET` | `/ws` | WebSocket connection | Public | |
-
-### Detailed Usage Guides
--   **Dynamic Search Examples**: See `documentation/DYNAMIC_SEARCH_EXAMPLES.md` for `curl` examples covering various filter types and scenarios.
--   **SSE Usage Guide**: See `documentation/SSE_USAGE.md` for implementation details and frontend client examples for Server-Sent Events.
--   **GET vs. Dynamic Search**: See `documentation/GET_VS_DYNAMIC_SEARCH.md` for a clear breakdown on when to use each search approach.
-
----
-
-## 🧪 Testing
-
-### Unit & Integration Tests
-Run the full suite of unit and integration tests to ensure system integrity.
-```bash
-make test
-```
-*Note: Repository tests use `gorm.io/driver/sqlite` which requires a C/C++ compiler (like GCC/MinGW-w64) installed and in your system's PATH, with `CGO_ENABLED=1` during compilation/testing.*
-
-### Mock Generation
-If you modify an interface, remember to regenerate its mock:
-```bash
-make mocks
-```
+> **Note**: Integration and E2E tests require Docker. We use a **Singleton Container Pattern** to reuse a single database/redis instance across the entire suite, drastically reducing execution time and resource usage.
 
 ---
 
@@ -207,35 +210,32 @@ The project follows a standard Go project layout suitable for scalable microserv
 │   ├── Casbin Project API - Realtime.postman_collection.json # Realtime features (WS, SSE)
 │   └── ...
 │
-└── internal/           # Private application code (not importable by other apps)
+└───internal/           # Private application code (not importable by other apps)
     ├── config/         # Configuration loading & app initialization wiring
-    ├── middleware/     # HTTP Middlewares (Auth, Casbin Enforcer, CORS)
+    ├── middleware/     # HTTP Middlewares (Auth, Casbin Enforcer, CORS, OTEL)
     ├── router/         # Gin router setup and route registration
-    ├── utils/          # Shared utilities (JWT, Response Helper, Validator, WebSocket, SSE, QueryBuilder)
+    ├── worker/         # Background tasks, handlers & scheduler
     │
     └── modules/        # Domain-specific modules following Clean Architecture
         ├── auth/       # Authentication logic & JWT handling
-        ├── user/       # User management (CRUD)
+        ├── user/       # User management (CRUD) & Avatar Upload
         ├── role/       # Role management
         ├── permission/ # Permission/Policy management (Casbin)
         └── access/     # Access Right & Endpoint management
-            ├── delivery/   # HTTP Handlers (Controller layer)
-            ├── usecase/    # Business Logic layer
-            ├── repository/ # Data Access layer (DB/Redis)
-            ├── model/      # Data structures (DTOs) & Validation structs
-            └── entity/     # Database entities (GORM models)
 ```
+## 📜 Documentation Links
 
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-1.  Fork the repository.
-2.  Create a feature branch (`git checkout -b feature/amazing-feature`).
-3.  Commit your changes (`git commit -m 'feat: Add amazing feature'`).
-4.  Push to the branch (`git push origin feature/amazing-feature`).
-5.  Open a Pull Request.
+- [System Architecture](./documentation/ARCHITECTURE.md)
+- [API Usage Guide](./documentation/guides/API_USAGE.md)
+- [API Access & RBAC](./documentation/API_ACCESS_WORKFLOW.md)
+- [Testing Strategy](./documentation/guides/TESTING.md)
+- [Real-time (WS & SSE)](./documentation/guides/REALTIME.md)
+- [Dynamic Search](./documentation/guides/SEARCH.md)
+- [Multi-Provider Storage](./documentation/guides/STORAGE.md)
+- [Observability (Tracing/Metrics)](./documentation/guides/OBSERVABILITY.md)
+- [Maintenance & Scheduler](./documentation/guides/MAINTENANCE.md)
+- [Server Setup (Ops)](./documentation/ops/SERVER_SETUP_GUIDE.md)
+- [Future Roadmap](./documentation/ops/ROADMAP.md)
 
 ---
 

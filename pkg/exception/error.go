@@ -11,4 +11,5 @@ var (
 	ErrConflict            = errors.New("data already exists")
 	ErrUnprocessableEntity = errors.New("unprocessable entity")
 	ErrValidationError     = errors.New("validation error")
+	ErrTooManyRequests     = errors.New("to many requests")
 )

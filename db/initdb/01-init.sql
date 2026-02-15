@@ -1,11 +1,6 @@
 -- Create the database if it doesn't exist
 CREATE DATABASE IF NOT EXISTS gin_starter;
 
--- Create the user with caching_sha2_password authentication
-CREATE USER IF NOT EXISTS 'gin_user'@'%' IDENTIFIED WITH caching_sha2_password BY 'ginPassword0!';
-
--- Grant privileges
-GRANT ALL PRIVILEGES ON gin_starter.* TO 'gin_user'@'%';
-
--- Apply the changes
-FLUSH PRIVILEGES;
+-- User creation is handled by MYSQL_USER and MYSQL_PASSWORD env vars in docker-compose.
+-- If additional privileges are needed beyond what the default user gets on the specific database,
+-- they should be added here, but usually the default user has full access to the created database.

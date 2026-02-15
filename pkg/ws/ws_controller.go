@@ -15,21 +15,25 @@ type WebSocketController struct {
 	upgrader *websocket.Upgrader
 }
 
-// NewWebSocketController creates a new WebSocketController instance.
-//
-// log: The logger to log WebSocket events.
-// manager: The WebSocket manager to handle WebSocket events.
-//
-// Returns a pointer to the newly created WebSocketController.
-func NewWebSocketController(log *logrus.Logger, manager Manager) *WebSocketController {
+func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins []string) *WebSocketController {
+	checkOrigin := func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		for _, o := range allowedOrigins {
+			if o == "*" || o == origin {
+				return true
+			}
+		}
+		return false
+	}
+
 	upgrader := &websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			// Allow all origins in development
-			// In production, you should validate the origin
-			return true
-		},
+		CheckOrigin:     checkOrigin,
+	}
+
+	if len(allowedOrigins) == 0 {
+		upgrader.CheckOrigin = nil
 	}
 
 	return &WebSocketController{

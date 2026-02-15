@@ -15,14 +15,20 @@ func SuccessResponse(c *gin.Context, statusCode int, data interface{}) {
 }
 
 func ErrorResponse(c *gin.Context, statusCode int, err error, msg string) {
+	errorMsg := err.Error()
+
+	if statusCode == http.StatusInternalServerError && gin.Mode() == gin.ReleaseMode {
+		errorMsg = "Internal Server Error"
+	}
+
 	c.JSON(statusCode, WebResponseError[any]{
-		Error:   err.Error(),
+		Error:   errorMsg,
 		Message: msg,
 	})
 }
 
-func SuccessResponseWithPaging(c *gin.Context, statusCode int, data interface{}, paging *PageMetadata) {
-	c.JSON(statusCode, WebResponseSuccess[any]{
+func SuccessResponseWithPaging(c *gin.Context, data interface{}, paging *PageMetadata) {
+	c.JSON(http.StatusOK, WebResponseSuccess[any]{
 		Data:   data,
 		Paging: paging,
 	})
@@ -60,6 +66,11 @@ func ValidationError(c *gin.Context, err error, msg string) {
 	ErrorResponse(c, http.StatusUnprocessableEntity, err, msg)
 }
 
+func Error(c *gin.Context, statusCode int, err error, msg string) {
+	// General error handler, useful for custom status codes like 429
+	ErrorResponse(c, statusCode, err, msg)
+}
+
 func HandleError(c *gin.Context, err error, message string) {
 	switch {
 	case errors.Is(err, exception.ErrBadRequest):
@@ -74,6 +85,8 @@ func HandleError(c *gin.Context, err error, message string) {
 		ErrorResponse(c, http.StatusConflict, err, message)
 	case errors.Is(err, exception.ErrValidationError), errors.Is(err, exception.ErrUnprocessableEntity):
 		ValidationError(c, err, message)
+	case errors.Is(err, exception.ErrTooManyRequests):
+		Error(c, http.StatusTooManyRequests, err, message)
 	default:
 		InternalServerError(c, err, message)
 	}

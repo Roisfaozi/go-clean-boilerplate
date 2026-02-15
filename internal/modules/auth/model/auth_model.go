@@ -2,13 +2,13 @@ package model
 
 import (
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
 type LoginRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=50"`
-	Password string `json:"password" validate:"required,min=8"`
+	Username  string `json:"username" validate:"required,min=3,max=50,xss"`
+	Password  string `json:"password" validate:"required,min=8,max=72"`
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
 }
 
 type Auth struct {
@@ -40,23 +40,26 @@ type LoginResponse struct {
 }
 
 type UserInfo struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
 	Username string `json:"username"`
-	Role string `json:"role"`
+	Role     string `json:"role"`
 }
 
 type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token" validate:"required"`
+	RefreshToken string `json:"refresh_token" validate:"required,max=500"`
 }
 
-func (r *LoginRequest) Validate() error {
-	validate := validator.New()
-	return validate.Struct(r)
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email,max=100"`
 }
 
-func (r *RefreshRequest) Validate() error {
-	validate := validator.New()
-	return validate.Struct(r)
+type ResetPasswordRequest struct {
+	Token       string `json:"token" validate:"required,max=500"`
+	NewPassword string `json:"new_password" validate:"required,min=8,max=72"`
+}
+
+type VerifyEmailRequest struct {
+	Token string `json:"token" validate:"required,max=500"`
 }

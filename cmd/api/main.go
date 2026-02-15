@@ -14,7 +14,7 @@ import (
 
 // @title           Go Clean Boilerplate API
 // @version         1.0
-// @description     This is a clean and modular boilerplate for Go REST APIs with JWT authentication.
+// @description     This is a clean and modular boilerplate for Go REST APIs with RBAC, Audit Logs, and WebSockets.
 // @termsOfService  http://swagger.io/terms/
 
 // @contact.name   API Support
@@ -32,10 +32,12 @@ import (
 // @name Authorization
 // @description "Type 'Bearer ' followed by a space and the access token."
 func main() {
+
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
 	if cfg.JWT.AccessTokenSecret == "" || cfg.JWT.RefreshTokenSecret == "" {
 		log.Fatal("JWT secrets are not set. Please check your .env file or environment variables.")
 	}
@@ -52,6 +54,13 @@ func main() {
 		log.Printf("Starting server on %s", app.Server.Addr)
 		if err := app.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	go func() {
+		log.Println("Starting Scheduler...")
+		if err := app.Scheduler.Start(); err != nil {
+			log.Fatalf("Failed to start scheduler: %v", err)
 		}
 	}()
 

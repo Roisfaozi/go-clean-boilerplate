@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Install dependencies needed for build (e.g. gcc for cgo if needed, though we try to avoid it)
 RUN apk add --no-cache git make build-base
@@ -24,15 +24,22 @@ FROM alpine:latest
 # Install necessary runtime dependencies (e.g., certificates, timezone)
 RUN apk --no-cache add ca-certificates tzdata
 
-WORKDIR /root/
+# Create a non-root user
+RUN adduser -D -u 1000 appuser
+
+WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /app/main .
 
 # Copy migration files (if migration is run by the app on start, or by a separate tool)
 COPY --from=builder /app/db/migrations ./db/migrations
-# Copy config files if any (e.g., .env or config folders, though Env Vars are preferred for Prod)
-# COPY --from=builder /app/.env .
+
+# Set ownership to non-root user
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Set timezone (Optional, example for Jakarta)
 ENV TZ=Asia/Jakarta

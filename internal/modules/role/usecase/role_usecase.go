@@ -35,17 +35,17 @@ func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequ
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		_, err := uc.RoleRepository.FindByName(txCtx, request.Name)
 		if err == nil {
-			uc.Log.Warnf("Role with name %s already exists", request.Name)
+			uc.Log.WithContext(txCtx).Warnf("Role with name %s already exists", request.Name)
 			return exception.ErrConflict
 		}
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			uc.Log.Errorf("Failed to find role by name: %v", err)
+			uc.Log.WithContext(txCtx).Errorf("Failed to find role by name: %v", err)
 			return exception.ErrInternalServer
 		}
 
 		newID, err := uuid.NewV7()
 		if err != nil {
-			uc.Log.Errorf("Failed to generate UUID: %v", err)
+			uc.Log.WithContext(txCtx).Errorf("Failed to generate UUID: %v", err)
 			return exception.ErrInternalServer
 		}
 
@@ -56,11 +56,39 @@ func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequ
 		}
 
 		if err := uc.RoleRepository.Create(txCtx, newRole); err != nil {
-			uc.Log.Errorf("Failed to create role: %v", err)
+			uc.Log.WithContext(txCtx).Errorf("Failed to create role: %v", err)
 			return exception.ErrInternalServer
 		}
 
 		response = converter.RoleToResponse(newRole)
+		return nil
+	})
+
+	return response, err
+}
+
+func (uc *roleUseCase) Update(ctx context.Context, id string, request *model.UpdateRoleRequest) (*model.RoleResponse, error) {
+	var response *model.RoleResponse
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		role, err := uc.RoleRepository.FindByID(txCtx, id)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				uc.Log.WithContext(txCtx).Warnf("Role with id %s not found for update", id)
+				return exception.ErrNotFound
+			}
+			uc.Log.WithContext(txCtx).Errorf("Failed to find role by id: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		// Update fields
+		role.Description = request.Description
+
+		if err := uc.RoleRepository.Update(txCtx, role); err != nil {
+			uc.Log.WithContext(txCtx).Errorf("Failed to update role: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		response = converter.RoleToResponse(role)
 		return nil
 	})
 
@@ -73,7 +101,7 @@ func (uc *roleUseCase) GetAll(ctx context.Context) ([]model.RoleResponse, error)
 		var err error
 		roles, err = uc.RoleRepository.FindAll(txCtx)
 		if err != nil {
-			uc.Log.Errorf("Failed to get all roles: %v", err)
+			uc.Log.WithContext(txCtx).Errorf("Failed to get all roles: %v", err)
 			return exception.ErrInternalServer
 		}
 		return nil
@@ -91,21 +119,21 @@ func (uc *roleUseCase) Delete(ctx context.Context, id string) error {
 		role, err := uc.RoleRepository.FindByID(txCtx, id)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				uc.Log.Warnf("Role with id %s not found for deletion", id)
+				uc.Log.WithContext(txCtx).Warnf("Role with id %s not found for deletion", id)
 				return exception.ErrNotFound
 			}
-			uc.Log.Errorf("Failed to find role by id: %v", err)
+			uc.Log.WithContext(txCtx).Errorf("Failed to find role by id: %v", err)
 			return exception.ErrInternalServer
 		}
 
 		// Prevent deleting superadmin role
 		if role.Name == "role:superadmin" {
-			uc.Log.Warn("Attempt to delete superadmin role blocked")
+			uc.Log.WithContext(txCtx).Warn("Attempt to delete superadmin role blocked")
 			return exception.ErrForbidden
 		}
 
 		if err := uc.RoleRepository.Delete(txCtx, id); err != nil {
-			uc.Log.Errorf("Failed to delete role: %v", err)
+			uc.Log.WithContext(txCtx).Errorf("Failed to delete role: %v", err)
 			return exception.ErrInternalServer
 		}
 
@@ -119,7 +147,7 @@ func (uc *roleUseCase) GetAllRolesDynamic(ctx context.Context, filter *querybuil
 		var err error
 		roles, err = uc.RoleRepository.FindAllDynamic(txCtx, filter)
 		if err != nil {
-			uc.Log.Errorf("Failed to find roles dynamically: %v", err)
+			uc.Log.WithContext(txCtx).Errorf("Failed to find roles dynamically: %v", err)
 			return exception.ErrInternalServer
 		}
 		return nil

@@ -1,10 +1,13 @@
 package user
 
 import (
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/storage"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -12,30 +15,32 @@ import (
 )
 
 type UserModule struct {
-	userHandler *http.UserHandler
+	UserController *http.UserController
+	UserRepo       userRepository.UserRepository
 }
 
-// NewUserModule creates a new UserModule instance with the given dependencies.
-//
-// db: The GORM database connection.
-// log: The logger instance.
-// validator: The validator instance.
-// tm: The transaction manager instance.
-// enforcer: The Casbin enforcer instance.
-//
-// Returns a pointer to the newly created UserModule instance.
-func NewUserModule(db *gorm.DB, log *logrus.Logger, validator *validator.Validate, tm tx.WithTransactionManager, enforcer permissionUseCase.IEnforcer) *UserModule {
-	userRepository := userRepository.NewUserRepository(db, log)
+func NewUserModule(
+	db *gorm.DB,
+	log *logrus.Logger,
+	validator *validator.Validate,
+	tm tx.WithTransactionManager,
+	enforcer permissionUseCase.IEnforcer,
+	auditModule *audit.AuditModule,
+	authModule *auth.AuthModule,
+	storage storage.Provider,
+) *UserModule {
+	userRepo := userRepository.NewUserRepository(db, log)
 
-	userUseCase := usecase.NewUserUseCase(log, tm, userRepository, enforcer)
+	userUseCase := usecase.NewUserUseCase(tm, log, userRepo, enforcer, auditModule.AuditUseCase, authModule.AuthUseCase, storage)
 
-	userHandler := http.NewUserHandler(userUseCase, log, validator)
+	userController := http.NewUserController(userUseCase, log, validator)
 
 	return &UserModule{
-		userHandler: userHandler,
+		UserController: userController,
+		UserRepo:       userRepo,
 	}
 }
 
-func (m *UserModule) UserHandler() *http.UserHandler {
-	return m.userHandler
+func (m *UserModule) Controller() *http.UserController {
+	return m.UserController
 }

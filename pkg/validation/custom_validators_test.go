@@ -8,20 +8,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Mock structure to hold a string field with the 'xss' tag
 type TestStruct struct {
 	Comment string `validate:"xss"`
 }
 
 func TestValidateXSS(t *testing.T) {
 	v := validator.New()
-	err := validation.RegisterCustomValidations(v) // Register the custom 'xss' validation
+	err := validation.RegisterCustomValidations(v)
 	assert.NoError(t, err)
 
 	tests := []struct {
 		name     string
 		input    string
-		expected bool // true if validation passes (no XSS), false if it fails (XSS detected)
+		expected bool
 	}{
 		{
 			name:     "Clean string",
@@ -81,7 +80,7 @@ func TestValidateXSS(t *testing.T) {
 		{
 			name:     "String with disallowed but incomplete tag",
 			input:    "This is <script",
-			expected: true, // Incomplete tag is not matched by regex <...>, so it passes
+			expected: true,
 		},
 	}
 
@@ -114,7 +113,7 @@ func TestSanitizeString(t *testing.T) {
 		{
 			name:     "String with script tags",
 			input:    "Hello <script>alert(1)</script> World",
-			expected: "Hello alert(1) World", // Content remains, tags removed
+			expected: "Hello alert(1) World",
 		},
 		{
 			name:     "String with image tags",
@@ -124,7 +123,7 @@ func TestSanitizeString(t *testing.T) {
 		{
 			name:     "String with mixed HTML tags",
 			input:    "<b>Bold</b> and <i>Italic</i> <a href=\"#\">Link</a> <script>alert(1)</script>.",
-			expected: "Bold and Italic Link alert(1).", // Content remains
+			expected: "Bold and Italic Link alert(1).",
 		},
 		{
 			name:     "Empty string",
@@ -139,7 +138,7 @@ func TestSanitizeString(t *testing.T) {
 		{
 			name:     "Allowed tags are handled by SanitizeString - current implementation removes all",
 			input:    "This is <b>bold</b>",
-			expected: "This is bold", // Current SanitizeString implementation removes all tags
+			expected: "This is bold",
 		},
 	}
 

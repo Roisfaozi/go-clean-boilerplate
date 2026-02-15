@@ -1,14 +1,19 @@
 package auth
 
 import (
+	"time"
+
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
-	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase" // New Import
-	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
+	"github.com/casbin/casbin/v2"
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
@@ -16,31 +21,39 @@ import (
 )
 
 type AuthModule struct {
-	handler *http.AuthHandler
+	AuthController *http.AuthController
+	AuthUseCase    usecase.AuthUseCase
+	TokenRepo      repository.TokenRepository
 }
 
 func NewAuthModule(
+	maxLoginAttempts int,
+	lockoutDuration time.Duration,
 	jwtManager *jwt.JWTManager,
 	db *gorm.DB,
-	redis *redis.Client,
+	redisClient *redis.Client,
 	log *logrus.Logger,
-	validator *validator.Validate,
+	validate *validator.Validate,
 	tm tx.WithTransactionManager,
 	wsManager ws.Manager,
-	enforcer permissionUseCase.IEnforcer,
+	sseManager *sse.Manager,
+	enforcer *casbin.Enforcer,
+	auditModule *audit.AuditModule,
+	taskDistributor worker.TaskDistributor,
 ) *AuthModule {
-	tokenRepository := repository.NewTokenRepositoryRedis(redis, log)
-	userRepo := userRepository.NewUserRepository(db, log)
+	tokenRepo := repository.NewTokenRepositoryRedis(redisClient, log, db)
+	userRepository := userRepo.NewUserRepository(db, log)
 
-	authUseCase := usecase.NewAuthUsecase(jwtManager, tokenRepository, userRepo, tm, log, wsManager, enforcer) // Pass enforcer
-
-	authHandler := http.NewAuthHandler(authUseCase, log, validator)
+	authUseCase := usecase.NewAuthUsecase(maxLoginAttempts, lockoutDuration, jwtManager, tokenRepo, userRepository, tm, log, wsManager, sseManager, enforcer, auditModule.AuditController.UseCase, taskDistributor)
+	authController := http.NewAuthController(authUseCase, log, validate)
 
 	return &AuthModule{
-		handler: authHandler,
+		AuthController: authController,
+		AuthUseCase:    authUseCase,
+		TokenRepo:      tokenRepo,
 	}
 }
 
-func (m *AuthModule) AuthHandler() *http.AuthHandler {
-	return m.handler
+func (m *AuthModule) Controller() *http.AuthController {
+	return m.AuthController
 }

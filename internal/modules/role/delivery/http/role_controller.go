@@ -15,14 +15,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type RoleHandler struct {
+type RoleController struct {
 	RoleUseCase usecase.RoleUseCase
 	Log         *logrus.Logger
 	validate    *validator.Validate
 }
 
-func NewRoleHandler(roleUseCase usecase.RoleUseCase, log *logrus.Logger, validate *validator.Validate) *RoleHandler {
-	return &RoleHandler{
+func NewRoleController(roleUseCase usecase.RoleUseCase, log *logrus.Logger, validate *validator.Validate) *RoleController {
+	return &RoleController{
 		RoleUseCase: roleUseCase,
 		Log:         log,
 		validate:    validate,
@@ -43,7 +43,7 @@ func NewRoleHandler(roleUseCase usecase.RoleUseCase, log *logrus.Logger, validat
 // @Failure      409  {object}  response.SwaggerErrorResponseWrapper "Role already exists"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /roles [post]
-func (h *RoleHandler) Create(c *gin.Context) {
+func (h *RoleController) Create(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req model.CreateRoleRequest
 
@@ -77,7 +77,7 @@ func (h *RoleHandler) Create(c *gin.Context) {
 // @Success      200  {object}  response.SwaggerRoleListResponseWrapper
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /roles [get]
-func (h *RoleHandler) GetAll(c *gin.Context) {
+func (h *RoleController) GetAll(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	roles, err := h.RoleUseCase.GetAll(ctx)
@@ -87,6 +87,48 @@ func (h *RoleHandler) GetAll(c *gin.Context) {
 	}
 
 	response.Success(c, roles)
+}
+
+// Update updates a role
+// @Summary      Update role
+// @Description  Update a role by ID.
+// @Tags         roles
+// @Security     BearerAuth
+// @Param        id   path      string  true  "Role ID"
+// @Param        request body model.UpdateRoleRequest true "Role Update Details"
+// @Produce      json
+// @Success      200  {object}  response.SwaggerRoleResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Role not found"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /roles/{id} [put]
+func (h *RoleController) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+	var req model.UpdateRoleRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.Log.WithError(err).Error("failed to bind request body for update role")
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	req.Sanitize()
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
+		return
+	}
+
+	role, err := h.RoleUseCase.Update(ctx, id, &req)
+	if err != nil {
+		h.handleError(c, err, "failed to update role")
+		return
+	}
+
+	response.Success(c, role)
 }
 
 // Delete removes a role
@@ -101,7 +143,7 @@ func (h *RoleHandler) GetAll(c *gin.Context) {
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Role not found"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /roles/{id} [delete]
-func (h *RoleHandler) Delete(c *gin.Context) {
+func (h *RoleController) Delete(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
@@ -127,13 +169,20 @@ func (h *RoleHandler) Delete(c *gin.Context) {
 // @Failure      403  {object}  response.SwaggerErrorResponseWrapper "Forbidden"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /roles/search [post]
-func (h *RoleHandler) GetRolesDynamic(c *gin.Context) {
+func (h *RoleController) GetRolesDynamic(c *gin.Context) {
 	ctx := c.Request.Context()
 	var filter querybuilder.DynamicFilter
 
 	if err := c.ShouldBindJSON(&filter); err != nil {
 		h.Log.WithError(err).Error("failed to bind dynamic filter request body for roles")
 		response.BadRequest(c, err, "invalid request body for dynamic filter")
+		return
+	}
+
+	if err := h.validate.Struct(filter); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		h.Log.WithError(err).Error(msg)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 
@@ -147,7 +196,7 @@ func (h *RoleHandler) GetRolesDynamic(c *gin.Context) {
 	response.Success(c, roles)
 }
 
-func (h *RoleHandler) handleError(c *gin.Context, err error, message string) {
+func (h *RoleController) handleError(c *gin.Context, err error, message string) {
 	h.Log.WithError(err).Error(message)
 
 	switch {

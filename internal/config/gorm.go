@@ -5,44 +5,49 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/uptrace/opentelemetry-go-extra/otelgorm"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-func NewDatabase(config *AppConfig, log *logrus.Logger) *gorm.DB {
-	username := config.Mysql.User
-	password := config.Mysql.Password
-	host := config.Mysql.Host
-	port := config.Mysql.Port
-	database := config.Mysql.DBName
-	idleConnection := config.Mysql.IdleConnection
-	maxConnection := config.Mysql.MaxConnection
-	maxLifeTimeConnection := config.Mysql.MaxLifeTimeConnection
+func NewDatabase(cfg *AppConfig, log *logrus.Logger) *gorm.DB {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		cfg.Mysql.User, cfg.Mysql.Password, cfg.Mysql.Host, cfg.Mysql.Port, cfg.Mysql.DBName)
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", username, password, host, port, database)
-	log.Debugf("DSN: %s", dsn)
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.New(&logrusWriter{Logger: log}, logger.Config{
-			SlowThreshold:             time.Second * 5,
-			Colorful:                  false,
-			IgnoreRecordNotFoundError: true,
-			ParameterizedQueries:      true,
+	newLogger := logger.New(
+		&logrusWriter{Logger: log},
+		logger.Config{
+			SlowThreshold:             time.Second,
 			LogLevel:                  logger.Info,
-		}),
+			IgnoreRecordNotFoundError: true,
+			ParameterizedQueries:      false,
+			Colorful:                  false,
+		},
+	)
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: newLogger,
 	})
 	if err != nil {
-		log.Fatalf("failed to connect database: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	connection, err := db.DB()
+	// Instrument GORM with OpenTelemetry
+	if cfg.Telemetry.Enabled {
+		if err := db.Use(otelgorm.NewPlugin()); err != nil {
+			log.Errorf("Failed to instrument GORM with OTEL: %v", err)
+		}
+	}
+
+	sqlDB, err := db.DB()
 	if err != nil {
-		log.Fatalf("failed to connect database: %v", err)
+		log.Fatalf("Failed to get database instance: %v", err)
 	}
 
-	connection.SetMaxIdleConns(idleConnection)
-	connection.SetMaxOpenConns(maxConnection)
-	connection.SetConnMaxLifetime(time.Second * time.Duration(maxLifeTimeConnection))
+	sqlDB.SetMaxIdleConns(cfg.Mysql.IdleConnection)
+	sqlDB.SetMaxOpenConns(cfg.Mysql.MaxConnection)
+	sqlDB.SetConnMaxLifetime(time.Duration(cfg.Mysql.MaxLifeTimeConnection) * time.Second)
 
 	return db
 }

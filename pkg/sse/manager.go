@@ -96,22 +96,18 @@ func (m *Manager) ClientCount() int {
 	return len(m.clients)
 }
 
-// Stop gracefully stops the manager's run loop.
 func (m *Manager) Stop() {
 	close(m.stopChan)
 }
 
-// RegisterClient registers a new client (wrapper for channel send).
 func (m *Manager) RegisterClient(client *Client) {
 	m.register <- client
 }
 
-// UnregisterClient unregisters a client (wrapper for channel send).
 func (m *Manager) UnregisterClient(client *Client) {
 	m.unregister <- client
 }
 
-// ServeHTTP is the Gin handler to stream events to the client
 func (m *Manager) ServeHTTP() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -119,9 +115,8 @@ func (m *Manager) ServeHTTP() gin.HandlerFunc {
 		c.Writer.Header().Set("Cache-Control", "no-cache")
 		c.Writer.Header().Set("Connection", "keep-alive")
 		c.Writer.Header().Set("Transfer-Encoding", "chunked")
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 
-		clientChan := make(chan Event)
+		clientChan := make(chan Event, 10)
 		client := &Client{Channel: clientChan}
 
 		m.register <- client

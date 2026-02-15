@@ -78,11 +78,10 @@ func main() {
 	adminUsername := "superadmin"
 	adminEmail := "superadmin@example.com"
 
-	// Check for environment variable for password, else default (warn about this)
+	// Check for environment variable for password
 	adminPassword := os.Getenv("SUPERADMIN_PASSWORD")
 	if adminPassword == "" {
-		adminPassword = "password123"
-		log.Println("WARNING: Using default password 'password123' for superadmin. Set SUPERADMIN_PASSWORD env var to change.")
+		log.Fatal("SUPERADMIN_PASSWORD environment variable must be set. Exiting.")
 	}
 
 	var user userEntity.User
@@ -98,7 +97,7 @@ func main() {
 				log.Fatalf("Failed to generate UUID for user: %v", err)
 			}
 			userID = newUserID.String()
-			
+
 			newUser := userEntity.User{
 				ID:        userID,
 				Username:  adminUsername,

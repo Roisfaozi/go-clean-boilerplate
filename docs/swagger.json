@@ -1,8 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "This is a sample server for a modular application with JWT authentication.",
-        "title": "Modular API with JWT",
+        "description": "This is a clean and modular boilerplate for Go REST APIs with RBAC, Audit Logs, and WebSockets.",
+        "title": "Go Clean Boilerplate API",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
             "name": "API Support",
@@ -37,13 +37,13 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerAccessRightListResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightListResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -72,7 +72,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.CreateAccessRightRequest"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.CreateAccessRightRequest"
                         }
                     }
                 ],
@@ -80,25 +80,25 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerAccessRightResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightResponseWrapper"
                         }
                     },
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "422": {
                         "description": "Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -129,7 +129,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.LinkEndpointRequest"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.LinkEndpointRequest"
                         }
                     }
                 ],
@@ -137,33 +137,142 @@
                     "200": {
                         "description": "Endpoint linked successfully",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
                         }
                     },
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "422": {
                         "description": "Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
             }
         },
-        "/auth/login": {
+        "/access-rights/search": {
             "post": {
-                "description": "Logs in a user by validating credentials and returns an access token and a refresh token cookie.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a list of access rights based on dynamic filter and sort criteria provided in the request body.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "access-rights"
+                ],
+                "summary": "Get access rights with dynamic filters",
+                "parameters": [
+                    {
+                        "description": "Dynamic filter and sort criteria",
+                        "name": "filter",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightListResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or filter criteria",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/access-rights/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes an access right by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "access-rights"
+                ],
+                "summary": "Delete access right",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access Right ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Access right deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
+                        }
+                    },
+                    "404": {
+                        "description": "Access right not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/forgot-password": {
+            "post": {
+                "description": "Sends a password reset email if the account exists.",
                 "consumes": [
                     "application/json"
                 ],
@@ -173,15 +282,15 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "User Login",
+                "summary": "Request password reset",
                 "parameters": [
                     {
-                        "description": "Login Credentials",
-                        "name": "loginRequest",
+                        "description": "Forgot password request",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginRequest"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.ForgotPasswordRequest"
                         }
                     }
                 ],
@@ -189,31 +298,83 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerLoginResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
                         }
                     },
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "401": {
-                        "description": "Invalid credentials",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "422": {
                         "description": "Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "Authenticates a user and returns access token and user info.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "User login",
+                "parameters": [
+                    {
+                        "description": "Login request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerLoginResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -226,63 +387,184 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Logs out the current user by revoking their session.",
+                "description": "Revokes the current session and clears refresh token cookie.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "User Logout",
+                "summary": "Logout user",
                 "responses": {
                     "200": {
-                        "description": "message: logged out successfully",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
                         }
                     },
                     "401": {
-                        "description": "User not authenticated or invalid session",
+                        "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
             }
         },
-        "/auth/refresh": {
+        "/auth/resend-verification": {
             "post": {
-                "description": "Refreshes an access token using a valid refresh token provided in an HTTP-only cookie.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Resends the email verification link to the authenticated user.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "Refresh Access Token",
+                "summary": "Resend verification email",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerTokenResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Already verified or request failed",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "401": {
-                        "description": "Refresh token not found or invalid",
+                        "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "description": "Resets the user's password using a valid reset token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Reset password",
+                "parameters": [
+                    {
+                        "description": "Reset password request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/verify-email": {
+            "post": {
+                "description": "Verifies the user's email address using a verification token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Verify email address",
+                "parameters": [
+                    {
+                        "description": "Verify email request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.VerifyEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -313,7 +595,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.CreateEndpointRequest"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.CreateEndpointRequest"
                         }
                     }
                 ],
@@ -321,334 +603,134 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerEndpointResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointResponseWrapper"
                         }
                     },
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "422": {
                         "description": "Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
             }
         },
-        "/permissions": {
-            "get": {
+        "/endpoints/search": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves all policies from the Casbin enforcer.",
+                "description": "Retrieves a list of endpoints based on dynamic filter and sort criteria provided in the request body.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "permissions"
+                    "endpoints"
                 ],
-                "summary": "Get all permissions",
+                "summary": "Get endpoints with dynamic filters",
+                "parameters": [
+                    {
+                        "description": "Dynamic filter and sort criteria",
+                        "name": "filter",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerPermissionListResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Updates an existing policy rule.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "permissions"
-                ],
-                "summary": "Update permission",
-                "parameters": [
-                    {
-                        "description": "Update Permission Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_permission_model.UpdatePermissionRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Permission updated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointListResponseWrapper"
                         }
                     },
                     "400": {
-                        "description": "Invalid request body",
+                        "description": "Invalid request body or filter criteria",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
-                    "404": {
-                        "description": "Policy to update not found",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
-                    "422": {
-                        "description": "Validation Error",
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
             }
         },
-        "/permissions/assign-role": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Assigns a specific role to a user.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "permissions"
-                ],
-                "summary": "Assign role to user",
-                "parameters": [
-                    {
-                        "description": "Assign Role Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_permission_model.AssignRoleRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Role assigned successfully",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
-        },
-        "/permissions/grant": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Grants a specific permission (path \u0026 method) to a role.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "permissions"
-                ],
-                "summary": "Grant permission",
-                "parameters": [
-                    {
-                        "description": "Grant Permission Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_permission_model.GrantPermissionRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Permission granted successfully",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
-        },
-        "/permissions/revoke": {
+        "/endpoints/{id}": {
             "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Revokes a specific permission (path \u0026 method) from a role.",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Deletes an endpoint by ID.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "permissions"
+                    "endpoints"
                 ],
-                "summary": "Revoke permission",
-                "parameters": [
-                    {
-                        "description": "Revoke Permission Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_permission_model.GrantPermissionRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Permission revoked successfully",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
-        },
-        "/permissions/{role}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves all permissions associated with a specific role.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "permissions"
-                ],
-                "summary": "Get permissions for role",
+                "summary": "Delete endpoint",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Role Name",
-                        "name": "role",
+                        "description": "Endpoint ID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Endpoint deleted successfully",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerPermissionListResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
                         }
                     },
-                    "400": {
-                        "description": "Role parameter required",
+                    "404": {
+                        "description": "Endpoint not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -673,13 +755,13 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerRoleListResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleListResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -708,7 +790,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.CreateRoleRequest"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.CreateRoleRequest"
                         }
                     }
                 ],
@@ -716,31 +798,146 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerRoleResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleResponseWrapper"
                         }
                     },
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "409": {
                         "description": "Role already exists",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "422": {
                         "description": "Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/roles/search": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a list of roles based on dynamic filter and sort criteria provided in the request body.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Get roles with dynamic filters",
+                "parameters": [
+                    {
+                        "description": "Dynamic filter and sort criteria",
+                        "name": "filter",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleListResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or filter criteria",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/roles/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a role by ID. Only superadmin should have access.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Delete role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Role deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (cannot delete superadmin)",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "404": {
+                        "description": "Role not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -791,31 +988,31 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserListResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserListResponseWrapper"
                         }
                     },
                     "400": {
                         "description": "Invalid query parameters",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -840,25 +1037,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -887,7 +1084,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UpdateUserRequest"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UpdateUserRequest"
                         }
                     }
                 ],
@@ -895,37 +1092,92 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper"
                         }
                     },
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "422": {
                         "description": "Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/me/avatar": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Uploads a new avatar image for the current user.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Upload avatar",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Avatar image file",
+                        "name": "avatar",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid file",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -951,7 +1203,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.RegisterUserRequest"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.RegisterUserRequest"
                         }
                     }
                 ],
@@ -959,31 +1211,94 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper"
                         }
                     },
                     "400": {
                         "description": "Invalid request body",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "409": {
                         "description": "User with the same ID already exists",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "422": {
                         "description": "Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/search": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a list of users based on dynamic filter and sort criteria provided in the request body.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get users with dynamic filters",
+                "parameters": [
+                    {
+                        "description": "Dynamic filter and sort criteria",
+                        "name": "filter",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserListResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or filter criteria",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -1017,31 +1332,31 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -1073,31 +1388,113 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper"
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates the status of a specific user. Accessible only by admins/superadmins.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Update user status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New Status",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UpdateUserStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
                     }
                 }
@@ -1105,13 +1502,13 @@
         }
     },
     "definitions": {
-        "github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightListResponse": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightResponse"
+                        "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightResponse"
                     }
                 },
                 "meta": {
@@ -1124,7 +1521,7 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightResponse": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -1136,11 +1533,11 @@
                 "endpoints": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.EndpointResponse"
+                        "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.EndpointResponse"
                     }
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
@@ -1150,7 +1547,7 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_access_model.CreateAccessRightRequest": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.CreateAccessRightRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -1167,7 +1564,7 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_access_model.CreateEndpointRequest": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.CreateEndpointRequest": {
             "type": "object",
             "required": [
                 "method",
@@ -1186,14 +1583,14 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_access_model.EndpointResponse": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.EndpointResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
                     "type": "integer"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "method": {
                     "type": "string"
@@ -1203,7 +1600,7 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_access_model.LinkEndpointRequest": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.LinkEndpointRequest": {
             "type": "object",
             "required": [
                 "access_right_id",
@@ -1211,14 +1608,26 @@
             ],
             "properties": {
                 "access_right_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "endpoint_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginRequest": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.ForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 100
+                }
+            }
+        },
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.LoginRequest": {
             "type": "object",
             "required": [
                 "password",
@@ -1227,6 +1636,7 @@
             "properties": {
                 "password": {
                     "type": "string",
+                    "maxLength": 72,
                     "minLength": 8
                 },
                 "username": {
@@ -1236,7 +1646,7 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginResponse": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.LoginResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -1255,31 +1665,29 @@
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.UserInfo"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.UserInfo"
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_auth_model.TokenResponse": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.ResetPasswordRequest": {
             "type": "object",
+            "required": [
+                "new_password",
+                "token"
+            ],
             "properties": {
-                "access_token": {
-                    "type": "string"
+                "new_password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
                 },
-                "expires_at": {
-                    "type": "string"
-                },
-                "expires_in": {
-                    "type": "integer"
-                },
-                "refresh_token": {
-                    "type": "string"
-                },
-                "token_type": {
-                    "type": "string"
+                "token": {
+                    "type": "string",
+                    "maxLength": 500
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_auth_model.UserInfo": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.UserInfo": {
             "type": "object",
             "properties": {
                 "email": {
@@ -1299,66 +1707,19 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_permission_model.AssignRoleRequest": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.VerifyEmailRequest": {
             "type": "object",
             "required": [
-                "role",
-                "user_id"
+                "token"
             ],
             "properties": {
-                "role": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
+                "token": {
+                    "type": "string",
+                    "maxLength": 500
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_permission_model.GrantPermissionRequest": {
-            "type": "object",
-            "required": [
-                "method",
-                "path",
-                "role"
-            ],
-            "properties": {
-                "method": {
-                    "type": "string"
-                },
-                "path": {
-                    "type": "string"
-                },
-                "role": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_Roisfaozi_casbin-db_internal_modules_permission_model.UpdatePermissionRequest": {
-            "type": "object",
-            "required": [
-                "new_permission",
-                "old_permission"
-            ],
-            "properties": {
-                "new_permission": {
-                    "type": "array",
-                    "maxItems": 3,
-                    "minItems": 3,
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "old_permission": {
-                    "type": "array",
-                    "maxItems": 3,
-                    "minItems": 3,
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "github_com_Roisfaozi_casbin-db_internal_modules_role_model.CreateRoleRequest": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.CreateRoleRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -1373,7 +1734,7 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_role_model.RoleResponse": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.RoleResponse": {
             "type": "object",
             "properties": {
                 "description": {
@@ -1387,16 +1748,18 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_user_model.RegisterUserRequest": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.RegisterUserRequest": {
             "type": "object",
             "required": [
+                "email",
                 "fullname",
                 "password",
                 "username"
             ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100
                 },
                 "fullname": {
                     "type": "string",
@@ -1405,7 +1768,7 @@
                 },
                 "password": {
                     "type": "string",
-                    "maxLength": 100,
+                    "maxLength": 72,
                     "minLength": 8
                 },
                 "username": {
@@ -1415,8 +1778,11 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_user_model.UpdateUserRequest": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UpdateUserRequest": {
             "type": "object",
+            "required": [
+                "username"
+            ],
             "properties": {
                 "name": {
                     "type": "string",
@@ -1424,13 +1790,38 @@
                 },
                 "password": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 72,
+                    "minLength": 8
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 6
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse": {
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UpdateUserStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "suspended",
+                        "banned"
+                    ]
+                }
+            }
+        },
+        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse": {
             "type": "object",
             "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "integer"
                 },
@@ -1443,7 +1834,7 @@
                 "name": {
                     "type": "string"
                 },
-                "token": {
+                "status": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -1454,13 +1845,91 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata": {
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter": {
             "type": "object",
             "properties": {
+                "filter": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.Filter"
+                    }
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "page_size": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "sort": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.SortModel"
+                    }
+                }
+            }
+        },
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.Filter": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "from": {},
+                "to": {},
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "equals",
+                        "contains",
+                        "in",
+                        "between",
+                        "gt",
+                        "gte",
+                        "lt",
+                        "lte",
+                        "ne"
+                    ]
+                }
+            }
+        },
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.SortModel": {
+            "type": "object",
+            "required": [
+                "colId",
+                "sort"
+            ],
+            "properties": {
+                "colId": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "sort": {
+                    "type": "string",
+                    "enum": [
+                        "asc",
+                        "desc",
+                        "ASC",
+                        "DESC"
+                    ]
+                }
+            }
+        },
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
                 "page": {
                     "type": "integer"
                 },
                 "size": {
+                    "type": "integer"
+                },
+                "total": {
                     "type": "integer"
                 },
                 "total_item": {
@@ -1471,40 +1940,54 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerAccessRightListResponseWrapper": {
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightListResponseWrapper": {
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightListResponse"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightListResponse"
                 },
                 "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerAccessRightResponseWrapper": {
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightResponseWrapper": {
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.AccessRightResponse"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightResponse"
                 },
                 "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerEndpointResponseWrapper": {
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointListResponseWrapper": {
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_access_model.EndpointResponse"
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.EndpointResponse"
+                    }
                 },
                 "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerErrorResponseWrapper": {
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointResponseWrapper": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.EndpointResponse"
+                },
+                "paging": {
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"
+                }
+            }
+        },
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper": {
             "type": "object",
             "properties": {
                 "error": {
@@ -1515,107 +1998,78 @@
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerGeneralResponseWrapper": {
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper": {
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "Example: {\"message\": \"success\"}",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
                     }
                 },
                 "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerLoginResponseWrapper": {
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerLoginResponseWrapper": {
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.LoginResponse"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.LoginResponse"
                 },
                 "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerPermissionListResponseWrapper": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
-                }
-            }
-        },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerRoleListResponseWrapper": {
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleListResponseWrapper": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.RoleResponse"
+                        "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.RoleResponse"
                     }
                 },
                 "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerRoleResponseWrapper": {
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleResponseWrapper": {
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_role_model.RoleResponse"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.RoleResponse"
                 },
                 "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerTokenResponseWrapper": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_auth_model.TokenResponse"
-                },
-                "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
-                }
-            }
-        },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserListResponseWrapper": {
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserListResponseWrapper": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse"
+                        "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse"
                     }
                 },
                 "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"
                 }
             }
         },
-        "github_com_Roisfaozi_casbin-db_internal_utils_response.SwaggerUserResponseWrapper": {
+        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper": {
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_modules_user_model.UserResponse"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse"
                 },
                 "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_casbin-db_internal_utils_response.PageMetadata"
+                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"
                 }
             }
         }

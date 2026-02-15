@@ -268,7 +268,7 @@ func (_c *MockAccessRepository_DeleteEndpoint_Call) RunAndReturn(run func(ctx co
 }
 
 // FindAccessRightsDynamic provides a mock function for the type MockAccessRepository
-func (_mock *MockAccessRepository) FindAccessRightsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AccessRight, error) {
+func (_mock *MockAccessRepository) FindAccessRightsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AccessRight, int64, error) {
 	ret := _mock.Called(ctx, filter)
 
 	if len(ret) == 0 {
@@ -276,8 +276,9 @@ func (_mock *MockAccessRepository) FindAccessRightsDynamic(ctx context.Context, 
 	}
 
 	var r0 []*entity.AccessRight
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*entity.AccessRight, error)); ok {
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*entity.AccessRight, int64, error)); ok {
 		return returnFunc(ctx, filter)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) []*entity.AccessRight); ok {
@@ -287,12 +288,17 @@ func (_mock *MockAccessRepository) FindAccessRightsDynamic(ctx context.Context, 
 			r0 = ret.Get(0).([]*entity.AccessRight)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) int64); ok {
 		r1 = returnFunc(ctx, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+		r2 = returnFunc(ctx, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockAccessRepository_FindAccessRightsDynamic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindAccessRightsDynamic'
@@ -325,18 +331,18 @@ func (_c *MockAccessRepository_FindAccessRightsDynamic_Call) Run(run func(ctx co
 	return _c
 }
 
-func (_c *MockAccessRepository_FindAccessRightsDynamic_Call) Return(accessRights []*entity.AccessRight, err error) *MockAccessRepository_FindAccessRightsDynamic_Call {
-	_c.Call.Return(accessRights, err)
+func (_c *MockAccessRepository_FindAccessRightsDynamic_Call) Return(accessRights []*entity.AccessRight, n int64, err error) *MockAccessRepository_FindAccessRightsDynamic_Call {
+	_c.Call.Return(accessRights, n, err)
 	return _c
 }
 
-func (_c *MockAccessRepository_FindAccessRightsDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AccessRight, error)) *MockAccessRepository_FindAccessRightsDynamic_Call {
+func (_c *MockAccessRepository_FindAccessRightsDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AccessRight, int64, error)) *MockAccessRepository_FindAccessRightsDynamic_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // FindEndpointsDynamic provides a mock function for the type MockAccessRepository
-func (_mock *MockAccessRepository) FindEndpointsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.Endpoint, error) {
+func (_mock *MockAccessRepository) FindEndpointsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.Endpoint, int64, error) {
 	ret := _mock.Called(ctx, filter)
 
 	if len(ret) == 0 {
@@ -344,8 +350,9 @@ func (_mock *MockAccessRepository) FindEndpointsDynamic(ctx context.Context, fil
 	}
 
 	var r0 []*entity.Endpoint
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*entity.Endpoint, error)); ok {
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*entity.Endpoint, int64, error)); ok {
 		return returnFunc(ctx, filter)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) []*entity.Endpoint); ok {
@@ -355,12 +362,17 @@ func (_mock *MockAccessRepository) FindEndpointsDynamic(ctx context.Context, fil
 			r0 = ret.Get(0).([]*entity.Endpoint)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) int64); ok {
 		r1 = returnFunc(ctx, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+		r2 = returnFunc(ctx, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockAccessRepository_FindEndpointsDynamic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindEndpointsDynamic'
@@ -393,12 +405,12 @@ func (_c *MockAccessRepository_FindEndpointsDynamic_Call) Run(run func(ctx conte
 	return _c
 }
 
-func (_c *MockAccessRepository_FindEndpointsDynamic_Call) Return(endpoints []*entity.Endpoint, err error) *MockAccessRepository_FindEndpointsDynamic_Call {
-	_c.Call.Return(endpoints, err)
+func (_c *MockAccessRepository_FindEndpointsDynamic_Call) Return(endpoints []*entity.Endpoint, n int64, err error) *MockAccessRepository_FindEndpointsDynamic_Call {
+	_c.Call.Return(endpoints, n, err)
 	return _c
 }
 
-func (_c *MockAccessRepository_FindEndpointsDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.Endpoint, error)) *MockAccessRepository_FindEndpointsDynamic_Call {
+func (_c *MockAccessRepository_FindEndpointsDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.Endpoint, int64, error)) *MockAccessRepository_FindEndpointsDynamic_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -25,6 +25,10 @@ func (r *roleRepository) Create(ctx context.Context, role *entity.Role) error {
 	return r.db.WithContext(ctx).Create(role).Error
 }
 
+func (r *roleRepository) Update(ctx context.Context, role *entity.Role) error {
+	return r.db.WithContext(ctx).Model(role).Omit("ID", "Name", "CreatedAt").Updates(role).Error
+}
+
 func (r *roleRepository) FindByID(ctx context.Context, id string) (*entity.Role, error) {
 	var role entity.Role
 	if err := r.db.WithContext(ctx).First(&role, "id = ?", id).Error; err != nil {
@@ -43,9 +47,18 @@ func (r *roleRepository) FindByName(ctx context.Context, name string) (*entity.R
 
 func (r *roleRepository) FindAll(ctx context.Context) ([]*entity.Role, error) {
 	var roles []*entity.Role
-	if err := r.db.WithContext(ctx).Find(&roles).Error; err != nil {
-		return nil, err
+	result := r.db.WithContext(ctx).Find(&roles)
+	if result.Error != nil {
+		r.log.WithError(result.Error).Error("Error in FindAll")
+		return nil, result.Error
 	}
+
+	r.log.WithFields(logrus.Fields{
+		"roles_found": len(roles),
+		"query": r.db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+			return tx.Find(&entity.Role{})
+		}),
+	}).Info("Roles query executed")
 	return roles, nil
 }
 
@@ -59,7 +72,6 @@ func (r *roleRepository) FindAllDynamic(ctx context.Context, filter *querybuilde
 		return nil, err
 	}
 
-	// Apply Dynamic Sort
 	query, err = querybuilder2.GenerateDynamicSort(query, &entity.Role{}, filter)
 	if err != nil {
 		return nil, err

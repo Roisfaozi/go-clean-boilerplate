@@ -13,7 +13,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// NoOpWriter is a logrus.Hook that discards all log entries.
 type NoOpWriter struct{}
 
 func (w *NoOpWriter) Write([]byte) (int, error) {
@@ -52,7 +51,6 @@ func TestTransactionManager_WithinTransaction_Commit(t *testing.T) {
 		txDB, ok := tx.DBFromContext(ctx)
 		assert.True(t, ok)
 
-		// Create user within transaction
 		if err := txDB.Create(&User{Name: "Alice"}).Error; err != nil {
 			return err
 		}
@@ -61,7 +59,6 @@ func TestTransactionManager_WithinTransaction_Commit(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	// Verify data is committed
 	var count int64
 	db.Model(&User{}).Count(&count)
 	assert.Equal(t, int64(1), count)
@@ -82,13 +79,11 @@ func TestTransactionManager_WithinTransaction_Rollback(t *testing.T) {
 
 		txDB.Create(&User{Name: "Bob"})
 
-		// Return error to trigger rollback
 		return errors.New("simulated error")
 	})
 
 	assert.Error(t, err)
 
-	// Verify data is NOT committed
 	var count int64
 	db.Model(&User{}).Count(&count)
 	assert.Equal(t, int64(0), count)
@@ -109,7 +104,6 @@ func TestTransactionManager_WithinTransaction_PanicRollback(t *testing.T) {
 		})
 	})
 
-	// Verify data is NOT committed
 	var count int64
 	db.Model(&User{}).Count(&count)
 	assert.Equal(t, int64(0), count)

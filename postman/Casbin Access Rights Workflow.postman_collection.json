@@ -1,0 +1,895 @@
+{
+	"info": {
+		"_postman_id": "638e413f-5662-473b-91f1-192ebfac0acb",
+		"name": "Casbin Access Rights Workflow",
+		"description": "Demonstrates the workflow of defining Access Rights as a catalog and applying them to users via Roles.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "19056005"
+	},
+	"item": [
+		{
+			"name": "[PHASE 1] Define Catalog",
+			"item": [
+				{
+					"name": "1. Create Endpoint (Resource)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"endpointId\", jsonData.data.id);",
+									"pm.environment.set(\"targetPath\", jsonData.data.path);",
+									"pm.environment.set(\"targetMethod\", jsonData.data.method);"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{superAdminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"path\": \"/api/v1/documents/secret-report\",\n    \"method\": \"GET\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/endpoints",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"endpoints"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. Create Access Right (Logical Feature)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"accessRightId\", jsonData.data.id);"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{superAdminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"view_secret_reports\",\n    \"description\": \"Allows reading secret reports\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/access-rights",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"access-rights"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3. Link Endpoint to Access Right",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{superAdminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"access_right_id\": {{accessRightId}},\n    \"endpoint_id\": {{endpointId}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/access-rights/link",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"access-rights",
+								"link"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "[PHASE 2] User & Role Setup",
+			"item": [
+				{
+					"name": "1. Register User (Budi)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"budiId\", jsonData.data.id);",
+									"pm.environment.set(\"budiUsername\", jsonData.data.username);"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"budi_{{$timestamp}}\",\n    \"password\": \"password123\",\n    \"fullname\": \"Budi Santoso\",\n    \"email\": \"budi_{{$timestamp}}@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/register",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. Create Role (Editor)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.environment.set(\"targetRole\", \"role:editor\");"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{superAdminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"role:editor\",\n    \"description\": \"Editor role\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/roles",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"roles"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3. Assign Role Editor to Budi",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{superAdminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{budiId}}\",\n    \"role\": \"role:editor\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"permissions",
+								"assign-role"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "[PHASE 3] Apply Permission",
+			"item": [
+				{
+					"name": "1. Grant Access Right to Role",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Pre-request Script: Validate and log request details for Grant Access Right",
+									"",
+									"// 1. Validate that required variables exist",
+									"const requiredVars = ['baseURL', 'apiVersion', 'targetRole', 'targetPath', 'targetMethod', 'superAdminToken'];",
+									"const missingVars = [];",
+									"",
+									"requiredVars.forEach(varName => {",
+									"    const value = pm.variables.get(varName);",
+									"    if (!value || value === '') {",
+									"        missingVars.push(varName);",
+									"    }",
+									"});",
+									"",
+									"if (missingVars.length > 0) {",
+									"    console.error('❌ Missing required variables:', missingVars.join(', '));",
+									"    throw new Error(`Cannot proceed: Missing required variables - ${missingVars.join(', ')}`);",
+									"}",
+									"",
+									"console.log('✅ All required variables are present');",
+									"",
+									"// 2. Log request details for debugging",
+									"console.log('=== Grant Access Right Request Details ===');",
+									"console.log('Timestamp:', new Date().toISOString());",
+									"console.log('Base URL:', pm.variables.get('baseURL'));",
+									"console.log('API Version:', pm.variables.get('apiVersion'));",
+									"console.log('Target Role:', pm.variables.get('targetRole'));",
+									"console.log('Target Path:', pm.variables.get('targetPath'));",
+									"console.log('Target Method:', pm.variables.get('targetMethod'));",
+									"console.log('Full URL:', `${pm.variables.get('baseURL')}/${pm.variables.get('apiVersion')}/permissions/grant`);",
+									"",
+									"// 3. Set up necessary headers or timestamps",
+									"pm.request.headers.add({",
+									"    key: 'X-Request-Timestamp',",
+									"    value: new Date().toISOString()",
+									"});",
+									"",
+									"pm.request.headers.add({",
+									"    key: 'X-Request-ID',",
+									"    value: pm.variables.replaceIn('{{$randomUUID}}')",
+									"});",
+									"",
+									"// 4. Validate request body structure before sending",
+									"const requestBody = {",
+									"    role: pm.variables.get('targetRole'),",
+									"    path: pm.variables.get('targetPath'),",
+									"    method: pm.variables.get('targetMethod')",
+									"};",
+									"",
+									"console.log('Request Body:', JSON.stringify(requestBody, null, 2));",
+									"",
+									"// Validate body structure",
+									"if (!requestBody.role || typeof requestBody.role !== 'string') {",
+									"    throw new Error('Invalid request body: \"role\" must be a non-empty string');",
+									"}",
+									"",
+									"if (!requestBody.path || typeof requestBody.path !== 'string') {",
+									"    throw new Error('Invalid request body: \"path\" must be a non-empty string');",
+									"}",
+									"",
+									"if (!requestBody.method || typeof requestBody.method !== 'string') {",
+									"    throw new Error('Invalid request body: \"method\" must be a non-empty string');",
+									"}",
+									"",
+									"// Validate HTTP method format",
+									"const validHttpMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];",
+									"if (!validHttpMethods.includes(requestBody.method.toUpperCase())) {",
+									"    console.warn('⚠️ Warning: HTTP method may be invalid:', requestBody.method);",
+									"}",
+									"",
+									"// Validate path format (should start with /)",
+									"if (!requestBody.path.startsWith('/')) {",
+									"    console.warn('⚠️ Warning: Path should typically start with \"/\":', requestBody.path);",
+									"}",
+									"",
+									"console.log('✅ Request body structure validated successfully');",
+									"console.log('==========================================');"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Post-response Script: Comprehensive test suite for Grant Access Right",
+									"",
+									"console.log('=== Grant Access Right Response Tests ===');",
+									"",
+									"// 1. Status code validation (201 Created or 200 OK for successful grant)",
+									"pm.test(\"Status code is 201 Created or 200 OK\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"// 2. Response structure validation (check if response has data/message/success properties)",
+									"pm.test(\"Response has valid structure with expected properties\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('object');",
+									"    ",
+									"    // Check for common response structure properties",
+									"    const hasDataProperty = jsonData.hasOwnProperty('data');",
+									"    const hasMessageProperty = jsonData.hasOwnProperty('message');",
+									"    const hasSuccessProperty = jsonData.hasOwnProperty('success');",
+									"    ",
+									"    pm.expect(hasDataProperty || hasMessageProperty || hasSuccessProperty).to.be.true;",
+									"});",
+									"",
+									"// 3. Response time validation",
+									"pm.test(\"Response time is less than 2000ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(2000);",
+									"});",
+									"",
+									"pm.test(\"Response time is acceptable (less than 500ms)\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(500);",
+									"});",
+									"",
+									"// 4. Content-Type header validation",
+									"pm.test(\"Content-Type header is application/json\", function () {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+									"});",
+									"",
+									"// 5. Response body schema validation",
+									"pm.test(\"Response body is valid JSON\", function () {",
+									"    pm.response.to.be.json;",
+									"});",
+									"",
+									"pm.test(\"Response is not empty\", function () {",
+									"    pm.expect(pm.response.text()).to.not.be.empty;",
+									"});",
+									"",
+									"// 6. Data type validations for response fields",
+									"pm.test(\"Response fields have correct data types\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    ",
+									"    if (jsonData.success !== undefined) {",
+									"        pm.expect(jsonData.success).to.be.a('boolean');",
+									"    }",
+									"    ",
+									"    if (jsonData.message !== undefined) {",
+									"        pm.expect(jsonData.message).to.be.a('string');",
+									"    }",
+									"    ",
+									"    if (jsonData.data !== undefined) {",
+									"        pm.expect(jsonData.data).to.satisfy(function(data) {",
+									"            return typeof data === 'object' || typeof data === 'string' || typeof data === 'boolean';",
+									"        });",
+									"    }",
+									"});",
+									"",
+									"// 7. Validate that access right was granted successfully",
+									"pm.test(\"Access right was granted successfully\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    ",
+									"    // Check various indicators of success",
+									"    if (jsonData.success !== undefined) {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    }",
+									"    ",
+									"    // Status code should indicate success",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"// 8. Check for confirmation message or success indicator",
+									"pm.test(\"Response contains success confirmation\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    const responseText = JSON.stringify(jsonData).toLowerCase();",
+									"    ",
+									"    const successIndicators = ['success', 'granted', 'created', 'added', 'permission'];",
+									"    const hasSuccessIndicator = successIndicators.some(indicator => ",
+									"        responseText.includes(indicator)",
+									"    );",
+									"    ",
+									"    pm.expect(hasSuccessIndicator).to.be.true;",
+									"});",
+									"",
+									"// 9. Validate response contains relevant information about the granted permission",
+									"pm.test(\"Response contains permission-related information\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    const responseText = JSON.stringify(jsonData).toLowerCase();",
+									"    ",
+									"    const permissionKeywords = ['permission', 'access', 'right', 'grant', 'role', 'policy'];",
+									"    const hasPermissionInfo = permissionKeywords.some(keyword => ",
+									"        responseText.includes(keyword)",
+									"    );",
+									"    ",
+									"    pm.expect(hasPermissionInfo).to.be.true;",
+									"});",
+									"",
+									"// 10. Check that response includes role, path, and method information",
+									"pm.test(\"Response includes role, path, and method information\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    const responseText = JSON.stringify(jsonData);",
+									"    ",
+									"    const targetRole = pm.variables.get('targetRole');",
+									"    const targetPath = pm.variables.get('targetPath');",
+									"    const targetMethod = pm.variables.get('targetMethod');",
+									"    ",
+									"    // Check if at least one of the key parameters is reflected in the response",
+									"    const hasRoleInfo = targetRole && responseText.includes(targetRole);",
+									"    const hasPathInfo = targetPath && responseText.includes(targetPath);",
+									"    const hasMethodInfo = targetMethod && responseText.includes(targetMethod);",
+									"    ",
+									"    pm.expect(hasRoleInfo || hasPathInfo || hasMethodInfo).to.be.true;",
+									"});",
+									"",
+									"// 11. Validate no error properties in successful response",
+									"pm.test(\"Response does not contain error indicators\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    ",
+									"    if (jsonData.error !== undefined) {",
+									"        pm.expect(jsonData.error).to.be.oneOf([false, null, '']);",
+									"    }",
+									"    ",
+									"    if (jsonData.success !== undefined) {",
+									"        pm.expect(jsonData.success).to.not.be.false;",
+									"    }",
+									"    ",
+									"    // Check that common error properties are not present or are falsy",
+									"    const errorProperties = ['error', 'errors', 'errorMessage', 'errorCode'];",
+									"    errorProperties.forEach(prop => {",
+									"        if (jsonData[prop] !== undefined) {",
+									"            pm.expect(jsonData[prop]).to.satisfy(function(value) {",
+									"                return !value || (Array.isArray(value) && value.length === 0);",
+									"            });",
+									"        }",
+									"    });",
+									"});",
+									"",
+									"// 12. Check response indicates permission was created/granted",
+									"pm.test(\"Response indicates permission creation/grant action\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    const responseText = JSON.stringify(jsonData).toLowerCase();",
+									"    ",
+									"    const creationIndicators = ['created', 'granted', 'added', 'assigned', 'success'];",
+									"    const hasCreationIndicator = creationIndicators.some(indicator => ",
+									"        responseText.includes(indicator)",
+									"    );",
+									"    ",
+									"    pm.expect(hasCreationIndicator).to.be.true;",
+									"});",
+									"",
+									"// 13. Validate response structure is consistent",
+									"pm.test(\"Response structure is consistent and well-formed\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    ",
+									"    // Ensure response is an object",
+									"    pm.expect(jsonData).to.be.an('object');",
+									"    ",
+									"    // Ensure response has at least one property",
+									"    pm.expect(Object.keys(jsonData).length).to.be.above(0);",
+									"    ",
+									"    // If data property exists, validate its structure",
+									"    if (jsonData.data !== undefined && typeof jsonData.data === 'object' && jsonData.data !== null) {",
+									"        pm.expect(Object.keys(jsonData.data).length).to.be.above(0);",
+									"    }",
+									"});",
+									"",
+									"// 14. Check for any returned ID or identifier for the granted permission",
+									"pm.test(\"Response may contain identifier for granted permission\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    ",
+									"    // Look for common ID fields",
+									"    const idFields = ['id', 'permissionId', 'accessRightId', 'policyId', 'ruleId'];",
+									"    let hasId = false;",
+									"    ",
+									"    // Check in root level",
+									"    idFields.forEach(field => {",
+									"        if (jsonData[field] !== undefined) {",
+									"            hasId = true;",
+									"            pm.expect(jsonData[field]).to.satisfy(function(value) {",
+									"                return typeof value === 'string' || typeof value === 'number';",
+									"            });",
+									"        }",
+									"    });",
+									"    ",
+									"    // Check in data object if it exists",
+									"    if (jsonData.data && typeof jsonData.data === 'object') {",
+									"        idFields.forEach(field => {",
+									"            if (jsonData.data[field] !== undefined) {",
+									"                hasId = true;",
+									"                pm.expect(jsonData.data[field]).to.satisfy(function(value) {",
+									"                    return typeof value === 'string' || typeof value === 'number';",
+									"                });",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // This test is informational - we log whether an ID was found",
+									"    console.log(hasId ? '✅ Permission identifier found in response' : 'ℹ️ No explicit permission identifier found');",
+									"});",
+									"",
+									"// Log response summary",
+									"console.log('Response Status:', pm.response.code, pm.response.status);",
+									"console.log('Response Time:', pm.response.responseTime + 'ms');",
+									"console.log('Response Body:', JSON.stringify(pm.response.json(), null, 2));",
+									"console.log('==========================================');"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{superAdminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"{{targetRole}}\",\n    \"path\": \"{{targetPath}}\",\n    \"method\": \"{{targetMethod}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/permissions/grant",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"permissions",
+								"grant"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "[PHASE 4] Verify Access",
+			"item": [
+				{
+					"name": "1. Login Budi (Refresh Token for New Role)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"budiToken\", jsonData.data.access_token);",
+									"pm.test(\"Role updated to editor\", function () {",
+									"    pm.expect(jsonData.data.user.role).to.eql(\"role:editor\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{budiUsername}}\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. Access Secret Document (Success)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{budiToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{targetPath}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{targetPath}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "[CLEANUP]",
+			"item": [
+				{
+					"name": "1. Delete Budi",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/users/{{budiId}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"users",
+								"{{budiId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "1. Delete Endpoint",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/endpoints/:id",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"endpoints",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{endpointId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. Delete Access Right",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/{{apiVersion}}/access-rights/:id",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"{{apiVersion}}",
+								"access-rights",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{accessRightId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "[SETUP] Admin Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"var jsonData = pm.response.json();",
+							"if (jsonData.data && jsonData.data.access_token) {",
+							"    pm.environment.set(\"adminToken\", jsonData.data.access_token);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\": \"{{superAdminUsername}}\",\n    \"password\": \"{{superAdminPassword}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseURL}}/{{apiVersion}}/auth/login",
+					"host": [
+						"{{baseURL}}"
+					],
+					"path": [
+						"{{apiVersion}}",
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

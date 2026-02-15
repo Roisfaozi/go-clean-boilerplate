@@ -155,7 +155,7 @@ func (_c *MockUserRepository_Delete_Call) RunAndReturn(run func(ctx context.Cont
 }
 
 // FindAll provides a mock function for the type MockUserRepository
-func (_mock *MockUserRepository) FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, error) {
+func (_mock *MockUserRepository) FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, int64, error) {
 	ret := _mock.Called(ctx, filter)
 
 	if len(ret) == 0 {
@@ -163,8 +163,9 @@ func (_mock *MockUserRepository) FindAll(ctx context.Context, filter *model.GetU
 	}
 
 	var r0 []*entity.User
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) ([]*entity.User, error)); ok {
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) ([]*entity.User, int64, error)); ok {
 		return returnFunc(ctx, filter)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.GetUserListRequest) []*entity.User); ok {
@@ -174,12 +175,17 @@ func (_mock *MockUserRepository) FindAll(ctx context.Context, filter *model.GetU
 			r0 = ret.Get(0).([]*entity.User)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *model.GetUserListRequest) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *model.GetUserListRequest) int64); ok {
 		r1 = returnFunc(ctx, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, *model.GetUserListRequest) error); ok {
+		r2 = returnFunc(ctx, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockUserRepository_FindAll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindAll'
@@ -212,18 +218,18 @@ func (_c *MockUserRepository_FindAll_Call) Run(run func(ctx context.Context, fil
 	return _c
 }
 
-func (_c *MockUserRepository_FindAll_Call) Return(users []*entity.User, err error) *MockUserRepository_FindAll_Call {
-	_c.Call.Return(users, err)
+func (_c *MockUserRepository_FindAll_Call) Return(users []*entity.User, n int64, err error) *MockUserRepository_FindAll_Call {
+	_c.Call.Return(users, n, err)
 	return _c
 }
 
-func (_c *MockUserRepository_FindAll_Call) RunAndReturn(run func(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, error)) *MockUserRepository_FindAll_Call {
+func (_c *MockUserRepository_FindAll_Call) RunAndReturn(run func(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, int64, error)) *MockUserRepository_FindAll_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // FindAllDynamic provides a mock function for the type MockUserRepository
-func (_mock *MockUserRepository) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, error) {
+func (_mock *MockUserRepository) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, int64, error) {
 	ret := _mock.Called(ctx, filter)
 
 	if len(ret) == 0 {
@@ -231,8 +237,9 @@ func (_mock *MockUserRepository) FindAllDynamic(ctx context.Context, filter *que
 	}
 
 	var r0 []*entity.User
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*entity.User, error)); ok {
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) ([]*entity.User, int64, error)); ok {
 		return returnFunc(ctx, filter)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *querybuilder.DynamicFilter) []*entity.User); ok {
@@ -242,12 +249,17 @@ func (_mock *MockUserRepository) FindAllDynamic(ctx context.Context, filter *que
 			r0 = ret.Get(0).([]*entity.User)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *querybuilder.DynamicFilter) int64); ok {
 		r1 = returnFunc(ctx, filter)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, *querybuilder.DynamicFilter) error); ok {
+		r2 = returnFunc(ctx, filter)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockUserRepository_FindAllDynamic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindAllDynamic'
@@ -280,12 +292,12 @@ func (_c *MockUserRepository_FindAllDynamic_Call) Run(run func(ctx context.Conte
 	return _c
 }
 
-func (_c *MockUserRepository_FindAllDynamic_Call) Return(users []*entity.User, err error) *MockUserRepository_FindAllDynamic_Call {
-	_c.Call.Return(users, err)
+func (_c *MockUserRepository_FindAllDynamic_Call) Return(users []*entity.User, n int64, err error) *MockUserRepository_FindAllDynamic_Call {
+	_c.Call.Return(users, n, err)
 	return _c
 }
 
-func (_c *MockUserRepository_FindAllDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, error)) *MockUserRepository_FindAllDynamic_Call {
+func (_c *MockUserRepository_FindAllDynamic_Call) RunAndReturn(run func(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.User, int64, error)) *MockUserRepository_FindAllDynamic_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -562,6 +574,63 @@ func (_c *MockUserRepository_FindByUsername_Call) RunAndReturn(run func(ctx cont
 	return _c
 }
 
+// HardDeleteSoftDeletedUsers provides a mock function for the type MockUserRepository
+func (_mock *MockUserRepository) HardDeleteSoftDeletedUsers(ctx context.Context, retentionDays int) error {
+	ret := _mock.Called(ctx, retentionDays)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HardDeleteSoftDeletedUsers")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) error); ok {
+		r0 = returnFunc(ctx, retentionDays)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserRepository_HardDeleteSoftDeletedUsers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HardDeleteSoftDeletedUsers'
+type MockUserRepository_HardDeleteSoftDeletedUsers_Call struct {
+	*mock.Call
+}
+
+// HardDeleteSoftDeletedUsers is a helper method to define mock.On call
+//   - ctx context.Context
+//   - retentionDays int
+func (_e *MockUserRepository_Expecter) HardDeleteSoftDeletedUsers(ctx interface{}, retentionDays interface{}) *MockUserRepository_HardDeleteSoftDeletedUsers_Call {
+	return &MockUserRepository_HardDeleteSoftDeletedUsers_Call{Call: _e.mock.On("HardDeleteSoftDeletedUsers", ctx, retentionDays)}
+}
+
+func (_c *MockUserRepository_HardDeleteSoftDeletedUsers_Call) Run(run func(ctx context.Context, retentionDays int)) *MockUserRepository_HardDeleteSoftDeletedUsers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int
+		if args[1] != nil {
+			arg1 = args[1].(int)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserRepository_HardDeleteSoftDeletedUsers_Call) Return(err error) *MockUserRepository_HardDeleteSoftDeletedUsers_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserRepository_HardDeleteSoftDeletedUsers_Call) RunAndReturn(run func(ctx context.Context, retentionDays int) error) *MockUserRepository_HardDeleteSoftDeletedUsers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Update provides a mock function for the type MockUserRepository
 func (_mock *MockUserRepository) Update(ctx context.Context, user *entity.User) error {
 	ret := _mock.Called(ctx, user)
@@ -615,6 +684,69 @@ func (_c *MockUserRepository_Update_Call) Return(err error) *MockUserRepository_
 }
 
 func (_c *MockUserRepository_Update_Call) RunAndReturn(run func(ctx context.Context, user *entity.User) error) *MockUserRepository_Update_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateStatus provides a mock function for the type MockUserRepository
+func (_mock *MockUserRepository) UpdateStatus(ctx context.Context, userID string, status string) error {
+	ret := _mock.Called(ctx, userID, status)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateStatus")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = returnFunc(ctx, userID, status)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserRepository_UpdateStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateStatus'
+type MockUserRepository_UpdateStatus_Call struct {
+	*mock.Call
+}
+
+// UpdateStatus is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - status string
+func (_e *MockUserRepository_Expecter) UpdateStatus(ctx interface{}, userID interface{}, status interface{}) *MockUserRepository_UpdateStatus_Call {
+	return &MockUserRepository_UpdateStatus_Call{Call: _e.mock.On("UpdateStatus", ctx, userID, status)}
+}
+
+func (_c *MockUserRepository_UpdateStatus_Call) Run(run func(ctx context.Context, userID string, status string)) *MockUserRepository_UpdateStatus_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserRepository_UpdateStatus_Call) Return(err error) *MockUserRepository_UpdateStatus_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserRepository_UpdateStatus_Call) RunAndReturn(run func(ctx context.Context, userID string, status string) error) *MockUserRepository_UpdateStatus_Call {
 	_c.Call.Return(run)
 	return _c
 }

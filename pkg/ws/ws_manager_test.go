@@ -34,7 +34,8 @@ func setupTestServer() (*ws.WebSocketManager, *httptest.Server) {
 	}
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
-	manager := ws.NewWebSocketManager(config, logger)
+	// For unit tests, we don't need Redis scaling, so pass nil
+	manager := ws.NewWebSocketManager(config, logger, nil)
 	go manager.Run()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -136,24 +137,24 @@ func TestBroadcastToChannel(t *testing.T) {
 	// Client 1 -> channel1
 	c1, err := connectClient(server.URL)
 	require.NoError(t, err)
-	defer func() { _ = c1.Close() }() // Ignore close error
-	require.NoError(t, c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel1"})) // Check error
+	defer func() { _ = c1.Close() }() // Ignore error
+	require.NoError(t, c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel1"}))
 	_, err = waitForMessage(c1, "info", "channel1")
 	require.NoError(t, err)
 
 	// Client 2 -> channel1
 	c2, err := connectClient(server.URL)
 	require.NoError(t, err)
-	defer func() { _ = c2.Close() }() // Ignore close error
-	require.NoError(t, c2.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel1"})) // Check error
+	defer func() { _ = c2.Close() }() // Ignore error
+	require.NoError(t, c2.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel1"}))
 	_, err = waitForMessage(c2, "info", "channel1")
 	require.NoError(t, err)
 
 	// Client 3 -> channel2
 	c3, err := connectClient(server.URL)
 	require.NoError(t, err)
-	defer func() { _ = c3.Close() }() // Ignore close error
-	require.NoError(t, c3.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel2"})) // Check error
+	defer func() { _ = c3.Close() }() // Ignore error
+	require.NoError(t, c3.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel2"}))
 	_, err = waitForMessage(c3, "info", "channel2")
 	require.NoError(t, err)
 
@@ -175,7 +176,7 @@ func TestBroadcastToChannel(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify c3 did NOT receive
-	if err := c3.SetReadDeadline(time.Now().Add(100 * time.Millisecond)); err != nil { // Check error
+	if err := c3.SetReadDeadline(time.Now().Add(100 * time.Millisecond)); err != nil {
 		t.Fatalf("Failed to set read deadline for c3: %v", err)
 	}
 	var msg ws.ServerMessage

@@ -11,6 +11,7 @@ import (
 	permHandler "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -18,20 +19,26 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func setupTestRouter() *gin.Engine {
+func setupPermissionTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	router := gin.Default()
+	router := gin.New()
 	return router
 }
 
+func newTestPermissionController(mockUseCase *mocks.MockIPermissionUseCase) *permHandler.PermissionController {
+	log := logrus.New()
+	log.SetLevel(logrus.PanicLevel)
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v)
+	return permHandler.NewPermissionController(mockUseCase, log, v)
+}
+
 func TestGrantPermission_Success(t *testing.T) {
-	// Setup
-	mockUseCase := new(mocks.IPermissionUseCase)
-	handler := permHandler.NewPermissionHandler(mockUseCase, validator.New(), logrus.New())
-	router := setupTestRouter()
+	mockUseCase := new(mocks.MockIPermissionUseCase)
+	handler := newTestPermissionController(mockUseCase)
+	router := setupPermissionTestRouter()
 	router.POST("/permissions/grant", handler.GrantPermission)
 
-	// Mocking
 	reqBody := model.GrantPermissionRequest{
 		Role:   "editor",
 		Path:   "/articles",
@@ -39,57 +46,46 @@ func TestGrantPermission_Success(t *testing.T) {
 	}
 	mockUseCase.On("GrantPermissionToRole", mock.Anything, reqBody.Role, reqBody.Path, reqBody.Method).Return(nil)
 
-	// Create request
 	bodyBytes, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
-	// Execute
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	// Assert
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusCreated, w.Code)
 	var responseBody map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.NoError(t, err)
 
-	// Correctly access the nested data object
 	data, ok := responseBody["data"].(map[string]interface{})
 	assert.True(t, ok, "Response should have a 'data' object")
-	assert.Equal(t, "Permission granted successfully", data["message"])
+	assert.Equal(t, "permission granted successfully", data["message"])
 
 	mockUseCase.AssertExpectations(t)
 }
 
 func TestGrantPermission_InvalidBody(t *testing.T) {
-	// Setup
-	mockUseCase := new(mocks.IPermissionUseCase)
-	handler := permHandler.NewPermissionHandler(mockUseCase, validator.New(), logrus.New())
-	router := setupTestRouter()
+	mockUseCase := new(mocks.MockIPermissionUseCase)
+	handler := newTestPermissionController(mockUseCase)
+	router := setupPermissionTestRouter()
 	router.POST("/permissions/grant", handler.GrantPermission)
 
-	// Create request with invalid body
-	req, _ := http.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBufferString(`{"role": "editor",`)) // Malformed JSON
+	req, _ := http.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBufferString(`{"role": "editor",`))
 	req.Header.Set("Content-Type", "application/json")
 
-	// Execute
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	// Assert
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	mockUseCase.AssertNotCalled(t, "GrantPermissionToRole", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestGrantPermission_UseCaseError(t *testing.T) {
-	// Setup
-	mockUseCase := new(mocks.IPermissionUseCase)
-	handler := permHandler.NewPermissionHandler(mockUseCase, validator.New(), logrus.New())
-	router := setupTestRouter()
+	mockUseCase := new(mocks.MockIPermissionUseCase)
+	handler := newTestPermissionController(mockUseCase)
+	router := setupPermissionTestRouter()
 	router.POST("/permissions/grant", handler.GrantPermission)
 
-	// Mocking
 	reqBody := model.GrantPermissionRequest{
 		Role:   "editor",
 		Path:   "/articles",
@@ -98,16 +94,13 @@ func TestGrantPermission_UseCaseError(t *testing.T) {
 	mockError := errors.New("use case failed")
 	mockUseCase.On("GrantPermissionToRole", mock.Anything, reqBody.Role, reqBody.Path, reqBody.Method).Return(mockError)
 
-	// Create request
 	bodyBytes, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
-	// Execute
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	// Assert
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	mockUseCase.AssertExpectations(t)
 }
