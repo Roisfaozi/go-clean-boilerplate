@@ -12,18 +12,9 @@ const withSerwist = withSerwistInit({
  * @type {import('next').NextConfig}
  */
 const nextConfig = {
-  redirects: async () => {
-    return [
-      {
-        source: "/dashboard",
-        destination: "/dashboard/projects",
-        permanent: false,
-      },
-    ];
-  },
   trailingSlash: true,
   // Required for Next.js 16+ when webpack config is added by plugins like @serwist/next
   turbopack: {},
-}
+};
 
 export default withSerwist(nextConfig);

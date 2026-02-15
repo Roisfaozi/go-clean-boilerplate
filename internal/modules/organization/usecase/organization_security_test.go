@@ -40,7 +40,7 @@ func TestCreateOrganization_XSS(t *testing.T) {
 	orgRepo.On("Create", ctx, mock.MatchedBy(func(org *entity.Organization) bool {
 		return org.Name == request.Name // verifying raw persistence
 	}), usecase.DefaultOwnerRoleID).Return(nil)
-	
+
 	enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
 	response, err := uc.CreateOrganization(ctx, userID, request)

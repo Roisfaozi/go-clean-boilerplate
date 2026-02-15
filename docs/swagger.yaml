@@ -164,6 +164,8 @@ definitions:
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.UserInfo:
     properties:
+      avatar_url:
+        type: string
       email:
         type: string
       id:
@@ -249,6 +251,9 @@ definitions:
         type: string
       owner_id:
         type: string
+      settings:
+        additionalProperties: true
+        type: object
       slug:
         type: string
       status:
@@ -330,6 +335,13 @@ definitions:
     - path
     - role
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.InheritanceTreeResponse:
+    properties:
+      roles:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleNode'
+        type: array
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.PermissionCheckItem:
     properties:
       action:
@@ -340,6 +352,37 @@ definitions:
     - action
     - resource
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceAggregationResponse:
+    properties:
+      resources:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourcePermission'
+        type: array
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceCRUD:
+    properties:
+      create:
+        type: boolean
+      delete:
+        type: boolean
+      read:
+        type: boolean
+      update:
+        type: boolean
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourcePermission:
+    properties:
+      base_path:
+        type: string
+      endpoint_count:
+        type: integer
+      name:
+        type: string
+      role_permissions:
+        additionalProperties:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceCRUD'
+        type: object
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleInheritanceRequest:
     properties:
       child_role:
@@ -349,6 +392,39 @@ definitions:
     required:
     - child_role
     - parent_role
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleNode:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleNode'
+        type: array
+      description:
+        type: string
+      effective_permissions:
+        items:
+          items:
+            type: string
+          type: array
+        type: array
+      id:
+        type: string
+      inherited_permissions:
+        items:
+          items:
+            type: string
+          type: array
+        type: array
+      name:
+        type: string
+      own_permissions:
+        items:
+          items:
+            type: string
+          type: array
+        type: array
+      parent_id:
+        type: string
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.UpdatePermissionRequest:
     properties:
@@ -825,6 +901,43 @@ paths:
       summary: Get access rights with dynamic filters
       tags:
       - access-rights
+  /access-rights/unlink:
+    post:
+      consumes:
+      - application/json
+      description: Removes an association between an endpoint and a specific access
+        right.
+      parameters:
+      - description: Unlink Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.LinkEndpointRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Endpoint unlinked successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "422":
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Unlink endpoint from access right
+      tags:
+      - access-rights
   /audit-logs/export:
     get:
       description: Exports audit logs to CSV format within a date range.
@@ -994,6 +1107,27 @@ paths:
       summary: Logout user
       tags:
       - auth
+  /auth/me:
+    get:
+      consumes:
+      - application/json
+      description: Returns the currently authenticated user's information.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - auth
   /auth/refresh:
     post:
       consumes:
@@ -1116,6 +1250,31 @@ paths:
           schema:
             $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       summary: Reset password
+      tags:
+      - auth
+  /auth/ticket:
+    post:
+      consumes:
+      - application/json
+      description: Generates a one-time ticket for WebSocket authentication.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get WebSocket Ticket
       tags:
       - auth
   /auth/verify-email:
@@ -1627,6 +1786,42 @@ paths:
       summary: Update member role
       tags:
       - organizations
+  /organizations/{id}/presence:
+    get:
+      description: Retrieves list of members who are currently online via WebSocket
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  items:
+                    type: object
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get online members
+      tags:
+      - organizations
   /organizations/invitations/accept:
     post:
       consumes:
@@ -1994,6 +2189,34 @@ paths:
       summary: Add role inheritance
       tags:
       - permissions
+  /permissions/inheritance-tree:
+    get:
+      description: Retrieves role hierarchy with inherited and effective permissions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Inheritance tree retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.InheritanceTreeResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get role inheritance tree
+      tags:
+      - permissions
   /permissions/parents/{role}:
     get:
       description: Retrieves all parent roles for a given role.
@@ -2025,6 +2248,34 @@ paths:
       security:
       - BearerAuth: []
       summary: Get parent roles
+      tags:
+      - permissions
+  /permissions/resources:
+    get:
+      description: Retrieves permissions aggregated by resource with CRUD mapping
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Resource aggregation retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceAggregationResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get resource aggregation
       tags:
       - permissions
   /permissions/revoke:
@@ -2347,6 +2598,151 @@ paths:
       summary: Get roles with dynamic filters
       tags:
       - roles
+  /upload/files/:
+    post:
+      consumes:
+      - application/json
+      description: Initializes a new resumable upload session using the TUS protocol.
+      parameters:
+      - description: TUS protocol version (must be 1.0.0)
+        in: header
+        name: Tus-Resumable
+        required: true
+        type: string
+      - description: Total size of the file in bytes
+        in: header
+        name: Upload-Length
+        required: true
+        type: integer
+      - description: Base64 encoded metadata (e.g. type, filename)
+        in: header
+        name: Upload-Metadata
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Create a new resumable upload
+      tags:
+      - upload
+  /upload/files/{id}:
+    delete:
+      description: Terminates an ongoing resumable upload and removes its partial
+        data.
+      parameters:
+      - description: Upload ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: TUS protocol version (must be 1.0.0)
+        in: header
+        name: Tus-Resumable
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Upload not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Cancel resumable upload
+      tags:
+      - upload
+    head:
+      description: Returns the current offset (number of bytes already uploaded) for
+        a specific resumable upload.
+      parameters:
+      - description: Upload ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: TUS protocol version (must be 1.0.0)
+        in: header
+        name: Tus-Resumable
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Upload not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Check upload offset
+      tags:
+      - upload
+    patch:
+      consumes:
+      - application/octet-stream
+      description: Sends a chunk of binary data to an existing resumable upload session.
+      parameters:
+      - description: Upload ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: TUS protocol version (must be 1.0.0)
+        in: header
+        name: Tus-Resumable
+        required: true
+        type: string
+      - description: Current offset of the chunk being sent
+        in: header
+        name: Upload-Offset
+        required: true
+        type: integer
+      - description: Must be application/offset+octet-stream
+        in: header
+        name: Content-Type
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "409":
+          description: Overlap or mismatching offset
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Upload file chunk
+      tags:
+      - upload
   /users:
     get:
       description: Retrieves a list of all users with optional pagination and filtering.

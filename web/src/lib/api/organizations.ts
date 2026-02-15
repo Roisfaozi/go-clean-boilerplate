@@ -52,8 +52,6 @@ export const organizationsApi = {
     return api.delete(`/organizations/${id}`);
   },
 
-  // --- Member Management ---
-
   getMembers: (orgId: string) => {
     return api.get<{ data: Member[] }>(`/organizations/${orgId}/members`);
   },

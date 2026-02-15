@@ -21,4 +21,5 @@ type AccessRepository interface {
 	DeleteAccessRight(ctx context.Context, id string) error
 
 	LinkEndpointToAccessRight(ctx context.Context, accessRightID, endpointID string) error
+	UnlinkEndpointFromAccessRight(ctx context.Context, accessRightID, endpointID string) error
 }

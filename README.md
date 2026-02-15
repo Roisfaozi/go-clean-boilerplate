@@ -21,7 +21,8 @@ Enterprise-ready Go boilerplate implementing Clean Architecture, RBAC with Casbi
 - **Automated Cleanup Jobs**: Integrated background worker scheduler for database maintenance (token pruning, soft-delete cleanup, log rotation).
 - **Distributed Tracing (OTEL)**: Full visibility with **OpenTelemetry** integration, tracking request flow across HTTP, Database, and Workers.
 - **Dynamic Search & Filtering**: Secure, reusable query builder supporting complex clauses, range filters, and dynamic sorting.
-- **Secure Authentication**: JWT-based auth with stateful session management in Redis for instant token revocation.
+- **Secure Authentication**: JWT-based auth with stateful session management in Redis. Optimized for Next.js 16 with **Server-Side Proxying** and `HttpOnly` cookie storage.
+- **Next.js 16 & React 19**: Modern frontend stack using the latest App Router patterns, `proxy.ts`, and React Compiler compliance.
 - **Real-time SSE**: Server-Sent Events manager for live one-way data streaming.
 - **Hardened Security**:
   - UseCase-level validation (Regex email, password strength).
@@ -212,6 +213,16 @@ The project follows a standard Go project layout suitable for scalable microserv
 │   ├── Casbin Project API.postman_collection.json         # Main collection
 │   ├── Casbin Project API - Dynamic Search.postman_collection.json # Dynamic search tests
 │   ├── Casbin Project API - Realtime.postman_collection.json # Realtime features (WS, SSE)
+│   └── ...
+│
+├── web/                # Next.js 16 Frontend (React 19)
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── api/auth/    # Server-side auth callbacks
+│   │   │   ├── api/v1/      # API Proxy layer (Bearer injection)
+│   │   │   └── ...
+│   │   ├── proxy.ts         # Server-side route protection & I18n
+│   │   └── ...
 │   └── ...
 │
 └───internal/           # Private application code (not importable by other apps)

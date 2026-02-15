@@ -531,3 +531,86 @@ func TestLogin_NilAuditUC(t *testing.T) {
 	assert.NotNil(t, loginResp)
 	assert.NotEmpty(t, refreshToken)
 }
+
+// ============================================================================
+// 🔐 PASSWORD RESET SECURITY TESTS
+// ============================================================================
+
+// TestResetPassword_RevokesSessions ensures that changing password revokes all existing sessions.
+func TestResetPassword_RevokesSessions(t *testing.T) {
+	authService, deps := setupSecurityTest(t)
+	user, newPassword := createSecurityTestUser("newpassword123")
+	resetToken := "valid-reset-token"
+	email := user.Email
+
+	// Mock: Find token
+	tokenEntity := &authEntity.PasswordResetToken{
+		Email:     email,
+		Token:     resetToken,
+		ExpiresAt: time.Now().Add(15 * time.Minute),
+	}
+	deps.tokenRepo.On("FindByToken", mock.Anything, resetToken).Return(tokenEntity, nil)
+
+	// Mock: Find user
+	deps.userRepo.On("FindByEmail", mock.Anything, email).Return(user, nil)
+
+	// Mock: Transaction
+	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(context.Background())
+		}).Return(nil)
+
+	// Mock: Update user (password change)
+	deps.userRepo.On("Update", mock.Anything, mock.MatchedBy(func(u *userEntity.User) bool {
+		return bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(newPassword)) == nil
+	})).Return(nil)
+
+	// Mock: Delete token
+	deps.tokenRepo.On("DeleteByEmail", mock.Anything, email).Return(nil)
+
+	// Mock: Audit Log
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.Action == "PASSWORD_RESET_SUCCESS"
+	})).Return(nil)
+
+	// EXPECTATION: RevokeAllSessions MUST be called
+	deps.tokenRepo.On("RevokeAllSessions", mock.Anything, user.ID).Return(nil).Once()
+
+	// EXPECTATION: RevokeAllSessions Audit Log
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.Action == "REVOKE_ALL_SESSIONS"
+	})).Return(nil).Once()
+
+	err := authService.ResetPassword(context.Background(), resetToken, newPassword)
+
+	assert.NoError(t, err)
+	deps.tokenRepo.AssertCalled(t, "RevokeAllSessions", mock.Anything, user.ID)
+}
+
+// // ============================================================================
+// // 🔐 TICKET GENERATION SECURITY TESTS
+// // ============================================================================
+
+// // TestGetTicket_ValidatesOrgMembership ensures user cannot get ticket for org they don't belong to.
+// func TestGetTicket_ValidatesOrgMembership(t *testing.T) {
+// 	authService, deps := setupSecurityTest(t)
+// 	user, _ := createSecurityTestUser("password123")
+// 	targetOrgID := "target-org-id"
+// 	sessionID := "session-1"
+// 	username := "securityuser"
+
+// 	// Mock: Find user
+// 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
+
+// 	// Mock: Find User Organizations (User is NOT member of targetOrgID)
+// 	// Return a list that does NOT contain targetOrgID
+// 	otherOrg := &orgEntity.Organization{ID: "other-org-id"}
+// 	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{otherOrg}, nil)
+
+// 	// Action
+// 	_, err := authService.GetTicket(context.Background(), user.ID, targetOrgID, sessionID, "role:user", username)
+
+// 	// Assert: Should fail with Forbidden error
+// 	assert.ErrorIs(t, err, exception.ErrForbidden)
+// }

@@ -737,3 +737,66 @@ func (_c *MockAccessRepository_LinkEndpointToAccessRight_Call) RunAndReturn(run 
 	_c.Call.Return(run)
 	return _c
 }
+
+// UnlinkEndpointFromAccessRight provides a mock function for the type MockAccessRepository
+func (_mock *MockAccessRepository) UnlinkEndpointFromAccessRight(ctx context.Context, accessRightID string, endpointID string) error {
+	ret := _mock.Called(ctx, accessRightID, endpointID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UnlinkEndpointFromAccessRight")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = returnFunc(ctx, accessRightID, endpointID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAccessRepository_UnlinkEndpointFromAccessRight_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UnlinkEndpointFromAccessRight'
+type MockAccessRepository_UnlinkEndpointFromAccessRight_Call struct {
+	*mock.Call
+}
+
+// UnlinkEndpointFromAccessRight is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessRightID string
+//   - endpointID string
+func (_e *MockAccessRepository_Expecter) UnlinkEndpointFromAccessRight(ctx interface{}, accessRightID interface{}, endpointID interface{}) *MockAccessRepository_UnlinkEndpointFromAccessRight_Call {
+	return &MockAccessRepository_UnlinkEndpointFromAccessRight_Call{Call: _e.mock.On("UnlinkEndpointFromAccessRight", ctx, accessRightID, endpointID)}
+}
+
+func (_c *MockAccessRepository_UnlinkEndpointFromAccessRight_Call) Run(run func(ctx context.Context, accessRightID string, endpointID string)) *MockAccessRepository_UnlinkEndpointFromAccessRight_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAccessRepository_UnlinkEndpointFromAccessRight_Call) Return(err error) *MockAccessRepository_UnlinkEndpointFromAccessRight_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAccessRepository_UnlinkEndpointFromAccessRight_Call) RunAndReturn(run func(ctx context.Context, accessRightID string, endpointID string) error) *MockAccessRepository_UnlinkEndpointFromAccessRight_Call {
+	_c.Call.Return(run)
+	return _c
+}
