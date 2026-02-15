@@ -41,7 +41,7 @@ type InviteMemberRequest struct {
 type AcceptInvitationRequest struct {
 	Token    string `json:"token" binding:"required"`
 	Password string `json:"password"` // Required for new users
-	Name     string `json:"name" validate:"omitempty,max=100,xss"`     // Optional
+	Name     string `json:"name" binding:"omitempty,max=100" validate:"xss"`     // Optional
 }
 
 type UpdateMemberRequest struct {
