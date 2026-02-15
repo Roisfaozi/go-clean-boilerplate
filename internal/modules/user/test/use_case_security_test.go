@@ -49,3 +49,34 @@ func TestUserUseCase_Update_Security_Sanitization(t *testing.T) {
 	assert.NoError(t, err)
 	deps.Repo.AssertExpectations(t)
 }
+
+func TestUserUseCase_Update_Security_Sanitization_Conflict(t *testing.T) {
+	deps, uc := setupUserTest()
+
+	rawUsername := "<b>ExistingUser</b>"
+	expectedUsername := "&lt;b&gt;ExistingUser&lt;/b&gt;"
+
+	request := &model.UpdateUserRequest{
+		ID:       "user123",
+		Username: rawUsername,
+	}
+
+	updatingUser := &entity.User{
+		ID:       "user123",
+		Username: "olduser",
+	}
+
+	conflictingUser := &entity.User{
+		ID:       "user456",
+		Username: expectedUsername,
+	}
+
+	deps.Repo.On("FindByID", mock.Anything, "user123").Return(updatingUser, nil)
+
+	deps.Repo.On("FindByUsername", mock.Anything, expectedUsername).Return(conflictingUser, nil)
+
+	_, err := uc.Update(context.Background(), request)
+
+	assert.Error(t, err)
+	deps.Repo.AssertExpectations(t)
+}
