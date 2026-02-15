@@ -615,7 +615,7 @@ func TestUserIntegration_FindAll_Success(t *testing.T) {
 	users, total, err := userUC.GetAllUsers(context.Background(), req)
 
 	require.NoError(t, err)
-	assert.GreaterOrEqual(t, total, int64(2)) // Might have other users from other tests if DB not clean, but we call CleanupDatabase
+	assert.Equal(t, int64(2), total)
 	assert.Len(t, users, 2)
 }
 
