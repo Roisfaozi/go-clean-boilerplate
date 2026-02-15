@@ -30,7 +30,7 @@ DB_URL_STAG = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_PROD)@tcp($(DB_HOST_PROD)
 SWAG_CLI=go run github.com/swaggo/swag/cmd/swag@v1.8.12
 
 # Binary name
-BINARY_NAME=main.exe
+BINARY_NAME=main
 
 # Default target executed when you just run `make`
 .PHONY: all
