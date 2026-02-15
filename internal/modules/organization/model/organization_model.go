@@ -6,9 +6,9 @@ import (
 
 // OrganizationResponse represents the response for organization operations
 type OrganizationResponse struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Slug      string `json:"slug"`
+	ID        string                 `json:"id"`
+	Name      string                 `json:"name"`
+	Slug      string                 `json:"slug"`
 	OwnerID   string                 `json:"owner_id"`
 	Settings  map[string]interface{} `json:"settings"`
 	Status    string                 `json:"status"`
@@ -22,12 +22,12 @@ type UserOrganizationsResponse struct {
 }
 
 type CreateOrganizationRequest struct {
-	Name string `json:"name" binding:"required,min=3,max=100"`
+	Name string `json:"name" binding:"required,min=3,max=100" validate:"xss"`
 	Slug string `json:"slug" binding:"omitempty,min=3,max=100"`
 }
 
 type UpdateOrganizationRequest struct {
-	Name     string                 `json:"name" binding:"omitempty,min=3,max=100"`
+	Name     string                 `json:"name" binding:"omitempty,min=3,max=100" validate:"xss"`
 	Settings map[string]interface{} `json:"settings"`
 	Status   string                 `json:"status" binding:"omitempty,oneof=active suspended"`
 }
@@ -41,7 +41,7 @@ type InviteMemberRequest struct {
 type AcceptInvitationRequest struct {
 	Token    string `json:"token" binding:"required"`
 	Password string `json:"password"` // Required for new users
-	Name     string `json:"name"`     // Optional
+	Name     string `json:"name" binding:"omitempty,max=100" validate:"xss"`     // Optional
 }
 
 type UpdateMemberRequest struct {

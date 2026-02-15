@@ -88,6 +88,6 @@ func HandleError(c *gin.Context, err error, message string) {
 	case errors.Is(err, exception.ErrTooManyRequests):
 		Error(c, http.StatusTooManyRequests, err, message)
 	default:
-		InternalServerError(c, err, message)
+		InternalServerError(c, errors.New("internal server error"), message)
 	}
 }

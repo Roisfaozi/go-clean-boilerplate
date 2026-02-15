@@ -21,9 +21,9 @@ export const usePermissionStore = create<PermissionState>()(
         // Kita cek apakah ada rule yang cocok dengan resource (obj) dan action (act)
         // User bisa memiliki multiple roles, jadi kita cek semua rule yang ada
         return permissions.some(
-          (p) => 
-            p.length >= 4 && 
-            (p[2] === resource || p[2] === "*") && 
+          (p) =>
+            p.length >= 4 &&
+            (p[2] === resource || p[2] === "*") &&
             (p[3] === action || p[3] === "*")
         );
       },

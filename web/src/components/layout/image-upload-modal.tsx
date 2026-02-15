@@ -71,18 +71,20 @@ export default function ImageUploadModal({
     }
   }, [preview]);
 
-  useEffect(() => {
-    if (!showModal) {
-      handleCancel();
-    }
-  }, [handleCancel, showModal]);
-
   const handleUpload = () => {
     startUpload(files);
   };
 
   return (
-    <Dialog open={showModal} onOpenChange={setShowModal}>
+    <Dialog
+      open={showModal}
+      onOpenChange={(open) => {
+        setShowModal(open);
+        if (!open) {
+          handleCancel();
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <div className="bg-primary/40 dark:bg-secondary/40 absolute top-0 left-0 flex h-28 w-28 cursor-pointer items-center justify-center rounded-full text-white opacity-0 group-hover:opacity-100">
           <Button

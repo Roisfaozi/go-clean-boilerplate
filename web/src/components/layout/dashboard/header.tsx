@@ -7,7 +7,7 @@ import { NotificationCenter } from "~/components/dashboard/notification-center";
 import ThemeToggle from "~/components/shared/theme-toggle";
 import LocaleToggler from "~/components/shared/locale-toggler";
 import { UserNav } from "~/components/dashboard/user-nav";
-import { SidebarTrigger } from "~/components/ui/sidebar"; 
+import { SidebarTrigger } from "~/components/ui/sidebar";
 import { Separator } from "~/components/ui/separator";
 import { PresenceAvatarStack } from "~/components/dashboard/presence-avatar-stack";
 import { cn } from "~/lib/utils";
@@ -24,14 +24,14 @@ export function DashboardHeader() {
       {/* Left: Search & Trigger */}
       <div className="flex flex-1 items-center gap-4">
         <GlobalSearch />
-        <Separator orientation="vertical" className="h-6 hidden md:block" />
+        <Separator orientation="vertical" className="hidden h-6 md:block" />
         <DashboardBreadcrumbs />
       </div>
 
       {/* Right: Actions */}
       <div className="flex items-center gap-3">
         <PresenceAvatarStack className="hidden lg:flex" />
-        <Separator orientation="vertical" className="h-6 hidden lg:block" />
+        <Separator orientation="vertical" className="hidden h-6 lg:block" />
         <div className="flex items-center gap-1">
           <NotificationCenter />
           <DensitySwitcher />
