@@ -657,7 +657,9 @@ func TestUserIntegration_UpdateAvatar_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, updatedUser.AvatarURL)
-	assert.Contains(t, updatedUser.AvatarURL, "avatar.png")
+	// The filename is generated using user ID and extension
+	assert.Contains(t, updatedUser.AvatarURL, res.ID)
+	assert.Contains(t, updatedUser.AvatarURL, ".png")
 }
 
 func TestUserIntegration_HardDeleteSoftDeletedUsers(t *testing.T) {
