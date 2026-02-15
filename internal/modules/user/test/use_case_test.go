@@ -792,7 +792,7 @@ func TestUserUseCase_UpdateAvatar(t *testing.T) {
 		user := &entity.User{ID: userID}
 
 		deps.Repo.On("FindByID", mock.Anything, userID).Return(user, nil)
-		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("url", nil)
+		deps.Storage.On("UploadFile", mock.Anything, "avatars/user123.png", "image/png").Return("url", nil)
 		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error"))
 		deps.Storage.On("DeleteFile", mock.Anything, "avatars/user123.png").Return(nil)
 
