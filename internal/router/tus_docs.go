@@ -22,6 +22,7 @@ import (
 // @Failure      401 {object} response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      500 {object} response.SwaggerErrorResponseWrapper "Internal Server Error"
 // @Router       /upload/files/ [post]
+//
 //nolint:unused
 func tusCreateUpload() {}
 
@@ -37,6 +38,7 @@ func tusCreateUpload() {}
 // @Failure      401 {object} response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      404 {object} response.SwaggerErrorResponseWrapper "Upload not found"
 // @Router       /upload/files/{id} [head]
+//
 //nolint:unused
 func tusGetOffset() {}
 
@@ -54,6 +56,7 @@ func tusGetOffset() {}
 // @Failure      401 {object} response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      409 {object} response.SwaggerErrorResponseWrapper "Overlap or mismatching offset"
 // @Router       /upload/files/{id} [patch]
+//
 //nolint:unused
 func tusUploadChunk() {}
 
@@ -68,5 +71,6 @@ func tusUploadChunk() {}
 // @Failure      401 {object} response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      404 {object} response.SwaggerErrorResponseWrapper "Upload not found"
 // @Router       /upload/files/{id} [delete]
+//
 //nolint:unused
 func tusDeleteUpload() {}

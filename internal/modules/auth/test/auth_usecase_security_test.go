@@ -44,7 +44,6 @@ type securityTestDeps struct {
 	log             *logrus.Logger
 	auditUC         *auditMocks.MockAuditUseCase
 	taskDistributor *mocking.MockTaskDistributor
-	ticketManager   *mock_auth.MockTicketManager
 }
 
 func setupSecurityTest(t *testing.T) (usecase.AuthUseCase, *securityTestDeps) {
@@ -61,7 +60,6 @@ func setupSecurityTest(t *testing.T) (usecase.AuthUseCase, *securityTestDeps) {
 		log:             logrus.New(),
 		auditUC:         new(auditMocks.MockAuditUseCase),
 		taskDistributor: new(mocking.MockTaskDistributor),
-		ticketManager:   new(mock_auth.MockTicketManager),
 	}
 
 	deps.log.SetOutput(io.Discard)
@@ -80,7 +78,6 @@ func setupSecurityTest(t *testing.T) (usecase.AuthUseCase, *securityTestDeps) {
 		deps.enforcer,
 		deps.auditUC,
 		deps.taskDistributor,
-		deps.ticketManager,
 	)
 
 	return authService, deps
@@ -451,7 +448,6 @@ func TestLogin_NilEnforcer(t *testing.T) {
 		nil, // NIL ENFORCER
 		auditUC,
 		taskDistributor,
-		new(mock_auth.MockTicketManager),
 	)
 
 	user, password := createSecurityTestUser("password123")
@@ -509,7 +505,6 @@ func TestLogin_NilAuditUC(t *testing.T) {
 		enforcer,
 		nil, // NIL AUDIT UC
 		taskDistributor,
-		new(mock_auth.MockTicketManager),
 	)
 
 	user, password := createSecurityTestUser("password123")

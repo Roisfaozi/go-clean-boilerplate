@@ -57,8 +57,6 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
 
-	ticketManager := ws.NewRedisTicketManager(env.Redis, 30*time.Second)
-
 	return usecase.NewAuthUsecase(
 		5,              // MaxLoginAttempts
 		30*time.Minute, // LockoutDuration
@@ -73,7 +71,6 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 		enforcer,
 		auditUC,
 		taskDistributor,
-		ticketManager,
 	)
 }
 

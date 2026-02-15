@@ -40,7 +40,7 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, oRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil, nil)
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, oRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
 	userUC := userUseCase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil)
 
 	ctx := context.Background()

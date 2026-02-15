@@ -45,7 +45,7 @@ func TestScenario_RealTime_LoginBroadcast(t *testing.T) {
 	go wsManager.Run()
 
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, wsManager, nil, env.Enforcer, nil, nil, nil)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, wsManager, nil, env.Enforcer, nil, nil)
 
 	// 1. Create Organization
 	orgID := "test-org-123"

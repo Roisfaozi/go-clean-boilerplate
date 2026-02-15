@@ -11,11 +11,9 @@ import {
 } from "~/components/ui/tooltip";
 import { cn } from "~/lib/utils";
 import { OrganizationSwitcher } from "../dashboard/organization-switcher";
-import { Icon } from "../shared/icon";
-import { useDashboardShell } from "~/app/[locale]/dashboard/_components/dashboard-shell-context";
-import { memo } from "react";
+import { Icon } from "../shared/icon"; // Use the density-aware icon
 
-// Define Navigation Items (Could be moved to a separate config file)
+// Define Navigation Items
 const navItems = [
   {
     title: "Dashboard",
@@ -69,13 +67,8 @@ const navItems = [
   },
 ];
 
-export const Sidebar = memo(function Sidebar({
-  className,
-}: {
-  className?: string;
-}) {
+export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
-  const { currentOrganization } = useDashboardShell();
 
   return (
     <aside
@@ -116,18 +109,28 @@ export const Sidebar = memo(function Sidebar({
                       "w-full justify-start overflow-hidden",
                       isActive &&
                         "bg-primary/10 text-primary hover:bg-primary/20",
+                      // Compact Mode: Center icon, hide text
                       "[data-density=compact]:justify-center [data-density=compact]:px-0"
                     )}
                   >
+                    {/* Icon */}
+                    {/* We need to map iconName to the Icon component properly.
+                        Since 'Icon' takes 'name' prop which is LucideKeys.
+                        I'll use a dynamic mapping or just import specific icons if needed.
+                        For now, assuming Icon component handles string names correctly.
+                    */}
                     <Icon
                       name={item.iconName as any}
                       className={cn(isActive && "text-primary")}
                     />
+
+                    {/* Label */}
                     <span className="ml-3 truncate [data-density=compact]:hidden">
                       {item.title}
                     </span>
                   </Link>
                 </TooltipTrigger>
+                {/* Tooltip only in Compact Mode */}
                 <TooltipContent
                   side="right"
                   className="hidden [data-density=compact]:block"
@@ -140,15 +143,10 @@ export const Sidebar = memo(function Sidebar({
         })}
       </nav>
 
-      {/* Footer / User Info Context (Optional) */}
+      {/* Footer / User Profile (Mini) */}
       <div className="border-t p-4 [data-density=compact]:p-2">
-        <div className="text-muted-foreground flex flex-col gap-1 text-[10px] font-bold tracking-wider uppercase [data-density=compact]:hidden">
-          <span>Active Org</span>
-          <span className="text-primary truncate">
-            {currentOrganization?.name || "None"}
-          </span>
-        </div>
+        {/* Could put user profile here or just logout */}
       </div>
     </aside>
   );
-});
+}

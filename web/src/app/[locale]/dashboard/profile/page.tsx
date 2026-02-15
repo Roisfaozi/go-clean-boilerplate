@@ -1,8 +1,6 @@
 import { type Metadata } from "next";
 import { getCurrentSession } from "~/lib/server/auth/session";
-import { ProfileProvider } from "./_components/profile-context";
-import { ProfileHeader } from "./_components/profile-header";
-import { ProfileContent } from "./_components/profile-content";
+import { ProfileForm } from "~/components/dashboard/profile-form";
 
 export const metadata: Metadata = {
   title: "Profile",
@@ -13,11 +11,16 @@ export default async function ProfilePage() {
   const { user } = await getCurrentSession();
 
   return (
-    <ProfileProvider user={user}>
-      <div className="space-y-6">
-        <ProfileHeader />
-        <ProfileContent />
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium">Profile</h3>
+        <p className="text-muted-foreground text-sm">
+          Manage your personal information and avatar.
+        </p>
       </div>
-    </ProfileProvider>
+      <div className="max-w-2xl">
+        <ProfileForm user={user} />
+      </div>
+    </div>
   );
 }

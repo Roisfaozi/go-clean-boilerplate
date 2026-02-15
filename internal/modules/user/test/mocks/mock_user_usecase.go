@@ -644,8 +644,8 @@ func (_c *MockUserUseCase_Update_Call) RunAndReturn(run func(ctx context.Context
 }
 
 // UpdateAvatar provides a mock function for the type MockUserUseCase
-func (_mock *MockUserUseCase) UpdateAvatar(ctx context.Context, actorUserID string, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error) {
-	ret := _mock.Called(ctx, actorUserID, userID, file, filename, contentType)
+func (_mock *MockUserUseCase) UpdateAvatar(ctx context.Context, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error) {
+	ret := _mock.Called(ctx, userID, file, filename, contentType)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateAvatar")
@@ -653,18 +653,18 @@ func (_mock *MockUserUseCase) UpdateAvatar(ctx context.Context, actorUserID stri
 
 	var r0 *model.UserResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, io.Reader, string, string) (*model.UserResponse, error)); ok {
-		return returnFunc(ctx, actorUserID, userID, file, filename, contentType)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, io.Reader, string, string) (*model.UserResponse, error)); ok {
+		return returnFunc(ctx, userID, file, filename, contentType)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, io.Reader, string, string) *model.UserResponse); ok {
-		r0 = returnFunc(ctx, actorUserID, userID, file, filename, contentType)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, io.Reader, string, string) *model.UserResponse); ok {
+		r0 = returnFunc(ctx, userID, file, filename, contentType)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.UserResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, io.Reader, string, string) error); ok {
-		r1 = returnFunc(ctx, actorUserID, userID, file, filename, contentType)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, io.Reader, string, string) error); ok {
+		r1 = returnFunc(ctx, userID, file, filename, contentType)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -678,16 +678,15 @@ type MockUserUseCase_UpdateAvatar_Call struct {
 
 // UpdateAvatar is a helper method to define mock.On call
 //   - ctx context.Context
-//   - actorUserID string
 //   - userID string
 //   - file io.Reader
 //   - filename string
 //   - contentType string
-func (_e *MockUserUseCase_Expecter) UpdateAvatar(ctx interface{}, actorUserID interface{}, userID interface{}, file interface{}, filename interface{}, contentType interface{}) *MockUserUseCase_UpdateAvatar_Call {
-	return &MockUserUseCase_UpdateAvatar_Call{Call: _e.mock.On("UpdateAvatar", ctx, actorUserID, userID, file, filename, contentType)}
+func (_e *MockUserUseCase_Expecter) UpdateAvatar(ctx interface{}, userID interface{}, file interface{}, filename interface{}, contentType interface{}) *MockUserUseCase_UpdateAvatar_Call {
+	return &MockUserUseCase_UpdateAvatar_Call{Call: _e.mock.On("UpdateAvatar", ctx, userID, file, filename, contentType)}
 }
 
-func (_c *MockUserUseCase_UpdateAvatar_Call) Run(run func(ctx context.Context, actorUserID string, userID string, file io.Reader, filename string, contentType string)) *MockUserUseCase_UpdateAvatar_Call {
+func (_c *MockUserUseCase_UpdateAvatar_Call) Run(run func(ctx context.Context, userID string, file io.Reader, filename string, contentType string)) *MockUserUseCase_UpdateAvatar_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -697,21 +696,17 @@ func (_c *MockUserUseCase_UpdateAvatar_Call) Run(run func(ctx context.Context, a
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 string
+		var arg2 io.Reader
 		if args[2] != nil {
-			arg2 = args[2].(string)
+			arg2 = args[2].(io.Reader)
 		}
-		var arg3 io.Reader
+		var arg3 string
 		if args[3] != nil {
-			arg3 = args[3].(io.Reader)
+			arg3 = args[3].(string)
 		}
 		var arg4 string
 		if args[4] != nil {
 			arg4 = args[4].(string)
-		}
-		var arg5 string
-		if args[5] != nil {
-			arg5 = args[5].(string)
 		}
 		run(
 			arg0,
@@ -719,7 +714,6 @@ func (_c *MockUserUseCase_UpdateAvatar_Call) Run(run func(ctx context.Context, a
 			arg2,
 			arg3,
 			arg4,
-			arg5,
 		)
 	})
 	return _c
@@ -730,7 +724,7 @@ func (_c *MockUserUseCase_UpdateAvatar_Call) Return(userResponse *model.UserResp
 	return _c
 }
 
-func (_c *MockUserUseCase_UpdateAvatar_Call) RunAndReturn(run func(ctx context.Context, actorUserID string, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error)) *MockUserUseCase_UpdateAvatar_Call {
+func (_c *MockUserUseCase_UpdateAvatar_Call) RunAndReturn(run func(ctx context.Context, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error)) *MockUserUseCase_UpdateAvatar_Call {
 	_c.Call.Return(run)
 	return _c
 }
