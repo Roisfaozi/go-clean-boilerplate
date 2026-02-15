@@ -47,6 +47,7 @@ func setupTestDependencies(env *setup.TestEnvironment) (usecase.UserUseCase, rep
 func TestUserIntegration_Create_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC, userRepo := setupTestDependencies(env)
 
@@ -79,6 +80,7 @@ func TestUserIntegration_Create_Success(t *testing.T) {
 func TestUserIntegration_Create_DuplicateUsername(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	setup.CreateTestUser(t, env.DB, "existinguser", "existing@example.com", "password123")
 
@@ -102,6 +104,7 @@ func TestUserIntegration_Create_DuplicateUsername(t *testing.T) {
 func TestUserIntegration_Update_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
 
@@ -128,6 +131,7 @@ func TestUserIntegration_Update_Success(t *testing.T) {
 func TestUserIntegration_Delete_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
 
@@ -149,6 +153,7 @@ func TestUserIntegration_Delete_Success(t *testing.T) {
 func TestUserIntegration_GetByID_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
 
@@ -165,6 +170,8 @@ func TestUserIntegration_GetByID_Success(t *testing.T) {
 func TestUserStatus_BannedFlow(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+
+	setup.CleanupDatabase(t, env.DB)
 
 	password := "password123"
 	user := setup.CreateTestUser(t, env.DB, "banneduser", "banned@example.com", password)
@@ -196,6 +203,7 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 func TestUserIntegration_Create_Positive_ValidData(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -215,6 +223,7 @@ func TestUserIntegration_Create_Positive_ValidData(t *testing.T) {
 func TestUserIntegration_Update_Positive_ValidUpdate(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "updateuser", "update@example.com", "password123")
 	userUC := setupUserUseCase(t, env)
@@ -232,6 +241,7 @@ func TestUserIntegration_Update_Positive_ValidUpdate(t *testing.T) {
 func TestUserIntegration_Create_Negative_DuplicateUsername(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	setup.CreateTestUser(t, env.DB, "duplicate", "first@example.com", "password123")
 	userUC := setupUserUseCase(t, env)
@@ -250,6 +260,7 @@ func TestUserIntegration_Create_Negative_DuplicateUsername(t *testing.T) {
 func TestUserIntegration_Create_Negative_DuplicateEmail(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	setup.CreateTestUser(t, env.DB, "user1", "duplicate@example.com", "password123")
 	userUC := setupUserUseCase(t, env)
@@ -268,6 +279,7 @@ func TestUserIntegration_Create_Negative_DuplicateEmail(t *testing.T) {
 func TestUserIntegration_Update_Negative_NonExistentUser(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -284,6 +296,7 @@ func TestUserIntegration_Update_Negative_NonExistentUser(t *testing.T) {
 func TestUserIntegration_Delete_Negative_NonExistentUser(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -297,6 +310,7 @@ func TestUserIntegration_Delete_Negative_NonExistentUser(t *testing.T) {
 func TestUserIntegration_Create_Edge_MinimumUsernameLength(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -317,6 +331,7 @@ func TestUserIntegration_Create_Edge_MinimumUsernameLength(t *testing.T) {
 func TestUserIntegration_Create_Edge_MaximumUsernameLength(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -335,6 +350,7 @@ func TestUserIntegration_Create_Edge_MaximumUsernameLength(t *testing.T) {
 func TestUserIntegration_Create_Edge_SpecialCharactersInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -352,6 +368,7 @@ func TestUserIntegration_Create_Edge_SpecialCharactersInName(t *testing.T) {
 func TestUserIntegration_Create_Edge_UnicodeInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -369,6 +386,7 @@ func TestUserIntegration_Create_Edge_UnicodeInName(t *testing.T) {
 func TestUserIntegration_Update_Edge_EmptyOptionalFields(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "emptyuser", "empty@example.com", "password123")
 	userUC := setupUserUseCase(t, env)
@@ -387,6 +405,7 @@ func TestUserIntegration_Update_Edge_EmptyOptionalFields(t *testing.T) {
 func TestUserIntegration_Create_Edge_EmailWithPlusSign(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -404,6 +423,7 @@ func TestUserIntegration_Create_Edge_EmailWithPlusSign(t *testing.T) {
 func TestUserIntegration_Security_SQLInjectionInUsername(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -434,6 +454,7 @@ func TestUserIntegration_Security_SQLInjectionInUsername(t *testing.T) {
 func TestUserIntegration_Security_XSSInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -462,6 +483,7 @@ func TestUserIntegration_Security_XSSInName(t *testing.T) {
 func TestUserIntegration_Security_PathTraversalInUsername(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -486,6 +508,7 @@ func TestUserIntegration_Security_PathTraversalInUsername(t *testing.T) {
 func TestUserIntegration_Security_NoSQLInjection(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -514,6 +537,7 @@ func TestUserIntegration_Security_NoSQLInjection(t *testing.T) {
 func TestUserIntegration_Security_PasswordNotInResponse(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -532,6 +556,7 @@ func TestUserIntegration_Security_PasswordNotInResponse(t *testing.T) {
 func TestUserIntegration_Security_UnauthorizedUpdate(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "victim", "victim@example.com", "password123")
 	userUC := setupUserUseCase(t, env)

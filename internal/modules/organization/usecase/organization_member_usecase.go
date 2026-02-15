@@ -303,7 +303,7 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 			user.Password = hash
 			user.Status = "active"
 			if request.Name != "" {
-				user.Name = pkgUtil.SanitizeString(request.Name)
+				user.Name = request.Name
 			} else {
 				user.Name = user.Email // Default name
 			}

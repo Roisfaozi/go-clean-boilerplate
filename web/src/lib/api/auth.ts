@@ -45,11 +45,4 @@ export const authApi = {
   resendVerification: () => {
     return api.post("/auth/resend-verification", {});
   },
-
-  getWsTicket: (orgId?: string) => {
-    const url = orgId ? `/auth/ticket?org_id=${orgId}` : "/auth/ticket";
-    return api
-      .post<{ data: { ticket: string } }>(url, {})
-      .then((res) => res.data);
-  },
 };

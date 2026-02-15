@@ -1,10 +1,11 @@
 import { type Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { AnnouncementBanner } from "~/components/layout/announcement-banner";
 import Footer from "~/components/layout/footer";
-import { AuthProvider } from "~/components/shared/providers/auth-provider";
-import { DensityProvider } from "~/components/shared/providers/density-provider";
+import Header from "~/components/layout/header";
 import ThemeProvider from "~/components/shared/providers/theme-provider";
+import { DensityProvider } from "~/components/shared/providers/density-provider";
 import { WebSocketProvider } from "~/components/shared/providers/websocket-provider";
 import { Toaster } from "~/components/ui/toaster";
 import { siteConfig, siteUrl } from "~/config/site";
@@ -133,19 +134,18 @@ export default async function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <DensityProvider>
-            <AuthProvider>
-              <WebSocketProvider>
-                {/* <AnnouncementBanner /> */}
-                <main>
-                  {children}
-                  {loginDialog}
-                </main>
-                <I18nProviderClient locale={locale}>
-                  <Footer />
-                </I18nProviderClient>
-                <Toaster />
-              </WebSocketProvider>
-            </AuthProvider>
+            <WebSocketProvider>
+              <AnnouncementBanner />
+              <Header />
+              <main>
+                {children}
+                {loginDialog}
+              </main>
+              <I18nProviderClient locale={locale}>
+                <Footer />
+              </I18nProviderClient>
+              <Toaster />
+            </WebSocketProvider>
           </DensityProvider>
         </ThemeProvider>
       </body>

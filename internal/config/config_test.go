@@ -13,7 +13,6 @@ func setupTestEnv(t *testing.T) {
 	t.Setenv("MYSQL_USER", "testuser")
 	t.Setenv("MYSQL_PASSWORD", "testpass")
 	t.Setenv("MYSQL_DBNAME", "testdb")
-	t.Setenv("MYSQL_PORT", "3306")
 	t.Setenv("JWT_ACCESS_SECRET", "01234567890123456789012345678901")
 	t.Setenv("JWT_REFRESH_SECRET", "01234567890123456789012345678901")
 }
@@ -40,6 +39,7 @@ func TestNewConfig_JWTDurations(t *testing.T) {
 
 	cfg, err := NewConfig()
 	require.NoError(t, err)
+
 	assert.Equal(t, 15*time.Minute, cfg.JWT.AccessTokenDuration)
 	assert.Equal(t, 720*time.Hour, cfg.JWT.RefreshTokenDuration)
 }
@@ -109,8 +109,8 @@ func TestNewConfig_StorageDrivers(t *testing.T) {
 
 func TestNewConfig_Validation_RequiredFields(t *testing.T) {
 	setupTestEnv(t)
-	// MYSQL_PORT has validate:"required" (non-zero)
-	t.Setenv("MYSQL_PORT", "0")
+	// MYSQL_USER has validate:"required" and no default value
+	t.Setenv("MYSQL_USER", "")
 
 	_, err := NewConfig()
 	require.Error(t, err)

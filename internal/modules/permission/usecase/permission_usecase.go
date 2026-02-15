@@ -28,10 +28,6 @@ type IPermissionUseCase interface {
 	GetParentRoles(ctx context.Context, role string) ([]string, error)
 
 	BatchCheckPermission(ctx context.Context, userID string, items []model.PermissionCheckItem) (map[string]bool, error)
-
-	// New methods for Matrix View
-	GetResourceAggregation(ctx context.Context) (*model.ResourceAggregationResponse, error)
-	GetInheritanceTree(ctx context.Context) (*model.InheritanceTreeResponse, error)
 }
 
 type PermissionUseCase struct {

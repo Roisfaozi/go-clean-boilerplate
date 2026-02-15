@@ -24,14 +24,14 @@ export function DashboardHeader() {
       {/* Left: Search & Trigger */}
       <div className="flex flex-1 items-center gap-4">
         <GlobalSearch />
-        <Separator orientation="vertical" className="hidden h-6 md:block" />
+        <Separator orientation="vertical" className="h-6 hidden md:block" />
         <DashboardBreadcrumbs />
       </div>
 
       {/* Right: Actions */}
       <div className="flex items-center gap-3">
         <PresenceAvatarStack className="hidden lg:flex" />
-        <Separator orientation="vertical" className="hidden h-6 lg:block" />
+        <Separator orientation="vertical" className="h-6 hidden lg:block" />
         <div className="flex items-center gap-1">
           <NotificationCenter />
           <DensitySwitcher />

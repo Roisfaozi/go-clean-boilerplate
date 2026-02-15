@@ -242,7 +242,7 @@ POST   /api/v1/permissions/check-batch
 
 ## Phase 5: Admin - Access Rights & Endpoints
 
-**Status**: ✅ Completed (UI Overhaul with Accordion & Checkboxes)
+**Duration**: 1-2 weeks
 
 ### Pages
 
@@ -253,10 +253,9 @@ POST   /api/v1/permissions/check-batch
 
 ### Components
 
-- [x] Access Right CRUD (Accordion-based)
-- [x] Endpoint Registration Form
-- [x] Link/Unlink Endpoint to Access Right (Inline Toggle)
-- [x] Module-based Endpoint Grouping
+- [ ] Access Right CRUD
+- [ ] Endpoint Registration Form
+- [ ] Link Endpoint to Access Right
 - [ ] Endpoint Discovery (auto-detect routes)
 
 ### API Integration
@@ -266,7 +265,6 @@ POST   /api/v1/access-rights
 GET    /api/v1/access-rights
 DELETE /api/v1/access-rights/:id
 POST   /api/v1/access-rights/link
-POST   /api/v1/access-rights/unlink
 POST   /api/v1/endpoints
 DELETE /api/v1/endpoints/:id
 ```
