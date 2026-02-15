@@ -782,7 +782,7 @@ func TestUserHandler_UpdateAvatar(t *testing.T) {
 		handler := newTestUserHandler(mockUseCase)
 
 		expectedRes := &model.UserResponse{ID: userID, AvatarURL: "http://s3/avatar.png"}
-		mockUseCase.On("UpdateAvatar", mock.Anything, userID, mock.Anything, mock.Anything, mock.Anything).Return(expectedRes, nil).Once()
+		mockUseCase.On("UpdateAvatar", mock.Anything, userID, userID, mock.Anything, mock.Anything, mock.Anything).Return(expectedRes, nil).Once()
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
@@ -828,7 +828,7 @@ func TestUserHandler_UpdateAvatar(t *testing.T) {
 		mockUseCase := new(mocks.MockUserUseCase)
 		handler := newTestUserHandler(mockUseCase)
 
-		mockUseCase.On("UpdateAvatar", mock.Anything, userID, mock.Anything, mock.Anything, mock.Anything).Return(nil, exception.ErrInternalServer).Once()
+		mockUseCase.On("UpdateAvatar", mock.Anything, userID, userID, mock.Anything, mock.Anything, mock.Anything).Return(nil, exception.ErrInternalServer).Once()
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
