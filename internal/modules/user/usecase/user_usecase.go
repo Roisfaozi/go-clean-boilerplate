@@ -352,7 +352,9 @@ func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file 
 	user.AvatarURL = url
 	if err := u.Repo.Update(ctx, user); err != nil {
 		u.Log.Errorf("Failed to update user avatar URL: %v", err)
-		_ = u.Storage.DeleteFile(ctx, newFilename)
+		if err := u.Storage.DeleteFile(ctx, newFilename); err != nil {
+			u.Log.Errorf("Failed to cleanup avatar file %s after db error: %v", newFilename, err)
+		}
 		return nil, exception.ErrInternalServer
 	}
 
