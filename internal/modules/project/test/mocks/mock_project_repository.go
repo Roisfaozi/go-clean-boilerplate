@@ -12,111 +12,38 @@ type MockProjectRepository struct {
 	mock.Mock
 }
 
-// Create provides a mock function for the type MockProjectRepository
-func (_m *MockProjectRepository) Create(ctx context.Context, project *entity.Project) error {
-	ret := _m.Called(ctx, project)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entity.Project) error); ok {
-		r0 = rf(ctx, project)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
+func (m *MockProjectRepository) Create(ctx context.Context, project *entity.Project) error {
+	args := m.Called(ctx, project)
+	return args.Error(0)
 }
 
-// GetByID provides a mock function for the type MockProjectRepository
-func (_m *MockProjectRepository) GetByID(ctx context.Context, id string) (*entity.Project, error) {
-	ret := _m.Called(ctx, id)
-
-	var r0 *entity.Project
-	if rf, ok := ret.Get(0).(func(context.Context, string) *entity.Project); ok {
-		r0 = rf(ctx, id)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*entity.Project)
-		}
+func (m *MockProjectRepository) GetByID(ctx context.Context, id string) (*entity.Project, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return args.Get(0).(*entity.Project), args.Error(1)
 }
 
-// GetByOrgID provides a mock function for the type MockProjectRepository
-func (_m *MockProjectRepository) GetByOrgID(ctx context.Context, orgID string) ([]*entity.Project, error) {
-	ret := _m.Called(ctx, orgID)
-
-	var r0 []*entity.Project
-	if rf, ok := ret.Get(0).(func(context.Context, string) []*entity.Project); ok {
-		r0 = rf(ctx, orgID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*entity.Project)
-		}
+func (m *MockProjectRepository) GetByOrgID(ctx context.Context, orgID string) ([]*entity.Project, error) {
+	args := m.Called(ctx, orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, orgID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return args.Get(0).([]*entity.Project), args.Error(1)
 }
 
-// Update provides a mock function for the type MockProjectRepository
-func (_m *MockProjectRepository) Update(ctx context.Context, project *entity.Project) error {
-	ret := _m.Called(ctx, project)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entity.Project) error); ok {
-		r0 = rf(ctx, project)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
+func (m *MockProjectRepository) Update(ctx context.Context, project *entity.Project) error {
+	args := m.Called(ctx, project)
+	return args.Error(0)
 }
 
-// Delete provides a mock function for the type MockProjectRepository
-func (_m *MockProjectRepository) Delete(ctx context.Context, id string) error {
-	ret := _m.Called(ctx, id)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, id)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
+func (m *MockProjectRepository) Delete(ctx context.Context, id string) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
 }
 
-// CountByUserID provides a mock function for the type MockProjectRepository
-func (_m *MockProjectRepository) CountByUserID(ctx context.Context, userID string) (int64, error) {
-	ret := _m.Called(ctx, userID)
-
-	var r0 int64
-	if rf, ok := ret.Get(0).(func(context.Context, string) int64); ok {
-		r0 = rf(ctx, userID)
-	} else {
-		r0 = ret.Get(0).(int64)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, userID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+func (m *MockProjectRepository) CountByUserID(ctx context.Context, userID string) (int64, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).(int64), args.Error(1)
 }

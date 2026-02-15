@@ -114,9 +114,9 @@ export function Sidebar({ className }: { className?: string }) {
                     )}
                   >
                     {/* Icon */}
-                    {/* We need to map iconName to the Icon component properly. 
-                        Since 'Icon' takes 'name' prop which is LucideKeys. 
-                        I'll use a dynamic mapping or just import specific icons if needed. 
+                    {/* We need to map iconName to the Icon component properly.
+                        Since 'Icon' takes 'name' prop which is LucideKeys.
+                        I'll use a dynamic mapping or just import specific icons if needed.
                         For now, assuming Icon component handles string names correctly.
                     */}
                     <Icon

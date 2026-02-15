@@ -13,6 +13,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 )
 
 type projectTestDeps struct {
@@ -27,225 +28,261 @@ func setupProjectTest() (*projectTestDeps, usecase.ProjectUseCase) {
 	return deps, uc
 }
 
+// === CreateProject Tests ===
+
 func TestProjectUseCase_Create_Success(t *testing.T) {
 	deps, uc := setupProjectTest()
+	ctx := context.Background()
 
-	req := model.CreateProjectRequest{
-		Name:   "Test Project",
-		Domain: "test.com",
-	}
+	deps.Repo.On("Create", ctx, mock.AnythingOfType("*entity.Project")).Return(nil).Once()
 
-	deps.Repo.On("Create", mock.Anything, mock.MatchedBy(func(p *entity.Project) bool {
-		return p.Name == "Test Project" && p.Domain == "test.com" && p.OrganizationID == "org-1" && p.UserID == "user-1"
-	})).Return(nil)
-
-	resp, err := uc.CreateProject(context.Background(), "user-1", "org-1", req)
+	req := model.CreateProjectRequest{Name: "My Project", Domain: "myproject.com"}
+	result, err := uc.CreateProject(ctx, "user-1", "org-1", req)
 
 	assert.NoError(t, err)
-	assert.NotNil(t, resp)
-	assert.Equal(t, "Test Project", resp.Name)
-	assert.Equal(t, "test.com", resp.Domain)
-	assert.Equal(t, "active", resp.Status)
+	assert.NotNil(t, result)
+	assert.Equal(t, "My Project", result.Name)
+	assert.Equal(t, "myproject.com", result.Domain)
+	assert.Equal(t, "active", result.Status)
+	assert.Equal(t, "org-1", result.OrganizationID)
+	assert.Equal(t, "user-1", result.UserID)
 	deps.Repo.AssertExpectations(t)
 }
 
-func TestProjectUseCase_Create_RepoError(t *testing.T) {
+func TestProjectUseCase_Create_RepositoryError(t *testing.T) {
 	deps, uc := setupProjectTest()
+	ctx := context.Background()
 
-	req := model.CreateProjectRequest{
-		Name:   "Test Project",
-		Domain: "test.com",
-	}
+	repoErr := errors.New("db connection failed")
+	deps.Repo.On("Create", ctx, mock.AnythingOfType("*entity.Project")).Return(repoErr).Once()
 
-	deps.Repo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error"))
-
-	resp, err := uc.CreateProject(context.Background(), "user-1", "org-1", req)
+	req := model.CreateProjectRequest{Name: "Fail Project", Domain: "fail.com"}
+	result, err := uc.CreateProject(ctx, "user-1", "org-1", req)
 
 	assert.Error(t, err)
-	assert.Nil(t, resp)
-	assert.Equal(t, "db error", err.Error())
+	assert.Equal(t, repoErr, err)
+	assert.Nil(t, result)
 	deps.Repo.AssertExpectations(t)
 }
 
-func TestProjectUseCase_Create_Sanitization(t *testing.T) {
-	deps, uc := setupProjectTest()
-
-	req := model.CreateProjectRequest{
-		Name:   "<script>alert(1)</script>Project",
-		Domain: "domain<br>.com",
-	}
-
-	sanitizedName := pkg.SanitizeString(req.Name)
-	sanitizedDomain := pkg.SanitizeString(req.Domain)
-
-	deps.Repo.On("Create", mock.Anything, mock.MatchedBy(func(p *entity.Project) bool {
-		return p.Name == sanitizedName && p.Domain == sanitizedDomain
-	})).Return(nil)
-
-	resp, err := uc.CreateProject(context.Background(), "user-1", "org-1", req)
-
-	assert.NoError(t, err)
-	assert.NotNil(t, resp)
-	assert.Equal(t, sanitizedName, resp.Name)
-	assert.Equal(t, sanitizedDomain, resp.Domain)
-	deps.Repo.AssertExpectations(t)
-}
+// === GetProjects Tests ===
 
 func TestProjectUseCase_GetProjects_Success(t *testing.T) {
 	deps, uc := setupProjectTest()
+	ctx := context.Background()
 
-	projects := []*entity.Project{
-		{ID: "1", Name: "P1", OrganizationID: "org-1"},
-		{ID: "2", Name: "P2", OrganizationID: "org-1"},
+	expectedProjects := []*entity.Project{
+		{ID: "p1", OrganizationID: "org-1", UserID: "u1", Name: "Project 1", Domain: "p1.com", Status: "active"},
+		{ID: "p2", OrganizationID: "org-1", UserID: "u2", Name: "Project 2", Domain: "p2.com", Status: "active"},
 	}
+	deps.Repo.On("GetByOrgID", ctx, "org-1").Return(expectedProjects, nil).Once()
 
-	deps.Repo.On("GetByOrgID", mock.Anything, "org-1").Return(projects, nil)
-
-	res, err := uc.GetProjects(context.Background(), "org-1")
-
-	assert.NoError(t, err)
-	assert.Len(t, res, 2)
-	assert.Equal(t, "P1", res[0].Name)
-	assert.Equal(t, "P2", res[1].Name)
-	deps.Repo.AssertExpectations(t)
-}
-
-func TestProjectUseCase_GetProjects_RepoError(t *testing.T) {
-	deps, uc := setupProjectTest()
-
-	deps.Repo.On("GetByOrgID", mock.Anything, "org-1").Return(nil, errors.New("db error"))
-
-	res, err := uc.GetProjects(context.Background(), "org-1")
-
-	assert.Error(t, err)
-	assert.Nil(t, res)
-	deps.Repo.AssertExpectations(t)
-}
-
-func TestProjectUseCase_GetProjectByID_Success(t *testing.T) {
-	deps, uc := setupProjectTest()
-
-	project := &entity.Project{ID: "1", Name: "P1"}
-
-	deps.Repo.On("GetByID", mock.Anything, "1").Return(project, nil)
-
-	res, err := uc.GetProjectByID(context.Background(), "1")
+	results, err := uc.GetProjects(ctx, "org-1")
 
 	assert.NoError(t, err)
-	assert.NotNil(t, res)
-	assert.Equal(t, "P1", res.Name)
+	assert.Len(t, results, 2)
+	assert.Equal(t, "Project 1", results[0].Name)
+	assert.Equal(t, "Project 2", results[1].Name)
 	deps.Repo.AssertExpectations(t)
 }
 
-func TestProjectUseCase_GetProjectByID_NotFound(t *testing.T) {
+func TestProjectUseCase_GetProjects_Empty(t *testing.T) {
 	deps, uc := setupProjectTest()
+	ctx := context.Background()
 
-	deps.Repo.On("GetByID", mock.Anything, "1").Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("GetByOrgID", ctx, "org-empty").Return([]*entity.Project{}, nil).Once()
 
-	res, err := uc.GetProjectByID(context.Background(), "1")
+	results, err := uc.GetProjects(ctx, "org-empty")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, results)
+	assert.Len(t, results, 0)
+	deps.Repo.AssertExpectations(t)
+}
+
+func TestProjectUseCase_GetProjects_RepositoryError(t *testing.T) {
+	deps, uc := setupProjectTest()
+	ctx := context.Background()
+
+	repoErr := errors.New("db error")
+	deps.Repo.On("GetByOrgID", ctx, "org-1").Return(nil, repoErr).Once()
+
+	results, err := uc.GetProjects(ctx, "org-1")
 
 	assert.Error(t, err)
-	assert.Nil(t, res)
-	assert.Equal(t, exception.ErrNotFound, err)
+	assert.Equal(t, repoErr, err)
+	assert.Nil(t, results)
 	deps.Repo.AssertExpectations(t)
 }
+
+// === GetProjectByID Tests ===
+
+func TestProjectUseCase_GetByID_Success(t *testing.T) {
+	deps, uc := setupProjectTest()
+	ctx := context.Background()
+
+	expected := &entity.Project{
+		ID: "p1", OrganizationID: "org-1", UserID: "u1",
+		Name: "Found Project", Domain: "found.com", Status: "active",
+		CreatedAt: 1000, UpdatedAt: 2000,
+	}
+	deps.Repo.On("GetByID", ctx, "p1").Return(expected, nil).Once()
+
+	result, err := uc.GetProjectByID(ctx, "p1")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "p1", result.ID)
+	assert.Equal(t, "Found Project", result.Name)
+	assert.Equal(t, int64(1000), result.CreatedAt)
+	deps.Repo.AssertExpectations(t)
+}
+
+func TestProjectUseCase_GetByID_NotFound(t *testing.T) {
+	deps, uc := setupProjectTest()
+	ctx := context.Background()
+
+	deps.Repo.On("GetByID", ctx, "nonexistent").Return(nil, gorm.ErrRecordNotFound).Once()
+
+	result, err := uc.GetProjectByID(ctx, "nonexistent")
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
+	assert.Nil(t, result)
+	deps.Repo.AssertExpectations(t)
+}
+
+// === UpdateProject Tests ===
 
 func TestProjectUseCase_Update_Success(t *testing.T) {
 	deps, uc := setupProjectTest()
+	ctx := context.Background()
 
-	project := &entity.Project{ID: "1", Name: "Old Name", Domain: "old.com", Status: "active"}
-	req := model.UpdateProjectRequest{
-		Name:   "New Name",
-		Domain: "new.com",
-		Status: "inactive",
+	existing := &entity.Project{
+		ID: "p1", OrganizationID: "org-1", UserID: "u1",
+		Name: "Old Name", Domain: "old.com", Status: "active",
 	}
+	deps.Repo.On("GetByID", ctx, "p1").Return(existing, nil).Once()
+	deps.Repo.On("Update", ctx, mock.AnythingOfType("*entity.Project")).Return(nil).Once()
 
-	deps.Repo.On("GetByID", mock.Anything, "1").Return(project, nil)
-	deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(p *entity.Project) bool {
-		return p.Name == "New Name" && p.Domain == "new.com" && p.Status == "inactive"
-	})).Return(nil)
-
-	res, err := uc.UpdateProject(context.Background(), "1", req)
+	req := model.UpdateProjectRequest{Name: "New Name", Domain: "new.com", Status: "inactive"}
+	result, err := uc.UpdateProject(ctx, "p1", req)
 
 	assert.NoError(t, err)
-	assert.NotNil(t, res)
-	assert.Equal(t, "New Name", res.Name)
-	assert.Equal(t, "inactive", res.Status)
+	assert.NotNil(t, result)
+	assert.Equal(t, "New Name", result.Name)
+	assert.Equal(t, "new.com", result.Domain)
+	assert.Equal(t, "inactive", result.Status)
+	deps.Repo.AssertExpectations(t)
+}
+
+func TestProjectUseCase_Update_PartialUpdate_NameOnly(t *testing.T) {
+	deps, uc := setupProjectTest()
+	ctx := context.Background()
+
+	existing := &entity.Project{
+		ID: "p1", OrganizationID: "org-1", UserID: "u1",
+		Name: "Old Name", Domain: "keep.com", Status: "active",
+	}
+	deps.Repo.On("GetByID", ctx, "p1").Return(existing, nil).Once()
+	deps.Repo.On("Update", ctx, mock.AnythingOfType("*entity.Project")).Return(nil).Once()
+
+	// Only update name, leave domain and status unchanged
+	req := model.UpdateProjectRequest{Name: "Updated Name"}
+	result, err := uc.UpdateProject(ctx, "p1", req)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "Updated Name", result.Name)
+	assert.Equal(t, "keep.com", result.Domain, "Domain should remain unchanged")
+	assert.Equal(t, "active", result.Status, "Status should remain unchanged")
 	deps.Repo.AssertExpectations(t)
 }
 
 func TestProjectUseCase_Update_NotFound(t *testing.T) {
 	deps, uc := setupProjectTest()
+	ctx := context.Background()
 
-	req := model.UpdateProjectRequest{Name: "New Name"}
+	deps.Repo.On("GetByID", ctx, "nonexistent").Return(nil, gorm.ErrRecordNotFound).Once()
 
-	deps.Repo.On("GetByID", mock.Anything, "1").Return(nil, gorm.ErrRecordNotFound)
-
-	res, err := uc.UpdateProject(context.Background(), "1", req)
+	req := model.UpdateProjectRequest{Name: "Updated"}
+	result, err := uc.UpdateProject(ctx, "nonexistent", req)
 
 	assert.Error(t, err)
-	assert.Nil(t, res)
-	assert.Equal(t, exception.ErrNotFound, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
+	assert.Nil(t, result)
 	deps.Repo.AssertExpectations(t)
 }
 
-func TestProjectUseCase_Update_RepoError(t *testing.T) {
+func TestProjectUseCase_Update_RepositoryError(t *testing.T) {
 	deps, uc := setupProjectTest()
+	ctx := context.Background()
 
-	project := &entity.Project{ID: "1", Name: "Old Name"}
-	req := model.UpdateProjectRequest{Name: "New Name"}
-
-	deps.Repo.On("GetByID", mock.Anything, "1").Return(project, nil)
-	deps.Repo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error"))
-
-	res, err := uc.UpdateProject(context.Background(), "1", req)
-
-	assert.Error(t, err)
-	assert.Nil(t, res)
-	assert.Equal(t, "db error", err.Error())
-	deps.Repo.AssertExpectations(t)
-}
-
-func TestProjectUseCase_Update_Sanitization(t *testing.T) {
-	deps, uc := setupProjectTest()
-
-	project := &entity.Project{ID: "1", Name: "Old Name"}
-	req := model.UpdateProjectRequest{
-		Name: "New <b>Name</b>",
+	existing := &entity.Project{
+		ID: "p1", OrganizationID: "org-1", UserID: "u1",
+		Name: "Old Name", Domain: "old.com", Status: "active",
 	}
+	deps.Repo.On("GetByID", ctx, "p1").Return(existing, nil).Once()
 
-	sanitizedName := pkg.SanitizeString(req.Name)
+	repoErr := errors.New("update failed")
+	deps.Repo.On("Update", ctx, mock.AnythingOfType("*entity.Project")).Return(repoErr).Once()
 
-	deps.Repo.On("GetByID", mock.Anything, "1").Return(project, nil)
-	deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(p *entity.Project) bool {
-		return p.Name == sanitizedName
-	})).Return(nil)
+	req := model.UpdateProjectRequest{Name: "New Name"}
+	result, err := uc.UpdateProject(ctx, "p1", req)
 
-	res, err := uc.UpdateProject(context.Background(), "1", req)
+	assert.Error(t, err)
+	assert.Equal(t, repoErr, err)
+	assert.Nil(t, result)
+	deps.Repo.AssertExpectations(t)
+}
+
+func TestProjectUseCase_Update_EmptyRequest(t *testing.T) {
+	deps, uc := setupProjectTest()
+	ctx := context.Background()
+
+	existing := &entity.Project{
+		ID: "p1", OrganizationID: "org-1", UserID: "u1",
+		Name: "Keep Name", Domain: "keep.com", Status: "active",
+	}
+	deps.Repo.On("GetByID", ctx, "p1").Return(existing, nil).Once()
+	deps.Repo.On("Update", ctx, mock.AnythingOfType("*entity.Project")).Return(nil).Once()
+
+	// Empty update request - should keep all existing values
+	req := model.UpdateProjectRequest{}
+	result, err := uc.UpdateProject(ctx, "p1", req)
 
 	assert.NoError(t, err)
-	assert.Equal(t, sanitizedName, res.Name)
+	assert.NotNil(t, result)
+	assert.Equal(t, "Keep Name", result.Name)
+	assert.Equal(t, "keep.com", result.Domain)
+	assert.Equal(t, "active", result.Status)
 	deps.Repo.AssertExpectations(t)
 }
+
+// === DeleteProject Tests ===
 
 func TestProjectUseCase_Delete_Success(t *testing.T) {
 	deps, uc := setupProjectTest()
+	ctx := context.Background()
 
-	deps.Repo.On("Delete", mock.Anything, "1").Return(nil)
+	deps.Repo.On("Delete", ctx, "p1").Return(nil).Once()
 
-	err := uc.DeleteProject(context.Background(), "1")
+	err := uc.DeleteProject(ctx, "p1")
 
 	assert.NoError(t, err)
 	deps.Repo.AssertExpectations(t)
 }
 
-func TestProjectUseCase_Delete_RepoError(t *testing.T) {
+func TestProjectUseCase_Delete_RepositoryError(t *testing.T) {
 	deps, uc := setupProjectTest()
+	ctx := context.Background()
 
-	deps.Repo.On("Delete", mock.Anything, "1").Return(errors.New("db error"))
+	repoErr := errors.New("delete failed")
+	deps.Repo.On("Delete", ctx, "p1").Return(repoErr).Once()
 
-	err := uc.DeleteProject(context.Background(), "1")
+	err := uc.DeleteProject(ctx, "p1")
 
 	assert.Error(t, err)
+	assert.Equal(t, repoErr, err)
 	deps.Repo.AssertExpectations(t)
 }

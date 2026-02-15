@@ -24,7 +24,6 @@ func setupPermissionIntegration(env *setup.TestEnvironment) usecase.IPermissionU
 func TestPermissionIntegration_AssignRoleToUser(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	permUC := setupPermissionIntegration(env)
 	user := setup.CreateTestUser(t, env.DB, "testuser_perm", "test@perm.com", "Password123!")
@@ -42,7 +41,6 @@ func TestPermissionIntegration_AssignRoleToUser(t *testing.T) {
 func TestPermissionIntegration_GrantPermission(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	permUC := setupPermissionIntegration(env)
 	roleName := "editor"
@@ -58,7 +56,6 @@ func TestPermissionIntegration_GrantPermission(t *testing.T) {
 func TestPermissionIntegration_RevokePermission(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	permUC := setupPermissionIntegration(env)
 	roleName := "viewer"
@@ -75,7 +72,6 @@ func TestPermissionIntegration_RevokePermission(t *testing.T) {
 func TestPermissionIntegration_UpdatePermission(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	permUC := setupPermissionIntegration(env)
 	roleName := "manager"
@@ -96,7 +92,6 @@ func TestPermissionIntegration_UpdatePermission(t *testing.T) {
 func TestPermissionIntegration_GetAllPermissions(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	permUC := setupPermissionIntegration(env)
 	_, err := permUC.GetAllPermissions(context.Background())
@@ -106,7 +101,6 @@ func TestPermissionIntegration_GetAllPermissions(t *testing.T) {
 func TestPermissionIntegration_GetPermissionsForRole(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	permUC := setupPermissionIntegration(env)
 	roleName := "role_for_list"
@@ -121,7 +115,6 @@ func TestPermissionIntegration_GetPermissionsForRole(t *testing.T) {
 func TestPermissionIntegration_FullLifecycle(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	permUC := setupPermissionIntegration(env)
 	roleName := "lifecycle_role"
@@ -145,7 +138,6 @@ func TestPermissionIntegration_FullLifecycle(t *testing.T) {
 func TestPermissionIntegration_Negative_GrantNonExistentRole(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	permUC := setupPermissionIntegration(env)
 	err := permUC.GrantPermissionToRole(context.Background(), "non_existent_role", "/any", "GET")
@@ -155,7 +147,6 @@ func TestPermissionIntegration_Negative_GrantNonExistentRole(t *testing.T) {
 func TestPermissionIntegration_Negative_AssignRoleToNonExistentUser(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	permUC := setupPermissionIntegration(env)
 	setup.CreateTestRole(t, env.DB, "valid_role")
@@ -168,7 +159,6 @@ func TestPermissionIntegration_Negative_AssignRoleToNonExistentUser(t *testing.T
 func TestPermissionIntegration_Negative_RevokeNonExistentPermission(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	permUC := setupPermissionIntegration(env)
 	roleName := "valid_role"

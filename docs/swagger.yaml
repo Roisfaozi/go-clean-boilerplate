@@ -2598,6 +2598,151 @@ paths:
       summary: Get roles with dynamic filters
       tags:
       - roles
+  /upload/files/:
+    post:
+      consumes:
+      - application/json
+      description: Initializes a new resumable upload session using the TUS protocol.
+      parameters:
+      - description: TUS protocol version (must be 1.0.0)
+        in: header
+        name: Tus-Resumable
+        required: true
+        type: string
+      - description: Total size of the file in bytes
+        in: header
+        name: Upload-Length
+        required: true
+        type: integer
+      - description: Base64 encoded metadata (e.g. type, filename)
+        in: header
+        name: Upload-Metadata
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Create a new resumable upload
+      tags:
+      - upload
+  /upload/files/{id}:
+    delete:
+      description: Terminates an ongoing resumable upload and removes its partial
+        data.
+      parameters:
+      - description: Upload ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: TUS protocol version (must be 1.0.0)
+        in: header
+        name: Tus-Resumable
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Upload not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Cancel resumable upload
+      tags:
+      - upload
+    head:
+      description: Returns the current offset (number of bytes already uploaded) for
+        a specific resumable upload.
+      parameters:
+      - description: Upload ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: TUS protocol version (must be 1.0.0)
+        in: header
+        name: Tus-Resumable
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Upload not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Check upload offset
+      tags:
+      - upload
+    patch:
+      consumes:
+      - application/octet-stream
+      description: Sends a chunk of binary data to an existing resumable upload session.
+      parameters:
+      - description: Upload ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: TUS protocol version (must be 1.0.0)
+        in: header
+        name: Tus-Resumable
+        required: true
+        type: string
+      - description: Current offset of the chunk being sent
+        in: header
+        name: Upload-Offset
+        required: true
+        type: integer
+      - description: Must be application/offset+octet-stream
+        in: header
+        name: Content-Type
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "409":
+          description: Overlap or mismatching offset
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Upload file chunk
+      tags:
+      - upload
   /users:
     get:
       description: Retrieves a list of all users with optional pagination and filtering.
