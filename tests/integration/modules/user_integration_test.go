@@ -22,14 +22,17 @@ import (
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/local"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestDependencies(env *setup.TestEnvironment) (usecase.UserUseCase, repository.UserRepository) {
+func setupTestDependencies(t *testing.T, env *setup.TestEnvironment) (usecase.UserUseCase, repository.UserRepository) {
 	userRepo := repository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
@@ -41,7 +44,10 @@ func setupTestDependencies(env *setup.TestEnvironment) (usecase.UserUseCase, rep
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
 	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
 
-	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil), userRepo
+	tmpDir := t.TempDir()
+	storageProvider, _ := local.NewLocalStorage(tmpDir, "http://test-bucket")
+
+	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, storageProvider), userRepo
 }
 
 func TestUserIntegration_Create_Success(t *testing.T) {
@@ -49,7 +55,7 @@ func TestUserIntegration_Create_Success(t *testing.T) {
 	defer env.Cleanup()
 	setup.CleanupDatabase(t, env.DB)
 
-	userUC, userRepo := setupTestDependencies(env)
+	userUC, userRepo := setupTestDependencies(t, env)
 
 	req := &model.RegisterUserRequest{
 		Username:  "newuser",
@@ -84,7 +90,7 @@ func TestUserIntegration_Create_DuplicateUsername(t *testing.T) {
 
 	setup.CreateTestUser(t, env.DB, "existinguser", "existing@example.com", "password123")
 
-	userUC, _ := setupTestDependencies(env)
+	userUC, _ := setupTestDependencies(t, env)
 
 	req := &model.RegisterUserRequest{
 		Username:  "existinguser",
@@ -108,7 +114,7 @@ func TestUserIntegration_Update_Success(t *testing.T) {
 
 	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
 
-	userUC, userRepo := setupTestDependencies(env)
+	userUC, userRepo := setupTestDependencies(t, env)
 
 	updateReq := &model.UpdateUserRequest{
 		ID:        testUser.ID,
@@ -135,7 +141,7 @@ func TestUserIntegration_Delete_Success(t *testing.T) {
 
 	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
 
-	userUC, userRepo := setupTestDependencies(env)
+	userUC, userRepo := setupTestDependencies(t, env)
 
 	deleteReq := &model.DeleteUserRequest{
 		ID:        testUser.ID,
@@ -157,7 +163,7 @@ func TestUserIntegration_GetByID_Success(t *testing.T) {
 
 	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
 
-	userUC, _ := setupTestDependencies(env)
+	userUC, _ := setupTestDependencies(t, env)
 
 	result, err := userUC.GetUserByID(context.Background(), testUser.ID)
 
@@ -584,5 +590,107 @@ func setupUserUseCase(t *testing.T, env *setup.TestEnvironment) usecase.UserUseC
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
 	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
 
-	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil)
+	tmpDir := t.TempDir()
+	storageProvider, _ := local.NewLocalStorage(tmpDir, "http://test-bucket")
+
+	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, storageProvider)
+}
+
+func TestUserIntegration_FindAll_Success(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	userUC := setupUserUseCase(t, env)
+
+	// Create 2 users
+	_, _ = userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "user1", Email: "u1@e.com", Password: "p", Name: "U1"})
+	_, _ = userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "user2", Email: "u2@e.com", Password: "p", Name: "U2"})
+
+	req := &model.GetUserListRequest{Page: 1, Limit: 10}
+	users, total, err := userUC.GetAllUsers(context.Background(), req)
+
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, total, int64(2)) // Might have other users from other tests if DB not clean, but we call CleanupDatabase
+	assert.Len(t, users, 2)
+}
+
+func TestUserIntegration_FindAllDynamic_Success(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	userUC := setupUserUseCase(t, env)
+
+  	_, err := userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "alpha", Email: "a@e.com", Password: "p", Name: "Alpha"})  
+    require.NoError(t, err)  
+    _, err = userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "beta", Email: "b@e.com", Password: "p", Name: "Beta"})  
+    require.NoError(t, err)  
+	filter := &querybuilder.DynamicFilter{
+		Filter: map[string]querybuilder.Filter{
+			"username": {Type: "equals", From: "alpha"},
+		},
+	}
+
+	users, total, err := userUC.GetAllUsersDynamic(context.Background(), filter)
+
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	assert.Len(t, users, 1)
+	assert.Equal(t, "alpha", users[0].Username)
+}
+
+func TestUserIntegration_UpdateAvatar_Success(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	userUC := setupUserUseCase(t, env)
+
+	res, err := userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "avataruser", Email: "av@e.com", Password: "p", Name: "Avatar User"})
+	require.NoError(t, err)
+
+	// Valid PNG content
+	content := "\x89PNG\r\n\x1a\n" + "some data"
+	reader := strings.NewReader(content)
+
+	updatedUser, err := userUC.UpdateAvatar(context.Background(), res.ID, reader, "avatar.png", "image/png")
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, updatedUser.AvatarURL)
+	// The filename is generated using user ID and extension
+	assert.Contains(t, updatedUser.AvatarURL, res.ID)
+	assert.Contains(t, updatedUser.AvatarURL, ".png")
+}
+
+func TestUserIntegration_HardDeleteSoftDeletedUsers(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
+
+	userUC, _ := setupTestDependencies(t, env)
+
+	// Create user
+	res, _ := userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "todelete", Email: "d@e.com", Password: "p", Name: "To Delete"})
+
+	// Delete user (Soft Delete)
+	err := userUC.DeleteUser(context.Background(), "admin", &model.DeleteUserRequest{ID: res.ID})
+	require.NoError(t, err)
+
+	// Verify soft deleted
+	_, err = userUC.GetUserByID(context.Background(), res.ID)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
+
+	// Manually verify in DB (it should exist with deleted_at)
+	var count int64
+	env.DB.Unscoped().Model(&entity.User{}).Where("id = ?", res.ID).Count(&count)
+	assert.Equal(t, int64(1), count)
+
+	// Hard delete (simulate retention passed)
+	err = userUC.HardDeleteSoftDeletedUsers(context.Background(), 0)
+	require.NoError(t, err)
+
+	// Verify hard deleted
+	env.DB.Unscoped().Model(&entity.User{}).Where("id = ?", res.ID).Count(&count)
+	assert.Equal(t, int64(0), count)
 }

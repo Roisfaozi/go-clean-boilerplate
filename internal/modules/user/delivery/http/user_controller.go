@@ -352,6 +352,12 @@ func (h *UserController) DeleteUser(c *gin.Context) {
 	req.IPAddress = c.ClientIP()
 	req.UserAgent = c.Request.UserAgent()
 
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
+		return
+	}
+
 	err := h.UserUseCase.DeleteUser(ctx, actorUserID.(string), &req)
 	if err != nil {
 		h.Log.WithError(err).Error("failed to delete user")
