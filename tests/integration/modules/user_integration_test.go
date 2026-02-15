@@ -605,8 +605,10 @@ func TestUserIntegration_FindAll_Success(t *testing.T) {
 	userUC := setupUserUseCase(t, env)
 
 	// Create 2 users
-	_, _ = userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "user1", Email: "u1@e.com", Password: "p", Name: "U1"})
-	_, _ = userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "user2", Email: "u2@e.com", Password: "p", Name: "U2"})
+	_, err := userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "user1", Email: "u1@e.com", Password: "p", Name: "U1"})
+	require.NoError(t, err)
+	_, err = userUC.Create(context.Background(), &model.RegisterUserRequest{Username: "user2", Email: "u2@e.com", Password: "p", Name: "U2"})
+	require.NoError(t, err)
 
 	req := &model.GetUserListRequest{Page: 1, Limit: 10}
 	users, total, err := userUC.GetAllUsers(context.Background(), req)
