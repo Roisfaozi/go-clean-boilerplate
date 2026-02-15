@@ -1285,6 +1285,7 @@ func TestRegister_Fail_UsernameExists(t *testing.T) {
 	assert.Contains(t, err.Error(), "username already exists")
 	assert.Nil(t, loginResp)
 	assert.Empty(t, refreshToken)
+	deps.userRepo.AssertExpectations(t)
 }
 
 func TestRegister_Fail_EmailExists(t *testing.T) {
