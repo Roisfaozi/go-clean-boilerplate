@@ -268,7 +268,10 @@ func TestOrganizationMemberUseCase_GetPresence(t *testing.T) {
 
 		res, err := uc.GetPresence(ctx, orgID)
 		assert.NoError(t, err)
-		assert.Len(t, res, 1)
+		require.Len(t, res, 1)
+		user, ok := res[0].(wsPkg.PresenceUser)
+		require.True(t, ok, "result item should be of type wsPkg.PresenceUser")
+		assert.Equal(t, presenceUsers[0], user)
 	})
 }
 
