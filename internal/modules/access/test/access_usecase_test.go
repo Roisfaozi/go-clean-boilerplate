@@ -80,6 +80,9 @@ func TestCreateAccessRight(t *testing.T) {
 				Description: "<script>alert('xss')</script>",
 			},
 			setupMock: func(deps *accessTestDeps) {
+				// AccessUseCase applies validation.SanitizeString (strips tags) AND pkg.SanitizeString (escapes HTML).
+				// Name: "<b>Bold Name</b>" -> "Bold Name" (stripped) -> "Bold Name" (escaped)
+				// Desc: "<script>alert('xss')</script>" -> "alert('xss')" (stripped) -> "alert(&#39;xss&#39;)" (escaped)
 				expectedName := "Bold Name"
 				expectedDesc := "alert(&#39;xss&#39;)"
 				deps.Repo.On("CreateAccessRight", mock.Anything, mock.MatchedBy(func(ar *entity.AccessRight) bool {
