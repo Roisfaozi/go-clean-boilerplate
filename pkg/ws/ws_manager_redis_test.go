@@ -39,20 +39,22 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	// Client 1 connects to Node 1 and subscribes to "global-channel"
 	c1, err := connectClient(server1.URL)
 	require.NoError(t, err)
-	defer c1.Close()
+	defer func() { _ = c1.Close() }()
 
 	err = c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "global-channel"})
 	require.NoError(t, err)
-	waitForMessage(c1, "info", "global-channel")
+	_, err = waitForMessage(c1, "info", "global-channel")
+	require.NoError(t, err)
 
 	// Client 2 connects to Node 2 and subscribes to "global-channel"
 	c2, err := connectClient(server2.URL)
 	require.NoError(t, err)
-	defer c2.Close()
+	defer func() { _ = c2.Close() }()
 
 	err = c2.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "global-channel"})
 	require.NoError(t, err)
-	waitForMessage(c2, "info", "global-channel")
+	_, err = waitForMessage(c2, "info", "global-channel")
+	require.NoError(t, err)
 
 	// Broadcast from Node 1
 	msgContent := map[string]string{"msg": "hello from node 1"}
@@ -104,12 +106,13 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 
 	c1, err := connectClient(server.URL)
 	require.NoError(t, err)
-	defer c1.Close()
+	defer func() { _ = c1.Close() }()
 
 	channel := "external-channel"
 	err = c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: channel})
 	require.NoError(t, err)
-	waitForMessage(c1, "info", channel)
+	_, err = waitForMessage(c1, "info", channel)
+	require.NoError(t, err)
 
 	// Publish directly to Redis
 	// Prefix is "test_ws:" defined in setupTestServer

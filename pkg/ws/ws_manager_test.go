@@ -267,7 +267,8 @@ func TestWebSocketManager_Stop(t *testing.T) {
 		// Create a dummy client
 		conn, _, _ := websocket.DefaultDialer.Dial(strings.Replace(server.URL, "http", "ws", 1), nil)
 		if conn != nil {
-			defer conn.Close()
+			// Use anonymous function to ignore error return for linter
+			defer func() { _ = conn.Close() }()
 			client := ws.NewWebsocketClient(conn, manager, logrus.New(), nil, "u1", "org1", nil)
 			manager.RegisterClient(client) // Should return immediately because of stopChan
 		}
@@ -293,7 +294,8 @@ func TestPresenceUpdate(t *testing.T) {
 
 	c1, err := connectClientWithUser(server.URL, "u1", orgID)
 	require.NoError(t, err)
-	defer c1.Close()
+	// Use anonymous function to ignore error return for linter
+	defer func() { _ = c1.Close() }()
 
 	// Wait for registration to complete (handleRegister) to avoid race with presence update
 	for i := 0; i < 20; i++ {
@@ -305,8 +307,11 @@ func TestPresenceUpdate(t *testing.T) {
 	assert.Equal(t, 1, manager.ClientCount())
 
 	// Subscribe to presence channel
-	c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: presenceChannel})
-	waitForMessage(c1, "info", presenceChannel)
+	err = c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: presenceChannel})
+	require.NoError(t, err)
+
+	_, err = waitForMessage(c1, "info", presenceChannel)
+	require.NoError(t, err)
 
 	// Trigger PresenceUpdate
 	userData := &ws.PresenceUser{UserID: "u2", Status: "online"}
