@@ -52,7 +52,9 @@ func TestWebSocketController_HandleWebSocket_WithUser(t *testing.T) {
 	wsURL := "ws" + ts.URL[4:] + "/ws"
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	// Verify user data via Presence (indirectly)
 	// We wait for client registration
@@ -91,7 +93,9 @@ func TestWebSocketController_HandleWebSocket_UserNotFound(t *testing.T) {
 	wsURL := "ws" + ts.URL[4:] + "/ws"
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	time.Sleep(50 * time.Millisecond)
 	assert.Equal(t, 1, manager.ClientCount()) // Connection still succeeds

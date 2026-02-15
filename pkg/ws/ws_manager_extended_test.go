@@ -247,11 +247,15 @@ func TestWebSocketManager_Channels_Getter(t *testing.T) {
     defer manager.Stop()
 
     // Register and Subscribe
-    conn, _ := connectClient(server.URL)
+    conn, err := connectClient(server.URL)
+    require.NoError(t, err)
     defer func() { _ = conn.Close() }()
 
-    conn.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "ch1"})
-    waitForMessage(conn, "info", "ch1")
+    err = conn.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "ch1"})
+    require.NoError(t, err)
+
+    _, err = waitForMessage(conn, "info", "ch1")
+    require.NoError(t, err)
 
     channels := manager.Channels()
     assert.Contains(t, channels, "ch1")
