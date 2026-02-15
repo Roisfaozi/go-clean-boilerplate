@@ -1306,3 +1306,20 @@ func TestRegister_Fail_EmailExists(t *testing.T) {
 	assert.Nil(t, loginResp)
 	assert.Empty(t, refreshToken)
 }
+
+func TestRegister_Fail_FindByUsername_DBError(t *testing.T) {
+	authService, deps := setupTest(t)
+	req := model.RegisterRequest{
+		Username: "newuser",
+		Email:    "new@example.com",
+		Password: "password123",
+	}
+	dbError := errors.New("database connection error")
+
+	deps.userRepo.On("FindByUsername", mock.Anything, req.Username).Return(nil, dbError)
+
+	_, _, err := authService.Register(context.Background(), req)
+
+	assert.ErrorIs(t, err, dbError)
+	deps.userRepo.AssertExpectations(t)
+}
