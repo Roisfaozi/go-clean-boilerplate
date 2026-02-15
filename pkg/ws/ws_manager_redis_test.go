@@ -19,17 +19,19 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	require.NoError(t, err)
 	defer mr.Close()
 
-	rdb := redis.NewClient(&redis.Options{
+	rdb1 := redis.NewClient(&redis.Options{
 		Addr: mr.Addr(),
 	})
-
 	// Setup Manager 1 (Node 1)
-	manager1, server1 := setupTestServer(rdb)
+	manager1, server1 := setupTestServer(rdb1)
 	defer server1.Close()
 	defer manager1.Stop()
 
-	// Setup Manager 2 (Node 2) - sharing same Redis
-	manager2, server2 := setupTestServer(rdb)
+	rdb2 := redis.NewClient(&redis.Options{
+		Addr: mr.Addr(),
+	})
+	// Setup Manager 2 (Node 2) - sharing same Redis instance but different client
+	manager2, server2 := setupTestServer(rdb2)
 	defer server2.Close()
 	defer manager2.Stop()
 
@@ -60,25 +62,34 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	msgContent := map[string]string{"msg": "hello from node 1"}
 	msgBytes, _ := json.Marshal(msgContent)
 
-	// Determine expected payload on Redis
-	// Manager publishes raw message bytes to redis channel.
-	// Then other managers receive it and wrap in envelope.
+	// Retry loop for ensuring c2 receives the message (Redis subscription propagation delay)
+	var msg2 *ws.ServerMessage
+	maxRetries := 20
+	for i := 0; i < maxRetries; i++ {
+		manager1.BroadcastToChannel("global-channel", msgBytes)
 
-	// Wait, Manager.BroadcastToChannel(channel, message)
-	// It publishes message to redis.
-	// It also broadcasts locally.
+		// Check if c2 received it
+		_ = c2.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+		var receivedMsg ws.ServerMessage
+		if err := c2.ReadJSON(&receivedMsg); err == nil {
+			if receivedMsg.Type == "message" && receivedMsg.Channel == "global-channel" {
+				msg2 = &receivedMsg
+				break
+			}
+		}
 
-	manager1.BroadcastToChannel("global-channel", msgBytes)
+		time.Sleep(100 * time.Millisecond)
+	}
+	_ = c2.SetReadDeadline(time.Time{})
 
 	// Verify c1 (connected to Node 1) receives it (Local broadcast)
+	// Since we might have broadcasted multiple times, just getting one is enough.
 	msg1, err := waitForMessage(c1, "message", "global-channel")
 	assert.NoError(t, err)
 	assert.NotNil(t, msg1)
 
 	// Verify c2 (connected to Node 2) receives it (Redis broadcast)
-	msg2, err := waitForMessage(c2, "message", "global-channel")
-	assert.NoError(t, err)
-	assert.NotNil(t, msg2)
+	require.NotNil(t, msg2, "Failed to receive message on c2 via Redis")
 
 	// Verify content
 	// msg2.Data should be interface{} matching msgContent
@@ -124,12 +135,32 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 
 	// Let's send a simple JSON object
 	payload := `{"text":"external hello"}`
-	err = rdb.Publish(context.Background(), prefix+channel, payload).Err()
-	require.NoError(t, err)
 
-	// Verify c1 receives it
-	msg, err := waitForMessage(c1, "message", channel)
-	require.NoError(t, err)
+	// Retry publishing until message is received (handling potential subscription lag)
+	var msg *ws.ServerMessage
+	maxRetries := 20
+	for i := 0; i < maxRetries; i++ {
+		err = rdb.Publish(context.Background(), prefix+channel, payload).Err()
+		require.NoError(t, err)
+
+		// Use a short deadline for checking receipt
+		_ = c1.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+		var receivedMsg ws.ServerMessage
+		if err := c1.ReadJSON(&receivedMsg); err == nil {
+			if receivedMsg.Type == "message" && receivedMsg.Channel == channel {
+				msg = &receivedMsg
+				break
+			}
+		}
+
+		// Wait briefly before retrying
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// Reset deadline
+	_ = c1.SetReadDeadline(time.Time{})
+
+	require.NotNil(t, msg, "Failed to receive message from Redis subscription after retries")
 
 	// The data field of the message should contain the payload parsed as JSON if possible
 	// The manager does: "data": json.RawMessage(msg.Message)

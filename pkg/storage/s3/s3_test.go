@@ -123,6 +123,28 @@ func TestDeleteFile(t *testing.T) {
 	})
 }
 
+func TestNewS3Storage(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		cfg := s3.S3Config{
+			Endpoint:       "http://localhost:9000",
+			Region:         "us-east-1",
+			Bucket:         "test-bucket",
+			AccessKey:      "minioadmin",
+			SecretKey:      "minioadmin",
+			UseSSL:         false,
+			ForcePathStyle: true,
+		}
+
+		storage, err := s3.NewS3Storage(cfg)
+		assert.NoError(t, err)
+		assert.NotNil(t, storage)
+		assert.Equal(t, "test-bucket", storage.Bucket)
+		assert.Equal(t, "http://localhost:9000", storage.Endpoint)
+		assert.NotNil(t, storage.Client)
+		assert.NotNil(t, storage.Presigner)
+	})
+}
+
 func TestGetFileUrl(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockPresigner := new(MockS3Presigner)
