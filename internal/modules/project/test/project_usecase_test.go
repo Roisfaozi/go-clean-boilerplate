@@ -179,7 +179,7 @@ func TestProjectUseCase_Update_NotFound(t *testing.T) {
 
 	req := model.UpdateProjectRequest{Name: "New Name"}
 
-	deps.Repo.On("GetByID", mock.Anything, "1").Return(nil, exception.ErrNotFound)
+	deps.Repo.On("GetByID", mock.Anything, "1").Return(nil, gorm.ErrRecordNotFound)
 
 	res, err := uc.UpdateProject(context.Background(), "1", req)
 
