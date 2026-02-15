@@ -1030,68 +1030,6 @@ func (_c *MockIPermissionUseCase_GetAllPermissions_Call) RunAndReturn(run func(c
 	return _c
 }
 
-// GetInheritanceTree provides a mock function for the type MockIPermissionUseCase
-func (_mock *MockIPermissionUseCase) GetInheritanceTree(ctx context.Context) (*model.InheritanceTreeResponse, error) {
-	ret := _mock.Called(ctx)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetInheritanceTree")
-	}
-
-	var r0 *model.InheritanceTreeResponse
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (*model.InheritanceTreeResponse, error)); ok {
-		return returnFunc(ctx)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) *model.InheritanceTreeResponse); ok {
-		r0 = returnFunc(ctx)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.InheritanceTreeResponse)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = returnFunc(ctx)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockIPermissionUseCase_GetInheritanceTree_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetInheritanceTree'
-type MockIPermissionUseCase_GetInheritanceTree_Call struct {
-	*mock.Call
-}
-
-// GetInheritanceTree is a helper method to define mock.On call
-//   - ctx context.Context
-func (_e *MockIPermissionUseCase_Expecter) GetInheritanceTree(ctx interface{}) *MockIPermissionUseCase_GetInheritanceTree_Call {
-	return &MockIPermissionUseCase_GetInheritanceTree_Call{Call: _e.mock.On("GetInheritanceTree", ctx)}
-}
-
-func (_c *MockIPermissionUseCase_GetInheritanceTree_Call) Run(run func(ctx context.Context)) *MockIPermissionUseCase_GetInheritanceTree_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockIPermissionUseCase_GetInheritanceTree_Call) Return(inheritanceTreeResponse *model.InheritanceTreeResponse, err error) *MockIPermissionUseCase_GetInheritanceTree_Call {
-	_c.Call.Return(inheritanceTreeResponse, err)
-	return _c
-}
-
-func (_c *MockIPermissionUseCase_GetInheritanceTree_Call) RunAndReturn(run func(ctx context.Context) (*model.InheritanceTreeResponse, error)) *MockIPermissionUseCase_GetInheritanceTree_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // GetParentRoles provides a mock function for the type MockIPermissionUseCase
 func (_mock *MockIPermissionUseCase) GetParentRoles(ctx context.Context, role string) ([]string, error) {
 	ret := _mock.Called(ctx, role)
@@ -1224,68 +1162,6 @@ func (_c *MockIPermissionUseCase_GetPermissionsForRole_Call) Return(stringss [][
 }
 
 func (_c *MockIPermissionUseCase_GetPermissionsForRole_Call) RunAndReturn(run func(ctx context.Context, role string) ([][]string, error)) *MockIPermissionUseCase_GetPermissionsForRole_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetResourceAggregation provides a mock function for the type MockIPermissionUseCase
-func (_mock *MockIPermissionUseCase) GetResourceAggregation(ctx context.Context) (*model.ResourceAggregationResponse, error) {
-	ret := _mock.Called(ctx)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetResourceAggregation")
-	}
-
-	var r0 *model.ResourceAggregationResponse
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (*model.ResourceAggregationResponse, error)); ok {
-		return returnFunc(ctx)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) *model.ResourceAggregationResponse); ok {
-		r0 = returnFunc(ctx)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.ResourceAggregationResponse)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = returnFunc(ctx)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockIPermissionUseCase_GetResourceAggregation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetResourceAggregation'
-type MockIPermissionUseCase_GetResourceAggregation_Call struct {
-	*mock.Call
-}
-
-// GetResourceAggregation is a helper method to define mock.On call
-//   - ctx context.Context
-func (_e *MockIPermissionUseCase_Expecter) GetResourceAggregation(ctx interface{}) *MockIPermissionUseCase_GetResourceAggregation_Call {
-	return &MockIPermissionUseCase_GetResourceAggregation_Call{Call: _e.mock.On("GetResourceAggregation", ctx)}
-}
-
-func (_c *MockIPermissionUseCase_GetResourceAggregation_Call) Run(run func(ctx context.Context)) *MockIPermissionUseCase_GetResourceAggregation_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockIPermissionUseCase_GetResourceAggregation_Call) Return(resourceAggregationResponse *model.ResourceAggregationResponse, err error) *MockIPermissionUseCase_GetResourceAggregation_Call {
-	_c.Call.Return(resourceAggregationResponse, err)
-	return _c
-}
-
-func (_c *MockIPermissionUseCase_GetResourceAggregation_Call) RunAndReturn(run func(ctx context.Context) (*model.ResourceAggregationResponse, error)) *MockIPermissionUseCase_GetResourceAggregation_Call {
 	_c.Call.Return(run)
 	return _c
 }

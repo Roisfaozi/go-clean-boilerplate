@@ -11,18 +11,15 @@ export function usePresence() {
   const { currentOrganization } = useOrganizationStore();
   const { setOnlineUsers, addUser, removeUser } = usePresenceStore();
 
-  const handlePresenceUpdate = useCallback(
-    (message: any) => {
-      // Expected message format: { type: "message", channel: "presence:org:...", data: { event: "join|leave", user: {...} } }
-      const { event, user } = message.data;
-      if (event === "join") {
-        addUser(user);
-      } else if (event === "leave" || event === "timeout") {
-        removeUser(user.user_id);
-      }
-    },
-    [addUser, removeUser]
-  );
+  const handlePresenceUpdate = useCallback((message: any) => {
+    // Expected message format: { type: "message", channel: "presence:org:...", data: { event: "join|leave", user: {...} } }
+    const { event, user } = message.data;
+    if (event === "join") {
+      addUser(user);
+    } else if (event === "leave" || event === "timeout") {
+      removeUser(user.user_id);
+    }
+  }, [addUser, removeUser]);
 
   useEffect(() => {
     if (!currentOrganization || !isConnected) return;
@@ -57,13 +54,5 @@ export function usePresence() {
       unsubscribe(channel, handlePresenceUpdate);
       clearInterval(heartbeat);
     };
-  }, [
-    currentOrganization,
-    isConnected,
-    subscribe,
-    unsubscribe,
-    sendJson,
-    setOnlineUsers,
-    handlePresenceUpdate,
-  ]);
+  }, [currentOrganization, isConnected, subscribe, unsubscribe, sendJson, setOnlineUsers, handlePresenceUpdate]);
 }

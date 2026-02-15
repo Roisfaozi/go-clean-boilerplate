@@ -1,5 +1,5 @@
 import { type Change, changes } from "content";
-import { format, isAfter } from "date-fns";
+import dayjs from "dayjs";
 import { type Metadata } from "next";
 
 function ChangeCard(change: Change) {
@@ -9,7 +9,7 @@ function ChangeCard(change: Change) {
         {change.title}
       </h2>
       <time className="text-muted-foreground text-sm" dateTime={change.date}>
-        {format(new Date(change.date), "MMM dd yyyy")}
+        {dayjs(change.date).format("MMM DD YYYY")}
       </time>
       <div dangerouslySetInnerHTML={{ __html: change.content }} />
     </article>
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function Changelog() {
   const posts = changes.sort((a, b) =>
-    isAfter(new Date(a.date), new Date(b.date)) ? -1 : 1
+    dayjs(a.date).isAfter(dayjs(b.date)) ? -1 : 1
   );
 
   return (

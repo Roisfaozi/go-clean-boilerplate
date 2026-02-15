@@ -17,9 +17,7 @@ type Provider interface {
 ## Available Providers
 
 ### 1. Local Storage (`local`)
-
 Stores files on the server's local disk.
-
 - **Use Case**: Development, single-instance deployments.
 - **Config**:
   - `STORAGE_DRIVER=local`
@@ -27,9 +25,7 @@ Stores files on the server's local disk.
   - `STORAGE_LOCAL_BASE_URL=http://localhost:8080/uploads`
 
 ### 2. S3-Compatible Storage (`s3`)
-
 Supports any S3-compatible API.
-
 - **Use Case**: Production, horizontal scaling, cloud-native deployments.
 - **Providers Tested**: AWS S3, MinIO, Cloudflare R2.
 - **Config**:
@@ -58,13 +54,6 @@ func (u *myUseCase) UpdateAvatar(ctx context.Context, file io.Reader, filename s
 
 ## Security Considerations
 
-- **Path Sanitization**: The Local provider uses `filepath.Clean` to prevent directory traversal attacks.
-- **Presigned URLs**: For the S3 provider, `GetFileUrl` generates a time-limited presigned URL (default: 1 hour) instead of exposing public ACLs.
-- **Size Limits**: Always validate file size in the Controller layer before passing it to the UseCase.
-
----
-
-## See Also
-
-- [Resumable Upload Guide (Tus)](RESUMABLE_UPLOAD.md): Recommended for large files (>5MB) and unstable networks.
-- [Client Upload Guide (Web & Mobile)](CLIENT_UPLOAD_GUIDE.md): Detailed integration steps for Frontend and Mobile developers.
+-   **Path Sanitization**: The Local provider uses `filepath.Clean` to prevent directory traversal attacks.
+-   **Presigned URLs**: For the S3 provider, `GetFileUrl` generates a time-limited presigned URL (default: 1 hour) instead of exposing public ACLs.
+-   **Size Limits**: Always validate file size in the Controller layer before passing it to the UseCase.
