@@ -79,9 +79,6 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 				msg2 = &receivedMsg
 				break
 			}
-		} else {
-			// Clear buffer/error
-			// If timeout, just continue
 		}
 
 		// Backoff slightly
