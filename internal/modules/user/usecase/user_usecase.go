@@ -378,7 +378,7 @@ func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file 
 	if err != nil {
 		// Cleanup: If DB update or audit fails, remove the uploaded file to prevent orphans
 		if cleanupErr := u.Storage.DeleteFile(ctx, url); cleanupErr != nil {
-			u.Log.Errorf("Failed to cleanup orphaned avatar file %s: %v", url, cleanupErr)
+			u.Log.Warnf("Failed to cleanup orphaned avatar file %s: %v", url, cleanupErr)
 		}
 		return nil, err
 	}
