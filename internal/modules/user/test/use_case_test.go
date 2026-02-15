@@ -888,6 +888,7 @@ func TestUserUseCase_Update_PasswordTooLong(t *testing.T) {
 
 	_, err := uc.Update(context.Background(), request)
 	assert.Equal(t, exception.ErrInternalServer, err)
+}
 func TestUserUseCase_Update_Sanitization(t *testing.T) {
 	deps, uc := setupUserTest()
 
