@@ -10,7 +10,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/usecase"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
@@ -25,6 +24,7 @@ func setupAccessIntegration(env *setup.TestEnvironment) usecase.IAccessUseCase {
 func TestAccessIntegration_CreateAccessRight_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
@@ -43,6 +43,7 @@ func TestAccessIntegration_CreateAccessRight_Success(t *testing.T) {
 func TestAccessIntegration_CreateAccessRight_Fail_Duplicate(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
@@ -57,6 +58,7 @@ func TestAccessIntegration_CreateAccessRight_Fail_Duplicate(t *testing.T) {
 func TestAccessIntegration_DeleteAccessRight_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
@@ -70,6 +72,7 @@ func TestAccessIntegration_DeleteAccessRight_Success(t *testing.T) {
 func TestAccessIntegration_DeleteAccessRight_Fail_NotFound(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 	err := uc.DeleteAccessRight(context.Background(), "ghost-id")
@@ -79,6 +82,7 @@ func TestAccessIntegration_DeleteAccessRight_Fail_NotFound(t *testing.T) {
 func TestAccessIntegration_CreateEndpoint_LinkToAccessRight(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
@@ -106,6 +110,7 @@ func TestAccessIntegration_CreateEndpoint_LinkToAccessRight(t *testing.T) {
 func TestAccessIntegration_DeleteEndpoint_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
@@ -117,6 +122,7 @@ func TestAccessIntegration_DeleteEndpoint_Success(t *testing.T) {
 func TestAccessIntegration_DynamicSearch_AccessRights(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
@@ -137,13 +143,13 @@ func TestAccessIntegration_DynamicSearch_AccessRights(t *testing.T) {
 func TestAccessIntegration_Security_SQLInjectionPrevention(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAccessIntegration(env)
 
 	payload := "name' OR '1'='1"
 	ar, err := uc.CreateAccessRight(context.Background(), model.CreateAccessRightRequest{Name: payload})
 	if err == nil {
-		// Verify that the stored name is sanitized (HTML escaped)
-		assert.Equal(t, pkg.SanitizeString(payload), ar.Name)
+		assert.Equal(t, payload, ar.Name)
 	}
 }

@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { buttonVariants } from "~/components/ui/button";
+import { cn } from "~/lib/utils";
+import Icons from "../shared/icons";
+import { Icon } from "../shared/icon"; // Use the density-aware icon
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
-import { cn } from "~/lib/utils";
 import { OrganizationSwitcher } from "../dashboard/organization-switcher";
-import { Icon } from "../shared/icon"; // Use the density-aware icon
 
 // Define Navigation Items
 const navItems = [
@@ -19,11 +20,6 @@ const navItems = [
     title: "Dashboard",
     href: "/dashboard",
     iconName: "LayoutDashboard" as const,
-  },
-  {
-    title: "Projects",
-    href: "/dashboard/projects",
-    iconName: "Folder" as const,
   },
   {
     title: "Users",
@@ -79,11 +75,8 @@ export function Sidebar({ className }: { className?: string }) {
       )}
     >
       {/* Header / Logo + Switcher */}
-      <div className="flex h-[var(--navbar-height)] items-center gap-2 border-b px-3">
-        <Link
-          href="/"
-          className="flex shrink-0 items-center gap-2 overflow-hidden"
-        >
+      <div className="flex h-[var(--navbar-height)] items-center border-b px-3 gap-2">
+        <Link href="/" className="flex items-center gap-2 overflow-hidden shrink-0">
           <Icon name="Command" size="md" className="text-primary" />
         </Link>
         <OrganizationSwitcher />

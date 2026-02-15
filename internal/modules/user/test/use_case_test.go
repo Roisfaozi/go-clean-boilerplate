@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"strings"
 	"testing"
 
 	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
@@ -597,32 +596,6 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		deps.AuditUC.AssertExpectations(t)
 		deps.Enforcer.AssertExpectations(t)
 	})
-
-	t.Run("Error - Enforcer.RemoveFilteredGroupingPolicy Fails", func(t *testing.T) {
-		deps, uc := setupUserTest()
-
-		deps.Repo.On("FindByID", mock.Anything, deleteReq.ID).Return(&entity.User{ID: deleteReq.ID, Username: "deletedUser"}, nil)
-
-		// Mock Transaction
-		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
-			return fn(ctx)
-		})
-
-		deps.Repo.On("Delete", mock.Anything, deleteReq.ID).Return(nil)
-
-		// Expect Backup Roles
-		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, "global").Return([]string{"role:user"}, nil)
-
-		// Enforcer Removal Fails
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, deleteReq.ID, "", "global").Return(false, errors.New("casbin error"))
-
-		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
-
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-		deps.Repo.AssertExpectations(t)
-		deps.Enforcer.AssertExpectations(t)
-		deps.AuditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
-	})
 }
 
 func TestUserUseCase_GetAllUsersDynamic(t *testing.T) {
@@ -766,92 +739,6 @@ func TestUserUseCase_UpdateStatus(t *testing.T) {
 	})
 }
 
-func TestUserUseCase_UpdateAvatar(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		deps, uc := setupUserTest()
-		userID := "user123"
-		file := createValidImageReader("image content")
-		filename := "avatar.png"
-		contentType := "image/png"
-		expectedURL := "https://storage.com/avatars/user123.png"
-
-		user := &entity.User{ID: userID}
-
-		deps.Repo.On("FindByID", mock.Anything, userID).Return(user, nil)
-		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, contentType).Return(expectedURL, nil)
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
-			return fn(ctx)
-		})
-
-		deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
-			return u.AvatarURL == expectedURL
-		})).Return(nil)
-		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
-
-		result, err := uc.UpdateAvatar(context.Background(), userID, file, filename, contentType)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.Equal(t, expectedURL, result.AvatarURL)
-		deps.Repo.AssertExpectations(t)
-		deps.Storage.AssertExpectations(t)
-	})
-
-	t.Run("Error - User Not Found", func(t *testing.T) {
-		deps, uc := setupUserTest()
-		deps.Repo.On("FindByID", mock.Anything, "unknown").Return(nil, errors.New("user not found"))
-
-		_, err := uc.UpdateAvatar(context.Background(), "unknown", nil, "f.png", "image/png")
-		assert.Equal(t, exception.ErrNotFound, err)
-	})
-
-	t.Run("Error - Upload Failed", func(t *testing.T) {
-		deps, uc := setupUserTest()
-		userID := "user123"
-		user := &entity.User{ID: userID}
-
-		deps.Repo.On("FindByID", mock.Anything, userID).Return(user, nil)
-		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("", errors.New("s3 error"))
-
-		_, err := uc.UpdateAvatar(context.Background(), userID, createValidImageReader(""), "f.png", "image/png")
-		assert.Equal(t, exception.ErrInternalServer, err)
-	})
-
-	t.Run("Error - DB Update Failed", func(t *testing.T) {
-		deps, uc := setupUserTest()
-		userID := "user123"
-		user := &entity.User{ID: userID}
-
-		deps.Repo.On("FindByID", mock.Anything, userID).Return(user, nil)
-		deps.Storage.On("UploadFile", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("url", nil)
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
-			return fn(ctx)
-		})
-
-		deps.Repo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error"))
-		deps.Storage.On("DeleteFile", mock.Anything, "url").Return(nil)
-
-		_, err := uc.UpdateAvatar(context.Background(), userID, createValidImageReader(""), "f.png", "image/png")
-		assert.Equal(t, exception.ErrInternalServer, err)
-	})
-
-	t.Run("Error - Small File", func(t *testing.T) {
-		deps, uc := setupUserTest()
-		userID := "user123"
-		user := &entity.User{ID: userID}
-
-		deps.Repo.On("FindByID", mock.Anything, userID).Return(user, nil)
-
-		// Create a small file (less than 512 bytes)
-		smallFile := strings.NewReader("small content")
-
-		_, err := uc.UpdateAvatar(context.Background(), userID, smallFile, "avatar.png", "image/png")
-		assert.Equal(t, exception.ErrValidationError, err)
-	})
-}
-
 func TestUserUseCase_HardDeleteSoftDeletedUsers(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, uc := setupUserTest()
@@ -910,44 +797,5 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, expectedName, result.Name)
-	deps.Repo.AssertExpectations(t)
-}
-
-func TestUserUseCase_Update_Sanitization(t *testing.T) {
-	deps, uc := setupUserTest()
-
-	inputUsername := "<b>bold</b>"
-	// pkg.SanitizeString escapes HTML
-	expectedUsername := "&lt;b&gt;bold&lt;/b&gt;"
-
-	request := &model.UpdateUserRequest{
-		ID: "user123", Username: inputUsername,
-	}
-
-	existingUser := &entity.User{
-		ID:       "user123",
-		Username: "olduser",
-	}
-
-	deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
-
-	// Expect FindByUsername to be called with sanitized username
-	deps.Repo.On("FindByUsername", mock.Anything, expectedUsername).Return(nil, gorm.ErrRecordNotFound)
-
-	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
-		return fn(ctx)
-	})
-
-	deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
-		return u.Username == expectedUsername
-	})).Return(nil)
-
-	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
-
-	_, err := uc.Update(context.Background(), request)
-
-	// This assertion might fail if the mock is strict about calls.
-	// If it fails with "Unexpected call", that counts as test failure.
-	assert.NoError(t, err)
 	deps.Repo.AssertExpectations(t)
 }

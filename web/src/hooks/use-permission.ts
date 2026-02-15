@@ -26,5 +26,5 @@ export function usePermission(resource?: string, action?: string) {
 export function usePermissions(items: { resource: string; action: string }[]) {
   const hasPermission = usePermissionStore((state) => state.hasPermission);
 
-  return items.every((item) => hasPermission(item.resource, item.action));
+  return items.every(item => hasPermission(item.resource, item.action));
 }

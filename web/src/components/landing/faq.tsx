@@ -27,14 +27,11 @@ export default function FAQ() {
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="item-2">
-            <AccordionTrigger>
-              What is &quot;Fluid Density&quot;?
-            </AccordionTrigger>
+            <AccordionTrigger>What is "Fluid Density"?</AccordionTrigger>
             <AccordionContent>
               Fluid Density is our proprietary system that allows the UI to
-              switch between a spacious &quot;Comfort&quot; mode (ideal for
-              SaaS) and a dense &quot;Compact&quot; mode (ideal for Enterprise
-              data entry) instantly.
+              switch between a spacious "Comfort" mode (ideal for SaaS) and a
+              dense "Compact" mode (ideal for Enterprise data entry) instantly.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="item-3">

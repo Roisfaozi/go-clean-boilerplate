@@ -35,10 +35,6 @@ func RegisterPermissionRoutes(router *gin.RouterGroup, controller *PermissionCon
 		permissionGroup.POST("/inheritance", controller.AddRoleInheritance)
 		permissionGroup.DELETE("/inheritance", controller.RemoveRoleInheritance)
 		permissionGroup.GET("/:role/parents", controller.GetParentRoles)
-
-		// New routes for Matrix View
-		permissionGroup.GET("/resources", controller.GetResourceAggregation)
-		permissionGroup.GET("/inheritance-tree", controller.GetInheritanceTree)
 	}
 }
 

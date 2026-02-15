@@ -322,15 +322,13 @@ func TestUserHandler_GetUserByID(t *testing.T) {
 }
 
 func TestUserHandler_DeleteUser(t *testing.T) {
-	mockUseCase := new(mocks.MockUserUseCase)
-	handler := newTestUserHandler(mockUseCase)
-	router := setupUserTestRouter()
-	router.DELETE("/users/:id", handler.DeleteUser)
-
-	actorUserID := "admin-id"
-	userID := "user-to-delete"
+	actorUserID := "019b9150-304e-79d0-aa16-4a2b44347a08"
+	userID := "019b9150-304e-79d0-aa16-4a2b44347a09"
 
 	t.Run("Success", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
 		mockUseCase.On("DeleteUser", mock.Anything, actorUserID, mock.MatchedBy(func(req *model.DeleteUserRequest) bool {
 			return req.ID == userID
 		})).Return(nil).Once()
@@ -348,7 +346,28 @@ func TestUserHandler_DeleteUser(t *testing.T) {
 		mockUseCase.AssertExpectations(t)
 	})
 
+	t.Run("Validation Error - Invalid UUID", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
+		invalidID := "invalid-uuid"
+		req, _ := http.NewRequest(http.MethodDelete, "/users/"+invalidID, nil)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Params = []gin.Param{{Key: "id", Value: invalidID}}
+		c.Set("user_id", actorUserID)
+
+		handler.DeleteUser(c)
+
+		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+		mockUseCase.AssertNotCalled(t, "DeleteUser", mock.Anything, mock.Anything, mock.Anything)
+	})
+
 	t.Run("Not Found", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
 		mockUseCase.On("DeleteUser", mock.Anything, actorUserID, mock.MatchedBy(func(req *model.DeleteUserRequest) bool {
 			return req.ID == userID
 		})).Return(exception.ErrNotFound).Once()
@@ -367,6 +386,9 @@ func TestUserHandler_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("Unauthorized", func(t *testing.T) {
+		mockUseCase := new(mocks.MockUserUseCase)
+		handler := newTestUserHandler(mockUseCase)
+
 		req, _ := http.NewRequest(http.MethodDelete, "/users/"+userID, nil)
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)

@@ -24,6 +24,7 @@ func setupAuditIntegration(env *setup.TestEnvironment) auditUseCase.AuditUseCase
 func TestAuditIntegration_LogActivity_And_Query(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAuditIntegration(env)
 
@@ -46,6 +47,7 @@ func TestAuditIntegration_LogActivity_And_Query(t *testing.T) {
 func TestAuditIntegration_LogActivity_MissingRequiredFields(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAuditIntegration(env)
 
@@ -56,6 +58,7 @@ func TestAuditIntegration_LogActivity_MissingRequiredFields(t *testing.T) {
 func TestAuditIntegration_LogActivity_NilValues(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAuditIntegration(env)
 
@@ -69,6 +72,7 @@ func TestAuditIntegration_LogActivity_NilValues(t *testing.T) {
 func TestAuditIntegration_Security_SQLInjectionInEntity(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	uc := setupAuditIntegration(env)
 

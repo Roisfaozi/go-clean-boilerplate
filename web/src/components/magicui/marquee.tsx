@@ -23,11 +23,11 @@ export default function Marquee({
     <div
       {...props}
       className={cn(
-        "group flex [flex-direction:row] overflow-hidden p-2 [--duration:40s] [--gap:1rem]",
+        "group flex overflow-hidden p-2 [--duration:40s] [--gap:1rem] [flex-direction:row]",
         {
           "[flex-direction:column]": vertical,
         },
-        className
+        className,
       )}
     >
       {Array(repeat)

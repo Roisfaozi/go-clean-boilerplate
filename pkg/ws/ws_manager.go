@@ -161,14 +161,12 @@ func (m *WebSocketManager) handleRegister(client *Client) {
 
 	// Track Presence if user info is available
 	if client.UserID != "" && client.OrgID != "" {
-		userData := client.UserData
-		if userData == nil {
-			userData = &PresenceUser{
-				UserID: client.UserID,
-				Status: "online",
-			}
+		userData := &PresenceUser{
+			UserID: client.UserID,
+			// Details should ideally be fetched or passed.
+			// For now we set basic info, and assume frontend syncs the rest.
+			Status: "online",
 		}
-
 		if err := m.presence.SetUserOnline(context.Background(), client.OrgID, client.UserID, userData); err != nil {
 			m.log.WithError(err).Error("Failed to set user online in presence manager")
 		} else {
@@ -228,9 +226,6 @@ func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 		if err != nil {
 			m.log.Errorf("Failed to publish to Redis for channel %s: %v", msg.Channel, err)
 		}
-		// In distributed mode, we rely on Redis Pub/Sub to echo the message back to us (and other nodes).
-		// So we return here to prevent sending the message twice (once locally, once via Redis echo).
-		return
 	}
 
 	m.mu.RLock()
@@ -270,12 +265,6 @@ func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 func (m *WebSocketManager) handleSubscribe(req *SubscriptionRequest) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
-	// Check if client is still valid/registered
-	if _, registered := m.clients[req.Client]; !registered {
-		m.log.Warnf("Client %s tried to subscribe but is not registered", req.Client.ID)
-		return
-	}
 
 	if _, ok := m.channels[req.Channel]; !ok {
 		m.channels[req.Channel] = make(map[*Client]bool)

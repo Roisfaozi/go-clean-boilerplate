@@ -37,11 +37,6 @@ type AppConfig struct {
 		ServiceName  string `env:"OTEL_SERVICE_NAME" envDefault:"go-clean-api"`
 		CollectorURL string `env:"OTEL_COLLECTOR_URL" envDefault:"localhost:4317"`
 	}
-	Tus TusConfig `mapstructure:"tus"`
-}
-
-type TusConfig struct {
-	BasePath string `mapstructure:"base_path"`
 }
 
 type StorageConfig struct {
@@ -169,10 +164,10 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("mysql.port", 3306)
 	v.SetDefault("redis.addr", "localhost:6379")
 	v.SetDefault("jwt.access_duration", "15m")
-	v.SetDefault("jwt.refresh_duration", "24h")
+	v.SetDefault("jwt.refresh_duration", "720h")
 	v.SetDefault("security.max_login_attempts", 5)
 	v.SetDefault("security.lockout_duration", "30m")
-	v.SetDefault("casbin.enabled", true)
+	v.SetDefault("casbin.enabled", false)
 	v.SetDefault("casbin.model", "internal/config/casbin_model.conf")
 	v.SetDefault("casbin.watcher.enabled", false)
 	v.SetDefault("casbin.watcher.channel", "/casbin")
@@ -201,7 +196,6 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("storage.local.root_path", "./uploads")
 	v.SetDefault("storage.local.base_url", "http://localhost:8080/uploads")
 	v.SetDefault("storage.s3.use_ssl", true)
-	v.SetDefault("tus.base_path", "/api/v1/upload/files/")
 
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
@@ -223,8 +217,6 @@ func NewConfig() (*AppConfig, error) {
 	cfg.Storage.S3.SecretKey = v.GetString("storage.s3.secret_key")
 	cfg.Storage.S3.UseSSL = v.GetBool("storage.s3.use_ssl")
 	cfg.Storage.S3.ForcePathStyle = v.GetBool("storage.s3.force_path_style")
-
-	cfg.Tus.BasePath = v.GetString("tus.base_path")
 
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")

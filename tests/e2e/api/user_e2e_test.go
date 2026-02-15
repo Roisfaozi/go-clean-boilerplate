@@ -138,8 +138,15 @@ func TestUserE2E_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("Negative - Delete Non-existent", func(t *testing.T) {
-		resp := server.Client.DELETE("/api/v1/users/nonexistent-id", setup.WithAuth(adminToken))
+		// Use a valid but non-existent UUID
+		nonExistentID := "00000000-0000-0000-0000-000000000000"
+		resp := server.Client.DELETE("/api/v1/users/"+nonExistentID, setup.WithAuth(adminToken))
 		assert.Equal(t, 404, resp.StatusCode)
+	})
+
+	t.Run("Negative - Invalid UUID", func(t *testing.T) {
+		resp := server.Client.DELETE("/api/v1/users/invalid-uuid", setup.WithAuth(adminToken))
+		assert.Equal(t, 422, resp.StatusCode)
 	})
 }
 

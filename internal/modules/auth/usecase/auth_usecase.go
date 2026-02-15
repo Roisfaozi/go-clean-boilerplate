@@ -329,11 +329,10 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	accessTokenDuration := s.jwtManager.GetAccessTokenDuration()
 	telemetry.UserLoginsTotal.WithLabelValues("success").Inc()
 	loginResponse := &model.LoginResponse{
-		AccessToken:  accessToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    int64(accessTokenDuration.Seconds()),
-		RefreshToken: refreshToken,
-		ExpiresAt:    time.Now().Add(accessTokenDuration),
+		AccessToken: accessToken,
+		TokenType:   "Bearer",
+		ExpiresIn:   int64(accessTokenDuration.Seconds()),
+		ExpiresAt:   time.Now().Add(accessTokenDuration),
 		User: model.UserInfo{
 			ID:        user.ID,
 			Name:      user.Name,
@@ -385,9 +384,8 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 	}
 
 	tokenResponse := &model.TokenResponse{
-		AccessToken:  newAccessToken,
-		TokenType:    "Bearer",
-		RefreshToken: newRefreshToken,
+		AccessToken: newAccessToken,
+		TokenType:   "Bearer",
 	}
 
 	return tokenResponse, newRefreshToken, nil
@@ -611,10 +609,6 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 
 	if err != nil {
 		return err
-	}
-
-	if err := s.RevokeAllSessions(ctx, user.ID); err != nil {
-		s.log.WithContext(ctx).WithError(err).Error("Failed to revoke sessions after password reset")
 	}
 
 	if s.auditUC != nil {
