@@ -77,7 +77,8 @@ func SetupRouter(
 		router.Use(middleware.PrometheusMiddleware())
 	}
 	router.GET("/ws", wsController.HandleWebSocket)
-	router.GET("/events", sseManager.ServeHTTP())
+	// Apply auth middleware to SSE endpoint to prevent unauthorized access
+	router.GET("/events", authMiddleware.ValidateToken(), sseManager.ServeHTTP())
 
 	router.Use(middleware.RequestLogger(logger))
 	router.Use(middleware.RecoveryMiddleware(logger))
