@@ -143,7 +143,7 @@ func TestManager_ServeHTTP(t *testing.T) {
 
 	// Close response body to signal disconnect?
 	// Or cancel context.
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	cancel()
 
 	// Verify cleanup
