@@ -604,6 +604,11 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		if err := s.userRepo.Update(txCtx, user); err != nil {
 			return err
 		}
+
+		if err := s.RevokeAllSessions(txCtx, user.ID); err != nil {
+			return err
+		}
+
 		return s.tokenRepo.DeleteByEmail(txCtx, resetToken.Email)
 	})
 
