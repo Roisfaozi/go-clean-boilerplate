@@ -19,22 +19,22 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	require.NoError(t, err)
 	defer mr.Close()
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr: mr.Addr(),
-	})
+	// Separate clients for each manager to avoid connection pool conflicts in tests
+	rdb1 := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	rdb2 := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
 	// Setup Manager 1 (Node 1)
-	manager1, server1 := setupTestServer(rdb)
+	manager1, server1 := setupTestServer(rdb1)
 	defer server1.Close()
 	defer manager1.Stop()
 
-	// Setup Manager 2 (Node 2) - sharing same Redis
-	manager2, server2 := setupTestServer(rdb)
+	// Setup Manager 2 (Node 2)
+	manager2, server2 := setupTestServer(rdb2)
 	defer server2.Close()
 	defer manager2.Stop()
 
 	// Wait for managers to start and subscribe to redis
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// Client 1 connects to Node 1 and subscribes to "global-channel"
 	c1, err := connectClient(server1.URL)
@@ -72,13 +72,14 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 
 	// Verify c1 (connected to Node 1) receives it (Local broadcast)
 	msg1, err := waitForMessage(c1, "message", "global-channel")
-	assert.NoError(t, err)
-	assert.NotNil(t, msg1)
+	require.NoError(t, err)
+	require.NotNil(t, msg1)
 
 	// Verify c2 (connected to Node 2) receives it (Redis broadcast)
+	// Increase wait for Redis propagation
 	msg2, err := waitForMessage(c2, "message", "global-channel")
-	assert.NoError(t, err)
-	assert.NotNil(t, msg2)
+	require.NoError(t, err)
+	require.NotNil(t, msg2)
 
 	// Verify content
 	// msg2.Data should be interface{} matching msgContent
