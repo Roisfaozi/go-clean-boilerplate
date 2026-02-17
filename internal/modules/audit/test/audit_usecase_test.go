@@ -74,11 +74,46 @@ func TestLogActivity(t *testing.T) {
 
 	t.Run("Negative - Repo Error", func(t *testing.T) {
 		deps, uc := setupAuditTest()
-		req := model.CreateAuditLogRequest{UserID: "u1"}
+		req := model.CreateAuditLogRequest{
+			UserID: "u1", Action: "CREATE", Entity: "User",
+		}
 		deps.Repo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error"))
 
 		err := uc.LogActivity(context.Background(), req)
 		assert.Error(t, err)
+	})
+
+	t.Run("Negative - Validation Error - Missing UserID", func(t *testing.T) {
+		_, uc := setupAuditTest()
+		req := model.CreateAuditLogRequest{
+			Action: "CREATE", Entity: "User",
+		}
+
+		err := uc.LogActivity(context.Background(), req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "missing required fields")
+	})
+
+	t.Run("Negative - Validation Error - Missing Action", func(t *testing.T) {
+		_, uc := setupAuditTest()
+		req := model.CreateAuditLogRequest{
+			UserID: "u1", Entity: "User",
+		}
+
+		err := uc.LogActivity(context.Background(), req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "missing required fields")
+	})
+
+	t.Run("Negative - Validation Error - Missing Entity", func(t *testing.T) {
+		_, uc := setupAuditTest()
+		req := model.CreateAuditLogRequest{
+			UserID: "u1", Action: "CREATE",
+		}
+
+		err := uc.LogActivity(context.Background(), req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "missing required fields")
 	})
 }
 
