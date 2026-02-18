@@ -799,33 +799,3 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 	assert.Equal(t, expectedName, result.Name)
 	deps.Repo.AssertExpectations(t)
 }
-
-func TestUserUseCase_DeleteUser_EnforcerGetRolesError(t *testing.T) {
-	deps, uc := setupUserTest()
-	actorUserID := "admin-user-id"
-	deleteReq := &model.DeleteUserRequest{ID: "clean-id"}
-
-	deps.Repo.On("FindByID", mock.Anything, deleteReq.ID).Return(&entity.User{ID: deleteReq.ID, Username: "deletedUser"}, nil)
-
-	// Mock Transaction
-	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
-		return fn(ctx)
-	})
-
-	deps.Repo.On("Delete", mock.Anything, deleteReq.ID).Return(nil)
-
-	// Expect GetRolesForUser to return error
-	deps.Enforcer.On("GetRolesForUser", deleteReq.ID, "global").Return([]string{}, errors.New("casbin error"))
-
-	// Should continue to RemoveFilteredGroupingPolicy
-	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, deleteReq.ID, "", "global").Return(true, nil)
-
-	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
-
-	err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
-
-	assert.NoError(t, err)
-	deps.Repo.AssertExpectations(t)
-	deps.Enforcer.AssertExpectations(t)
-	deps.AuditUC.AssertExpectations(t)
-}

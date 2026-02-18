@@ -139,15 +139,6 @@ func (m *WebSocketManager) listenToRedis() {
 		case <-m.stopChan:
 			return
 		case msg := <-ch:
-			if msg == nil {
-				m.log.Warn("Redis subscription channel closed")
-				return
-			}
-
-			if len(msg.Channel) < len(prefix) {
-				m.log.Warnf("Received message on channel with unexpected length: %s", msg.Channel)
-				continue
-			}
 
 			localChannel := msg.Channel[len(prefix):]
 
