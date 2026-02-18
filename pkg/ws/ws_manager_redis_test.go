@@ -19,20 +19,34 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	require.NoError(t, err)
 	defer mr.Close()
 
+	// Helper to create redis client with optimal settings for miniredis
+	newRedisClient := func(addr string) *redis.Client {
+		return redis.NewClient(&redis.Options{
+			Addr:         addr,
+			MinIdleConns: 1, // Maintain connection
+			PoolSize:     1, // Reduce concurrency issues with miniredis
+			DialTimeout:  1 * time.Second,
+			ReadTimeout:  1 * time.Second,
+			WriteTimeout: 1 * time.Second,
+		})
+	}
+
 	// Setup Manager 1 (Node 1)
-	rdb1 := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	rdb1 := newRedisClient(mr.Addr())
+	defer rdb1.Close()
 	manager1, server1 := setupTestServer(rdb1)
 	defer server1.Close()
 	defer manager1.Stop()
 
 	// Setup Manager 2 (Node 2)
-	rdb2 := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	rdb2 := newRedisClient(mr.Addr())
+	defer rdb2.Close()
 	manager2, server2 := setupTestServer(rdb2)
 	defer server2.Close()
 	defer manager2.Stop()
 
 	// Wait for managers to start and subscribe to redis
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	// Client 1 connects to Node 1 and subscribes to "global-channel"
 	c1, err := connectClient(server1.URL)
@@ -92,15 +106,18 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 	defer mr.Close()
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr: mr.Addr(),
+		Addr:         mr.Addr(),
+		MinIdleConns: 1,
+		PoolSize:     1,
 	})
+	defer rdb.Close()
 
 	manager, server := setupTestServer(rdb)
 	defer server.Close()
 	defer manager.Stop()
 
 	// Wait for subscription
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	c1, err := connectClient(server.URL)
 	require.NoError(t, err)
