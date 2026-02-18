@@ -611,9 +611,10 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return err
 	}
 
-	// Security: Revoke all active sessions upon password change to prevent session hijacking
 	if err := s.RevokeAllSessions(ctx, user.ID); err != nil {
-		s.log.WithContext(ctx).WithError(err).Error("Failed to revoke sessions after password reset")
+	s.log.WithContext(ctx).WithError(err).Error("Failed to revoke sessions after password reset")
+	// Returning an error makes the failure explicit, which is safer for a security-critical operation.
+	return fmt.Errorf("password reset successfully, but failed to revoke sessions: %w", err)
 	}
 
 	if s.auditUC != nil {
