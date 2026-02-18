@@ -50,7 +50,7 @@ func validateSlug(fl validator.FieldLevel) bool {
 	return match
 }
 
-func SanitizeString(s string) string {
+func StripTags(s string) string {
 	// Simple regex-based strip tags.
 	// Note: This is not secure against all XSS vectors but sufficient for basic cleanup.
 	return htmlTagRegex.ReplaceAllString(s, "")

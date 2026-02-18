@@ -164,7 +164,7 @@ func TestValidateSlug(t *testing.T) {
 	}
 }
 
-func TestSanitizeString(t *testing.T) {
+func TestStripTags(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -201,7 +201,7 @@ func TestSanitizeString(t *testing.T) {
 			expected: "Hello",
 		},
 		{
-			name:     "Allowed tags are handled by SanitizeString - current implementation removes all",
+			name:     "Allowed tags are handled by StripTags - current implementation removes all",
 			input:    "This is <b>bold</b>",
 			expected: "This is bold",
 		},
@@ -209,7 +209,7 @@ func TestSanitizeString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := validation.SanitizeString(tt.input)
+			result := validation.StripTags(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

@@ -3,7 +3,7 @@ package model
 import (
 	"strings"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 )
 
 type RoleResponse struct {
@@ -22,10 +22,10 @@ type UpdateRoleRequest struct {
 }
 
 func (r *CreateRoleRequest) Sanitize() {
-	r.Name = validation.SanitizeString(strings.TrimSpace(r.Name))
-	r.Description = validation.SanitizeString(strings.TrimSpace(r.Description))
+	r.Name = pkg.SanitizeString(strings.TrimSpace(r.Name))
+	r.Description = pkg.SanitizeString(strings.TrimSpace(r.Description))
 }
 
 func (r *UpdateRoleRequest) Sanitize() {
-	r.Description = validation.SanitizeString(strings.TrimSpace(r.Description))
+	r.Description = pkg.SanitizeString(strings.TrimSpace(r.Description))
 }
