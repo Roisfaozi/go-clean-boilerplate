@@ -58,8 +58,7 @@ func TestWebSocketController_HandleWebSocket_WithUser(t *testing.T) {
 
 	// Verify user data via Presence (indirectly)
 	// We wait for client registration
-	time.Sleep(50 * time.Millisecond)
-	assert.Equal(t, 1, manager.ClientCount())
+	require.Eventually(t, func() bool { return manager.ClientCount() == 1 }, time.Second, 10*time.Millisecond)
 
 	mockUserRepo.AssertExpectations(t)
 }
