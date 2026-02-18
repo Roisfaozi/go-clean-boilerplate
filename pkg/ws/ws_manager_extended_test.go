@@ -134,7 +134,7 @@ func TestWebSocketManager_PresenceError_Unregister(t *testing.T) {
 
 	// Unregister
 	manager.UnregisterClient(client)
-	time.Sleep(50 * time.Millisecond)
+	require.Eventually(t, func() bool { return manager.ClientCount() == 0 }, time.Second, 10*time.Millisecond)
 
 	mockPresence.AssertExpectations(t)
 	assert.Equal(t, 0, manager.ClientCount())
