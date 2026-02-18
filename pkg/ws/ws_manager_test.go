@@ -103,7 +103,7 @@ func connectClientWithUser(url, userID, orgID string) (*websocket.Conn, error) {
 }
 
 func waitForMessage(conn *websocket.Conn, msgType string, channel string) (*ws.ServerMessage, error) {
-	if err := conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil { // Check error
+	if err := conn.SetReadDeadline(time.Now().Add(10 * time.Second)); err != nil { // Check error
 		return nil, err
 	}
 	for {

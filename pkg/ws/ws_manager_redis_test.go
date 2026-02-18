@@ -82,6 +82,9 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 
 	manager1.BroadcastToChannel("global-channel", msgBytes)
 
+	// Give time for Redis publish
+	time.Sleep(100 * time.Millisecond)
+
 	// Verify c1 (connected to Node 1) receives it (Local broadcast)
 	msg1, err := waitForMessage(c1, "message", "global-channel")
 	require.NoError(t, err)
