@@ -33,10 +33,8 @@ func TestExportLogs(t *testing.T) {
 		}
 
 		// Calculate expected start/end times
-    startT, err := time.Parse("2006-01-02", fromDate)
-    assert.NoError(t, err)
-    endT, err := time.Parse("2006-01-02", toDate)
-    assert.NoError(t, err)
+		startT, _ := time.Parse("2006-01-02", fromDate)
+		endT, _ := time.Parse("2006-01-02", toDate)
 		startTime := startT.UnixMilli()
 		endTime := endT.Add(24 * time.Hour).UnixMilli()
 
@@ -56,8 +54,8 @@ func TestExportLogs(t *testing.T) {
 			return nil
 		}
 
-		err := uc.ExportLogs(ctx, fromDate, toDate, processFunc)
-		assert.NoError(t, err)
+		exportErr := uc.ExportLogs(ctx, fromDate, toDate, processFunc)
+		assert.NoError(t, exportErr)
 		deps.Repo.AssertExpectations(t)
 	})
 
@@ -128,8 +126,10 @@ func TestExportLogs(t *testing.T) {
 		deps.Repo.On("FindAllInBatches", ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 			Run(func(args mock.Arguments) {
 				fn := args.Get(4).(func([]*entity.AuditLog) error)
-        // The mock simulates the repo calling the callback which returns an error
-        _ = fn(logs)
+				// The mock simulates the repo calling the callback which returns an error
+				err := fn(logs)
+				// Repo usually propagates this error
+				assert.Error(t, err)
 			}).Return(errors.New("process error")) // Simulating propagation
 
 		processFunc := func(exportedLogs []model.AuditLogResponse) error {
