@@ -48,6 +48,15 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	// Wait for managers to start and subscribe to redis
 	time.Sleep(3 * time.Second)
 
+	// Debug subscriber to verify Redis Publish
+	rdbDebug := newRedisClient(mr.Addr())
+	defer func() { _ = rdbDebug.Close() }()
+	debugPubSub := rdbDebug.Subscribe(context.Background(), "test_ws:global-channel")
+	defer func() { _ = debugPubSub.Close() }()
+	// Wait for debug subscription
+	_, err = debugPubSub.Receive(context.Background())
+	require.NoError(t, err)
+
 	// Client 1 connects to Node 1 and subscribes to "global-channel"
 	c1, err := connectClient(server1.URL)
 	require.NoError(t, err)
@@ -72,18 +81,16 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	msgContent := map[string]string{"msg": "hello from node 1"}
 	msgBytes, _ := json.Marshal(msgContent)
 
-	// Determine expected payload on Redis
-	// Manager publishes raw message bytes to redis channel.
-	// Then other managers receive it and wrap in envelope.
-
-	// Wait, Manager.BroadcastToChannel(channel, message)
-	// It publishes message to redis.
-	// It also broadcasts locally.
-
 	manager1.BroadcastToChannel("global-channel", msgBytes)
 
-	// Give time for Redis publish
-	time.Sleep(100 * time.Millisecond)
+	// Verify Redis received it (Debug)
+	// We use a short timeout here just to check
+	select {
+	case msg := <-debugPubSub.Channel():
+		assert.Equal(t, string(msgBytes), msg.Payload, "Redis did not receive correct payload")
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Redis Publish failed - Debug subscriber timed out")
+	}
 
 	// Verify c1 (connected to Node 1) receives it (Local broadcast)
 	msg1, err := waitForMessage(c1, "message", "global-channel")
