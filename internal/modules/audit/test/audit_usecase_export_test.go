@@ -33,8 +33,10 @@ func TestExportLogs(t *testing.T) {
 		}
 
 		// Calculate expected start/end times
-		startT, _ := time.Parse("2006-01-02", fromDate)
-		endT, _ := time.Parse("2006-01-02", toDate)
+    startT, err := time.Parse("2006-01-02", fromDate)
+    assert.NoError(t, err)
+    endT, err := time.Parse("2006-01-02", toDate)
+    assert.NoError(t, err)
 		startTime := startT.UnixMilli()
 		endTime := endT.Add(24 * time.Hour).UnixMilli()
 
