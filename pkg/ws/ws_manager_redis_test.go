@@ -22,8 +22,8 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	// Use separate clients for each manager to avoid connection closing issues
 	rdb1 := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 	rdb2 := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	defer rdb1.Close()
-	defer rdb2.Close()
+	defer func() { _ = rdb1.Close() }()
+	defer func() { _ = rdb2.Close() }()
 
 	// Setup Manager 1 (Node 1)
 	manager1, server1 := setupTestServer(rdb1)
