@@ -116,9 +116,6 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 	defer server.Close()
 	defer manager.Stop()
 
-	// Wait for subscription
-	time.Sleep(100 * time.Millisecond)
-
 	c1, err := connectClient(server.URL)
 	require.NoError(t, err)
 	defer func() { _ = c1.Close() }()
@@ -129,9 +126,22 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 	_, err = waitForMessage(c1, "info", channel)
 	require.NoError(t, err)
 
-	// Publish directly to Redis
 	// Prefix is "test_ws:" defined in setupTestServer
 	prefix := "test_ws:"
+	redisChannel := prefix + channel
+
+	// Wait for Redis subscription to be active
+	// The manager subscribes to "test_ws:*" (pattern), so we check NumPat.
+	require.Eventually(t, func() bool {
+		// Miniredis supports PubSubNumPat but go-redis API for it is straightforward.
+		// However, the manager uses PSubscribe with pattern "prefix*".
+		// We can try checking if publishing to a channel in that pattern reaches subscribers?
+		// Or just check NumPat.
+		// rdb.PubSubNumPat() returns map[string]int64 in some versions or int64?
+		// Actually, standard redis command PUBSUB NUMPAT returns count.
+		count, err := rdb.PubSubNumPat(context.Background()).Result()
+		return err == nil && count > 0
+	}, 5*time.Second, 100*time.Millisecond, "Manager failed to subscribe to Redis pattern")
 
 	// The manager expects the payload to be the message bytes (e.g., JSON of ServerMessage or just data)
 	// handleBroadcast receives the payload and wraps it in {type: "message", ...} IF it's coming from Redis?
@@ -140,26 +150,13 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 	// Let's send a simple JSON object
 	payload := `{"text":"external hello"}`
 
-	// Retry publishing until message is received (handling potential subscription lag)
-	var msg *ws.ServerMessage
-	maxRetries := 20
-	for i := 0; i < maxRetries; i++ {
-		err = rdb.Publish(context.Background(), prefix+channel, payload).Err()
-		require.NoError(t, err)
+	// Publish once, since we confirmed subscription is active
+	err = rdb.Publish(context.Background(), redisChannel, payload).Err()
+	require.NoError(t, err)
 
-		// Use a short deadline for checking receipt
-		_ = c1.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
-		var receivedMsg ws.ServerMessage
-		if err := c1.ReadJSON(&receivedMsg); err == nil {
-			if receivedMsg.Type == "message" && receivedMsg.Channel == channel {
-				msg = &receivedMsg
-				break
-			}
-		}
-
-		// Wait briefly before retrying
-		time.Sleep(100 * time.Millisecond)
-	}
+	// Verify c1 receives it
+	msg, err := waitForMessage(c1, "message", channel)
+	require.NoError(t, err)
 
 	// Reset deadline
 	_ = c1.SetReadDeadline(time.Time{})
