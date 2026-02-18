@@ -100,7 +100,7 @@ func TestWebSocketManager_PresenceError_Register(t *testing.T) {
 	manager.RegisterClient(client)
 
 	// Wait for processing
-	time.Sleep(50 * time.Millisecond)
+	require.Eventually(t, func() bool { return manager.ClientCount() == 1 }, time.Second, 10*time.Millisecond)
 
 	// Assert expectations
 	mockPresence.AssertExpectations(t)
