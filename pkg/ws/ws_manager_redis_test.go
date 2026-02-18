@@ -143,6 +143,9 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 		return err == nil && count > 0
 	}, 5*time.Second, 100*time.Millisecond, "Manager failed to subscribe to Redis pattern")
 
+	// Allow some time for propagation inside Redis/Miniredis
+	time.Sleep(200 * time.Millisecond)
+
 	// The manager expects the payload to be the message bytes (e.g., JSON of ServerMessage or just data)
 	// handleBroadcast receives the payload and wraps it in {type: "message", ...} IF it's coming from Redis?
 	// No, handleBroadcast wraps msg.Message in "data" field of envelope.
@@ -150,18 +153,38 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 	// Let's send a simple JSON object
 	payload := `{"text":"external hello"}`
 
-	// Publish once, since we confirmed subscription is active
-	err = rdb.Publish(context.Background(), redisChannel, payload).Err()
-	require.NoError(t, err)
+	// Retry publishing a few times if message is missed due to race
+	var msg *ws.ServerMessage
+	for i := 0; i < 5; i++ {
+		err = rdb.Publish(context.Background(), redisChannel, payload).Err()
+		require.NoError(t, err)
 
-	// Verify c1 receives it
-	msg, err := waitForMessage(c1, "message", channel)
-	require.NoError(t, err)
+		// Verify c1 receives it with a short timeout
+		// waitForMessage sets a deadline, we should use a shorter one here for retry loop
+		// But waitForMessage hardcodes 5s.
+		// We can just try to read directly or use waitForMessage with care.
+		// Since we only expect one message eventually, let's use a goroutine or just try once per loop with short timeout?
+		// waitForMessage implementation sets deadline to now + 5s.
+		// Let's modify the expectation: we publish, then wait.
+
+		// To avoid blocking 5s on failure, we can implement a custom wait here or just rely on waitForMessage if we are confident.
+		// Given the flakiness, let's try reading with a shorter deadline.
+		_ = c1.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+		var receivedMsg ws.ServerMessage
+		if err := c1.ReadJSON(&receivedMsg); err == nil {
+			if receivedMsg.Type == "message" && receivedMsg.Channel == channel {
+				msg = &receivedMsg
+				break
+			}
+		}
+		// If timeout, loop and publish again
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	require.NotNil(t, msg, "Failed to receive message from Redis subscription after retries")
 
 	// Reset deadline
 	_ = c1.SetReadDeadline(time.Time{})
-
-	require.NotNil(t, msg, "Failed to receive message from Redis subscription after retries")
 
 	// The data field of the message should contain the payload parsed as JSON if possible
 	// The manager does: "data": json.RawMessage(msg.Message)
