@@ -45,8 +45,12 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	defer server2.Close()
 	defer manager2.Stop()
 
+	// Ensure clients are connected
+	require.NoError(t, rdb1.Ping(context.Background()).Err())
+	require.NoError(t, rdb2.Ping(context.Background()).Err())
+
 	// Wait for managers to start and subscribe to redis
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	// Debug subscriber to verify Redis Publish
 	rdbDebug := newRedisClient(mr.Addr())
