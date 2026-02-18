@@ -229,7 +229,7 @@ func TestWebSocketManager_Broadcast_BufferFull(t *testing.T) {
 	manager.BroadcastToChannel("ch1", []byte(`"msg1"`))
 
 	// Wait for processing
-	time.Sleep(50 * time.Millisecond)
+	require.Eventually(t, func() bool { return len(client.Send) == 1 }, time.Second, 10*time.Millisecond)
 
 	// Send more - should drop (log warn)
 	manager.BroadcastToChannel("ch1", []byte(`"msg2"`))
