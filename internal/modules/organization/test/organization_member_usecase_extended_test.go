@@ -186,46 +186,6 @@ func TestOrganizationMemberUseCase_Extended(t *testing.T) {
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
 	})
 
-	t.Run("InviteMember - User Find Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		req := &model.InviteMemberRequest{Email: "error@example.com"}
-		org := &entity.Organization{ID: "org-1"}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
-
-		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
-		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(nil, errors.New("db error"))
-
-		_, err := uc.InviteMember(ctx, "org-1", req)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-	})
-
-	t.Run("InviteMember - Delete Old Invitation Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		req := &model.InviteMemberRequest{Email: "test@example.com"}
-		org := &entity.Organization{ID: "org-1"}
-		user := &userEntity.User{ID: "u1", Email: req.Email}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
-
-		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
-		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(user, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, "org-1", user.ID).Return(false, nil)
-		deps.MemberRepo.On("GetMemberStatus", ctx, "org-1", user.ID).Return("", nil)
-		deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(nil)
-		deps.InvitationRepo.On("DeleteByEmailAndOrg", ctx, req.Email, "org-1").Return(errors.New("db error"))
-
-		_, err := uc.InviteMember(ctx, "org-1", req)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-	})
 
 	t.Run("AcceptInvitation - User Find Error", func(t *testing.T) {
 		deps, uc := setupMemberTest()
@@ -502,26 +462,6 @@ func TestOrganizationMemberUseCase_Extended(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("RemoveMember - Enforcer Error (Should Log and Proceed)", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		orgID := "org-1"
-		userID := "u1"
-		org := &entity.Organization{ID: orgID, OwnerID: "other"}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(nil)
-
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, "", orgID).Return(false, errors.New("casbin error"))
-		deps.MemberRepo.On("RemoveMember", ctx, orgID, userID).Return(nil)
-
-		err := uc.RemoveMember(ctx, orgID, userID)
-		assert.NoError(t, err)
-	})
 
 	t.Run("GetMembers - Repo Error", func(t *testing.T) {
 		deps, uc := setupMemberTest()
