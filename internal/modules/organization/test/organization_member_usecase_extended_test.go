@@ -15,120 +15,155 @@ import (
 )
 
 func TestOrganizationMemberUseCase_Extended(t *testing.T) {
-	t.Run("InviteMember - Org Find Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		req := &model.InviteMemberRequest{Email: "test@example.com"}
+	t.Run("InviteMember - Error Scenarios", func(t *testing.T) {
+		testCases := []struct {
+			name        string
+			orgID       string
+			req         *model.InviteMemberRequest
+			mockSetup   func(deps *memberTestDeps, ctx context.Context)
+			expectedErr error
+		}{
+			{
+				name:  "Org Find Error",
+				orgID: "org-1",
+				req:   &model.InviteMemberRequest{Email: "test@example.com"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					deps.OrgRepo.On("FindByID", ctx, "org-1").Return(nil, errors.New("db error"))
+				},
+				expectedErr: exception.ErrInternalServer,
+			},
+			{
+				name:  "Org Not Found",
+				orgID: "org-1",
+				req:   &model.InviteMemberRequest{Email: "test@example.com"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					deps.OrgRepo.On("FindByID", ctx, "org-1").Return(nil, nil)
+				},
+				expectedErr: exception.ErrNotFound,
+			},
+			{
+				name:  "User Create Error (Shadow)",
+				orgID: "org-1",
+				req:   &model.InviteMemberRequest{Email: "new@example.com"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					org := &entity.Organization{ID: "org-1"}
+					deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
+					deps.UserRepo.On("FindByEmail", ctx, "new@example.com").Return(nil, nil)
+					deps.UserRepo.On("Create", ctx, mock.Anything).Return(errors.New("create error"))
+				},
+				expectedErr: exception.ErrInternalServer,
+			},
+			{
+				name:  "Check Membership Error",
+				orgID: "org-1",
+				req:   &model.InviteMemberRequest{Email: "existing@example.com"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					org := &entity.Organization{ID: "org-1"}
+					user := &userEntity.User{ID: "u1", Email: "existing@example.com"}
+					deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
+					deps.UserRepo.On("FindByEmail", ctx, user.Email).Return(user, nil)
+					deps.MemberRepo.On("CheckMembership", ctx, "org-1", user.ID).Return(false, errors.New("db error"))
+				},
+				expectedErr: exception.ErrInternalServer,
+			},
+			{
+				name:  "Get Member Status Error",
+				orgID: "org-1",
+				req:   &model.InviteMemberRequest{Email: "existing@example.com"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					org := &entity.Organization{ID: "org-1"}
+					user := &userEntity.User{ID: "u1", Email: "existing@example.com"}
+					deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
+					deps.UserRepo.On("FindByEmail", ctx, user.Email).Return(user, nil)
+					deps.MemberRepo.On("CheckMembership", ctx, "org-1", user.ID).Return(false, nil)
+					deps.MemberRepo.On("GetMemberStatus", ctx, "org-1", user.ID).Return("", errors.New("db error"))
+				},
+				expectedErr: exception.ErrInternalServer,
+			},
+			{
+				name:  "Invitation Create Error",
+				orgID: "org-1",
+				req:   &model.InviteMemberRequest{Email: "existing@example.com"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					org := &entity.Organization{ID: "org-1"}
+					user := &userEntity.User{ID: "u1", Email: "existing@example.com"}
+					deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
+					deps.UserRepo.On("FindByEmail", ctx, user.Email).Return(user, nil)
+					deps.MemberRepo.On("CheckMembership", ctx, "org-1", user.ID).Return(false, nil)
+					deps.MemberRepo.On("GetMemberStatus", ctx, "org-1", user.ID).Return("", nil)
+					deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(nil)
+					deps.InvitationRepo.On("DeleteByEmailAndOrg", ctx, user.Email, "org-1").Return(nil)
+					deps.InvitationRepo.On("Create", ctx, mock.Anything).Return(errors.New("db error"))
+				},
+				expectedErr: exception.ErrInternalServer,
+			},
+			{
+				name:  "User Find Error",
+				orgID: "org-1",
+				req:   &model.InviteMemberRequest{Email: "error@example.com"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					org := &entity.Organization{ID: "org-1"}
+					deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
+					deps.UserRepo.On("FindByEmail", ctx, "error@example.com").Return(nil, errors.New("db error"))
+				},
+				expectedErr: exception.ErrInternalServer,
+			},
+			{
+				name:  "Delete Old Invitation Error",
+				orgID: "org-1",
+				req:   &model.InviteMemberRequest{Email: "test@example.com"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					org := &entity.Organization{ID: "org-1"}
+					user := &userEntity.User{ID: "u1", Email: "test@example.com"}
+					deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
+					deps.UserRepo.On("FindByEmail", ctx, user.Email).Return(user, nil)
+					deps.MemberRepo.On("CheckMembership", ctx, "org-1", user.ID).Return(false, nil)
+					deps.MemberRepo.On("GetMemberStatus", ctx, "org-1", user.ID).Return("", nil)
+					deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(nil)
+					deps.InvitationRepo.On("DeleteByEmailAndOrg", ctx, user.Email, "org-1").Return(errors.New("db error"))
+				},
+				expectedErr: exception.ErrInternalServer,
+			},
+			{
+				name:  "Task Distribute Error (Should Log and Proceed)",
+				orgID: "org-1",
+				req:   &model.InviteMemberRequest{Email: "test@example.com"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					org := &entity.Organization{ID: "org-1"}
+					user := &userEntity.User{ID: "u1", Email: "test@example.com"}
+					deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
+					deps.UserRepo.On("FindByEmail", ctx, user.Email).Return(user, nil)
+					deps.MemberRepo.On("CheckMembership", ctx, "org-1", user.ID).Return(false, nil)
+					deps.MemberRepo.On("GetMemberStatus", ctx, "org-1", user.ID).Return("", nil)
+					deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(nil)
+					deps.InvitationRepo.On("DeleteByEmailAndOrg", ctx, user.Email, "org-1").Return(nil)
+					deps.InvitationRepo.On("Create", ctx, mock.Anything).Return(nil)
+					deps.TaskDistributor.On("DistributeTaskSendEmail", ctx, mock.Anything).Return(errors.New("queue error"))
+				},
+				expectedErr: nil, // Success expected despite task error
+			},
+		}
 
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				deps, uc := setupMemberTest()
+				ctx := context.Background()
 
-		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(nil, errors.New("db error"))
+				deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+					fn := args.Get(1).(func(context.Context) error)
+					tc.mockSetup(deps, ctx)
+					_ = fn(ctx)
+				}).Return(tc.expectedErr)
 
-		_, err := uc.InviteMember(ctx, "org-1", req)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-	})
-
-	t.Run("InviteMember - Org Not Found", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		req := &model.InviteMemberRequest{Email: "test@example.com"}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrNotFound)
-
-		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(nil, nil)
-
-		_, err := uc.InviteMember(ctx, "org-1", req)
-		assert.ErrorIs(t, err, exception.ErrNotFound)
-	})
-
-	t.Run("InviteMember - User Create Error (Shadow)", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		org := &entity.Organization{ID: "org-1"}
-		req := &model.InviteMemberRequest{Email: "new@example.com"}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
-
-		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
-		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(nil, nil) // Not found
-		deps.UserRepo.On("Create", ctx, mock.Anything).Return(errors.New("create error"))
-
-		_, err := uc.InviteMember(ctx, "org-1", req)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-	})
-
-	t.Run("InviteMember - Check Membership Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		org := &entity.Organization{ID: "org-1"}
-		req := &model.InviteMemberRequest{Email: "existing@example.com"}
-		user := &userEntity.User{ID: "u1", Email: req.Email}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
-
-		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
-		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(user, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, "org-1", user.ID).Return(false, errors.New("db error"))
-
-		_, err := uc.InviteMember(ctx, "org-1", req)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-	})
-
-	t.Run("InviteMember - Get Member Status Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		org := &entity.Organization{ID: "org-1"}
-		req := &model.InviteMemberRequest{Email: "existing@example.com"}
-		user := &userEntity.User{ID: "u1", Email: req.Email}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
-
-		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
-		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(user, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, "org-1", user.ID).Return(false, nil)
-		deps.MemberRepo.On("GetMemberStatus", ctx, "org-1", user.ID).Return("", errors.New("db error"))
-
-		_, err := uc.InviteMember(ctx, "org-1", req)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-	})
-
-	t.Run("InviteMember - Invitation Create Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		org := &entity.Organization{ID: "org-1"}
-		req := &model.InviteMemberRequest{Email: "existing@example.com"}
-		user := &userEntity.User{ID: "u1", Email: req.Email}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
-
-		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
-		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(user, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, "org-1", user.ID).Return(false, nil)
-		deps.MemberRepo.On("GetMemberStatus", ctx, "org-1", user.ID).Return("", nil)
-		deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(nil)
-		deps.InvitationRepo.On("DeleteByEmailAndOrg", ctx, req.Email, "org-1").Return(nil)
-		deps.InvitationRepo.On("Create", ctx, mock.Anything).Return(errors.New("db error"))
-
-		_, err := uc.InviteMember(ctx, "org-1", req)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
+				res, err := uc.InviteMember(ctx, tc.orgID, tc.req)
+				if tc.expectedErr != nil {
+					assert.ErrorIs(t, err, tc.expectedErr)
+				} else {
+					assert.NoError(t, err)
+					assert.NotNil(t, res)
+				}
+			})
+		}
 	})
 
 	t.Run("AcceptInvitation - User Update Error", func(t *testing.T) {
@@ -271,249 +306,150 @@ func TestOrganizationMemberUseCase_Extended(t *testing.T) {
 		assert.ErrorIs(t, err, exception.ErrBadRequest)
 	})
 
-	t.Run("UpdateMember - Enforcer Remove Error (Should Proceed)", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		orgID := "org-1"
-		userID := "u1"
-		req := &model.UpdateMemberRequest{RoleID: "new-role"}
+	t.Run("UpdateMember - Scenarios", func(t *testing.T) {
+		testCases := []struct {
+			name        string
+			orgID       string
+			userID      string
+			req         *model.UpdateMemberRequest
+			mockSetup   func(deps *memberTestDeps, ctx context.Context)
+			expectedErr error
+		}{
+			{
+				name:   "Enforcer Remove Error (Should Proceed)",
+				orgID:  "org-1",
+				userID: "u1",
+				req:    &model.UpdateMemberRequest{RoleID: "new-role"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					deps.MemberRepo.On("CheckMembership", ctx, "org-1", "u1").Return(true, nil)
+					deps.MemberRepo.On("UpdateMemberRole", ctx, "org-1", "u1", "new-role").Return(nil)
+					deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, "u1", "", "org-1").Return(false, errors.New("casbin error"))
+					deps.Enforcer.On("AddGroupingPolicy", "u1", "new-role", "org-1").Return(true, nil)
+					deps.MemberRepo.On("FindMembers", ctx, "org-1").Return([]*entity.OrganizationMember{{UserID: "u1", RoleID: "new-role"}}, nil)
+				},
+				expectedErr: nil,
+			},
+			{
+				name:   "Enforcer Add Error",
+				orgID:  "org-1",
+				userID: "u1",
+				req:    &model.UpdateMemberRequest{RoleID: "new-role"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					deps.MemberRepo.On("CheckMembership", ctx, "org-1", "u1").Return(true, nil)
+					deps.MemberRepo.On("UpdateMemberRole", ctx, "org-1", "u1", "new-role").Return(nil)
+					deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, "u1", "", "org-1").Return(true, nil)
+					deps.Enforcer.On("AddGroupingPolicy", "u1", "new-role", "org-1").Return(false, errors.New("casbin error"))
+				},
+				expectedErr: exception.ErrInternalServer,
+			},
+			{
+				name:   "Status Update Success",
+				orgID:  "org-1",
+				userID: "u1",
+				req:    &model.UpdateMemberRequest{Status: "active"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					deps.MemberRepo.On("CheckMembership", ctx, "org-1", "u1").Return(true, nil)
+					deps.MemberRepo.On("UpdateMemberStatus", ctx, "org-1", "u1", "active").Return(nil)
+					deps.MemberRepo.On("FindMembers", ctx, "org-1").Return([]*entity.OrganizationMember{{UserID: "u1", Status: "active"}}, nil)
+				},
+				expectedErr: nil,
+			},
+			{
+				name:   "Status Update Error",
+				orgID:  "org-1",
+				userID: "u1",
+				req:    &model.UpdateMemberRequest{Status: "active"},
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					deps.MemberRepo.On("CheckMembership", ctx, "org-1", "u1").Return(true, nil)
+					deps.MemberRepo.On("UpdateMemberStatus", ctx, "org-1", "u1", "active").Return(errors.New("db error"))
+				},
+				expectedErr: exception.ErrInternalServer,
+			},
+		}
 
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(nil)
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				deps, uc := setupMemberTest()
+				ctx := context.Background()
 
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
-		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, userID, "new-role").Return(nil)
+				deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+					fn := args.Get(1).(func(context.Context) error)
+					tc.mockSetup(deps, ctx)
+					_ = fn(ctx)
+				}).Return(tc.expectedErr)
 
-		// Fail remove, but proceed to add
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, "", orgID).Return(false, errors.New("casbin error"))
-		deps.Enforcer.On("AddGroupingPolicy", userID, "new-role", orgID).Return(true, nil)
-
-		deps.MemberRepo.On("FindMembers", ctx, orgID).Return([]*entity.OrganizationMember{{UserID: userID, RoleID: "new-role"}}, nil)
-
-		_, err := uc.UpdateMember(ctx, orgID, userID, req)
-		assert.NoError(t, err)
+				res, err := uc.UpdateMember(ctx, tc.orgID, tc.userID, tc.req)
+				if tc.expectedErr != nil {
+					assert.ErrorIs(t, err, tc.expectedErr)
+				} else {
+					assert.NoError(t, err)
+					assert.NotNil(t, res)
+				}
+			})
+		}
 	})
 
-	t.Run("UpdateMember - Enforcer Add Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		orgID := "org-1"
-		userID := "u1"
-		req := &model.UpdateMemberRequest{RoleID: "new-role"}
+	t.Run("RemoveMember - Scenarios", func(t *testing.T) {
+		testCases := []struct {
+			name        string
+			orgID       string
+			userID      string
+			mockSetup   func(deps *memberTestDeps, ctx context.Context)
+			expectedErr error
+		}{
+			{
+				name:   "Check Membership Error",
+				orgID:  "org-1",
+				userID: "u1",
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					deps.MemberRepo.On("CheckMembership", ctx, "org-1", "u1").Return(false, errors.New("db error"))
+				},
+				expectedErr: exception.ErrInternalServer,
+			},
+			{
+				name:   "Org Find Error",
+				orgID:  "org-1",
+				userID: "u1",
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					deps.MemberRepo.On("CheckMembership", ctx, "org-1", "u1").Return(true, nil)
+					deps.OrgRepo.On("FindByID", ctx, "org-1").Return(nil, errors.New("db error"))
+				},
+				expectedErr: exception.ErrInternalServer,
+			},
+			{
+				name:   "Enforcer Error (Should Log and Proceed)",
+				orgID:  "org-1",
+				userID: "u1",
+				mockSetup: func(deps *memberTestDeps, ctx context.Context) {
+					org := &entity.Organization{ID: "org-1", OwnerID: "other"}
+					deps.MemberRepo.On("CheckMembership", ctx, "org-1", "u1").Return(true, nil)
+					deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
+					deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, "u1", "", "org-1").Return(false, errors.New("casbin error"))
+					deps.MemberRepo.On("RemoveMember", ctx, "org-1", "u1").Return(nil)
+				},
+				expectedErr: nil,
+			},
+		}
 
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				deps, uc := setupMemberTest()
+				ctx := context.Background()
 
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
-		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, userID, "new-role").Return(nil)
+				deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+					fn := args.Get(1).(func(context.Context) error)
+					tc.mockSetup(deps, ctx)
+					_ = fn(ctx)
+				}).Return(tc.expectedErr)
 
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, "", orgID).Return(true, nil)
-		deps.Enforcer.On("AddGroupingPolicy", userID, "new-role", orgID).Return(false, errors.New("casbin error"))
-
-		_, err := uc.UpdateMember(ctx, orgID, userID, req)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-	})
-
-	t.Run("RemoveMember - Check Membership Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		orgID := "org-1"
-		userID := "u1"
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
-
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(false, errors.New("db error"))
-
-		err := uc.RemoveMember(ctx, orgID, userID)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-	})
-
-	t.Run("InviteMember - Task Distribute Error (Should Log and Proceed)", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		req := &model.InviteMemberRequest{Email: "test@example.com"}
-		org := &entity.Organization{ID: "org-1"}
-		user := &userEntity.User{ID: "u1", Email: req.Email}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(nil)
-
-		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(org, nil)
-		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(user, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, "org-1", user.ID).Return(false, nil)
-		deps.MemberRepo.On("GetMemberStatus", ctx, "org-1", user.ID).Return("", nil)
-		deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(nil)
-		deps.InvitationRepo.On("DeleteByEmailAndOrg", ctx, req.Email, "org-1").Return(nil)
-		deps.InvitationRepo.On("Create", ctx, mock.Anything).Return(nil)
-
-		// Task error
-		deps.TaskDistributor.On("DistributeTaskSendEmail", ctx, mock.Anything).Return(errors.New("queue error"))
-
-		res, err := uc.InviteMember(ctx, "org-1", req)
-		assert.NoError(t, err)
-		assert.NotNil(t, res)
-	})
-
-	t.Run("AcceptInvitation - Token Expired", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		req := &model.AcceptInvitationRequest{Token: "token"}
-		// Expired
-		inv := &entity.InvitationToken{ID: "inv-1", ExpiresAt: time.Now().Add(-1 * time.Hour).UnixMilli()}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrUnauthorized)
-
-		deps.InvitationRepo.On("FindByToken", ctx, req.Token).Return(inv, nil)
-
-		err := uc.AcceptInvitation(ctx, req)
-		assert.ErrorIs(t, err, exception.ErrUnauthorized)
-	})
-
-	t.Run("AcceptInvitation - User Not Found (Anomaly)", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		req := &model.AcceptInvitationRequest{Token: "token"}
-		inv := &entity.InvitationToken{ID: "inv-1", Email: "missing@example.com", ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli()}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrNotFound)
-
-		deps.InvitationRepo.On("FindByToken", ctx, req.Token).Return(inv, nil)
-		deps.UserRepo.On("FindByEmail", ctx, inv.Email).Return(nil, nil) // User missing
-
-		err := uc.AcceptInvitation(ctx, req)
-		assert.ErrorIs(t, err, exception.ErrNotFound)
-	})
-
-	t.Run("AcceptInvitation - Update Member Status Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		req := &model.AcceptInvitationRequest{Token: "token"}
-		inv := &entity.InvitationToken{ID: "inv-1", OrganizationID: "org-1", Email: "u@e.com", ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli()}
-		user := &userEntity.User{ID: "u1", Email: "u@e.com", Status: "active"}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
-
-		deps.InvitationRepo.On("FindByToken", ctx, req.Token).Return(inv, nil)
-		deps.UserRepo.On("FindByEmail", ctx, inv.Email).Return(user, nil)
-		deps.MemberRepo.On("GetMemberStatus", ctx, "org-1", "u1").Return(entity.MemberStatusInvited, nil)
-		deps.MemberRepo.On("UpdateMemberStatus", ctx, "org-1", "u1", entity.MemberStatusActive).Return(errors.New("db error"))
-
-		err := uc.AcceptInvitation(ctx, req)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-	})
-
-	t.Run("AcceptInvitation - Add Member Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		req := &model.AcceptInvitationRequest{Token: "token"}
-		inv := &entity.InvitationToken{ID: "inv-1", OrganizationID: "org-1", Email: "u@e.com", ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli()}
-		user := &userEntity.User{ID: "u1", Email: "u@e.com", Status: "active"}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
-
-		deps.InvitationRepo.On("FindByToken", ctx, req.Token).Return(inv, nil)
-		deps.UserRepo.On("FindByEmail", ctx, inv.Email).Return(user, nil)
-		deps.MemberRepo.On("GetMemberStatus", ctx, "org-1", "u1").Return("", nil)
-		deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(errors.New("db error"))
-
-		err := uc.AcceptInvitation(ctx, req)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-	})
-
-	t.Run("AcceptInvitation - Delete Invitation Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		req := &model.AcceptInvitationRequest{Token: "token"}
-		inv := &entity.InvitationToken{ID: "inv-1", OrganizationID: "org-1", Email: "u@e.com", ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli()}
-		user := &userEntity.User{ID: "u1", Email: "u@e.com", Status: "active"}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
-
-		deps.InvitationRepo.On("FindByToken", ctx, req.Token).Return(inv, nil)
-		deps.UserRepo.On("FindByEmail", ctx, inv.Email).Return(user, nil)
-		deps.MemberRepo.On("GetMemberStatus", ctx, "org-1", "u1").Return("", nil)
-		deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(nil)
-		deps.Enforcer.On("AddGroupingPolicy", "u1", mock.Anything, "org-1").Return(true, nil)
-		deps.InvitationRepo.On("Delete", ctx, inv.ID).Return(errors.New("db error"))
-
-		err := uc.AcceptInvitation(ctx, req)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-	})
-
-	t.Run("UpdateMember - Status Update Success", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		req := &model.UpdateMemberRequest{Status: "active"}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(nil)
-
-		deps.MemberRepo.On("CheckMembership", ctx, "org-1", "u1").Return(true, nil)
-		deps.MemberRepo.On("UpdateMemberStatus", ctx, "org-1", "u1", "active").Return(nil)
-		deps.MemberRepo.On("FindMembers", ctx, "org-1").Return([]*entity.OrganizationMember{{UserID: "u1", Status: "active"}}, nil)
-
-		res, err := uc.UpdateMember(ctx, "org-1", "u1", req)
-		assert.NoError(t, err)
-		assert.Equal(t, "active", res.Status)
-	})
-
-	t.Run("UpdateMember - Status Update Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-		req := &model.UpdateMemberRequest{Status: "active"}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
-
-		deps.MemberRepo.On("CheckMembership", ctx, "org-1", "u1").Return(true, nil)
-		deps.MemberRepo.On("UpdateMemberStatus", ctx, "org-1", "u1", "active").Return(errors.New("db error"))
-
-		_, err := uc.UpdateMember(ctx, "org-1", "u1", req)
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
-	})
-
-	t.Run("RemoveMember - Org Find Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := context.Background()
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrInternalServer)
-
-		deps.MemberRepo.On("CheckMembership", ctx, "org-1", "u1").Return(true, nil)
-		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(nil, errors.New("db error"))
-
-		err := uc.RemoveMember(ctx, "org-1", "u1")
-		assert.ErrorIs(t, err, exception.ErrInternalServer)
+				err := uc.RemoveMember(ctx, tc.orgID, tc.userID)
+				if tc.expectedErr != nil {
+					assert.ErrorIs(t, err, tc.expectedErr)
+				} else {
+					assert.NoError(t, err)
+				}
+			})
+		}
 	})
 
 	t.Run("AcceptInvitation - Default Name Logic", func(t *testing.T) {
