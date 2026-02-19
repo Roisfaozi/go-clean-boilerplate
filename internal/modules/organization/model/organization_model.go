@@ -22,12 +22,12 @@ type UserOrganizationsResponse struct {
 }
 
 type CreateOrganizationRequest struct {
-	Name string `json:"name" binding:"required,min=3,max=100"`
-	Slug string `json:"slug" binding:"omitempty,min=3,max=100"`
+	Name string `json:"name" binding:"required,min=3,max=100" validate:"xss"`
+	Slug string `json:"slug" binding:"omitempty,min=3,max=100" validate:"xss"`
 }
 
 type UpdateOrganizationRequest struct {
-	Name     string                 `json:"name" binding:"omitempty,min=3,max=100"`
+	Name     string                 `json:"name" binding:"omitempty,min=3,max=100" validate:"xss"`
 	Settings map[string]interface{} `json:"settings"`
 	Status   string                 `json:"status" binding:"omitempty,oneof=active suspended"`
 }

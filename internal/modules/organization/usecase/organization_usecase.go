@@ -8,6 +8,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model/converter"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
@@ -47,6 +48,12 @@ func NewOrganizationUseCase(
 // CreateOrganization creates a new organization with the current user as owner
 func (uc *organizationUseCase) CreateOrganization(ctx context.Context, userID string, request *model.CreateOrganizationRequest) (*model.OrganizationResponse, error) {
 	var response *model.OrganizationResponse
+
+	// Sanitize Input
+	request.Name = pkg.SanitizeString(request.Name)
+	if request.Slug != "" {
+		request.Slug = pkg.SanitizeString(request.Slug)
+	}
 
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		// Check if slug is already taken
@@ -126,6 +133,11 @@ func (uc *organizationUseCase) GetOrganizationBySlug(ctx context.Context, slug s
 // UpdateOrganization updates an organization's details
 func (uc *organizationUseCase) UpdateOrganization(ctx context.Context, id string, request *model.UpdateOrganizationRequest) (*model.OrganizationResponse, error) {
 	var response *model.OrganizationResponse
+
+	// Sanitize Input
+	if request.Name != "" {
+		request.Name = pkg.SanitizeString(request.Name)
+	}
 
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		org, err := uc.OrgRepo.FindByID(txCtx, id)
