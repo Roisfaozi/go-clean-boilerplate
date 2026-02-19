@@ -67,31 +67,6 @@ func TestCreateAccessRight(t *testing.T) {
 		assert.Equal(t, repoErr, err)
 		deps.Repo.AssertExpectations(t)
 	})
-
-	t.Run("Success - Sanitize Inputs", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
-
-		req := model.CreateAccessRightRequest{
-			Name:        "<b>Bold Name</b>",
-			Description: "<script>alert('xss')</script>",
-		}
-
-		// Expect escaped strings
-		expectedName := "&lt;b&gt;Bold Name&lt;/b&gt;"
-		expectedDesc := "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
-
-		deps.Repo.On("CreateAccessRight", ctx, mock.MatchedBy(func(ar *entity.AccessRight) bool {
-			return ar.Name == expectedName && ar.Description == expectedDesc
-		})).Return(nil).Once()
-
-		createdAccessRight, err := uc.CreateAccessRight(ctx, req)
-		assert.NoError(t, err)
-		assert.NotNil(t, createdAccessRight)
-		assert.Equal(t, expectedName, createdAccessRight.Name)
-		assert.Equal(t, expectedDesc, createdAccessRight.Description)
-		deps.Repo.AssertExpectations(t)
-	})
 }
 
 func TestGetAllAccessRights(t *testing.T) {
@@ -165,7 +140,6 @@ func TestCreateEndpoint(t *testing.T) {
 		assert.Equal(t, repoErr, err)
 		deps.Repo.AssertExpectations(t)
 	})
-
 }
 
 func TestLinkEndpointToAccessRight(t *testing.T) {
@@ -345,9 +319,9 @@ func TestCreateAccessRight_Sanitization(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, createdAccessRight)
 
-	// Verify that the entity passed to repo was sanitized (escaped)
-	assert.Equal(t, "&lt;b&gt;Bold&lt;/b&gt; Right", capturedEntity.Name)
-	assert.Equal(t, "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt; Description", capturedEntity.Description)
+	// Verify that the entity passed to repo was sanitized
+	assert.Equal(t, "Bold Right", capturedEntity.Name)
+	assert.Equal(t, "alert('xss') Description", capturedEntity.Description)
 
 	deps.Repo.AssertExpectations(t)
 }

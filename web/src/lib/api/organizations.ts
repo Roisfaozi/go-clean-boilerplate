@@ -6,16 +6,8 @@ export interface Organization {
   slug: string;
   status: string;
   owner_id: string;
-  settings?: OrganizationSettings;
   created_at: number;
   updated_at: number;
-}
-
-export interface OrganizationSettings {
-  theme?: "light" | "dark" | "system";
-  mfa_required?: boolean;
-  allowed_domains?: string[];
-  [key: string]: any;
 }
 
 export const organizationsApi = {
@@ -39,11 +31,7 @@ export const organizationsApi = {
 
   update: (
     id: string,
-    data: {
-      name?: string;
-      status?: "active" | "suspended" | "inactive";
-      settings?: OrganizationSettings;
-    }
+    data: { name?: string; status?: "active" | "suspended" | "inactive" }
   ) => {
     return api.put<{ data: Organization }>(`/organizations/${id}`, data);
   },
@@ -52,37 +40,25 @@ export const organizationsApi = {
     return api.delete(`/organizations/${id}`);
   },
 
+  // --- Member Management ---
+
   getMembers: (orgId: string) => {
     return api.get<{ data: Member[] }>(`/organizations/${orgId}/members`);
   },
 
   inviteMember: (orgId: string, data: { email: string; role_id: string }) => {
-    return api.post<{ data: Member }>(
-      `/organizations/${orgId}/members/invite`,
-      data
-    );
+    return api.post<{ data: Member }>(`/organizations/${orgId}/members/invite`, data);
   },
 
-  updateMemberRole: (
-    orgId: string,
-    userId: string,
-    data: { role_id: string }
-  ) => {
-    return api.patch<{ data: Member }>(
-      `/organizations/${orgId}/members/${userId}`,
-      data
-    );
+  updateMemberRole: (orgId: string, userId: string, data: { role_id: string }) => {
+    return api.patch<{ data: Member }>(`/organizations/${orgId}/members/${userId}`, data);
   },
 
   removeMember: (orgId: string, userId: string) => {
     return api.delete(`/organizations/${orgId}/members/${userId}`);
   },
 
-  acceptInvitation: (data: {
-    token: string;
-    password?: string;
-    name?: string;
-  }) => {
+  acceptInvitation: (data: { token: string; password?: string; name?: string }) => {
     return api.post("/organizations/invitations/accept", data);
   },
 

@@ -36,6 +36,5 @@ func TestRepro(t *testing.T) {
 		new(mock_permission.IEnforcer),
 		new(auditMocks.MockAuditUseCase),
 		new(mocking.MockTaskDistributor),
-		new(mock_auth.MockTicketManager),
 	)
 }

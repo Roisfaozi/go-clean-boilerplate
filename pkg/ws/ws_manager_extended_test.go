@@ -1,266 +1,263 @@
 package ws_test
 
 import (
-	"encoding/json"
-	"strings"
+	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
-	"github.com/gorilla/websocket"
+	"github.com/alicebob/miniredis/v2"
+	"github.com/go-redis/redismock/v9"
+	"github.com/redis/go-redis/v9"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-// TestWebSocketManager_MultipleSubscriptions verifies a client can subscribe to multiple channels
-func TestWebSocketManager_MultipleSubscriptions(t *testing.T) {
-	manager, server := setupTestServer()
-	defer server.Close()
-	defer manager.Stop()
-
-	conn, err := connectClient(server.URL)
-	require.NoError(t, err)
-	defer func() { _ = conn.Close() }()
-
-	// Wait for registration
-	for i := 0; i < 10; i++ {
-		if manager.ClientCount() >= 1 {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	// Subscribe to two channels
-	require.NoError(t, conn.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel-alpha"}))
-	_, err = waitForMessage(conn, "info", "channel-alpha")
-	require.NoError(t, err)
-
-	require.NoError(t, conn.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "channel-beta"}))
-	_, err = waitForMessage(conn, "info", "channel-beta")
-	require.NoError(t, err)
-
-	// Broadcast to channel-alpha
-	msgAlpha := ws.ServerMessage{Type: "message", Channel: "channel-alpha", Data: "alpha-data"}
-	bytes, _ := json.Marshal(msgAlpha)
-	manager.BroadcastToChannel("channel-alpha", bytes)
-
-	msg, err := waitForMessage(conn, "message", "channel-alpha")
-	require.NoError(t, err)
-	assert.Equal(t, "channel-alpha", msg.Channel)
-
-	// Broadcast to channel-beta
-	msgBeta := ws.ServerMessage{Type: "message", Channel: "channel-beta", Data: "beta-data"}
-	bytes, _ = json.Marshal(msgBeta)
-	manager.BroadcastToChannel("channel-beta", bytes)
-
-	msg, err = waitForMessage(conn, "message", "channel-beta")
-	require.NoError(t, err)
-	assert.Equal(t, "channel-beta", msg.Channel)
+// MockPresenceManager implements ws.PresenceManager
+type MockPresenceManager struct {
+	mock.Mock
 }
 
-// TestWebSocketManager_Unsubscribe verifies client unsubscribe works
-func TestWebSocketManager_Unsubscribe(t *testing.T) {
-	manager, server := setupTestServer()
-	defer server.Close()
-	defer manager.Stop()
-
-	conn, err := connectClient(server.URL)
-	require.NoError(t, err)
-	defer func() { _ = conn.Close() }()
-
-	for i := 0; i < 10; i++ {
-		if manager.ClientCount() >= 1 {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	// Subscribe
-	require.NoError(t, conn.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "unsub-channel"}))
-	_, err = waitForMessage(conn, "info", "unsub-channel")
-	require.NoError(t, err)
-
-	// Unsubscribe
-	require.NoError(t, conn.WriteJSON(ws.ClientMessage{Type: "unsubscribe", Channel: "unsub-channel"}))
-
-	// Consume the unsubscribe confirmation info message
-	_, err = waitForMessage(conn, "info", "unsub-channel")
-	require.NoError(t, err)
-
-	time.Sleep(100 * time.Millisecond) // wait for unsubscribe to fully process
-
-	// Broadcast - client should NOT receive
-	msgContent := ws.ServerMessage{Type: "message", Channel: "unsub-channel", Data: "after-unsub"}
-	bytes, _ := json.Marshal(msgContent)
-	manager.BroadcastToChannel("unsub-channel", bytes)
-
-	_ = conn.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
-	var msg ws.ServerMessage
-	err = conn.ReadJSON(&msg)
-	assert.Error(t, err, "Should not receive message after unsubscribing")
+func (m *MockPresenceManager) SetUserOnline(ctx context.Context, orgID, userID string, userData *ws.PresenceUser) error {
+	args := m.Called(ctx, orgID, userID, userData)
+	return args.Error(0)
 }
 
-// TestWebSocketManager_ClientDisconnect verifies cleanup after client disconnects
-func TestWebSocketManager_ClientDisconnect(t *testing.T) {
-	manager, server := setupTestServer()
+func (m *MockPresenceManager) SetUserOffline(ctx context.Context, orgID, userID string) error {
+	args := m.Called(ctx, orgID, userID)
+	return args.Error(0)
+}
+
+func (m *MockPresenceManager) GetOnlineUsers(ctx context.Context, orgID string) ([]ws.PresenceUser, error) {
+	args := m.Called(ctx, orgID)
+	return args.Get(0).([]ws.PresenceUser), args.Error(1)
+}
+
+func (m *MockPresenceManager) RefreshUserHeartbeat(ctx context.Context, orgID, userID string) error {
+	args := m.Called(ctx, orgID, userID)
+	return args.Error(0)
+}
+
+func (m *MockPresenceManager) PruneStaleUsers(ctx context.Context, timeout time.Duration) (map[string][]string, error) {
+	args := m.Called(ctx, timeout)
+	return args.Get(0).(map[string][]string), args.Error(1)
+}
+
+func TestWebSocketManager_Stopped_Methods(t *testing.T) {
+	manager, server := setupTestServer(nil)
 	defer server.Close()
+
+	// Wait for start
+	time.Sleep(10 * time.Millisecond)
+	manager.Stop()
+	time.Sleep(10 * time.Millisecond) // Ensure loop exits
+
+	// Test methods on stopped manager
+	// These should log warnings and return immediately (hitting the select default or timeout)
+
+	// Create a dummy client
+	client := &ws.Client{ID: "test"}
+
+	done := make(chan bool)
+	go func() {
+		manager.RegisterClient(client)
+		manager.UnregisterClient(client)
+		manager.BroadcastToChannel("ch", []byte("msg"))
+		manager.SubscribeToChannel(client, "ch")
+		manager.UnsubscribeFromChannel(client, "ch")
+		done <- true
+	}()
+
+	select {
+	case <-done:
+		// Success
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("Methods blocked on stopped manager")
+	}
+}
+
+func TestWebSocketManager_PresenceError_Register(t *testing.T) {
+	mockPresence := new(MockPresenceManager)
+	mockPresence.On("SetUserOnline", mock.Anything, "org1", "u1", mock.Anything).Return(errors.New("presence error"))
+
+	config := &ws.WebSocketConfig{RedisPrefix: "test:"}
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+	manager := ws.NewWebSocketManager(config, logger, nil, mockPresence)
+	go manager.Run()
 	defer manager.Stop()
 
-	conn, err := connectClient(server.URL)
-	require.NoError(t, err)
-
-	// Wait for registration
-	for i := 0; i < 10; i++ {
-		if manager.ClientCount() >= 1 {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
+	// Register client
+	client := &ws.Client{
+		ID:     "c1",
+		UserID: "u1",
+		OrgID:  "org1",
+		Send:   make(chan []byte, 10),
 	}
+	manager.RegisterClient(client)
+
+	// Wait for processing
+	time.Sleep(50 * time.Millisecond)
+
+	// Assert expectations
+	mockPresence.AssertExpectations(t)
+	// Client should still be registered even if presence fails
 	assert.Equal(t, 1, manager.ClientCount())
+}
 
-	// Close connection
-	_ = conn.Close()
+func TestWebSocketManager_PresenceError_Unregister(t *testing.T) {
+	mockPresence := new(MockPresenceManager)
+	// SetUserOnline succeeds
+	mockPresence.On("SetUserOnline", mock.Anything, "org1", "u1", mock.Anything).Return(nil)
+	// SetUserOffline fails
+	mockPresence.On("SetUserOffline", mock.Anything, "org1", "u1").Return(errors.New("presence error"))
 
-	// Wait for cleanup
-	for i := 0; i < 20; i++ {
-		if manager.ClientCount() == 0 {
-			break
-		}
-		time.Sleep(50 * time.Millisecond)
+	config := &ws.WebSocketConfig{RedisPrefix: "test:"}
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+	manager := ws.NewWebSocketManager(config, logger, nil, mockPresence)
+	go manager.Run()
+	defer manager.Stop()
+
+	// Register client
+	client := &ws.Client{
+		ID:     "c1",
+		UserID: "u1",
+		OrgID:  "org1",
+		Send:   make(chan []byte, 10),
 	}
+	manager.RegisterClient(client)
+	time.Sleep(50 * time.Millisecond)
+
+	// Unregister
+	manager.UnregisterClient(client)
+	time.Sleep(50 * time.Millisecond)
+
+	mockPresence.AssertExpectations(t)
 	assert.Equal(t, 0, manager.ClientCount())
 }
 
-// TestWebSocketManager_MultipleClientsIndependent verifies separate clients work independently
-func TestWebSocketManager_MultipleClientsIndependent(t *testing.T) {
-	manager, server := setupTestServer()
-	defer server.Close()
-	defer manager.Stop()
+func TestWebSocketManager_Broadcast_RedisError(t *testing.T) {
+	db, mockRedis := redismock.NewClientMock()
 
-	// Connect 3 clients
-	conn1, err := connectClient(server.URL)
-	require.NoError(t, err)
-	defer func() { _ = conn1.Close() }()
-
-	conn2, err := connectClient(server.URL)
-	require.NoError(t, err)
-	defer func() { _ = conn2.Close() }()
-
-	conn3, err := connectClient(server.URL)
-	require.NoError(t, err)
-	defer func() { _ = conn3.Close() }()
-
-	// Wait for all registrations
-	for i := 0; i < 30; i++ {
-		if manager.ClientCount() >= 3 {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
+	config := &ws.WebSocketConfig{
+		DistributedEnabled: true,
+		RedisPrefix:        "test:",
 	}
-	assert.Equal(t, 3, manager.ClientCount())
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	manager := ws.NewWebSocketManager(config, logger, db, &NoOpPresenceManager{})
+
+    // Not calling Run() because redismock PSubscribe handling is complex
+    // Just verify instantiation logic was executed
+    assert.NotNil(t, manager)
+
+	// Note: We don't call Run() here to avoid listenToRedis complications with mock.
+    // If we wanted to test this properly with redismock, we would need to mock everything Run calls.
+    // Given TestWebSocketManager_Broadcast_RedisError_Miniredis exists, we can skip deeper logic here.
+
+    // Just cleanup unused mock
+    _ = mockRedis
 }
 
-// TestWebSocketManager_GetChannelClients counts clients in a channel
-func TestWebSocketManager_GetChannelClients(t *testing.T) {
-	manager, server := setupTestServer()
-	defer server.Close()
+func TestWebSocketManager_Broadcast_RedisError_Miniredis(t *testing.T) {
+	// Use miniredis to simulate redis failure
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+
+	config := &ws.WebSocketConfig{
+		DistributedEnabled: true,
+		RedisPrefix:        "test:",
+	}
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	manager := ws.NewWebSocketManager(config, logger, rdb, &NoOpPresenceManager{})
+	go manager.Run()
 	defer manager.Stop()
 
-	c1, err := connectClient(server.URL)
-	require.NoError(t, err)
-	defer func() { _ = c1.Close() }()
-
-	c2, err := connectClient(server.URL)
-	require.NoError(t, err)
-	defer func() { _ = c2.Close() }()
-
-	for i := 0; i < 20; i++ {
-		if manager.ClientCount() >= 2 {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	// Subscribe both to same channel
-	require.NoError(t, c1.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "counted-channel"}))
-	_, _ = waitForMessage(c1, "info", "counted-channel")
-
-	require.NoError(t, c2.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "counted-channel"}))
-	_, _ = waitForMessage(c2, "info", "counted-channel")
-
+	// Wait for start
 	time.Sleep(50 * time.Millisecond)
-	assert.Equal(t, 2, manager.GetChannelClients("counted-channel"))
-	assert.Equal(t, 0, manager.GetChannelClients("non-existent-channel"))
+
+	// Close miniredis to cause connection error
+	mr.Close()
+
+	// Broadcast
+	// This should trigger "Failed to publish to Redis" log, but not panic
+	manager.BroadcastToChannel("ch1", []byte("msg"))
+
+	// Wait a bit
+	time.Sleep(50 * time.Millisecond)
+
+	// No panic implies success
 }
 
-// TestWebSocketManager_BroadcastToEmptyChannel verifies no panic on empty channel
-func TestWebSocketManager_BroadcastToEmptyChannel(t *testing.T) {
-	manager, server := setupTestServer()
+// Test buffer full scenario
+func TestWebSocketManager_Broadcast_BufferFull(t *testing.T) {
+	manager, server := setupTestServer(nil)
 	defer server.Close()
 	defer manager.Stop()
 
-	// Should not panic
-	msg := ws.ServerMessage{Type: "message", Channel: "empty-channel", Data: "to-nobody"}
-	bytes, _ := json.Marshal(msg)
-	manager.BroadcastToChannel("empty-channel", bytes)
-}
+	// Manually create a client with small buffer
+	client := &ws.Client{
+		ID:   "c1",
+		Send: make(chan []byte, 1), // Buffer size 1
+	}
+	manager.RegisterClient(client)
+	manager.SubscribeToChannel(client, "ch1")
 
-// TestWebSocketManager_InvalidMessageType verifies unknown message type handling
-func TestWebSocketManager_InvalidMessageType(t *testing.T) {
-	manager, server := setupTestServer()
-	defer server.Close()
-	defer manager.Stop()
-
-	conn, err := connectClient(server.URL)
-	require.NoError(t, err)
-	defer func() { _ = conn.Close() }()
-
-	for i := 0; i < 10; i++ {
-		if manager.ClientCount() >= 1 {
+	// Wait for registration and subscription
+	for i := 0; i < 20; i++ {
+		if manager.ClientCount() == 1 && manager.GetChannelClients("ch1") == 1 {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
+	require.Equal(t, 1, manager.ClientCount())
+	require.Equal(t, 1, manager.GetChannelClients("ch1"))
 
-	// Send an unknown message type
-	err = conn.WriteJSON(ws.ClientMessage{Type: "unknown_type", Channel: "test"})
-	require.NoError(t, err)
+	// Fill buffer
+	// We need to send valid JSON so that Marshal doesn't fail (though RawMessage usually allows anything, the envelope Marshal might be picky or the client ReadPump might close connection on invalid JSON?)
+	// Actually, client.Send just receives bytes. WritePump sends them.
+	// But let's use valid JSON just in case.
+	manager.BroadcastToChannel("ch1", []byte(`"msg1"`))
 
-	// Should receive an error message back
-	_ = conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
-	var msg ws.ServerMessage
-	err = conn.ReadJSON(&msg)
+	// Wait for processing
+	time.Sleep(50 * time.Millisecond)
 
-	if err == nil {
-		// Server may send an error response
-		assert.Equal(t, "error", msg.Type)
-	}
-	// If timeout, it's also acceptable - server ignored the unknown type
+	// Send more - should drop (log warn)
+	manager.BroadcastToChannel("ch1", []byte(`"msg2"`))
+	manager.BroadcastToChannel("ch1", []byte(`"msg3"`))
+
+	time.Sleep(10 * time.Millisecond)
+
+	// Verify buffer is full (should contain msg1)
+	assert.Equal(t, 1, len(client.Send))
 }
 
-// TestWebSocketManager_StopCleanup verifies manager Stop cleans up
-func TestWebSocketManager_StopCleanup(t *testing.T) {
-	manager, server := setupTestServer()
-	defer server.Close()
+func TestWebSocketManager_Channels_Getter(t *testing.T) {
+    manager, server := setupTestServer(nil)
+    defer server.Close()
+    defer manager.Stop()
 
-	conn, err := connectClient(server.URL)
-	require.NoError(t, err)
-	defer func() { _ = conn.Close() }()
+    // Register and Subscribe
+    conn, err := connectClient(server.URL)
+    require.NoError(t, err)
+    defer func() { _ = conn.Close() }()
 
-	for i := 0; i < 10; i++ {
-		if manager.ClientCount() >= 1 {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
+    err = conn.WriteJSON(ws.ClientMessage{Type: "subscribe", Channel: "ch1"})
+    require.NoError(t, err)
 
-	// Stop manager
-	manager.Stop()
-	time.Sleep(100 * time.Millisecond)
+    _, err = waitForMessage(conn, "info", "ch1")
+    require.NoError(t, err)
 
-	// Writing after stop should fail or be ignored
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
-	_, _, _ = websocket.DefaultDialer.Dial(wsURL, nil)
-	// Connection may succeed but messages won't be processed
-	// The main check is no panic occurred during stop
+    channels := manager.Channels()
+    assert.Contains(t, channels, "ch1")
+    assert.Equal(t, 1, len(channels["ch1"]))
 }

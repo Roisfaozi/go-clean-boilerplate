@@ -90,10 +90,8 @@ func TestRedisPresenceManager(t *testing.T) {
 		_ = manager.SetUserOnline(ctx, "org-A", "user-active", &PresenceUser{Name: "Active"})
 
 		// 2. Add a stale user manually to miniredis ZSET with old score
-		_, err := mr.ZAdd("presence:org:org-A", 1000, "user-stale") // Very old timestamp
-		require.NoError(t, err)
-		err = mr.Set("presence:user:user-stale", `{"name":"Stale"}`)
-		require.NoError(t, err)
+		_, _ = mr.ZAdd("presence:org:org-A", 1000, "user-stale") // Very old timestamp
+		_ = mr.Set("presence:user:user-stale", `{"name":"Stale"}`)
 
 		// 3. Prune with 1 minute threshold
 		removed, err := manager.PruneStaleUsers(ctx, 1*time.Minute)

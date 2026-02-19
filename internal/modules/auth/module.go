@@ -42,12 +42,11 @@ func NewAuthModule(
 	auditModule *audit.AuditModule,
 	taskDistributor worker.TaskDistributor,
 	orgRepo orgRepo.OrganizationRepository, // Injected dependency
-	ticketManager ws.TicketManager,
 ) *AuthModule {
 	tokenRepo := repository.NewTokenRepositoryRedis(redisClient, log, db)
 	userRepository := userRepo.NewUserRepository(db, log)
 
-	authUseCase := usecase.NewAuthUsecase(maxLoginAttempts, lockoutDuration, jwtManager, tokenRepo, userRepository, orgRepo, tm, log, wsManager, sseManager, enforcer, auditModule.AuditController.UseCase, taskDistributor, ticketManager)
+	authUseCase := usecase.NewAuthUsecase(maxLoginAttempts, lockoutDuration, jwtManager, tokenRepo, userRepository, orgRepo, tm, log, wsManager, sseManager, enforcer, auditModule.AuditController.UseCase, taskDistributor)
 	authController := http.NewAuthController(authUseCase, log, validate)
 
 	return &AuthModule{

@@ -37,7 +37,7 @@ func TestScenario_PasswordRecovery_Lifecycle(t *testing.T) {
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)
 
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, env.Enforcer, auditService, nil, nil)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, env.Enforcer, auditService, nil)
 
 	oldPassword := "OldPass123!"
 	newPassword := "NewPass456!"

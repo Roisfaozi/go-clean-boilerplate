@@ -14,11 +14,43 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Helper: Create admin user and get token
+func createAdminAndLogin(t *testing.T, server *setup.TestServer) string {
+	f := fixtures.NewUserFactory(server.DB)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("AdminPass123!"), bcrypt.DefaultCost)
+
+	admin := f.Create(func(u *userEntity.User) {
+		u.Username = "user_admin"
+		u.Email = "user_admin@test.com"
+		u.Password = string(hash)
+	})
+
+	// Grant superadmin role
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
+	server.Enforcer.SavePolicy()
+
+	// Login
+	resp := server.Client.POST("/api/v1/auth/login", map[string]any{
+		"username": admin.Username,
+		"password": "AdminPass123!",
+	})
+	require.Equal(t, 200, resp.StatusCode)
+
+	var loginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		} `json:"data"`
+	}
+	resp.JSON(&loginRes)
+	return loginRes.Data.AccessToken
+}
+
 func TestUserE2E_GetAllUsers(t *testing.T) {
 	server := setup.SetupTestServer(t)
 	defer server.Cleanup()
 
-	adminToken := setup.CreateAdminAndLogin(t, server)
+	adminToken := createAdminAndLogin(t, server)
 
 	// Create some users
 	f := fixtures.NewUserFactory(server.DB)
@@ -50,7 +82,7 @@ func TestUserE2E_GetUserByID(t *testing.T) {
 	server := setup.SetupTestServer(t)
 	defer server.Cleanup()
 
-	adminToken := setup.CreateAdminAndLogin(t, server)
+	adminToken := createAdminAndLogin(t, server)
 
 	// Create target user
 	f := fixtures.NewUserFactory(server.DB)
@@ -87,7 +119,7 @@ func TestUserE2E_DeleteUser(t *testing.T) {
 	server := setup.SetupTestServer(t)
 	defer server.Cleanup()
 
-	adminToken := setup.CreateAdminAndLogin(t, server)
+	adminToken := createAdminAndLogin(t, server)
 
 	// Create user to delete
 	f := fixtures.NewUserFactory(server.DB)
@@ -106,8 +138,15 @@ func TestUserE2E_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("Negative - Delete Non-existent", func(t *testing.T) {
-		resp := server.Client.DELETE("/api/v1/users/nonexistent-id", setup.WithAuth(adminToken))
+		// Use a valid but non-existent UUID
+		nonExistentID := "00000000-0000-0000-0000-000000000000"
+		resp := server.Client.DELETE("/api/v1/users/"+nonExistentID, setup.WithAuth(adminToken))
 		assert.Equal(t, 404, resp.StatusCode)
+	})
+
+	t.Run("Negative - Invalid UUID", func(t *testing.T) {
+		resp := server.Client.DELETE("/api/v1/users/invalid-uuid", setup.WithAuth(adminToken))
+		assert.Equal(t, 422, resp.StatusCode)
 	})
 }
 
@@ -115,7 +154,7 @@ func TestUserE2E_UpdateStatus(t *testing.T) {
 	server := setup.SetupTestServer(t)
 	defer server.Cleanup()
 
-	adminToken := setup.CreateAdminAndLogin(t, server)
+	adminToken := createAdminAndLogin(t, server)
 
 	// Create user and get their token
 	f := fixtures.NewUserFactory(server.DB)

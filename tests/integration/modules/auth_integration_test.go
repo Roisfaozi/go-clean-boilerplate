@@ -45,19 +45,12 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis, presenceManager)
 	sseManager := sse.NewManager()
 
-	env.AddCloser(func() {
-		sseManager.Stop()
-		wsManager.Stop()
-	})
-
 	taskDistributor := worker.NewRedisTaskDistributor(asynq.RedisClientOpt{Addr: env.RedisAddr})
 
 	enforcer := env.Enforcer
 	logger := env.Logger
 
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
-
-	ticketManager := ws.NewRedisTicketManager(env.Redis, 30*time.Second)
 
 	return usecase.NewAuthUsecase(
 		5,              // MaxLoginAttempts
@@ -73,13 +66,13 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 		enforcer,
 		auditUC,
 		taskDistributor,
-		ticketManager,
 	)
 }
 
 func TestAuthIntegration_Login(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	authUC, _ := setupAuthIntegration(env)
 	password := "SecurePass123!"
@@ -170,6 +163,7 @@ func TestAuthIntegration_Login(t *testing.T) {
 func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	authUC, jwtManager := setupAuthIntegration(env)
 	password := "password123"
@@ -229,6 +223,7 @@ func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 func TestAuthIntegration_PasswordRecovery(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	authUC, _ := setupAuthIntegration(env)
 
@@ -268,6 +263,7 @@ func TestAuthIntegration_PasswordRecovery(t *testing.T) {
 func TestAuthIntegration_Security(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
+	setup.CleanupDatabase(t, env.DB)
 
 	authUC, _ := setupAuthIntegration(env)
 

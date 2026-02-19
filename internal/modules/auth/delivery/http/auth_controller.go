@@ -67,8 +67,6 @@ func (h *AuthController) Login(c *gin.Context) {
 
 	// Set refresh token in HttpOnly cookie
 	c.SetCookie("refresh_token", refreshToken, 3600*24*30, "/", "", false, true)
-	// Set access token in HttpOnly cookie (short lived)
-	c.SetCookie("access_token", res.AccessToken, int(res.ExpiresIn), "/", "", false, true)
 
 	response.Success(c, res)
 }
@@ -98,7 +96,6 @@ func (h *AuthController) RefreshToken(c *gin.Context) {
 	}
 
 	c.SetCookie("refresh_token", newRefreshToken, 3600*24*30, "/", "", false, true)
-	c.SetCookie("access_token", res.AccessToken, int(res.ExpiresIn), "/", "", false, true)
 	response.Success(c, res)
 }
 
@@ -129,7 +126,6 @@ func (h *AuthController) Logout(c *gin.Context) {
 	}
 
 	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
-	c.SetCookie("access_token", "", -1, "/", "", false, true)
 	response.Success(c, gin.H{"message": "logged out successfully"})
 }
 
@@ -297,131 +293,13 @@ func (h *AuthController) Register(c *gin.Context) {
 
 	res, refreshToken, err := h.AuthUseCase.Register(c.Request.Context(), req)
 	if err != nil {
-		h.log.WithContext(c.Request.Context()).Errorf("Register failed for user: %s\n with error: %v", req.Username, err)
+		h.log.WithContext(c.Request.Context()).Errorf("Register failed for user: %s", req.Username)
 		response.HandleError(c, err, "Register failed")
 		return
 	}
 
 	// Set refresh token in HttpOnly cookie
 	c.SetCookie("refresh_token", refreshToken, 3600*24*30, "/", "", false, true)
-	c.SetCookie("access_token", res.AccessToken, int(res.ExpiresIn), "/", "", false, true)
 
 	response.Created(c, res)
-}
-
-// Me godoc
-// @Summary      Get current user
-// @Description  Returns the currently authenticated user's information.
-// @Tags         auth
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
-// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
-// @Router       /auth/me [get]
-func (h *AuthController) Me(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-	username, _ := c.Get("username")
-	role, _ := c.Get("user_role")
-
-	if userID == nil {
-		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
-		return
-	}
-
-	response.Success(c, gin.H{
-		"user": gin.H{
-			"id":       userID,
-			"username": username,
-			"role":     role,
-		},
-	})
-}
-
-// GetTicket godoc
-// @Summary      Get WebSocket Ticket
-// @Description  Generates a one-time ticket for WebSocket authentication.
-// @Tags         auth
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
-// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
-// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/ticket [post]
-func (h *AuthController) GetTicket(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-	if userID == nil {
-		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
-		return
-	}
-
-	sessionID, _ := GetSessionIDFromContext(c)
-	role, _ := GetRoleFromContext(c)
-	username, _ := GetUsernameFromContext(c)
-
-	orgID := c.Query("org_id")
-	if orgID == "" {
-		orgID = c.Query("organization_id")
-	}
-
-	// If orgID is still empty, try checking if user has a default context or require it depending on logic.
-	// For now, we allow empty orgID if the ticket is just for connection, but usually we need context.
-	// However, the TicketManager supports storing it.
-
-	ticket, err := h.AuthUseCase.GetTicket(
-		c.Request.Context(),
-		userID.(string),
-		orgID,
-		sessionID,
-		role,
-		username,
-	)
-	if err != nil {
-		h.log.WithError(err).Error("Failed to generate WebSocket ticket")
-		response.InternalServerError(c, errors.New("failed to generate ticket"), "internal server error")
-		return
-	}
-
-	response.Success(c, gin.H{
-		"ticket":     ticket,
-		"expires_in": 30, // seconds
-	})
-}
-
-// Helper functions to get data from context safely (duplicated from middleware for now, or ensure middleware sets them)
-func GetSessionIDFromContext(c *gin.Context) (string, bool) {
-	sessionID, exists := c.Get("session_id")
-	if !exists {
-		return "", false
-	}
-	sessionIDStr, ok := sessionID.(string)
-	if !ok || sessionIDStr == "" {
-		return "", false
-	}
-	return sessionIDStr, true
-}
-
-func GetRoleFromContext(c *gin.Context) (string, bool) {
-	role, exists := c.Get("user_role")
-	if !exists {
-		return "", false
-	}
-	roleStr, ok := role.(string)
-	if !ok || roleStr == "" {
-		return "", false
-	}
-	return roleStr, true
-}
-
-func GetUsernameFromContext(c *gin.Context) (string, bool) {
-	username, exists := c.Get("username")
-	if !exists {
-		return "", false
-	}
-	usernameStr, ok := username.(string)
-	if !ok || usernameStr == "" {
-		return "", false
-	}
-	return usernameStr, true
 }

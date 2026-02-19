@@ -1,175 +1,185 @@
 package sse_test
 
 import (
+	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestSSE_ClientCount(t *testing.T) {
+func TestNewManager(t *testing.T) {
 	manager := sse.NewManager()
-	defer manager.Stop()
-
-	assert.Equal(t, 0, manager.ClientCount())
-
-	c1 := &sse.Client{Channel: make(chan sse.Event, 1)}
-	c2 := &sse.Client{Channel: make(chan sse.Event, 1)}
-
-	manager.RegisterClient(c1)
-	time.Sleep(50 * time.Millisecond) // wait for goroutine processing
-	assert.Equal(t, 1, manager.ClientCount())
-
-	manager.RegisterClient(c2)
-	time.Sleep(50 * time.Millisecond)
-	assert.Equal(t, 2, manager.ClientCount())
-
-	manager.UnregisterClient(c1)
-	time.Sleep(50 * time.Millisecond)
-	assert.Equal(t, 1, manager.ClientCount())
-
-	manager.UnregisterClient(c2)
-	time.Sleep(50 * time.Millisecond)
-	assert.Equal(t, 0, manager.ClientCount())
+	assert.NotNil(t, manager)
+	manager.Stop()
 }
 
-func TestSSE_BroadcastToMultipleClients(t *testing.T) {
+func TestManager_RegisterAndUnregister(t *testing.T) {
 	manager := sse.NewManager()
 	defer manager.Stop()
 
-	c1Chan := make(chan sse.Event, 1)
-	c2Chan := make(chan sse.Event, 1)
-	c1 := &sse.Client{Channel: c1Chan}
-	c2 := &sse.Client{Channel: c2Chan}
+	clientChan := make(chan sse.Event)
+	client := &sse.Client{Channel: clientChan}
 
-	manager.RegisterClient(c1)
-	manager.RegisterClient(c2)
-	time.Sleep(50 * time.Millisecond)
+	manager.RegisterClient(client)
 
-	manager.Broadcast("multi-event", map[string]string{"key": "value"})
-
-	// Both clients should receive the event
-	select {
-	case event := <-c1Chan:
-		assert.Equal(t, "multi-event", event.Name)
-	case <-time.After(200 * time.Millisecond):
-		t.Fatal("Client 1 did not receive broadcast")
+	// Wait for registration to process
+	for i := 0; i < 10; i++ {
+		if manager.ClientCount() == 1 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
-
-	select {
-	case event := <-c2Chan:
-		assert.Equal(t, "multi-event", event.Name)
-	case <-time.After(200 * time.Millisecond):
-		t.Fatal("Client 2 did not receive broadcast")
-	}
-}
-
-func TestSSE_SlowClientEviction(t *testing.T) {
-	manager := sse.NewManager()
-	defer manager.Stop()
-
-	// Use unbuffered channel to simulate a slow client
-	slowChan := make(chan sse.Event) // unbuffered - will block
-	slowClient := &sse.Client{Channel: slowChan}
-
-	fastChan := make(chan sse.Event, 10) // buffered - will not block
-	fastClient := &sse.Client{Channel: fastChan}
-
-	manager.RegisterClient(slowClient)
-	manager.RegisterClient(fastClient)
-	time.Sleep(50 * time.Millisecond)
-
-	assert.Equal(t, 2, manager.ClientCount())
-
-	// Broadcast - slow client's channel is full/blocking, should be evicted
-	manager.Broadcast("eviction-test", "data")
-	time.Sleep(100 * time.Millisecond)
-
-	// Fast client should get the message
-	select {
-	case event := <-fastChan:
-		assert.Equal(t, "eviction-test", event.Name)
-	case <-time.After(200 * time.Millisecond):
-		t.Fatal("Fast client should have received the event")
-	}
-
-	// Slow client should be evicted
 	assert.Equal(t, 1, manager.ClientCount())
-}
 
-func TestSSE_UnregisterNonExistentClient(t *testing.T) {
-	manager := sse.NewManager()
-	defer manager.Stop()
+	manager.UnregisterClient(client)
 
-	nonExistent := &sse.Client{Channel: make(chan sse.Event, 1)}
-
-	// Should not panic or error
-	manager.UnregisterClient(nonExistent)
-	time.Sleep(50 * time.Millisecond)
-
+	for i := 0; i < 10; i++ {
+		if manager.ClientCount() == 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 	assert.Equal(t, 0, manager.ClientCount())
 }
 
-func TestSSE_SetLogger(t *testing.T) {
-	manager := sse.NewManager()
-	defer manager.Stop()
-
-	customLogger := logrus.New()
-	customLogger.SetLevel(logrus.DebugLevel)
-
-	// Should not panic
-	manager.SetLogger(customLogger)
-}
-
-func TestSSE_BroadcastWithComplexData(t *testing.T) {
+func TestManager_Broadcast(t *testing.T) {
 	manager := sse.NewManager()
 	defer manager.Stop()
 
 	clientChan := make(chan sse.Event, 1)
 	client := &sse.Client{Channel: clientChan}
 	manager.RegisterClient(client)
+
 	time.Sleep(50 * time.Millisecond)
 
-	complexData := map[string]interface{}{
-		"user_id":   "u123",
-		"action":    "login",
-		"timestamp": 1234567890,
-		"nested":    map[string]string{"key": "val"},
-		"list":      []int{1, 2, 3},
-	}
-
-	manager.Broadcast("complex-event", complexData)
+	eventName := "test-event"
+	eventData := "hello"
+	manager.Broadcast(eventName, eventData)
 
 	select {
 	case event := <-clientChan:
-		assert.Equal(t, "complex-event", event.Name)
-		dataMap, ok := event.Data.(map[string]interface{})
-		require.True(t, ok)
-		assert.Equal(t, "u123", dataMap["user_id"])
-	case <-time.After(200 * time.Millisecond):
-		t.Fatal("Client did not receive complex broadcast")
+		assert.Equal(t, eventName, event.Name)
+		assert.Equal(t, eventData, event.Data)
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("Client did not receive broadcast message")
 	}
 }
 
-func TestSSE_BroadcastEmptyEventName(t *testing.T) {
+func TestManager_SetLogger(t *testing.T) {
 	manager := sse.NewManager()
 	defer manager.Stop()
 
-	clientChan := make(chan sse.Event, 1)
+	logger := logrus.New()
+	manager.SetLogger(logger)
+	// Just verify no panic
+	assert.NotNil(t, manager)
+}
+
+func TestManager_ServeHTTP(t *testing.T) {
+	manager := sse.NewManager()
+	defer manager.Stop()
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/events", manager.ServeHTTP())
+
+	server := httptest.NewServer(r)
+	defer server.Close()
+
+	// Connect to the server
+	client := &http.Client{
+		Timeout: 2 * time.Second, // Prevent hanging test
+	}
+	req, _ := http.NewRequest("GET", server.URL+"/events", nil)
+
+	// Create a context with cancellation to simulate client disconnect
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	req = req.WithContext(ctx)
+
+	// We start the request in a goroutine because it might block depending on how httptest/client behaves
+	// But actually client.Do returns as soon as headers are received for streaming?
+	// Standard http client waits for headers.
+
+	resp, err := client.Do(req)
+	assert.NoError(t, err)
+	if err != nil {
+		return
+	}
+	// Don't defer body close immediately, we want to read first
+
+	assert.Equal(t, "text/event-stream", resp.Header.Get("Content-Type"))
+
+	// Wait for registration
+	for i := 0; i < 20; i++ {
+		if manager.ClientCount() == 1 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	assert.Equal(t, 1, manager.ClientCount())
+
+	// Broadcast
+	manager.Broadcast("ping", "pong")
+
+	// Read from body
+	buf := make([]byte, 1024)
+	// Read should return at least some bytes when data arrives
+	n, err := resp.Body.Read(buf)
+	if err != nil && err != io.EOF {
+		t.Fatal(err)
+	}
+
+	data := string(buf[:n])
+	assert.Contains(t, data, "event: ping")
+	assert.Contains(t, data, "data: \"pong\"")
+
+	// Close response body to signal disconnect?
+	// Or cancel context.
+	_ = resp.Body.Close()
+	cancel()
+
+	// Verify cleanup
+	for i := 0; i < 20; i++ {
+		if manager.ClientCount() == 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	assert.Equal(t, 0, manager.ClientCount())
+}
+
+func TestManager_SlowClient(t *testing.T) {
+	manager := sse.NewManager()
+	defer manager.Stop()
+
+	// Create a client with unbuffered channel
+	clientChan := make(chan sse.Event)
 	client := &sse.Client{Channel: clientChan}
 	manager.RegisterClient(client)
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
-	manager.Broadcast("", "empty-name-data")
+	// Broadcast should not block even if client is not reading.
+	// The manager implementation uses a select with default to handle slow clients.
+	// Since channel is unbuffered and we don't read from it, the send will block,
+	// triggering the default case which removes the client.
+	manager.Broadcast("test", "data")
 
-	select {
-	case event := <-clientChan:
-		assert.Equal(t, "", event.Name)
-		assert.Equal(t, "empty-name-data", event.Data)
-	case <-time.After(200 * time.Millisecond):
-		t.Fatal("Client did not receive event with empty name")
+	// Wait for manager loop to process
+	for i := 0; i < 10; i++ {
+		if manager.ClientCount() == 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
+
+	// Client should be removed
+	assert.Equal(t, 0, manager.ClientCount())
 }

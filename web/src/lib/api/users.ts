@@ -7,7 +7,6 @@ export interface User {
   username: string;
   avatar_url?: string;
   status: string;
-  emailVerifiedAt?: number;
   created_at: number;
   updated_at: number;
 }

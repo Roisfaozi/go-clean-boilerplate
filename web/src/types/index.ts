@@ -30,13 +30,10 @@ export interface AuthState {
 
 export interface Project {
   id: string;
-  organization_id: string;
-  user_id: string;
   name: string;
   domain: string;
-  status: string;
-  created_at: number;
-  updated_at: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface SendOTPProps {

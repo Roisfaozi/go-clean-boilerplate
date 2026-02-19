@@ -39,7 +39,7 @@ export default function Testimonials() {
               className="flex flex-col rounded-2xl border border-slate-100 bg-slate-50 p-8 dark:border-slate-800 dark:bg-slate-900"
             >
               <p className="mb-8 text-lg text-slate-600 italic dark:text-slate-300">
-                &quot;{t.content}&quot;
+                "{t.content}"
               </p>
 
               <div className="mt-auto flex items-center gap-4">

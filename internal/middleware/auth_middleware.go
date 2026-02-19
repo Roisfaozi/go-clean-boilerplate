@@ -6,44 +6,39 @@ import (
 
 	authUsecase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
 type AuthMiddleware struct {
-	AuthUseCase   authUsecase.AuthUseCase
-	Log           *logrus.Logger
-	TicketManager ws.TicketManager
+	AuthUseCase authUsecase.AuthUseCase
+	Log         *logrus.Logger
 }
 
-func NewAuthMiddleware(authUseCase authUsecase.AuthUseCase, log *logrus.Logger, ticketManager ws.TicketManager) *AuthMiddleware {
+func NewAuthMiddleware(authUseCase authUsecase.AuthUseCase, log *logrus.Logger) *AuthMiddleware {
 	return &AuthMiddleware{
-		AuthUseCase:   authUseCase,
-		Log:           log,
-		TicketManager: ticketManager,
+		AuthUseCase: authUseCase,
+		Log:         log,
 	}
 }
 
 func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := ""
 		authHeader := c.GetHeader("Authorization")
-		if authHeader != "" {
-			parts := strings.Split(authHeader, " ")
-			if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
-				token = parts[1]
-			}
+		if authHeader == "" {
+			response.Unauthorized(c, errors.New("authorization header is required"), "unauthorized")
+			c.Abort()
+			return
 		}
 
-		// Fallback: Check for access_token cookie
-		if token == "" {
-			cookieToken, err := c.Cookie("access_token")
-			if err == nil && cookieToken != "" {
-				token = cookieToken
-			}
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+			response.Unauthorized(c, errors.New("invalid authorization header format"), "unauthorized")
+			c.Abort()
+			return
 		}
 
+		token := parts[1]
 		if token == "" {
 			response.Unauthorized(c, errors.New("token is required"), "unauthorized")
 			c.Abort()
@@ -76,37 +71,6 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 		c.Set("session_id", claims.SessionID)
 		c.Set("user_role", claims.Role)
 		c.Set("username", claims.Username)
-
-		c.Next()
-	}
-}
-
-func (m *AuthMiddleware) ValidateWebSocketToken() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ticket := c.Query("ticket")
-		if ticket == "" {
-			response.Unauthorized(c, errors.New("ticket is required"), "unauthorized")
-			c.Abort()
-			return
-		}
-
-		userCtx, err := m.TicketManager.ValidateTicket(c.Request.Context(), ticket)
-		if err != nil {
-			m.Log.WithError(err).Warn("Invalid or expired WebSocket ticket")
-			response.Unauthorized(c, errors.New("invalid or expired ticket"), "unauthorized")
-			c.Abort()
-			return
-		}
-
-		c.Set("user_id", userCtx.UserID)
-		c.Set("session_id", userCtx.SessionID)
-		c.Set("user_role", userCtx.Role)
-		c.Set("username", userCtx.Username)
-
-		// Context from ticket takes precedence.
-		if userCtx.OrganizationID != "" {
-			c.Set("organization_id", userCtx.OrganizationID)
-		}
 
 		c.Next()
 	}

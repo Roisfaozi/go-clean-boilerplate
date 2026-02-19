@@ -8,7 +8,6 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -20,20 +19,13 @@ type tokenRepositoryRedis struct {
 	db     *gorm.DB
 }
 
-func (r *tokenRepositoryRedis) getDB(ctx context.Context) *gorm.DB {
-	if txDB, ok := tx.DBFromContext(ctx); ok {
-		return txDB
-	}
-	return r.db.WithContext(ctx)
-}
-
 func (r *tokenRepositoryRedis) Save(ctx context.Context, token *entity.PasswordResetToken) error {
-	return r.getDB(ctx).Save(token).Error
+	return r.db.WithContext(ctx).Save(token).Error
 }
 
 func (r *tokenRepositoryRedis) FindByToken(ctx context.Context, token string) (*entity.PasswordResetToken, error) {
 	var resetToken entity.PasswordResetToken
-	err := r.getDB(ctx).Where("token = ?", token).First(&resetToken).Error
+	err := r.db.WithContext(ctx).Where("token = ?", token).First(&resetToken).Error
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +33,7 @@ func (r *tokenRepositoryRedis) FindByToken(ctx context.Context, token string) (*
 }
 
 func (r *tokenRepositoryRedis) DeleteByEmail(ctx context.Context, email string) error {
-	if err := r.getDB(ctx).Where("email = ?", email).Delete(&entity.PasswordResetToken{}).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("email = ?", email).Delete(&entity.PasswordResetToken{}).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("Failed to delete reset token by email")
 		return err
 	}
@@ -50,7 +42,7 @@ func (r *tokenRepositoryRedis) DeleteByEmail(ctx context.Context, email string) 
 
 func (r *tokenRepositoryRedis) DeleteExpiredResetTokens(ctx context.Context) error {
 	// Deletes tokens where expires_at < NOW()
-	if err := r.getDB(ctx).Where("expires_at < NOW()").Delete(&entity.PasswordResetToken{}).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("expires_at < NOW()").Delete(&entity.PasswordResetToken{}).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("Failed to delete expired reset tokens")
 		return err
 	}
@@ -165,12 +157,12 @@ func (r *tokenRepositoryRedis) getSessionKey(userID, sessionID string) string {
 // Email Verification Token Methods
 
 func (r *tokenRepositoryRedis) SaveVerificationToken(ctx context.Context, token *entity.EmailVerificationToken) error {
-	return r.getDB(ctx).Save(token).Error
+	return r.db.WithContext(ctx).Save(token).Error
 }
 
 func (r *tokenRepositoryRedis) FindVerificationToken(ctx context.Context, token string) (*entity.EmailVerificationToken, error) {
 	var verificationToken entity.EmailVerificationToken
-	err := r.getDB(ctx).Where("token = ?", token).First(&verificationToken).Error
+	err := r.db.WithContext(ctx).Where("token = ?", token).First(&verificationToken).Error
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +170,7 @@ func (r *tokenRepositoryRedis) FindVerificationToken(ctx context.Context, token 
 }
 
 func (r *tokenRepositoryRedis) DeleteVerificationTokenByEmail(ctx context.Context, email string) error {
-	if err := r.getDB(ctx).Where("email = ?", email).Delete(&entity.EmailVerificationToken{}).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("email = ?", email).Delete(&entity.EmailVerificationToken{}).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("Failed to delete verification token by email")
 		return err
 	}
