@@ -1315,3 +1315,59 @@ func TestRegister_Fail_EmailExists(t *testing.T) {
 	assert.Nil(t, loginResp)
 	assert.Empty(t, refreshToken)
 }
+
+func TestRegister_AuditError(t *testing.T) {
+	authService, deps := setupTest(t)
+	password := "password123"
+	req := model.RegisterRequest{
+		Username:  "newuser",
+		Email:     "new@example.com",
+		Password:  password,
+		Name:      "New User",
+	}
+
+	hashedBytes, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword := string(hashedBytes)
+
+	deps.userRepo.On("FindByUsername", mock.Anything, req.Username).Return(nil, gorm.ErrRecordNotFound).Once()
+	deps.userRepo.On("FindByEmail", mock.Anything, req.Email).Return(nil, gorm.ErrRecordNotFound)
+
+	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(context.Background())
+		}).Return(nil)
+
+	deps.userRepo.On("Create", mock.Anything, mock.Anything).Return(nil)
+	deps.enforcer.On("AddGroupingPolicy", mock.Anything, "role:user", "global").Return(true, nil)
+	deps.orgRepo.On("Create", mock.Anything, mock.Anything, "owner").Return(nil)
+
+    // Audit Log returns ERROR
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.Action == "REGISTER"
+	})).Return(errors.New("audit error"))
+
+	// Login implicit call
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, req.Username).Return(false, time.Duration(0), nil)
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, req.Username).Return(nil)
+
+	createdUser := &entity.User{
+		ID:       "new-user-id",
+		Username: req.Username,
+		Password: hashedPassword,
+		Status:   entity.UserStatusActive,
+	}
+	deps.userRepo.On("FindByUsername", mock.Anything, req.Username).Return(createdUser, nil)
+	deps.enforcer.On("GetRolesForUser", createdUser.ID, "global").Return([]string{"role:user"}, nil)
+	deps.tokenRepo.On("StoreToken", mock.Anything, mock.Anything).Return(nil)
+	deps.orgRepo.On("FindUserOrganizations", mock.Anything, createdUser.ID).Return([]*orgEntity.Organization{}, nil)
+
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.Action == "LOGIN"
+	})).Return(nil)
+
+	loginResp, _, err := authService.Register(context.Background(), req)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, loginResp)
+}

@@ -143,12 +143,14 @@ func (s *Service) Register(ctx context.Context, request model.RegisterRequest) (
 
 		// Audit Log
 		if s.auditUC != nil {
-			_ = s.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+			if err := s.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
 				UserID:   user.ID,
 				Action:   "REGISTER",
 				Entity:   "User",
 				EntityID: user.ID,
-			})
+			}); err != nil {
+				s.log.WithContext(txCtx).Warnf("Failed to log activity: %v", err)
+			}
 		}
 		return nil
 	})
@@ -234,14 +236,16 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 
 				// Audit Log: ACCOUNT_LOCKED
 				if s.auditUC != nil {
-					_ = s.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+					if err := s.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
 						UserID:    user.ID, // User ID is known since FindByUsername succeeded
 						Action:    "ACCOUNT_LOCKED",
 						Entity:    "User",
 						EntityID:  user.ID,
 						IPAddress: request.IPAddress,
 						UserAgent: request.UserAgent,
-					})
+					}); err != nil {
+						s.log.WithContext(txCtx).Warnf("Failed to log activity: %v", err)
+					}
 				}
 				return fmt.Errorf("%w: too many failed attempts", ErrAccountLocked)
 			}
@@ -600,35 +604,32 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 	}
 	user.Password = string(hashedPassword)
 
-	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+	return s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
 		if err := s.userRepo.Update(txCtx, user); err != nil {
 			return err
 		}
-		return s.tokenRepo.DeleteByEmail(txCtx, resetToken.Email)
-	})
-
-	if err != nil {
-		return err
-	}
-
-	if err := s.RevokeAllSessions(ctx, user.ID); err != nil {
-	s.log.WithContext(ctx).WithError(err).Error("Failed to revoke sessions after password reset")
-	// Returning an error makes the failure explicit, which is safer for a security-critical operation.
-	return fmt.Errorf("password reset successfully, but failed to revoke sessions: %w", err)
-	}
-
-	if s.auditUC != nil {
-		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
-			UserID:   user.ID,
-			Action:   "PASSWORD_RESET_SUCCESS",
-			Entity:   "User",
-			EntityID: user.ID,
-		}); err != nil {
-			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
+		if err := s.tokenRepo.DeleteByEmail(txCtx, resetToken.Email); err != nil {
+			return err
 		}
-	}
 
-	return nil
+		if err := s.RevokeAllSessions(txCtx, user.ID); err != nil {
+			s.log.WithContext(txCtx).WithError(err).Error("Failed to revoke sessions after password reset")
+			return fmt.Errorf("failed to revoke sessions: %w", err)
+		}
+
+		if s.auditUC != nil {
+			if err := s.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+				UserID:   user.ID,
+				Action:   "PASSWORD_RESET_SUCCESS",
+				Entity:   "User",
+				EntityID: user.ID,
+			}); err != nil {
+				s.log.WithContext(txCtx).Warnf("Failed to log activity: %v", err)
+			}
+		}
+
+		return nil
+	})
 }
 
 func (s *Service) RequestVerification(ctx context.Context, userID string) error {
