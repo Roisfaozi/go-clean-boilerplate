@@ -39,7 +39,9 @@ func setupControllerTest() *controllerTestDeps {
 	log.SetOutput(bytes.NewBuffer(nil)) // Discard logs
 
 	validate := validator.New()
-	validation.RegisterCustomValidations(validate)
+	if err := validation.RegisterCustomValidations(validate); err != nil {
+		panic(err)
+	}
 
 	deps.Controller = orgHttp.NewOrganizationController(deps.OrgUseCase, deps.MemberUseCase, log, validate)
 
