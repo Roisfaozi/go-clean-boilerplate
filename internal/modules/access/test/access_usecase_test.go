@@ -192,6 +192,29 @@ func TestDeleteAccessRight(t *testing.T) {
 		assert.ErrorIs(t, err, exception.ErrNotFound)
 		deps.Repo.AssertExpectations(t)
 	})
+
+	t.Run("Error - Internal Server Error (GetAccessRightByID)", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		repoErr := errors.New("db connection error")
+		deps.Repo.On("GetAccessRightByID", ctx, id).Return(nil, repoErr).Once()
+		err := uc.DeleteAccessRight(ctx, id)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		deps.Repo.AssertExpectations(t)
+	})
+
+	t.Run("Error - Internal Server Error (DeleteAccessRight)", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		deps.Repo.On("GetAccessRightByID", ctx, id).Return(&entity.AccessRight{ID: id}, nil).Once()
+		repoErr := errors.New("delete failed")
+		deps.Repo.On("DeleteAccessRight", ctx, id).Return(repoErr).Once()
+		err := uc.DeleteAccessRight(ctx, id)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		deps.Repo.AssertExpectations(t)
+	})
 }
 
 func TestDeleteEndpoint(t *testing.T) {
@@ -214,6 +237,17 @@ func TestDeleteEndpoint(t *testing.T) {
 		deps.Repo.On("DeleteEndpoint", ctx, id).Return(gorm.ErrRecordNotFound).Once()
 		err := uc.DeleteEndpoint(ctx, id)
 		assert.ErrorIs(t, err, exception.ErrNotFound)
+		deps.Repo.AssertExpectations(t)
+	})
+
+	t.Run("Error - Internal Server Error", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		repoErr := errors.New("delete failed")
+		deps.Repo.On("DeleteEndpoint", ctx, id).Return(repoErr).Once()
+		err := uc.DeleteEndpoint(ctx, id)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
 		deps.Repo.AssertExpectations(t)
 	})
 }

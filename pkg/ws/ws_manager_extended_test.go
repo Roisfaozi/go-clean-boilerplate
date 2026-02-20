@@ -257,7 +257,18 @@ func TestWebSocketManager_Channels_Getter(t *testing.T) {
     _, err = waitForMessage(conn, "info", "ch1")
     require.NoError(t, err)
 
-    channels := manager.Channels()
+    // Wait for subscription to be processed by manager
+    var channels map[string]map[*ws.Client]bool
+    for i := 0; i < 20; i++ {
+        channels = manager.Channels()
+        if _, ok := channels["ch1"]; ok && len(channels["ch1"]) == 1 {
+            break
+        }
+        time.Sleep(10 * time.Millisecond)
+    }
+
     assert.Contains(t, channels, "ch1")
-    assert.Equal(t, 1, len(channels["ch1"]))
+    if _, ok := channels["ch1"]; ok {
+        assert.Equal(t, 1, len(channels["ch1"]))
+    }
 }
