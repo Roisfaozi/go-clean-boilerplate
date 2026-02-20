@@ -12,6 +12,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -38,6 +39,7 @@ func setupControllerTest() *controllerTestDeps {
 	log.SetOutput(bytes.NewBuffer(nil)) // Discard logs
 
 	validate := validator.New()
+	validation.RegisterCustomValidations(validate)
 
 	deps.Controller = orgHttp.NewOrganizationController(deps.OrgUseCase, deps.MemberUseCase, log, validate)
 
