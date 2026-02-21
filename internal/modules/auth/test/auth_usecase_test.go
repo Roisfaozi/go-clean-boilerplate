@@ -785,6 +785,12 @@ func TestResetPassword_Failure_TransactionError(t *testing.T) {
 	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
 	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
 
+	// Mock RevokeAllSessions success (happens before Update)
+	deps.tokenRepo.On("RevokeAllSessions", mock.Anything, user.ID).Return(nil)
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.UserID == user.ID && req.Action == "REVOKE_ALL_SESSIONS"
+	})).Return(nil)
+
 	dbErr := errors.New("update failed")
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -798,7 +804,43 @@ func TestResetPassword_Failure_TransactionError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Equal(t, dbErr, err)
-	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
+	// AssertNotCalled for PASSWORD_RESET_SUCCESS, but REVOKE_ALL_SESSIONS was called
+	deps.auditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.Action == "PASSWORD_RESET_SUCCESS"
+	}))
+}
+
+func TestResetPassword_Failure_RevokeError(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+	token := "valid-token"
+	resetToken := &authEntity.PasswordResetToken{
+		Email:     user.Email,
+		Token:     token,
+		ExpiresAt: time.Now().Add(1 * time.Hour),
+	}
+
+	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
+
+	revokeErr := errors.New("revoke failed")
+	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(context.Background())
+		}).Return(revokeErr)
+
+	// Mock RevokeAllSessions failure
+	deps.tokenRepo.On("RevokeAllSessions", mock.Anything, user.ID).Return(revokeErr)
+	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.UserID == user.ID && req.Action == "REVOKE_ALL_SESSIONS"
+	})).Return(nil)
+
+	err := authService.ResetPassword(context.Background(), token, "new-strong-password-123")
+
+	assert.Error(t, err)
+	assert.Equal(t, revokeErr, err)
+	deps.userRepo.AssertNotCalled(t, "Update", mock.Anything)
 }
 
 func TestResetPassword_Failure_InvalidToken(t *testing.T) {
