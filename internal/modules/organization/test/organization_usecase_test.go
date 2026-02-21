@@ -143,6 +143,7 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 		deps, uc := setupOrganizationTest()
 		ctx := context.Background()
 		xssName := "<script>alert(1)</script>Org"
+		sanitizedName := "&lt;script&gt;alert(1)&lt;/script&gt;Org"
 		req := &model.CreateOrganizationRequest{Name: xssName, Slug: "xss-org"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -152,13 +153,13 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 
 		deps.OrgRepo.On("SlugExists", ctx, req.Slug).Return(false, nil)
 		deps.OrgRepo.On("Create", ctx, mock.MatchedBy(func(org *entity.Organization) bool {
-			return org.Name == xssName // Verify raw storage
+			return org.Name == sanitizedName
 		}), mock.Anything).Return(nil)
 		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
 		res, err := uc.CreateOrganization(ctx, "u1", req)
 		assert.NoError(t, err)
-		assert.Equal(t, xssName, res.Name)
+		assert.Equal(t, sanitizedName, res.Name)
 	})
 }
 
@@ -394,6 +395,7 @@ func TestOrganizationUseCase_DeleteOrganization(t *testing.T) {
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.OrgRepo.On("Delete", ctx, orgID).Return(nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 2, orgID).Return(true, nil)
 
 		err := uc.DeleteOrganization(ctx, orgID, userID)
 		assert.NoError(t, err)
@@ -460,6 +462,26 @@ func TestOrganizationUseCase_DeleteOrganization(t *testing.T) {
 		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(nil, errors.New("db error"))
 
 		err := uc.DeleteOrganization(ctx, "org-1", "user-1")
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+	})
+
+	t.Run("Policy Removal Error", func(t *testing.T) {
+		deps, uc := setupOrganizationTest()
+		ctx := context.Background()
+		orgID := "org-1"
+		userID := "owner-1"
+		org := &entity.Organization{ID: orgID, OwnerID: userID}
+
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(ctx)
+		}).Return(exception.ErrInternalServer)
+
+		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
+		deps.OrgRepo.On("Delete", ctx, orgID).Return(nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 2, orgID).Return(false, errors.New("casbin error"))
+
+		err := uc.DeleteOrganization(ctx, orgID, userID)
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
 	})
 }
