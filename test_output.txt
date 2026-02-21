@@ -1,0 +1,2106 @@
+Running unit tests (internal and pkg)...
+go test -v ./internal/... ./pkg/...
+=== RUN   TestNewConfig_DefaultValues
+2026/02/21 12:17:25 No .env file found, reading configuration from environment variables
+    config_test.go:31:
+		Error Trace:	/app/internal/config/config_test.go:31
+		Error:      	Not equal:
+				expected: false
+				actual  : true
+		Test:       	TestNewConfig_DefaultValues
+--- FAIL: TestNewConfig_DefaultValues (0.00s)
+=== RUN   TestNewConfig_JWTDurations
+2026/02/21 12:17:25 No .env file found, reading configuration from environment variables
+    config_test.go:44:
+		Error Trace:	/app/internal/config/config_test.go:44
+		Error:      	Not equal:
+				expected: 720h0m0s
+				actual  : 24h0m0s
+		Test:       	TestNewConfig_JWTDurations
+--- FAIL: TestNewConfig_JWTDurations (0.00s)
+=== RUN   TestNewConfig_SecurityDefaults
+2026/02/21 12:17:25 No .env file found, reading configuration from environment variables
+--- PASS: TestNewConfig_SecurityDefaults (0.00s)
+=== RUN   TestNewConfig_CircuitBreakerDefaults
+2026/02/21 12:17:25 No .env file found, reading configuration from environment variables
+--- PASS: TestNewConfig_CircuitBreakerDefaults (0.00s)
+=== RUN   TestNewConfig_MetricsAuthValidation
+2026/02/21 12:17:25 No .env file found, reading configuration from environment variables
+--- PASS: TestNewConfig_MetricsAuthValidation (0.00s)
+=== RUN   TestNewConfig_TrustedProxiesParsing
+2026/02/21 12:17:25 No .env file found, reading configuration from environment variables
+--- PASS: TestNewConfig_TrustedProxiesParsing (0.00s)
+=== RUN   TestNewConfig_CORSOriginsParsing
+2026/02/21 12:17:25 No .env file found, reading configuration from environment variables
+--- PASS: TestNewConfig_CORSOriginsParsing (0.00s)
+=== RUN   TestNewConfig_StorageDrivers
+2026/02/21 12:17:25 No .env file found, reading configuration from environment variables
+--- PASS: TestNewConfig_StorageDrivers (0.00s)
+=== RUN   TestNewConfig_Validation_RequiredFields
+2026/02/21 12:17:25 No .env file found, reading configuration from environment variables
+--- PASS: TestNewConfig_Validation_RequiredFields (0.00s)
+FAIL
+FAIL	github.com/Roisfaozi/go-clean-boilerplate/internal/config	0.061s
+=== RUN   TestCORSMiddleware_CanBeInstantiated
+--- PASS: TestCORSMiddleware_CanBeInstantiated (0.00s)
+=== RUN   TestCORSMiddleware_WithEmptyOrigins
+--- PASS: TestCORSMiddleware_WithEmptyOrigins (0.00s)
+=== RUN   TestCORSMiddleware_Wildcard_NoCredentials
+--- PASS: TestCORSMiddleware_Wildcard_NoCredentials (0.00s)
+=== RUN   TestCORSMiddleware_WithSpecificOrigins
+--- PASS: TestCORSMiddleware_WithSpecificOrigins (0.00s)
+=== RUN   TestCORSMiddleware_RequestWithoutOrigin
+--- PASS: TestCORSMiddleware_RequestWithoutOrigin (0.00s)
+=== RUN   TestCORSMiddleware_OptionsRequest
+--- PASS: TestCORSMiddleware_OptionsRequest (0.00s)
+=== RUN   TestCORSMiddleware_AllowedMethods
+=== RUN   TestCORSMiddleware_AllowedMethods/GET
+=== RUN   TestCORSMiddleware_AllowedMethods/POST
+=== RUN   TestCORSMiddleware_AllowedMethods/DELETE
+--- PASS: TestCORSMiddleware_AllowedMethods (0.00s)
+    --- PASS: TestCORSMiddleware_AllowedMethods/GET (0.00s)
+    --- PASS: TestCORSMiddleware_AllowedMethods/POST (0.00s)
+    --- PASS: TestCORSMiddleware_AllowedMethods/DELETE (0.00s)
+=== RUN   TestCORSMiddleware_WildcardOrigin_DisablesCredentials
+--- PASS: TestCORSMiddleware_WildcardOrigin_DisablesCredentials (0.00s)
+=== RUN   TestRateLimitMiddlewareMemory
+=== RUN   TestRateLimitMiddlewareMemory/Allow_requests_under_limit
+=== RUN   TestRateLimitMiddlewareMemory/Block_requests_over_limit
+--- PASS: TestRateLimitMiddlewareMemory (0.00s)
+    --- PASS: TestRateLimitMiddlewareMemory/Allow_requests_under_limit (0.00s)
+    --- PASS: TestRateLimitMiddlewareMemory/Block_requests_over_limit (0.00s)
+=== RUN   TestRateLimitMiddlewareRedis
+=== RUN   TestRateLimitMiddlewareRedis/Allow_requests
+=== RUN   TestRateLimitMiddlewareRedis/Block_requests
+time="2026-02-21T12:03:51Z" level=warning msg="Rate limit exceeded for ip:  (Count: 61, Limit: 60)"
+--- PASS: TestRateLimitMiddlewareRedis (0.00s)
+    --- PASS: TestRateLimitMiddlewareRedis/Allow_requests (0.00s)
+    --- PASS: TestRateLimitMiddlewareRedis/Block_requests (0.00s)
+=== RUN   TestRateLimitMemory_BurstBehavior
+--- PASS: TestRateLimitMemory_BurstBehavior (0.00s)
+=== RUN   TestRateLimitMemory_IPIsolation
+--- PASS: TestRateLimitMemory_IPIsolation (0.00s)
+=== RUN   TestRateLimitMemory_ResponseHeaders
+--- PASS: TestRateLimitMemory_ResponseHeaders (0.00s)
+=== RUN   TestRateLimitRedis_ScriptError
+time="2026-02-21T12:03:51Z" level=error msg="Rate limit redis error: redis error"
+--- PASS: TestRateLimitRedis_ScriptError (0.00s)
+=== RUN   TestRateLimitRedis_UserTypeLimiter
+--- PASS: TestRateLimitRedis_UserTypeLimiter (0.00s)
+=== RUN   TestRateLimitRedis_ExactLimitBoundary
+--- PASS: TestRateLimitRedis_ExactLimitBoundary (0.00s)
+=== RUN   TestRecoveryMiddleware_PanicRecovery
+--- PASS: TestRecoveryMiddleware_PanicRecovery (0.00s)
+=== RUN   TestRecoveryMiddleware_NoPanic
+--- PASS: TestRecoveryMiddleware_NoPanic (0.00s)
+=== RUN   TestRecoveryMiddleware_PanicWithRequestID
+--- PASS: TestRecoveryMiddleware_PanicWithRequestID (0.00s)
+=== RUN   TestRecoveryMiddleware_PanicNilError
+--- PASS: TestRecoveryMiddleware_PanicNilError (0.00s)
+=== RUN   TestRecoveryMiddleware_PanicDifferentTypes
+=== RUN   TestRecoveryMiddleware_PanicDifferentTypes/String_panic
+=== RUN   TestRecoveryMiddleware_PanicDifferentTypes/Int_panic
+=== RUN   TestRecoveryMiddleware_PanicDifferentTypes/Struct_panic
+--- PASS: TestRecoveryMiddleware_PanicDifferentTypes (0.00s)
+    --- PASS: TestRecoveryMiddleware_PanicDifferentTypes/String_panic (0.00s)
+    --- PASS: TestRecoveryMiddleware_PanicDifferentTypes/Int_panic (0.00s)
+    --- PASS: TestRecoveryMiddleware_PanicDifferentTypes/Struct_panic (0.00s)
+=== RUN   TestRequestLogger_LogsRequest
+--- PASS: TestRequestLogger_LogsRequest (0.00s)
+=== RUN   TestRequestLogger_LogsWithRequestID
+--- PASS: TestRequestLogger_LogsWithRequestID (0.00s)
+=== RUN   TestRequestLogger_LogsClientError
+--- PASS: TestRequestLogger_LogsClientError (0.00s)
+=== RUN   TestRequestLogger_LogsServerError
+--- PASS: TestRequestLogger_LogsServerError (0.00s)
+=== RUN   TestRequestLogger_LogsLatency
+--- PASS: TestRequestLogger_LogsLatency (0.00s)
+=== RUN   TestRequestLogger_LogsDataLength
+--- PASS: TestRequestLogger_LogsDataLength (0.00s)
+=== RUN   TestTenantMiddleware_RequireOrganization_Success
+--- PASS: TestTenantMiddleware_RequireOrganization_Success (0.00s)
+=== RUN   TestTenantMiddleware_RequireOrganization_MissingOrgHeader
+--- PASS: TestTenantMiddleware_RequireOrganization_MissingOrgHeader (0.00s)
+=== RUN   TestTenantMiddleware_RequireOrganization_NotAuthenticated
+--- PASS: TestTenantMiddleware_RequireOrganization_NotAuthenticated (0.00s)
+=== RUN   TestTenantMiddleware_RequireOrganization_NotMember
+--- PASS: TestTenantMiddleware_RequireOrganization_NotMember (0.00s)
+=== RUN   TestTenantMiddleware_RequireOrganization_SlugLookup
+--- PASS: TestTenantMiddleware_RequireOrganization_SlugLookup (0.00s)
+=== RUN   TestTenantMiddleware_RequireOrganization_OrgNotFound
+--- PASS: TestTenantMiddleware_RequireOrganization_OrgNotFound (0.00s)
+=== RUN   TestTenantMiddleware_RequireOrganization_Error
+time="2026-02-21T12:03:51Z" level=error msg="Failed to validate membership" error="reader error"
+--- PASS: TestTenantMiddleware_RequireOrganization_Error (0.00s)
+=== RUN   TestGetOrganizationIDFromContext
+=== RUN   TestGetOrganizationIDFromContext/exists_and_valid
+=== RUN   TestGetOrganizationIDFromContext/not_exists
+=== RUN   TestGetOrganizationIDFromContext/wrong_type
+--- PASS: TestGetOrganizationIDFromContext (0.00s)
+    --- PASS: TestGetOrganizationIDFromContext/exists_and_valid (0.00s)
+    --- PASS: TestGetOrganizationIDFromContext/not_exists (0.00s)
+    --- PASS: TestGetOrganizationIDFromContext/wrong_type (0.00s)
+=== RUN   TestInvalidateMembershipCache
+--- PASS: TestInvalidateMembershipCache (0.00s)
+=== RUN   TestUserStatusMiddleware_ActiveUser
+--- PASS: TestUserStatusMiddleware_ActiveUser (0.00s)
+=== RUN   TestUserStatusMiddleware_SuspendedUser
+--- PASS: TestUserStatusMiddleware_SuspendedUser (0.00s)
+=== RUN   TestUserStatusMiddleware_BannedUser
+--- PASS: TestUserStatusMiddleware_BannedUser (0.00s)
+=== RUN   TestUserStatusMiddleware_NoUserContext
+--- PASS: TestUserStatusMiddleware_NoUserContext (0.00s)
+=== RUN   TestUserStatusMiddleware_UserNotFoundInDB
+--- PASS: TestUserStatusMiddleware_UserNotFoundInDB (0.00s)
+=== RUN   TestUserStatusMiddleware_DatabaseError
+--- PASS: TestUserStatusMiddleware_DatabaseError (0.00s)
+=== RUN   TestAuthMiddleware_ValidToken
+--- PASS: TestAuthMiddleware_ValidToken (0.00s)
+=== RUN   TestAuthMiddleware_NoToken
+--- PASS: TestAuthMiddleware_NoToken (0.00s)
+=== RUN   TestAuthMiddleware_InvalidTokenFormat
+--- PASS: TestAuthMiddleware_InvalidTokenFormat (0.00s)
+=== RUN   TestAuthMiddleware_InvalidTokenSignature
+--- PASS: TestAuthMiddleware_InvalidTokenSignature (0.00s)
+=== RUN   TestAuthMiddleware_ExpiredToken
+--- PASS: TestAuthMiddleware_ExpiredToken (0.00s)
+=== RUN   TestAuthMiddleware_SessionRevoked
+--- PASS: TestAuthMiddleware_SessionRevoked (0.00s)
+=== RUN   TestAuthMiddleware_SessionVerifyError
+--- PASS: TestAuthMiddleware_SessionVerifyError (0.00s)
+=== RUN   TestAuthMiddleware_ContextSet
+--- PASS: TestAuthMiddleware_ContextSet (0.00s)
+=== RUN   TestCasbinMiddleware_Authorized
+--- PASS: TestCasbinMiddleware_Authorized (0.00s)
+=== RUN   TestCasbinMiddleware_Unauthorized
+--- PASS: TestCasbinMiddleware_Unauthorized (0.00s)
+=== RUN   TestCasbinMiddleware_EnforcerError
+--- PASS: TestCasbinMiddleware_EnforcerError (0.00s)
+=== RUN   TestCasbinMiddleware_NoRoleInContext
+--- PASS: TestCasbinMiddleware_NoRoleInContext (0.00s)
+=== RUN   TestSecurityMiddleware
+=== RUN   TestSecurityMiddleware/Headers_are_set_correctly
+--- PASS: TestSecurityMiddleware (0.00s)
+    --- PASS: TestSecurityMiddleware/Headers_are_set_correctly (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/middleware	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/mocking	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model	[no test files]
+=== RUN   TestAccessRepository_FindEndpointsDynamic
+=== RUN   TestAccessRepository_FindEndpointsDynamic/Method_GET
+=== RUN   TestAccessRepository_FindEndpointsDynamic/Path_contains_'users'
+--- PASS: TestAccessRepository_FindEndpointsDynamic (0.00s)
+    --- PASS: TestAccessRepository_FindEndpointsDynamic/Method_GET (0.00s)
+    --- PASS: TestAccessRepository_FindEndpointsDynamic/Path_contains_'users' (0.00s)
+=== RUN   TestAccessRepository_FindAccessRightsDynamic
+=== RUN   TestAccessRepository_FindAccessRightsDynamic/Name_contains_'User'
+--- PASS: TestAccessRepository_FindAccessRightsDynamic (0.02s)
+    --- PASS: TestAccessRepository_FindAccessRightsDynamic/Name_contains_'User' (0.00s)
+=== RUN   TestAccessRepository_CreateEndpoint
+=== RUN   TestAccessRepository_CreateEndpoint/Success
+=== RUN   TestAccessRepository_CreateEndpoint/Duplicate_ID_error
+--- PASS: TestAccessRepository_CreateEndpoint (0.02s)
+    --- PASS: TestAccessRepository_CreateEndpoint/Success (0.00s)
+    --- PASS: TestAccessRepository_CreateEndpoint/Duplicate_ID_error (0.00s)
+=== RUN   TestAccessRepository_GetEndpoints
+=== RUN   TestAccessRepository_GetEndpoints/Returns_all_endpoints
+=== RUN   TestAccessRepository_GetEndpoints/Empty_table_returns_empty_slice
+--- PASS: TestAccessRepository_GetEndpoints (0.01s)
+    --- PASS: TestAccessRepository_GetEndpoints/Returns_all_endpoints (0.00s)
+    --- PASS: TestAccessRepository_GetEndpoints/Empty_table_returns_empty_slice (0.00s)
+=== RUN   TestAccessRepository_GetEndpointByID
+=== RUN   TestAccessRepository_GetEndpointByID/Found
+=== RUN   TestAccessRepository_GetEndpointByID/Not_found
+--- PASS: TestAccessRepository_GetEndpointByID (0.01s)
+    --- PASS: TestAccessRepository_GetEndpointByID/Found (0.00s)
+    --- PASS: TestAccessRepository_GetEndpointByID/Not_found (0.00s)
+=== RUN   TestAccessRepository_DeleteEndpoint
+=== RUN   TestAccessRepository_DeleteEndpoint/Success
+=== RUN   TestAccessRepository_DeleteEndpoint/Delete_non-existent_does_not_error
+--- PASS: TestAccessRepository_DeleteEndpoint (0.01s)
+    --- PASS: TestAccessRepository_DeleteEndpoint/Success (0.00s)
+    --- PASS: TestAccessRepository_DeleteEndpoint/Delete_non-existent_does_not_error (0.00s)
+=== RUN   TestAccessRepository_CreateAccessRight
+=== RUN   TestAccessRepository_CreateAccessRight/Success
+=== RUN   TestAccessRepository_CreateAccessRight/Duplicate_ID_error
+--- PASS: TestAccessRepository_CreateAccessRight (0.01s)
+    --- PASS: TestAccessRepository_CreateAccessRight/Success (0.00s)
+    --- PASS: TestAccessRepository_CreateAccessRight/Duplicate_ID_error (0.00s)
+=== RUN   TestAccessRepository_GetAccessRights
+=== RUN   TestAccessRepository_GetAccessRights/Returns_all_with_preloaded_endpoints
+--- PASS: TestAccessRepository_GetAccessRights (0.01s)
+    --- PASS: TestAccessRepository_GetAccessRights/Returns_all_with_preloaded_endpoints (0.00s)
+=== RUN   TestAccessRepository_GetAccessRightByID
+=== RUN   TestAccessRepository_GetAccessRightByID/Found_with_preload
+=== RUN   TestAccessRepository_GetAccessRightByID/Not_found
+--- PASS: TestAccessRepository_GetAccessRightByID (0.01s)
+    --- PASS: TestAccessRepository_GetAccessRightByID/Found_with_preload (0.00s)
+    --- PASS: TestAccessRepository_GetAccessRightByID/Not_found (0.00s)
+=== RUN   TestAccessRepository_DeleteAccessRight
+=== RUN   TestAccessRepository_DeleteAccessRight/Success
+--- PASS: TestAccessRepository_DeleteAccessRight (0.01s)
+    --- PASS: TestAccessRepository_DeleteAccessRight/Success (0.00s)
+=== RUN   TestAccessRepository_LinkEndpointToAccessRight
+=== RUN   TestAccessRepository_LinkEndpointToAccessRight/Success
+--- PASS: TestAccessRepository_LinkEndpointToAccessRight (0.01s)
+    --- PASS: TestAccessRepository_LinkEndpointToAccessRight/Success (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository	(cached)
+=== RUN   TestAccessHandler_CreateAccessRight_Success
+--- PASS: TestAccessHandler_CreateAccessRight_Success (0.00s)
+=== RUN   TestAccessHandler_CreateAccessRight_InvalidBody
+--- PASS: TestAccessHandler_CreateAccessRight_InvalidBody (0.00s)
+=== RUN   TestAccessHandler_CreateAccessRight_ValidationErrors
+--- PASS: TestAccessHandler_CreateAccessRight_ValidationErrors (0.00s)
+=== RUN   TestAccessHandler_CreateAccessRight_UseCaseError
+--- PASS: TestAccessHandler_CreateAccessRight_UseCaseError (0.00s)
+=== RUN   TestAccessHandler_GetAllAccessRights_Success
+--- PASS: TestAccessHandler_GetAllAccessRights_Success (0.00s)
+=== RUN   TestAccessHandler_GetAllAccessRights_UseCaseError
+--- PASS: TestAccessHandler_GetAllAccessRights_UseCaseError (0.00s)
+=== RUN   TestAccessHandler_CreateEndpoint_Success
+--- PASS: TestAccessHandler_CreateEndpoint_Success (0.00s)
+=== RUN   TestAccessHandler_CreateEndpoint_InvalidBody
+--- PASS: TestAccessHandler_CreateEndpoint_InvalidBody (0.00s)
+=== RUN   TestAccessHandler_CreateEndpoint_ValidationErrors
+--- PASS: TestAccessHandler_CreateEndpoint_ValidationErrors (0.00s)
+=== RUN   TestAccessHandler_CreateEndpoint_UseCaseError
+--- PASS: TestAccessHandler_CreateEndpoint_UseCaseError (0.00s)
+=== RUN   TestAccessHandler_LinkEndpointToAccessRight_Success
+--- PASS: TestAccessHandler_LinkEndpointToAccessRight_Success (0.00s)
+=== RUN   TestAccessHandler_LinkEndpointToAccessRight_InvalidBody
+--- PASS: TestAccessHandler_LinkEndpointToAccessRight_InvalidBody (0.00s)
+=== RUN   TestAccessHandler_LinkEndpointToAccessRight_ValidationErrors
+--- PASS: TestAccessHandler_LinkEndpointToAccessRight_ValidationErrors (0.00s)
+=== RUN   TestAccessHandler_LinkEndpointToAccessRight_UseCaseError
+--- PASS: TestAccessHandler_LinkEndpointToAccessRight_UseCaseError (0.00s)
+=== RUN   TestAccessHandler_DeleteAccessRight_Success
+--- PASS: TestAccessHandler_DeleteAccessRight_Success (0.00s)
+=== RUN   TestAccessHandler_DeleteAccessRight_NotFound
+--- PASS: TestAccessHandler_DeleteAccessRight_NotFound (0.00s)
+=== RUN   TestAccessHandler_DeleteEndpoint_Success
+--- PASS: TestAccessHandler_DeleteEndpoint_Success (0.00s)
+=== RUN   TestAccessHandler_DeleteEndpoint_NotFound
+--- PASS: TestAccessHandler_DeleteEndpoint_NotFound (0.00s)
+=== RUN   TestAccessHandler_GetEndpointsDynamic_Success
+--- PASS: TestAccessHandler_GetEndpointsDynamic_Success (0.00s)
+=== RUN   TestAccessHandler_GetAccessRightsDynamic_Success
+--- PASS: TestAccessHandler_GetAccessRightsDynamic_Success (0.00s)
+=== RUN   TestAccessHandler_CreateAccessRight_XSS
+--- PASS: TestAccessHandler_CreateAccessRight_XSS (0.00s)
+=== RUN   TestAccessHandler_CreateEndpoint_XSS
+--- PASS: TestAccessHandler_CreateEndpoint_XSS (0.00s)
+=== RUN   TestCreateEndpoint_DuplicateDetection
+time="2026-02-21T12:03:53Z" level=error msg="Failed to create endpoint in repository" error="data already exists"
+--- PASS: TestCreateEndpoint_DuplicateDetection (0.00s)
+=== RUN   TestLinkEndpointToAccessRight_Duplicate
+time="2026-02-21T12:03:53Z" level=error msg="Failed to link endpoint to access right in repository" error="duplicate entry"
+--- PASS: TestLinkEndpointToAccessRight_Duplicate (0.00s)
+=== RUN   TestCreateAccessRight
+=== RUN   TestCreateAccessRight/Success_-_Create_Valid_Access_Right
+=== RUN   TestCreateAccessRight/Error_-_Repository_Create_Fails
+--- PASS: TestCreateAccessRight (0.00s)
+    --- PASS: TestCreateAccessRight/Success_-_Create_Valid_Access_Right (0.00s)
+    --- PASS: TestCreateAccessRight/Error_-_Repository_Create_Fails (0.00s)
+=== RUN   TestGetAllAccessRights
+=== RUN   TestGetAllAccessRights/Success_-_Has_Data
+=== RUN   TestGetAllAccessRights/Success_-_No_Data
+=== RUN   TestGetAllAccessRights/Error_-_Repository_Fails
+--- PASS: TestGetAllAccessRights (0.00s)
+    --- PASS: TestGetAllAccessRights/Success_-_Has_Data (0.00s)
+    --- PASS: TestGetAllAccessRights/Success_-_No_Data (0.00s)
+    --- PASS: TestGetAllAccessRights/Error_-_Repository_Fails (0.00s)
+=== RUN   TestCreateEndpoint
+=== RUN   TestCreateEndpoint/Success_-_Create_Valid_Endpoint
+=== RUN   TestCreateEndpoint/Error_-_Repository_Create_Fails
+--- PASS: TestCreateEndpoint (0.00s)
+    --- PASS: TestCreateEndpoint/Success_-_Create_Valid_Endpoint (0.00s)
+    --- PASS: TestCreateEndpoint/Error_-_Repository_Create_Fails (0.00s)
+=== RUN   TestLinkEndpointToAccessRight
+=== RUN   TestLinkEndpointToAccessRight/Success_-_Link_Valid_IDs
+=== RUN   TestLinkEndpointToAccessRight/Error_-_Repository_Fails
+--- PASS: TestLinkEndpointToAccessRight (0.00s)
+    --- PASS: TestLinkEndpointToAccessRight/Success_-_Link_Valid_IDs (0.00s)
+    --- PASS: TestLinkEndpointToAccessRight/Error_-_Repository_Fails (0.00s)
+=== RUN   TestDeleteAccessRight
+=== RUN   TestDeleteAccessRight/Success_-_Delete_Access_Right
+=== RUN   TestDeleteAccessRight/Error_-_Not_Found
+--- PASS: TestDeleteAccessRight (0.00s)
+    --- PASS: TestDeleteAccessRight/Success_-_Delete_Access_Right (0.00s)
+    --- PASS: TestDeleteAccessRight/Error_-_Not_Found (0.00s)
+=== RUN   TestDeleteEndpoint
+=== RUN   TestDeleteEndpoint/Success_-_Delete_Endpoint
+=== RUN   TestDeleteEndpoint/Error_-_Not_Found_(GORM_delete_behavior)
+--- PASS: TestDeleteEndpoint (0.00s)
+    --- PASS: TestDeleteEndpoint/Success_-_Delete_Endpoint (0.00s)
+    --- PASS: TestDeleteEndpoint/Error_-_Not_Found_(GORM_delete_behavior) (0.00s)
+=== RUN   TestAccessUseCase_GetEndpointsDynamic
+=== RUN   TestAccessUseCase_GetEndpointsDynamic/Success_-_Get_Endpoints_Dynamically
+=== RUN   TestAccessUseCase_GetEndpointsDynamic/Error_-_Repository_Error
+--- PASS: TestAccessUseCase_GetEndpointsDynamic (0.00s)
+    --- PASS: TestAccessUseCase_GetEndpointsDynamic/Success_-_Get_Endpoints_Dynamically (0.00s)
+    --- PASS: TestAccessUseCase_GetEndpointsDynamic/Error_-_Repository_Error (0.00s)
+=== RUN   TestAccessUseCase_GetAccessRightsDynamic
+=== RUN   TestAccessUseCase_GetAccessRightsDynamic/Success_-_Get_Access_Rights_Dynamically
+=== RUN   TestAccessUseCase_GetAccessRightsDynamic/Error_-_Repository_Error
+--- PASS: TestAccessUseCase_GetAccessRightsDynamic (0.00s)
+    --- PASS: TestAccessUseCase_GetAccessRightsDynamic/Success_-_Get_Access_Rights_Dynamically (0.00s)
+    --- PASS: TestAccessUseCase_GetAccessRightsDynamic/Error_-_Repository_Error (0.00s)
+=== RUN   TestCreateAccessRight_Sanitization
+--- PASS: TestCreateAccessRight_Sanitization (0.00s)
+=== RUN   TestCreateEndpoint_Sanitization
+--- PASS: TestCreateEndpoint_Sanitization (0.00s)
+=== RUN   TestCreateAccessRight_XSS
+=== RUN   TestCreateAccessRight_XSS/XSS_in_Name
+=== RUN   TestCreateAccessRight_XSS/XSS_in_Description
+=== RUN   TestCreateAccessRight_XSS/Safe_content
+--- PASS: TestCreateAccessRight_XSS (0.00s)
+    --- PASS: TestCreateAccessRight_XSS/XSS_in_Name (0.00s)
+    --- PASS: TestCreateAccessRight_XSS/XSS_in_Description (0.00s)
+    --- PASS: TestCreateAccessRight_XSS/Safe_content (0.00s)
+=== RUN   TestCreateEndpoint_XSS
+=== RUN   TestCreateEndpoint_XSS/XSS_in_Path
+=== RUN   TestCreateEndpoint_XSS/XSS_in_Method
+=== RUN   TestCreateEndpoint_XSS/Safe_content
+--- PASS: TestCreateEndpoint_XSS (0.00s)
+    --- PASS: TestCreateEndpoint_XSS/XSS_in_Path (0.00s)
+    --- PASS: TestCreateEndpoint_XSS/XSS_in_Method (0.00s)
+    --- PASS: TestCreateEndpoint_XSS/Safe_content (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/usecase	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository	[no test files]
+=== RUN   TestAuditController_Export_Serialization
+Setting up mock expectations...
+Calling controller.Export...
+Mock ExportLogs called!
+Iterator success
+Controller returned.
+--- PASS: TestAuditController_Export_Serialization (0.00s)
+=== RUN   TestAuditController_Export_CSVInjection
+--- PASS: TestAuditController_Export_CSVInjection (0.00s)
+=== RUN   TestAuditController_GetLogsDynamic_XSS
+--- PASS: TestAuditController_GetLogsDynamic_XSS (0.00s)
+=== RUN   TestAuditUseCase_LogActivity_CircularRef
+time="2026-02-21T12:03:55Z" level=warning msg="Failed to marshal audit log event: json: unsupported value: encountered a cycle via *test.CircularRefStruct"
+--- PASS: TestAuditUseCase_LogActivity_CircularRef (0.00s)
+=== RUN   TestAuditUseCase_LogActivity_LargePayload
+--- PASS: TestAuditUseCase_LogActivity_LargePayload (0.17s)
+=== RUN   TestGetLogsDynamicController
+=== RUN   TestGetLogsDynamicController/Success
+=== RUN   TestGetLogsDynamicController/Bind_Error
+=== RUN   TestGetLogsDynamicController/UseCase_Error
+--- PASS: TestGetLogsDynamicController (0.00s)
+    --- PASS: TestGetLogsDynamicController/Success (0.00s)
+    --- PASS: TestGetLogsDynamicController/Bind_Error (0.00s)
+    --- PASS: TestGetLogsDynamicController/UseCase_Error (0.00s)
+=== RUN   TestAuditRepository_Create
+=== RUN   TestAuditRepository_Create/Success_-_Create_Full_Audit_Log
+=== RUN   TestAuditRepository_Create/Success_-_Create_Partial_Log_(No_JSON_values)
+=== RUN   TestAuditRepository_Create/Edge_-_JSON_Injection_Safety
+=== RUN   TestAuditRepository_Create/Edge_-_Very_Long_UserAgent
+--- PASS: TestAuditRepository_Create (0.00s)
+    --- PASS: TestAuditRepository_Create/Success_-_Create_Full_Audit_Log (0.00s)
+    --- PASS: TestAuditRepository_Create/Success_-_Create_Partial_Log_(No_JSON_values) (0.00s)
+    --- PASS: TestAuditRepository_Create/Edge_-_JSON_Injection_Safety (0.00s)
+    --- PASS: TestAuditRepository_Create/Edge_-_Very_Long_UserAgent (0.00s)
+=== RUN   TestLogActivity
+=== RUN   TestLogActivity/Success_-_Positive_Case
+=== RUN   TestLogActivity/Edge_-_Nil_JSON_Values
+=== RUN   TestLogActivity/Negative_-_Repo_Error
+--- PASS: TestLogActivity (0.00s)
+    --- PASS: TestLogActivity/Success_-_Positive_Case (0.00s)
+    --- PASS: TestLogActivity/Edge_-_Nil_JSON_Values (0.00s)
+    --- PASS: TestLogActivity/Negative_-_Repo_Error (0.00s)
+=== RUN   TestGetLogsDynamic
+=== RUN   TestGetLogsDynamic/Success_-_Positive_Case
+=== RUN   TestGetLogsDynamic/Edge_-_Malformed_JSON_in_DB
+=== RUN   TestGetLogsDynamic/Negative_-_Repo_Error
+--- PASS: TestGetLogsDynamic (0.00s)
+    --- PASS: TestGetLogsDynamic/Success_-_Positive_Case (0.00s)
+    --- PASS: TestGetLogsDynamic/Edge_-_Malformed_JSON_in_DB (0.00s)
+    --- PASS: TestGetLogsDynamic/Negative_-_Repo_Error (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model	[no test files]
+=== RUN   TestTokenRepository_StoreToken
+    token_repository_test.go:72: Skipping StoreToken success test due to time.Until dependency
+--- SKIP: TestTokenRepository_StoreToken (0.00s)
+=== RUN   TestTokenRepository_StoreToken_RedisError
+    token_repository_test.go:102: Skipping StoreToken error test due to time dependency
+--- SKIP: TestTokenRepository_StoreToken_RedisError (0.00s)
+=== RUN   TestTokenRepository_Save
+--- PASS: TestTokenRepository_Save (0.00s)
+=== RUN   TestTokenRepository_FindByToken
+--- PASS: TestTokenRepository_FindByToken (0.00s)
+=== RUN   TestTokenRepository_DeleteByEmail
+--- PASS: TestTokenRepository_DeleteByEmail (0.00s)
+=== RUN   TestTokenRepository_GetUserSessions
+--- PASS: TestTokenRepository_GetUserSessions (0.00s)
+=== RUN   TestTokenRepository_RevokeAllSessions
+--- PASS: TestTokenRepository_RevokeAllSessions (0.00s)
+=== RUN   TestTokenRepository_GetToken
+--- PASS: TestTokenRepository_GetToken (0.00s)
+=== RUN   TestTokenRepository_GetToken_NotFound
+--- PASS: TestTokenRepository_GetToken_NotFound (0.00s)
+=== RUN   TestTokenRepository_GetToken_RedisError
+--- PASS: TestTokenRepository_GetToken_RedisError (0.00s)
+=== RUN   TestTokenRepository_DeleteToken
+--- PASS: TestTokenRepository_DeleteToken (0.00s)
+=== RUN   TestTokenRepository_DeleteToken_RedisError
+--- PASS: TestTokenRepository_DeleteToken_RedisError (0.00s)
+=== RUN   TestTokenRepository_GetLoginAttempts
+--- PASS: TestTokenRepository_GetLoginAttempts (0.00s)
+=== RUN   TestTokenRepository_IncrementLoginAttempts
+--- PASS: TestTokenRepository_IncrementLoginAttempts (0.00s)
+=== RUN   TestTokenRepository_ResetLoginAttempts
+--- PASS: TestTokenRepository_ResetLoginAttempts (0.00s)
+=== RUN   TestTokenRepository_LockAccount
+--- PASS: TestTokenRepository_LockAccount (0.00s)
+=== RUN   TestTokenRepository_IsAccountLocked
+--- PASS: TestTokenRepository_IsAccountLocked (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository	(cached)
+=== RUN   TestForgotPassword_TimingDifference_Repro
+    auth_timing_repro_test.go:53: Duration Found: 50.920536ms
+    auth_timing_repro_test.go:54: Duration Not Found: 35.493322ms
+    auth_timing_repro_test.go:59: Duration Found: 50.920536ms
+    auth_timing_repro_test.go:60: Duration Not Found: 35.493322ms
+    auth_timing_repro_test.go:65: Vulnerability Fixed: 'User Not Found' took enough time to mask the difference
+--- PASS: TestForgotPassword_TimingDifference_Repro (0.25s)
+=== RUN   TestAuthUseCase_Edge_UnicodeInUsername
+--- PASS: TestAuthUseCase_Edge_UnicodeInUsername (0.25s)
+=== RUN   TestAuthUseCase_Edge_LongUsername
+--- PASS: TestAuthUseCase_Edge_LongUsername (0.25s)
+=== RUN   TestAuthUseCase_Vulnerability_SQLInjectionInUsername
+--- PASS: TestAuthUseCase_Vulnerability_SQLInjectionInUsername (0.17s)
+=== RUN   TestAuthUseCase_Failure_GenerateAndStoreTokenPairError
+--- PASS: TestAuthUseCase_Failure_GenerateAndStoreTokenPairError (0.25s)
+=== RUN   TestAuthUseCase_Login_AccountLockingLogic
+=== RUN   TestAuthUseCase_Login_AccountLockingLogic/Increment_attempts_but_do_not_lock
+=== RUN   TestAuthUseCase_Login_AccountLockingLogic/Increment_attempts_and_lock_account
+--- PASS: TestAuthUseCase_Login_AccountLockingLogic (0.33s)
+    --- PASS: TestAuthUseCase_Login_AccountLockingLogic/Increment_attempts_but_do_not_lock (0.08s)
+    --- PASS: TestAuthUseCase_Login_AccountLockingLogic/Increment_attempts_and_lock_account (0.08s)
+=== RUN   TestAuthUseCase_ResetPassword_Edge_LongPassword
+--- PASS: TestAuthUseCase_ResetPassword_Edge_LongPassword (0.08s)
+=== RUN   TestAuthUseCase_ForgotPassword_Edge_EmailDistributorFailure
+--- PASS: TestAuthUseCase_ForgotPassword_Edge_EmailDistributorFailure (0.08s)
+=== RUN   TestLogin_Concurrent_MultipleFailedAttempts
+--- PASS: TestLogin_Concurrent_MultipleFailedAttempts (0.47s)
+=== RUN   TestLogin_Concurrent_AccountLockAtThreshold
+--- PASS: TestLogin_Concurrent_AccountLockAtThreshold (0.25s)
+=== RUN   TestRefreshToken_SessionCleanupFailure
+--- PASS: TestRefreshToken_SessionCleanupFailure (0.17s)
+=== RUN   TestRefreshToken_ExpiredButOrphanedSession
+--- PASS: TestRefreshToken_ExpiredButOrphanedSession (0.17s)
+=== RUN   TestValidateAccessToken_ReplayAttack_SameTokenAfterRefresh
+--- PASS: TestValidateAccessToken_ReplayAttack_SameTokenAfterRefresh (0.17s)
+=== RUN   TestValidateRefreshToken_ReplayAttack_SameTokenAfterRefresh
+--- PASS: TestValidateRefreshToken_ReplayAttack_SameTokenAfterRefresh (0.16s)
+=== RUN   TestVerifyEmail_TokenReplay_SameTokenTwice
+--- PASS: TestVerifyEmail_TokenReplay_SameTokenTwice (0.17s)
+=== RUN   TestValidateAccessToken_Concurrent_MultipleGoroutines
+--- PASS: TestValidateAccessToken_Concurrent_MultipleGoroutines (0.17s)
+=== RUN   TestLogin_NilEnforcer
+--- PASS: TestLogin_NilEnforcer (0.25s)
+=== RUN   TestLogin_NilAuditUC
+--- PASS: TestLogin_NilAuditUC (0.25s)
+=== RUN   TestResetPassword_SessionRevocation
+--- PASS: TestResetPassword_SessionRevocation (0.25s)
+=== RUN   TestLogin_Success
+--- PASS: TestLogin_Success (0.25s)
+=== RUN   TestLogin_Failure_UserNotFound
+--- PASS: TestLogin_Failure_UserNotFound (0.17s)
+=== RUN   TestLogin_Failure_InvalidPassword
+--- PASS: TestLogin_Failure_InvalidPassword (0.25s)
+=== RUN   TestLogin_Failure_StoreTokenError
+--- PASS: TestLogin_Failure_StoreTokenError (0.25s)
+=== RUN   TestLogin_EnforcerError
+--- PASS: TestLogin_EnforcerError (0.25s)
+=== RUN   TestLogin_AuditError
+--- PASS: TestLogin_AuditError (0.25s)
+=== RUN   TestLogin_Security_BruteForceProtection
+=== RUN   TestLogin_Security_BruteForceProtection/Should_lock_account_immediately_if_max_attempts_reached
+--- PASS: TestLogin_Security_BruteForceProtection (0.33s)
+    --- PASS: TestLogin_Security_BruteForceProtection/Should_lock_account_immediately_if_max_attempts_reached (0.08s)
+=== RUN   TestRefreshToken_Success
+--- PASS: TestRefreshToken_Success (0.16s)
+=== RUN   TestRefreshToken_EnforcerError
+--- PASS: TestRefreshToken_EnforcerError (0.16s)
+=== RUN   TestRefreshToken_Failure_InvalidToken
+--- PASS: TestRefreshToken_Failure_InvalidToken (0.08s)
+=== RUN   TestRefreshToken_Failure_UserNotFound
+--- PASS: TestRefreshToken_Failure_UserNotFound (0.16s)
+=== RUN   TestValidateAccessToken_Success
+--- PASS: TestValidateAccessToken_Success (0.16s)
+=== RUN   TestValidateAccessToken_Failure_Expired
+--- PASS: TestValidateAccessToken_Failure_Expired (0.08s)
+=== RUN   TestValidateAccessToken_Failure_TokenRevoked
+--- PASS: TestValidateAccessToken_Failure_TokenRevoked (0.17s)
+=== RUN   TestValidateAccessToken_Failure_Mismatch
+--- PASS: TestValidateAccessToken_Failure_Mismatch (0.17s)
+=== RUN   TestRevokeToken_Success
+--- PASS: TestRevokeToken_Success (0.08s)
+=== RUN   TestRevokeToken_AuditError
+--- PASS: TestRevokeToken_AuditError (0.08s)
+=== RUN   TestVerify_Success
+--- PASS: TestVerify_Success (0.08s)
+=== RUN   TestGetUserSessions_Success
+--- PASS: TestGetUserSessions_Success (0.08s)
+=== RUN   TestRevokeAllSessions_Success
+--- PASS: TestRevokeAllSessions_Success (0.08s)
+=== RUN   TestRevokeAllSessions_AuditError
+--- PASS: TestRevokeAllSessions_AuditError (0.08s)
+=== RUN   TestGenerateAccessToken_Success
+--- PASS: TestGenerateAccessToken_Success (0.16s)
+=== RUN   TestGenerateAccessToken_EnforcerError
+--- PASS: TestGenerateAccessToken_EnforcerError (0.16s)
+=== RUN   TestGenerateRefreshToken_Success
+--- PASS: TestGenerateRefreshToken_Success (0.17s)
+=== RUN   TestGenerateRefreshToken_EnforcerError
+--- PASS: TestGenerateRefreshToken_EnforcerError (0.17s)
+=== RUN   TestForgotPassword_Success
+--- PASS: TestForgotPassword_Success (0.16s)
+=== RUN   TestForgotPassword_UserNotFound_Security_EnumPrevention
+--- PASS: TestForgotPassword_UserNotFound_Security_EnumPrevention (0.12s)
+=== RUN   TestForgotPassword_Failure_RepositoryError
+--- PASS: TestForgotPassword_Failure_RepositoryError (0.17s)
+=== RUN   TestLogin_Failure_UserSuspended
+--- PASS: TestLogin_Failure_UserSuspended (0.25s)
+=== RUN   TestRefreshToken_Failure_UserSuspended
+--- PASS: TestRefreshToken_Failure_UserSuspended (0.16s)
+=== RUN   TestForgotPassword_DistributeTaskError
+--- PASS: TestForgotPassword_DistributeTaskError (0.16s)
+=== RUN   TestForgotPassword_AuditError
+--- PASS: TestForgotPassword_AuditError (0.16s)
+=== RUN   TestResetPassword_Success
+--- PASS: TestResetPassword_Success (0.25s)
+=== RUN   TestResetPassword_Failure_TransactionError
+--- PASS: TestResetPassword_Failure_TransactionError (0.25s)
+=== RUN   TestResetPassword_Failure_RevokeError
+--- PASS: TestResetPassword_Failure_RevokeError (0.25s)
+=== RUN   TestResetPassword_Failure_InvalidToken
+--- PASS: TestResetPassword_Failure_InvalidToken (0.08s)
+=== RUN   TestResetPassword_Failure_ExpiredToken
+--- PASS: TestResetPassword_Failure_ExpiredToken (0.08s)
+=== RUN   TestResetPassword_Failure_UserDeleted
+--- PASS: TestResetPassword_Failure_UserDeleted (0.08s)
+=== RUN   TestResetPassword_AuditError
+--- PASS: TestResetPassword_AuditError (0.25s)
+=== RUN   TestValidateRefreshToken_Success
+--- PASS: TestValidateRefreshToken_Success (0.16s)
+=== RUN   TestValidateRefreshToken_Failure_Expired
+--- PASS: TestValidateRefreshToken_Failure_Expired (0.08s)
+=== RUN   TestValidateRefreshToken_Failure_Revoked
+--- PASS: TestValidateRefreshToken_Failure_Revoked (0.16s)
+=== RUN   TestLogin_Success_NoRoles
+--- PASS: TestLogin_Success_NoRoles (0.25s)
+=== RUN   TestRequestVerification_Success
+--- PASS: TestRequestVerification_Success (0.17s)
+=== RUN   TestRequestVerification_UserNotFound
+--- PASS: TestRequestVerification_UserNotFound (0.08s)
+=== RUN   TestRequestVerification_AlreadyVerified
+--- PASS: TestRequestVerification_AlreadyVerified (0.16s)
+=== RUN   TestRequestVerification_SaveTokenError
+--- PASS: TestRequestVerification_SaveTokenError (0.17s)
+=== RUN   TestRequestVerification_DistributeTaskError
+--- PASS: TestRequestVerification_DistributeTaskError (0.17s)
+=== RUN   TestVerifyEmail_Success
+--- PASS: TestVerifyEmail_Success (0.17s)
+=== RUN   TestVerifyEmail_InvalidToken
+--- PASS: TestVerifyEmail_InvalidToken (0.08s)
+=== RUN   TestVerifyEmail_ExpiredToken
+--- PASS: TestVerifyEmail_ExpiredToken (0.08s)
+=== RUN   TestVerifyEmail_UserNotFound
+--- PASS: TestVerifyEmail_UserNotFound (0.08s)
+=== RUN   TestVerifyEmail_AlreadyVerified
+--- PASS: TestVerifyEmail_AlreadyVerified (0.17s)
+=== RUN   TestVerifyEmail_TransactionError
+--- PASS: TestVerifyEmail_TransactionError (0.17s)
+=== RUN   TestRegister_Success
+--- PASS: TestRegister_Success (0.33s)
+=== RUN   TestRegister_Fail_UsernameExists
+--- PASS: TestRegister_Fail_UsernameExists (0.08s)
+=== RUN   TestRegister_Fail_EmailExists
+--- PASS: TestRegister_Fail_EmailExists (0.08s)
+=== RUN   TestAuthUseCase_RequestVerification_Success
+--- PASS: TestAuthUseCase_RequestVerification_Success (0.08s)
+=== RUN   TestAuthUseCase_RequestVerification_UserNotFound
+--- PASS: TestAuthUseCase_RequestVerification_UserNotFound (0.08s)
+=== RUN   TestAuthUseCase_RequestVerification_AlreadyVerified
+--- PASS: TestAuthUseCase_RequestVerification_AlreadyVerified (0.08s)
+=== RUN   TestAuthUseCase_RequestVerification_TokenGenerationError
+--- PASS: TestAuthUseCase_RequestVerification_TokenGenerationError (0.08s)
+=== RUN   TestAuthUseCase_RequestVerification_TaskDistributorError
+--- PASS: TestAuthUseCase_RequestVerification_TaskDistributorError (0.08s)
+=== RUN   TestAuthUseCase_RequestVerification_EmptyUserID
+--- PASS: TestAuthUseCase_RequestVerification_EmptyUserID (0.08s)
+=== RUN   TestAuthUseCase_VerifyEmail_Success
+--- PASS: TestAuthUseCase_VerifyEmail_Success (0.08s)
+=== RUN   TestAuthUseCase_VerifyEmail_InvalidToken
+--- PASS: TestAuthUseCase_VerifyEmail_InvalidToken (0.08s)
+=== RUN   TestAuthUseCase_VerifyEmail_ExpiredToken
+--- PASS: TestAuthUseCase_VerifyEmail_ExpiredToken (0.08s)
+=== RUN   TestAuthUseCase_VerifyEmail_UserNotFound
+--- PASS: TestAuthUseCase_VerifyEmail_UserNotFound (0.08s)
+=== RUN   TestAuthUseCase_VerifyEmail_DatabaseUpdateError
+--- PASS: TestAuthUseCase_VerifyEmail_DatabaseUpdateError (0.08s)
+=== RUN   TestAuthUseCase_VerifyEmail_AlreadyVerified
+--- PASS: TestAuthUseCase_VerifyEmail_AlreadyVerified (0.08s)
+=== RUN   TestRepro
+--- PASS: TestRepro (0.08s)
+=== RUN   TestAuthHandler_Login_Success
+--- PASS: TestAuthHandler_Login_Success (0.00s)
+=== RUN   TestAuthHandler_ForgotPassword_Success
+--- PASS: TestAuthHandler_ForgotPassword_Success (0.00s)
+=== RUN   TestAuthHandler_ForgotPassword_InvalidBody
+--- PASS: TestAuthHandler_ForgotPassword_InvalidBody (0.00s)
+=== RUN   TestAuthHandler_ForgotPassword_ValidationError
+--- PASS: TestAuthHandler_ForgotPassword_ValidationError (0.00s)
+=== RUN   TestAuthHandler_ForgotPassword_UseCaseError
+--- PASS: TestAuthHandler_ForgotPassword_UseCaseError (0.00s)
+=== RUN   TestAuthHandler_ResetPassword_Success
+--- PASS: TestAuthHandler_ResetPassword_Success (0.00s)
+=== RUN   TestAuthHandler_ResetPassword_InvalidBody
+--- PASS: TestAuthHandler_ResetPassword_InvalidBody (0.00s)
+=== RUN   TestAuthHandler_ResetPassword_ValidationError
+--- PASS: TestAuthHandler_ResetPassword_ValidationError (0.00s)
+=== RUN   TestAuthHandler_ResetPassword_UseCaseError
+--- PASS: TestAuthHandler_ResetPassword_UseCaseError (0.00s)
+=== RUN   TestAuthHandler_Logout_Success
+--- PASS: TestAuthHandler_Logout_Success (0.00s)
+=== RUN   TestAuthHandler_Login_UseCaseError
+--- PASS: TestAuthHandler_Login_UseCaseError (0.00s)
+=== RUN   TestAuthHandler_RefreshToken_Success
+--- PASS: TestAuthHandler_RefreshToken_Success (0.00s)
+=== RUN   TestAuthHandler_RefreshToken_NoCookie
+--- PASS: TestAuthHandler_RefreshToken_NoCookie (0.00s)
+=== RUN   TestAuthHandler_RefreshToken_UseCaseError
+--- PASS: TestAuthHandler_RefreshToken_UseCaseError (0.00s)
+=== RUN   TestAuthHandler_Logout_Unauthorized
+--- PASS: TestAuthHandler_Logout_Unauthorized (0.00s)
+=== RUN   TestAuthHandler_Logout_UseCaseError
+--- PASS: TestAuthHandler_Logout_UseCaseError (0.00s)
+=== RUN   TestAuthHandler_VerifyEmail_Success
+--- PASS: TestAuthHandler_VerifyEmail_Success (0.00s)
+=== RUN   TestAuthHandler_VerifyEmail_InvalidBody
+--- PASS: TestAuthHandler_VerifyEmail_InvalidBody (0.00s)
+=== RUN   TestAuthHandler_VerifyEmail_ValidationError
+--- PASS: TestAuthHandler_VerifyEmail_ValidationError (0.00s)
+=== RUN   TestAuthHandler_VerifyEmail_UseCaseError
+--- PASS: TestAuthHandler_VerifyEmail_UseCaseError (0.00s)
+=== RUN   TestAuthHandler_ResendVerification_Success
+--- PASS: TestAuthHandler_ResendVerification_Success (0.00s)
+=== RUN   TestAuthHandler_ResendVerification_Unauthenticated
+--- PASS: TestAuthHandler_ResendVerification_Unauthenticated (0.00s)
+=== RUN   TestAuthHandler_ResendVerification_AlreadyVerified
+--- PASS: TestAuthHandler_ResendVerification_AlreadyVerified (0.00s)
+=== RUN   TestAuthController_Login_XSS
+--- PASS: TestAuthController_Login_XSS (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model/converter	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository	[no test files]
+=== RUN   TestOrganizationController_CreateOrganization
+=== RUN   TestOrganizationController_CreateOrganization/Success
+=== RUN   TestOrganizationController_CreateOrganization/Conflict
+=== RUN   TestOrganizationController_CreateOrganization/Internal_Error
+--- PASS: TestOrganizationController_CreateOrganization (0.00s)
+    --- PASS: TestOrganizationController_CreateOrganization/Success (0.00s)
+    --- PASS: TestOrganizationController_CreateOrganization/Conflict (0.00s)
+    --- PASS: TestOrganizationController_CreateOrganization/Internal_Error (0.00s)
+=== RUN   TestOrganizationController_GetOrganization
+=== RUN   TestOrganizationController_GetOrganization/Success
+=== RUN   TestOrganizationController_GetOrganization/Not_Found
+--- PASS: TestOrganizationController_GetOrganization (0.00s)
+    --- PASS: TestOrganizationController_GetOrganization/Success (0.00s)
+    --- PASS: TestOrganizationController_GetOrganization/Not_Found (0.00s)
+=== RUN   TestOrganizationController_GetOrganizationBySlug
+=== RUN   TestOrganizationController_GetOrganizationBySlug/Success
+=== RUN   TestOrganizationController_GetOrganizationBySlug/Not_Found
+--- PASS: TestOrganizationController_GetOrganizationBySlug (0.00s)
+    --- PASS: TestOrganizationController_GetOrganizationBySlug/Success (0.00s)
+    --- PASS: TestOrganizationController_GetOrganizationBySlug/Not_Found (0.00s)
+=== RUN   TestOrganizationController_UpdateOrganization
+=== RUN   TestOrganizationController_UpdateOrganization/Success
+=== RUN   TestOrganizationController_UpdateOrganization/Not_Found
+--- PASS: TestOrganizationController_UpdateOrganization (0.00s)
+    --- PASS: TestOrganizationController_UpdateOrganization/Success (0.00s)
+    --- PASS: TestOrganizationController_UpdateOrganization/Not_Found (0.00s)
+=== RUN   TestOrganizationController_DeleteOrganization
+=== RUN   TestOrganizationController_DeleteOrganization/Success
+=== RUN   TestOrganizationController_DeleteOrganization/Forbidden
+--- PASS: TestOrganizationController_DeleteOrganization (0.00s)
+    --- PASS: TestOrganizationController_DeleteOrganization/Success (0.00s)
+    --- PASS: TestOrganizationController_DeleteOrganization/Forbidden (0.00s)
+=== RUN   TestOrganizationController_GetMyOrganizations
+=== RUN   TestOrganizationController_GetMyOrganizations/Success
+--- PASS: TestOrganizationController_GetMyOrganizations (0.00s)
+    --- PASS: TestOrganizationController_GetMyOrganizations/Success (0.00s)
+=== RUN   TestOrganizationController_InviteMember
+=== RUN   TestOrganizationController_InviteMember/Success
+=== RUN   TestOrganizationController_InviteMember/Conflict
+--- PASS: TestOrganizationController_InviteMember (0.00s)
+    --- PASS: TestOrganizationController_InviteMember/Success (0.00s)
+    --- PASS: TestOrganizationController_InviteMember/Conflict (0.00s)
+=== RUN   TestOrganizationController_GetMembers
+=== RUN   TestOrganizationController_GetMembers/Success
+--- PASS: TestOrganizationController_GetMembers (0.00s)
+    --- PASS: TestOrganizationController_GetMembers/Success (0.00s)
+=== RUN   TestOrganizationController_UpdateMemberRole
+=== RUN   TestOrganizationController_UpdateMemberRole/Success
+--- PASS: TestOrganizationController_UpdateMemberRole (0.00s)
+    --- PASS: TestOrganizationController_UpdateMemberRole/Success (0.00s)
+=== RUN   TestOrganizationController_RemoveMember
+=== RUN   TestOrganizationController_RemoveMember/Success
+--- PASS: TestOrganizationController_RemoveMember (0.00s)
+    --- PASS: TestOrganizationController_RemoveMember/Success (0.00s)
+=== RUN   TestOrganizationController_AcceptInvitation
+=== RUN   TestOrganizationController_AcceptInvitation/Success
+=== RUN   TestOrganizationController_AcceptInvitation/Validation_Error
+--- PASS: TestOrganizationController_AcceptInvitation (0.00s)
+    --- PASS: TestOrganizationController_AcceptInvitation/Success (0.00s)
+    --- PASS: TestOrganizationController_AcceptInvitation/Validation_Error (0.00s)
+=== RUN   TestOrganizationController_GetPresence
+=== RUN   TestOrganizationController_GetPresence/Success
+=== RUN   TestOrganizationController_GetPresence/Error
+--- PASS: TestOrganizationController_GetPresence (0.00s)
+    --- PASS: TestOrganizationController_GetPresence/Success (0.00s)
+    --- PASS: TestOrganizationController_GetPresence/Error (0.00s)
+=== RUN   TestOrganizationMemberUseCase_InviteMember
+=== RUN   TestOrganizationMemberUseCase_InviteMember/Success_-_Existing_User
+=== RUN   TestOrganizationMemberUseCase_InviteMember/Success_-_Shadow_User
+=== RUN   TestOrganizationMemberUseCase_InviteMember/Already_Member
+--- PASS: TestOrganizationMemberUseCase_InviteMember (0.00s)
+    --- PASS: TestOrganizationMemberUseCase_InviteMember/Success_-_Existing_User (0.00s)
+    --- PASS: TestOrganizationMemberUseCase_InviteMember/Success_-_Shadow_User (0.00s)
+    --- PASS: TestOrganizationMemberUseCase_InviteMember/Already_Member (0.00s)
+=== RUN   TestOrganizationMemberUseCase_GetMembers
+=== RUN   TestOrganizationMemberUseCase_GetMembers/Success
+--- PASS: TestOrganizationMemberUseCase_GetMembers (0.00s)
+    --- PASS: TestOrganizationMemberUseCase_GetMembers/Success (0.00s)
+=== RUN   TestOrganizationMemberUseCase_UpdateMember
+=== RUN   TestOrganizationMemberUseCase_UpdateMember/Success_-_Update_Role
+=== RUN   TestOrganizationMemberUseCase_UpdateMember/Not_Found
+--- PASS: TestOrganizationMemberUseCase_UpdateMember (0.00s)
+    --- PASS: TestOrganizationMemberUseCase_UpdateMember/Success_-_Update_Role (0.00s)
+    --- PASS: TestOrganizationMemberUseCase_UpdateMember/Not_Found (0.00s)
+=== RUN   TestOrganizationMemberUseCase_RemoveMember
+=== RUN   TestOrganizationMemberUseCase_RemoveMember/Success
+=== RUN   TestOrganizationMemberUseCase_RemoveMember/Forbidden_-_Remove_Owner
+--- PASS: TestOrganizationMemberUseCase_RemoveMember (0.00s)
+    --- PASS: TestOrganizationMemberUseCase_RemoveMember/Success (0.00s)
+    --- PASS: TestOrganizationMemberUseCase_RemoveMember/Forbidden_-_Remove_Owner (0.00s)
+=== RUN   TestOrganizationMemberUseCase_GetPresence
+=== RUN   TestOrganizationMemberUseCase_GetPresence/Success
+--- PASS: TestOrganizationMemberUseCase_GetPresence (0.00s)
+    --- PASS: TestOrganizationMemberUseCase_GetPresence/Success (0.00s)
+=== RUN   TestOrganizationMemberUseCase_AcceptInvitation
+=== RUN   TestOrganizationMemberUseCase_AcceptInvitation/Success_-_Activate_New_User
+=== RUN   TestOrganizationMemberUseCase_AcceptInvitation/Invalid_Token
+--- PASS: TestOrganizationMemberUseCase_AcceptInvitation (0.16s)
+    --- PASS: TestOrganizationMemberUseCase_AcceptInvitation/Success_-_Activate_New_User (0.16s)
+    --- PASS: TestOrganizationMemberUseCase_AcceptInvitation/Invalid_Token (0.00s)
+=== RUN   TestOrganizationUseCase_Create
+=== RUN   TestOrganizationUseCase_Create/Success
+=== RUN   TestOrganizationUseCase_Create/Error_-_Slug_Exists
+=== RUN   TestOrganizationUseCase_Create/Error_-_Slug_Check_Fails
+=== RUN   TestOrganizationUseCase_Create/Error_-_Create_Fails
+=== RUN   TestOrganizationUseCase_Create/Error_-_Enforcer_Fails
+=== RUN   TestOrganizationUseCase_Create/XSS_Payload
+--- PASS: TestOrganizationUseCase_Create (0.00s)
+    --- PASS: TestOrganizationUseCase_Create/Success (0.00s)
+    --- PASS: TestOrganizationUseCase_Create/Error_-_Slug_Exists (0.00s)
+    --- PASS: TestOrganizationUseCase_Create/Error_-_Slug_Check_Fails (0.00s)
+    --- PASS: TestOrganizationUseCase_Create/Error_-_Create_Fails (0.00s)
+    --- PASS: TestOrganizationUseCase_Create/Error_-_Enforcer_Fails (0.00s)
+    --- PASS: TestOrganizationUseCase_Create/XSS_Payload (0.00s)
+=== RUN   TestOrganizationUseCase_GetOrganization
+=== RUN   TestOrganizationUseCase_GetOrganization/Success
+=== RUN   TestOrganizationUseCase_GetOrganization/Not_Found
+=== RUN   TestOrganizationUseCase_GetOrganization/Repo_Error
+--- PASS: TestOrganizationUseCase_GetOrganization (0.00s)
+    --- PASS: TestOrganizationUseCase_GetOrganization/Success (0.00s)
+    --- PASS: TestOrganizationUseCase_GetOrganization/Not_Found (0.00s)
+    --- PASS: TestOrganizationUseCase_GetOrganization/Repo_Error (0.00s)
+=== RUN   TestOrganizationUseCase_GetOrganizationBySlug
+=== RUN   TestOrganizationUseCase_GetOrganizationBySlug/Success
+=== RUN   TestOrganizationUseCase_GetOrganizationBySlug/Not_Found
+=== RUN   TestOrganizationUseCase_GetOrganizationBySlug/Repo_Error
+--- PASS: TestOrganizationUseCase_GetOrganizationBySlug (0.00s)
+    --- PASS: TestOrganizationUseCase_GetOrganizationBySlug/Success (0.00s)
+    --- PASS: TestOrganizationUseCase_GetOrganizationBySlug/Not_Found (0.00s)
+    --- PASS: TestOrganizationUseCase_GetOrganizationBySlug/Repo_Error (0.00s)
+=== RUN   TestOrganizationUseCase_UpdateOrganization
+=== RUN   TestOrganizationUseCase_UpdateOrganization/Success
+=== RUN   TestOrganizationUseCase_UpdateOrganization/Settings_Update
+=== RUN   TestOrganizationUseCase_UpdateOrganization/No_Change
+=== RUN   TestOrganizationUseCase_UpdateOrganization/Not_Found
+=== RUN   TestOrganizationUseCase_UpdateOrganization/Find_Error
+=== RUN   TestOrganizationUseCase_UpdateOrganization/Update_Error
+--- PASS: TestOrganizationUseCase_UpdateOrganization (0.00s)
+    --- PASS: TestOrganizationUseCase_UpdateOrganization/Success (0.00s)
+    --- PASS: TestOrganizationUseCase_UpdateOrganization/Settings_Update (0.00s)
+    --- PASS: TestOrganizationUseCase_UpdateOrganization/No_Change (0.00s)
+    --- PASS: TestOrganizationUseCase_UpdateOrganization/Not_Found (0.00s)
+    --- PASS: TestOrganizationUseCase_UpdateOrganization/Find_Error (0.00s)
+    --- PASS: TestOrganizationUseCase_UpdateOrganization/Update_Error (0.00s)
+=== RUN   TestOrganizationUseCase_GetUserOrganizations
+=== RUN   TestOrganizationUseCase_GetUserOrganizations/Success
+=== RUN   TestOrganizationUseCase_GetUserOrganizations/Empty
+=== RUN   TestOrganizationUseCase_GetUserOrganizations/Repo_Error
+--- PASS: TestOrganizationUseCase_GetUserOrganizations (0.00s)
+    --- PASS: TestOrganizationUseCase_GetUserOrganizations/Success (0.00s)
+    --- PASS: TestOrganizationUseCase_GetUserOrganizations/Empty (0.00s)
+    --- PASS: TestOrganizationUseCase_GetUserOrganizations/Repo_Error (0.00s)
+=== RUN   TestOrganizationUseCase_DeleteOrganization
+=== RUN   TestOrganizationUseCase_DeleteOrganization/Success
+=== RUN   TestOrganizationUseCase_DeleteOrganization/Not_Owner
+=== RUN   TestOrganizationUseCase_DeleteOrganization/Not_Found
+=== RUN   TestOrganizationUseCase_DeleteOrganization/Delete_Error
+=== RUN   TestOrganizationUseCase_DeleteOrganization/Find_Error
+--- PASS: TestOrganizationUseCase_DeleteOrganization (0.00s)
+    --- PASS: TestOrganizationUseCase_DeleteOrganization/Success (0.00s)
+    --- PASS: TestOrganizationUseCase_DeleteOrganization/Not_Owner (0.00s)
+    --- PASS: TestOrganizationUseCase_DeleteOrganization/Not_Found (0.00s)
+    --- PASS: TestOrganizationUseCase_DeleteOrganization/Delete_Error (0.00s)
+    --- PASS: TestOrganizationUseCase_DeleteOrganization/Find_Error (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks	[no test files]
+=== RUN   TestCachedOrgReader_ValidateMembership_CacheHit
+time="2026-02-21T12:04:00Z" level=debug msg="Membership validation cache hit" org_id=org-123 source=cache user_id=user-456
+--- PASS: TestCachedOrgReader_ValidateMembership_CacheHit (0.00s)
+=== RUN   TestCachedOrgReader_ValidateMembership_CacheHit_NotMember
+time="2026-02-21T12:04:00Z" level=debug msg="Membership validation cache hit" org_id=org-123 source=cache user_id=user-456
+--- PASS: TestCachedOrgReader_ValidateMembership_CacheHit_NotMember (0.00s)
+=== RUN   TestCachedOrgReader_ValidateMembership_CacheMiss_IsMember
+time="2026-02-21T12:04:00Z" level=debug msg="Membership validation from database, cached" is_member=true org_id=org-123 source=database user_id=user-456
+--- PASS: TestCachedOrgReader_ValidateMembership_CacheMiss_IsMember (0.00s)
+=== RUN   TestCachedOrgReader_ValidateMembership_CacheMiss_NotMember
+time="2026-02-21T12:04:00Z" level=debug msg="Membership validation from database, cached" is_member=false org_id=org-123 source=database user_id=user-456
+--- PASS: TestCachedOrgReader_ValidateMembership_CacheMiss_NotMember (0.00s)
+=== RUN   TestCachedOrgReader_ValidateMembership_DBError
+--- PASS: TestCachedOrgReader_ValidateMembership_DBError (0.00s)
+=== RUN   TestCachedOrgReader_GetMemberRole_CacheHit
+--- PASS: TestCachedOrgReader_GetMemberRole_CacheHit (0.00s)
+=== RUN   TestCachedOrgReader_GetMemberRole_CacheMiss
+--- PASS: TestCachedOrgReader_GetMemberRole_CacheMiss (0.00s)
+=== RUN   TestCachedOrgReader_InvalidateMembershipCache
+time="2026-02-21T12:04:00Z" level=debug msg="Membership cache invalidated" org_id=org-123 user_id=user-456
+--- PASS: TestCachedOrgReader_InvalidateMembershipCache (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model	[no test files]
+=== RUN   TestPermissionController_AssignRole
+--- PASS: TestPermissionController_AssignRole (0.00s)
+=== RUN   TestPermissionController_RevokeRole
+--- PASS: TestPermissionController_RevokeRole (0.00s)
+=== RUN   TestPermissionController_BatchCheck
+--- PASS: TestPermissionController_BatchCheck (0.00s)
+=== RUN   TestPermissionController_BatchCheck_Unauthorized
+--- PASS: TestPermissionController_BatchCheck_Unauthorized (0.00s)
+=== RUN   TestCircularRoleInheritance_DirectCycle
+time="2026-02-21T12:04:02Z" level=info msg="Adding inheritance: role 'editor' inherits from 'admin'"
+--- PASS: TestCircularRoleInheritance_DirectCycle (0.00s)
+=== RUN   TestCircularRoleInheritance_IndirectCycle
+time="2026-02-21T12:04:02Z" level=info msg="Adding inheritance: role 'superadmin' inherits from 'moderator'"
+--- PASS: TestCircularRoleInheritance_IndirectCycle (0.00s)
+=== RUN   TestGrantPermissionToRole_SQLInjection_InPath
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/users'; DROP TABLE users; -- in domain 'global'"
+--- PASS: TestGrantPermissionToRole_SQLInjection_InPath (0.00s)
+=== RUN   TestGrantPermissionToRole_SQLInjection_InRoleName
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'admin' OR '1'='1'"
+time="2026-02-21T12:04:02Z" level=error msg="Failed to query role repository for GrantPermission: record not found"
+--- PASS: TestGrantPermissionToRole_SQLInjection_InRoleName (0.00s)
+=== RUN   TestGrantPermissionToRole_SQLInjection_InMethod
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'viewer'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'viewer' for GET; DROP TABLE policies; -- /api/reports in domain 'global'"
+--- PASS: TestGrantPermissionToRole_SQLInjection_InMethod (0.00s)
+=== RUN   TestGrantPermissionToRole_Concurrent_SameRole
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/resource/j in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/resource/a in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/resource/b in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/resource/c in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/resource/d in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/resource/e in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/resource/f in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/resource/g in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/resource/h in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/resource/i in domain 'global'"
+--- PASS: TestGrantPermissionToRole_Concurrent_SameRole (0.00s)
+=== RUN   TestRevokePermissionFromRole_Concurrent
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to revoke permission from role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Revoking permission from role 'editor' for DELETE /api/resource/e in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to revoke permission from role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Revoking permission from role 'editor' for DELETE /api/resource/a in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to revoke permission from role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Revoking permission from role 'editor' for DELETE /api/resource/b in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to revoke permission from role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Revoking permission from role 'editor' for DELETE /api/resource/c in domain 'global'"
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to revoke permission from role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Revoking permission from role 'editor' for DELETE /api/resource/d in domain 'global'"
+--- PASS: TestRevokePermissionFromRole_Concurrent (0.00s)
+=== RUN   TestGrantPermissionToRole_EmptyPath
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+--- PASS: TestGrantPermissionToRole_EmptyPath (0.00s)
+=== RUN   TestGrantPermissionToRole_WildcardPath
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'admin'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'admin' for * /api/* in domain 'global'"
+--- PASS: TestGrantPermissionToRole_WildcardPath (0.00s)
+=== RUN   TestGrantPermissionToRole_UnicodeInPath
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/用户/管理 in domain 'global'"
+--- PASS: TestGrantPermissionToRole_UnicodeInPath (0.00s)
+=== RUN   TestGrantPermissionToRole_EnforcerConnectionError
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/test in domain 'global'"
+time="2026-02-21T12:04:02Z" level=error msg="Failed to add policy: connection refused"
+--- PASS: TestGrantPermissionToRole_EnforcerConnectionError (0.00s)
+=== RUN   TestRevokePermissionFromRole_PolicyNotExists
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to revoke permission from role 'viewer'"
+time="2026-02-21T12:04:02Z" level=info msg="Revoking permission from role 'viewer' for DELETE /api/nonexistent in domain 'global'"
+--- PASS: TestRevokePermissionFromRole_PolicyNotExists (0.00s)
+=== RUN   TestBatchCheckPermission_LargeScale
+--- PASS: TestBatchCheckPermission_LargeScale (0.08s)
+=== RUN   TestBatchCheckPermission_EnforceError
+time="2026-02-21T12:04:02Z" level=error msg="Enforce error for user-123 on /api/error in domain global: enforcer error"
+--- PASS: TestBatchCheckPermission_EnforceError (0.00s)
+=== RUN   TestBatchCheckPermission_EmptyItems
+--- PASS: TestBatchCheckPermission_EmptyItems (0.00s)
+=== RUN   TestGrantPermissionToRole_UpdateExistingPolicy
+time="2026-02-21T12:04:02Z" level=info msg="Attempting to grant permission to role 'editor'"
+time="2026-02-21T12:04:02Z" level=info msg="Granting permission to role 'editor' for GET /api/users in domain 'global'"
+--- PASS: TestGrantPermissionToRole_UpdateExistingPolicy (0.00s)
+=== RUN   TestConcurrentBatchPermissionCheck
+--- PASS: TestConcurrentBatchPermissionCheck (0.00s)
+=== RUN   TestPermissionUseCase_BatchCheckPermission_Success_AllAllowed
+--- PASS: TestPermissionUseCase_BatchCheckPermission_Success_AllAllowed (0.00s)
+=== RUN   TestPermissionUseCase_BatchCheckPermission_Success_Mixed
+--- PASS: TestPermissionUseCase_BatchCheckPermission_Success_Mixed (0.00s)
+=== RUN   TestPermissionUseCase_BatchCheckPermission_EmptyUserID
+--- PASS: TestPermissionUseCase_BatchCheckPermission_EmptyUserID (0.00s)
+=== RUN   TestPermissionUseCase_BatchCheckPermission_EmptyItems
+--- PASS: TestPermissionUseCase_BatchCheckPermission_EmptyItems (0.00s)
+=== RUN   TestPermissionUseCase_BatchCheckPermission_LargeItemList
+--- PASS: TestPermissionUseCase_BatchCheckPermission_LargeItemList (0.04s)
+=== RUN   TestPermissionUseCase_BatchCheckPermission_EnforcerError
+--- PASS: TestPermissionUseCase_BatchCheckPermission_EnforcerError (0.00s)
+=== RUN   TestPermissionUseCase_BatchCheckPermission_DuplicateItems
+--- PASS: TestPermissionUseCase_BatchCheckPermission_DuplicateItems (0.00s)
+=== RUN   TestPermissionUseCase_BatchCheckPermission_SpecialCharactersInResource
+--- PASS: TestPermissionUseCase_BatchCheckPermission_SpecialCharactersInResource (0.00s)
+=== RUN   TestRevokeRoleFromUser_Guardian_Success
+--- PASS: TestRevokeRoleFromUser_Guardian_Success (0.00s)
+=== RUN   TestRevokeRoleFromUser_Guardian_EmptyInput
+--- PASS: TestRevokeRoleFromUser_Guardian_EmptyInput (0.00s)
+=== RUN   TestRevokeRoleFromUser_Guardian_UserNotFound
+--- PASS: TestRevokeRoleFromUser_Guardian_UserNotFound (0.00s)
+=== RUN   TestRevokeRoleFromUser_Guardian_UserRepoError
+--- PASS: TestRevokeRoleFromUser_Guardian_UserRepoError (0.00s)
+=== RUN   TestRevokeRoleFromUser_Guardian_RoleNotFound
+--- PASS: TestRevokeRoleFromUser_Guardian_RoleNotFound (0.00s)
+=== RUN   TestRevokeRoleFromUser_Guardian_RoleRepoError
+--- PASS: TestRevokeRoleFromUser_Guardian_RoleRepoError (0.00s)
+=== RUN   TestRevokeRoleFromUser_Guardian_EnforcerError
+--- PASS: TestRevokeRoleFromUser_Guardian_EnforcerError (0.00s)
+=== RUN   TestRevokeRoleFromUser_Guardian_RoleNotAssigned
+--- PASS: TestRevokeRoleFromUser_Guardian_RoleNotAssigned (0.00s)
+=== RUN   TestAddParentRole_Guardian_Success
+--- PASS: TestAddParentRole_Guardian_Success (0.00s)
+=== RUN   TestAddParentRole_Guardian_ChildRoleNotFound
+--- PASS: TestAddParentRole_Guardian_ChildRoleNotFound (0.00s)
+=== RUN   TestAddParentRole_Guardian_ParentRoleNotFound
+--- PASS: TestAddParentRole_Guardian_ParentRoleNotFound (0.00s)
+=== RUN   TestAddParentRole_Guardian_SelfInheritance
+--- PASS: TestAddParentRole_Guardian_SelfInheritance (0.00s)
+=== RUN   TestAddParentRole_Guardian_EnforcerError
+--- PASS: TestAddParentRole_Guardian_EnforcerError (0.00s)
+=== RUN   TestRemoveParentRole_Guardian_Success
+--- PASS: TestRemoveParentRole_Guardian_Success (0.00s)
+=== RUN   TestRemoveParentRole_Guardian_EnforcerError
+--- PASS: TestRemoveParentRole_Guardian_EnforcerError (0.00s)
+=== RUN   TestRemoveParentRole_Guardian_RelationshipNotFound
+--- PASS: TestRemoveParentRole_Guardian_RelationshipNotFound (0.00s)
+=== RUN   TestGetParentRoles_Guardian_Success
+--- PASS: TestGetParentRoles_Guardian_Success (0.00s)
+=== RUN   TestGetParentRoles_Guardian_EnforcerError
+--- PASS: TestGetParentRoles_Guardian_EnforcerError (0.00s)
+=== RUN   TestPermissionUseCase_Edge_MaxStringLength
+--- PASS: TestPermissionUseCase_Edge_MaxStringLength (0.00s)
+=== RUN   TestPermissionUseCase_Vulnerability_SQLInjectionInRole
+--- PASS: TestPermissionUseCase_Vulnerability_SQLInjectionInRole (0.00s)
+=== RUN   TestPermissionclaUseCase_Negative_AssignRoleToUser_EmptyUser
+--- PASS: TestPermissionclaUseCase_Negative_AssignRoleToUser_EmptyUser (0.00s)
+=== RUN   TestPermissionUseCase_Negative_GrantPermissionToRole_SpecialChars
+--- PASS: TestPermissionUseCase_Negative_GrantPermissionToRole_SpecialChars (0.00s)
+=== RUN   TestAssignRoleToUser_Success
+--- PASS: TestAssignRoleToUser_Success (0.00s)
+=== RUN   TestAssignRoleToUser_UserNotFound
+--- PASS: TestAssignRoleToUser_UserNotFound (0.00s)
+=== RUN   TestAssignRoleToUser_UserRepoError
+--- PASS: TestAssignRoleToUser_UserRepoError (0.00s)
+=== RUN   TestAssignRoleToUser_RoleNotFound
+--- PASS: TestAssignRoleToUser_RoleNotFound (0.00s)
+=== RUN   TestAssignRoleToUser_RoleRepoError
+--- PASS: TestAssignRoleToUser_RoleRepoError (0.00s)
+=== RUN   TestAssignRoleToUser_EnforcerRemoveError
+--- PASS: TestAssignRoleToUser_EnforcerRemoveError (0.00s)
+=== RUN   TestAssignRoleToUser_EnforcerAddError
+--- PASS: TestAssignRoleToUser_EnforcerAddError (0.00s)
+=== RUN   TestAssignRoleToUser_EmptyInput
+--- PASS: TestAssignRoleToUser_EmptyInput (0.00s)
+=== RUN   TestGrantPermissionToRole_Success
+--- PASS: TestGrantPermissionToRole_Success (0.00s)
+=== RUN   TestGrantPermissionToRole_RoleNotFound
+--- PASS: TestGrantPermissionToRole_RoleNotFound (0.00s)
+=== RUN   TestGrantPermissionToRole_RoleRepoError
+--- PASS: TestGrantPermissionToRole_RoleRepoError (0.00s)
+=== RUN   TestGrantPermissionToRole_EnforcerError
+--- PASS: TestGrantPermissionToRole_EnforcerError (0.00s)
+=== RUN   TestGrantPermissionToRole_EmptyInput
+--- PASS: TestGrantPermissionToRole_EmptyInput (0.00s)
+=== RUN   TestRevokePermissionFromRole_Success
+--- PASS: TestRevokePermissionFromRole_Success (0.00s)
+=== RUN   TestRevokePermissionFromRole_RoleNotFound
+--- PASS: TestRevokePermissionFromRole_RoleNotFound (0.00s)
+=== RUN   TestRevokePermissionFromRole_RoleRepoError
+--- PASS: TestRevokePermissionFromRole_RoleRepoError (0.00s)
+=== RUN   TestRevokePermissionFromRole_EnforcerError
+--- PASS: TestRevokePermissionFromRole_EnforcerError (0.00s)
+=== RUN   TestRevokePermissionFromRole_PolicyNotFound
+--- PASS: TestRevokePermissionFromRole_PolicyNotFound (0.00s)
+=== RUN   TestRevokePermissionFromRole_EmptyInput
+--- PASS: TestRevokePermissionFromRole_EmptyInput (0.00s)
+=== RUN   TestGetAllPermissions_Success
+--- PASS: TestGetAllPermissions_Success (0.00s)
+=== RUN   TestGetAllPermissions_Error
+--- PASS: TestGetAllPermissions_Error (0.00s)
+=== RUN   TestGetPermissionsForRole_Success
+--- PASS: TestGetPermissionsForRole_Success (0.00s)
+=== RUN   TestGetPermissionsForRole_Error
+--- PASS: TestGetPermissionsForRole_Error (0.00s)
+=== RUN   TestUpdatePermission_Success
+--- PASS: TestUpdatePermission_Success (0.00s)
+=== RUN   TestUpdatePermission_EmptyInput
+--- PASS: TestUpdatePermission_EmptyInput (0.00s)
+=== RUN   TestUpdatePermission_EnforcerError
+--- PASS: TestUpdatePermission_EnforcerError (0.00s)
+=== RUN   TestUpdatePermission_PolicyNotFound
+--- PASS: TestUpdatePermission_PolicyNotFound (0.00s)
+=== RUN   TestAssignRole_XSS
+=== RUN   TestAssignRole_XSS/XSS_in_UserID
+=== RUN   TestAssignRole_XSS/XSS_in_Role
+=== RUN   TestAssignRole_XSS/Safe_content
+--- PASS: TestAssignRole_XSS (0.00s)
+    --- PASS: TestAssignRole_XSS/XSS_in_UserID (0.00s)
+    --- PASS: TestAssignRole_XSS/XSS_in_Role (0.00s)
+    --- PASS: TestAssignRole_XSS/Safe_content (0.00s)
+=== RUN   TestGrantPermission_XSS
+=== RUN   TestGrantPermission_XSS/XSS_in_Role
+=== RUN   TestGrantPermission_XSS/XSS_in_Path
+=== RUN   TestGrantPermission_XSS/XSS_in_Method
+=== RUN   TestGrantPermission_XSS/Safe_content
+--- PASS: TestGrantPermission_XSS (0.00s)
+    --- PASS: TestGrantPermission_XSS/XSS_in_Role (0.00s)
+    --- PASS: TestGrantPermission_XSS/XSS_in_Path (0.00s)
+    --- PASS: TestGrantPermission_XSS/XSS_in_Method (0.00s)
+    --- PASS: TestGrantPermission_XSS/Safe_content (0.00s)
+=== RUN   TestUpdatePermission_XSS
+=== RUN   TestUpdatePermission_XSS/XSS_in_OldPermission
+=== RUN   TestUpdatePermission_XSS/XSS_in_NewPermission
+=== RUN   TestUpdatePermission_XSS/Safe_content
+--- PASS: TestUpdatePermission_XSS (0.00s)
+    --- PASS: TestUpdatePermission_XSS/XSS_in_OldPermission (0.00s)
+    --- PASS: TestUpdatePermission_XSS/XSS_in_NewPermission (0.00s)
+    --- PASS: TestUpdatePermission_XSS/Safe_content (0.00s)
+=== RUN   TestGrantPermission_Success
+--- PASS: TestGrantPermission_Success (0.00s)
+=== RUN   TestGrantPermission_InvalidBody
+--- PASS: TestGrantPermission_InvalidBody (0.00s)
+=== RUN   TestGrantPermission_UseCaseError
+--- PASS: TestGrantPermission_UseCaseError (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity	[no test files]
+=== RUN   TestCreateRoleRequest_Validation
+=== RUN   TestCreateRoleRequest_Validation/Valid_Role
+=== RUN   TestCreateRoleRequest_Validation/XSS_in_Name
+=== RUN   TestCreateRoleRequest_Validation/XSS_in_Description
+--- PASS: TestCreateRoleRequest_Validation (0.00s)
+    --- PASS: TestCreateRoleRequest_Validation/Valid_Role (0.00s)
+    --- PASS: TestCreateRoleRequest_Validation/XSS_in_Name (0.00s)
+    --- PASS: TestCreateRoleRequest_Validation/XSS_in_Description (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model/converter	[no test files]
+=== RUN   TestRoleRepository_FindAllDynamic
+=== RUN   TestRoleRepository_FindAllDynamic/Contains_Name_'d'
+=== RUN   TestRoleRepository_FindAllDynamic/Sort_Descending
+--- PASS: TestRoleRepository_FindAllDynamic (0.00s)
+    --- PASS: TestRoleRepository_FindAllDynamic/Contains_Name_'d' (0.00s)
+    --- PASS: TestRoleRepository_FindAllDynamic/Sort_Descending (0.00s)
+=== RUN   TestRoleRepository_CRUD
+--- PASS: TestRoleRepository_CRUD (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository	(cached)
+=== RUN   TestRoleHandler_Create_Success
+--- PASS: TestRoleHandler_Create_Success (0.00s)
+=== RUN   TestRoleHandler_Create_BindingError
+time="2026-02-21T12:04:04Z" level=error msg="failed to bind request body for create role" error="invalid character 'i' looking for beginning of value"
+--- PASS: TestRoleHandler_Create_BindingError (0.00s)
+=== RUN   TestRoleHandler_Create_ValidationError
+--- PASS: TestRoleHandler_Create_ValidationError (0.00s)
+=== RUN   TestRoleHandler_Create_UseCaseError
+time="2026-02-21T12:04:04Z" level=error msg="failed to create role" error="data already exists"
+--- PASS: TestRoleHandler_Create_UseCaseError (0.00s)
+=== RUN   TestRoleHandler_GetAll_Success
+--- PASS: TestRoleHandler_GetAll_Success (0.00s)
+=== RUN   TestRoleHandler_GetAll_UseCaseError
+time="2026-02-21T12:04:04Z" level=error msg="failed to get all roles" error="some database error"
+--- PASS: TestRoleHandler_GetAll_UseCaseError (0.00s)
+=== RUN   TestRoleHandler_Delete_Success
+--- PASS: TestRoleHandler_Delete_Success (0.00s)
+=== RUN   TestRoleHandler_Delete_NotFound
+time="2026-02-21T12:04:04Z" level=error msg="failed to delete role" error="not found"
+--- PASS: TestRoleHandler_Delete_NotFound (0.00s)
+=== RUN   TestRoleHandler_Delete_Forbidden
+time="2026-02-21T12:04:04Z" level=error msg="failed to delete role" error=forbidden
+--- PASS: TestRoleHandler_Delete_Forbidden (0.00s)
+=== RUN   TestRoleHandler_GetAllRolesDynamic_Success
+--- PASS: TestRoleHandler_GetAllRolesDynamic_Success (0.00s)
+=== RUN   TestRoleHandler_Create_XSS_Name
+--- PASS: TestRoleHandler_Create_XSS_Name (0.00s)
+=== RUN   TestDeleteRole_SuperadminProtection
+time="2026-02-21T12:04:04Z" level=warning msg="Attempt to delete superadmin role blocked"
+--- PASS: TestDeleteRole_SuperadminProtection (0.00s)
+=== RUN   TestDeleteRole_SuperadminProtection_CaseSensitive
+--- PASS: TestDeleteRole_SuperadminProtection_CaseSensitive (0.00s)
+=== RUN   TestUpdateRole_SuperadminProtection
+--- PASS: TestUpdateRole_SuperadminProtection (0.00s)
+=== RUN   TestRoleUseCase_Create_Guardian_FindByNameError
+--- PASS: TestRoleUseCase_Create_Guardian_FindByNameError (0.00s)
+=== RUN   TestRoleUseCase_Delete_Guardian_FindByIDError
+--- PASS: TestRoleUseCase_Delete_Guardian_FindByIDError (0.00s)
+=== RUN   TestRoleUseCase_Create
+=== RUN   TestRoleUseCase_Create/Success_-_Basic_Role_Creation
+=== RUN   TestRoleUseCase_Create/Error_-_Role_Already_Exists
+=== RUN   TestRoleUseCase_Create/Error_-_Database_Error_on_Create
+--- PASS: TestRoleUseCase_Create (0.00s)
+    --- PASS: TestRoleUseCase_Create/Success_-_Basic_Role_Creation (0.00s)
+    --- PASS: TestRoleUseCase_Create/Error_-_Role_Already_Exists (0.00s)
+    --- PASS: TestRoleUseCase_Create/Error_-_Database_Error_on_Create (0.00s)
+=== RUN   TestRoleUseCase_GetAll
+=== RUN   TestRoleUseCase_GetAll/Success_-_Get_All_Roles
+=== RUN   TestRoleUseCase_GetAll/Error_-_Database_Error
+--- PASS: TestRoleUseCase_GetAll (0.00s)
+    --- PASS: TestRoleUseCase_GetAll/Success_-_Get_All_Roles (0.00s)
+    --- PASS: TestRoleUseCase_GetAll/Error_-_Database_Error (0.00s)
+=== RUN   TestRoleUseCase_Delete
+=== RUN   TestRoleUseCase_Delete/Success_-_Role_Deleted
+=== RUN   TestRoleUseCase_Delete/Error_-_Role_Not_Found
+=== RUN   TestRoleUseCase_Delete/Error_-_Cannot_Delete_Superadmin
+=== RUN   TestRoleUseCase_Delete/Error_-_Database_Error_During_Delete
+--- PASS: TestRoleUseCase_Delete (0.00s)
+    --- PASS: TestRoleUseCase_Delete/Success_-_Role_Deleted (0.00s)
+    --- PASS: TestRoleUseCase_Delete/Error_-_Role_Not_Found (0.00s)
+    --- PASS: TestRoleUseCase_Delete/Error_-_Cannot_Delete_Superadmin (0.00s)
+    --- PASS: TestRoleUseCase_Delete/Error_-_Database_Error_During_Delete (0.00s)
+=== RUN   TestRoleUseCase_GetAllRolesDynamic
+=== RUN   TestRoleUseCase_GetAllRolesDynamic/Success_-_With_Dynamic_Filter
+=== RUN   TestRoleUseCase_GetAllRolesDynamic/Error_-_Database_Error
+--- PASS: TestRoleUseCase_GetAllRolesDynamic (0.00s)
+    --- PASS: TestRoleUseCase_GetAllRolesDynamic/Success_-_With_Dynamic_Filter (0.00s)
+    --- PASS: TestRoleUseCase_GetAllRolesDynamic/Error_-_Database_Error (0.00s)
+=== RUN   TestRoleXSSValidation
+=== RUN   TestRoleXSSValidation/CreateRole_XSS_in_Name
+=== RUN   TestRoleXSSValidation/CreateRole_XSS_in_Description
+=== RUN   TestRoleXSSValidation/UpdateRole_XSS_in_Description
+--- PASS: TestRoleXSSValidation (0.00s)
+    --- PASS: TestRoleXSSValidation/CreateRole_XSS_in_Name (0.00s)
+    --- PASS: TestRoleXSSValidation/CreateRole_XSS_in_Description (0.00s)
+    --- PASS: TestRoleXSSValidation/UpdateRole_XSS_in_Description (0.00s)
+=== RUN   TestRoleUseCase_Update
+=== RUN   TestRoleUseCase_Update/Success_-_Role_Updated
+=== RUN   TestRoleUseCase_Update/Error_-_Role_Not_Found
+=== RUN   TestRoleUseCase_Update/Error_-_Database_Error_During_Update
+--- PASS: TestRoleUseCase_Update (0.00s)
+    --- PASS: TestRoleUseCase_Update/Success_-_Role_Updated (0.00s)
+    --- PASS: TestRoleUseCase_Update/Error_-_Role_Not_Found (0.00s)
+    --- PASS: TestRoleUseCase_Update/Error_-_Database_Error_During_Update (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test/mocks	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model/converter	[no test files]
+=== RUN   TestUserRepository_Create
+--- PASS: TestUserRepository_Create (0.00s)
+=== RUN   TestUserRepository_Create_Error
+--- PASS: TestUserRepository_Create_Error (0.00s)
+=== RUN   TestUserRepository_FindByUsername
+=== RUN   TestUserRepository_FindByUsername/Found
+=== RUN   TestUserRepository_FindByUsername/Not_Found
+--- PASS: TestUserRepository_FindByUsername (0.00s)
+    --- PASS: TestUserRepository_FindByUsername/Found (0.00s)
+    --- PASS: TestUserRepository_FindByUsername/Not_Found (0.00s)
+=== RUN   TestUserRepository_FindByEmail
+=== RUN   TestUserRepository_FindByEmail/Found
+=== RUN   TestUserRepository_FindByEmail/Not_Found
+--- PASS: TestUserRepository_FindByEmail (0.00s)
+    --- PASS: TestUserRepository_FindByEmail/Found (0.00s)
+    --- PASS: TestUserRepository_FindByEmail/Not_Found (0.00s)
+=== RUN   TestUserRepository_FindByToken
+=== RUN   TestUserRepository_FindByToken/Found
+=== RUN   TestUserRepository_FindByToken/Not_Found
+--- PASS: TestUserRepository_FindByToken (0.00s)
+    --- PASS: TestUserRepository_FindByToken/Found (0.00s)
+    --- PASS: TestUserRepository_FindByToken/Not_Found (0.00s)
+=== RUN   TestUserRepository_Update
+--- PASS: TestUserRepository_Update (0.00s)
+=== RUN   TestUserRepository_Update_Error
+--- PASS: TestUserRepository_Update_Error (0.00s)
+=== RUN   TestUserRepository_UpdateStatus
+--- PASS: TestUserRepository_UpdateStatus (0.00s)
+=== RUN   TestUserRepository_Delete
+--- PASS: TestUserRepository_Delete (0.00s)
+=== RUN   TestUserRepository_FindAll
+--- PASS: TestUserRepository_FindAll (0.00s)
+=== RUN   TestUserRepository_FindAllDynamic
+=== RUN   TestUserRepository_FindAllDynamic/Contains_Name_'a'
+=== RUN   TestUserRepository_FindAllDynamic/Equals_Username_'bob'
+=== RUN   TestUserRepository_FindAllDynamic/No_Filter_(All)
+--- PASS: TestUserRepository_FindAllDynamic (0.00s)
+    --- PASS: TestUserRepository_FindAllDynamic/Contains_Name_'a' (0.00s)
+    --- PASS: TestUserRepository_FindAllDynamic/Equals_Username_'bob' (0.00s)
+    --- PASS: TestUserRepository_FindAllDynamic/No_Filter_(All) (0.00s)
+=== RUN   TestUserRepository_HardDeleteSoftDeletedUsers
+--- PASS: TestUserRepository_HardDeleteSoftDeletedUsers (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository	(cached)
+=== RUN   TestUserUseCase_UpdateAvatar_Security
+=== RUN   TestUserUseCase_UpdateAvatar_Security/Block_SVG_(potential_XSS)
+=== RUN   TestUserUseCase_UpdateAvatar_Security/Block_HTML_disguised_as_image
+=== RUN   TestUserUseCase_UpdateAvatar_Security/Block_Polyglot_(PNG_with_PHP_payload)
+=== RUN   TestUserUseCase_UpdateAvatar_Security/Block_Script_File
+--- PASS: TestUserUseCase_UpdateAvatar_Security (0.00s)
+    --- PASS: TestUserUseCase_UpdateAvatar_Security/Block_SVG_(potential_XSS) (0.00s)
+    --- PASS: TestUserUseCase_UpdateAvatar_Security/Block_HTML_disguised_as_image (0.00s)
+    --- PASS: TestUserUseCase_UpdateAvatar_Security/Block_Polyglot_(PNG_with_PHP_payload) (0.00s)
+    --- PASS: TestUserUseCase_UpdateAvatar_Security/Block_Script_File (0.00s)
+=== RUN   TestUserUseCase_UpdateAvatar_Success
+--- PASS: TestUserUseCase_UpdateAvatar_Success (0.00s)
+=== RUN   TestUserUseCase_UpdateAvatar_Success_ReplaceExisting
+--- PASS: TestUserUseCase_UpdateAvatar_Success_ReplaceExisting (0.00s)
+=== RUN   TestUserUseCase_UpdateAvatar_UserNotFound
+--- PASS: TestUserUseCase_UpdateAvatar_UserNotFound (0.00s)
+=== RUN   TestUserUseCase_UpdateAvatar_StorageUploadError
+--- PASS: TestUserUseCase_UpdateAvatar_StorageUploadError (0.00s)
+=== RUN   TestUserUseCase_UpdateAvatar_DatabaseUpdateError
+--- PASS: TestUserUseCase_UpdateAvatar_DatabaseUpdateError (0.00s)
+=== RUN   TestUserUseCase_UpdateAvatar_AuditLogError
+--- PASS: TestUserUseCase_UpdateAvatar_AuditLogError (0.00s)
+=== RUN   TestUserUseCase_UpdateAvatar_InvalidFileType
+--- PASS: TestUserUseCase_UpdateAvatar_InvalidFileType (0.00s)
+=== RUN   TestUserUseCase_UpdateAvatar_FileTooLarge
+--- PASS: TestUserUseCase_UpdateAvatar_FileTooLarge (0.01s)
+=== RUN   TestUserUseCase_UpdateAvatar_SmallFile
+--- PASS: TestUserUseCase_UpdateAvatar_SmallFile (0.00s)
+=== RUN   TestUserUseCase_HardDeleteSoftDeletedUsers_Success
+--- PASS: TestUserUseCase_HardDeleteSoftDeletedUsers_Success (0.00s)
+=== RUN   TestUserUseCase_HardDeleteSoftDeletedUsers_NoRecordsToDelete
+--- PASS: TestUserUseCase_HardDeleteSoftDeletedUsers_NoRecordsToDelete (0.00s)
+=== RUN   TestUserUseCase_HardDeleteSoftDeletedUsers_DatabaseError
+--- PASS: TestUserUseCase_HardDeleteSoftDeletedUsers_DatabaseError (0.00s)
+=== RUN   TestUserUseCase_HardDeleteSoftDeletedUsers_InvalidRetentionDays
+--- PASS: TestUserUseCase_HardDeleteSoftDeletedUsers_InvalidRetentionDays (0.00s)
+=== RUN   TestUserUseCase_HardDeleteSoftDeletedUsers_ZeroRetentionDays
+--- PASS: TestUserUseCase_HardDeleteSoftDeletedUsers_ZeroRetentionDays (0.00s)
+=== RUN   TestUserUseCase_Update_Security_Sanitization
+--- PASS: TestUserUseCase_Update_Security_Sanitization (0.00s)
+=== RUN   TestUserUseCase_Update_Security_Sanitization_Conflict
+--- PASS: TestUserUseCase_Update_Security_Sanitization_Conflict (0.00s)
+=== RUN   TestUserUseCase_Create_Success
+--- PASS: TestUserUseCase_Create_Success (0.09s)
+=== RUN   TestUserUseCase_Create_Conflict
+=== RUN   TestUserUseCase_Create_Conflict/Username_Exists
+=== RUN   TestUserUseCase_Create_Conflict/Email_Exists
+--- PASS: TestUserUseCase_Create_Conflict (0.00s)
+    --- PASS: TestUserUseCase_Create_Conflict/Username_Exists (0.00s)
+    --- PASS: TestUserUseCase_Create_Conflict/Email_Exists (0.00s)
+=== RUN   TestUserUseCase_Create_RepoError
+--- PASS: TestUserUseCase_Create_RepoError (0.08s)
+=== RUN   TestUserUseCase_Create_AuditError
+--- PASS: TestUserUseCase_Create_AuditError (0.11s)
+=== RUN   TestUserUseCase_Create_EnforcerError
+--- PASS: TestUserUseCase_Create_EnforcerError (0.09s)
+=== RUN   TestUserUseCase_GetUserByID
+=== RUN   TestUserUseCase_GetUserByID/Success_-_User_Found
+=== RUN   TestUserUseCase_GetUserByID/Error_-_User_Not_Found
+=== RUN   TestUserUseCase_GetUserByID/Error_-_SQL_Injection_Attempt
+=== RUN   TestUserUseCase_GetUserByID/Error_-_Database_Error
+--- PASS: TestUserUseCase_GetUserByID (0.00s)
+    --- PASS: TestUserUseCase_GetUserByID/Success_-_User_Found (0.00s)
+    --- PASS: TestUserUseCase_GetUserByID/Error_-_User_Not_Found (0.00s)
+    --- PASS: TestUserUseCase_GetUserByID/Error_-_SQL_Injection_Attempt (0.00s)
+    --- PASS: TestUserUseCase_GetUserByID/Error_-_Database_Error (0.00s)
+=== RUN   TestUserUseCase_GetAllUsers
+=== RUN   TestUserUseCase_GetAllUsers/Success_-_With_Users
+=== RUN   TestUserUseCase_GetAllUsers/Success_-_Empty_Result
+=== RUN   TestUserUseCase_GetAllUsers/Error_-_Database_Error
+--- PASS: TestUserUseCase_GetAllUsers (0.00s)
+    --- PASS: TestUserUseCase_GetAllUsers/Success_-_With_Users (0.00s)
+    --- PASS: TestUserUseCase_GetAllUsers/Success_-_Empty_Result (0.00s)
+    --- PASS: TestUserUseCase_GetAllUsers/Error_-_Database_Error (0.00s)
+=== RUN   TestUserUseCase_Current
+=== RUN   TestUserUseCase_Current/Success_-_User_Found
+=== RUN   TestUserUseCase_Current/Error_-_User_Not_Found
+--- PASS: TestUserUseCase_Current (0.00s)
+    --- PASS: TestUserUseCase_Current/Success_-_User_Found (0.00s)
+    --- PASS: TestUserUseCase_Current/Error_-_User_Not_Found (0.00s)
+=== RUN   TestUserUseCase_Update
+=== RUN   TestUserUseCase_Update/Success_-_User_Updated
+=== RUN   TestUserUseCase_Update/Success_-_Update_Username
+=== RUN   TestUserUseCase_Update/Error_-_Username_Conflict
+=== RUN   TestUserUseCase_Update/Update_Password_-_Success
+=== RUN   TestUserUseCase_Update/Update_-_Conflict
+=== RUN   TestUserUseCase_Update/Error_-_User_Not_Found
+=== RUN   TestUserUseCase_Update/Error_-_Update_Fails
+=== RUN   TestUserUseCase_Update/Audit_Log_Error
+--- PASS: TestUserUseCase_Update (0.09s)
+    --- PASS: TestUserUseCase_Update/Success_-_User_Updated (0.00s)
+    --- PASS: TestUserUseCase_Update/Success_-_Update_Username (0.00s)
+    --- PASS: TestUserUseCase_Update/Error_-_Username_Conflict (0.00s)
+    --- PASS: TestUserUseCase_Update/Update_Password_-_Success (0.09s)
+    --- PASS: TestUserUseCase_Update/Update_-_Conflict (0.00s)
+    --- PASS: TestUserUseCase_Update/Error_-_User_Not_Found (0.00s)
+    --- PASS: TestUserUseCase_Update/Error_-_Update_Fails (0.00s)
+    --- PASS: TestUserUseCase_Update/Audit_Log_Error (0.00s)
+=== RUN   TestUserUseCase_DeleteUser
+=== RUN   TestUserUseCase_DeleteUser/Success_-_User_Deleted
+=== RUN   TestUserUseCase_DeleteUser/Error_-_User_Not_Found
+=== RUN   TestUserUseCase_DeleteUser/Error_-_SQL_Injection_Attempt
+=== RUN   TestUserUseCase_DeleteUser/Error_-_Database_Error_During_Delete
+=== RUN   TestUserUseCase_DeleteUser/Error_-_Audit_Log_Fails_(Compensation_Triggered)
+=== RUN   TestUserUseCase_DeleteUser/Error_-_Audit_Log_Fails_&_Compensation_Fails
+--- PASS: TestUserUseCase_DeleteUser (0.00s)
+    --- PASS: TestUserUseCase_DeleteUser/Success_-_User_Deleted (0.00s)
+    --- PASS: TestUserUseCase_DeleteUser/Error_-_User_Not_Found (0.00s)
+    --- PASS: TestUserUseCase_DeleteUser/Error_-_SQL_Injection_Attempt (0.00s)
+    --- PASS: TestUserUseCase_DeleteUser/Error_-_Database_Error_During_Delete (0.00s)
+    --- PASS: TestUserUseCase_DeleteUser/Error_-_Audit_Log_Fails_(Compensation_Triggered) (0.00s)
+    --- PASS: TestUserUseCase_DeleteUser/Error_-_Audit_Log_Fails_&_Compensation_Fails (0.00s)
+=== RUN   TestUserUseCase_GetAllUsersDynamic
+=== RUN   TestUserUseCase_GetAllUsersDynamic/Success_-_With_Dynamic_Filter
+=== RUN   TestUserUseCase_GetAllUsersDynamic/Error_-_Database_Error
+--- PASS: TestUserUseCase_GetAllUsersDynamic (0.00s)
+    --- PASS: TestUserUseCase_GetAllUsersDynamic/Success_-_With_Dynamic_Filter (0.00s)
+    --- PASS: TestUserUseCase_GetAllUsersDynamic/Error_-_Database_Error (0.00s)
+=== RUN   TestUserUseCase_UpdateStatus
+=== RUN   TestUserUseCase_UpdateStatus/Success_-_Active
+=== RUN   TestUserUseCase_UpdateStatus/Success_-_Banned_(Revoke_Sessions)
+=== RUN   TestUserUseCase_UpdateStatus/Revoke_Sessions_Error
+=== RUN   TestUserUseCase_UpdateStatus/Error_-_Invalid_Status
+=== RUN   TestUserUseCase_UpdateStatus/Error_-_User_Not_Found
+=== RUN   TestUserUseCase_UpdateStatus/Audit_Log_Error
+--- PASS: TestUserUseCase_UpdateStatus (0.00s)
+    --- PASS: TestUserUseCase_UpdateStatus/Success_-_Active (0.00s)
+    --- PASS: TestUserUseCase_UpdateStatus/Success_-_Banned_(Revoke_Sessions) (0.00s)
+    --- PASS: TestUserUseCase_UpdateStatus/Revoke_Sessions_Error (0.00s)
+    --- PASS: TestUserUseCase_UpdateStatus/Error_-_Invalid_Status (0.00s)
+    --- PASS: TestUserUseCase_UpdateStatus/Error_-_User_Not_Found (0.00s)
+    --- PASS: TestUserUseCase_UpdateStatus/Audit_Log_Error (0.00s)
+=== RUN   TestUserUseCase_HardDeleteSoftDeletedUsers
+=== RUN   TestUserUseCase_HardDeleteSoftDeletedUsers/Success
+=== RUN   TestUserUseCase_HardDeleteSoftDeletedUsers/Error
+--- PASS: TestUserUseCase_HardDeleteSoftDeletedUsers (0.00s)
+    --- PASS: TestUserUseCase_HardDeleteSoftDeletedUsers/Success (0.00s)
+    --- PASS: TestUserUseCase_HardDeleteSoftDeletedUsers/Error (0.00s)
+=== RUN   TestUserUseCase_Create_Sanitization
+--- PASS: TestUserUseCase_Create_Sanitization (0.09s)
+=== RUN   TestUserUseCase_DeleteUser_EnforcerGetRolesError
+--- PASS: TestUserUseCase_DeleteUser_EnforcerGetRolesError (0.00s)
+=== RUN   TestUserUseCase_UpdateStatus_Atomicity
+=== RUN   TestUserUseCase_UpdateStatus_Atomicity/Status_updated,_but_Audit_log_fails_->_Should_return_error
+=== RUN   TestUserUseCase_UpdateStatus_Atomicity/Status_updated,_but_Revoke_sessions_fails_->_Should_return_error
+--- PASS: TestUserUseCase_UpdateStatus_Atomicity (0.00s)
+    --- PASS: TestUserUseCase_UpdateStatus_Atomicity/Status_updated,_but_Audit_log_fails_->_Should_return_error (0.00s)
+    --- PASS: TestUserUseCase_UpdateStatus_Atomicity/Status_updated,_but_Revoke_sessions_fails_->_Should_return_error (0.00s)
+=== RUN   TestGetUserByID_ContextCancellation
+--- PASS: TestGetUserByID_ContextCancellation (0.00s)
+=== RUN   TestUserXSSValidation
+=== RUN   TestUserXSSValidation/RegisterUser_XSS_in_Name
+=== RUN   TestUserXSSValidation/RegisterUser_XSS_in_Username
+=== RUN   TestUserXSSValidation/UpdateUser_XSS_in_Name
+--- PASS: TestUserXSSValidation (0.00s)
+    --- PASS: TestUserXSSValidation/RegisterUser_XSS_in_Name (0.00s)
+    --- PASS: TestUserXSSValidation/RegisterUser_XSS_in_Username (0.00s)
+    --- PASS: TestUserXSSValidation/UpdateUser_XSS_in_Name (0.00s)
+=== RUN   TestUserHandler_RegisterUser_Success
+[GIN] 2026/02/21 - 12:04:07 | 201 |      384.22µs |                 | POST     "/users/register"
+--- PASS: TestUserHandler_RegisterUser_Success (0.00s)
+=== RUN   TestUserHandler_RegisterUser_BindError
+[GIN] 2026/02/21 - 12:04:07 | 400 |      17.618µs |                 | POST     "/users/register"
+--- PASS: TestUserHandler_RegisterUser_BindError (0.00s)
+=== RUN   TestUserHandler_RegisterUser_Conflict
+[GIN] 2026/02/21 - 12:04:07 | 409 |     322.967µs |                 | POST     "/users/register"
+--- PASS: TestUserHandler_RegisterUser_Conflict (0.00s)
+=== RUN   TestUserHandler_RegisterUser_ValidationError
+=== RUN   TestUserHandler_RegisterUser_ValidationError/Empty_Username
+[GIN] 2026/02/21 - 12:04:07 | 422 |      79.275µs |                 | POST     "/users/register"
+=== RUN   TestUserHandler_RegisterUser_ValidationError/Short_Username
+[GIN] 2026/02/21 - 12:04:07 | 422 |      96.039µs |                 | POST     "/users/register"
+=== RUN   TestUserHandler_RegisterUser_ValidationError/Short_Password
+[GIN] 2026/02/21 - 12:04:07 | 422 |     121.932µs |                 | POST     "/users/register"
+=== RUN   TestUserHandler_RegisterUser_ValidationError/Invalid_Email
+[GIN] 2026/02/21 - 12:04:07 | 422 |      88.509µs |                 | POST     "/users/register"
+=== RUN   TestUserHandler_RegisterUser_ValidationError/Missing_Name
+[GIN] 2026/02/21 - 12:04:07 | 422 |      49.539µs |                 | POST     "/users/register"
+--- PASS: TestUserHandler_RegisterUser_ValidationError (0.00s)
+    --- PASS: TestUserHandler_RegisterUser_ValidationError/Empty_Username (0.00s)
+    --- PASS: TestUserHandler_RegisterUser_ValidationError/Short_Username (0.00s)
+    --- PASS: TestUserHandler_RegisterUser_ValidationError/Short_Password (0.00s)
+    --- PASS: TestUserHandler_RegisterUser_ValidationError/Invalid_Email (0.00s)
+    --- PASS: TestUserHandler_RegisterUser_ValidationError/Missing_Name (0.00s)
+=== RUN   TestUserHandler_GetCurrentUser_Success
+--- PASS: TestUserHandler_GetCurrentUser_Success (0.00s)
+=== RUN   TestUserHandler_GetCurrentUser_NotFound
+--- PASS: TestUserHandler_GetCurrentUser_NotFound (0.00s)
+=== RUN   TestUserHandler_GetCurrentUser_Unauthorized
+--- PASS: TestUserHandler_GetCurrentUser_Unauthorized (0.00s)
+=== RUN   TestUserHandler_GetAllUsers
+=== RUN   TestUserHandler_GetAllUsers/Success
+[GIN] 2026/02/21 - 12:04:07 | 200 |     218.405µs |                 | GET      "/users"
+=== RUN   TestUserHandler_GetAllUsers/Internal_Server_Error
+[GIN] 2026/02/21 - 12:04:07 | 500 |     222.778µs |                 | GET      "/users"
+=== RUN   TestUserHandler_GetAllUsers/Bind_Error
+[GIN] 2026/02/21 - 12:04:07 | 400 |      20.431µs |                 | GET      "/users?page=abc"
+--- PASS: TestUserHandler_GetAllUsers (0.00s)
+    --- PASS: TestUserHandler_GetAllUsers/Success (0.00s)
+    --- PASS: TestUserHandler_GetAllUsers/Internal_Server_Error (0.00s)
+    --- PASS: TestUserHandler_GetAllUsers/Bind_Error (0.00s)
+=== RUN   TestUserHandler_GetUserByID
+=== RUN   TestUserHandler_GetUserByID/Success
+[GIN] 2026/02/21 - 12:04:07 | 200 |     152.396µs |                 | GET      "/users/user-123"
+=== RUN   TestUserHandler_GetUserByID/Not_Found
+[GIN] 2026/02/21 - 12:04:07 | 404 |     207.622µs |                 | GET      "/users/not-found-id"
+--- PASS: TestUserHandler_GetUserByID (0.00s)
+    --- PASS: TestUserHandler_GetUserByID/Success (0.00s)
+    --- PASS: TestUserHandler_GetUserByID/Not_Found (0.00s)
+=== RUN   TestUserHandler_DeleteUser
+=== RUN   TestUserHandler_DeleteUser/Success
+=== RUN   TestUserHandler_DeleteUser/Validation_Error_-_Invalid_UUID
+=== RUN   TestUserHandler_DeleteUser/Not_Found
+=== RUN   TestUserHandler_DeleteUser/Unauthorized
+--- PASS: TestUserHandler_DeleteUser (0.00s)
+    --- PASS: TestUserHandler_DeleteUser/Success (0.00s)
+    --- PASS: TestUserHandler_DeleteUser/Validation_Error_-_Invalid_UUID (0.00s)
+    --- PASS: TestUserHandler_DeleteUser/Not_Found (0.00s)
+    --- PASS: TestUserHandler_DeleteUser/Unauthorized (0.00s)
+=== RUN   TestUserHandler_GetAllUsers_Validation
+[GIN] 2026/02/21 - 12:04:07 | 422 |      38.667µs |                 | GET      "/users?limit=1001"
+--- PASS: TestUserHandler_GetAllUsers_Validation (0.00s)
+=== RUN   TestUserHandler_GetUsersDynamic_Validation
+[GIN] 2026/02/21 - 12:04:07 | 422 |     287.317µs |                 | POST     "/users/search"
+--- PASS: TestUserHandler_GetUsersDynamic_Validation (0.00s)
+=== RUN   TestUserHandler_RegisterUser_XSS
+[GIN] 2026/02/21 - 12:04:07 | 422 |      86.443µs |                 | POST     "/users/register"
+[GIN] 2026/02/21 - 12:04:07 | 422 |      72.353µs |                 | POST     "/users/register"
+=== RUN   TestUserHandler_RegisterUser_XSS/XSS_in_Username
+[GIN] 2026/02/21 - 12:04:07 | 422 |     230.657µs |                 | POST     "/users/register"
+=== RUN   TestUserHandler_RegisterUser_XSS/XSS_in_Fullname
+[GIN] 2026/02/21 - 12:04:07 | 422 |     104.685µs |                 | POST     "/users/register"
+--- PASS: TestUserHandler_RegisterUser_XSS (0.00s)
+    --- PASS: TestUserHandler_RegisterUser_XSS/XSS_in_Username (0.00s)
+    --- PASS: TestUserHandler_RegisterUser_XSS/XSS_in_Fullname (0.00s)
+=== RUN   TestUserHandler_UpdateUser_PasswordValidation
+--- PASS: TestUserHandler_UpdateUser_PasswordValidation (0.00s)
+=== RUN   TestUserHandler_UpdateStatus
+=== RUN   TestUserHandler_UpdateStatus/Success
+[GIN] 2026/02/21 - 12:04:07 | 200 |     197.452µs |                 | PATCH    "/users/user-123/status"
+=== RUN   TestUserHandler_UpdateStatus/Validation_Error_-_Invalid_Status
+[GIN] 2026/02/21 - 12:04:07 | 422 |     132.609µs |                 | PATCH    "/users/user-123/status"
+=== RUN   TestUserHandler_UpdateStatus/Not_Found
+[GIN] 2026/02/21 - 12:04:07 | 404 |      98.539µs |                 | PATCH    "/users/user-123/status"
+=== RUN   TestUserHandler_UpdateStatus/Bind_Error
+[GIN] 2026/02/21 - 12:04:07 | 400 |      18.854µs |                 | PATCH    "/users/user-123/status"
+--- PASS: TestUserHandler_UpdateStatus (0.00s)
+    --- PASS: TestUserHandler_UpdateStatus/Success (0.00s)
+    --- PASS: TestUserHandler_UpdateStatus/Validation_Error_-_Invalid_Status (0.00s)
+    --- PASS: TestUserHandler_UpdateStatus/Not_Found (0.00s)
+    --- PASS: TestUserHandler_UpdateStatus/Bind_Error (0.00s)
+=== RUN   TestUserHandler_UpdateUser
+=== RUN   TestUserHandler_UpdateUser/Success
+=== RUN   TestUserHandler_UpdateUser/Conflict
+=== RUN   TestUserHandler_UpdateUser/Validation_Error
+=== RUN   TestUserHandler_UpdateUser/Validation_Error_-_Long_Name
+=== RUN   TestUserHandler_UpdateUser/Unauthorized
+=== RUN   TestUserHandler_UpdateUser/Bind_Error
+--- PASS: TestUserHandler_UpdateUser (0.00s)
+    --- PASS: TestUserHandler_UpdateUser/Success (0.00s)
+    --- PASS: TestUserHandler_UpdateUser/Conflict (0.00s)
+    --- PASS: TestUserHandler_UpdateUser/Validation_Error (0.00s)
+    --- PASS: TestUserHandler_UpdateUser/Validation_Error_-_Long_Name (0.00s)
+    --- PASS: TestUserHandler_UpdateUser/Unauthorized (0.00s)
+    --- PASS: TestUserHandler_UpdateUser/Bind_Error (0.00s)
+=== RUN   TestUserHandler_GetUsersDynamic
+=== RUN   TestUserHandler_GetUsersDynamic/Success
+[GIN] 2026/02/21 - 12:04:07 | 200 |     205.236µs |                 | POST     "/users/search"
+=== RUN   TestUserHandler_GetUsersDynamic/Validation_Error_-_Invalid_Filter
+[GIN] 2026/02/21 - 12:04:07 | 422 |      46.255µs |                 | POST     "/users/search"
+=== RUN   TestUserHandler_GetUsersDynamic/Bind_Error
+[GIN] 2026/02/21 - 12:04:07 | 400 |      24.304µs |                 | POST     "/users/search"
+=== RUN   TestUserHandler_GetUsersDynamic/Internal_Server_Error
+[GIN] 2026/02/21 - 12:04:07 | 500 |      85.769µs |                 | POST     "/users/search"
+--- PASS: TestUserHandler_GetUsersDynamic (0.00s)
+    --- PASS: TestUserHandler_GetUsersDynamic/Success (0.00s)
+    --- PASS: TestUserHandler_GetUsersDynamic/Validation_Error_-_Invalid_Filter (0.00s)
+    --- PASS: TestUserHandler_GetUsersDynamic/Bind_Error (0.00s)
+    --- PASS: TestUserHandler_GetUsersDynamic/Internal_Server_Error (0.00s)
+=== RUN   TestUserHandler_UpdateAvatar
+=== RUN   TestUserHandler_UpdateAvatar/Success
+=== RUN   TestUserHandler_UpdateAvatar/Bad_Request_-_Missing_File
+=== RUN   TestUserHandler_UpdateAvatar/Internal_Error
+=== RUN   TestUserHandler_UpdateAvatar/Unauthorized
+=== RUN   TestUserHandler_UpdateAvatar/File_Too_Large
+--- PASS: TestUserHandler_UpdateAvatar (0.02s)
+    --- PASS: TestUserHandler_UpdateAvatar/Success (0.00s)
+    --- PASS: TestUserHandler_UpdateAvatar/Bad_Request_-_Missing_File (0.00s)
+    --- PASS: TestUserHandler_UpdateAvatar/Internal_Error (0.00s)
+    --- PASS: TestUserHandler_UpdateAvatar/Unauthorized (0.00s)
+    --- PASS: TestUserHandler_UpdateAvatar/File_Too_Large (0.02s)
+=== RUN   TestUserHandler_UpdateUser_XSS
+=== RUN   TestUserHandler_UpdateUser_XSS/XSS_in_Username
+=== RUN   TestUserHandler_UpdateUser_XSS/XSS_in_Name
+--- PASS: TestUserHandler_UpdateUser_XSS (0.00s)
+    --- PASS: TestUserHandler_UpdateUser_XSS/XSS_in_Username (0.00s)
+    --- PASS: TestUserHandler_UpdateUser_XSS/XSS_in_Name (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks	[no test files]
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase	[no test files]
+=== RUN   TestTrustedProxies
+=== RUN   TestTrustedProxies/Should_not_trust_X-Forwarded-For_by_default
+time="2026-02-21T12:04:08Z" level=info msg="Request Processed" client_ip=10.0.0.1 data_length=8 latency_ms=0.03103 latency_ns=31030 method=GET path=/test-ip status=200 type=http_request user_agent=
+=== RUN   TestTrustedProxies/Should_trust_configured_proxy
+time="2026-02-21T12:04:08Z" level=info msg="Trusted proxies set to: [10.0.0.1]"
+time="2026-02-21T12:04:08Z" level=info msg="Request Processed" client_ip=1.2.3.4 data_length=7 latency_ms=0.008916 latency_ns=8916 method=GET path=/test-ip-trusted status=200 type=http_request user_agent=
+--- PASS: TestTrustedProxies (0.00s)
+    --- PASS: TestTrustedProxies/Should_not_trust_X-Forwarded-For_by_default (0.00s)
+    --- PASS: TestTrustedProxies/Should_trust_configured_proxy (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/router	(cached)
+=== RUN   TestAsynqLogger
+=== RUN   TestAsynqLogger/Debug
+=== RUN   TestAsynqLogger/Info
+=== RUN   TestAsynqLogger/Warn
+=== RUN   TestAsynqLogger/Error
+--- PASS: TestAsynqLogger (0.00s)
+    --- PASS: TestAsynqLogger/Debug (0.00s)
+    --- PASS: TestAsynqLogger/Info (0.00s)
+    --- PASS: TestAsynqLogger/Warn (0.00s)
+    --- PASS: TestAsynqLogger/Error (0.00s)
+=== RUN   TestWorkerConfig
+--- PASS: TestWorkerConfig (0.00s)
+=== RUN   TestSMTPConfig_Defaults
+--- PASS: TestSMTPConfig_Defaults (0.00s)
+=== RUN   TestNewAsynqLogger_NotNil
+--- PASS: TestNewAsynqLogger_NotNil (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/worker	(cached)
+=== RUN   TestProcessCleanupExpiredTokens
+=== RUN   TestProcessCleanupExpiredTokens/Success
+=== RUN   TestProcessCleanupExpiredTokens/Failure
+--- PASS: TestProcessCleanupExpiredTokens (0.00s)
+    --- PASS: TestProcessCleanupExpiredTokens/Success (0.00s)
+    --- PASS: TestProcessCleanupExpiredTokens/Failure (0.00s)
+=== RUN   TestProcessCleanupSoftDeletedEntities
+=== RUN   TestProcessCleanupSoftDeletedEntities/Success
+=== RUN   TestProcessCleanupSoftDeletedEntities/Unmarshal_Error
+=== RUN   TestProcessCleanupSoftDeletedEntities/Repo_Error
+--- PASS: TestProcessCleanupSoftDeletedEntities (0.00s)
+    --- PASS: TestProcessCleanupSoftDeletedEntities/Success (0.00s)
+    --- PASS: TestProcessCleanupSoftDeletedEntities/Unmarshal_Error (0.00s)
+    --- PASS: TestProcessCleanupSoftDeletedEntities/Repo_Error (0.00s)
+=== RUN   TestProcessPruneAuditLogs
+=== RUN   TestProcessPruneAuditLogs/Success
+=== RUN   TestProcessPruneAuditLogs/Unmarshal_Error
+=== RUN   TestProcessPruneAuditLogs/Repo_Error
+--- PASS: TestProcessPruneAuditLogs (0.00s)
+    --- PASS: TestProcessPruneAuditLogs/Success (0.00s)
+    --- PASS: TestProcessPruneAuditLogs/Unmarshal_Error (0.00s)
+    --- PASS: TestProcessPruneAuditLogs/Repo_Error (0.00s)
+=== RUN   TestEmailTaskHandler_ProcessTaskSendEmail
+=== RUN   TestEmailTaskHandler_ProcessTaskSendEmail/Valid_Payload_Processing
+=== RUN   TestEmailTaskHandler_ProcessTaskSendEmail/Unmarshal_Error
+--- PASS: TestEmailTaskHandler_ProcessTaskSendEmail (0.00s)
+    --- PASS: TestEmailTaskHandler_ProcessTaskSendEmail/Valid_Payload_Processing (0.00s)
+    --- PASS: TestEmailTaskHandler_ProcessTaskSendEmail/Unmarshal_Error (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers	(cached)
+=== RUN   TestNewSendEmailTask
+--- PASS: TestNewSendEmailTask (0.00s)
+=== RUN   TestCleanupSoftDeletedEntitiesPayload
+--- PASS: TestCleanupSoftDeletedEntitiesPayload (0.00s)
+=== RUN   TestPruneAuditLogsPayload
+--- PASS: TestPruneAuditLogsPayload (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/internal/worker/test/mocks	[no test files]
+=== RUN   TestHashPassword
+--- PASS: TestHashPassword (0.08s)
+=== RUN   TestCheckPasswordHash_Success
+--- PASS: TestCheckPasswordHash_Success (0.18s)
+=== RUN   TestCheckPasswordHash_Failure
+--- PASS: TestCheckPasswordHash_Failure (0.17s)
+=== RUN   TestCheckPasswordHash_InvalidHash
+--- PASS: TestCheckPasswordHash_InvalidHash (0.00s)
+=== RUN   TestContainsSQLInjection
+=== RUN   TestContainsSQLInjection/Safe_string
+=== RUN   TestContainsSQLInjection/SQL_injection_-_OR_1=1
+=== RUN   TestContainsSQLInjection/SQL_injection_-_DROP_TABLE
+=== RUN   TestContainsSQLInjection/SQL_injection_-_UNION_SELECT
+=== RUN   TestContainsSQLInjection/SQL_injection_-_comment
+=== RUN   TestContainsSQLInjection/SQL_injection_-_semicolon
+=== RUN   TestContainsSQLInjection/Safe_email
+=== RUN   TestContainsSQLInjection/Safe_username
+=== RUN   TestContainsSQLInjection/Safe_word_'selection'
+=== RUN   TestContainsSQLInjection/Safe_name_'Selecta'
+=== RUN   TestContainsSQLInjection/Safe_name_'Benedict'
+=== RUN   TestContainsSQLInjection/Ambiguous_name_'Grant'
+=== RUN   TestContainsSQLInjection/Sentence_with_keyword
+--- PASS: TestContainsSQLInjection (0.00s)
+    --- PASS: TestContainsSQLInjection/Safe_string (0.00s)
+    --- PASS: TestContainsSQLInjection/SQL_injection_-_OR_1=1 (0.00s)
+    --- PASS: TestContainsSQLInjection/SQL_injection_-_DROP_TABLE (0.00s)
+    --- PASS: TestContainsSQLInjection/SQL_injection_-_UNION_SELECT (0.00s)
+    --- PASS: TestContainsSQLInjection/SQL_injection_-_comment (0.00s)
+    --- PASS: TestContainsSQLInjection/SQL_injection_-_semicolon (0.00s)
+    --- PASS: TestContainsSQLInjection/Safe_email (0.00s)
+    --- PASS: TestContainsSQLInjection/Safe_username (0.00s)
+    --- PASS: TestContainsSQLInjection/Safe_word_'selection' (0.00s)
+    --- PASS: TestContainsSQLInjection/Safe_name_'Selecta' (0.00s)
+    --- PASS: TestContainsSQLInjection/Safe_name_'Benedict' (0.00s)
+    --- PASS: TestContainsSQLInjection/Ambiguous_name_'Grant' (0.00s)
+    --- PASS: TestContainsSQLInjection/Sentence_with_keyword (0.00s)
+=== RUN   TestSanitizeString
+=== RUN   TestSanitizeString/Normal_string
+=== RUN   TestSanitizeString/String_with_spaces
+=== RUN   TestSanitizeString/HTML_tags
+=== RUN   TestSanitizeString/Special_chars
+--- PASS: TestSanitizeString (0.00s)
+    --- PASS: TestSanitizeString/Normal_string (0.00s)
+    --- PASS: TestSanitizeString/String_with_spaces (0.00s)
+    --- PASS: TestSanitizeString/HTML_tags (0.00s)
+    --- PASS: TestSanitizeString/Special_chars (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg	(cached)
+=== RUN   TestCircuitBreaker
+Circuit Breaker 'test-cb' changed state from closed to open
+Circuit Breaker 'test-cb' changed state from open to half-open
+--- PASS: TestCircuitBreaker (1.10s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/circuitbreaker	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/pkg/constants	[no test files]
+=== RUN   TestGetOrganizationID
+=== RUN   TestGetOrganizationID/Valid_org_id_in_context
+=== RUN   TestGetOrganizationID/Empty_context
+=== RUN   TestGetOrganizationID/Empty_string_org_id
+=== RUN   TestGetOrganizationID/Wrong_type_in_context_(int)
+=== RUN   TestGetOrganizationID/Wrong_type_in_context_(nil)
+--- PASS: TestGetOrganizationID (0.00s)
+    --- PASS: TestGetOrganizationID/Valid_org_id_in_context (0.00s)
+    --- PASS: TestGetOrganizationID/Empty_context (0.00s)
+    --- PASS: TestGetOrganizationID/Empty_string_org_id (0.00s)
+    --- PASS: TestGetOrganizationID/Wrong_type_in_context_(int) (0.00s)
+    --- PASS: TestGetOrganizationID/Wrong_type_in_context_(nil) (0.00s)
+=== RUN   TestSetOrganizationContext
+--- PASS: TestSetOrganizationContext (0.00s)
+=== RUN   TestOrganizationScope_ReturnsFunction
+--- PASS: TestOrganizationScope_ReturnsFunction (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/database	(cached)
+=== RUN   TestErrorsAreDefined
+=== RUN   TestErrorsAreDefined/ErrBadRequest
+=== RUN   TestErrorsAreDefined/ErrNotFound
+=== RUN   TestErrorsAreDefined/ErrUnauthorized
+=== RUN   TestErrorsAreDefined/ErrForbidden
+=== RUN   TestErrorsAreDefined/ErrInternalServer
+=== RUN   TestErrorsAreDefined/ErrConflict
+=== RUN   TestErrorsAreDefined/ErrUnprocessableEntity
+=== RUN   TestErrorsAreDefined/ErrValidationError
+=== RUN   TestErrorsAreDefined/ErrTooManyRequests
+--- PASS: TestErrorsAreDefined (0.00s)
+    --- PASS: TestErrorsAreDefined/ErrBadRequest (0.00s)
+    --- PASS: TestErrorsAreDefined/ErrNotFound (0.00s)
+    --- PASS: TestErrorsAreDefined/ErrUnauthorized (0.00s)
+    --- PASS: TestErrorsAreDefined/ErrForbidden (0.00s)
+    --- PASS: TestErrorsAreDefined/ErrInternalServer (0.00s)
+    --- PASS: TestErrorsAreDefined/ErrConflict (0.00s)
+    --- PASS: TestErrorsAreDefined/ErrUnprocessableEntity (0.00s)
+    --- PASS: TestErrorsAreDefined/ErrValidationError (0.00s)
+    --- PASS: TestErrorsAreDefined/ErrTooManyRequests (0.00s)
+=== RUN   TestErrorsAreDistinct
+--- PASS: TestErrorsAreDistinct (0.00s)
+=== RUN   TestErrorsIsComparison
+--- PASS: TestErrorsIsComparison (0.00s)
+=== RUN   TestErrorWrapping
+--- PASS: TestErrorWrapping (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/exception	(cached)
+=== RUN   TestNewJWTManager
+--- PASS: TestNewJWTManager (0.00s)
+=== RUN   TestGenerateAndValidateTokenPair_Success
+--- PASS: TestGenerateAndValidateTokenPair_Success (0.00s)
+=== RUN   TestValidateToken_Expired
+--- PASS: TestValidateToken_Expired (0.01s)
+=== RUN   TestValidateToken_InvalidSignature
+--- PASS: TestValidateToken_InvalidSignature (0.00s)
+=== RUN   TestValidateToken_MalformedToken
+--- PASS: TestValidateToken_MalformedToken (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt	(cached)
+=== RUN   TestGenerateDynamicQuery
+=== RUN   TestGenerateDynamicQuery/Contains_Operator
+=== RUN   TestGenerateDynamicQuery/Between_Operator
+=== RUN   TestGenerateDynamicQuery/In_Operator
+=== RUN   TestGenerateDynamicQuery/Unknown_Field
+--- PASS: TestGenerateDynamicQuery (0.00s)
+    --- PASS: TestGenerateDynamicQuery/Contains_Operator (0.00s)
+    --- PASS: TestGenerateDynamicQuery/Between_Operator (0.00s)
+    --- PASS: TestGenerateDynamicQuery/In_Operator (0.00s)
+    --- PASS: TestGenerateDynamicQuery/Unknown_Field (0.00s)
+=== RUN   TestGenerateDynamicQuery_NoSoftDelete
+--- PASS: TestGenerateDynamicQuery_NoSoftDelete (0.00s)
+=== RUN   TestGenerateDynamicSort
+--- PASS: TestGenerateDynamicSort (0.00s)
+=== RUN   TestGetDBFieldName
+--- PASS: TestGetDBFieldName (0.00s)
+=== RUN   TestToSnakeCase
+--- PASS: TestToSnakeCase (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder	(cached)
+=== RUN   TestInternalServerError_DebugMode
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+--- PASS: TestInternalServerError_DebugMode (0.00s)
+=== RUN   TestInternalServerError_ReleaseMode
+--- PASS: TestInternalServerError_ReleaseMode (0.00s)
+=== RUN   TestHandleError
+=== RUN   TestHandleError/BadRequest
+=== RUN   TestHandleError/Unauthorized
+=== RUN   TestHandleError/Forbidden
+=== RUN   TestHandleError/NotFound
+=== RUN   TestHandleError/Conflict
+=== RUN   TestHandleError/ValidationError
+=== RUN   TestHandleError/UnprocessableEntity
+=== RUN   TestHandleError/TooManyRequests
+=== RUN   TestHandleError/UnknownError
+--- PASS: TestHandleError (0.00s)
+    --- PASS: TestHandleError/BadRequest (0.00s)
+    --- PASS: TestHandleError/Unauthorized (0.00s)
+    --- PASS: TestHandleError/Forbidden (0.00s)
+    --- PASS: TestHandleError/NotFound (0.00s)
+    --- PASS: TestHandleError/Conflict (0.00s)
+    --- PASS: TestHandleError/ValidationError (0.00s)
+    --- PASS: TestHandleError/UnprocessableEntity (0.00s)
+    --- PASS: TestHandleError/TooManyRequests (0.00s)
+    --- PASS: TestHandleError/UnknownError (0.00s)
+=== RUN   TestSuccessResponse
+--- PASS: TestSuccessResponse (0.00s)
+=== RUN   TestCreatedResponse
+--- PASS: TestCreatedResponse (0.00s)
+=== RUN   TestSuccessResponseWithPaging
+--- PASS: TestSuccessResponseWithPaging (0.00s)
+=== RUN   TestWebResponseSuccess_JSONMarshalling
+--- PASS: TestWebResponseSuccess_JSONMarshalling (0.00s)
+=== RUN   TestWebResponseSuccess_OmitEmpty
+--- PASS: TestWebResponseSuccess_OmitEmpty (0.00s)
+=== RUN   TestWebResponseError_JSONMarshalling
+--- PASS: TestWebResponseError_JSONMarshalling (0.00s)
+=== RUN   TestPageResponse_JSONMarshalling
+--- PASS: TestPageResponse_JSONMarshalling (0.00s)
+=== RUN   TestPageMetadata_AllFields
+--- PASS: TestPageMetadata_AllFields (0.00s)
+=== RUN   TestWebResponseAny_JSONMarshalling
+--- PASS: TestWebResponseAny_JSONMarshalling (0.00s)
+=== RUN   TestWebResponseAny_NilPaging
+--- PASS: TestWebResponseAny_NilPaging (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/response	(cached)
+=== RUN   TestNewManager
+--- PASS: TestNewManager (0.00s)
+=== RUN   TestManager_RegisterAndUnregister
+--- PASS: TestManager_RegisterAndUnregister (0.01s)
+=== RUN   TestManager_Broadcast
+--- PASS: TestManager_Broadcast (0.05s)
+=== RUN   TestManager_SetLogger
+--- PASS: TestManager_SetLogger (0.00s)
+=== RUN   TestManager_ServeHTTP
+--- PASS: TestManager_ServeHTTP (0.01s)
+=== RUN   TestManager_SlowClient
+--- PASS: TestManager_SlowClient (0.02s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/sse	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/pkg/storage	[no test files]
+=== RUN   TestNewLocalStorage
+=== RUN   TestNewLocalStorage/Create_Success
+=== RUN   TestNewLocalStorage/Create_Default_Path
+--- PASS: TestNewLocalStorage (0.00s)
+    --- PASS: TestNewLocalStorage/Create_Success (0.00s)
+    --- PASS: TestNewLocalStorage/Create_Default_Path (0.00s)
+=== RUN   TestUploadFile
+=== RUN   TestUploadFile/Success
+=== RUN   TestUploadFile/Path_Traversal
+--- PASS: TestUploadFile (0.00s)
+    --- PASS: TestUploadFile/Success (0.00s)
+    --- PASS: TestUploadFile/Path_Traversal (0.00s)
+=== RUN   TestDeleteFile
+=== RUN   TestDeleteFile/Success
+=== RUN   TestDeleteFile/Not_Exist
+--- PASS: TestDeleteFile (0.00s)
+    --- PASS: TestDeleteFile/Success (0.00s)
+    --- PASS: TestDeleteFile/Not_Exist (0.00s)
+=== RUN   TestGetFileUrl
+--- PASS: TestGetFileUrl (0.00s)
+=== RUN   TestUploadFile_CreateError
+--- PASS: TestUploadFile_CreateError (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/local	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/mocks	[no test files]
+=== RUN   TestUploadFile
+=== RUN   TestUploadFile/Success
+=== RUN   TestUploadFile/Upload_Error
+--- PASS: TestUploadFile (0.00s)
+    --- PASS: TestUploadFile/Success (0.00s)
+    --- PASS: TestUploadFile/Upload_Error (0.00s)
+=== RUN   TestDeleteFile
+=== RUN   TestDeleteFile/Success
+=== RUN   TestDeleteFile/Error
+--- PASS: TestDeleteFile (0.00s)
+    --- PASS: TestDeleteFile/Success (0.00s)
+    --- PASS: TestDeleteFile/Error (0.00s)
+=== RUN   TestNewS3Storage
+=== RUN   TestNewS3Storage/Success
+--- PASS: TestNewS3Storage (0.00s)
+    --- PASS: TestNewS3Storage/Success (0.00s)
+=== RUN   TestGetFileUrl
+=== RUN   TestGetFileUrl/Success
+=== RUN   TestGetFileUrl/Error
+--- PASS: TestGetFileUrl (0.00s)
+    --- PASS: TestGetFileUrl/Success (0.00s)
+    --- PASS: TestGetFileUrl/Error (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/s3	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry	[no test files]
+=== RUN   TestTransactionManager_WithinTransaction_Commit
+--- PASS: TestTransactionManager_WithinTransaction_Commit (0.00s)
+=== RUN   TestTransactionManager_WithinTransaction_Rollback
+--- PASS: TestTransactionManager_WithinTransaction_Rollback (0.00s)
+=== RUN   TestTransactionManager_WithinTransaction_PanicRollback
+--- PASS: TestTransactionManager_WithinTransaction_PanicRollback (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/tx	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/pkg/tx/mocks	[no test files]
+=== RUN   TestValidateXSS
+=== RUN   TestValidateXSS/Clean_string
+=== RUN   TestValidateXSS/String_with_allowed_tags
+=== RUN   TestValidateXSS/Simple_XSS_script_tag
+=== RUN   TestValidateXSS/XSS_with_img_onerror
+=== RUN   TestValidateXSS/XSS_with_svg_onload
+=== RUN   TestValidateXSS/Mixed_case_script_tag
+=== RUN   TestValidateXSS/XSS_with_no_closing_tag
+=== RUN   TestValidateXSS/XSS_with_single_quote
+=== RUN   TestValidateXSS/XSS_with_double_quote
+=== RUN   TestValidateXSS/XSS_with_encoded_characters
+=== RUN   TestValidateXSS/String_with_only_allowed_tags
+=== RUN   TestValidateXSS/String_with_disallowed_but_incomplete_tag
+--- PASS: TestValidateXSS (0.00s)
+    --- PASS: TestValidateXSS/Clean_string (0.00s)
+    --- PASS: TestValidateXSS/String_with_allowed_tags (0.00s)
+    --- PASS: TestValidateXSS/Simple_XSS_script_tag (0.00s)
+    --- PASS: TestValidateXSS/XSS_with_img_onerror (0.00s)
+    --- PASS: TestValidateXSS/XSS_with_svg_onload (0.00s)
+    --- PASS: TestValidateXSS/Mixed_case_script_tag (0.00s)
+    --- PASS: TestValidateXSS/XSS_with_no_closing_tag (0.00s)
+    --- PASS: TestValidateXSS/XSS_with_single_quote (0.00s)
+    --- PASS: TestValidateXSS/XSS_with_double_quote (0.00s)
+    --- PASS: TestValidateXSS/XSS_with_encoded_characters (0.00s)
+    --- PASS: TestValidateXSS/String_with_only_allowed_tags (0.00s)
+    --- PASS: TestValidateXSS/String_with_disallowed_but_incomplete_tag (0.00s)
+=== RUN   TestValidateSlug
+=== RUN   TestValidateSlug/Valid_Slug
+=== RUN   TestValidateSlug/Valid_Slug_-_Single_Word
+=== RUN   TestValidateSlug/Invalid_Slug_-_Uppercase
+=== RUN   TestValidateSlug/Invalid_Slug_-_Starts_with_Dash
+=== RUN   TestValidateSlug/Invalid_Slug_-_Ends_with_Dash
+=== RUN   TestValidateSlug/Invalid_Slug_-_Special_Characters
+=== RUN   TestValidateSlug/Invalid_Slug_-_Spaces
+--- PASS: TestValidateSlug (0.00s)
+    --- PASS: TestValidateSlug/Valid_Slug (0.00s)
+    --- PASS: TestValidateSlug/Valid_Slug_-_Single_Word (0.00s)
+    --- PASS: TestValidateSlug/Invalid_Slug_-_Uppercase (0.00s)
+    --- PASS: TestValidateSlug/Invalid_Slug_-_Starts_with_Dash (0.00s)
+    --- PASS: TestValidateSlug/Invalid_Slug_-_Ends_with_Dash (0.00s)
+    --- PASS: TestValidateSlug/Invalid_Slug_-_Special_Characters (0.00s)
+    --- PASS: TestValidateSlug/Invalid_Slug_-_Spaces (0.00s)
+=== RUN   TestSanitizeString
+=== RUN   TestSanitizeString/Clean_string
+=== RUN   TestSanitizeString/String_with_script_tags
+=== RUN   TestSanitizeString/String_with_image_tags
+=== RUN   TestSanitizeString/String_with_mixed_HTML_tags
+=== RUN   TestSanitizeString/Empty_string
+=== RUN   TestSanitizeString/Complex_XSS_payload
+=== RUN   TestSanitizeString/Allowed_tags_are_handled_by_SanitizeString_-_current_implementation_removes_all
+--- PASS: TestSanitizeString (0.00s)
+    --- PASS: TestSanitizeString/Clean_string (0.00s)
+    --- PASS: TestSanitizeString/String_with_script_tags (0.00s)
+    --- PASS: TestSanitizeString/String_with_image_tags (0.00s)
+    --- PASS: TestSanitizeString/String_with_mixed_HTML_tags (0.00s)
+    --- PASS: TestSanitizeString/Empty_string (0.00s)
+    --- PASS: TestSanitizeString/Complex_XSS_payload (0.00s)
+    --- PASS: TestSanitizeString/Allowed_tags_are_handled_by_SanitizeString_-_current_implementation_removes_all (0.00s)
+=== RUN   TestFormatValidationErrors_SingleError
+--- PASS: TestFormatValidationErrors_SingleError (0.00s)
+=== RUN   TestFormatValidationErrors_MultipleErrors
+--- PASS: TestFormatValidationErrors_MultipleErrors (0.00s)
+=== RUN   TestFormatValidationErrors_NonValidationError
+--- PASS: TestFormatValidationErrors_NonValidationError (0.00s)
+=== RUN   TestFormatValidationErrors_EmailError
+--- PASS: TestFormatValidationErrors_EmailError (0.00s)
+=== RUN   TestFormatValidationErrors_MinMaxErrors
+--- PASS: TestFormatValidationErrors_MinMaxErrors (0.00s)
+=== RUN   TestFormatValidationErrors_OtherTypes
+=== RUN   TestFormatValidationErrors_OtherTypes/Alphanum_Error
+=== RUN   TestFormatValidationErrors_OtherTypes/UUID_Error
+=== RUN   TestFormatValidationErrors_OtherTypes/Boolean_Error
+=== RUN   TestFormatValidationErrors_OtherTypes/Default_Error_(Slug)
+--- PASS: TestFormatValidationErrors_OtherTypes (0.00s)
+    --- PASS: TestFormatValidationErrors_OtherTypes/Alphanum_Error (0.00s)
+    --- PASS: TestFormatValidationErrors_OtherTypes/UUID_Error (0.00s)
+    --- PASS: TestFormatValidationErrors_OtherTypes/Boolean_Error (0.00s)
+    --- PASS: TestFormatValidationErrors_OtherTypes/Default_Error_(Slug) (0.00s)
+=== RUN   TestValidation_InvalidType
+--- PASS: TestValidation_InvalidType (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/validation	(cached)
+=== RUN   TestMocks
+--- PASS: TestMocks (0.00s)
+=== RUN   TestRedisPresenceManager
+=== RUN   TestRedisPresenceManager/SetUserOnline_-_Data_is_stored_in_Redis
+redis: 2026/02/21 12:04:18 redis.go:478: auto mode fallback: maintnotifications disabled due to handshake error: ERR unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+=== RUN   TestRedisPresenceManager/GetOnlineUsers_-_Returns_list_of_active_users
+=== RUN   TestRedisPresenceManager/Data_Isolation_-_Different_Org_gets_empty_list
+=== RUN   TestRedisPresenceManager/SetUserOffline_-_Data_is_removed
+=== RUN   TestRedisPresenceManager/PruneStaleUsers_-_Removes_inactive_users
+--- PASS: TestRedisPresenceManager (0.01s)
+    --- PASS: TestRedisPresenceManager/SetUserOnline_-_Data_is_stored_in_Redis (0.00s)
+    --- PASS: TestRedisPresenceManager/GetOnlineUsers_-_Returns_list_of_active_users (0.00s)
+    --- PASS: TestRedisPresenceManager/Data_Isolation_-_Different_Org_gets_empty_list (0.00s)
+    --- PASS: TestRedisPresenceManager/SetUserOffline_-_Data_is_removed (0.00s)
+    --- PASS: TestRedisPresenceManager/PruneStaleUsers_-_Removes_inactive_users (0.00s)
+=== RUN   TestClient_HandleMessage_Subscribe
+--- PASS: TestClient_HandleMessage_Subscribe (0.00s)
+=== RUN   TestClient_HandleMessage_Unsubscribe
+--- PASS: TestClient_HandleMessage_Unsubscribe (0.00s)
+=== RUN   TestClient_HandleMessage_PresenceHeartbeat
+--- PASS: TestClient_HandleMessage_PresenceHeartbeat (0.00s)
+=== RUN   TestClient_HandleMessage_UnknownType
+--- PASS: TestClient_HandleMessage_UnknownType (0.00s)
+=== RUN   TestClient_HandleMessage_InvalidJSON
+--- PASS: TestClient_HandleMessage_InvalidJSON (0.00s)
+=== RUN   TestClient_SendJSON_BufferFull
+--- PASS: TestClient_SendJSON_BufferFull (0.00s)
+=== RUN   TestClient_SendJSON_MarshalError
+--- PASS: TestClient_SendJSON_MarshalError (0.00s)
+=== RUN   TestWebSocketOrigin
+=== RUN   TestWebSocketOrigin/Allowed_Origin
+=== RUN   TestWebSocketOrigin/Disallowed_Origin
+=== RUN   TestWebSocketOrigin/Wildcard_Origin
+--- PASS: TestWebSocketOrigin (0.01s)
+    --- PASS: TestWebSocketOrigin/Allowed_Origin (0.00s)
+    --- PASS: TestWebSocketOrigin/Disallowed_Origin (0.00s)
+    --- PASS: TestWebSocketOrigin/Wildcard_Origin (0.00s)
+=== RUN   TestWebSocketController_HandleWebSocket_WithUser
+--- PASS: TestWebSocketController_HandleWebSocket_WithUser (0.05s)
+=== RUN   TestWebSocketController_HandleWebSocket_UserNotFound
+--- PASS: TestWebSocketController_HandleWebSocket_UserNotFound (0.05s)
+=== RUN   TestWebSocketManager_Stopped_Methods
+--- PASS: TestWebSocketManager_Stopped_Methods (0.02s)
+=== RUN   TestWebSocketManager_PresenceError_Register
+--- PASS: TestWebSocketManager_PresenceError_Register (0.05s)
+=== RUN   TestWebSocketManager_PresenceError_Unregister
+--- PASS: TestWebSocketManager_PresenceError_Unregister (0.10s)
+=== RUN   TestWebSocketManager_Broadcast_RedisError
+--- PASS: TestWebSocketManager_Broadcast_RedisError (0.00s)
+=== RUN   TestWebSocketManager_Broadcast_RedisError_Miniredis
+redis: 2026/02/21 12:04:19 redis.go:478: auto mode fallback: maintnotifications disabled due to handshake error: ERR unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+--- PASS: TestWebSocketManager_Broadcast_RedisError_Miniredis (0.10s)
+=== RUN   TestWebSocketManager_Broadcast_BufferFull
+--- PASS: TestWebSocketManager_Broadcast_BufferFull (0.07s)
+=== RUN   TestWebSocketManager_Channels_Getter
+--- PASS: TestWebSocketManager_Channels_Getter (0.00s)
+=== RUN   TestWebSocketManager_RedisIntegration
+redis: 2026/02/21 12:04:19 redis.go:478: auto mode fallback: maintnotifications disabled due to handshake error: ERR unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+redis: 2026/02/21 12:04:19 redis.go:478: auto mode fallback: maintnotifications disabled due to handshake error: ERR unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+redis: 2026/02/21 12:04:19 pool.go:376: redis: connection pool: failed to dial after 5 attempts: dial tcp 127.0.0.1:43597: connect: connection refused
+--- PASS: TestWebSocketManager_RedisIntegration (0.61s)
+=== RUN   TestWebSocketManager_Redis_ExternalPublish
+redis: 2026/02/21 12:04:19 redis.go:478: auto mode fallback: maintnotifications disabled due to handshake error: ERR unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+--- PASS: TestWebSocketManager_Redis_ExternalPublish (0.01s)
+=== RUN   TestNewWebSocketManager
+--- PASS: TestNewWebSocketManager (0.00s)
+=== RUN   TestWebSocketManager_Integration
+--- PASS: TestWebSocketManager_Integration (0.02s)
+=== RUN   TestBroadcastToChannel
+--- PASS: TestBroadcastToChannel (0.10s)
+=== RUN   TestWebSocketManager_Stop
+--- PASS: TestWebSocketManager_Stop (0.05s)
+=== RUN   TestPresenceUpdate
+--- PASS: TestPresenceUpdate (0.01s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/pkg/ws	(cached)
+FAIL
+make: *** [Makefile:83: test] Error 1
