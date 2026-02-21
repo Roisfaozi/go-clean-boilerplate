@@ -8,7 +8,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model/converter"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
-	pkgUtil "github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
@@ -48,9 +47,6 @@ func NewOrganizationUseCase(
 // CreateOrganization creates a new organization with the current user as owner
 func (uc *organizationUseCase) CreateOrganization(ctx context.Context, userID string, request *model.CreateOrganizationRequest) (*model.OrganizationResponse, error) {
 	var response *model.OrganizationResponse
-
-	request.Name = pkgUtil.SanitizeString(request.Name)
-	request.Slug = pkgUtil.SanitizeString(request.Slug)
 
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		// Check if slug is already taken
@@ -131,10 +127,6 @@ func (uc *organizationUseCase) GetOrganizationBySlug(ctx context.Context, slug s
 func (uc *organizationUseCase) UpdateOrganization(ctx context.Context, id string, request *model.UpdateOrganizationRequest) (*model.OrganizationResponse, error) {
 	var response *model.OrganizationResponse
 
-	if request.Name != "" {
-		request.Name = pkgUtil.SanitizeString(request.Name)
-	}
-
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		org, err := uc.OrgRepo.FindByID(txCtx, id)
 		if err != nil {
@@ -203,17 +195,6 @@ func (uc *organizationUseCase) DeleteOrganization(ctx context.Context, id string
 		if err := uc.OrgRepo.Delete(txCtx, id); err != nil {
 			uc.Log.WithContext(txCtx).Errorf("Failed to delete organization: %v", err)
 			return exception.ErrInternalServer
-		}
-
-		// Remove all Casbin policies for this organization domain
-		if uc.Enforcer != nil {
-			if _, err := uc.Enforcer.RemoveFilteredGroupingPolicy(2, id); err != nil {
-				uc.Log.WithContext(txCtx).Errorf("Failed to remove Casbin policies for org %s: %v", id, err)
-				// We don't fail the deletion if policy removal fails, but we log it.
-				// Or should we fail? Usually consistency is better.
-				// Given we are in a transaction, if we return error, the deletion is rolled back.
-				return exception.ErrInternalServer
-			}
 		}
 
 		return nil
