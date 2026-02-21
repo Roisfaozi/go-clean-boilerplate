@@ -19,6 +19,51 @@ func (w *NoOpLogWriter) Write([]byte) (int, error) {
 	return 0, nil
 }
 
+// MockManager is a mock implementation of the Manager interface
+type MockManager struct {
+	mock.Mock
+}
+
+func (m *MockManager) RegisterClient(client *Client) {
+	m.Called(client)
+}
+
+func (m *MockManager) UnregisterClient(client *Client) {
+	m.Called(client)
+}
+
+func (m *MockManager) BroadcastToChannel(channel string, message []byte) {
+	m.Called(channel, message)
+}
+
+func (m *MockManager) SubscribeToChannel(client *Client, channel string) {
+	m.Called(client, channel)
+}
+
+func (m *MockManager) UnsubscribeFromChannel(client *Client, channel string) {
+	m.Called(client, channel)
+}
+
+func (m *MockManager) GetChannelClients(channel string) int {
+	args := m.Called(channel)
+	return args.Int(0)
+}
+
+func (m *MockManager) Run() {
+	m.Called()
+}
+
+func (m *MockManager) PresenceUpdate(orgID string, event string, userData *PresenceUser) {
+	m.Called(orgID, event, userData)
+}
+
+func (m *MockManager) GetPresenceManager() PresenceManager {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(PresenceManager)
+}
 
 // TestNewWebSocketController_CheckOrigin is a placeholder for the logic test, but verification is done in TestWebSocketOrigin
 
