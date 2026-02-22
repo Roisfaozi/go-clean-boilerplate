@@ -59,6 +59,8 @@ func (ctrl *OrganizationController) CreateOrganization(c *gin.Context) {
 		return
 	}
 
+	request.Sanitize()
+
 	if err := ctrl.validate.Struct(&request); err != nil {
 		errorMsg := validation.FormatValidationErrors(err)
 		response.ValidationError(c, err, errorMsg)
@@ -160,6 +162,8 @@ func (ctrl *OrganizationController) UpdateOrganization(c *gin.Context) {
 		response.BadRequest(c, err, "invalid request body")
 		return
 	}
+
+	request.Sanitize()
 
 	if err := ctrl.validate.Struct(&request); err != nil {
 		errorMsg := validation.FormatValidationErrors(err)

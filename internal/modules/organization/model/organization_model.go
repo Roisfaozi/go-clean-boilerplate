@@ -1,7 +1,10 @@
 package model
 
 import (
+	"strings"
+
 	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 )
 
 // OrganizationResponse represents the response for organization operations
@@ -22,14 +25,32 @@ type UserOrganizationsResponse struct {
 }
 
 type CreateOrganizationRequest struct {
-	Name string `json:"name" binding:"required,min=3,max=100"`
-	Slug string `json:"slug" binding:"omitempty,min=3,max=100"`
+	Name string `json:"name" binding:"required,min=3,max=100" validate:"xss"`
+	Slug string `json:"slug" binding:"omitempty,min=3,max=100" validate:"slug"`
+}
+
+func (r *CreateOrganizationRequest) Sanitize() {
+	r.Name = validation.SanitizeString(strings.TrimSpace(r.Name))
+	r.Slug = validation.SanitizeString(strings.TrimSpace(r.Slug))
 }
 
 type UpdateOrganizationRequest struct {
-	Name     string                 `json:"name" binding:"omitempty,min=3,max=100"`
+	Name     string                 `json:"name" binding:"omitempty,min=3,max=100" validate:"xss"`
 	Settings map[string]interface{} `json:"settings"`
 	Status   string                 `json:"status" binding:"omitempty,oneof=active suspended"`
+}
+
+func (r *UpdateOrganizationRequest) Sanitize() {
+	if r.Name != "" {
+		r.Name = validation.SanitizeString(strings.TrimSpace(r.Name))
+	}
+	if r.Settings != nil {
+		for k, v := range r.Settings {
+			if strVal, ok := v.(string); ok {
+				r.Settings[k] = validation.SanitizeString(strVal)
+			}
+		}
+	}
 }
 
 type InviteMemberRequest struct {

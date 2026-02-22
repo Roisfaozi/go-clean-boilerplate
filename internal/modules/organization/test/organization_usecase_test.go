@@ -143,6 +143,7 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 		deps, uc := setupOrganizationTest()
 		ctx := context.Background()
 		xssName := "<script>alert(1)</script>Org"
+		sanitizedName := "alert(1)Org"
 		req := &model.CreateOrganizationRequest{Name: xssName, Slug: "xss-org"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -152,13 +153,13 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 
 		deps.OrgRepo.On("SlugExists", ctx, req.Slug).Return(false, nil)
 		deps.OrgRepo.On("Create", ctx, mock.MatchedBy(func(org *entity.Organization) bool {
-			return org.Name == xssName // Verify raw storage
+			return org.Name == sanitizedName // Verify sanitized storage
 		}), mock.Anything).Return(nil)
 		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
 		res, err := uc.CreateOrganization(ctx, "u1", req)
 		assert.NoError(t, err)
-		assert.Equal(t, xssName, res.Name)
+		assert.Equal(t, sanitizedName, res.Name)
 	})
 }
 
