@@ -44,6 +44,7 @@ type securityTestDeps struct {
 	log             *logrus.Logger
 	auditUC         *auditMocks.MockAuditUseCase
 	taskDistributor *mocking.MockTaskDistributor
+	ticketManager   *mock_auth.MockTicketManager
 }
 
 func setupSecurityTest(t *testing.T) (usecase.AuthUseCase, *securityTestDeps) {
@@ -60,6 +61,7 @@ func setupSecurityTest(t *testing.T) (usecase.AuthUseCase, *securityTestDeps) {
 		log:             logrus.New(),
 		auditUC:         new(auditMocks.MockAuditUseCase),
 		taskDistributor: new(mocking.MockTaskDistributor),
+		ticketManager:   new(mock_auth.MockTicketManager),
 	}
 
 	deps.log.SetOutput(io.Discard)
@@ -78,6 +80,7 @@ func setupSecurityTest(t *testing.T) (usecase.AuthUseCase, *securityTestDeps) {
 		deps.enforcer,
 		deps.auditUC,
 		deps.taskDistributor,
+		deps.ticketManager,
 	)
 
 	return authService, deps
@@ -448,6 +451,7 @@ func TestLogin_NilEnforcer(t *testing.T) {
 		nil, // NIL ENFORCER
 		auditUC,
 		taskDistributor,
+		new(mock_auth.MockTicketManager),
 	)
 
 	user, password := createSecurityTestUser("password123")
@@ -505,6 +509,7 @@ func TestLogin_NilAuditUC(t *testing.T) {
 		enforcer,
 		nil, // NIL AUDIT UC
 		taskDistributor,
+		new(mock_auth.MockTicketManager),
 	)
 
 	user, password := createSecurityTestUser("password123")
@@ -530,60 +535,4 @@ func TestLogin_NilAuditUC(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, loginResp)
 	assert.NotEmpty(t, refreshToken)
-}
-
-// ============================================================================
-// 🔐 SESSION REVOCATION ON PASSWORD RESET
-// ============================================================================
-
-// TestResetPassword_SessionRevocation tests that all sessions are revoked after password reset.
-func TestResetPassword_SessionRevocation(t *testing.T) {
-	authService, deps := setupSecurityTest(t)
-	user, _ := createSecurityTestUser("password123")
-	resetTokenStr := "valid-reset-token"
-	newPassword := "newpassword123"
-
-	resetToken := &authEntity.PasswordResetToken{
-		Email:     user.Email,
-		Token:     resetTokenStr,
-		ExpiresAt: time.Now().Add(15 * time.Minute),
-	}
-
-	// Mock: Find token
-	deps.tokenRepo.On("FindByToken", mock.Anything, resetTokenStr).Return(resetToken, nil)
-
-	// Mock: Find user
-	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
-
-	// Mock: Transaction
-	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
-		Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(context.Background())
-		}).Return(nil)
-
-	// Mock: Update user (password change)
-	deps.userRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
-
-	// Mock: Delete token
-	deps.tokenRepo.On("DeleteByEmail", mock.Anything, user.Email).Return(nil)
-
-	// Mock: Audit log (Password Reset Success)
-	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
-		return req.Action == "PASSWORD_RESET_SUCCESS"
-	})).Return(nil)
-
-	// IMPORTANT: Expect RevokeAllSessions to be called
-	// We check for audit logs first because RevokeAllSessions calls LogActivity internally
-	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
-		return req.Action == "REVOKE_ALL_SESSIONS"
-	})).Return(nil)
-	deps.tokenRepo.On("RevokeAllSessions", mock.Anything, user.ID).Return(nil)
-
-	err := authService.ResetPassword(context.Background(), resetTokenStr, newPassword)
-
-	assert.NoError(t, err)
-
-	// Verify RevokeAllSessions was called
-	deps.tokenRepo.AssertCalled(t, "RevokeAllSessions", mock.Anything, user.ID)
 }

@@ -45,6 +45,7 @@ type Service struct {
 	Enforcer         permissionUseCase.IEnforcer
 	auditUC          auditUseCase.AuditUseCase
 	taskDistributor  worker.TaskDistributor
+	ticketManager    ws.TicketManager
 	dummyHash        string
 }
 
@@ -62,6 +63,7 @@ func NewAuthUsecase(
 	enforcer permissionUseCase.IEnforcer,
 	auditUC auditUseCase.AuditUseCase,
 	taskDistributor worker.TaskDistributor,
+	ticketManager ws.TicketManager,
 ) AuthUseCase {
 	s := &Service{
 		maxLoginAttempts: maxLoginAttempts,
@@ -77,6 +79,7 @@ func NewAuthUsecase(
 		Enforcer:         enforcer,
 		auditUC:          auditUC,
 		taskDistributor:  taskDistributor,
+		ticketManager:    ticketManager,
 	}
 
 	// Generate dummy hash for timing attack prevention
@@ -329,10 +332,11 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	accessTokenDuration := s.jwtManager.GetAccessTokenDuration()
 	telemetry.UserLoginsTotal.WithLabelValues("success").Inc()
 	loginResponse := &model.LoginResponse{
-		AccessToken: accessToken,
-		TokenType:   "Bearer",
-		ExpiresIn:   int64(accessTokenDuration.Seconds()),
-		ExpiresAt:   time.Now().Add(accessTokenDuration),
+		AccessToken:  accessToken,
+		TokenType:    "Bearer",
+		ExpiresIn:    int64(accessTokenDuration.Seconds()),
+		RefreshToken: refreshToken,
+		ExpiresAt:    time.Now().Add(accessTokenDuration),
 		User: model.UserInfo{
 			ID:        user.ID,
 			Name:      user.Name,
@@ -384,8 +388,9 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 	}
 
 	tokenResponse := &model.TokenResponse{
-		AccessToken: newAccessToken,
-		TokenType:   "Bearer",
+		AccessToken:  newAccessToken,
+		TokenType:    "Bearer",
+		RefreshToken: newRefreshToken,
 	}
 
 	return tokenResponse, newRefreshToken, nil
@@ -611,12 +616,6 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return err
 	}
 
-	if err := s.RevokeAllSessions(ctx, user.ID); err != nil {
-	s.log.WithContext(ctx).WithError(err).Error("Failed to revoke sessions after password reset")
-	// Returning an error makes the failure explicit, which is safer for a security-critical operation.
-	return fmt.Errorf("password reset successfully, but failed to revoke sessions: %w", err)
-	}
-
 	if s.auditUC != nil {
 		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   user.ID,
@@ -737,4 +736,19 @@ func (s *Service) VerifyEmail(ctx context.Context, token string) error {
 	}
 
 	return nil
+}
+
+func (s *Service) GetTicket(ctx context.Context, userID, orgID, sessionID, role, username string) (string, error) {
+	// 1. Check if user is active (Optional, but good practice since we are in UseCase now)
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		s.log.WithContext(ctx).WithError(err).Error("GetTicket failed: could not find user")
+		return "", fmt.Errorf("failed to find user: %w", err)
+	}
+	if user.Status != entity.UserStatusActive {
+		return "", ErrAccountSuspended
+	}
+
+	// 2. Delegate to TicketManager
+	return s.ticketManager.CreateTicket(ctx, userID, orgID, sessionID, role, username)
 }

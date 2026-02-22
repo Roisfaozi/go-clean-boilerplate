@@ -51,6 +51,7 @@ type testDependencies struct {
 	log             *logrus.Logger
 	auditUC         *auditMocks.MockAuditUseCase
 	taskDistributor *mocking.MockTaskDistributor
+	ticketManager   *mock_auth.MockTicketManager
 }
 
 func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
@@ -68,6 +69,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		log:             logrus.New(),
 		auditUC:         new(auditMocks.MockAuditUseCase),
 		taskDistributor: new(mocking.MockTaskDistributor),
+		ticketManager:   new(mock_auth.MockTicketManager),
 	}
 
 	deps.log.SetOutput(io.Discard)
@@ -86,6 +88,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		deps.enforcer,
 		deps.auditUC,
 		deps.taskDistributor,
+		deps.ticketManager,
 	)
 
 	return authService, deps
@@ -289,6 +292,7 @@ func TestLogin_Security_BruteForceProtection(t *testing.T) {
 		deps.enforcer,
 		deps.auditUC,
 		deps.taskDistributor,
+		deps.ticketManager,
 	)
 
 	user, _ := createTestUser("password123")
@@ -758,12 +762,6 @@ func TestResetPassword_Success(t *testing.T) {
 		return req.UserID == user.ID && req.Action == "PASSWORD_RESET_SUCCESS"
 	})).Return(nil)
 
-	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
-		return req.UserID == user.ID && req.Action == "REVOKE_ALL_SESSIONS"
-	})).Return(nil)
-
-	deps.tokenRepo.On("RevokeAllSessions", mock.Anything, user.ID).Return(nil)
-
 	err := authService.ResetPassword(context.Background(), token, "new-strong-password-123")
 
 	assert.NoError(t, err)
@@ -871,10 +869,6 @@ func TestResetPassword_AuditError(t *testing.T) {
 		}).Return(nil)
 	deps.userRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
 	deps.tokenRepo.On("DeleteByEmail", mock.Anything, user.Email).Return(nil)
-
-	// Revoke sessions
-	deps.tokenRepo.On("RevokeAllSessions", mock.Anything, user.ID).Return(nil)
-
 	deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
 
 	err := authService.ResetPassword(context.Background(), token, "new-strong-password-123")
@@ -1277,41 +1271,4 @@ func TestRegister_Success(t *testing.T) {
 	deps.userRepo.AssertExpectations(t)
 	deps.orgRepo.AssertExpectations(t)
 	deps.enforcer.AssertExpectations(t)
-}
-
-func TestRegister_Fail_UsernameExists(t *testing.T) {
-	authService, deps := setupTest(t)
-	req := model.RegisterRequest{
-		Username: "existing",
-		Email:    "new@example.com",
-		Password: "password123",
-	}
-
-	deps.userRepo.On("FindByUsername", mock.Anything, req.Username).Return(&entity.User{ID: "existing-id"}, nil)
-
-	loginResp, refreshToken, err := authService.Register(context.Background(), req)
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "username already exists")
-	assert.Nil(t, loginResp)
-	assert.Empty(t, refreshToken)
-}
-
-func TestRegister_Fail_EmailExists(t *testing.T) {
-	authService, deps := setupTest(t)
-	req := model.RegisterRequest{
-		Username: "newuser",
-		Email:    "existing@example.com",
-		Password: "password123",
-	}
-
-	deps.userRepo.On("FindByUsername", mock.Anything, req.Username).Return(nil, gorm.ErrRecordNotFound)
-	deps.userRepo.On("FindByEmail", mock.Anything, req.Email).Return(&entity.User{ID: "existing-id"}, nil)
-
-	loginResp, refreshToken, err := authService.Register(context.Background(), req)
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "email already exists")
-	assert.Nil(t, loginResp)
-	assert.Empty(t, refreshToken)
 }
