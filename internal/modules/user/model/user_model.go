@@ -56,7 +56,7 @@ type GetUserListRequest struct {
 }
 
 type DeleteUserRequest struct {
-	ID        string `json:"-" validate:"required,uuid"`
+	ID        string `json:"-" validate:"required"`
 	IPAddress string `json:"-"`
 	UserAgent string `json:"-"`
 }

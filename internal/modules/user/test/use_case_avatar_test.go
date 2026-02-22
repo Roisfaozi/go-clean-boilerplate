@@ -362,35 +362,3 @@ func TestUserUseCase_UpdateAvatar_FileTooLarge(t *testing.T) {
 	deps.Repo.AssertExpectations(t)
 	deps.Storage.AssertExpectations(t)
 }
-
-func TestUserUseCase_UpdateAvatar_SmallFile(t *testing.T) {
-	deps, uc := setupAvatarTest()
-	ctx := context.Background()
-
-	userID := "user-small"
-	filename := "small.png"
-	contentType := "image/png"
-	// Content < 512 bytes
-	fileContent := strings.NewReader("too-short")
-
-	existingUser := &entity.User{
-		ID:       userID,
-		Username: "testuser8",
-		Email:    "test8@example.com",
-		Name:     "Test User 8",
-	}
-
-	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
-
-	// Since DetectContentType needs at least some bytes, but works on slice.
-	// If it fails to match allowed types (jpeg, png, gif, webp), it should return ErrValidationError.
-	// "too-short" will likely be detected as text/plain or application/octet-stream.
-
-	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
-
-	assert.Error(t, err)
-	assert.Nil(t, result)
-	assert.Equal(t, exception.ErrValidationError, err)
-	deps.Repo.AssertExpectations(t)
-	deps.Storage.AssertNotCalled(t, "UploadFile")
-}

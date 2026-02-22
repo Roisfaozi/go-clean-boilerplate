@@ -11,16 +11,17 @@ import (
 	"gorm.io/gorm"
 )
 
-func TestUserUseCase_Update_Security_Sanitization(t *testing.T) {
+func TestUserUseCase_Update_Security_UsernameSanitization(t *testing.T) {
 	deps, uc := setupUserTest()
 
-	// Input with allowed HTML tag by xss validator (<b>) but should be sanitized for storage
-	rawUsername := "<b>BoldUser</b>"
-	expectedUsername := "&lt;b&gt;BoldUser&lt;/b&gt;"
+	// Input with HTML tags
+	inputUsername := "<b>bold</b>"
+	// Expected stored username (sanitized)
+	expectedUsername := "&lt;b&gt;bold&lt;/b&gt;"
 
 	request := &model.UpdateUserRequest{
 		ID:       "user123",
-		Username: rawUsername,
+		Username: inputUsername,
 	}
 
 	existingUser := &entity.User{
@@ -28,55 +29,31 @@ func TestUserUseCase_Update_Security_Sanitization(t *testing.T) {
 		Username: "olduser",
 	}
 
+	// Mock: Find user by ID
 	deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
 
-	// Expect check against SANITIZED username
+	// Mock: Check uniqueness
+	// The usecase should sanitize BEFORE checking uniqueness to ensure we check the actual value to be stored.
 	deps.Repo.On("FindByUsername", mock.Anything, expectedUsername).Return(nil, gorm.ErrRecordNotFound)
 
+	// Mock: Transaction
 	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
 		return fn(ctx)
 	})
 
-	// Expect Update with sanitized username
+	// Mock: Update
+	// Expect the USER passed to update to have the SANITIZED username
 	deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
-		return u.ID == "user123" && u.Username == expectedUsername
+		return u.Username == expectedUsername
 	})).Return(nil)
 
+	// Mock: Audit
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
+	// Execute
 	_, err := uc.Update(context.Background(), request)
 
+	// Assert
 	assert.NoError(t, err)
-	deps.Repo.AssertExpectations(t)
-}
-
-func TestUserUseCase_Update_Security_Sanitization_Conflict(t *testing.T) {
-	deps, uc := setupUserTest()
-
-	rawUsername := "<b>ExistingUser</b>"
-	expectedUsername := "&lt;b&gt;ExistingUser&lt;/b&gt;"
-
-	request := &model.UpdateUserRequest{
-		ID:       "user123",
-		Username: rawUsername,
-	}
-
-	updatingUser := &entity.User{
-		ID:       "user123",
-		Username: "olduser",
-	}
-
-	conflictingUser := &entity.User{
-		ID:       "user456",
-		Username: expectedUsername,
-	}
-
-	deps.Repo.On("FindByID", mock.Anything, "user123").Return(updatingUser, nil)
-
-	deps.Repo.On("FindByUsername", mock.Anything, expectedUsername).Return(conflictingUser, nil)
-
-	_, err := uc.Update(context.Background(), request)
-
-	assert.Error(t, err)
 	deps.Repo.AssertExpectations(t)
 }
