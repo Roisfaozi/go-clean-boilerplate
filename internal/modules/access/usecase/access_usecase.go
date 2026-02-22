@@ -7,9 +7,9 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -19,14 +19,6 @@ type AccessUseCase struct {
 	log  *logrus.Logger
 }
 
-// NewAccessUseCase creates a new AccessUseCase with the given repository and logger.
-//
-// Parameters:
-// - repo: The repository to use for accessing access rights and endpoints.
-// - log: The logger to use for logging.
-//
-// Returns:
-// - An instance of IAccessUseCase implemented by AccessUseCase.
 func NewAccessUseCase(repo repository.AccessRepository, log *logrus.Logger) IAccessUseCase {
 	return &AccessUseCase{
 		repo: repo,
@@ -35,8 +27,8 @@ func NewAccessUseCase(repo repository.AccessRepository, log *logrus.Logger) IAcc
 }
 
 func (uc *AccessUseCase) CreateAccessRight(ctx context.Context, req model.CreateAccessRightRequest) (*model.AccessRightResponse, error) {
-	req.Name = validation.SanitizeString(req.Name)
-	req.Description = validation.SanitizeString(req.Description)
+	req.Name = pkg.SanitizeString(req.Name)
+	req.Description = pkg.SanitizeString(req.Description)
 
 	accessRightEntity := &entity.AccessRight{
 		Name:        req.Name,
@@ -65,7 +57,7 @@ func (uc *AccessUseCase) GetAllAccessRights(ctx context.Context) (*model.AccessR
 }
 
 func (uc *AccessUseCase) CreateEndpoint(ctx context.Context, req model.CreateEndpointRequest) (*model.EndpointResponse, error) {
-	req.Path = validation.SanitizeString(req.Path)
+	req.Path = pkg.SanitizeString(req.Path)
 
 	endpointEntity := &entity.Endpoint{
 		Path:   req.Path,
