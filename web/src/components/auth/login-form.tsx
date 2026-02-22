@@ -2,21 +2,21 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { loginAction } from "~/app/actions/auth";
 import { Button } from "~/components/ui/button";
 import { toast } from "~/hooks/use-toast";
-import { loginAction } from "~/app/actions/auth";
-import { loginSchema } from "~/lib/api/auth";
 import { accessApi } from "~/lib/api/access";
-import { usePermissionStore } from "~/stores/use-permission-store";
-import { useAuthStore } from "~/stores/use-auth-store";
+import { loginSchema } from "~/lib/api/auth";
 import { cn } from "~/lib/utils";
+import { useAuthStore } from "~/stores/use-auth-store";
+import { usePermissionStore } from "~/stores/use-permission-store";
 import Icons from "../shared/icons";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useSearchParams } from "next/navigation";
 
 type FormData = z.infer<typeof loginSchema>;
 
