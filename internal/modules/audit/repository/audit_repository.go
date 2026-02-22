@@ -5,6 +5,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
@@ -45,7 +46,7 @@ func (r *auditRepository) Create(ctx context.Context, log *entity.AuditLog) erro
 func (r *auditRepository) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AuditLog, int64, error) {
 	var logs []*entity.AuditLog
 	var total int64
-	query := r.getDB(ctx).Model(&entity.AuditLog{})
+	query := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Model(&entity.AuditLog{})
 
 	query, err := querybuilder.GenerateDynamicQuery(query, &entity.AuditLog{}, filter)
 	if err != nil {
@@ -98,12 +99,11 @@ func (r *auditRepository) DeleteLogsOlderThan(ctx context.Context, cutoffTime in
 }
 
 func (r *auditRepository) FindAllInBatches(ctx context.Context, startTime, endTime int64, batchSize int, process func([]*entity.AuditLog) error) error {
-
 	var logs []*entity.AuditLog
-
-	query := r.getDB(ctx).Model(&entity.AuditLog{})
+	query := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Model(&entity.AuditLog{})
 
 	if startTime > 0 {
+
 
 		query = query.Where("created_at >= ?", startTime)
 

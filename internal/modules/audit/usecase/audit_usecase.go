@@ -8,6 +8,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/sirupsen/logrus"
@@ -37,6 +38,11 @@ func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLo
 		return fmt.Errorf("missing required fields for audit log: UserID, Action, and Entity are mandatory")
 	}
 
+	orgID := database.GetOrganizationID(ctx)
+	if req.OrganizationID != "" {
+		orgID = req.OrganizationID
+	}
+
 	oldValJSON, _ := json.Marshal(req.OldValues)
 	newValJSON, _ := json.Marshal(req.NewValues)
 
@@ -51,6 +57,10 @@ func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLo
 		UserAgent: req.UserAgent,
 	}
 
+	if orgID != "" {
+		logEntity.OrganizationID = &orgID
+	}
+
 	if err := uc.repo.Create(ctx, logEntity); err != nil {
 		uc.log.WithContext(ctx).WithError(err).Error("Failed to create audit log")
 		return err
@@ -59,16 +69,17 @@ func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLo
 	// Broadcast event
 	// Response model mapping logic here or simple map
 	eventData := model.AuditLogResponse{
-		ID:        logEntity.ID,
-		UserID:    logEntity.UserID,
-		Action:    logEntity.Action,
-		Entity:    logEntity.Entity,
-		EntityID:  logEntity.EntityID,
-		OldValues: req.OldValues,
-		NewValues: req.NewValues,
-		IPAddress: logEntity.IPAddress,
-		UserAgent: logEntity.UserAgent,
-		CreatedAt: logEntity.CreatedAt,
+		ID:             logEntity.ID,
+		OrganizationID: logEntity.OrganizationID,
+		UserID:         logEntity.UserID,
+		Action:         logEntity.Action,
+		Entity:         logEntity.Entity,
+		EntityID:       logEntity.EntityID,
+		OldValues:      req.OldValues,
+		NewValues:      req.NewValues,
+		IPAddress:      logEntity.IPAddress,
+		UserAgent:      logEntity.UserAgent,
+		CreatedAt:      logEntity.CreatedAt,
 	}
 
 	msg, err := json.Marshal(eventData)
@@ -95,16 +106,17 @@ func (uc *auditUseCase) GetLogsDynamic(ctx context.Context, filter *querybuilder
 		_ = json.Unmarshal([]byte(log.NewValues), &newVal)
 
 		response = append(response, model.AuditLogResponse{
-			ID:        log.ID,
-			UserID:    log.UserID,
-			Action:    log.Action,
-			Entity:    log.Entity,
-			EntityID:  log.EntityID,
-			OldValues: oldVal,
-			NewValues: newVal,
-			IPAddress: log.IPAddress,
-			UserAgent: log.UserAgent,
-			CreatedAt: log.CreatedAt,
+			ID:             log.ID,
+			OrganizationID: log.OrganizationID,
+			UserID:         log.UserID,
+			Action:         log.Action,
+			Entity:         log.Entity,
+			EntityID:       log.EntityID,
+			OldValues:      oldVal,
+			NewValues:      newVal,
+			IPAddress:      log.IPAddress,
+			UserAgent:      log.UserAgent,
+			CreatedAt:      log.CreatedAt,
 		})
 	}
 	return response, total, nil
@@ -143,16 +155,17 @@ func (uc *auditUseCase) ExportLogs(ctx context.Context, fromDate, toDate string,
 				uc.log.WithError(err).Warnf("Failed to unmarshal NewValues for audit log %s", log.ID)
 			}
 			response = append(response, model.AuditLogResponse{
-				ID:        log.ID,
-				UserID:    log.UserID,
-				Action:    log.Action,
-				Entity:    log.Entity,
-				EntityID:  log.EntityID,
-				OldValues: oldVal,
-				NewValues: newVal,
-				IPAddress: log.IPAddress,
-				UserAgent: log.UserAgent,
-				CreatedAt: log.CreatedAt,
+				ID:             log.ID,
+				OrganizationID: log.OrganizationID,
+				UserID:         log.UserID,
+				Action:         log.Action,
+				Entity:         log.Entity,
+				EntityID:       log.EntityID,
+				OldValues:      oldVal,
+				NewValues:      newVal,
+				IPAddress:      log.IPAddress,
+				UserAgent:      log.UserAgent,
+				CreatedAt:      log.CreatedAt,
 			})
 		}
 		return process(response)
