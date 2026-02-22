@@ -43,8 +43,8 @@ func TestRoleXSSValidation(t *testing.T) {
 			},
 			expectedCode: http.StatusCreated,
 			setupMock: func(m *mocks.MockRoleUseCase) {
-				// Sanitized: <script>alert(1)</script> -> alert(1)
-				m.On("Create", mock.Anything, &model.CreateRoleRequest{Name: "alert(1)", Description: "A role"}).Return(&model.RoleResponse{ID: "1", Name: "alert(1)"}, nil)
+				// Sanitized: <script>alert(1)</script> -> &lt;script&gt;alert(1)&lt;/script&gt;
+				m.On("Create", mock.Anything, &model.CreateRoleRequest{Name: "&lt;script&gt;alert(1)&lt;/script&gt;", Description: "A role"}).Return(&model.RoleResponse{ID: "1", Name: "&lt;script&gt;alert(1)&lt;/script&gt;"}, nil)
 			},
 		},
 		{
@@ -57,8 +57,8 @@ func TestRoleXSSValidation(t *testing.T) {
 			},
 			expectedCode: http.StatusCreated,
 			setupMock: func(m *mocks.MockRoleUseCase) {
-				// Sanitized: <img src=x onerror=alert(2)> -> ""
-				m.On("Create", mock.Anything, &model.CreateRoleRequest{Name: "admin", Description: ""}).Return(&model.RoleResponse{ID: "1", Name: "admin"}, nil)
+				// Sanitized: <img src=x onerror=alert(2)> -> &lt;img src=x onerror=alert(2)&gt;
+				m.On("Create", mock.Anything, &model.CreateRoleRequest{Name: "admin", Description: "&lt;img src=x onerror=alert(2)&gt;"}).Return(&model.RoleResponse{ID: "1", Name: "admin"}, nil)
 			},
 		},
 		{
@@ -68,9 +68,9 @@ func TestRoleXSSValidation(t *testing.T) {
 			payload: model.UpdateRoleRequest{
 				Description: "<iframe src='javascript:alert(3)'></iframe>",
 			},
-			expectedCode: http.StatusUnprocessableEntity,
+			expectedCode: http.StatusOK,
 			setupMock: func(m *mocks.MockRoleUseCase) {
-				// Validation fails because Description becomes empty and it is required
+				m.On("Update", mock.Anything, "1", &model.UpdateRoleRequest{Description: "&lt;iframe src=&#39;javascript:alert(3)&#39;&gt;&lt;/iframe&gt;"}).Return(&model.RoleResponse{ID: "1", Description: "&lt;iframe src=&#39;javascript:alert(3)&#39;&gt;&lt;/iframe&gt;"}, nil)
 			},
 		},
 	}

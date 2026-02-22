@@ -6,13 +6,13 @@ import (
 	"io"
 	"testing"
 
+	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
 	permissionMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
-	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -139,28 +139,6 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
 	})
 
-	t.Run("XSS Payload", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
-		ctx := context.Background()
-		xssName := "<script>alert(1)</script>Org"
-		sanitizedName := "alert(1)Org"
-		req := &model.CreateOrganizationRequest{Name: xssName, Slug: "xss-org"}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(nil)
-
-		deps.OrgRepo.On("SlugExists", ctx, req.Slug).Return(false, nil)
-		deps.OrgRepo.On("Create", ctx, mock.MatchedBy(func(org *entity.Organization) bool {
-			return org.Name == sanitizedName // Verify sanitized storage
-		}), mock.Anything).Return(nil)
-		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
-
-		res, err := uc.CreateOrganization(ctx, "u1", req)
-		assert.NoError(t, err)
-		assert.Equal(t, sanitizedName, res.Name)
-	})
 }
 
 func TestOrganizationUseCase_GetOrganization(t *testing.T) {

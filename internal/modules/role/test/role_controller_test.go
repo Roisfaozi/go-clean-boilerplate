@@ -238,8 +238,8 @@ func TestRoleHandler_Create_XSS_Name(t *testing.T) {
 	requestBody, _ := json.Marshal(createRequest)
 
 	// Expect sanitized input
-	sanitizedRequest := model.CreateRoleRequest{Name: "alert(1)", Description: "XSS role"}
-	mockUseCase.On("Create", mock.Anything, &sanitizedRequest).Return(&model.RoleResponse{ID: "uuid", Name: "alert(1)"}, nil)
+	sanitizedRequest := model.CreateRoleRequest{Name: "&lt;script&gt;alert(1)&lt;/script&gt;", Description: "XSS role"}
+	mockUseCase.On("Create", mock.Anything, &sanitizedRequest).Return(&model.RoleResponse{ID: "uuid", Name: "&lt;script&gt;alert(1)&lt;/script&gt;"}, nil)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/roles", bytes.NewBuffer(requestBody))

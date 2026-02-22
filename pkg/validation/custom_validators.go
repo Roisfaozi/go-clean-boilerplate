@@ -49,9 +49,3 @@ func validateSlug(fl validator.FieldLevel) bool {
 	match, _ := regexp.MatchString(`^[a-z0-9]+(?:-[a-z0-9]+)*$`, fl.Field().String())
 	return match
 }
-
-func SanitizeString(s string) string {
-	// Simple regex-based strip tags.
-	// Note: This is not secure against all XSS vectors but sufficient for basic cleanup.
-	return htmlTagRegex.ReplaceAllString(s, "")
-}

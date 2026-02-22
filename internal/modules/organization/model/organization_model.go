@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 )
 
 // OrganizationResponse represents the response for organization operations
@@ -30,8 +30,8 @@ type CreateOrganizationRequest struct {
 }
 
 func (r *CreateOrganizationRequest) Sanitize() {
-	r.Name = validation.SanitizeString(strings.TrimSpace(r.Name))
-	r.Slug = validation.SanitizeString(strings.TrimSpace(r.Slug))
+	r.Name = pkg.SanitizeString(r.Name)
+	r.Slug = strings.ToLower(strings.TrimSpace(r.Slug))
 }
 
 type UpdateOrganizationRequest struct {
@@ -42,12 +42,12 @@ type UpdateOrganizationRequest struct {
 
 func (r *UpdateOrganizationRequest) Sanitize() {
 	if r.Name != "" {
-		r.Name = validation.SanitizeString(strings.TrimSpace(r.Name))
+		r.Name = pkg.SanitizeString(r.Name)
 	}
 	if r.Settings != nil {
 		for k, v := range r.Settings {
 			if strVal, ok := v.(string); ok {
-				r.Settings[k] = validation.SanitizeString(strVal)
+				r.Settings[k] = pkg.SanitizeString(strVal)
 			}
 		}
 	}

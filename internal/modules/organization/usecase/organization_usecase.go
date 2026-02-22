@@ -10,7 +10,6 @@ import (
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -50,9 +49,6 @@ func (uc *organizationUseCase) CreateOrganization(ctx context.Context, userID st
 	var response *model.OrganizationResponse
 
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
-		request.Name = validation.SanitizeString(request.Name)
-		request.Slug = validation.SanitizeString(request.Slug)
-
 		// Check if slug is already taken
 		exists, err := uc.OrgRepo.SlugExists(txCtx, request.Slug)
 		if err != nil {
@@ -143,7 +139,7 @@ func (uc *organizationUseCase) UpdateOrganization(ctx context.Context, id string
 
 		// Update fields
 		if request.Name != "" {
-			org.Name = validation.SanitizeString(request.Name)
+			org.Name = request.Name
 		}
 		if request.Settings != nil {
 			org.Settings = request.Settings
