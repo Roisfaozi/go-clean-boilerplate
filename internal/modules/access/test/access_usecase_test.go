@@ -122,9 +122,9 @@ func TestGetAllAccessRights(t *testing.T) {
 			Description: "<script>alert('xss')</script>",
 		}
 
-		// Expect stripped tags (SanitizeString removes all HTML tags)
-		expectedName := "Bold Name"
-		expectedDesc := "alert('xss')"
+		// Expect HTML escaped strings (pkg.SanitizeString escapes HTML tags)
+		expectedName := "&lt;b&gt;Bold Name&lt;/b&gt;"
+		expectedDesc := "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
 
 		deps.Repo.On("CreateAccessRight", ctx, mock.MatchedBy(func(ar *entity.AccessRight) bool {
 			return ar.Name == expectedName && ar.Description == expectedDesc
@@ -346,9 +346,9 @@ func TestCreateAccessRight_Sanitization(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, createdAccessRight)
 
-	// Verify that the entity passed to repo was sanitized
-	assert.Equal(t, "Bold Right", capturedEntity.Name)
-	assert.Equal(t, "alert('xss') Description", capturedEntity.Description)
+	// Verify that the entity passed to repo was HTML escaped
+	assert.Equal(t, "&lt;b&gt;Bold&lt;/b&gt; Right", capturedEntity.Name)
+	assert.Equal(t, "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt; Description", capturedEntity.Description)
 
 	deps.Repo.AssertExpectations(t)
 }
@@ -373,8 +373,8 @@ func TestCreateEndpoint_Sanitization(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, createdEndpoint)
 
-	// Verify that the entity passed to repo was sanitized
-	assert.Equal(t, "/api/v1/test/alert(1)", capturedEntity.Path)
+	// Verify that the entity passed to repo was HTML escaped
+	assert.Equal(t, "/api/v1/test/&lt;script&gt;alert(1)&lt;/script&gt;", capturedEntity.Path)
 
 	deps.Repo.AssertExpectations(t)
 }
