@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 
+	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/hibiken/asynq"
@@ -18,6 +19,7 @@ type RedisTaskProcessor struct {
 	server         *asynq.Server
 	logger         *logrus.Logger
 	cleanupHandler *handlers.CleanupTaskHandler
+	auditUC        auditUseCase.AuditUseCase
 	cfg            WorkerConfig
 }
 
@@ -25,6 +27,7 @@ func NewRedisTaskProcessor(
 	redisOpt asynq.RedisClientOpt,
 	logger *logrus.Logger,
 	cleanupHandler *handlers.CleanupTaskHandler,
+	auditUC auditUseCase.AuditUseCase,
 	cfg WorkerConfig,
 ) TaskProcessor {
 	server := asynq.NewServer(
@@ -46,6 +49,7 @@ func NewRedisTaskProcessor(
 		server:         server,
 		logger:         logger,
 		cleanupHandler: cleanupHandler,
+		auditUC:        auditUC,
 		cfg:            cfg,
 	}
 }
@@ -65,6 +69,9 @@ func (processor *RedisTaskProcessor) Start() error {
 
 	emailHandler := handlers.NewEmailTaskHandler(processor.logger, smtpCfg)
 	mux.HandleFunc(tasks.TypeSendEmail, emailHandler.ProcessTaskSendEmail)
+
+	auditHandler := handlers.NewAuditTaskHandler(processor.logger, processor.auditUC)
+	mux.HandleFunc(tasks.TypeAuditLogCreate, auditHandler.ProcessTaskAuditLog)
 
 	// Register Cleanup Handlers
 	if processor.cleanupHandler != nil {
