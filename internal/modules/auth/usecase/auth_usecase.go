@@ -616,6 +616,10 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return err
 	}
 
+	if err := s.RevokeAllSessions(ctx, user.ID); err != nil {
+		s.log.WithContext(ctx).WithError(err).Error("Failed to revoke sessions after password reset")
+	}
+
 	if s.auditUC != nil {
 		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   user.ID,

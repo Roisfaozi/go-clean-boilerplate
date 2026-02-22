@@ -758,8 +758,9 @@ func TestResetPassword_Success(t *testing.T) {
 		}).Return(nil)
 	deps.userRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
 	deps.tokenRepo.On("DeleteByEmail", mock.Anything, user.Email).Return(nil)
+	deps.tokenRepo.On("RevokeAllSessions", mock.Anything, user.ID).Return(nil)
 	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
-		return req.UserID == user.ID && req.Action == "PASSWORD_RESET_SUCCESS"
+		return req.UserID == user.ID && (req.Action == "PASSWORD_RESET_SUCCESS" || req.Action == "REVOKE_ALL_SESSIONS")
 	})).Return(nil)
 
 	err := authService.ResetPassword(context.Background(), token, "new-strong-password-123")
@@ -869,6 +870,7 @@ func TestResetPassword_AuditError(t *testing.T) {
 		}).Return(nil)
 	deps.userRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
 	deps.tokenRepo.On("DeleteByEmail", mock.Anything, user.Email).Return(nil)
+	deps.tokenRepo.On("RevokeAllSessions", mock.Anything, user.ID).Return(nil)
 	deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
 
 	err := authService.ResetPassword(context.Background(), token, "new-strong-password-123")
