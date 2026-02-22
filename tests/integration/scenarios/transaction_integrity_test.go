@@ -40,7 +40,7 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger, nil)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, mockEnforcer, auditService, nil)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, mockEnforcer, auditService, nil, nil)
 
 	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, mockEnforcer, auditService, authService, nil)
 
