@@ -1,23 +1,10 @@
 basePath: /api/v1
 definitions:
-  model.AcceptInvitationRequest:
-    properties:
-      name:
-        description: Optional
-        type: string
-      password:
-        description: Required for new users
-        type: string
-      token:
-        type: string
-    required:
-    - token
-    type: object
-  model.AccessRightListResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/model.AccessRightResponse'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightResponse'
         type: array
       meta:
         properties:
@@ -25,7 +12,7 @@ definitions:
             type: integer
         type: object
     type: object
-  model.AccessRightResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightResponse:
     properties:
       created_at:
         type: integer
@@ -33,7 +20,7 @@ definitions:
         type: string
       endpoints:
         items:
-          $ref: '#/definitions/model.EndpointResponse'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.EndpointResponse'
         type: array
       id:
         type: string
@@ -42,34 +29,7 @@ definitions:
       updated_at:
         type: integer
     type: object
-  model.AssignRoleRequest:
-    properties:
-      role:
-        type: string
-      user_id:
-        type: string
-    required:
-    - role
-    - user_id
-    type: object
-  model.BatchPermissionCheckRequest:
-    properties:
-      items:
-        items:
-          $ref: '#/definitions/model.PermissionCheckItem'
-        minItems: 1
-        type: array
-    required:
-    - items
-    type: object
-  model.BatchPermissionCheckResponse:
-    properties:
-      results:
-        additionalProperties:
-          type: boolean
-        type: object
-    type: object
-  model.CreateAccessRightRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.CreateAccessRightRequest:
     properties:
       description:
         maxLength: 255
@@ -81,7 +41,7 @@ definitions:
     required:
     - name
     type: object
-  model.CreateEndpointRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.CreateEndpointRequest:
     properties:
       method:
         maxLength: 10
@@ -95,30 +55,7 @@ definitions:
     - method
     - path
     type: object
-  model.CreateOrganizationRequest:
-    properties:
-      name:
-        maxLength: 100
-        minLength: 3
-        type: string
-      slug:
-        maxLength: 100
-        minLength: 3
-        type: string
-    required:
-    - name
-    type: object
-  model.CreateRoleRequest:
-    properties:
-      description:
-        type: string
-      name:
-        maxLength: 50
-        type: string
-    required:
-    - name
-    type: object
-  model.EndpointResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.EndpointResponse:
     properties:
       created_at:
         type: integer
@@ -129,48 +66,7 @@ definitions:
       path:
         type: string
     type: object
-  model.ForgotPasswordRequest:
-    properties:
-      email:
-        maxLength: 100
-        type: string
-    required:
-    - email
-    type: object
-  model.GrantPermissionRequest:
-    properties:
-      method:
-        type: string
-      path:
-        type: string
-      role:
-        type: string
-    required:
-    - method
-    - path
-    - role
-    type: object
-  model.InheritanceTreeResponse:
-    properties:
-      roles:
-        items:
-          $ref: '#/definitions/model.RoleNode'
-        type: array
-    type: object
-  model.InviteMemberRequest:
-    properties:
-      email:
-        type: string
-      role_id:
-        type: string
-      user_id:
-        description: Optional, if inviting generic email
-        type: string
-    required:
-    - email
-    - role_id
-    type: object
-  model.LinkEndpointRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.LinkEndpointRequest:
     properties:
       access_right_id:
         type: string
@@ -180,7 +76,15 @@ definitions:
     - access_right_id
     - endpoint_id
     type: object
-  model.LoginRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.ForgotPasswordRequest:
+    properties:
+      email:
+        maxLength: 100
+        type: string
+    required:
+    - email
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.LoginRequest:
     properties:
       password:
         maxLength: 72
@@ -194,7 +98,7 @@ definitions:
     - password
     - username
     type: object
-  model.LoginResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.LoginResponse:
     properties:
       access_token:
         type: string
@@ -207,9 +111,120 @@ definitions:
       token_type:
         type: string
       user:
-        $ref: '#/definitions/model.UserInfo'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.UserInfo'
     type: object
-  model.MemberResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.RegisterRequest:
+    properties:
+      email:
+        maxLength: 100
+        type: string
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - username
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.ResetPasswordRequest:
+    properties:
+      new_password:
+        maxLength: 72
+        minLength: 8
+        type: string
+      token:
+        maxLength: 500
+        type: string
+    required:
+    - new_password
+    - token
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_at:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.UserInfo:
+    properties:
+      avatar_url:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.VerifyEmailRequest:
+    properties:
+      token:
+        maxLength: 500
+        type: string
+    required:
+    - token
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.AcceptInvitationRequest:
+    properties:
+      name:
+        description: Optional
+        type: string
+      password:
+        description: Required for new users
+        type: string
+      token:
+        type: string
+    required:
+    - token
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.CreateOrganizationRequest:
+    properties:
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      slug:
+        maxLength: 100
+        minLength: 3
+        type: string
+    required:
+    - name
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.InviteMemberRequest:
+    properties:
+      email:
+        type: string
+      role_id:
+        type: string
+      user_id:
+        description: Optional, if inviting generic email
+        type: string
+    required:
+    - email
+    - role_id
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.MemberResponse:
     properties:
       id:
         type: string
@@ -222,11 +237,11 @@ definitions:
       status:
         type: string
       user:
-        $ref: '#/definitions/model.UserResponse'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse'
       user_id:
         type: string
     type: object
-  model.OrganizationResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse:
     properties:
       created_at:
         type: integer
@@ -246,7 +261,88 @@ definitions:
       updated_at:
         type: integer
     type: object
-  model.PermissionCheckItem:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UpdateMemberRequest:
+    properties:
+      role_id:
+        type: string
+      status:
+        enum:
+        - active
+        - suspended
+        type: string
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UpdateOrganizationRequest:
+    properties:
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      settings:
+        additionalProperties: true
+        type: object
+      status:
+        enum:
+        - active
+        - suspended
+        type: string
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UserOrganizationsResponse:
+    properties:
+      organizations:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignRoleRequest:
+    properties:
+      role:
+        type: string
+      user_id:
+        type: string
+    required:
+    - role
+    - user_id
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.BatchPermissionCheckRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.PermissionCheckItem'
+        minItems: 1
+        type: array
+    required:
+    - items
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.BatchPermissionCheckResponse:
+    properties:
+      results:
+        additionalProperties:
+          type: boolean
+        type: object
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.GrantPermissionRequest:
+    properties:
+      method:
+        type: string
+      path:
+        type: string
+      role:
+        type: string
+    required:
+    - method
+    - path
+    - role
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.InheritanceTreeResponse:
+    properties:
+      roles:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleNode'
+        type: array
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.PermissionCheckItem:
     properties:
       action:
         type: string
@@ -256,73 +352,14 @@ definitions:
     - action
     - resource
     type: object
-  model.RegisterRequest:
-    properties:
-      email:
-        maxLength: 100
-        type: string
-      name:
-        maxLength: 100
-        minLength: 3
-        type: string
-      password:
-        maxLength: 72
-        minLength: 8
-        type: string
-      username:
-        maxLength: 50
-        minLength: 3
-        type: string
-    required:
-    - email
-    - name
-    - password
-    - username
-    type: object
-  model.RegisterUserRequest:
-    properties:
-      email:
-        maxLength: 100
-        type: string
-      fullname:
-        maxLength: 100
-        minLength: 3
-        type: string
-      password:
-        maxLength: 72
-        minLength: 8
-        type: string
-      username:
-        maxLength: 100
-        minLength: 6
-        type: string
-    required:
-    - email
-    - fullname
-    - password
-    - username
-    type: object
-  model.ResetPasswordRequest:
-    properties:
-      new_password:
-        maxLength: 72
-        minLength: 8
-        type: string
-      token:
-        maxLength: 500
-        type: string
-    required:
-    - new_password
-    - token
-    type: object
-  model.ResourceAggregationResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceAggregationResponse:
     properties:
       resources:
         items:
-          $ref: '#/definitions/model.ResourcePermission'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourcePermission'
         type: array
     type: object
-  model.ResourceCRUD:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceCRUD:
     properties:
       create:
         type: boolean
@@ -333,7 +370,7 @@ definitions:
       update:
         type: boolean
     type: object
-  model.ResourcePermission:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourcePermission:
     properties:
       base_path:
         type: string
@@ -343,10 +380,10 @@ definitions:
         type: string
       role_permissions:
         additionalProperties:
-          $ref: '#/definitions/model.ResourceCRUD'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceCRUD'
         type: object
     type: object
-  model.RoleInheritanceRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleInheritanceRequest:
     properties:
       child_role:
         type: string
@@ -356,11 +393,11 @@ definitions:
     - child_role
     - parent_role
     type: object
-  model.RoleNode:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleNode:
     properties:
       children:
         items:
-          $ref: '#/definitions/model.RoleNode'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleNode'
         type: array
       description:
         type: string
@@ -389,54 +426,7 @@ definitions:
       parent_id:
         type: string
     type: object
-  model.RoleResponse:
-    properties:
-      description:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-    type: object
-  model.TokenResponse:
-    properties:
-      access_token:
-        type: string
-      expires_at:
-        type: string
-      expires_in:
-        type: integer
-      refresh_token:
-        type: string
-      token_type:
-        type: string
-    type: object
-  model.UpdateMemberRequest:
-    properties:
-      role_id:
-        type: string
-      status:
-        enum:
-        - active
-        - suspended
-        type: string
-    type: object
-  model.UpdateOrganizationRequest:
-    properties:
-      name:
-        maxLength: 100
-        minLength: 3
-        type: string
-      settings:
-        additionalProperties: true
-        type: object
-      status:
-        enum:
-        - active
-        - suspended
-        type: string
-    type: object
-  model.UpdatePermissionRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.UpdatePermissionRequest:
     properties:
       new_permission:
         items:
@@ -454,14 +444,56 @@ definitions:
     - new_permission
     - old_permission
     type: object
-  model.UpdateRoleRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.CreateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        maxLength: 50
+        type: string
+    required:
+    - name
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.RoleResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.UpdateRoleRequest:
     properties:
       description:
         type: string
     required:
     - description
     type: object
-  model.UpdateUserRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.RegisterUserRequest:
+    properties:
+      email:
+        maxLength: 100
+        type: string
+      fullname:
+        maxLength: 100
+        minLength: 3
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+      username:
+        maxLength: 100
+        minLength: 6
+        type: string
+    required:
+    - email
+    - fullname
+    - password
+    - username
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UpdateUserRequest:
     properties:
       name:
         maxLength: 100
@@ -477,7 +509,7 @@ definitions:
     required:
     - username
     type: object
-  model.UpdateUserStatusRequest:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UpdateUserStatusRequest:
     properties:
       status:
         enum:
@@ -488,31 +520,7 @@ definitions:
     required:
     - status
     type: object
-  model.UserInfo:
-    properties:
-      avatar_url:
-        type: string
-      email:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      role:
-        type: string
-      username:
-        type: string
-    type: object
-  model.UserOrganizationsResponse:
-    properties:
-      organizations:
-        items:
-          $ref: '#/definitions/model.OrganizationResponse'
-        type: array
-      total:
-        type: integer
-    type: object
-  model.UserResponse:
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse:
     properties:
       avatar_url:
         type: string
@@ -531,19 +539,11 @@ definitions:
       username:
         type: string
     type: object
-  model.VerifyEmailRequest:
-    properties:
-      token:
-        maxLength: 500
-        type: string
-    required:
-    - token
-    type: object
-  querybuilder.DynamicFilter:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter:
     properties:
       filter:
         additionalProperties:
-          $ref: '#/definitions/querybuilder.Filter'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.Filter'
         type: object
       page:
         minimum: 1
@@ -554,10 +554,10 @@ definitions:
         type: integer
       sort:
         items:
-          $ref: '#/definitions/querybuilder.SortModel'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.SortModel'
         type: array
     type: object
-  querybuilder.Filter:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.Filter:
     properties:
       from: {}
       to: {}
@@ -576,7 +576,7 @@ definitions:
     required:
     - type
     type: object
-  querybuilder.SortModel:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.SortModel:
     properties:
       colId:
         maxLength: 100
@@ -592,7 +592,7 @@ definitions:
     - colId
     - sort
     type: object
-  response.PageMetadata:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata:
     properties:
       limit:
         type: integer
@@ -607,21 +607,21 @@ definitions:
       total_page:
         type: integer
     type: object
-  response.SwaggerAccessRightListResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightListResponseWrapper:
     properties:
       data:
-        $ref: '#/definitions/model.AccessRightListResponse'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightListResponse'
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerAccessRightResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightResponseWrapper:
     properties:
       data:
-        $ref: '#/definitions/model.AccessRightResponse'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.AccessRightResponse'
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerAuditLogListResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAuditLogListResponseWrapper:
     properties:
       data:
         items:
@@ -629,48 +629,48 @@ definitions:
           type: object
         type: array
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerEndpointListResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointListResponseWrapper:
     properties:
       data:
         items:
-          $ref: '#/definitions/model.EndpointResponse'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.EndpointResponse'
         type: array
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerEndpointResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointResponseWrapper:
     properties:
       data:
-        $ref: '#/definitions/model.EndpointResponse'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.EndpointResponse'
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerErrorResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper:
     properties:
       error:
         type: string
       message:
         type: string
     type: object
-  response.SwaggerGeneralResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper:
     properties:
       data:
         additionalProperties:
           type: string
         type: object
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerLoginResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerLoginResponseWrapper:
     properties:
       data:
-        $ref: '#/definitions/model.LoginResponse'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.LoginResponse'
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerPermissionListResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerPermissionListResponseWrapper:
     properties:
       data:
         items:
@@ -679,52 +679,52 @@ definitions:
           type: array
         type: array
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerRoleListResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleListResponseWrapper:
     properties:
       data:
         items:
-          $ref: '#/definitions/model.RoleResponse'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.RoleResponse'
         type: array
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerRoleResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleResponseWrapper:
     properties:
       data:
-        $ref: '#/definitions/model.RoleResponse'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.RoleResponse'
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerSuccessResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper:
     properties:
       data: {}
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerTokenResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerTokenResponseWrapper:
     properties:
       data:
-        $ref: '#/definitions/model.TokenResponse'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.TokenResponse'
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerUserListResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserListResponseWrapper:
     properties:
       data:
         items:
-          $ref: '#/definitions/model.UserResponse'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse'
         type: array
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
-  response.SwaggerUserResponseWrapper:
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper:
     properties:
       data:
-        $ref: '#/definitions/model.UserResponse'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse'
       paging:
-        $ref: '#/definitions/response.PageMetadata'
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
 host: localhost:8080
 info:
@@ -750,11 +750,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerAccessRightListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightListResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: List all access rights
@@ -770,26 +770,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.CreateAccessRightRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.CreateAccessRightRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/response.SwaggerAccessRightResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Create access right
@@ -810,15 +810,15 @@ paths:
         "200":
           description: Access right deleted successfully
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "404":
           description: Access right not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Delete access right
@@ -835,26 +835,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.LinkEndpointRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.LinkEndpointRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Endpoint linked successfully
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Link endpoint to access right
@@ -872,30 +872,30 @@ paths:
         name: filter
         required: true
         schema:
-          $ref: '#/definitions/querybuilder.DynamicFilter'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerAccessRightListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAccessRightListResponseWrapper'
         "400":
           description: Invalid request body or filter criteria
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get access rights with dynamic filters
@@ -913,26 +913,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.LinkEndpointRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.LinkEndpointRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Endpoint unlinked successfully
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Unlink endpoint from access right
@@ -960,11 +960,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Export audit logs
@@ -981,30 +981,30 @@ paths:
         name: filter
         required: true
         schema:
-          $ref: '#/definitions/querybuilder.DynamicFilter'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerAuditLogListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAuditLogListResponseWrapper'
         "400":
           description: Invalid filter format
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Search audit logs
@@ -1021,26 +1021,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.ForgotPasswordRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.ForgotPasswordRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       summary: Request password reset
       tags:
       - auth
@@ -1055,30 +1055,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.LoginRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerLoginResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerLoginResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       summary: User login
       tags:
       - auth
@@ -1093,15 +1093,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Logout user
@@ -1118,11 +1118,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get current user
@@ -1139,15 +1139,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerTokenResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerTokenResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       summary: Refresh access token
       tags:
       - auth
@@ -1162,30 +1162,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.RegisterRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.RegisterRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/response.SwaggerLoginResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerLoginResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "409":
           description: Username or Email already exists
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       summary: Register new user
       tags:
       - auth
@@ -1200,19 +1200,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Already verified or request failed
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Resend verification email
@@ -1229,26 +1229,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.ResetPasswordRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.ResetPasswordRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       summary: Reset password
       tags:
       - auth
@@ -1263,15 +1263,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get WebSocket Ticket
@@ -1288,26 +1288,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.VerifyEmailRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.VerifyEmailRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       summary: Verify email address
       tags:
       - auth
@@ -1322,26 +1322,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.CreateEndpointRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_access_model.CreateEndpointRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/response.SwaggerEndpointResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Create endpoint
@@ -1362,15 +1362,15 @@ paths:
         "200":
           description: Endpoint deleted successfully
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "404":
           description: Endpoint not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Delete endpoint
@@ -1388,30 +1388,30 @@ paths:
         name: filter
         required: true
         schema:
-          $ref: '#/definitions/querybuilder.DynamicFilter'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerEndpointListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerEndpointListResponseWrapper'
         "400":
           description: Invalid request body or filter criteria
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get endpoints with dynamic filters
@@ -1428,7 +1428,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.CreateOrganizationRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.CreateOrganizationRequest'
       produces:
       - application/json
       responses:
@@ -1436,27 +1436,27 @@ paths:
           description: Created
           schema:
             allOf:
-            - $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
             - properties:
                 data:
-                  $ref: '#/definitions/model.OrganizationResponse'
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse'
               type: object
         "400":
           description: Validation error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "409":
           description: Slug already exists
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Create organization
@@ -1477,23 +1477,23 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden (not owner)
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: Organization not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Delete organization
@@ -1514,23 +1514,23 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
             - properties:
                 data:
-                  $ref: '#/definitions/model.OrganizationResponse'
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse'
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: Organization not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get organization by ID
@@ -1551,7 +1551,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.UpdateOrganizationRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UpdateOrganizationRequest'
       produces:
       - application/json
       responses:
@@ -1559,27 +1559,27 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
             - properties:
                 data:
-                  $ref: '#/definitions/model.OrganizationResponse'
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse'
               type: object
         "400":
           description: Validation error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: Organization not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Update organization
@@ -1601,29 +1601,29 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/model.MemberResponse'
+                    $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.MemberResponse'
                   type: array
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: Organization not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get organization members
@@ -1644,7 +1644,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.InviteMemberRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.InviteMemberRequest'
       produces:
       - application/json
       responses:
@@ -1652,35 +1652,35 @@ paths:
           description: Created
           schema:
             allOf:
-            - $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
             - properties:
                 data:
-                  $ref: '#/definitions/model.MemberResponse'
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.MemberResponse'
               type: object
         "400":
           description: Validation error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: Organization not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "409":
           description: User already a member
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Invite member to organization
@@ -1706,23 +1706,23 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden - cannot remove owner
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: Member not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Remove member from organization
@@ -1748,7 +1748,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.UpdateMemberRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UpdateMemberRequest'
       produces:
       - application/json
       responses:
@@ -1756,31 +1756,31 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
             - properties:
                 data:
-                  $ref: '#/definitions/model.MemberResponse'
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.MemberResponse'
               type: object
         "400":
           description: Validation error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: Member not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Update member role
@@ -1802,7 +1802,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
             - properties:
                 data:
                   items:
@@ -1812,11 +1812,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get online members
@@ -1834,26 +1834,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.AcceptInvitationRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.AcceptInvitationRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Success
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       summary: Accept invitation
       tags:
       - organizations
@@ -1867,19 +1867,19 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
             - properties:
                 data:
-                  $ref: '#/definitions/model.UserOrganizationsResponse'
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.UserOrganizationsResponse'
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get my organizations
@@ -1901,23 +1901,23 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
             - properties:
                 data:
-                  $ref: '#/definitions/model.OrganizationResponse'
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.OrganizationResponse'
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: Organization not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get organization by slug
@@ -1932,15 +1932,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerPermissionListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerPermissionListResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get all permissions
@@ -1956,30 +1956,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.UpdatePermissionRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.UpdatePermissionRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Permission updated successfully
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Update permission
@@ -1996,30 +1996,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.AssignRoleRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignRoleRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Role assigned successfully
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Assign role to user
@@ -2036,7 +2036,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.BatchPermissionCheckRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.BatchPermissionCheckRequest'
       produces:
       - application/json
       responses:
@@ -2044,27 +2044,27 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
             - properties:
                 data:
-                  $ref: '#/definitions/model.BatchPermissionCheckResponse'
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.BatchPermissionCheckResponse'
               type: object
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Batch check permissions
@@ -2081,30 +2081,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.GrantPermissionRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.GrantPermissionRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Permission granted successfully
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Grant permission to role
@@ -2121,30 +2121,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.RoleInheritanceRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleInheritanceRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Role inheritance removed successfully
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Remove role inheritance
@@ -2160,30 +2160,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.RoleInheritanceRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleInheritanceRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Role inheritance added successfully
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Add role inheritance
@@ -2199,19 +2199,19 @@ paths:
           description: Inheritance tree retrieved successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
             - properties:
                 data:
-                  $ref: '#/definitions/model.InheritanceTreeResponse'
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.InheritanceTreeResponse'
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get role inheritance tree
@@ -2232,19 +2232,19 @@ paths:
         "200":
           description: List of parent roles
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Role is required
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get parent roles
@@ -2260,19 +2260,19 @@ paths:
           description: Resource aggregation retrieved successfully
           schema:
             allOf:
-            - $ref: '#/definitions/response.SwaggerSuccessResponseWrapper'
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
             - properties:
                 data:
-                  $ref: '#/definitions/model.ResourceAggregationResponse'
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceAggregationResponse'
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get resource aggregation
@@ -2289,30 +2289,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.GrantPermissionRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.GrantPermissionRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Permission revoked successfully
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Revoke permission from role
@@ -2329,30 +2329,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.AssignRoleRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignRoleRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Role revoked successfully
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Revoke role from user
@@ -2373,19 +2373,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerPermissionListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerPermissionListResponseWrapper'
         "400":
           description: Role is required
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get permissions for role
@@ -2406,19 +2406,19 @@ paths:
         "200":
           description: List of user IDs
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Role is required
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get users for role
@@ -2433,11 +2433,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerRoleListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleListResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: List all roles
@@ -2453,30 +2453,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.CreateRoleRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.CreateRoleRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/response.SwaggerRoleResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "409":
           description: Role already exists
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Create a new role
@@ -2497,19 +2497,19 @@ paths:
         "200":
           description: Role deleted successfully
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "403":
           description: Forbidden (cannot delete superadmin)
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: Role not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Delete role
@@ -2528,30 +2528,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.UpdateRoleRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.UpdateRoleRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerRoleResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: Role not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Update role
@@ -2569,30 +2569,30 @@ paths:
         name: filter
         required: true
         schema:
-          $ref: '#/definitions/querybuilder.DynamicFilter'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerRoleListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleListResponseWrapper'
         "400":
           description: Invalid request body or filter criteria
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get roles with dynamic filters
@@ -2629,11 +2629,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Create a new resumable upload
@@ -2660,11 +2660,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: Upload not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Cancel resumable upload
@@ -2692,11 +2692,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: Upload not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Check upload offset
@@ -2733,11 +2733,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "409":
           description: Overlap or mismatching offset
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Upload file chunk
@@ -2770,23 +2770,23 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerUserListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserListResponseWrapper'
         "400":
           description: Invalid query parameters
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get all users
@@ -2807,23 +2807,23 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Delete user by ID
@@ -2844,23 +2844,23 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerUserResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get user by ID
@@ -2882,38 +2882,38 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.UpdateUserStatusRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UpdateUserStatusRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerGeneralResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Update user status
@@ -2928,19 +2928,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerUserResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get current user
@@ -2956,34 +2956,34 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.UpdateUserRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UpdateUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerUserResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Update current user
@@ -3006,19 +3006,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerUserResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper'
         "400":
           description: Invalid file
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Upload avatar
@@ -3035,30 +3035,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.RegisterUserRequest'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.RegisterUserRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/response.SwaggerUserResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserResponseWrapper'
         "400":
           description: Invalid request body
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "409":
           description: User with the same ID already exists
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       summary: Register a new user
       tags:
       - users
@@ -3074,30 +3074,30 @@ paths:
         name: filter
         required: true
         schema:
-          $ref: '#/definitions/querybuilder.DynamicFilter'
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.SwaggerUserListResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerUserListResponseWrapper'
         "400":
           description: Invalid request body or filter criteria
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.SwaggerErrorResponseWrapper'
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
       summary: Get users with dynamic filters
