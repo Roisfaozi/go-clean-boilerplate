@@ -142,9 +142,11 @@ type LoggerConfig struct {
 }
 
 type CasbinConfig struct {
-	Enabled bool          `mapstructure:"enabled"`
-	Model   string        `mapstructure:"model"`
-	Watcher WatcherConfig `mapstructure:"watcher"`
+	Enabled       bool          `mapstructure:"enabled"`
+	Model         string        `mapstructure:"model"`
+	DefaultRole   string        `mapstructure:"default_role"`
+	DefaultDomain string        `mapstructure:"default_domain"`
+	Watcher       WatcherConfig `mapstructure:"watcher"`
 }
 
 type WatcherConfig struct {
@@ -174,6 +176,8 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("security.lockout_duration", "30m")
 	v.SetDefault("casbin.enabled", true)
 	v.SetDefault("casbin.model", "internal/config/casbin_model.conf")
+	v.SetDefault("casbin.default_role", "role:user")
+	v.SetDefault("casbin.default_domain", "global")
 	v.SetDefault("casbin.watcher.enabled", false)
 	v.SetDefault("casbin.watcher.channel", "/casbin")
 	// v.SetDefault("cors.allowed_origins", "*") // Removed unsafe default
@@ -266,6 +270,8 @@ func NewConfig() (*AppConfig, error) {
 
 	cfg.Casbin.Enabled = v.GetBool("casbin.enabled")
 	cfg.Casbin.Model = v.GetString("casbin.model")
+	cfg.Casbin.DefaultRole = v.GetString("casbin.default_role")
+	cfg.Casbin.DefaultDomain = v.GetString("casbin.default_domain")
 	cfg.Casbin.Watcher.Enabled = v.GetBool("casbin.watcher.enabled")
 	cfg.Casbin.Watcher.Channel = v.GetString("casbin.watcher.channel")
 

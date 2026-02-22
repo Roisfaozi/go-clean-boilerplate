@@ -170,6 +170,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		taskDistributor,
 		organizationRepository,
 		ticketManager,
+		cfg.Casbin.DefaultRole,
+		cfg.Casbin.DefaultDomain,
 	)
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, storageProvider)
@@ -208,7 +210,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		},
 	}
 
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler, workerCfg)
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler, auditModule.AuditController.UseCase, workerCfg)
 	scheduler := worker.NewScheduler(redisOpt, logger)
 	scheduler.RegisterScheduledTasks()
 
