@@ -42,7 +42,8 @@ func TestScenario_AdminSecurity_AccountSuspension(t *testing.T) {
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)
 
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, env.Enforcer, auditService, nil, nil)
+	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil)
 
 	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, auditService, authService, nil)
 
@@ -111,7 +112,8 @@ func TestScenario_AdminSecurity_TokenRotation(t *testing.T) {
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, nil, env.Enforcer, nil, nil, nil)
+	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil)
 
 	user := setup.CreateTestUser(t, env.DB, "rotator", "rot@test.com", "pass")
 	_, rt1, err := authService.Login(context.Background(), authModel.LoginRequest{Username: user.Username, Password: "pass"})

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	authRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	authUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
@@ -45,7 +46,9 @@ func TestScenario_RealTime_LoginBroadcast(t *testing.T) {
 	go wsManager.Run()
 
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, wsManager, nil, env.Enforcer, nil, nil, nil)
+	publisher := delivery.NewEventPublisher(wsManager, nil, env.Logger)
+	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, publisher, authz, nil, nil)
 
 	// 1. Create Organization
 	orgID := "test-org-123"
