@@ -44,5 +44,5 @@ type AuthUseCase interface {
 	VerifyEmail(ctx context.Context, token string) error
 
 	// Ticket
-	GetTicket(ctx context.Context, userID, orgID, sessionID, role, username string) (string, error)
+	GetTicket(ctx context.Context, userContext model.UserSessionContext) (string, error)
 }

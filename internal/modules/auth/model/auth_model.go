@@ -73,3 +73,11 @@ type ResetPasswordRequest struct {
 type VerifyEmailRequest struct {
 	Token string `json:"token" validate:"required,max=500"`
 }
+
+type UserSessionContext struct {
+	UserID    string
+	OrgID     string
+	SessionID string
+	Role      string
+	Username  string
+}

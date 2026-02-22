@@ -371,11 +371,13 @@ func (h *AuthController) GetTicket(c *gin.Context) {
 
 	ticket, err := h.AuthUseCase.GetTicket(
 		c.Request.Context(),
-		userID.(string),
-		orgID,
-		sessionID,
-		role,
-		username,
+		model.UserSessionContext{
+			UserID:    userID.(string),
+			OrgID:     orgID,
+			SessionID: sessionID,
+			Role:      role,
+			Username:  username,
+		},
 	)
 	if err != nil {
 		h.log.WithError(err).Error("Failed to generate WebSocket ticket")
