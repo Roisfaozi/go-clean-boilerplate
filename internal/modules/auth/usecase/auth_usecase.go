@@ -606,6 +606,12 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 	user.Password = string(hashedPassword)
 
 	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+		// Enforce fail closed: Revoke sessions first.
+		if err := s.tokenRepo.RevokeAllSessions(txCtx, user.ID); err != nil {
+			s.log.WithContext(txCtx).WithError(err).Error("Failed to revoke sessions during password reset")
+			return err
+		}
+
 		if err := s.userRepo.Update(txCtx, user); err != nil {
 			return err
 		}
@@ -614,10 +620,6 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 
 	if err != nil {
 		return err
-	}
-
-	if err := s.RevokeAllSessions(ctx, user.ID); err != nil {
-		s.log.WithContext(ctx).WithError(err).Error("Failed to revoke sessions after password reset")
 	}
 
 	if s.auditUC != nil {
