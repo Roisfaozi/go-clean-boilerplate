@@ -10,6 +10,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -19,7 +20,7 @@ func TestAuthUseCase_GenerateAccessToken_Success(t *testing.T) {
 	authService, deps := setupAuthGuardianTest(t)
 	user, _ := createGuardianTestUser("password123")
 
-	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
+	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{"role:user"}, nil)
 
 	accessToken, err := authService.GenerateAccessToken(user)
 
@@ -39,7 +40,7 @@ func TestAuthUseCase_GenerateRefreshToken_Success(t *testing.T) {
 	authService, deps := setupAuthGuardianTest(t)
 	user, _ := createGuardianTestUser("password123")
 
-	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
+	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{"role:user"}, nil)
 
 	refreshToken, err := authService.GenerateRefreshToken(user)
 
@@ -77,9 +78,9 @@ func TestAuthUseCase_RevokeAllSessions_Success(t *testing.T) {
 	authService, deps := setupAuthGuardianTest(t)
 	userID := "user-test-id"
 
-	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == userID && req.Action == "REVOKE_ALL_SESSIONS"
-	})).Return(nil)
+	}), mock.Anything).Return(nil)
 
 	deps.tokenRepo.On("RevokeAllSessions", mock.Anything, userID).Return(nil)
 
@@ -145,7 +146,12 @@ func TestAuthUseCase_RefreshToken_Negative_RevokedToken(t *testing.T) {
 	user, _ := createGuardianTestUser("password123")
 
 	// Generate a valid JWT
-	validRefreshToken, _, _ := deps.jwtManager.GenerateTokenPair(user.ID, "session-id", "role:user", user.Username)
+	validRefreshToken, _, _ := deps.jwtManager.GenerateTokenPair(jwt.UserContext{
+		UserID:    user.ID,
+		SessionID: "session-id",
+		Role:      "role:user",
+		Username:  user.Username,
+	})
 
 	// Mock repository to return nil (token not found/revoked)
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-id").Return(nil, nil)
@@ -175,7 +181,7 @@ func TestAuthUseCase_Login_Edge_EnforcerError(t *testing.T) {
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 
 	// FORCE ERROR HERE
-	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return(nil, errors.New("casbin error"))
+	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{}, errors.New("casbin error"))
 
 	loginResp, _, err := authService.Login(context.Background(), loginReq)
 
@@ -199,25 +205,22 @@ func TestAuthUseCase_Login_Edge_WSManagerError(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
+	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{"role:user"}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 
-	// Mock WS Manager panic or error (although interface is void return usually, we simulate panic protection if needed,
-	// or just normal execution with internal error logging which we can't easily capture without log hooks.
-	// Here we just ensure the mock is called and it doesn't return error because interface is 'BroadcastToChannel(channel string, message []byte)' which has no return.
-	// So we verify it IS called.
+	// Mock Publisher
 	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{{ID: "org1"}}, nil)
-	deps.wsManager.On("BroadcastToChannel", "org_org1_notifications", mock.Anything).Return()
+	deps.publisher.On("PublishUserLoggedIn", mock.Anything, mock.Anything, mock.Anything).Return()
 
-	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == user.ID && req.Action == "LOGIN"
-	})).Return(nil)
+	}), mock.Anything).Return(nil)
 
 	loginResp, _, err := authService.Login(context.Background(), loginReq)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, loginResp)
-	deps.wsManager.AssertExpectations(t)
+	deps.publisher.AssertExpectations(t)
 }
 
 // TestAuthUseCase_Login_Positive_VerifyClaims tests that the generated token contains the correct claims.
@@ -235,11 +238,11 @@ func TestAuthUseCase_Login_Positive_VerifyClaims(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:admin"}, nil) // Admin role
+	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{"role:admin"}, nil) // Admin role
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{{ID: "org1"}}, nil)
-	deps.wsManager.On("BroadcastToChannel", "org_org1_notifications", mock.Anything).Return()
-	deps.auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+	deps.publisher.On("PublishUserLoggedIn", mock.Anything, mock.Anything, mock.Anything).Return()
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
 	loginResp, _, err := authService.Login(context.Background(), loginReq)

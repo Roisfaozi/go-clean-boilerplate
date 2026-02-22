@@ -10,14 +10,12 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
-	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	mock_auth "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	mock_org "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
-	mock_permission "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	mock_user "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
@@ -34,10 +32,9 @@ type authGuardianTestDeps struct {
 	userRepo        *mock_user.MockUserRepository
 	orgRepo         *mock_org.MockOrganizationRepository
 	tm              *mocking.MockWithTransactionManager
-	wsManager       *mocking.MockManager
-	enforcer        *mock_permission.IEnforcer
+	publisher       *mock_auth.MockNotificationPublisher
+	authz           *mock_auth.MockAuthzManager
 	log             *logrus.Logger
-	auditUC         *auditMocks.MockAuditUseCase
 	taskDistributor *mocking.MockTaskDistributor
 	ticketManager   *mock_auth.MockTicketManager
 }
@@ -51,10 +48,9 @@ func setupAuthGuardianTest(t *testing.T) (usecase.AuthUseCase, *authGuardianTest
 		userRepo:        new(mock_user.MockUserRepository),
 		orgRepo:         new(mock_org.MockOrganizationRepository),
 		tm:              new(mocking.MockWithTransactionManager),
-		wsManager:       new(mocking.MockManager),
-		enforcer:        new(mock_permission.IEnforcer),
+		publisher:       new(mock_auth.MockNotificationPublisher),
+		authz:           new(mock_auth.MockAuthzManager),
 		log:             logrus.New(),
-		auditUC:         new(auditMocks.MockAuditUseCase),
 		taskDistributor: new(mocking.MockTaskDistributor),
 		ticketManager:   new(mock_auth.MockTicketManager),
 	}
@@ -70,10 +66,8 @@ func setupAuthGuardianTest(t *testing.T) (usecase.AuthUseCase, *authGuardianTest
 		deps.orgRepo,
 		deps.tm,
 		deps.log,
-		deps.wsManager,
-		nil,
-		deps.enforcer,
-		deps.auditUC,
+		deps.publisher,
+		deps.authz,
 		deps.taskDistributor,
 		deps.ticketManager,
 	)
@@ -110,13 +104,15 @@ func TestAuthUseCase_Edge_UnicodeInUsername(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, unicodeUsername).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
+	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{"role:user"}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
-	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == user.ID && req.Action == "LOGIN"
-	})).Return(nil)
+	}), mock.Anything).Return(nil)
+
+	deps.publisher.On("PublishUserLoggedIn", mock.Anything, mock.Anything, mock.Anything).Return()
 
 	loginResp, _, err := authService.Login(context.Background(), loginReq)
 
@@ -143,13 +139,15 @@ func TestAuthUseCase_Edge_LongUsername(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, longUsername).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
+	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{"role:user"}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
-	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == user.ID && req.Action == "LOGIN"
-	})).Return(nil)
+	}), mock.Anything).Return(nil)
+
+	deps.publisher.On("PublishUserLoggedIn", mock.Anything, mock.Anything, mock.Anything).Return()
 
 	loginResp, _, err := authService.Login(context.Background(), loginReq)
 
@@ -201,7 +199,7 @@ func TestAuthUseCase_Failure_GenerateAndStoreTokenPairError(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	deps.enforcer.On("GetRolesForUser", user.ID, "global").Return([]string{"role:user"}, nil)
+	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{"role:user"}, nil)
 
 	// FORCE ERROR HERE
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(errors.New("redis store failed"))
@@ -257,9 +255,9 @@ func TestAuthUseCase_Login_AccountLockingLogic(t *testing.T) {
 
 		deps.tokenRepo.On("LockAccount", mock.Anything, user.Username, mock.Anything).Return(nil).Once()
 
-		deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 			return req.Action == "ACCOUNT_LOCKED"
-		})).Return(nil).Once()
+		}), mock.Anything).Return(nil).Once()
 
 		_, _, err := authService.Login(context.Background(), loginReq)
 		assert.ErrorIs(t, err, usecase.ErrAccountLocked)
@@ -300,10 +298,10 @@ func TestAuthUseCase_ForgotPassword_Edge_EmailDistributorFailure(t *testing.T) {
 	// Mock distributor failure
 	deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("queue error"))
 
-	// Audit log should still happen
-	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+	// Audit log should still happen (Async)
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.Action == "FORGOT_PASSWORD_REQUEST"
-	})).Return(nil)
+	}), mock.Anything).Return(nil)
 
 	err := authService.ForgotPassword(context.Background(), email)
 

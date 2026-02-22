@@ -16,6 +16,10 @@ func setupTestEnv(t *testing.T) {
 	t.Setenv("MYSQL_PORT", "3306")
 	t.Setenv("JWT_ACCESS_SECRET", "01234567890123456789012345678901")
 	t.Setenv("JWT_REFRESH_SECRET", "01234567890123456789012345678901")
+	t.Setenv("LOG_LEVEL", "info")
+	t.Setenv("STORAGE_DRIVER", "local")
+	t.Setenv("JWT_ACCESS_DURATION", "15m")
+	t.Setenv("JWT_REFRESH_DURATION", "24h")
 }
 
 func TestNewConfig_DefaultValues(t *testing.T) {

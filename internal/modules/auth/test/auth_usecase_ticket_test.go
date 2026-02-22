@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +35,13 @@ func TestAuthUseCase_GetTicket_Success(t *testing.T) {
 	deps.ticketManager.On("CreateTicket", ctx, userID, orgID, sessionID, role, username).Return(ticket, nil)
 
 	// Execute
-	result, err := authService.GetTicket(ctx, userID, orgID, sessionID, role, username)
+	result, err := authService.GetTicket(ctx, model.UserSessionContext{
+		UserID:    userID,
+		OrgID:     orgID,
+		SessionID: sessionID,
+		Role:      role,
+		Username:  username,
+	})
 
 	// Assert
 	assert.NoError(t, err)
@@ -57,7 +64,13 @@ func TestAuthUseCase_GetTicket_UserNotFound(t *testing.T) {
 	deps.userRepo.On("FindByID", ctx, userID).Return(nil, errors.New("user not found"))
 
 	// Execute
-	result, err := authService.GetTicket(ctx, userID, orgID, sessionID, role, username)
+	result, err := authService.GetTicket(ctx, model.UserSessionContext{
+		UserID:    userID,
+		OrgID:     orgID,
+		SessionID: sessionID,
+		Role:      role,
+		Username:  username,
+	})
 
 	// Assert
 	assert.Error(t, err)
@@ -87,7 +100,13 @@ func TestAuthUseCase_GetTicket_UserSuspended(t *testing.T) {
 	deps.userRepo.On("FindByID", ctx, userID).Return(user, nil)
 
 	// Execute
-	result, err := authService.GetTicket(ctx, userID, orgID, sessionID, role, username)
+	result, err := authService.GetTicket(ctx, model.UserSessionContext{
+		UserID:    userID,
+		OrgID:     orgID,
+		SessionID: sessionID,
+		Role:      role,
+		Username:  username,
+	})
 
 	// Assert
 	assert.ErrorIs(t, err, usecase.ErrAccountSuspended)
@@ -119,7 +138,13 @@ func TestAuthUseCase_GetTicket_TicketManagerError(t *testing.T) {
 	deps.ticketManager.On("CreateTicket", ctx, userID, orgID, sessionID, role, username).Return("", errors.New("redis error"))
 
 	// Execute
-	result, err := authService.GetTicket(ctx, userID, orgID, sessionID, role, username)
+	result, err := authService.GetTicket(ctx, model.UserSessionContext{
+		UserID:    userID,
+		OrgID:     orgID,
+		SessionID: sessionID,
+		Role:      role,
+		Username:  username,
+	})
 
 	// Assert
 	assert.Error(t, err)

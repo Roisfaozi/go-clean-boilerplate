@@ -28,7 +28,12 @@ func TestNewJWTManager(t *testing.T) {
 func TestGenerateAndValidateTokenPair_Success(t *testing.T) {
 	manager := NewJWTManager(testAccessSecret, testRefreshSecret, time.Minute*15, time.Hour*72)
 
-	accessToken, refreshToken, err := manager.GenerateTokenPair(testUserID, testSessionID, testRole, testUsername)
+	accessToken, refreshToken, err := manager.GenerateTokenPair(UserContext{
+		UserID:    testUserID,
+		SessionID: testSessionID,
+		Role:      testRole,
+		Username:  testUsername,
+	})
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, accessToken)
@@ -58,7 +63,12 @@ func TestValidateToken_Expired(t *testing.T) {
 
 	manager := NewJWTManager(testAccessSecret, testRefreshSecret, -time.Second, -time.Second)
 
-	accessToken, _, err := manager.GenerateTokenPair(testUserID, testSessionID, testRole, testUsername)
+	accessToken, _, err := manager.GenerateTokenPair(UserContext{
+		UserID:    testUserID,
+		SessionID: testSessionID,
+		Role:      testRole,
+		Username:  testUsername,
+	})
 	assert.NoError(t, err)
 
 	time.Sleep(10 * time.Millisecond)
@@ -73,7 +83,12 @@ func TestValidateToken_InvalidSignature(t *testing.T) {
 	manager1 := NewJWTManager("secret-one", "refresh-one", time.Minute, time.Hour)
 	manager2 := NewJWTManager("secret-two", "refresh-two", time.Minute, time.Hour)
 
-	accessToken, _, err := manager1.GenerateTokenPair(testUserID, testSessionID, testRole, testUsername)
+	accessToken, _, err := manager1.GenerateTokenPair(UserContext{
+		UserID:    testUserID,
+		SessionID: testSessionID,
+		Role:      testRole,
+		Username:  testUsername,
+	})
 	assert.NoError(t, err)
 
 	claims, err := manager2.ValidateAccessToken(accessToken)

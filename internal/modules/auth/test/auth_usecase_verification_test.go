@@ -10,7 +10,6 @@ import (
 
 	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
-	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
@@ -23,7 +22,6 @@ import (
 
 	mock_auth "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	mock_org "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
-	mock_permission "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	mock_user "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 )
 
@@ -37,10 +35,9 @@ func setupVerificationTest(t *testing.T) (usecase.AuthUseCase, *testDependencies
 		userRepo:        new(mock_user.MockUserRepository),
 		orgRepo:         new(mock_org.MockOrganizationRepository),
 		tm:              new(mocking.MockWithTransactionManager),
-		wsManager:       new(mocking.MockManager),
-		enforcer:        new(mock_permission.IEnforcer),
+		publisher:       new(mock_auth.MockNotificationPublisher),
+		authz:           new(mock_auth.MockAuthzManager),
 		log:             logrus.New(),
-		auditUC:         new(auditMocks.MockAuditUseCase),
 		taskDistributor: new(mocking.MockTaskDistributor),
 		ticketManager:   new(mock_auth.MockTicketManager),
 	}
@@ -56,10 +53,8 @@ func setupVerificationTest(t *testing.T) (usecase.AuthUseCase, *testDependencies
 		deps.orgRepo,
 		deps.tm,
 		deps.log,
-		deps.wsManager,
-		nil, // sseManager
-		deps.enforcer,
-		deps.auditUC,
+		deps.publisher,
+		deps.authz,
 		deps.taskDistributor,
 		deps.ticketManager,
 	)
@@ -97,12 +92,12 @@ func TestAuthUseCase_RequestVerification_Success(t *testing.T) {
 		return payload.To == user.Email && payload.Subject == "Verify Your Email Address"
 	})).Return(nil)
 
-	// Mock Audit Log
-	deps.auditUC.On("LogActivity", ctx, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+	// Mock Task Distributor (Audit Log Async)
+	deps.taskDistributor.On("DistributeTaskAuditLog", ctx, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == userID &&
 			req.Action == "VERIFICATION_EMAIL_REQUESTED" &&
 			req.Entity == "User"
-	})).Return(nil)
+	}), mock.Anything).Return(nil)
 
 	// Execute
 	err := authService.RequestVerification(ctx, userID)
@@ -112,7 +107,6 @@ func TestAuthUseCase_RequestVerification_Success(t *testing.T) {
 	deps.userRepo.AssertExpectations(t)
 	deps.tokenRepo.AssertExpectations(t)
 	deps.taskDistributor.AssertExpectations(t)
-	deps.auditUC.AssertExpectations(t)
 }
 
 // ❌ NEGATIVE CASES
@@ -213,8 +207,8 @@ func TestAuthUseCase_RequestVerification_TaskDistributorError(t *testing.T) {
 	deps.taskDistributor.On("DistributeTaskSendEmail", ctx, mock.Anything).
 		Return(errors.New("queue is full"))
 
-	// Mock Audit Log
-	deps.auditUC.On("LogActivity", ctx, mock.Anything).Return(nil)
+	// Mock Task Distributor (Audit Log)
+	deps.taskDistributor.On("DistributeTaskAuditLog", ctx, mock.Anything, mock.Anything).Return(nil)
 
 	// Execute
 	err := authService.RequestVerification(ctx, userID)
@@ -292,12 +286,12 @@ func TestAuthUseCase_VerifyEmail_Success(t *testing.T) {
 	// Mock DeleteVerificationTokenByEmail
 	deps.tokenRepo.On("DeleteVerificationTokenByEmail", ctx, email).Return(nil)
 
-	// Mock Audit Log
-	deps.auditUC.On("LogActivity", ctx, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+	// Mock Task Distributor (Audit Log Async)
+	deps.taskDistributor.On("DistributeTaskAuditLog", ctx, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == userID &&
 			req.Action == "EMAIL_VERIFIED" &&
 			req.Entity == "User"
-	})).Return(nil)
+	}), mock.Anything).Return(nil)
 
 	// Execute
 	err := authService.VerifyEmail(ctx, token)
@@ -307,7 +301,7 @@ func TestAuthUseCase_VerifyEmail_Success(t *testing.T) {
 	deps.tokenRepo.AssertExpectations(t)
 	deps.userRepo.AssertExpectations(t)
 	deps.tm.AssertExpectations(t)
-	deps.auditUC.AssertExpectations(t)
+	deps.taskDistributor.AssertExpectations(t)
 }
 
 // ❌ NEGATIVE CASES
@@ -435,7 +429,7 @@ func TestAuthUseCase_VerifyEmail_DatabaseUpdateError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, dbErr, err)
 	deps.tm.AssertExpectations(t)
-	deps.auditUC.AssertNotCalled(t, "LogActivity")
+	deps.taskDistributor.AssertNotCalled(t, "DistributeTaskAuditLog")
 }
 
 // 🔄 EDGE CASE

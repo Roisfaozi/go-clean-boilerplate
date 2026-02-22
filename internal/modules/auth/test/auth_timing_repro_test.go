@@ -31,9 +31,9 @@ func TestForgotPassword_TimingDifference_Repro(t *testing.T) {
 		}).Return(nil)
 
 	deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == user.ID && req.Action == "FORGOT_PASSWORD_REQUEST"
-	})).Return(nil)
+	}), mock.Anything).Return(nil)
 
 	// Measure Time for Found User
 	startFound := time.Now()

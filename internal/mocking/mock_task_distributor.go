@@ -7,6 +7,7 @@ package mocking
 import (
 	"context"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/hibiken/asynq"
 	mock "github.com/stretchr/testify/mock"
@@ -37,6 +38,78 @@ type MockTaskDistributor_Expecter struct {
 
 func (_m *MockTaskDistributor) EXPECT() *MockTaskDistributor_Expecter {
 	return &MockTaskDistributor_Expecter{mock: &_m.Mock}
+}
+
+// DistributeTaskAuditLog provides a mock function for the type MockTaskDistributor
+func (_mock *MockTaskDistributor) DistributeTaskAuditLog(ctx context.Context, payload model.CreateAuditLogRequest, opts ...asynq.Option) error {
+	var tmpRet mock.Arguments
+	if len(opts) > 0 {
+		tmpRet = _mock.Called(ctx, payload, opts)
+	} else {
+		tmpRet = _mock.Called(ctx, payload)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for DistributeTaskAuditLog")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, model.CreateAuditLogRequest, ...asynq.Option) error); ok {
+		r0 = returnFunc(ctx, payload, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockTaskDistributor_DistributeTaskAuditLog_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DistributeTaskAuditLog'
+type MockTaskDistributor_DistributeTaskAuditLog_Call struct {
+	*mock.Call
+}
+
+// DistributeTaskAuditLog is a helper method to define mock.On call
+//   - ctx context.Context
+//   - payload model.CreateAuditLogRequest
+//   - opts ...asynq.Option
+func (_e *MockTaskDistributor_Expecter) DistributeTaskAuditLog(ctx interface{}, payload interface{}, opts ...interface{}) *MockTaskDistributor_DistributeTaskAuditLog_Call {
+	return &MockTaskDistributor_DistributeTaskAuditLog_Call{Call: _e.mock.On("DistributeTaskAuditLog",
+		append([]interface{}{ctx, payload}, opts...)...)}
+}
+
+func (_c *MockTaskDistributor_DistributeTaskAuditLog_Call) Run(run func(ctx context.Context, payload model.CreateAuditLogRequest, opts ...asynq.Option)) *MockTaskDistributor_DistributeTaskAuditLog_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 model.CreateAuditLogRequest
+		if args[1] != nil {
+			arg1 = args[1].(model.CreateAuditLogRequest)
+		}
+		var arg2 []asynq.Option
+		var variadicArgs []asynq.Option
+		if len(args) > 2 {
+			variadicArgs = args[2].([]asynq.Option)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTaskDistributor_DistributeTaskAuditLog_Call) Return(err error) *MockTaskDistributor_DistributeTaskAuditLog_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockTaskDistributor_DistributeTaskAuditLog_Call) RunAndReturn(run func(ctx context.Context, payload model.CreateAuditLogRequest, opts ...asynq.Option) error) *MockTaskDistributor_DistributeTaskAuditLog_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // DistributeTaskSendEmail provides a mock function for the type MockTaskDistributor
