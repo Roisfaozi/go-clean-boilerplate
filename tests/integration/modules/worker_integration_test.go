@@ -440,7 +440,7 @@ func TestWorkerIntegration_ProcessorStartShutdown(t *testing.T) {
 	}
 
 	// Create processor using the project's factory function
-	processor := worker.NewRedisTaskProcessor(redisOpt, log, cleanupHandler, cfg)
+	processor := worker.NewRedisTaskProcessor(redisOpt, log, cleanupHandler, nil, cfg)
 
 	// Start in goroutine
 	errCh := make(chan error, 1)

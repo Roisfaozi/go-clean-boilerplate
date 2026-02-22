@@ -13,6 +13,7 @@ import (
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	authRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	orgRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
@@ -38,7 +39,7 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
+	_ = auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
 	wsConfig := &ws.WebSocketConfig{}
 	presenceManager := ws.NewPresenceManager(env.Redis, env.Logger, 5*time.Minute)
@@ -59,6 +60,10 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 
 	ticketManager := ws.NewRedisTicketManager(env.Redis, 30*time.Second)
 
+	// Adapters for IoC
+	publisher := delivery.NewEventPublisher(wsManager, sseManager, env.Logger)
+	authz := authRepository.NewCasbinAdapter(enforcer, "role:user", "global")
+
 	return usecase.NewAuthUsecase(
 		5,              // MaxLoginAttempts
 		30*time.Minute, // LockoutDuration
@@ -68,10 +73,8 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 		orgRepo,
 		tm,
 		logger,
-		wsManager,
-		sseManager,
-		enforcer,
-		auditUC,
+		publisher,
+		authz,
 		taskDistributor,
 		ticketManager,
 	)
@@ -205,7 +208,12 @@ func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 
 	t.Run("Fail Refresh with Expired Token", func(t *testing.T) {
 		shortJWT := jwt.NewJWTManager("secret", "refresh", time.Minute, 1*time.Millisecond)
-		expToken, _, _ := shortJWT.GenerateTokenPair(testUser.ID, "sid", "role:user", "tokenuser")
+		expToken, _, _ := shortJWT.GenerateTokenPair(jwt.UserContext{
+			UserID:   testUser.ID,
+			SessionID: "sid",
+			Role:     "role:user",
+			Username: "tokenuser",
+		})
 		time.Sleep(10 * time.Millisecond)
 
 		customUC := setupAuthIntegrationWithJWT(env, shortJWT)

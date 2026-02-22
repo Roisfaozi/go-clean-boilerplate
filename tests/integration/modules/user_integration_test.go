@@ -39,7 +39,8 @@ func setupTestDependencies(env *setup.TestEnvironment) (usecase.UserUseCase, rep
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)
 
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil, nil)
+	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil)
 
 	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil), userRepo
 }
@@ -176,10 +177,11 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
+	_ = auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil, nil)
+	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil)
 
 	loginReq := authModel.LoginRequest{Username: user.Username, Password: password}
 	loginResp, _, err := authUC.Login(context.Background(), loginReq)
@@ -557,7 +559,8 @@ func setupUserUseCase(t *testing.T, env *setup.TestEnvironment) usecase.UserUseC
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)
 
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil, nil)
+	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil)
 
 	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil)
 }
