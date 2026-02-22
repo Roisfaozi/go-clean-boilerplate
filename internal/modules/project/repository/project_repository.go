@@ -46,7 +46,7 @@ func (r *projectRepository) GetByID(ctx context.Context, id string) (*entity.Pro
 
 func (r *projectRepository) GetByOrgID(ctx context.Context, orgID string) ([]*entity.Project, error) {
 	var projects []*entity.Project
-	if err := r.getDB(ctx).Where("organization_id = ?", orgID).Find(&projects).Error; err != nil {
+	if err := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Where("organization_id = ?", orgID).Find(&projects).Error; err != nil {
 		return nil, err
 	}
 	return projects, nil
