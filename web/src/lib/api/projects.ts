@@ -1,5 +1,5 @@
-import { Project } from "~/types";
 import { api } from "./client";
+import { Project } from "~/types";
 
 export type { Project };
 
