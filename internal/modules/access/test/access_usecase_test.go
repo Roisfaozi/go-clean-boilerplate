@@ -111,6 +111,33 @@ func TestGetAllAccessRights(t *testing.T) {
 		assert.Equal(t, repoErr, err)
 		deps.Repo.AssertExpectations(t)
 	})
+
+
+	t.Run("Success - Sanitize Inputs", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		req := model.CreateAccessRightRequest{
+			Name:        "<b>Bold Name</b>",
+			Description: "<script>alert('xss')</script>",
+		}
+
+		// Expect escaped strings
+		expectedName := "&lt;b&gt;Bold Name&lt;/b&gt;"
+		expectedDesc := "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
+
+		deps.Repo.On("CreateAccessRight", ctx, mock.MatchedBy(func(ar *entity.AccessRight) bool {
+			return ar.Name == expectedName && ar.Description == expectedDesc
+		})).Return(nil).Once()
+
+		createdAccessRight, err := uc.CreateAccessRight(ctx, req)
+		assert.NoError(t, err)
+		assert.NotNil(t, createdAccessRight)
+		assert.Equal(t, expectedName, createdAccessRight.Name)
+		assert.Equal(t, expectedDesc, createdAccessRight.Description)
+		deps.Repo.AssertExpectations(t)
+	})
+
 }
 
 func TestCreateEndpoint(t *testing.T) {

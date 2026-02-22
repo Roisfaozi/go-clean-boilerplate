@@ -142,3 +142,8 @@ func (r *accessRepository) DeleteAccessRight(ctx context.Context, id string) err
 func (r *accessRepository) LinkEndpointToAccessRight(ctx context.Context, accessRightID, endpointID string) error {
 	return r.getDB(ctx).Model(&entity.AccessRight{ID: accessRightID}).Association("Endpoints").Append(&entity.Endpoint{ID: endpointID})
 }
+
+
+func (r *accessRepository) UnlinkEndpointFromAccessRight(ctx context.Context, accessRightID, endpointID string) error {
+	return r.getDB(ctx).Model(&entity.AccessRight{ID: accessRightID}).Association("Endpoints").Delete(&entity.Endpoint{ID: endpointID})
+}
