@@ -122,9 +122,9 @@ func TestGetAllAccessRights(t *testing.T) {
 			Description: "<script>alert('xss')</script>",
 		}
 
-		// Expect escaped strings
-		expectedName := "&lt;b&gt;Bold Name&lt;/b&gt;"
-		expectedDesc := "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
+		// Expect stripped tags (SanitizeString removes all HTML tags)
+		expectedName := "Bold Name"
+		expectedDesc := "alert('xss')"
 
 		deps.Repo.On("CreateAccessRight", ctx, mock.MatchedBy(func(ar *entity.AccessRight) bool {
 			return ar.Name == expectedName && ar.Description == expectedDesc

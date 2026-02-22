@@ -27,7 +27,7 @@ func TestWebSocketController_HandleWebSocket_WithUser(t *testing.T) {
 	}, nil)
 
 	// Use setupTestServer to get a manager (and server, which we won't use directly for routing)
-	manager, server := setupTestServer(nil)
+	manager, server := setupTestServer()
 	defer server.Close()
 	defer manager.Stop()
 
@@ -71,7 +71,7 @@ func TestWebSocketController_HandleWebSocket_UserNotFound(t *testing.T) {
 	mockUserRepo := mocks.NewMockUserRepository(t)
 	mockUserRepo.On("FindByID", mock.Anything, "u1").Return(nil, errors.New("not found"))
 
-	manager, server := setupTestServer(nil)
+	manager, server := setupTestServer()
 	defer server.Close()
 	defer manager.Stop()
 

@@ -249,9 +249,11 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	})
 
 	tusHandler, err := tus.NewHandler(tus.Config{
-		S3Bucket:   cfg.Storage.S3.Bucket,
-		S3Endpoint: cfg.Storage.S3.Endpoint,
-		BasePath:   cfg.Tus.BasePath,
+		StorageDriver: cfg.Storage.Driver,
+		LocalRootPath: cfg.Storage.Local.RootPath,
+		S3Bucket:      cfg.Storage.S3.Bucket,
+		S3Endpoint:    cfg.Storage.S3.Endpoint,
+		BasePath:      cfg.Tus.BasePath,
 	}, tusRegistry, s3Client, logger)
 	if err != nil {
 		logger.Errorf("Failed to init TUS handler: %v", err)

@@ -58,9 +58,10 @@ func setupTUSDeps(t *testing.T, env *setup.TestEnvironment, s3Client *s3.Client,
 	registry.Register("avatar", avatarHook)
 
 	handler, err := tus.NewHandler(tus.Config{
-		S3Bucket:   rustfsBucket,
-		S3Endpoint: s3URL,
-		BasePath:   "/files/",
+		StorageDriver: "s3",
+		S3Bucket:      rustfsBucket,
+		S3Endpoint:    s3URL,
+		BasePath:      "/files/",
 	}, registry, s3Client, env.Logger)
 	require.NoError(t, err)
 

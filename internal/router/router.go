@@ -85,7 +85,7 @@ func SetupRouter(
 		router.Use(middleware.PrometheusMiddleware())
 	}
 	router.GET("/ws", authMiddleware.ValidateWebSocketToken(), wsController.HandleWebSocket)
-	router.GET("/events", sseManager.ServeHTTP())
+	router.GET("/events", authMiddleware.ValidateToken(), sseManager.ServeHTTP())
 
 	router.Use(middleware.RequestLogger(logger))
 	router.Use(middleware.RecoveryMiddleware(logger))

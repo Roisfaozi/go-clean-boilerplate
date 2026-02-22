@@ -3,15 +3,53 @@ package ws_test
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/alicebob/miniredis/v2"
+	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// setupTestServerWithRedis creates a WebSocketManager with Redis enabled for distributed testing.
+func setupTestServerWithRedis(rdb *redis.Client, prefix string) (*ws.WebSocketManager, *httptest.Server) {
+	config := &ws.WebSocketConfig{
+		WriteWait:          10 * time.Second,
+		PongWait:           60 * time.Second,
+		PingPeriod:         54 * time.Second,
+		MaxMessageSize:     512 * 1024,
+		DistributedEnabled: true,
+		RedisPrefix:        prefix,
+	}
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+	presence := &NoOpPresenceManager{}
+	manager := ws.NewWebSocketManager(config, logger, rdb, presence)
+	go manager.Run()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader := websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool { return true },
+		}
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		client := ws.NewWebsocketClient(conn, manager, logger, config, "u1", "org1", nil)
+		manager.RegisterClient(client)
+		go client.WritePump()
+		go client.ReadPump()
+	})
+
+	server := httptest.NewServer(handler)
+	return manager, server
+}
 
 func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	// Start miniredis
@@ -19,19 +57,21 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	require.NoError(t, err)
 	defer mr.Close()
 
+	prefix := "test_ws:"
+
 	// Use separate clients for each manager to avoid connection closing issues
 	rdb1 := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 	rdb2 := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 	defer func() { _ = rdb1.Close() }()
 	defer func() { _ = rdb2.Close() }()
 
-	// Setup Manager 1 (Node 1)
-	manager1, server1 := setupTestServer(rdb1)
+	// Setup Manager 1 (Node 1) with Redis
+	manager1, server1 := setupTestServerWithRedis(rdb1, prefix)
 	defer server1.Close()
 	defer manager1.Stop()
 
-	// Setup Manager 2 (Node 2)
-	manager2, server2 := setupTestServer(rdb2)
+	// Setup Manager 2 (Node 2) with Redis
+	manager2, server2 := setupTestServerWithRedis(rdb2, prefix)
 	defer server2.Close()
 	defer manager2.Stop()
 
@@ -62,8 +102,7 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	msgContent := map[string]string{"msg": "hello from node 1"}
 	msgBytes, _ := json.Marshal(msgContent)
 
-	// Retry loop for ensuring c2 receives the message (Redis subscription propagation delay)
-	// We need to wait a bit longer for the initial subscription to propagate across the "cluster" (miniredis)
+	// Wait for Redis subscription propagation
 	time.Sleep(500 * time.Millisecond)
 
 	var msg2 *ws.ServerMessage
@@ -86,8 +125,7 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	}
 	_ = c2.SetReadDeadline(time.Time{})
 
-	// Verify c1 (connected to Node 1) receives it (Local broadcast)
-	// Since we might have broadcasted multiple times, just getting one is enough.
+	// Verify c1 (connected to Node 1) receives it via Redis echo
 	msg1, err := waitForMessage(c1, "message", "global-channel")
 	assert.NoError(t, err)
 	assert.NotNil(t, msg1)
@@ -96,7 +134,6 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	require.NotNil(t, msg2, "Failed to receive message on c2 via Redis")
 
 	// Verify content
-	// msg2.Data should be interface{} matching msgContent
 	dataMap, ok := msg2.Data.(map[string]interface{})
 	require.True(t, ok)
 	assert.Equal(t, "hello from node 1", dataMap["msg"])
@@ -112,7 +149,10 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 		Addr: mr.Addr(),
 	})
 
-	manager, server := setupTestServer(rdb)
+	prefix := "test_ws:"
+
+	// Setup manager with Redis enabled
+	manager, server := setupTestServerWithRedis(rdb, prefix)
 	defer server.Close()
 	defer manager.Stop()
 
@@ -126,32 +166,23 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 	_, err = waitForMessage(c1, "info", channel)
 	require.NoError(t, err)
 
-	// Prefix is "test_ws:" defined in setupTestServer
-	prefix := "test_ws:"
 	redisChannel := prefix + channel
 
 	// Wait for Redis subscription to be active
-	// The manager subscribes to "test_ws:*" (pattern), so we check NumPat.
+	// Use a separate client to check and publish
+	pubRdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer func() { _ = pubRdb.Close() }()
+
 	require.Eventually(t, func() bool {
-		// Miniredis supports PubSubNumPat but go-redis API for it is straightforward.
-		// However, the manager uses PSubscribe with pattern "prefix*".
-		// We can try checking if publishing to a channel in that pattern reaches subscribers?
-		// Or just check NumPat.
-		// rdb.PubSubNumPat() returns map[string]int64 in some versions or int64?
-		// Actually, standard redis command PUBSUB NUMPAT returns count.
-		count, err := rdb.PubSubNumPat(context.Background()).Result()
+		count, err := pubRdb.PubSubNumPat(context.Background()).Result()
 		return err == nil && count > 0
 	}, 5*time.Second, 100*time.Millisecond, "Manager failed to subscribe to Redis pattern")
 
-	// The manager expects the payload to be the message bytes (e.g., JSON of ServerMessage or just data)
-	// handleBroadcast receives the payload and wraps it in {type: "message", ...} IF it's coming from Redis?
-	// No, handleBroadcast wraps msg.Message in "data" field of envelope.
-
-	// Let's send a simple JSON object
+	// Send a simple JSON object
 	payload := `{"text":"external hello"}`
 
 	// Publish once, since we confirmed subscription is active
-	err = rdb.Publish(context.Background(), redisChannel, payload).Err()
+	err = pubRdb.Publish(context.Background(), redisChannel, payload).Err()
 	require.NoError(t, err)
 
 	// Verify c1 receives it
@@ -164,8 +195,6 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 	require.NotNil(t, msg, "Failed to receive message from Redis subscription after retries")
 
 	// The data field of the message should contain the payload parsed as JSON if possible
-	// The manager does: "data": json.RawMessage(msg.Message)
-	// So msg.Data (in ServerMessage struct) will be unmarshaled payload.
 	dataMap, ok := msg.Data.(map[string]interface{})
 	require.True(t, ok)
 	assert.Equal(t, "external hello", dataMap["text"])
