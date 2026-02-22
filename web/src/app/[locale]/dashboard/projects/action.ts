@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { projectsApi } from "~/lib/api/projects";
 import { cookies } from "next/headers";
-import { authActionClient } from "~/lib/client/safe-action";
+import { redirect } from "next/navigation";
 import { z } from "zod";
+import { projectsApi } from "~/lib/api/projects";
+import { authActionClient } from "~/lib/client/safe-action";
 
 async function getOrgId() {
   const cookieStore = await cookies();
@@ -19,6 +19,7 @@ const projectSchema = z.object({
 
 export const createProjectAction = authActionClient
   .schema(projectSchema)
+  .metadata({ actionName: "createProject" })
   .action(async ({ parsedInput }) => {
     const orgId = await getOrgId();
     if (!orgId) throw new Error("No organization selected");
@@ -30,6 +31,7 @@ export const createProjectAction = authActionClient
 
 export const updateProjectAction = authActionClient
   .schema(projectSchema.extend({ id: z.string() }))
+  .metadata({ actionName: "updateProject" })
   .action(async ({ parsedInput }) => {
     const { id, ...payload } = parsedInput;
     const orgId = await getOrgId();
@@ -42,6 +44,7 @@ export const updateProjectAction = authActionClient
 
 export const deleteProjectAction = authActionClient
   .schema(z.object({ id: z.string() }))
+  .metadata({ actionName: "deleteProject" })
   .action(async ({ parsedInput }) => {
     const orgId = await getOrgId();
     if (!orgId) throw new Error("No organization selected");

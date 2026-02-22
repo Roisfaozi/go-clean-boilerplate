@@ -22,6 +22,7 @@ const REFRESH_TOKEN_MAX_AGE = Number(
 
 export const loginAction = actionClient
   .schema(loginSchema)
+  .metadata({ actionName: "login" })
   .action(async ({ parsedInput: { username, password } }) => {
     try {
       let response: Response;
@@ -48,6 +49,7 @@ export const loginAction = actionClient
             result.message || "Gagal terhubung ke server (Backend Offline)."
           );
         }
+        console.log("ini response", response);
         throw new Error(result.error || result.message || "Login failed");
       }
 

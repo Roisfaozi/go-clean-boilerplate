@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { usersApi } from "~/lib/api/users";
 import { authActionClient } from "~/lib/client/safe-action";
-import { z } from "zod";
 
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
@@ -15,6 +15,7 @@ const updateUserSchema = z.object({
 
 export const updateUserAction = authActionClient
   .schema(updateUserSchema)
+  .metadata({ actionName: "updateUser" })
   .action(async ({ parsedInput }) => {
     // Use our Go API instead of Prisma
     const result = await usersApi.updateMe(parsedInput);
