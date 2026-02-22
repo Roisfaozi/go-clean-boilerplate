@@ -4,7 +4,12 @@ type FetchOptions = RequestInit & {
   headers?: Record<string, string>;
 };
 
-const BASE_URL = "/api/v1";
+const isServer = typeof window === "undefined";
+
+const getBaseUrl = () => {
+  if (!isServer) return "/api/v1";
+  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080/api/v1";
+};
 
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
@@ -15,7 +20,7 @@ class ApiClient {
     endpoint: string,
     options: FetchOptions = {}
   ): Promise<T> {
-    const url = `${BASE_URL}${endpoint}`;
+    const url = `${getBaseUrl()}${endpoint}`;
 
     const isFormData = options.body instanceof FormData;
 
@@ -25,6 +30,21 @@ class ApiClient {
 
     if (!isFormData) {
       headers["Content-Type"] = "application/json";
+    }
+
+    if (isServer) {
+      try {
+        const { cookies } = await import("next/headers");
+        const cookieStore = await cookies();
+        const cookieStrings = cookieStore
+          .getAll()
+          .map((c) => `${c.name}=${c.value}`);
+        if (cookieStrings.length > 0) {
+          headers["Cookie"] = cookieStrings.join("; ");
+        }
+      } catch (error) {
+        // Ignore errors if next/headers is not available
+      }
     }
 
     const config = {
@@ -79,7 +99,7 @@ class ApiClient {
     isRefreshing = true;
     refreshPromise = (async () => {
       try {
-        const refreshResponse = await fetch(`${BASE_URL}/auth/refresh`, {
+        const refreshResponse = await fetch(`${getBaseUrl()}/auth/refresh`, {
           method: "POST",
           credentials: "include",
         });
