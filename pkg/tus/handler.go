@@ -3,21 +3,35 @@ package tus
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/sirupsen/logrus"
+	"github.com/tus/tusd/v2/pkg/filestore"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/s3store"
 )
 
 type Config struct {
-	S3Bucket   string
-	S3Endpoint string
-	BasePath   string
+	StorageDriver string
+	LocalRootPath string
+	S3Bucket      string
+	S3Endpoint    string
+	BasePath      string
 }
 
 func NewHandler(cfg Config, registry *Registry, s3Client *s3.Client, log *logrus.Logger) (*handler.Handler, error) {
-	store := s3store.New(cfg.S3Bucket, s3Client)
+	var store handler.DataStore
+	if cfg.StorageDriver == "s3" {
+		store = s3store.New(cfg.S3Bucket, s3Client)
+	} else {
+		// Default to local file store
+		err := os.MkdirAll(cfg.LocalRootPath, 0755)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create tus directory: %w", err)
+		}
+		store = filestore.New(cfg.LocalRootPath)
+	}
 
 	// Create Composer
 	composer := handler.NewStoreComposer()
@@ -41,7 +55,12 @@ func NewHandler(cfg Config, registry *Registry, s3Client *s3.Client, log *logrus
 			uploadType := meta["type"]
 
 			if hook := registry.Get(uploadType); hook != nil {
-				fileURL := fmt.Sprintf("%s/%s/%s", cfg.S3Endpoint, cfg.S3Bucket, event.Upload.ID)
+				var fileURL string
+				if cfg.StorageDriver == "s3" {
+					fileURL = fmt.Sprintf("%s/%s/%s", cfg.S3Endpoint, cfg.S3Bucket, event.Upload.ID)
+				} else {
+					fileURL = fmt.Sprintf("%s/%s", cfg.BasePath, event.Upload.ID)
+				}
 
 				// Dispatch to specific module
 				err := hook.HandleUpload(context.Background(), UploadEvent{
