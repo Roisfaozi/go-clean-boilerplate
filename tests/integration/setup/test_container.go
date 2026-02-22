@@ -46,6 +46,18 @@ type TestEnvironment struct {
 	Closers   []func()
 }
 
+func (env *TestEnvironment) StartWorker(processor interface {
+	Start() error
+	Shutdown()
+}) {
+	go func() {
+		if err := processor.Start(); err != nil {
+			env.Logger.Errorf("Failed to start worker in test: %v", err)
+		}
+	}()
+	env.AddCloser(processor.Shutdown)
+}
+
 func (env *TestEnvironment) AddCloser(closer func()) {
 	env.Closers = append(env.Closers, closer)
 }
