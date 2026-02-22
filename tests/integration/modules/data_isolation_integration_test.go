@@ -5,13 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestDataIsolation_User_FindAll(t *testing.T) {
@@ -25,36 +23,29 @@ func TestDataIsolation_User_FindAll(t *testing.T) {
 	repo := repository.NewUserRepository(env.DB, env.Logger)
 
 	// Setup Headers
-	orgA := "org-a-" + time.Now().Format("20060102150405")
-	orgB := "org-b-" + time.Now().Format("20060102150405")
+	orgA := "org-a"
+	orgB := "org-b"
 
-	// Create Users
-	userA := &entity.User{
-		ID:             "user-a-iso",
-		Username:       "usera_iso",
-		Email:          "user.a.iso@example.com",
-		Password:       "password",
-		Name:           "User A Iso",
-		OrganizationID: &orgA,
-		Status:         entity.UserStatusActive,
-		CreatedAt:      time.Now().UnixMilli(),
-	}
+	// Create Organizations in DB first to satisfy foreign key if any, and for consistency
+	env.DB.Exec("DELETE FROM organization_members")
+	env.DB.Exec("DELETE FROM organizations")
+	env.DB.Exec("INSERT INTO organizations (id, name, slug, owner_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		orgA, "Org A", "org-a", "system", "active", time.Now().UnixMilli(), time.Now().UnixMilli())
+	env.DB.Exec("INSERT INTO organizations (id, name, slug, owner_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		orgB, "Org B", "org-b", "system", "active", time.Now().UnixMilli(), time.Now().UnixMilli())
 
-	userB := &entity.User{
-		ID:             "user-b-iso",
-		Username:       "userb_iso",
-		Email:          "user.b.iso@example.com",
-		Password:       "password",
-		Name:           "User B Iso",
-		OrganizationID: &orgB,
-		Status:         entity.UserStatusActive,
-		CreatedAt:      time.Now().UnixMilli(),
-	}
+	// Create Users with memberships
+	userA := setup.CreateTestUser(t, env.DB, "usera_iso", "user.a.iso@example.com", "password", orgA)
+	userB := setup.CreateTestUser(t, env.DB, "userb_iso", "user.b.iso@example.com", "password", orgB)
+
+	// Verify memberships exist
+	var count int64
+	env.DB.Table("organization_members").Where("organization_id = ?", orgA).Count(&count)
+	assert.Equal(t, int64(1), count, "Org A should have 1 member")
+	env.DB.Table("organization_members").Where("organization_id = ?", orgB).Count(&count)
+	assert.Equal(t, int64(1), count, "Org B should have 1 member")
 
 	ctx := context.Background()
-	// Create directly using repo (which has no scope on Create)
-	require.NoError(t, repo.Create(ctx, userA))
-	require.NoError(t, repo.Create(ctx, userB))
 
 	// Test 1: Scope to Org A
 	ctxOrgA := database.SetOrganizationContext(ctx, orgA)

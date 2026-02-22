@@ -97,7 +97,7 @@ func CleanupDatabase(t *testing.T, db *gorm.DB) {
 	db.Exec("SET FOREIGN_KEY_CHECKS = 1")
 }
 
-func CreateTestUser(t *testing.T, db *gorm.DB, username, email, password string) *userEntity.User {
+func CreateTestUser(t *testing.T, db *gorm.DB, username, email, password string, orgIDs ...string) *userEntity.User {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err, "Failed to hash password")
 
@@ -111,6 +111,19 @@ func CreateTestUser(t *testing.T, db *gorm.DB, username, email, password string)
 
 	err = db.Create(user).Error
 	require.NoError(t, err, "Failed to create test user")
+
+	// Add memberships if orgIDs provided
+	for _, orgID := range orgIDs {
+		member := &orgEntity.OrganizationMember{
+			ID:             uuid.New().String(),
+			OrganizationID: orgID,
+			UserID:         user.ID,
+			RoleID:         "role:user",
+			Status:         "active",
+		}
+		err = db.Create(member).Error
+		require.NoError(t, err, "Failed to create member record")
+	}
 
 	return user
 }
