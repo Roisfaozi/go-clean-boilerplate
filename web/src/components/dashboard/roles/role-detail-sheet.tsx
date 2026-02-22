@@ -67,9 +67,19 @@ export function RoleDetailSheet({
 
       const userPromises = userIds
         .slice(0, 50)
-        .map((id) => usersApi.getById(id));
+        .map((id) =>
+          usersApi.getById(id).catch((err) => {
+            console.warn(`Failed to fetch user ${id}`, err);
+            return null;
+          })
+        );
       const userResps = await Promise.all(userPromises);
-      setMembers(userResps.map((r) => r.data).filter(Boolean) as User[]);
+      setMembers(
+        userResps
+          .filter((r): r is NonNullable<typeof r> => r !== null)
+          .map((r) => r.data)
+          .filter(Boolean) as User[]
+      );
     } catch (error) {
       console.error("Failed to fetch role members", error);
       toast.error("Failed to load members");
