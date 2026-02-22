@@ -149,8 +149,12 @@ func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybu
 	}
 
 	// Get Total Count using a session branch
-	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
-		return nil, 0, err
+	if !filter.SkipCount {
+		if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	} else {
+		total = -1 // convention for skipped count
 	}
 
 	// Apply Dynamic Sort

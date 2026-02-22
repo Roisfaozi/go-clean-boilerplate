@@ -53,8 +53,12 @@ func (r *accessRepository) FindEndpointsDynamic(ctx context.Context, filter *que
 		return nil, 0, err
 	}
 
-	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
-		return nil, 0, err
+	if !filter.SkipCount {
+		if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	} else {
+		total = -1
 	}
 
 	query, err = querybuilder2.GenerateDynamicSort(query, &entity.Endpoint{}, filter)
@@ -107,8 +111,12 @@ func (r *accessRepository) FindAccessRightsDynamic(ctx context.Context, filter *
 		return nil, 0, err
 	}
 
-	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
-		return nil, 0, err
+	if !filter.SkipCount {
+		if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	} else {
+		total = -1
 	}
 
 	query, err = querybuilder2.GenerateDynamicSort(query, &entity.AccessRight{}, filter)

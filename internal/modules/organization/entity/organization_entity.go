@@ -14,12 +14,12 @@ type Organization struct {
 	ID        string                `gorm:"column:id;primaryKey;type:varchar(36)"`
 	Name      string                `gorm:"column:name;type:varchar(255);not null"`
 	Slug      string                `gorm:"column:slug;type:varchar(100);uniqueIndex;not null"`
-	OwnerID   string                `gorm:"column:owner_id;type:varchar(36);not null;index"`
+	OwnerID   string                `gorm:"column:owner_id;type:varchar(36);not null;index:idx_org_owner_deleted;index"`
 	Settings  map[string]interface{} `gorm:"serializer:json"`
-	Status    string                `gorm:"column:status;type:varchar(20);default:'active';index"`
+	Status    string                `gorm:"column:status;type:varchar(20);default:'active';index:idx_org_status_deleted;index"`
 	CreatedAt int64                 `gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt int64                 `gorm:"column:updated_at;autoCreateTime:milli;autoUpdateTime:milli"`
-	DeletedAt soft_delete.DeletedAt `gorm:"column:deleted_at;softDelete:milli;index"`
+	DeletedAt soft_delete.DeletedAt `gorm:"column:deleted_at;softDelete:milli;index;index:idx_org_owner_deleted;index:idx_org_status_deleted"`
 
 	// Relations
 	Members []OrganizationMember `gorm:"foreignKey:OrganizationID;references:ID"`

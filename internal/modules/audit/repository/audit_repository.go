@@ -53,8 +53,12 @@ func (r *auditRepository) FindAllDynamic(ctx context.Context, filter *querybuild
 	}
 
 	// Get Total using a session branch
-	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
-		return nil, 0, err
+	if !filter.SkipCount {
+		if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	} else {
+		total = -1
 	}
 
 	query, err = querybuilder.GenerateDynamicSort(query, &entity.AuditLog{}, filter)
