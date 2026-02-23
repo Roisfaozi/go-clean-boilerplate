@@ -8,7 +8,14 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-const TypeAuditLogCreate = "audit_log:create"
+const (
+	TypeAuditLogCreate  = "audit_log:create"
+	TypeAuditOutboxSync = "audit_log:outbox_sync"
+)
+
+func NewAuditOutboxSyncTask() *asynq.Task {
+	return asynq.NewTask(TypeAuditOutboxSync, nil)
+}
 
 func NewAuditLogCreateTask(payload auditModel.CreateAuditLogRequest) (*asynq.Task, error) {
 	jsonPayload, err := json.Marshal(payload)

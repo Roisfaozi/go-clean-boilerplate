@@ -210,7 +210,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		},
 	}
 
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler, auditModule.AuditController.UseCase, workerCfg)
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler, auditModule.AuditController.UseCase, auditModule.AuditRepo, workerCfg)
 	scheduler := worker.NewScheduler(redisOpt, logger)
 	scheduler.RegisterScheduledTasks()
 

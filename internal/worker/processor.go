@@ -20,6 +20,7 @@ type RedisTaskProcessor struct {
 	logger         *logrus.Logger
 	cleanupHandler *handlers.CleanupTaskHandler
 	auditUC        auditUseCase.AuditUseCase
+	auditRepo      auditUseCase.AuditRepository
 	cfg            WorkerConfig
 }
 
@@ -28,6 +29,7 @@ func NewRedisTaskProcessor(
 	logger *logrus.Logger,
 	cleanupHandler *handlers.CleanupTaskHandler,
 	auditUC auditUseCase.AuditUseCase,
+	auditRepo auditUseCase.AuditRepository,
 	cfg WorkerConfig,
 ) TaskProcessor {
 	server := asynq.NewServer(
@@ -50,6 +52,7 @@ func NewRedisTaskProcessor(
 		logger:         logger,
 		cleanupHandler: cleanupHandler,
 		auditUC:        auditUC,
+		auditRepo:      auditRepo,
 		cfg:            cfg,
 	}
 }
@@ -72,6 +75,9 @@ func (processor *RedisTaskProcessor) Start() error {
 
 	auditHandler := handlers.NewAuditTaskHandler(processor.logger, processor.auditUC)
 	mux.HandleFunc(tasks.TypeAuditLogCreate, auditHandler.ProcessTaskAuditLog)
+
+	outboxHandler := handlers.NewOutboxTaskHandler(processor.auditRepo, processor.logger)
+	mux.HandleFunc(tasks.TypeAuditOutboxSync, outboxHandler.ProcessAuditOutbox)
 
 	// Register Cleanup Handlers
 	if processor.cleanupHandler != nil {

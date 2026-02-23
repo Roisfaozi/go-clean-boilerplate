@@ -12,6 +12,7 @@ import (
 type TaskDistributor interface {
 	DistributeTaskSendEmail(ctx context.Context, payload *tasks.SendEmailPayload, opts ...asynq.Option) error
 	DistributeTaskAuditLog(ctx context.Context, payload auditModel.CreateAuditLogRequest, opts ...asynq.Option) error
+	DistributeTaskAuditOutboxSync(ctx context.Context, opts ...asynq.Option) error
 }
 
 type RedisTaskDistributor struct {
@@ -53,6 +54,12 @@ func (d *RedisTaskDistributor) DistributeTaskAuditLog(ctx context.Context, paylo
 
 	_ = info
 	return nil
+}
+
+func (d *RedisTaskDistributor) DistributeTaskAuditOutboxSync(ctx context.Context, opts ...asynq.Option) error {
+	task := tasks.NewAuditOutboxSyncTask()
+	_, err := d.client.EnqueueContext(ctx, task, opts...)
+	return err
 }
 
 func (d *RedisTaskDistributor) Close() error {
