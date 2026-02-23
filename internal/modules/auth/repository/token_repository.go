@@ -9,6 +9,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -18,6 +19,7 @@ type tokenRepositoryRedis struct {
 	client *redis.Client
 	log    *logrus.Logger
 	db     *gorm.DB
+	clock  util.Clock
 }
 
 func (r *tokenRepositoryRedis) getDB(ctx context.Context) *gorm.DB {
@@ -57,11 +59,12 @@ func (r *tokenRepositoryRedis) DeleteExpiredResetTokens(ctx context.Context) err
 	return nil
 }
 
-func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger, db *gorm.DB) TokenRepository {
+func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger, db *gorm.DB, clock util.Clock) TokenRepository {
 	return &tokenRepositoryRedis{
 		client: client,
 		log:    log,
 		db:     db,
+		clock:  clock,
 	}
 }
 
@@ -74,7 +77,7 @@ func (r *tokenRepositoryRedis) StoreToken(ctx context.Context, session *model.Au
 		return fmt.Errorf("failed to store session: %w", err)
 	}
 
-	expiration := time.Until(session.ExpiresAt)
+	expiration := session.ExpiresAt.Sub(r.clock.Now())
 	err = r.client.Set(ctx, key, sessionJSON, expiration).Err()
 	if err != nil {
 		r.log.WithError(err).Error("Failed to store session in Redis")

@@ -15,6 +15,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
@@ -47,7 +48,7 @@ func NewAuthModule(
 	defaultRole string,
 	defaultDomain string,
 ) *AuthModule {
-	tokenRepo := repository.NewTokenRepositoryRedis(redisClient, log, db)
+	tokenRepo := repository.NewTokenRepositoryRedis(redisClient, log, db, &util.RealClock{})
 	userRepository := userRepo.NewUserRepository(db, log)
 
 	publisher := delivery.NewEventPublisher(wsManager, sseManager, log)

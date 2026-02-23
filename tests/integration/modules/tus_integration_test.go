@@ -33,6 +33,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tus"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 )
 
@@ -46,7 +47,7 @@ func setupTUSDeps(t *testing.T, env *setup.TestEnvironment, s3Client *s3.Client,
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
-	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
 

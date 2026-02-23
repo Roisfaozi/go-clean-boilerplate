@@ -24,6 +24,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,7 @@ func setupTestDependencies(env *setup.TestEnvironment) (usecase.UserUseCase, rep
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
-	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)
 
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
@@ -173,7 +174,7 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 	env.DB.Model(&entity.User{}).Where("id = ?", user.ID).Update("status", entity.UserStatusBanned)
 
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", 15*time.Minute, 24*time.Hour)
-	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
@@ -555,7 +556,7 @@ func setupUserUseCase(t *testing.T, env *setup.TestEnvironment) usecase.UserUseC
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
-	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)
 
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)

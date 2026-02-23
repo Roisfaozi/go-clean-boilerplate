@@ -11,6 +11,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/glebarez/sqlite"
 	"github.com/go-redis/redismock/v9"
 	"github.com/redis/go-redis/v9"
@@ -43,14 +44,14 @@ func setupGormDB(t *testing.T) *gorm.DB {
 }
 
 func TestTokenRepository_StoreToken(t *testing.T) {
-
 	db, mock := redismock.NewClientMock()
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	now := time.Now().Round(time.Second)
+	mockClock := &util.MockClock{CurrentTime: now}
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, mockClock)
 
-	now := time.Now()
 	authData := &model.Auth{
 		ID:           "session123",
 		UserID:       "user456",
@@ -64,12 +65,12 @@ func TestTokenRepository_StoreToken(t *testing.T) {
 	val, err := json.Marshal(authData)
 	assert.NoError(t, err)
 
-	mock.ExpectSet(key, val, 0).SetVal("OK")
+	// mockClock.Now() is 'now', authData.ExpiresAt is 'now + 1h'. Diff is exactly 1h.
+	mock.ExpectSet(key, val, time.Hour).SetVal("OK")
 
-	_ = repo
-	_ = mock
-
-	t.Skip("Skipping StoreToken success test due to time.Until dependency")
+	err = repo.StoreToken(context.Background(), authData)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTokenRepository_StoreToken_RedisError(t *testing.T) {
@@ -77,9 +78,10 @@ func TestTokenRepository_StoreToken_RedisError(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	now := time.Now().Round(time.Second)
+	mockClock := &util.MockClock{CurrentTime: now}
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, mockClock)
 
-	now := time.Now()
 	authData := &model.Auth{
 		ID:           "session123",
 		UserID:       "user456",
@@ -92,14 +94,12 @@ func TestTokenRepository_StoreToken_RedisError(t *testing.T) {
 	redisErr := errors.New("redis connection failed")
 
 	val, _ := json.Marshal(authData)
+	mock.ExpectSet(key, val, time.Hour).SetErr(redisErr)
 
-	_ = key
-	_ = redisErr
-	_ = val
-	_ = repo
-	_ = mock
-
-	t.Skip("Skipping StoreToken error test due to time dependency")
+	err := repo.StoreToken(context.Background(), authData)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), redisErr.Error())
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTokenRepository_Save(t *testing.T) {
@@ -107,7 +107,7 @@ func TestTokenRepository_Save(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(nil, logger, db)
+	repo := repository.NewTokenRepositoryRedis(nil, logger, db, &util.RealClock{})
 
 	token := &entity.PasswordResetToken{
 		Email:     "test@example.com",
@@ -129,7 +129,7 @@ func TestTokenRepository_FindByToken(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(nil, logger, db)
+	repo := repository.NewTokenRepositoryRedis(nil, logger, db, &util.RealClock{})
 
 	token := &entity.PasswordResetToken{
 		Email:     "test@example.com",
@@ -153,7 +153,7 @@ func TestTokenRepository_DeleteByEmail(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(nil, logger, db)
+	repo := repository.NewTokenRepositoryRedis(nil, logger, db, &util.RealClock{})
 
 	token := &entity.PasswordResetToken{
 		Email: "test@example.com",
@@ -174,7 +174,7 @@ func TestTokenRepository_GetUserSessions(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 	userID := "user123"
 	pattern := getSessionKey(userID, "*")
 
@@ -218,7 +218,7 @@ func TestTokenRepository_RevokeAllSessions(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 	userID := "user123"
 	pattern := getSessionKey(userID, "*")
 
@@ -251,7 +251,7 @@ func TestTokenRepository_GetToken(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 
 	userID := "user456"
 	sessionID := "session123"
@@ -278,7 +278,7 @@ func TestTokenRepository_GetToken_NotFound(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 
 	userID := "user456"
 	sessionID := "nonexistent_session"
@@ -297,7 +297,7 @@ func TestTokenRepository_GetToken_RedisError(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 
 	userID := "user456"
 	sessionID := "session123"
@@ -317,7 +317,7 @@ func TestTokenRepository_DeleteToken(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 
 	userID := "user456"
 	sessionID := "session123"
@@ -335,7 +335,7 @@ func TestTokenRepository_DeleteToken_RedisError(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 
 	userID := "user456"
 	sessionID := "session123"
@@ -357,7 +357,7 @@ func TestTokenRepository_GetLoginAttempts(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 	username := "testuser"
 	key := getAttemptsKey(username)
 
@@ -384,7 +384,7 @@ func TestTokenRepository_IncrementLoginAttempts(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 	username := "testuser"
 	key := getAttemptsKey(username)
 
@@ -409,7 +409,7 @@ func TestTokenRepository_ResetLoginAttempts(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 	username := "testuser"
 	key := getAttemptsKey(username)
 
@@ -429,7 +429,7 @@ func TestTokenRepository_LockAccount(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 	username := "testuser"
 	key := getLockedKey(username)
 	duration := 30 * time.Minute
@@ -450,7 +450,7 @@ func TestTokenRepository_IsAccountLocked(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	repo := repository.NewTokenRepositoryRedis(db, logger, nil)
+	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 	username := "testuser"
 	key := getLockedKey(username)
 

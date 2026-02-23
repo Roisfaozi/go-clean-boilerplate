@@ -18,6 +18,7 @@ import (
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +31,7 @@ func TestScenario_RealTime_LoginBroadcast(t *testing.T) {
 	setup.CleanupDatabase(t, env.DB)
 
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)
-	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	wsConfig := &ws.WebSocketConfig{

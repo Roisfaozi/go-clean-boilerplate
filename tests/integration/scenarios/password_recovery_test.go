@@ -18,6 +18,7 @@ import (
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestScenario_PasswordRecovery_Lifecycle(t *testing.T) {
 
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
 
 	_ = auditUC.NewAuditUseCase(aucRepo, env.Logger, nil)

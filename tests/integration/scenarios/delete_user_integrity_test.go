@@ -20,6 +20,7 @@ import (
 	userUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -37,7 +38,7 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	realAuditRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
 	realAuditUC := auditUC.NewAuditUseCase(realAuditRepo, env.Logger, nil)
 
-	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")

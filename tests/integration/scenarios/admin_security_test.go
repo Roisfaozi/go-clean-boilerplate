@@ -23,6 +23,7 @@ import (
 	userUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,7 @@ func TestScenario_AdminSecurity_AccountSuspension(t *testing.T) {
 
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
 
 	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger, nil)
@@ -108,7 +109,7 @@ func TestScenario_AdminSecurity_TokenRotation(t *testing.T) {
 	setup.CleanupDatabase(t, env.DB)
 
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)
-	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
