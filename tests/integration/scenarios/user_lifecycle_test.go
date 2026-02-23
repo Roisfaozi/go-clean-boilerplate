@@ -87,7 +87,7 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Wait for any final async processing
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
 		Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},

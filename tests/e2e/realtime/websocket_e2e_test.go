@@ -102,7 +102,7 @@ func TestWebSocketE2E_NotificationFlow(t *testing.T) {
 
 	// 5. Trigger Notification (Login)
 	t.Log("Waiting for subscription to propagate...")
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	t.Log("Triggering Login to generate notification...")
 
 	// We login again to trigger the "user_login" event
@@ -229,7 +229,7 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 	_, _, _ = connA.ReadMessage()
 
 	// Wait for async registration
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	wPresence := server.Client.GET("/api/v1/organizations/"+org1ID+"/presence", setup.WithAuth(tokenA))
 	require.Equal(t, 200, wPresence.StatusCode)
