@@ -122,13 +122,45 @@ func (r *auditRepository) FindAllInBatches(ctx context.Context, startTime, endTi
 	})
 
 	if result.Error != nil {
-
 		r.log.WithContext(ctx).WithError(result.Error).Error("Failed to fetch audit logs in batches")
-
 		return result.Error
-
 	}
 
 	return nil
+}
 
+func (r *auditRepository) CreateOutbox(ctx context.Context, outbox *entity.AuditOutbox) error {
+	if outbox.ID == "" {
+		id, err := uuid.NewV7()
+		if err != nil {
+			return err
+		}
+		outbox.ID = id.String()
+	}
+	return r.getDB(ctx).Create(outbox).Error
+}
+
+func (r *auditRepository) FindPendingOutbox(ctx context.Context, limit int) ([]*entity.AuditOutbox, error) {
+	var results []*entity.AuditOutbox
+	err := r.getDB(ctx).
+		Where("status = ? OR (status = ? AND retry_count < ?)", entity.OutboxStatusPending, entity.OutboxStatusFailed, 5).
+		Order("created_at ASC").
+		Limit(limit).
+		Find(&results).Error
+	return results, err
+}
+
+func (r *auditRepository) UpdateOutboxStatus(ctx context.Context, id string, status string, lastError string) error {
+	updates := map[string]interface{}{
+		"status":     status,
+		"last_error": lastError,
+	}
+	if status == entity.OutboxStatusFailed {
+		updates["retry_count"] = gorm.Expr("retry_count + 1")
+	}
+	return r.getDB(ctx).Model(&entity.AuditOutbox{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (r *auditRepository) DeleteOutbox(ctx context.Context, id string) error {
+	return r.getDB(ctx).Unscoped().Delete(&entity.AuditOutbox{}, "id = ?", id).Error
 }
