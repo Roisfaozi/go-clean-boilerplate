@@ -80,6 +80,36 @@ Untuk menjaga konsistensi arsitektur ini, harap ikuti aturan berikut:
 4.  **Verifikasi dengan Test:** Sebelum melakukan commit, pastikan menjalankan `make test`. Seluruh pengujian (Unit, Security, Integration) harus lulus dengan **Exit Code: 0**.
 
 ---
-**Status Implementasi:** ✅ **Stable & Verified.**
-**Tanggal Update:** 22 Februari 2026
-**Tim:** NexusOS Core Architecture Team
+
+## 🛡️ 7. Testing Berbasis Waktu (Clock Provider)
+### Masalah
+Penggunaan `time.Now()` secara langsung di dalam kode menyulitkan pengujian token yang memiliki masa berlaku (expiry). Hal ini sering menyebabkan tes di-skip karena ketergantungan pada kecepatan eksekusi CPU.
+
+### Solusi
+Gunakan interface `util.Clock` yang disuntikkan (dependency injection) ke dalam repository atau usecase.
+
+*   **`util.RealClock`**: Digunakan saat aplikasi berjalan normal (produksi).
+*   **`util.MockClock`**: Digunakan saat unit testing untuk "membekukan" waktu di titik tertentu.
+
+#### Cara Penggunaan:
+```go
+// Di dalam Repository/UseCase
+expiration := session.ExpiresAt.Sub(r.clock.Now())
+
+// Di dalam Unit Test
+mockClock.SetTime(fixedTime)
+// Assertion akan selalu akurat karena waktu tidak berubah
+```
+
+---
+
+## 🏢 8. Refinement Multi-tenancy
+### A. Global User murni
+Tabel `users` tidak lagi dijadikan filter utama untuk `organization_id`. Pencarian member organisasi sekarang selalu menggunakan subquery ke tabel `organization_members` untuk mendukung satu user di banyak organisasi (model Global User).
+
+### B. Isolasi Audit Log
+`AuditRepository` sekarang secara ketat mengikuti `OrganizationScope`. Pengguna hanya dapat melihat audit log yang sesuai dengan konteks organisasi yang aktif di session mereka.
+
+---
+**Status Implementasi:** ✅ **All Tests Passing (Unit, Integration, E2E).**
+**Update Terakhir:** 23 Februari 2026
