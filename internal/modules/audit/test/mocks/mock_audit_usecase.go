@@ -97,6 +97,63 @@ func (_c *MockAuditRepository_Create_Call) RunAndReturn(run func(ctx context.Con
 	return _c
 }
 
+// CreateOutbox provides a mock function for the type MockAuditRepository
+func (_mock *MockAuditRepository) CreateOutbox(ctx context.Context, outbox *entity.AuditOutbox) error {
+	ret := _mock.Called(ctx, outbox)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateOutbox")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entity.AuditOutbox) error); ok {
+		r0 = returnFunc(ctx, outbox)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuditRepository_CreateOutbox_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateOutbox'
+type MockAuditRepository_CreateOutbox_Call struct {
+	*mock.Call
+}
+
+// CreateOutbox is a helper method to define mock.On call
+//   - ctx context.Context
+//   - outbox *entity.AuditOutbox
+func (_e *MockAuditRepository_Expecter) CreateOutbox(ctx interface{}, outbox interface{}) *MockAuditRepository_CreateOutbox_Call {
+	return &MockAuditRepository_CreateOutbox_Call{Call: _e.mock.On("CreateOutbox", ctx, outbox)}
+}
+
+func (_c *MockAuditRepository_CreateOutbox_Call) Run(run func(ctx context.Context, outbox *entity.AuditOutbox)) *MockAuditRepository_CreateOutbox_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *entity.AuditOutbox
+		if args[1] != nil {
+			arg1 = args[1].(*entity.AuditOutbox)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuditRepository_CreateOutbox_Call) Return(err error) *MockAuditRepository_CreateOutbox_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuditRepository_CreateOutbox_Call) RunAndReturn(run func(ctx context.Context, outbox *entity.AuditOutbox) error) *MockAuditRepository_CreateOutbox_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteLogsOlderThan provides a mock function for the type MockAuditRepository
 func (_mock *MockAuditRepository) DeleteLogsOlderThan(ctx context.Context, cutoffTime int64) error {
 	ret := _mock.Called(ctx, cutoffTime)
@@ -150,6 +207,63 @@ func (_c *MockAuditRepository_DeleteLogsOlderThan_Call) Return(err error) *MockA
 }
 
 func (_c *MockAuditRepository_DeleteLogsOlderThan_Call) RunAndReturn(run func(ctx context.Context, cutoffTime int64) error) *MockAuditRepository_DeleteLogsOlderThan_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteOutbox provides a mock function for the type MockAuditRepository
+func (_mock *MockAuditRepository) DeleteOutbox(ctx context.Context, id string) error {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteOutbox")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuditRepository_DeleteOutbox_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteOutbox'
+type MockAuditRepository_DeleteOutbox_Call struct {
+	*mock.Call
+}
+
+// DeleteOutbox is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id string
+func (_e *MockAuditRepository_Expecter) DeleteOutbox(ctx interface{}, id interface{}) *MockAuditRepository_DeleteOutbox_Call {
+	return &MockAuditRepository_DeleteOutbox_Call{Call: _e.mock.On("DeleteOutbox", ctx, id)}
+}
+
+func (_c *MockAuditRepository_DeleteOutbox_Call) Run(run func(ctx context.Context, id string)) *MockAuditRepository_DeleteOutbox_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuditRepository_DeleteOutbox_Call) Return(err error) *MockAuditRepository_DeleteOutbox_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuditRepository_DeleteOutbox_Call) RunAndReturn(run func(ctx context.Context, id string) error) *MockAuditRepository_DeleteOutbox_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -299,6 +413,143 @@ func (_c *MockAuditRepository_FindAllInBatches_Call) Return(err error) *MockAudi
 }
 
 func (_c *MockAuditRepository_FindAllInBatches_Call) RunAndReturn(run func(ctx context.Context, startTime int64, endTime int64, batchSize int, process func([]*entity.AuditLog) error) error) *MockAuditRepository_FindAllInBatches_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindPendingOutbox provides a mock function for the type MockAuditRepository
+func (_mock *MockAuditRepository) FindPendingOutbox(ctx context.Context, limit int) ([]*entity.AuditOutbox, error) {
+	ret := _mock.Called(ctx, limit)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindPendingOutbox")
+	}
+
+	var r0 []*entity.AuditOutbox
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) ([]*entity.AuditOutbox, error)); ok {
+		return returnFunc(ctx, limit)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) []*entity.AuditOutbox); ok {
+		r0 = returnFunc(ctx, limit)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*entity.AuditOutbox)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int) error); ok {
+		r1 = returnFunc(ctx, limit)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuditRepository_FindPendingOutbox_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindPendingOutbox'
+type MockAuditRepository_FindPendingOutbox_Call struct {
+	*mock.Call
+}
+
+// FindPendingOutbox is a helper method to define mock.On call
+//   - ctx context.Context
+//   - limit int
+func (_e *MockAuditRepository_Expecter) FindPendingOutbox(ctx interface{}, limit interface{}) *MockAuditRepository_FindPendingOutbox_Call {
+	return &MockAuditRepository_FindPendingOutbox_Call{Call: _e.mock.On("FindPendingOutbox", ctx, limit)}
+}
+
+func (_c *MockAuditRepository_FindPendingOutbox_Call) Run(run func(ctx context.Context, limit int)) *MockAuditRepository_FindPendingOutbox_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int
+		if args[1] != nil {
+			arg1 = args[1].(int)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuditRepository_FindPendingOutbox_Call) Return(auditOutboxs []*entity.AuditOutbox, err error) *MockAuditRepository_FindPendingOutbox_Call {
+	_c.Call.Return(auditOutboxs, err)
+	return _c
+}
+
+func (_c *MockAuditRepository_FindPendingOutbox_Call) RunAndReturn(run func(ctx context.Context, limit int) ([]*entity.AuditOutbox, error)) *MockAuditRepository_FindPendingOutbox_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateOutboxStatus provides a mock function for the type MockAuditRepository
+func (_mock *MockAuditRepository) UpdateOutboxStatus(ctx context.Context, id string, status string, lastError string) error {
+	ret := _mock.Called(ctx, id, status, lastError)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateOutboxStatus")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
+		r0 = returnFunc(ctx, id, status, lastError)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuditRepository_UpdateOutboxStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateOutboxStatus'
+type MockAuditRepository_UpdateOutboxStatus_Call struct {
+	*mock.Call
+}
+
+// UpdateOutboxStatus is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id string
+//   - status string
+//   - lastError string
+func (_e *MockAuditRepository_Expecter) UpdateOutboxStatus(ctx interface{}, id interface{}, status interface{}, lastError interface{}) *MockAuditRepository_UpdateOutboxStatus_Call {
+	return &MockAuditRepository_UpdateOutboxStatus_Call{Call: _e.mock.On("UpdateOutboxStatus", ctx, id, status, lastError)}
+}
+
+func (_c *MockAuditRepository_UpdateOutboxStatus_Call) Run(run func(ctx context.Context, id string, status string, lastError string)) *MockAuditRepository_UpdateOutboxStatus_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuditRepository_UpdateOutboxStatus_Call) Return(err error) *MockAuditRepository_UpdateOutboxStatus_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuditRepository_UpdateOutboxStatus_Call) RunAndReturn(run func(ctx context.Context, id string, status string, lastError string) error) *MockAuditRepository_UpdateOutboxStatus_Call {
 	_c.Call.Return(run)
 	return _c
 }

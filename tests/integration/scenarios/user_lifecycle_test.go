@@ -51,7 +51,7 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	// Start worker to process audit logs
 	cleanupHandler := handlers.NewCleanupTaskHandler(tokenRepo, userRepo, auditRepo, env.Logger)
 	workerCfg := worker.WorkerConfig{} // Minimal config
-	processor := worker.NewRedisTaskProcessor(redisOpt, env.Logger, cleanupHandler, auditUC, workerCfg)
+	processor := worker.NewRedisTaskProcessor(redisOpt, env.Logger, cleanupHandler, auditUC, auditRepo, workerCfg)
 	env.StartWorker(processor)
 
 	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, oRepo, tm, env.Logger, nil, authz, taskDistributor, nil)
@@ -82,8 +82,12 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	err = userUC.DeleteUser(ctx, userID, deleteReq)
 	require.NoError(t, err)
 
-	// Wait for async audit logs to be processed
-	time.Sleep(1 * time.Second)
+	// Manually trigger outbox sync since the worker might be slow
+	err = handlers.NewOutboxTaskHandler(auditRepo, env.Logger).ProcessAuditOutbox(ctx, nil)
+	require.NoError(t, err)
+
+	// Wait for any final async processing
+	time.Sleep(500 * time.Millisecond)
 
 	logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
 		Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
