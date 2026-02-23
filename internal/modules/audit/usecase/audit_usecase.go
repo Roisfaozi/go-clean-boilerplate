@@ -10,6 +10,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/sirupsen/logrus"
 )
@@ -46,6 +47,33 @@ func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLo
 	oldValJSON, _ := json.Marshal(req.OldValues)
 	newValJSON, _ := json.Marshal(req.NewValues)
 
+	// Check if we are inside a transaction
+	if _, ok := tx.DBFromContext(ctx); ok {
+		// TRANSACTIONAL PATH: Write to Outbox
+		outbox := &entity.AuditOutbox{
+			UserID:    req.UserID,
+			Action:    req.Action,
+			Entity:    req.Entity,
+			EntityID:  req.EntityID,
+			OldValues: string(oldValJSON),
+			NewValues: string(newValJSON),
+			IPAddress: req.IPAddress,
+			UserAgent: req.UserAgent,
+			Status:    entity.OutboxStatusPending,
+		}
+		if orgID != "" {
+			outbox.OrganizationID = &orgID
+		}
+
+		if err := uc.repo.CreateOutbox(ctx, outbox); err != nil {
+			uc.log.WithContext(ctx).WithError(err).Error("Failed to create audit outbox entry")
+			return err
+		}
+		return nil
+	}
+
+	// NON-TRANSACTIONAL PATH: Distribute Task (Existing behavior)
+	// Usually for Login/Logout which are not always wrapped in a domain transaction
 	logEntity := &entity.AuditLog{
 		UserID:    req.UserID,
 		Action:    req.Action,
