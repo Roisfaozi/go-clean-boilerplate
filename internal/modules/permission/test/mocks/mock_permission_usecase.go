@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -675,6 +676,67 @@ func (_c *MockIEnforcer_RemovePolicy_Call) RunAndReturn(run func(params ...inter
 	return _c
 }
 
+// SavePolicy provides a mock function for the type MockIEnforcer
+func (_mock *MockIEnforcer) SavePolicy() error {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for SavePolicy")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func() error); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// LoadPolicy provides a mock function for the type MockIEnforcer
+func (_mock *MockIEnforcer) LoadPolicy() error {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for LoadPolicy")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func() error); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockIEnforcer_SavePolicy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SavePolicy'
+type MockIEnforcer_SavePolicy_Call struct {
+	*mock.Call
+}
+
+// SavePolicy is a helper method to define mock.On call
+func (_e *MockIEnforcer_Expecter) SavePolicy() *MockIEnforcer_SavePolicy_Call {
+	return &MockIEnforcer_SavePolicy_Call{Call: _e.mock.On("SavePolicy")}
+}
+
+func (_c *MockIEnforcer_SavePolicy_Call) Run(run func()) *MockIEnforcer_SavePolicy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockIEnforcer_SavePolicy_Call) Return(err error) *MockIEnforcer_SavePolicy_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockIEnforcer_SavePolicy_Call) RunAndReturn(run func() error) *MockIEnforcer_SavePolicy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdatePolicy provides a mock function for the type MockIEnforcer
 func (_mock *MockIEnforcer) UpdatePolicy(oldRule []string, newRule []string) (bool, error) {
 	ret := _mock.Called(oldRule, newRule)
@@ -737,6 +799,59 @@ func (_c *MockIEnforcer_UpdatePolicy_Call) Return(b bool, err error) *MockIEnfor
 }
 
 func (_c *MockIEnforcer_UpdatePolicy_Call) RunAndReturn(run func(oldRule []string, newRule []string) (bool, error)) *MockIEnforcer_UpdatePolicy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithContext provides a mock function for the type MockIEnforcer
+func (_mock *MockIEnforcer) WithContext(ctx context.Context) usecase.IEnforcer {
+	ret := _mock.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithContext")
+	}
+
+	var r0 usecase.IEnforcer
+	if returnFunc, ok := ret.Get(0).(func(context.Context) usecase.IEnforcer); ok {
+		r0 = returnFunc(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(usecase.IEnforcer)
+		}
+	}
+	return r0
+}
+
+// MockIEnforcer_WithContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithContext'
+type MockIEnforcer_WithContext_Call struct {
+	*mock.Call
+}
+
+// WithContext is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockIEnforcer_Expecter) WithContext(ctx interface{}) *MockIEnforcer_WithContext_Call {
+	return &MockIEnforcer_WithContext_Call{Call: _e.mock.On("WithContext", ctx)}
+}
+
+func (_c *MockIEnforcer_WithContext_Call) Run(run func(ctx context.Context)) *MockIEnforcer_WithContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIEnforcer_WithContext_Call) Return(iEnforcer usecase.IEnforcer) *MockIEnforcer_WithContext_Call {
+	_c.Call.Return(iEnforcer)
+	return _c
+}
+
+func (_c *MockIEnforcer_WithContext_Call) RunAndReturn(run func(ctx context.Context) usecase.IEnforcer) *MockIEnforcer_WithContext_Call {
 	_c.Call.Return(run)
 	return _c
 }

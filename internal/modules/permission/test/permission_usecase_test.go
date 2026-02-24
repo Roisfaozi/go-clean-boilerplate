@@ -32,6 +32,9 @@ func setupPermissionTest() (*permissionTestDeps, usecase.IPermissionUseCase) {
 		UserRepo: new(userMocks.MockUserRepository),
 	}
 
+	// Default behavior for enforcer with context to return itself
+	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
+
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 	uc := usecase.NewPermissionUseCase(deps.Enforcer, log, deps.RoleRepo, deps.UserRepo)

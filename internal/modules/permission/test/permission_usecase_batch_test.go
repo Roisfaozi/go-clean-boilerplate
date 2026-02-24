@@ -13,6 +13,7 @@ import (
 	userMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 // setupBatchTest creates test dependencies for batch permission tests
@@ -22,6 +23,9 @@ func setupBatchTest() (*mocks.IEnforcer, usecase.IPermissionUseCase) {
 	userRepo := new(userMocks.MockUserRepository)
 	log := logrus.New()
 	log.SetOutput(io.Discard)
+
+	// Default behavior for enforcer with context to return itself
+	enforcer.On("WithContext", mock.Anything).Return(enforcer)
 
 	uc := usecase.NewPermissionUseCase(enforcer, log, roleRepo, userRepo)
 

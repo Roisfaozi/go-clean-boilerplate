@@ -32,6 +32,9 @@ func setupGuardianPermissionTest() (*guardianPermissionTestDeps, usecase.IPermis
 		UserRepo: new(userMocks.MockUserRepository),
 	}
 
+	// Default behavior for enforcer with context to return itself
+	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
+
 	log := logrus.New()
 	log.SetOutput(ioDiscard)
 

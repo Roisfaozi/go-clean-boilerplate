@@ -37,6 +37,9 @@ func setupSecurityPermissionTest() (*securityPermDeps, usecase.IPermissionUseCas
 		Enforcer: new(mocks.IEnforcer),
 	}
 
+	// Default behavior for enforcer with context to return itself
+	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
+
 	uc := usecase.NewPermissionUseCase(deps.Enforcer, logrus.New(), deps.RoleRepo, deps.UserRepo)
 	return deps, uc
 }
