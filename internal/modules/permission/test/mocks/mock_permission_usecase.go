@@ -177,6 +177,144 @@ func (_c *MockIEnforcer_AddPolicy_Call) RunAndReturn(run func(params ...interfac
 	return _c
 }
 
+// HasGroupingPolicy provides a mock function for the type MockIEnforcer
+func (_mock *MockIEnforcer) HasGroupingPolicy(params ...interface{}) (bool, error) {
+	var tmpRet mock.Arguments
+	if len(params) > 0 {
+		tmpRet = _mock.Called(params)
+	} else {
+		tmpRet = _mock.Called()
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for HasGroupingPolicy")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(...interface{}) (bool, error)); ok {
+		return returnFunc(params...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(...interface{}) bool); ok {
+		r0 = returnFunc(params...)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(...interface{}) error); ok {
+		r1 = returnFunc(params...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockIEnforcer_HasGroupingPolicy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HasGroupingPolicy'
+type MockIEnforcer_HasGroupingPolicy_Call struct {
+	*mock.Call
+}
+
+// HasGroupingPolicy is a helper method to define mock.On call
+//   - params ...interface{}
+func (_e *MockIEnforcer_Expecter) HasGroupingPolicy(params ...interface{}) *MockIEnforcer_HasGroupingPolicy_Call {
+	return &MockIEnforcer_HasGroupingPolicy_Call{Call: _e.mock.On("HasGroupingPolicy",
+		append([]interface{}{}, params...)...)}
+}
+
+func (_c *MockIEnforcer_HasGroupingPolicy_Call) Run(run func(params ...interface{})) *MockIEnforcer_HasGroupingPolicy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 []interface{}
+		var variadicArgs []interface{}
+		if len(args) > 0 {
+			variadicArgs = args[0].([]interface{})
+		}
+		arg0 = variadicArgs
+		run(
+			arg0...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIEnforcer_HasGroupingPolicy_Call) Return(b bool, err error) *MockIEnforcer_HasGroupingPolicy_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockIEnforcer_HasGroupingPolicy_Call) RunAndReturn(run func(params ...interface{}) (bool, error)) *MockIEnforcer_HasGroupingPolicy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// HasPolicy provides a mock function for the type MockIEnforcer
+func (_mock *MockIEnforcer) HasPolicy(params ...interface{}) (bool, error) {
+	var tmpRet mock.Arguments
+	if len(params) > 0 {
+		tmpRet = _mock.Called(params)
+	} else {
+		tmpRet = _mock.Called()
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for HasPolicy")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(...interface{}) (bool, error)); ok {
+		return returnFunc(params...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(...interface{}) bool); ok {
+		r0 = returnFunc(params...)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(...interface{}) error); ok {
+		r1 = returnFunc(params...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockIEnforcer_HasPolicy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HasPolicy'
+type MockIEnforcer_HasPolicy_Call struct {
+	*mock.Call
+}
+
+// HasPolicy is a helper method to define mock.On call
+//   - params ...interface{}
+func (_e *MockIEnforcer_Expecter) HasPolicy(params ...interface{}) *MockIEnforcer_HasPolicy_Call {
+	return &MockIEnforcer_HasPolicy_Call{Call: _e.mock.On("HasPolicy",
+		append([]interface{}{}, params...)...)}
+}
+
+func (_c *MockIEnforcer_HasPolicy_Call) Run(run func(params ...interface{})) *MockIEnforcer_HasPolicy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 []interface{}
+		var variadicArgs []interface{}
+		if len(args) > 0 {
+			variadicArgs = args[0].([]interface{})
+		}
+		arg0 = variadicArgs
+		run(
+			arg0...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIEnforcer_HasPolicy_Call) Return(b bool, err error) *MockIEnforcer_HasPolicy_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockIEnforcer_HasPolicy_Call) RunAndReturn(run func(params ...interface{}) (bool, error)) *MockIEnforcer_HasPolicy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Enforce provides a mock function for the type MockIEnforcer
 func (_mock *MockIEnforcer) Enforce(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments

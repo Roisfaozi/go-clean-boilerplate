@@ -90,6 +90,14 @@ func (e *transactionalEnforcer) LoadPolicy() error {
 	return e.globalEnforcer.LoadPolicy()
 }
 
+func (e *transactionalEnforcer) HasGroupingPolicy(params ...interface{}) (bool, error) {
+	return e.globalEnforcer.HasGroupingPolicy(params...)
+}
+
+func (e *transactionalEnforcer) HasPolicy(params ...interface{}) (bool, error) {
+	return e.globalEnforcer.HasPolicy(params...)
+}
+
 type transientEnforcer struct {
 	inner *casbin.Enforcer
 }
@@ -144,4 +152,12 @@ func (e *transientEnforcer) SavePolicy() error {
 
 func (e *transientEnforcer) LoadPolicy() error {
 	return e.inner.LoadPolicy()
+}
+
+func (e *transientEnforcer) HasGroupingPolicy(params ...interface{}) (bool, error) {
+	return e.inner.HasGroupingPolicy(params...)
+}
+
+func (e *transientEnforcer) HasPolicy(params ...interface{}) (bool, error) {
+	return e.inner.HasPolicy(params...)
 }

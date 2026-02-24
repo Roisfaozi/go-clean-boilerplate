@@ -14,6 +14,8 @@ type IEnforcer interface {
 	RemoveFilteredGroupingPolicy(fieldIndex int, fieldValues ...string) (bool, error)
 	Enforce(params ...interface{}) (bool, error)
 	GetUsersForRole(name string, domain ...string) ([]string, error)
+	HasGroupingPolicy(params ...interface{}) (bool, error)
+	HasPolicy(params ...interface{}) (bool, error)
 	SavePolicy() error
 	LoadPolicy() error
 }
