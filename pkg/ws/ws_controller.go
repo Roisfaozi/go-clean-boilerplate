@@ -6,21 +6,24 @@ import (
 	"time"
 
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
-	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
+
+type CasbinEnforcer interface {
+	GetRolesForUser(name string, domain ...string) ([]string, error)
+}
 
 type WebSocketController struct {
 	log      *logrus.Logger
 	manager  Manager
 	upgrader *websocket.Upgrader
 	userRepo userRepo.UserRepository
-	enforcer *casbin.Enforcer
+	enforcer CasbinEnforcer
 }
 
-func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins []string, userRepo userRepo.UserRepository, enforcer *casbin.Enforcer) *WebSocketController {
+func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins []string, userRepo userRepo.UserRepository, enforcer CasbinEnforcer) *WebSocketController {
 	checkOrigin := func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
 		for _, o := range allowedOrigins {
