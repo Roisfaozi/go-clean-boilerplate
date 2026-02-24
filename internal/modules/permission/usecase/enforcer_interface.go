@@ -16,4 +16,6 @@ type IEnforcer interface {
 	GetUsersForRole(name string, domain ...string) ([]string, error)
 	SavePolicy() error
 	LoadPolicy() error
+	HasGroupingPolicy(params ...interface{}) (bool, error)
+	HasPolicy(params ...interface{}) (bool, error)
 }

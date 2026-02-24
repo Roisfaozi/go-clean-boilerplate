@@ -369,6 +369,66 @@ func (_m *IEnforcer) LoadPolicy() error {
 	return r0
 }
 
+// HasGroupingPolicy provides a mock function with given fields: params
+func (_m *IEnforcer) HasGroupingPolicy(params ...interface{}) (bool, error) {
+	var _ca []interface{}
+	_ca = append(_ca, params...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HasGroupingPolicy")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(...interface{}) (bool, error)); ok {
+		return rf(params...)
+	}
+	if rf, ok := ret.Get(0).(func(...interface{}) bool); ok {
+		r0 = rf(params...)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(...interface{}) error); ok {
+		r1 = rf(params...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// HasPolicy provides a mock function with given fields: params
+func (_m *IEnforcer) HasPolicy(params ...interface{}) (bool, error) {
+	var _ca []interface{}
+	_ca = append(_ca, params...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HasPolicy")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(...interface{}) (bool, error)); ok {
+		return rf(params...)
+	}
+	if rf, ok := ret.Get(0).(func(...interface{}) bool); ok {
+		r0 = rf(params...)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(...interface{}) error); ok {
+		r1 = rf(params...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // UpdatePolicy provides a mock function with given fields: oldRule, newRule
 func (_m *IEnforcer) UpdatePolicy(oldRule []string, newRule []string) (bool, error) {
 	ret := _m.Called(oldRule, newRule)
