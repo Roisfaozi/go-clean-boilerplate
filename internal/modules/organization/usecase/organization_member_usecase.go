@@ -228,12 +228,13 @@ func (uc *organizationMemberUseCase) UpdateMember(ctx context.Context, orgID, us
 
 		// Update Casbin grouping policy if role changed
 		if request.RoleID != "" && uc.enforcer != nil {
+			enf := uc.enforcer.WithContext(txCtx)
 			// Remove all existing roles for this user in this org
-			if _, err := uc.enforcer.RemoveFilteredGroupingPolicy(0, userID, "", orgID); err != nil {
+			if _, err := enf.RemoveFilteredGroupingPolicy(0, userID, "", orgID); err != nil {
 				uc.log.WithError(err).Error("Failed to remove old Casbin grouping policy")
 			}
 			// Add new role
-			if _, err := uc.enforcer.AddGroupingPolicy(userID, request.RoleID, orgID); err != nil {
+			if _, err := enf.AddGroupingPolicy(userID, request.RoleID, orgID); err != nil {
 				uc.log.WithError(err).Error("Failed to add new Casbin grouping policy")
 				return exception.ErrInternalServer
 			}
@@ -345,7 +346,7 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 		if uc.enforcer != nil {
 			// Find member to get role if it was case entity.MemberStatusInvited
 			roleID := invitation.Role
-			if _, err := uc.enforcer.AddGroupingPolicy(user.ID, roleID, invitation.OrganizationID); err != nil {
+			if _, err := uc.enforcer.WithContext(txCtx).AddGroupingPolicy(user.ID, roleID, invitation.OrganizationID); err != nil {
 				uc.log.WithError(err).Error("Failed to add Casbin grouping policy on accept")
 				return exception.ErrInternalServer
 			}
@@ -383,7 +384,7 @@ func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, us
 
 		// Remove Casbin grouping policy
 		if uc.enforcer != nil {
-			if _, err := uc.enforcer.RemoveFilteredGroupingPolicy(0, userID, "", orgID); err != nil {
+			if _, err := uc.enforcer.WithContext(txCtx).RemoveFilteredGroupingPolicy(0, userID, "", orgID); err != nil {
 				uc.log.WithError(err).Error("Failed to remove Casbin grouping policy on member removal")
 			}
 		}

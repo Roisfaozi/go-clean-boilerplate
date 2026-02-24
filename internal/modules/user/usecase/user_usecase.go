@@ -100,7 +100,7 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 
 		roleAdded := false
 		if u.Enforcer != nil {
-			_, err := u.Enforcer.AddGroupingPolicy(user.ID, "role:user", "global")
+			_, err := u.Enforcer.WithContext(txCtx).AddGroupingPolicy(user.ID, "role:user", "global")
 			if err != nil {
 				u.Log.Errorf("Failed to assign default role: %v", err)
 				return exception.ErrInternalServer
@@ -422,14 +422,14 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 
 		var oldRoles []string
 		if u.Enforcer != nil {
-
+			enf := u.Enforcer.WithContext(txCtx)
 			var err error
-			oldRoles, err = u.Enforcer.GetRolesForUser(user.ID, "global")
+			oldRoles, err = enf.GetRolesForUser(user.ID, "global")
 			if err != nil {
 				u.Log.Warnf("Failed to fetch roles for backup in delete: %v", err)
 			}
 
-			_, err = u.Enforcer.RemoveFilteredGroupingPolicy(0, user.ID, "", "global")
+			_, err = enf.RemoveFilteredGroupingPolicy(0, user.ID, "", "global")
 			if err != nil {
 				u.Log.Errorf("Failed to remove user policies: %v", err)
 				return exception.ErrInternalServer
@@ -451,8 +451,9 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 				u.Log.Errorf("Failed to log audit for delete (rollback triggered): %v", err)
 
 				if u.Enforcer != nil && len(oldRoles) > 0 {
+					enf := u.Enforcer.WithContext(txCtx)
 					for _, role := range oldRoles {
-						if _, errComp := u.Enforcer.AddGroupingPolicy(user.ID, role, "global"); errComp != nil {
+						if _, errComp := enf.AddGroupingPolicy(user.ID, role, "global"); errComp != nil {
 							u.Log.Errorf("Failed to restore role %s during rollback: %v", role, errComp)
 						}
 					}

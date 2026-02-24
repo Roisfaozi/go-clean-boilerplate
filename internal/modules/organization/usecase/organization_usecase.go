@@ -84,7 +84,7 @@ func (uc *organizationUseCase) CreateOrganization(ctx context.Context, userID st
 
 		// Add Casbin Grouping Policy for owner in this org domain
 		if uc.Enforcer != nil {
-			if _, err := uc.Enforcer.AddGroupingPolicy(userID, DefaultOwnerRoleID, org.ID); err != nil {
+			if _, err := uc.Enforcer.WithContext(txCtx).AddGroupingPolicy(userID, DefaultOwnerRoleID, org.ID); err != nil {
 				uc.Log.WithContext(txCtx).Errorf("Failed to add Casbin grouping policy: %v", err)
 				return exception.ErrInternalServer
 			}
