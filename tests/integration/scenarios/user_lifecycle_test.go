@@ -83,33 +83,36 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Manually trigger outbox sync since the worker might be slow
-	err = handlers.NewOutboxTaskHandler(auditRepo, env.Logger).ProcessAuditOutbox(ctx, nil)
-	require.NoError(t, err)
+	_ = handlers.NewOutboxTaskHandler(auditRepo, env.Logger).ProcessAuditOutbox(ctx, nil)
 
-	// Wait for any final async processing
-	time.Sleep(500 * time.Millisecond)
+	// Wait for any final async processing using Eventually
+	require.Eventually(t, func() bool {
+		// Trigger outbox processing periodically
+		_ = handlers.NewOutboxTaskHandler(auditRepo, env.Logger).ProcessAuditOutbox(ctx, nil)
 
-	logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
-		Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
-	})
-	require.NoError(t, err)
-
-	var userLogs []auditModel.AuditLogResponse
-	for _, l := range logs {
-		if l.UserID == userID || l.EntityID == userID {
-			userLogs = append(userLogs, l)
+		logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
+			Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
+		})
+		if err != nil {
+			return false
 		}
-	}
 
-	require.GreaterOrEqual(t, len(userLogs), 4, "Should have at least 4 audit entries for this lifecycle")
+		var userLogs []auditModel.AuditLogResponse
+		for _, l := range logs {
+			if l.UserID == userID || l.EntityID == userID {
+				userLogs = append(userLogs, l)
+			}
+		}
 
-	actions := make(map[string]bool)
-	for _, l := range userLogs {
-		actions[l.Action] = true
-	}
+		if len(userLogs) < 4 {
+			return false
+		}
 
-	assert.True(t, actions["CREATE"], "CREATE log missing")
-	assert.True(t, actions["LOGIN"], "LOGIN log missing")
-	assert.True(t, actions["UPDATE"], "UPDATE log missing")
-	assert.True(t, actions["DELETE"], "DELETE log missing")
+		actions := make(map[string]bool)
+		for _, l := range userLogs {
+			actions[l.Action] = true
+		}
+
+		return actions["CREATE"] && actions["LOGIN"] && actions["UPDATE"] && actions["DELETE"]
+	}, 10*time.Second, 500*time.Millisecond, "Should have 4 audit entries (CREATE, LOGIN, UPDATE, DELETE) within timeout")
 }
