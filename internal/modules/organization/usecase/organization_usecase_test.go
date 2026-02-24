@@ -25,6 +25,9 @@ func setupOrganizationUseCase() (*mocks.MockOrganizationRepository, *mocks.MockO
 	tm := new(txMock.MockTransactionManager)
 	enforcer := new(permissionMocks.IEnforcer)
 
+	// Default behavior for enforcer with context to return itself
+	enforcer.On("WithContext", mock.Anything).Return(enforcer)
+
 	uc := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, enforcer)
 	return orgRepo, memberRepo, tm, enforcer, uc
 }

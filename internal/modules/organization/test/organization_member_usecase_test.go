@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
@@ -16,7 +17,6 @@ import (
 	userMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
-	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
 	wsPkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -36,13 +36,14 @@ type memberTestDeps struct {
 }
 
 func setupMemberTest() (*memberTestDeps, usecase.OrganizationMemberUseCase) {
+	mockEnforcer := new(permissionMocks.IEnforcer)
 	deps := &memberTestDeps{
 		MemberRepo:      new(mocks.MockOrganizationMemberRepository),
 		OrgRepo:         new(mocks.MockOrganizationRepository),
 		InvitationRepo:  new(mocks.MockInvitationRepository),
 		UserRepo:        new(userMocks.MockUserRepository),
 		TaskDistributor: new(mocking.MockTaskDistributor),
-		Enforcer:        new(permissionMocks.IEnforcer),
+		Enforcer:        mockEnforcer,
 		Presence:        new(mocks.MockPresenceReader),
 		TM:              new(mocking.MockWithTransactionManager),
 	}
@@ -186,6 +187,7 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
 		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, userID, "new-role").Return(nil)
 
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, "", orgID).Return(true, nil)
 		deps.Enforcer.On("AddGroupingPolicy", userID, "new-role", orgID).Return(true, nil)
 
@@ -229,6 +231,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, "", orgID).Return(true, nil)
 		deps.MemberRepo.On("RemoveMember", ctx, orgID, userID).Return(nil)
 
@@ -291,6 +294,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 		})).Return(nil)
 		deps.MemberRepo.On("GetMemberStatus", ctx, inv.OrganizationID, user.ID).Return(entity.MemberStatusInvited, nil)
 		deps.MemberRepo.On("UpdateMemberStatus", ctx, inv.OrganizationID, user.ID, entity.MemberStatusActive).Return(nil)
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("AddGroupingPolicy", user.ID, inv.Role, inv.OrganizationID).Return(true, nil)
 		deps.InvitationRepo.On("Delete", ctx, inv.ID).Return(nil)
 

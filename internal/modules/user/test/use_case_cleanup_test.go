@@ -11,7 +11,7 @@ import (
 	authMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	permMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	storageMocks "github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/mocks"
 	"github.com/sirupsen/logrus"
@@ -19,11 +19,12 @@ import (
 )
 
 // setupCleanupTest creates test dependencies for cleanup tests
-func setupCleanupTest() (*userTestDeps, usecase.UserUseCase) {
+func setupCleanupTest() (*userTestDeps, userUseCase.UserUseCase) {
+	mockEnforcer := new(permMocks.IEnforcer)
 	deps := &userTestDeps{
 		Repo:     new(mocks.MockUserRepository),
 		TM:       new(mocking.MockWithTransactionManager),
-		Enforcer: new(permMocks.IEnforcer),
+		Enforcer: mockEnforcer,
 		AuditUC:  new(auditMocks.MockAuditUseCase),
 		AuthUC:   new(authMocks.MockAuthUseCase),
 		Storage:  new(storageMocks.MockProvider),
@@ -32,7 +33,7 @@ func setupCleanupTest() (*userTestDeps, usecase.UserUseCase) {
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 
-	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
+	uc := userUseCase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
 
 	return deps, uc
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	storageMocks "github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/mocks"
@@ -33,11 +33,12 @@ type userTestDeps struct {
 	Storage  *storageMocks.MockProvider
 }
 
-func setupUserTest() (*userTestDeps, usecase.UserUseCase) {
+func setupUserTest() (*userTestDeps, userUseCase.UserUseCase) {
+	mockEnforcer := new(permMocks.IEnforcer)
 	deps := &userTestDeps{
 		Repo:     new(mocks.MockUserRepository),
 		TM:       new(mocking.MockWithTransactionManager),
-		Enforcer: new(permMocks.IEnforcer),
+		Enforcer: mockEnforcer,
 		AuditUC:  new(auditMocks.MockAuditUseCase),
 		AuthUC:   new(authMocks.MockAuthUseCase),
 		Storage:  new(storageMocks.MockProvider),
@@ -47,7 +48,7 @@ func setupUserTest() (*userTestDeps, usecase.UserUseCase) {
 	log.SetOutput(io.Discard)
 	log.SetLevel(logrus.FatalLevel)
 
-	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
+	uc := userUseCase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
 
 	return deps, uc
 }
@@ -68,6 +69,7 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 	})
 
 	deps.Repo.On("Create", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
+	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 	deps.Enforcer.On("AddGroupingPolicy", mock.AnythingOfType("string"), "role:user", "global").Return(true, nil)
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
@@ -142,6 +144,7 @@ func TestUserUseCase_Create_AuditError(t *testing.T) {
 	})
 
 	deps.Repo.On("Create", mock.Anything, mock.Anything).Return(nil)
+	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, "", "global").Return(true, nil)
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
@@ -165,6 +168,7 @@ func TestUserUseCase_Create_EnforcerError(t *testing.T) {
 	})
 
 	deps.Repo.On("Create", mock.Anything, mock.Anything).Return(nil)
+	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, "role:user", "global").Return(false, errors.New("casbin error"))
 
 	result, err := uc.Create(context.Background(), req)
@@ -480,6 +484,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		deps.Repo.On("Delete", mock.Anything, deleteReq.ID).Return(nil)
 
 		// Expect Backup Roles
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, "global").Return([]string{"role:user"}, nil)
 
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, deleteReq.ID, "", "global").Return(true, nil)
@@ -549,6 +554,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		deps.Repo.On("Delete", mock.Anything, deleteReq.ID).Return(nil)
 
 		// Expect Backup Roles
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, "global").Return([]string{"role:user", "role:admin"}, nil)
 
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, deleteReq.ID, "", "global").Return(true, nil)
@@ -579,6 +585,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		deps.Repo.On("Delete", mock.Anything, deleteReq.ID).Return(nil)
 
 		// Expect Backup Roles
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, "global").Return([]string{"role:user"}, nil)
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, deleteReq.ID, "", "global").Return(true, nil)
 
@@ -850,6 +857,7 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 		return u.Name == expectedName
 	})).Return(nil)
 
+	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, "global").Return(true, nil)
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 

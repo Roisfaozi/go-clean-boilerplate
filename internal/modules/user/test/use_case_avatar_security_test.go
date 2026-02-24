@@ -12,7 +12,7 @@ import (
 	permMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	storageMocks "github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/mocks"
 	"github.com/sirupsen/logrus"
@@ -88,17 +88,18 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 	}
 }
 
-func setupAvatarSecurityTest() (*userTestDeps, usecase.UserUseCase) {
+func setupAvatarSecurityTest() (*userTestDeps, userUseCase.UserUseCase) {
+	mockEnforcer := new(permMocks.IEnforcer)
 	deps := &userTestDeps{
 		Repo:     new(mocks.MockUserRepository),
 		TM:       new(mocking.MockWithTransactionManager),
-		Enforcer: new(permMocks.IEnforcer),
+		Enforcer: mockEnforcer,
 		AuditUC:  new(auditMocks.MockAuditUseCase),
 		AuthUC:   new(authMocks.MockAuthUseCase),
 		Storage:  new(storageMocks.MockProvider),
 	}
 	log := logrus.New()
 	log.SetOutput(io.Discard)
-	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
+	uc := userUseCase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
 	return deps, uc
 }

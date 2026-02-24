@@ -26,11 +26,12 @@ type organizationTestDeps struct {
 }
 
 func setupOrganizationTest() (*organizationTestDeps, usecase.OrganizationUseCase) {
+	mockEnforcer := new(permissionMocks.IEnforcer)
 	deps := &organizationTestDeps{
 		OrgRepo:    new(mocks.MockOrganizationRepository),
 		MemberRepo: new(mocks.MockOrganizationMemberRepository),
 		TM:         new(mocking.MockWithTransactionManager),
-		Enforcer:   new(permissionMocks.IEnforcer),
+		Enforcer:   mockEnforcer,
 	}
 
 	log := logrus.New()
@@ -58,6 +59,7 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 		deps.OrgRepo.On("Create", ctx, mock.MatchedBy(func(org *entity.Organization) bool {
 			return org.Name == req.Name && org.Slug == req.Slug && org.OwnerID == userID
 		}), usecase.DefaultOwnerRoleID).Return(nil)
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("AddGroupingPolicy", userID, usecase.DefaultOwnerRoleID, mock.AnythingOfType("string")).Return(true, nil)
 
 		res, err := uc.CreateOrganization(ctx, userID, req)
@@ -133,6 +135,7 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 
 		deps.OrgRepo.On("SlugExists", ctx, req.Slug).Return(false, nil)
 		deps.OrgRepo.On("Create", ctx, mock.Anything, mock.Anything).Return(nil)
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(false, errors.New("casbin error"))
 
 		_, err := uc.CreateOrganization(ctx, "u1", req)
