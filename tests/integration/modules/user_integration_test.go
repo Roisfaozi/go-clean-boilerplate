@@ -69,6 +69,10 @@ func TestUserIntegration_Create_Success(t *testing.T) {
 	assert.Equal(t, req.Username, result.Username)
 	assert.Equal(t, req.Email, result.Email)
 
+	// Sync enforcer after transactional changes
+	err = env.Enforcer.LoadPolicy()
+	require.NoError(t, err)
+
 	user, err := userRepo.FindByID(context.Background(), result.ID)
 	require.NoError(t, err)
 	assert.Equal(t, req.Username, user.Username)

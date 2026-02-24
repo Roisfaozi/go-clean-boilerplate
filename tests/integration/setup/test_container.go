@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
-	"github.com/casbin/casbin/v2"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
@@ -36,7 +36,7 @@ var (
 type TestEnvironment struct {
 	DB        *gorm.DB
 	Redis     *redis.Client
-	Enforcer  *casbin.Enforcer
+	Enforcer  usecase.IEnforcer
 	Logger    *logrus.Logger
 	Ctx       context.Context
 	MySQLAddr string
@@ -219,7 +219,7 @@ func connectWithRetry(connStr string, maxRetries int) (*gorm.DB, error) {
 	return nil, fmt.Errorf("failed to connect after %d retries: %w", maxRetries, err)
 }
 
-func SetupCasbin(t *testing.T, db *gorm.DB, logger *logrus.Logger) *casbin.Enforcer {
+func SetupCasbin(t *testing.T, db *gorm.DB, logger *logrus.Logger) usecase.IEnforcer {
 	// Ensure config path is correct relative to integration tests
 	cfg := &config.AppConfig{
 		Casbin: config.CasbinConfig{
@@ -230,7 +230,7 @@ func SetupCasbin(t *testing.T, db *gorm.DB, logger *logrus.Logger) *casbin.Enfor
 	}
 	enforcer, err := config.NewCasbinEnforcer(cfg, db, logger)
 	require.NoError(t, err, "Failed to setup Casbin enforcer")
-	return enforcer
+	return usecase.NewTransactionalEnforcer(enforcer, cfg.Casbin.Model)
 }
 
 func SetupRedisContainer(ctx context.Context) (*redisContainer.RedisContainer, string, error) {

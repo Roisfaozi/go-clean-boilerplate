@@ -51,6 +51,10 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	userResp, err := setupService.Create(context.Background(), regReq)
 	require.NoError(t, err)
 
+	// Sync enforcer after transactional changes
+	err = env.Enforcer.LoadPolicy()
+	require.NoError(t, err)
+
 	user, err := uRepo.FindByID(context.Background(), userResp.ID)
 	require.NoError(t, err)
 	require.NotNil(t, user)
@@ -69,6 +73,10 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "internal server error")
+
+	// Sync enforcer after rollback (though it should remain same, LoadPolicy ensures we see the actual state)
+	err = env.Enforcer.LoadPolicy()
+	require.NoError(t, err)
 
 	userAfter, err := uRepo.FindByID(context.Background(), user.ID)
 	assert.NoError(t, err)

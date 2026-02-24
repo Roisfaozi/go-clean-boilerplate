@@ -36,6 +36,9 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	mockEnforcer := new(mocks.MockIEnforcer)
 
+	// Mock WithContext to return itself
+	mockEnforcer.On("WithContext", mock.Anything).Return(mockEnforcer)
+
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
 	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger, nil)

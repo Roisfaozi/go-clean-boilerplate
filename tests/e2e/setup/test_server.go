@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/fixtures"
 	integrationSetup "github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -16,7 +17,6 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/casbin/casbin/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
@@ -27,7 +27,7 @@ type TestServer struct {
 	Server   *httptest.Server
 	DB       *gorm.DB
 	Redis    *redis.Client
-	Enforcer *casbin.Enforcer
+	Enforcer usecase.IEnforcer
 	BaseURL  string
 	Client   *TestClient
 }
