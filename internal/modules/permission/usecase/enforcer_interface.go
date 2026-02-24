@@ -1,6 +1,9 @@
 package usecase
 
+import "context"
+
 type IEnforcer interface {
+	WithContext(ctx context.Context) IEnforcer
 	AddGroupingPolicy(params ...interface{}) (bool, error)
 	AddPolicy(params ...interface{}) (bool, error)
 	RemovePolicy(params ...interface{}) (bool, error)
@@ -11,4 +14,6 @@ type IEnforcer interface {
 	RemoveFilteredGroupingPolicy(fieldIndex int, fieldValues ...string) (bool, error)
 	Enforce(params ...interface{}) (bool, error)
 	GetUsersForRole(name string, domain ...string) ([]string, error)
+	SavePolicy() error
+	LoadPolicy() error
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
 	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
@@ -34,7 +35,6 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/casbin/casbin/v2"
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
@@ -47,7 +47,7 @@ type Application struct {
 	DB              *gorm.DB
 	Redis           *redis.Client
 	Log             *logrus.Logger
-	Enforcer        *casbin.Enforcer
+	Enforcer        permission.IEnforcer
 	TaskDistributor worker.TaskDistributor
 	TaskProcessor   worker.TaskProcessor
 	Scheduler       *worker.Scheduler
@@ -135,11 +135,14 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	sseManager := sse.NewManager()
 	logger.Info("SSE Manager initialized.")
 
-	enforcer, err := NewCasbinEnforcer(cfg, dbConnection, logger)
+	globalEnforcer, err := NewCasbinEnforcer(cfg, dbConnection, logger)
 	if err != nil {
 		logger.Errorf("Error initializing casbin enforcer: %v", err)
 		return nil, err
 	}
+
+	// Use TransactionalEnforcer to support SQL transaction integrity for policy changes
+	enforcer := usecase.NewTransactionalEnforcer(globalEnforcer, cfg.Casbin.Model)
 
 	storageProvider, err := NewStorageProvider(cfg)
 	if err != nil {
