@@ -387,6 +387,72 @@ func (_c *MockUserUseCase_GetAllUsersDynamic_Call) RunAndReturn(run func(ctx con
 	return _c
 }
 
+// GetAvatarUrl provides a mock function for the type MockUserUseCase
+func (_mock *MockUserUseCase) GetAvatarUrl(ctx context.Context, userID string) (string, error) {
+	ret := _mock.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAvatarUrl")
+	}
+
+	var r0 string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
+		return returnFunc(ctx, userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) string); ok {
+		r0 = returnFunc(ctx, userID)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUserUseCase_GetAvatarUrl_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAvatarUrl'
+type MockUserUseCase_GetAvatarUrl_Call struct {
+	*mock.Call
+}
+
+// GetAvatarUrl is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+func (_e *MockUserUseCase_Expecter) GetAvatarUrl(ctx interface{}, userID interface{}) *MockUserUseCase_GetAvatarUrl_Call {
+	return &MockUserUseCase_GetAvatarUrl_Call{Call: _e.mock.On("GetAvatarUrl", ctx, userID)}
+}
+
+func (_c *MockUserUseCase_GetAvatarUrl_Call) Run(run func(ctx context.Context, userID string)) *MockUserUseCase_GetAvatarUrl_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserUseCase_GetAvatarUrl_Call) Return(s string, err error) *MockUserUseCase_GetAvatarUrl_Call {
+	_c.Call.Return(s, err)
+	return _c
+}
+
+func (_c *MockUserUseCase_GetAvatarUrl_Call) RunAndReturn(run func(ctx context.Context, userID string) (string, error)) *MockUserUseCase_GetAvatarUrl_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetUserByID provides a mock function for the type MockUserUseCase
 func (_mock *MockUserUseCase) GetUserByID(ctx context.Context, id string) (*model.UserResponse, error) {
 	ret := _mock.Called(ctx, id)

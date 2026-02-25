@@ -532,6 +532,50 @@ func (_c *MockIEnforcer_GetUsersForRole_Call) RunAndReturn(run func(name string,
 	return _c
 }
 
+// LoadPolicy provides a mock function for the type MockIEnforcer
+func (_mock *MockIEnforcer) LoadPolicy() error {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for LoadPolicy")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func() error); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockIEnforcer_LoadPolicy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LoadPolicy'
+type MockIEnforcer_LoadPolicy_Call struct {
+	*mock.Call
+}
+
+// LoadPolicy is a helper method to define mock.On call
+func (_e *MockIEnforcer_Expecter) LoadPolicy() *MockIEnforcer_LoadPolicy_Call {
+	return &MockIEnforcer_LoadPolicy_Call{Call: _e.mock.On("LoadPolicy")}
+}
+
+func (_c *MockIEnforcer_LoadPolicy_Call) Run(run func()) *MockIEnforcer_LoadPolicy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockIEnforcer_LoadPolicy_Call) Return(err error) *MockIEnforcer_LoadPolicy_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockIEnforcer_LoadPolicy_Call) RunAndReturn(run func() error) *MockIEnforcer_LoadPolicy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RemoveFilteredGroupingPolicy provides a mock function for the type MockIEnforcer
 func (_mock *MockIEnforcer) RemoveFilteredGroupingPolicy(fieldIndex int, fieldValues ...string) (bool, error) {
 	var tmpRet mock.Arguments
@@ -682,23 +726,6 @@ func (_mock *MockIEnforcer) SavePolicy() error {
 
 	if len(ret) == 0 {
 		panic("no return value specified for SavePolicy")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func() error); ok {
-		r0 = returnFunc()
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// LoadPolicy provides a mock function for the type MockIEnforcer
-func (_mock *MockIEnforcer) LoadPolicy() error {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for LoadPolicy")
 	}
 
 	var r0 error

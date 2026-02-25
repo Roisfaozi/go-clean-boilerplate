@@ -48,6 +48,14 @@ packages:
     config:
       dir: internal/modules/auth/test/mocks
       filename: mock_auth_usecase.go
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository:
+    config:
+      dir: internal/modules/organization/test/mocks
+      filename: mock_organization_repository.go
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase:
+    config:
+      dir: internal/modules/organization/test/mocks
+      filename: mock_organization_usecase.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository:
     config:
       dir: internal/modules/audit/test/mocks
