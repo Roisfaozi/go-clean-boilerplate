@@ -104,6 +104,28 @@ func TestUserUseCase_UpdateAvatar_Success(t *testing.T) {
 	deps.AuditUC.AssertExpectations(t)
 }
 
+func TestUserUseCase_GetAvatarUrl_Success(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-123"
+	avatarURL := "avatars/user-123.png"
+	fullURL := "https://storage.example.com/avatars/user-123.png"
+
+	existingUser := &entity.User{
+		ID:        userID,
+		AvatarURL: avatarURL,
+	}
+
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+	deps.Storage.On("GetFileUrl", ctx, avatarURL).Return(fullURL, nil)
+
+	result, err := uc.GetAvatarUrl(ctx, userID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, fullURL, result)
+}
+
 func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {
 	deps, uc := setupAvatarTest()
 	ctx := context.Background()

@@ -16,6 +16,7 @@ import (
 type MockMemberRepository struct {
 	CheckMembershipFunc func(ctx context.Context, orgID, userID string) (bool, error)
 	GetMemberStatusFunc func(ctx context.Context, orgID, userID string) (string, error)
+	GetMemberRoleFunc   func(ctx context.Context, orgID, userID string) (string, error)
 }
 
 func (m *MockMemberRepository) CheckMembership(ctx context.Context, orgID, userID string) (bool, error) {
@@ -28,6 +29,13 @@ func (m *MockMemberRepository) CheckMembership(ctx context.Context, orgID, userI
 func (m *MockMemberRepository) GetMemberStatus(ctx context.Context, orgID, userID string) (string, error) {
 	if m.GetMemberStatusFunc != nil {
 		return m.GetMemberStatusFunc(ctx, orgID, userID)
+	}
+	return "", nil
+}
+
+func (m *MockMemberRepository) GetMemberRole(ctx context.Context, orgID, userID string) (string, error) {
+	if m.GetMemberRoleFunc != nil {
+		return m.GetMemberRoleFunc(ctx, orgID, userID)
 	}
 	return "", nil
 }
@@ -230,10 +238,9 @@ func TestCachedOrgReader_GetMemberRole_CacheHit(t *testing.T) {
 func TestCachedOrgReader_GetMemberRole_CacheMiss(t *testing.T) {
 	// Arrange
 	db, mock := redismock.NewClientMock()
-
 	mockRepo := &MockMemberRepository{
-		GetMemberStatusFunc: func(ctx context.Context, orgID, userID string) (string, error) {
-			return "active", nil
+		GetMemberRoleFunc: func(ctx context.Context, orgID, userID string) (string, error) {
+			return "member", nil
 		},
 	}
 	log := newTestLogger()
@@ -246,9 +253,8 @@ func TestCachedOrgReader_GetMemberRole_CacheMiss(t *testing.T) {
 	roleKey := "org:role:org-123:user-456"
 
 	// Mock Redis cache miss, then SET
-	// Note: reader.go currently hardcodes "member" because GetMemberStatus doesn't return role.
 	mock.ExpectGet(roleKey).RedisNil()
-	mock.ExpectSet(roleKey, "member", 5*time.Minute).SetVal("OK")
+	mock.ExpectSet(roleKey, "member", MembershipCacheTTL).SetVal("OK")
 
 	// Act
 	role, err := reader.GetMemberRole(ctx, orgID, userID)
@@ -258,6 +264,7 @@ func TestCachedOrgReader_GetMemberRole_CacheMiss(t *testing.T) {
 	assert.Equal(t, "member", role)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
 
 func TestCachedOrgReader_InvalidateMembershipCache(t *testing.T) {
 	// Arrange

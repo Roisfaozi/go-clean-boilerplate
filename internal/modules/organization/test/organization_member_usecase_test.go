@@ -62,6 +62,7 @@ func setupMemberTest() (*memberTestDeps, usecase.OrganizationMemberUseCase) {
 		deps.TaskDistributor,
 		deps.Enforcer,
 		deps.Presence,
+		"http://localhost:3000",
 	)
 
 	return deps, uc
