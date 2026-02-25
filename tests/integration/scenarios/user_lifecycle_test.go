@@ -83,22 +83,32 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Manually trigger outbox sync since the worker might be slow
-	err = handlers.NewOutboxTaskHandler(auditRepo, env.Logger).ProcessAuditOutbox(ctx, nil)
-	require.NoError(t, err)
+	outboxHandler := handlers.NewOutboxTaskHandler(auditRepo, env.Logger)
+	_ = outboxHandler.ProcessAuditOutbox(ctx, nil)
 
-	// Wait for any final async processing
-	time.Sleep(500 * time.Millisecond)
-
-	logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
-		Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
-	})
-	require.NoError(t, err)
-
+	// Poll for audit logs to ensure async tasks (Login) and outbox processing (Create, Update, Delete) are complete
 	var userLogs []auditModel.AuditLogResponse
-	for _, l := range logs {
-		if l.UserID == userID || l.EntityID == userID {
-			userLogs = append(userLogs, l)
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		// Trigger outbox processing periodically
+		_ = outboxHandler.ProcessAuditOutbox(ctx, nil)
+
+		logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
+			Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
+		})
+		require.NoError(t, err)
+
+		userLogs = nil
+		for _, l := range logs {
+			if l.UserID == userID || l.EntityID == userID {
+				userLogs = append(userLogs, l)
+			}
 		}
+
+		if len(userLogs) >= 4 {
+			break
+		}
+		time.Sleep(200 * time.Millisecond)
 	}
 
 	require.GreaterOrEqual(t, len(userLogs), 4, "Should have at least 4 audit entries for this lifecycle")
