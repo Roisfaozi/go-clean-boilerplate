@@ -28,7 +28,7 @@ func NewPermissionController(useCase usecase.IPermissionUseCase, log *logrus.Log
 
 // AssignRole godoc
 // @Summary      Assign role to user
-// @Description  Assigns a role to a specified user (Casbin).
+// @Description  Assigns a role to a specified user (Casbin). Defaults to 'global' domain.
 // @Tags         permissions
 // @Security     BearerAuth
 // @Accept       json
@@ -53,7 +53,7 @@ func (h *PermissionController) AssignRole(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.AssignRoleToUser(c.Request.Context(), req.UserID, req.Role)
+	err := h.useCase.AssignRoleToUser(c.Request.Context(), req.UserID, req.Role, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to assign role")
 		return
@@ -64,7 +64,7 @@ func (h *PermissionController) AssignRole(c *gin.Context) {
 
 // RevokeRole godoc
 // @Summary      Revoke role from user
-// @Description  Revokes a role from a specified user (Casbin).
+// @Description  Revokes a role from a specified user (Casbin). Defaults to 'global' domain.
 // @Tags         permissions
 // @Security     BearerAuth
 // @Accept       json
@@ -89,7 +89,7 @@ func (h *PermissionController) RevokeRole(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.RevokeRoleFromUser(c.Request.Context(), req.UserID, req.Role)
+	err := h.useCase.RevokeRoleFromUser(c.Request.Context(), req.UserID, req.Role, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to revoke role")
 		return
@@ -100,7 +100,7 @@ func (h *PermissionController) RevokeRole(c *gin.Context) {
 
 // GrantPermission godoc
 // @Summary      Grant permission to role
-// @Description  Grants a permission (path + method) to a role (Casbin).
+// @Description  Grants a permission (path + method) to a role (Casbin). Defaults to 'global' domain.
 // @Tags         permissions
 // @Security     BearerAuth
 // @Accept       json
@@ -125,7 +125,7 @@ func (h *PermissionController) GrantPermission(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.GrantPermissionToRole(c.Request.Context(), req.Role, req.Path, req.Method)
+	err := h.useCase.GrantPermissionToRole(c.Request.Context(), req.Role, req.Path, req.Method, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to grant permission")
 		return
@@ -184,11 +184,12 @@ func (h *PermissionController) GetPermissionsForRole(c *gin.Context) {
 
 // GetUsersForRole godoc
 // @Summary      Get users for role
-// @Description  Retrieves all user IDs assigned to a specific role.
+// @Description  Retrieves all user IDs assigned to a specific role. Defaults to 'global' domain.
 // @Tags         permissions
 // @Security     BearerAuth
 // @Produce      json
 // @Param        role path string true "Role name"
+// @Param        domain query string false "Domain/Organization ID (defaults to 'global')"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper "List of user IDs"
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Role is required"
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
@@ -201,7 +202,9 @@ func (h *PermissionController) GetUsersForRole(c *gin.Context) {
 		return
 	}
 
-	users, err := h.useCase.GetUsersForRole(c.Request.Context(), role)
+	domain := c.Query("domain")
+
+	users, err := h.useCase.GetUsersForRole(c.Request.Context(), role, domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to get users for role")
 		return
@@ -248,7 +251,7 @@ func (h *PermissionController) UpdatePermission(c *gin.Context) {
 
 // RevokePermission godoc
 // @Summary      Revoke permission from role
-// @Description  Revokes a permission (path + method) from a role (Casbin).
+// @Description  Revokes a permission (path + method) from a role (Casbin). Defaults to 'global' domain.
 // @Tags         permissions
 // @Security     BearerAuth
 // @Accept       json
@@ -273,7 +276,7 @@ func (h *PermissionController) RevokePermission(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.RevokePermissionFromRole(c.Request.Context(), req.Role, req.Path, req.Method)
+	err := h.useCase.RevokePermissionFromRole(c.Request.Context(), req.Role, req.Path, req.Method, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to revoke permission")
 		return
@@ -284,7 +287,7 @@ func (h *PermissionController) RevokePermission(c *gin.Context) {
 
 // AddRoleInheritance godoc
 // @Summary      Add role inheritance
-// @Description  Creates a parent-child relationship between two roles.
+// @Description  Creates a parent-child relationship between two roles. Defaults to 'global' domain.
 // @Tags         permissions
 // @Security     BearerAuth
 // @Accept       json
@@ -309,7 +312,7 @@ func (h *PermissionController) AddRoleInheritance(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.AddParentRole(c.Request.Context(), req.ChildRole, req.ParentRole)
+	err := h.useCase.AddParentRole(c.Request.Context(), req.ChildRole, req.ParentRole, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to add role inheritance")
 		return
@@ -320,7 +323,7 @@ func (h *PermissionController) AddRoleInheritance(c *gin.Context) {
 
 // RemoveRoleInheritance godoc
 // @Summary      Remove role inheritance
-// @Description  Removes a parent-child relationship between two roles.
+// @Description  Removes a parent-child relationship between two roles. Defaults to 'global' domain.
 // @Tags         permissions
 // @Security     BearerAuth
 // @Accept       json
@@ -346,7 +349,7 @@ func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.RemoveParentRole(c.Request.Context(), req.ChildRole, req.ParentRole)
+	err := h.useCase.RemoveParentRole(c.Request.Context(), req.ChildRole, req.ParentRole, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to remove role inheritance")
 		return
@@ -357,11 +360,12 @@ func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 
 // GetParentRoles godoc
 // @Summary      Get parent roles
-// @Description  Retrieves all parent roles for a given role.
+// @Description  Retrieves all parent roles for a given role. Defaults to 'global' domain.
 // @Tags         permissions
 // @Security     BearerAuth
 // @Produce      json
 // @Param        role path string true "Role name"
+// @Param        domain query string false "Domain/Organization ID (defaults to 'global')"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper "List of parent roles"
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Role is required"
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
@@ -374,7 +378,9 @@ func (h *PermissionController) GetParentRoles(c *gin.Context) {
 		return
 	}
 
-	parents, err := h.useCase.GetParentRoles(c.Request.Context(), role)
+	domain := c.Query("domain")
+
+	parents, err := h.useCase.GetParentRoles(c.Request.Context(), role, domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to get parent roles")
 		return

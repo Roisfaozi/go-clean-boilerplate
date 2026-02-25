@@ -14,6 +14,9 @@
 
 # Test binary, built with `go test -c`
 *.test
+*.log
+*.text
+integration_test_results.log
 
 # .env files
 .env

@@ -14,18 +14,18 @@ import (
 )
 
 type IPermissionUseCase interface {
-	AssignRoleToUser(ctx context.Context, userID, role string) error
-	RevokeRoleFromUser(ctx context.Context, userID, role string) error
-	GrantPermissionToRole(ctx context.Context, role, path, method string) error
-	RevokePermissionFromRole(ctx context.Context, role, path, method string) error
+	AssignRoleToUser(ctx context.Context, userID, role, domain string) error
+	RevokeRoleFromUser(ctx context.Context, userID, role, domain string) error
+	GrantPermissionToRole(ctx context.Context, role, path, method, domain string) error
+	RevokePermissionFromRole(ctx context.Context, role, path, method, domain string) error
 	GetAllPermissions(ctx context.Context) ([][]string, error)
 	GetPermissionsForRole(ctx context.Context, role string) ([][]string, error)
 	UpdatePermission(ctx context.Context, oldPermission, newPermission []string) (bool, error)
-	GetUsersForRole(ctx context.Context, role string) ([]string, error)
+	GetUsersForRole(ctx context.Context, role, domain string) ([]string, error)
 
-	AddParentRole(ctx context.Context, childRole, parentRole string) error
-	RemoveParentRole(ctx context.Context, childRole, parentRole string) error
-	GetParentRoles(ctx context.Context, role string) ([]string, error)
+	AddParentRole(ctx context.Context, childRole, parentRole, domain string) error
+	RemoveParentRole(ctx context.Context, childRole, parentRole, domain string) error
+	GetParentRoles(ctx context.Context, role, domain string) ([]string, error)
 
 	BatchCheckPermission(ctx context.Context, userID string, items []model.PermissionCheckItem) (map[string]bool, error)
 
@@ -71,8 +71,11 @@ func (uc *PermissionUseCase) BatchCheckPermission(ctx context.Context, userID st
 	return results, nil
 }
 
-func (uc *PermissionUseCase) AddParentRole(ctx context.Context, childRole, parentRole string) error {
-	uc.log.WithContext(ctx).Infof("Adding inheritance: role '%s' inherits from '%s'", childRole, parentRole)
+func (uc *PermissionUseCase) AddParentRole(ctx context.Context, childRole, parentRole, domain string) error {
+	if domain == "" {
+		domain = "global"
+	}
+	uc.log.WithContext(ctx).Infof("Adding inheritance: role '%s' inherits from '%s' in domain '%s'", childRole, parentRole, domain)
 
 	if _, err := uc.RoleRepo.FindByName(ctx, childRole); err != nil {
 		return exception.ErrBadRequest
@@ -85,8 +88,7 @@ func (uc *PermissionUseCase) AddParentRole(ctx context.Context, childRole, paren
 		return errors.New("role cannot inherit from itself")
 	}
 
-	// Use 'global' domain for role inheritance by default
-	_, err := uc.enforcer.WithContext(ctx).AddGroupingPolicy(childRole, parentRole, "global")
+	_, err := uc.enforcer.WithContext(ctx).AddGroupingPolicy(childRole, parentRole, domain)
 	if err != nil {
 		uc.log.WithContext(ctx).Errorf("Failed to add parent role: %v", err)
 		return err
@@ -94,11 +96,13 @@ func (uc *PermissionUseCase) AddParentRole(ctx context.Context, childRole, paren
 	return nil
 }
 
-func (uc *PermissionUseCase) RemoveParentRole(ctx context.Context, childRole, parentRole string) error {
-	uc.log.WithContext(ctx).Infof("Removing inheritance: role '%s' inherits from '%s'", childRole, parentRole)
+func (uc *PermissionUseCase) RemoveParentRole(ctx context.Context, childRole, parentRole, domain string) error {
+	if domain == "" {
+		domain = "global"
+	}
+	uc.log.WithContext(ctx).Infof("Removing inheritance: role '%s' inherits from '%s' in domain '%s'", childRole, parentRole, domain)
 
-	// Filter by child, parent, and 'global' domain (v2)
-	removed, err := uc.enforcer.WithContext(ctx).RemoveFilteredGroupingPolicy(0, childRole, parentRole, "global")
+	removed, err := uc.enforcer.WithContext(ctx).RemoveFilteredGroupingPolicy(0, childRole, parentRole, domain)
 	if err != nil {
 		uc.log.WithContext(ctx).Errorf("Failed to remove parent role: %v", err)
 		return err
@@ -109,9 +113,11 @@ func (uc *PermissionUseCase) RemoveParentRole(ctx context.Context, childRole, pa
 	return nil
 }
 
-func (uc *PermissionUseCase) GetParentRoles(ctx context.Context, role string) ([]string, error) {
-	// Defaults to 'global' domain
-	roles, err := uc.enforcer.WithContext(ctx).GetRolesForUser(role, "global")
+func (uc *PermissionUseCase) GetParentRoles(ctx context.Context, role, domain string) ([]string, error) {
+	if domain == "" {
+		domain = "global"
+	}
+	roles, err := uc.enforcer.WithContext(ctx).GetRolesForUser(role, domain)
 	if err != nil {
 		uc.log.WithContext(ctx).Errorf("Failed to get parent roles: %v", err)
 		return nil, err
@@ -119,8 +125,11 @@ func (uc *PermissionUseCase) GetParentRoles(ctx context.Context, role string) ([
 	return roles, nil
 }
 
-func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role string) error {
-	uc.log.WithContext(ctx).Infof("Attempting to assign role '%s' to user '%s'", role, userID)
+func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role, domain string) error {
+	if domain == "" {
+		domain = "global"
+	}
+	uc.log.WithContext(ctx).Infof("Attempting to assign role '%s' to user '%s' in domain '%s'", role, userID, domain)
 
 	if userID == "" || role == "" {
 		return fmt.Errorf("userID and role are required")
@@ -146,19 +155,18 @@ func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role 
 		return exception.ErrInternalServer
 	}
 
-	uc.log.WithContext(ctx).Infof("User and Role validated. Removing existing roles and assigning role '%s' to user '%s' in domain 'global'", role, userID)
+	uc.log.WithContext(ctx).Infof("User and Role validated. Removing existing roles and assigning role '%s' to user '%s' in domain '%s'", role, userID, domain)
 
 	enf := uc.enforcer.WithContext(ctx)
 
-	// Remove all roles for this user in ALL domains? Or just global?
-	// For legacy compatibility, let's just clear global roles.
-	_, err = enf.RemoveFilteredGroupingPolicy(0, userID, "", "global")
+	// Remove existing roles for this user in the specified domain
+	_, err = enf.RemoveFilteredGroupingPolicy(0, userID, "", domain)
 	if err != nil {
-		uc.log.WithContext(ctx).Errorf("Failed to remove existing global roles: %v", err)
+		uc.log.WithContext(ctx).Errorf("Failed to remove existing roles in domain '%s': %v", domain, err)
 		return exception.ErrInternalServer
 	}
 
-	_, err = enf.AddGroupingPolicy(userID, role, "global")
+	_, err = enf.AddGroupingPolicy(userID, role, domain)
 	if err != nil {
 		uc.log.WithContext(ctx).Errorf("Failed to add grouping policy: %v", err)
 		return err
@@ -166,8 +174,11 @@ func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role 
 	return nil
 }
 
-func (uc *PermissionUseCase) RevokeRoleFromUser(ctx context.Context, userID, role string) error {
-	uc.log.WithContext(ctx).Infof("Attempting to revoke role '%s' from user '%s'", role, userID)
+func (uc *PermissionUseCase) RevokeRoleFromUser(ctx context.Context, userID, role, domain string) error {
+	if domain == "" {
+		domain = "global"
+	}
+	uc.log.WithContext(ctx).Infof("Attempting to revoke role '%s' from user '%s' in domain '%s'", role, userID, domain)
 
 	if userID == "" || role == "" {
 		return fmt.Errorf("userID and role are required")
@@ -193,20 +204,22 @@ func (uc *PermissionUseCase) RevokeRoleFromUser(ctx context.Context, userID, rol
 		return exception.ErrInternalServer
 	}
 
-	// Filter by user, role, and 'global' domain
-	removed, err := uc.enforcer.WithContext(ctx).RemoveFilteredGroupingPolicy(0, userID, role, "global")
+	removed, err := uc.enforcer.WithContext(ctx).RemoveFilteredGroupingPolicy(0, userID, role, domain)
 	if err != nil {
 		uc.log.WithContext(ctx).Errorf("Failed to remove role from user: %v", err)
 		return exception.ErrInternalServer
 	}
 	if !removed {
-		return errors.New("role was not assigned to user in domain global")
+		return errors.New("role was not assigned to user in specified domain")
 	}
 	return nil
 }
 
-func (uc *PermissionUseCase) GrantPermissionToRole(ctx context.Context, role, path, method string) error {
-	uc.log.WithContext(ctx).Infof("Attempting to grant permission to role '%s'", role)
+func (uc *PermissionUseCase) GrantPermissionToRole(ctx context.Context, role, path, method, domain string) error {
+	if domain == "" {
+		domain = "global"
+	}
+	uc.log.WithContext(ctx).Infof("Attempting to grant permission to role '%s' in domain '%s'", role, domain)
 
 	if role == "" || path == "" || method == "" {
 		return fmt.Errorf("role, path, and method are required")
@@ -222,8 +235,8 @@ func (uc *PermissionUseCase) GrantPermissionToRole(ctx context.Context, role, pa
 		return exception.ErrInternalServer
 	}
 
-	uc.log.WithContext(ctx).Infof("Granting permission to role '%s' for %s %s in domain 'global'", role, method, path)
-	_, err = uc.enforcer.WithContext(ctx).AddPolicy(role, "global", path, method)
+	uc.log.WithContext(ctx).Infof("Granting permission to role '%s' for %s %s in domain '%s'", role, method, path, domain)
+	_, err = uc.enforcer.WithContext(ctx).AddPolicy(role, domain, path, method)
 	if err != nil {
 		uc.log.WithContext(ctx).Errorf("Failed to add policy: %v", err)
 		return err
@@ -231,8 +244,11 @@ func (uc *PermissionUseCase) GrantPermissionToRole(ctx context.Context, role, pa
 	return nil
 }
 
-func (uc *PermissionUseCase) RevokePermissionFromRole(ctx context.Context, role, path, method string) error {
-	uc.log.WithContext(ctx).Infof("Attempting to revoke permission from role '%s'", role)
+func (uc *PermissionUseCase) RevokePermissionFromRole(ctx context.Context, role, path, method, domain string) error {
+	if domain == "" {
+		domain = "global"
+	}
+	uc.log.WithContext(ctx).Infof("Attempting to revoke permission from role '%s' in domain '%s'", role, domain)
 
 	if role == "" || path == "" || method == "" {
 		return fmt.Errorf("role, path, and method are required")
@@ -248,13 +264,13 @@ func (uc *PermissionUseCase) RevokePermissionFromRole(ctx context.Context, role,
 		return exception.ErrInternalServer
 	}
 
-	uc.log.WithContext(ctx).Infof("Revoking permission from role '%s' for %s %s in domain 'global'", role, method, path)
-	removed, err := uc.enforcer.WithContext(ctx).RemovePolicy(role, "global", path, method)
+	uc.log.WithContext(ctx).Infof("Revoking permission from role '%s' for %s %s in domain '%s'", role, method, path, domain)
+	removed, err := uc.enforcer.WithContext(ctx).RemovePolicy(role, domain, path, method)
 	if err != nil {
 		return err
 	}
 	if !removed {
-		return errors.New("policy to revoke not found in domain global")
+		return errors.New("policy to revoke not found in specified domain")
 	}
 	return nil
 }
@@ -279,15 +295,36 @@ func (uc *PermissionUseCase) GetPermissionsForRole(ctx context.Context, role str
 	return policies, nil
 }
 
-func (uc *PermissionUseCase) GetUsersForRole(ctx context.Context, role string) ([]string, error) {
-	uc.log.WithContext(ctx).Infof("Retrieving users for role '%s'", role)
-	// Casbin GetUsersForRole returns users assigned to this role in domain 'global'
-	users, err := uc.enforcer.WithContext(ctx).GetUsersForRole(role, "global")
+func (uc *PermissionUseCase) GetUsersForRole(ctx context.Context, role, domain string) ([]string, error) {
+	if domain == "" {
+		domain = "global"
+	}
+	uc.log.WithContext(ctx).Infof("Retrieving users for role '%s' in domain '%s'", role, domain)
+	users, err := uc.enforcer.WithContext(ctx).GetUsersForRole(role, domain)
 	if err != nil {
-		uc.log.WithContext(ctx).Errorf("Failed to get users for role '%s': %v", role, err)
+		uc.log.WithContext(ctx).Errorf("Failed to get users for role '%s' in domain '%s': %v", role, domain, err)
 		return nil, err
 	}
 	return users, nil
+}
+
+func (uc *PermissionUseCase) UpdatePermission(ctx context.Context, oldPermission, newPermission []string) (bool, error) {
+	if len(oldPermission) == 0 || len(newPermission) == 0 {
+		return false, errors.New("old and new permissions cannot be empty")
+	}
+
+	uc.log.WithContext(ctx).Infof("Updating permission from %v to %v", oldPermission, newPermission)
+	updated, err := uc.enforcer.WithContext(ctx).UpdatePolicy(oldPermission, newPermission)
+	if err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed update permission: %v", err)
+		return false, err
+	}
+	if !updated {
+		uc.log.WithContext(ctx).Errorf("Policy to update not found: %v", oldPermission)
+		return false, errors.New("policy to update not found")
+	}
+
+	return true, nil
 }
 
 func (uc *PermissionUseCase) UpdatePermission(ctx context.Context, oldPermission, newPermission []string) (bool, error) {

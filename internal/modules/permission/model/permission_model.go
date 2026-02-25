@@ -3,12 +3,14 @@ package model
 type AssignRoleRequest struct {
 	UserID string `json:"user_id" validate:"required,xss"`
 	Role   string `json:"role" validate:"required,xss"`
+	Domain string `json:"domain" validate:"omitempty,xss"`
 }
 
 type GrantPermissionRequest struct {
 	Role   string `json:"role" validate:"required,xss"`
 	Path   string `json:"path" validate:"required,xss"`
 	Method string `json:"method" validate:"required,xss"`
+	Domain string `json:"domain" validate:"omitempty,xss"`
 }
 
 type UpdatePermissionRequest struct {
@@ -19,6 +21,7 @@ type UpdatePermissionRequest struct {
 type RoleInheritanceRequest struct {
 	ChildRole  string `json:"child_role" validate:"required"`
 	ParentRole string `json:"parent_role" validate:"required"`
+	Domain     string `json:"domain" validate:"omitempty,xss"`
 }
 
 type PermissionCheckItem struct {

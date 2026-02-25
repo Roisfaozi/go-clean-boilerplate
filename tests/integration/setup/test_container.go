@@ -70,6 +70,7 @@ func (env *TestEnvironment) Cleanup() {
 
 func SetupRustFS(t *testing.T, ctx context.Context) (string, string) {
 	bucket := "test-bucket"
+	// Ensure we wait for both the port and a successful response from health check or similar
 	req := testcontainers.ContainerRequest{
 		Image:        "rustfs/rustfs:latest",
 		ExposedPorts: []string{"9000/tcp"},
@@ -79,7 +80,10 @@ func SetupRustFS(t *testing.T, ctx context.Context) (string, string) {
 			"RUSTFS_CONSOLE_ENABLE": "true",
 			"RUSTFS_VOLUMES":        "/data",
 		},
-		WaitingFor: wait.ForListeningPort("9000/tcp").WithStartupTimeout(60 * time.Second),
+		WaitingFor: wait.ForAll(
+			wait.ForListeningPort("9000/tcp"),
+			wait.ForHTTP("/minio/health/live").WithPort("9000/tcp"),
+		).WithStartupTimeout(60 * time.Second),
 	}
 
 	rustfsC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -103,8 +107,6 @@ func SetupRustFS(t *testing.T, ctx context.Context) (string, string) {
 
 	s3URL := fmt.Sprintf("http://%s:%s", host, p.Port())
 
-	// Create bucket using a temporary client
-	// We don't return the client here to keep the setup generic for E2E and specific module tests
 	return s3URL, bucket
 }
 
@@ -165,8 +167,9 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 			panic(err)
 		}
 		globalRDB = redis.NewClient(&redis.Options{
-			Addr:     redisAddr,
-			Protocol: 2,
+			Addr:            redisAddr,
+			Protocol:        3,
+			DisableIdentity: true, // Suppress maint_notifications handshake error
 		})
 
 		RunMigrations(nil, globalDB)
@@ -235,7 +238,7 @@ func SetupCasbin(t *testing.T, db *gorm.DB, logger *logrus.Logger) usecase.IEnfo
 
 func SetupRedisContainer(ctx context.Context) (*redisContainer.RedisContainer, string, error) {
 	redisC, err := redisContainer.Run(ctx,
-		"redis:8.4-alpine",
+		"redis:7.2-alpine",
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("Ready to accept connections").
 				WithStartupTimeout(30*time.Second),

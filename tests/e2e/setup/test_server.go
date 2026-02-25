@@ -185,6 +185,12 @@ func SetupTusTestServer(t *testing.T) *TestServer {
 			Model:   "../../../internal/config/casbin_model.conf",
 			Watcher: config.WatcherConfig{Enabled: false},
 		},
+		SMTP: config.SMTPConfig{
+			Host:       "127.0.0.1",
+			Port:       1025,
+			FromSender: "NexusOS Admin",
+			FromEmail:  "no-reply@nexusos.dev",
+		},
 		RateLimit: config.RateLimitConfig{Enabled: false},
 		Storage: config.StorageConfig{
 			Driver: "s3",
@@ -220,9 +226,6 @@ func SetupTusTestServer(t *testing.T) *TestServer {
 		o.BaseEndpoint = aws.String(s3URL)
 		o.UsePathStyle = true
 	})
-
-	// Wait a bit for RustFS
-	time.Sleep(2 * time.Second)
 
 	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(s3Bucket),
