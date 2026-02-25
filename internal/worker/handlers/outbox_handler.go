@@ -76,7 +76,7 @@ func (h *OutboxTaskHandler) processEntry(ctx context.Context, entry *auditEntity
 	// 2. Remove from outbox (Strongly consistent move)
 	if err := h.repo.DeleteOutbox(ctx, entry.ID); err != nil {
 		h.log.WithError(err).Warnf("Successfully logged audit but failed to delete outbox entry %s", entry.ID)
-		// We don't fail here to avoid duplicate processing if possible, 
+		// We don't fail here to avoid duplicate processing if possible,
 		// but the deletion failure will trigger a retry usually.
 	}
 

@@ -33,7 +33,7 @@ func (e *transactionalEnforcer) getEnforcer(ctx context.Context) IEnforcer {
 			return e
 		}
 		enforcer.EnableAutoSave(true)
-		
+
 		return &transientEnforcer{inner: enforcer}
 	}
 

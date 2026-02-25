@@ -9,9 +9,9 @@ import (
 
 // OrganizationResponse represents the response for organization operations
 type OrganizationResponse struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Slug      string `json:"slug"`
+	ID        string                 `json:"id"`
+	Name      string                 `json:"name"`
+	Slug      string                 `json:"slug"`
 	OwnerID   string                 `json:"owner_id"`
 	Settings  map[string]interface{} `json:"settings"`
 	Status    string                 `json:"status"`

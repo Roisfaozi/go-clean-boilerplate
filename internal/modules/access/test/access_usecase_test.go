@@ -112,7 +112,6 @@ func TestGetAllAccessRights(t *testing.T) {
 		deps.Repo.AssertExpectations(t)
 	})
 
-
 	t.Run("Success - Sanitize Inputs", func(t *testing.T) {
 		deps, uc := setupAccessTest()
 		ctx := context.Background()

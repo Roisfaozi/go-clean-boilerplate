@@ -65,7 +65,7 @@ func TestOutboxTaskHandler_ProcessAuditOutbox_Robustness(t *testing.T) {
 		err := handler.ProcessAuditOutbox(ctx, nil)
 
 		// Handler should not return error to asynq (we handled it via failed status)
-		// or it could return error if we want asynq to retry the whole batch. 
+		// or it could return error if we want asynq to retry the whole batch.
 		// In our implementation, we continue to next entry, so we return nil.
 		assert.NoError(t, err)
 		mockRepo.AssertExpectations(t)

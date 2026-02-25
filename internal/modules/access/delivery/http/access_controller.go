@@ -167,8 +167,6 @@ func (h *AccessController) LinkEndpointToAccessRight(c *gin.Context) {
 	response.Success(c, gin.H{"message": "Endpoint linked successfully"})
 }
 
-
-
 // @Summary      Unlink endpoint from access right
 // @Description  Removes an association between an endpoint and a specific access right.
 // @Tags         access-rights
@@ -208,7 +206,6 @@ func (h *AccessController) UnlinkEndpointFromAccessRight(c *gin.Context) {
 
 	response.Success(c, gin.H{"message": "Endpoint unlinked successfully"})
 }
-
 
 // @Summary      Delete access right
 // @Description  Deletes an access right by ID.

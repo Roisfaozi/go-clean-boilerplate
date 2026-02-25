@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
@@ -14,7 +15,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

@@ -90,7 +90,6 @@ func (uc *AccessUseCase) LinkEndpointToAccessRight(ctx context.Context, req mode
 	return nil
 }
 
-
 func (uc *AccessUseCase) UnlinkEndpointFromAccessRight(ctx context.Context, req model.LinkEndpointRequest) error {
 	err := uc.repo.UnlinkEndpointFromAccessRight(ctx, req.AccessRightID, req.EndpointID)
 	if err != nil {
@@ -101,7 +100,6 @@ func (uc *AccessUseCase) UnlinkEndpointFromAccessRight(ctx context.Context, req 
 	uc.log.WithContext(ctx).Infof("Successfully unlinked endpoint %s from access right %s", req.EndpointID, req.AccessRightID)
 	return nil
 }
-
 
 func (uc *AccessUseCase) DeleteAccessRight(ctx context.Context, id string) error {
 	uc.log.WithContext(ctx).Infof("Attempting to delete access right with ID: %s", id)

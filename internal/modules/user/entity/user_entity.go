@@ -9,7 +9,7 @@ const (
 )
 
 type User struct {
-	ID              string                `gorm:"column:id;primaryKey"`
+	ID string `gorm:"column:id;primaryKey"`
 	// OrganizationID is deprecated. Use organization_members table for multi-tenancy.
 	// Kept for backward compatibility during migration.
 	OrganizationID  *string               `gorm:"column:organization_id;index:idx_user_org_deleted;index"`

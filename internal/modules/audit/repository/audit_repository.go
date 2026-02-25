@@ -104,7 +104,6 @@ func (r *auditRepository) FindAllInBatches(ctx context.Context, startTime, endTi
 
 	if startTime > 0 {
 
-
 		query = query.Where("created_at >= ?", startTime)
 
 	}

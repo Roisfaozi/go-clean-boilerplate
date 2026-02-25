@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-
 func setupClientTest() (*Client, *MockManager, *MockPresenceManager) {
 	mockManager := new(MockManager)
 	mockPresence := new(MockPresenceManager)
@@ -20,13 +19,13 @@ func setupClientTest() (*Client, *MockManager, *MockPresenceManager) {
 	config := &WebSocketConfig{}
 
 	client := &Client{
-		ID:       "client-1",
-		UserID:   "user-1",
-		OrgID:    "org-1",
-		Manager:  mockManager,
-		Send:     make(chan []byte, 10),
-		Log:      logger,
-		Config:   config,
+		ID:      "client-1",
+		UserID:  "user-1",
+		OrgID:   "org-1",
+		Manager: mockManager,
+		Send:    make(chan []byte, 10),
+		Log:     logger,
+		Config:  config,
 	}
 
 	return client, mockManager, mockPresence

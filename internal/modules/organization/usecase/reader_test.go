@@ -265,7 +265,6 @@ func TestCachedOrgReader_GetMemberRole_CacheMiss(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-
 func TestCachedOrgReader_InvalidateMembershipCache(t *testing.T) {
 	// Arrange
 	db, mock := redismock.NewClientMock()

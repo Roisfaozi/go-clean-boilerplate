@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	authRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	authUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"

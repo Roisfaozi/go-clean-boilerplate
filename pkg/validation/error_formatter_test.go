@@ -24,7 +24,7 @@ type ExtendedValidationStruct struct {
 }
 
 type InvalidTypeStruct struct {
-	Number int `validate:"xss"`
+	Number int  `validate:"xss"`
 	Flag   bool `validate:"slug"`
 }
 

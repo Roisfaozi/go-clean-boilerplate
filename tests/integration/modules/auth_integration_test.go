@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	auditRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository"
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	authRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	orgRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
@@ -210,10 +210,10 @@ func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 	t.Run("Fail Refresh with Expired Token", func(t *testing.T) {
 		shortJWT := jwt.NewJWTManager("secret", "refresh", time.Minute, 1*time.Millisecond)
 		expToken, _, _ := shortJWT.GenerateTokenPair(jwt.UserContext{
-			UserID:   testUser.ID,
+			UserID:    testUser.ID,
 			SessionID: "sid",
-			Role:     "role:user",
-			Username: "tokenuser",
+			Role:      "role:user",
+			Username:  "tokenuser",
 		})
 		time.Sleep(10 * time.Millisecond)
 
