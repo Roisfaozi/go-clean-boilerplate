@@ -116,6 +116,7 @@ func SetupTestServer(t *testing.T) *TestServer {
 	go func() {
 		if err := app.Scheduler.Start(); err != nil {
 			// t.Logf("Scheduler error: %v", err)
+			return
 		}
 	}()
 
@@ -235,6 +236,7 @@ func SetupTusTestServer(t *testing.T) *TestServer {
 	go func() {
 		if err := app.Scheduler.Start(); err != nil {
 			// t.Logf("Scheduler error: %v", err)
+			return
 		}
 	}()
 
