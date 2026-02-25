@@ -69,7 +69,9 @@ func TestSearchAuditE2E_DynamicSearchAndAudit(t *testing.T) {
 	resp = client.PUT("/api/v1/users/me", updatePayload, setup.WithAuth(targetToken))
 	require.Equal(t, 200, resp.StatusCode)
 
-	time.Sleep(2 * time.Second)
+	// Wait for audit log async processing (Outbox -> Worker -> Log)
+	// Outbox worker runs every 5s, we wait 10s to be safe
+	time.Sleep(10 * time.Second)
 
 	searchPayload := map[string]any{
 		"filter": map[string]any{

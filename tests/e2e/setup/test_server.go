@@ -11,6 +11,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/fixtures"
 	integrationSetup "github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -24,12 +25,14 @@ import (
 )
 
 type TestServer struct {
-	Server   *httptest.Server
-	DB       *gorm.DB
-	Redis    *redis.Client
-	Enforcer usecase.IEnforcer
-	BaseURL  string
-	Client   *TestClient
+	Server    *httptest.Server
+	DB        *gorm.DB
+	Redis     *redis.Client
+	Enforcer  usecase.IEnforcer
+	Scheduler *worker.Scheduler
+	Processor worker.TaskProcessor
+	BaseURL   string
+	Client    *TestClient
 }
 
 func SetupTestServer(t *testing.T) *TestServer {
@@ -84,6 +87,12 @@ func SetupTestServer(t *testing.T) *TestServer {
 				Channel: "/casbin",
 			},
 		},
+		SMTP: config.SMTPConfig{
+			Host:       "127.0.0.1",
+			Port:       1025,
+			FromSender: "NexusOS Admin",
+			FromEmail:  "no-reply@nexusos.dev",
+		},
 		RateLimit: config.RateLimitConfig{
 			Enabled: false,
 		},
@@ -102,16 +111,26 @@ func SetupTestServer(t *testing.T) *TestServer {
 	app, err := config.NewApplication(cfg)
 	require.NoError(t, err)
 
+	// In E2E tests, the processor is started automatically by NewApplication
+	// in a goroutine. However, the scheduler is NOT.
+	go func() {
+		if err := app.Scheduler.Start(); err != nil {
+			// t.Logf("Scheduler error: %v", err)
+		}
+	}()
+
 	server := httptest.NewServer(app.Server.Handler)
 	client := NewTestClient(server.URL)
 
 	return &TestServer{
-		Server:   server,
-		DB:       env.DB,
-		Redis:    env.Redis,
-		Enforcer: app.Enforcer,
-		BaseURL:  server.URL,
-		Client:   client,
+		Server:    server,
+		DB:        env.DB,
+		Redis:     env.Redis,
+		Enforcer:  app.Enforcer,
+		Scheduler: app.Scheduler,
+		Processor: app.TaskProcessor,
+		BaseURL:   server.URL,
+		Client:    client,
 	}
 }
 
@@ -213,20 +232,34 @@ func SetupTusTestServer(t *testing.T) *TestServer {
 	app, err := config.NewApplication(cfg)
 	require.NoError(t, err)
 
+	go func() {
+		if err := app.Scheduler.Start(); err != nil {
+			// t.Logf("Scheduler error: %v", err)
+		}
+	}()
+
 	server := httptest.NewServer(app.Server.Handler)
 	client := NewTestClient(server.URL)
 
 	return &TestServer{
-		Server:   server,
-		DB:       env.DB,
-		Redis:    env.Redis,
-		Enforcer: app.Enforcer,
-		BaseURL:  server.URL,
-		Client:   client,
+		Server:    server,
+		DB:        env.DB,
+		Redis:     env.Redis,
+		Enforcer:  app.Enforcer,
+		Scheduler: app.Scheduler,
+		Processor: app.TaskProcessor,
+		BaseURL:   server.URL,
+		Client:    client,
 	}
 }
 
 func (s *TestServer) Cleanup() {
+	if s.Scheduler != nil {
+		s.Scheduler.Shutdown()
+	}
+	if s.Processor != nil {
+		s.Processor.Shutdown()
+	}
 	if s.Server != nil {
 		s.Server.Close()
 	}

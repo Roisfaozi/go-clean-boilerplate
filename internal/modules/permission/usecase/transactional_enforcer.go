@@ -52,6 +52,14 @@ func (e *transactionalEnforcer) AddPolicy(params ...interface{}) (bool, error) {
 	return e.globalEnforcer.AddPolicy(params...)
 }
 
+func (e *transactionalEnforcer) HasGroupingPolicy(params ...interface{}) (bool, error) {
+	return e.globalEnforcer.HasGroupingPolicy(params...)
+}
+
+func (e *transactionalEnforcer) HasPolicy(params ...interface{}) (bool, error) {
+	return e.globalEnforcer.HasPolicy(params...)
+}
+
 func (e *transactionalEnforcer) RemovePolicy(params ...interface{}) (bool, error) {
 	return e.globalEnforcer.RemovePolicy(params...)
 }
@@ -106,6 +114,14 @@ func (e *transientEnforcer) AddGroupingPolicy(params ...interface{}) (bool, erro
 
 func (e *transientEnforcer) AddPolicy(params ...interface{}) (bool, error) {
 	return e.inner.AddPolicy(params...)
+}
+
+func (e *transientEnforcer) HasGroupingPolicy(params ...interface{}) (bool, error) {
+	return e.inner.HasGroupingPolicy(params...)
+}
+
+func (e *transientEnforcer) HasPolicy(params ...interface{}) (bool, error) {
+	return e.inner.HasPolicy(params...)
 }
 
 func (e *transientEnforcer) RemovePolicy(params ...interface{}) (bool, error) {

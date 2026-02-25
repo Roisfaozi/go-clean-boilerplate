@@ -6,6 +6,8 @@ type IEnforcer interface {
 	WithContext(ctx context.Context) IEnforcer
 	AddGroupingPolicy(params ...interface{}) (bool, error)
 	AddPolicy(params ...interface{}) (bool, error)
+	HasGroupingPolicy(params ...interface{}) (bool, error)
+	HasPolicy(params ...interface{}) (bool, error)
 	RemovePolicy(params ...interface{}) (bool, error)
 	GetPolicy() ([][]string, error)
 	GetFilteredPolicy(fieldIndex int, fieldValues ...string) ([][]string, error)

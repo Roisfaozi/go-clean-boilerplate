@@ -132,6 +132,10 @@ func TestMultiTenancyE2E_MemberFlow(t *testing.T) {
 	var newUser userEntity.User
 	server.DB.Where("email = ?", inviteEmail).First(&newUser)
 
+	// Explicitly reload policy to ensure in-memory enforcer is synced with DB
+	// especially since changes happened in other transactions/handlers
+	_ = server.Enforcer.LoadPolicy()
+
 	ok, _ := server.Enforcer.HasGroupingPolicy(newUser.ID, memberRoleID, orgID)
 	assert.True(t, ok, "Casbin grouping policy should exist for (user, role, org)")
 
