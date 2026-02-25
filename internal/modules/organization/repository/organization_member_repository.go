@@ -87,3 +87,17 @@ func (r *organizationMemberRepository) FindMembers(ctx context.Context, orgID st
 	}
 	return members, nil
 }
+
+// GetMemberRole returns the role of a user in an organization.
+func (r *organizationMemberRepository) GetMemberRole(ctx context.Context, orgID, userID string) (string, error) {
+	var member entity.OrganizationMember
+	err := r.db.WithContext(ctx).
+		Select("role_id").
+		Where("organization_id = ? AND user_id = ? AND status = ?", orgID, userID, entity.MemberStatusActive).
+		First(&member).Error
+
+	if err != nil {
+		return "", err
+	}
+	return member.RoleID, nil
+}

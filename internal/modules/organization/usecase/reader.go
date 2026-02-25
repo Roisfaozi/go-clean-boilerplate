@@ -107,23 +107,11 @@ func (r *CachedOrgReader) GetMemberRole(ctx context.Context, orgID, userID strin
 		r.log.WithError(err).Warn("Redis error during role check, falling back to DB")
 	}
 
-	// 2. Cache miss - query database using GetMemberStatus
-	// Note: GetMemberStatus returns status, we need to add a separate method for role
-	// For now, we'll use status as a fallback indicator
-	status, err := r.memberRepo.GetMemberStatus(ctx, orgID, userID)
+	// 2. Cache miss - query database using GetMemberRole
+	memberRole, err := r.memberRepo.GetMemberRole(ctx, orgID, userID)
 	if err != nil {
 		return "", err
 	}
-
-	if status == "" {
-		// Not a member
-		return "", nil
-	}
-
-	// GetMemberStatus returns status (active/invited/etc), not role
-	// We should return the role here - for now return "member" as default
-	// TODO: Add GetMemberRole to repository interface
-	memberRole := "member"
 
 	// 3. Cache the role
 	r.cacheRole(ctx, orgID, userID, memberRole)

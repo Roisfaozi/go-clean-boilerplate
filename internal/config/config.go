@@ -62,12 +62,13 @@ type StorageConfig struct {
 }
 
 type ServerConfig struct {
-	Port           int           `mapstructure:"port" validate:"required"`
-	ReadTimeout    time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout   time.Duration `mapstructure:"write_timeout"`
-	AppName        string        `mapstructure:"app_name"`
-	AppEnv         string        `mapstructure:"app_env"`
-	TrustedProxies []string      `mapstructure:"trusted_proxies"`
+	Port            int           `mapstructure:"port" validate:"required"`
+	ReadTimeout     time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout    time.Duration `mapstructure:"write_timeout"`
+	AppName         string        `mapstructure:"app_name"`
+	AppEnv          string        `mapstructure:"app_env"`
+	TrustedProxies  []string      `mapstructure:"trusted_proxies"`
+	FrontendBaseURL string        `mapstructure:"frontend_base_url"`
 }
 
 type SecurityConfig struct {

@@ -33,6 +33,7 @@ type organizationMemberUseCase struct {
 	taskDistributor worker.TaskDistributor
 	enforcer        permissionUseCase.IEnforcer
 	presence        PresenceReader
+	frontendBaseURL string
 }
 
 // PresenceReader defines the read-only presence operations to avoid circular dependency
@@ -51,6 +52,7 @@ func NewOrganizationMemberUseCase(
 	taskDistributor worker.TaskDistributor,
 	enforcer permissionUseCase.IEnforcer,
 	presence PresenceReader,
+	frontendBaseURL string,
 ) OrganizationMemberUseCase {
 	return &organizationMemberUseCase{
 		log:             log,
@@ -62,6 +64,7 @@ func NewOrganizationMemberUseCase(
 		taskDistributor: taskDistributor,
 		enforcer:        enforcer,
 		presence:        presence,
+		frontendBaseURL: frontendBaseURL,
 	}
 }
 
@@ -164,7 +167,7 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 		payload := &tasks.SendEmailPayload{
 			To:      targetUser.Email,
 			Subject: "Invitation to join organization",
-			Body:    "You have been invited to join " + org.Name + ". Click here to accept: " + "http://localhost:3000/accept-invite?token=" + tokenString, // TODO: Use config for URL
+			Body:    "You have been invited to join " + org.Name + ". Click here to accept: " + uc.frontendBaseURL + "/accept-invite?token=" + tokenString,
 		}
 
 		if err := uc.taskDistributor.DistributeTaskSendEmail(txCtx, payload); err != nil {
