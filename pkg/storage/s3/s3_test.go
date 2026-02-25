@@ -156,7 +156,7 @@ func TestGetFileUrl(t *testing.T) {
 			return *input.Bucket == "test-bucket" && *input.Key == "test.png"
 		}), mock.Anything).Return(&v4.PresignedHTTPRequest{URL: "http://url.com/test.png"}, nil)
 
-		url, err := storage.GetFileUrl("test.png")
+		url, err := storage.GetFileUrl(context.Background(), "test.png")
 		assert.NoError(t, err)
 		assert.Equal(t, "http://url.com/test.png", url)
 	})
@@ -169,7 +169,7 @@ func TestGetFileUrl(t *testing.T) {
 		}
 		mockPresigner.On("PresignGetObject", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("presign failed"))
 
-		_, err := storage.GetFileUrl("test.png")
+		_, err := storage.GetFileUrl(context.Background(), "test.png")
 		assert.Error(t, err)
 	})
 }

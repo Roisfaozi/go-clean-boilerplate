@@ -400,6 +400,19 @@ func (u *userUseCaseImpl) SetAvatarURL(ctx context.Context, userID string, url s
 	return nil
 }
 
+func (u *userUseCaseImpl) GetAvatarUrl(ctx context.Context, userID string) (string, error) {
+	user, err := u.Repo.FindByID(ctx, userID)
+	if err != nil {
+		return "", exception.ErrNotFound
+	}
+
+	if user.AvatarURL == "" {
+		return "", exception.ErrNotFound
+	}
+
+	return u.Storage.GetFileUrl(ctx, user.AvatarURL)
+}
+
 func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error {
 	if pkg.ContainsSQLInjection(request.ID) {
 		u.Log.Warnf("Potential SQL Injection in Delete User ID: %s", request.ID)

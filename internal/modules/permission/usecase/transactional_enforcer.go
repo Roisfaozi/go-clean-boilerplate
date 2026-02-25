@@ -14,6 +14,7 @@ type transactionalEnforcer struct {
 }
 
 func NewTransactionalEnforcer(globalEnforcer *casbin.Enforcer, casbinModelPath string) IEnforcer {
+	globalEnforcer.EnableAutoSave(true)
 	return &transactionalEnforcer{
 		globalEnforcer: globalEnforcer,
 		casbinModel:    casbinModelPath,
@@ -31,6 +32,7 @@ func (e *transactionalEnforcer) getEnforcer(ctx context.Context) IEnforcer {
 		if err != nil {
 			return e
 		}
+		enforcer.EnableAutoSave(true)
 		
 		return &transientEnforcer{inner: enforcer}
 	}
