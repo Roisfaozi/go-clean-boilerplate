@@ -47,6 +47,7 @@ make test-integration
 
 *   **Setup**: Uses `httptest.Server` connected to the singleton integration containers.
 *   **Client**: Uses a custom `TestClient` wrapper for easy JSON assertions.
+*   **Worker Management**: The `TestServer` explicitly manages `Scheduler` and `TaskProcessor` lifetimes. This ensures that asynchronous side-effects (like Audit Log syncing or Email delivery) actually execute during the test window.
 
 ### Execution
 ```bash
