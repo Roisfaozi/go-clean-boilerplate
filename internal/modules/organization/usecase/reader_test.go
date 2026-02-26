@@ -290,3 +290,29 @@ func TestCachedOrgReader_InvalidateMembershipCache(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestCachedOrgReader_InvalidateOrganizationCache(t *testing.T) {
+	// Arrange
+	db, mock := redismock.NewClientMock()
+	mockRepo := &MockMemberRepository{}
+	log := newTestLogger()
+
+	reader := NewCachedOrgReader(mockRepo, db, log)
+
+	ctx := context.Background()
+	orgID := "org-123"
+	pattern := "org:*:org-123:*"
+
+	// Mock Redis SCAN - returns keys and cursor 0 (stop)
+	mock.ExpectScan(0, pattern, 100).SetVal([]string{"key1", "key2"}, 0)
+
+	// Mock Redis DEL for the found keys
+	mock.ExpectDel("key1", "key2").SetVal(2)
+
+	// Act
+	err := reader.InvalidateOrganizationCache(ctx, orgID)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
