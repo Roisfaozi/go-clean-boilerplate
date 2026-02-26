@@ -115,7 +115,7 @@ func SetupTestServer(t *testing.T) *TestServer {
 	// in a goroutine. However, the scheduler is NOT.
 	go func() {
 		if err := app.Scheduler.Start(); err != nil {
-			// t.Logf("Scheduler error: %v", err)
+			t.Logf("Scheduler error: %v", err)
 		}
 	}()
 
@@ -237,7 +237,7 @@ func SetupTusTestServer(t *testing.T) *TestServer {
 
 	go func() {
 		if err := app.Scheduler.Start(); err != nil {
-			// t.Logf("Scheduler error: %v", err)
+			t.Logf("Scheduler error: %v", err)
 		}
 	}()
 

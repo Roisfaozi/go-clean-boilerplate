@@ -83,7 +83,7 @@ func SetupRustFS(t *testing.T, ctx context.Context) (string, string) {
 		WaitingFor: wait.ForAll(
 			wait.ForListeningPort("9000/tcp"),
 			wait.ForHTTP("/minio/health/live").WithPort("9000/tcp"),
-		).WithStartupTimeout(60 * time.Second),
+		).WithDeadline(60 * time.Second),
 	}
 
 	rustfsC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
