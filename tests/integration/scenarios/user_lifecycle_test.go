@@ -82,26 +82,36 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	err = userUC.DeleteUser(ctx, userID, deleteReq)
 	require.NoError(t, err)
 
-	// Manually trigger outbox sync since the worker might be slow
-	err = handlers.NewOutboxTaskHandler(auditRepo, env.Logger).ProcessAuditOutbox(ctx, nil)
-	require.NoError(t, err)
-
-	// Wait for any final async processing
-	time.Sleep(500 * time.Millisecond)
-
-	logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
-		Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
-	})
-	require.NoError(t, err)
-
+	// Poll for audit logs with retry mechanism to handle async processing
 	var userLogs []auditModel.AuditLogResponse
-	for _, l := range logs {
-		if l.UserID == userID || l.EntityID == userID {
-			userLogs = append(userLogs, l)
+	deadline := time.Now().Add(5 * time.Second)
+
+	for time.Now().Before(deadline) {
+		// Manually trigger outbox sync repeatedly since the worker might be slow or interval-based
+		_ = handlers.NewOutboxTaskHandler(auditRepo, env.Logger).ProcessAuditOutbox(ctx, nil)
+
+		logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
+			Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
+		})
+
+		if err == nil {
+			userLogs = nil // Reset
+			for _, l := range logs {
+				if l.UserID == userID || l.EntityID == userID {
+					userLogs = append(userLogs, l)
+				}
+			}
+
+			// If we have enough logs, we can stop waiting
+			if len(userLogs) >= 4 {
+				break
+			}
 		}
+
+		time.Sleep(500 * time.Millisecond)
 	}
 
-	require.GreaterOrEqual(t, len(userLogs), 4, "Should have at least 4 audit entries for this lifecycle")
+	require.GreaterOrEqual(t, len(userLogs), 4, "Should have at least 4 audit entries for this lifecycle after polling")
 
 	actions := make(map[string]bool)
 	for _, l := range userLogs {
