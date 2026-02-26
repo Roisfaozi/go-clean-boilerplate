@@ -297,6 +297,8 @@ definitions:
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignRoleRequest:
     properties:
+      domain:
+        type: string
       role:
         type: string
       user_id:
@@ -324,6 +326,8 @@ definitions:
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.GrantPermissionRequest:
     properties:
+      domain:
+        type: string
       method:
         type: string
       path:
@@ -387,6 +391,8 @@ definitions:
     properties:
       child_role:
         type: string
+      domain:
+        type: string
       parent_role:
         type: string
     required:
@@ -443,6 +449,48 @@ definitions:
     required:
     - new_permission
     - old_permission
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_project_model.CreateProjectRequest:
+    properties:
+      domain:
+        minLength: 1
+        type: string
+      name:
+        minLength: 1
+        type: string
+    required:
+    - domain
+    - name
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_project_model.ProjectResponse:
+    properties:
+      created_at:
+        type: integer
+      domain:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      organization_id:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: integer
+      user_id:
+        type: string
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_project_model.UpdateProjectRequest:
+    properties:
+      domain:
+        minLength: 1
+        type: string
+      name:
+        minLength: 1
+        type: string
+      status:
+        type: string
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.CreateRoleRequest:
     properties:
@@ -552,6 +600,8 @@ definitions:
         maximum: 100
         minimum: 1
         type: integer
+      skip_count:
+        type: boolean
       sort:
         items:
           $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.SortModel'
@@ -1989,8 +2039,17 @@ paths:
     post:
       consumes:
       - application/json
-      description: Assigns a role to a specified user (Casbin).
+      description: Assigns a role to a specified user (Casbin). Defaults to 'global'
+        domain.
       parameters:
+      - description: Organization ID
+        in: header
+        name: X-Organization-ID
+        type: string
+      - description: Organization Slug
+        in: header
+        name: X-Organization-Slug
+        type: string
       - description: Assign Role Request
         in: body
         name: request
@@ -2074,7 +2133,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Grants a permission (path + method) to a role (Casbin).
+      description: Grants a permission (path + method) to a role (Casbin). Defaults
+        to 'global' domain.
       parameters:
       - description: Grant Permission Request
         in: body
@@ -2114,7 +2174,8 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Removes a parent-child relationship between two roles.
+      description: Removes a parent-child relationship between two roles. Defaults
+        to 'global' domain.
       parameters:
       - description: Role Inheritance Request
         in: body
@@ -2153,7 +2214,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a parent-child relationship between two roles.
+      description: Creates a parent-child relationship between two roles. Defaults
+        to 'global' domain.
       parameters:
       - description: Role Inheritance Request
         in: body
@@ -2219,12 +2281,17 @@ paths:
       - permissions
   /permissions/parents/{role}:
     get:
-      description: Retrieves all parent roles for a given role.
+      description: Retrieves all parent roles for a given role. Defaults to 'global'
+        domain.
       parameters:
       - description: Role name
         in: path
         name: role
         required: true
+        type: string
+      - description: Domain/Organization ID (defaults to 'global')
+        in: query
+        name: domain
         type: string
       produces:
       - application/json
@@ -2282,7 +2349,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Revokes a permission (path + method) from a role (Casbin).
+      description: Revokes a permission (path + method) from a role (Casbin). Defaults
+        to 'global' domain.
       parameters:
       - description: Revoke Permission Request
         in: body
@@ -2322,7 +2390,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Revokes a role from a specified user (Casbin).
+      description: Revokes a role from a specified user (Casbin). Defaults to 'global'
+        domain.
       parameters:
       - description: Revoke Role Request
         in: body
@@ -2393,12 +2462,17 @@ paths:
       - permissions
   /permissions/roles/{role}/users:
     get:
-      description: Retrieves all user IDs assigned to a specific role.
+      description: Retrieves all user IDs assigned to a specific role. Defaults to
+        'global' domain.
       parameters:
       - description: Role name
         in: path
         name: role
         required: true
+        type: string
+      - description: Domain/Organization ID (defaults to 'global')
+        in: query
+        name: domain
         type: string
       produces:
       - application/json
@@ -2424,6 +2498,225 @@ paths:
       summary: Get users for role
       tags:
       - permissions
+  /projects:
+    get:
+      description: Returns a list of all projects belonging to the active organization.
+      parameters:
+      - description: Organization ID
+        in: header
+        name: X-Organization-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Projects retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_project_model.ProjectResponse'
+                  type: array
+              type: object
+        "400":
+          description: Missing organization ID
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get all projects
+      tags:
+      - projects
+    post:
+      consumes:
+      - application/json
+      description: Creates a new project within the active organization context.
+      parameters:
+      - description: Organization ID
+        in: header
+        name: X-Organization-ID
+        required: true
+        type: string
+      - description: Create Project Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_project_model.CreateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Project created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_project_model.ProjectResponse'
+              type: object
+        "400":
+          description: Invalid request body or missing organization ID
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Create project
+      tags:
+      - projects
+  /projects/{id}:
+    delete:
+      description: Soft deletes a project from the active organization.
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Project deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Project not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Delete project
+      tags:
+      - projects
+    get:
+      description: Returns detailed information about a specific project.
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Project retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_project_model.ProjectResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Project not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get project by ID
+      tags:
+      - projects
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing project's details.
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-ID
+        required: true
+        type: string
+      - description: Update Project Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_project_model.UpdateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Project updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_project_model.ProjectResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Project not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Update project
+      tags:
+      - projects
   /roles:
     get:
       description: Get a list of all available roles.

@@ -33,6 +33,8 @@ func NewPermissionController(useCase usecase.IPermissionUseCase, log *logrus.Log
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
+// @Param        X-Organization-ID header string false "Organization ID"
+// @Param        X-Organization-Slug header string false "Organization Slug"
 // @Param        request body model.AssignRoleRequest true "Assign Role Request"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Role assigned successfully"
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
