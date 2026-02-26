@@ -8,7 +8,7 @@ type CreateProjectRequest struct {
 type UpdateProjectRequest struct {
 	Name   string `json:"name" validate:"omitempty,min=1,max=100,xss"`
 	Domain string `json:"domain" validate:"omitempty,min=1,max=100,xss"`
-	Status string `json:"status" validate:"omitempty"`
+Status string `json:"status" validate:"omitempty,max=50,xss"`
 }
 
 type ProjectResponse struct {
