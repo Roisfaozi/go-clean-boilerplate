@@ -4658,6 +4658,9 @@ const docTemplate = `{
                 "action": {
                     "type": "string"
                 },
+                "domain": {
+                    "type": "string"
+                },
                 "resource": {
                     "type": "string"
                 }
@@ -4776,6 +4779,12 @@ const docTemplate = `{
                 },
                 "parent_id": {
                     "type": "string"
+                },
+                "parents": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

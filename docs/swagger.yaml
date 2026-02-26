@@ -350,6 +350,8 @@ definitions:
     properties:
       action:
         type: string
+      domain:
+        type: string
       resource:
         type: string
     required:
@@ -431,6 +433,10 @@ definitions:
         type: array
       parent_id:
         type: string
+      parents:
+        items:
+          type: string
+        type: array
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.UpdatePermissionRequest:
     properties:
