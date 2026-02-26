@@ -33,6 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { accessApi, AccessRight, Endpoint } from "~/lib/api/access";
 import { Role } from "~/lib/api/roles";
 import { User, usersApi } from "~/lib/api/users";
+import { useOrganizationStore } from "~/stores/use-organization-store";
 
 interface RoleDetailSheetProps {
   role?: Role;
@@ -45,6 +46,7 @@ export function RoleDetailSheet({
   open,
   onOpenChange,
 }: RoleDetailSheetProps) {
+  const { currentOrganization } = useOrganizationStore();
   const [members, setMembers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -57,7 +59,9 @@ export function RoleDetailSheet({
     if (!role) return;
     setIsLoading(true);
     try {
+      const domain = currentOrganization?.slug || "global";
       const resp = await accessApi.getUsersForRole(role.name);
+      // Note: Backend getUsersForRole might need domain too, checking accessApi
       const userIds = resp.data || [];
 
       if (userIds.length === 0) {
@@ -65,14 +69,12 @@ export function RoleDetailSheet({
         return;
       }
 
-      const userPromises = userIds
-        .slice(0, 50)
-        .map((id) =>
-          usersApi.getById(id).catch((err) => {
-            console.warn(`Failed to fetch user ${id}`, err);
-            return null;
-          })
-        );
+      const userPromises = userIds.slice(0, 50).map((id) =>
+        usersApi.getById(id).catch((err) => {
+          console.warn(`Failed to fetch user ${id}`, err);
+          return null;
+        })
+      );
       const userResps = await Promise.all(userPromises);
       setMembers(
         userResps
@@ -86,7 +88,7 @@ export function RoleDetailSheet({
     } finally {
       setIsLoading(false);
     }
-  }, [role]);
+  }, [role, currentOrganization]);
 
   useEffect(() => {
     if (open && role) {
@@ -119,8 +121,9 @@ export function RoleDetailSheet({
     if (!role) return;
     setIsAdding(true);
     try {
-      await accessApi.assignRole(user.id, role.name);
-      toast.success(`${user.username} added to ${role.name}`);
+      const domain = currentOrganization?.slug || "global";
+      await accessApi.assignRole(user.id, role.name, domain);
+      toast.success(`${user.username} added to ${role.name} (${domain})`);
       setMembers((prev) => [...prev, user]);
       setSearchQuery("");
       setSearchResults([]);
@@ -135,8 +138,9 @@ export function RoleDetailSheet({
     if (!role) return;
     setIsProcessing(userId);
     try {
-      await accessApi.revokeRole(userId, role.name);
-      toast.success(`${username} removed from ${role.name}`);
+      const domain = currentOrganization?.slug || "global";
+      await accessApi.revokeRole(userId, role.name, domain);
+      toast.success(`${username} removed from ${role.name} (${domain})`);
       setMembers((prev) => prev.filter((m) => m.id !== userId));
     } catch (error) {
       toast.error("Failed to remove member");
@@ -338,6 +342,7 @@ export function RoleDetailSheet({
 }
 
 function RolePermissionsTab({ role }: { role?: Role }) {
+  const { currentOrganization } = useOrganizationStore();
   const [accessRights, setAccessRights] = useState<AccessRight[]>([]);
   const [rolePerms, setRolePerms] = useState<string[][]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -389,16 +394,24 @@ function RolePermissionsTab({ role }: { role?: Role }) {
 
     setIsProcessing(right.id);
     try {
+      const domain = currentOrganization?.slug || "global";
       const promises = right.endpoints.map((e) => {
         if (active) {
-          return accessApi.grantPermission(role.name, e.path, e.method);
+          return accessApi.grantPermission(role.name, e.path, e.method, domain);
         } else {
-          return accessApi.revokePermission(role.name, e.path, e.method);
+          return accessApi.revokePermission(
+            role.name,
+            e.path,
+            e.method,
+            domain
+          );
         }
       });
 
       await Promise.all(promises);
-      toast.success(`${active ? "Granted" : "Revoked"} ${right.name}`);
+      toast.success(
+        `${active ? "Granted" : "Revoked"} ${right.name} in ${domain}`
+      );
       fetchData(); // Refresh permissions
     } catch (error) {
       console.error("Permission update failed", error);

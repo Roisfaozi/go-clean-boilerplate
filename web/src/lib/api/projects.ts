@@ -23,45 +23,24 @@ interface RequestOptions {
 }
 
 export const projectsApi = {
-  getAll: (orgId: string, options?: RequestOptions) =>
+  getAll: (options?: RequestOptions) =>
+    api.get<ProjectListResponse>("/projects", options).then((res) => res.data),
+
+  getByID: (id: string, options?: RequestOptions) =>
     api
-      .get<ProjectListResponse>("/projects", {
-        headers: { "X-Organization-ID": orgId, ...options?.headers },
-      })
+      .get<{ data: Project }>(`/projects/${id}`, options)
       .then((res) => res.data),
 
-  getByID: (orgId: string, id: string, options?: RequestOptions) =>
+  create: (req: CreateProjectRequest, options?: RequestOptions) =>
     api
-      .get<{ data: Project }>(`/projects/${id}`, {
-        headers: { "X-Organization-ID": orgId, ...options?.headers },
-      })
+      .post<{ data: Project }>("/projects", req, options)
       .then((res) => res.data),
 
-  create: (
-    orgId: string,
-    req: CreateProjectRequest,
-    options?: RequestOptions
-  ) =>
+  update: (id: string, req: UpdateProjectRequest, options?: RequestOptions) =>
     api
-      .post<{ data: Project }>("/projects", req, {
-        headers: { "X-Organization-ID": orgId, ...options?.headers },
-      })
+      .put<{ data: Project }>(`/projects/${id}`, req, options)
       .then((res) => res.data),
 
-  update: (
-    orgId: string,
-    id: string,
-    req: UpdateProjectRequest,
-    options?: RequestOptions
-  ) =>
-    api
-      .put<{ data: Project }>(`/projects/${id}`, req, {
-        headers: { "X-Organization-ID": orgId, ...options?.headers },
-      })
-      .then((res) => res.data),
-
-  delete: (orgId: string, id: string, options?: RequestOptions) =>
-    api.delete(`/projects/${id}`, {
-      headers: { "X-Organization-ID": orgId, ...options?.headers },
-    }),
+  delete: (id: string, options?: RequestOptions) =>
+    api.delete(`/projects/${id}`, options),
 };

@@ -1,4 +1,5 @@
 import { useAuthStore } from "~/stores/use-auth-store";
+import { useOrganizationStore } from "~/stores/use-organization-store";
 
 type FetchOptions = RequestInit & {
   headers?: Record<string, string>;
@@ -32,15 +33,41 @@ class ApiClient {
       headers["Content-Type"] = "application/json";
     }
 
+    // Automatically inject organization context if available
+    if (!isServer) {
+      const currentOrg = useOrganizationStore.getState().currentOrganization;
+      if (currentOrg) {
+        if (!headers["X-Organization-ID"]) {
+          headers["X-Organization-ID"] = currentOrg.id;
+        }
+        if (!headers["X-Organization-Slug"]) {
+          headers["X-Organization-Slug"] = currentOrg.slug;
+        }
+      }
+    }
+
     if (isServer) {
       try {
         const { cookies } = await import("next/headers");
         const cookieStore = await cookies();
+
+        // Pass all cookies
         const cookieStrings = cookieStore
           .getAll()
           .map((c) => `${c.name}=${c.value}`);
         if (cookieStrings.length > 0) {
           headers["Cookie"] = cookieStrings.join("; ");
+        }
+
+        // Specifically inject Org headers from specific cookies if they exist
+        const orgId = cookieStore.get("organization_id")?.value;
+        const orgSlug = cookieStore.get("organization_slug")?.value;
+
+        if (orgId && !headers["X-Organization-ID"]) {
+          headers["X-Organization-ID"] = orgId;
+        }
+        if (orgSlug && !headers["X-Organization-Slug"]) {
+          headers["X-Organization-Slug"] = orgSlug;
         }
       } catch (error) {
         // Ignore errors if next/headers is not available

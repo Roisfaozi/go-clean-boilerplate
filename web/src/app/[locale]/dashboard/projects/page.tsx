@@ -11,7 +11,7 @@ export default async function ProjectsPage() {
   let initialData = undefined;
   if (orgId) {
     try {
-      initialData = await projectsApi.getAll(orgId);
+      initialData = await projectsApi.getAll();
     } catch (error) {
       console.error("Failed to fetch initial projects on server", error);
     }

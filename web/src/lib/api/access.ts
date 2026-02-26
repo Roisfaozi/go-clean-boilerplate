@@ -74,20 +74,38 @@ export const accessApi = {
     });
   },
 
-  assignRole: (userId: string, role: string) => {
-    return api.post("/permissions/assign-role", { user_id: userId, role });
+  assignRole: (userId: string, role: string, domain?: string) => {
+    return api.post("/permissions/assign-role", {
+      user_id: userId,
+      role,
+      domain,
+    });
   },
 
-  revokeRole: (userId: string, role: string) => {
-    return api.post("/permissions/revoke-role", { user_id: userId, role });
+  revokeRole: (userId: string, role: string, domain?: string) => {
+    return api.post("/permissions/revoke-role", {
+      user_id: userId,
+      role,
+      domain,
+    });
   },
 
-  grantPermission: (role: string, path: string, method: string) => {
-    return api.post("/permissions/grant", { role, path, method });
+  grantPermission: (
+    role: string,
+    path: string,
+    method: string,
+    domain?: string
+  ) => {
+    return api.post("/permissions/grant", { role, path, method, domain });
   },
 
-  revokePermission: (role: string, path: string, method: string) => {
-    return api.post("/permissions/revoke", { role, path, method });
+  revokePermission: (
+    role: string,
+    path: string,
+    method: string,
+    domain?: string
+  ) => {
+    return api.post("/permissions/revoke", { role, path, method, domain });
   },
 
   checkBatch: (items: { resource: string; action: string }[]) => {
@@ -109,17 +127,26 @@ export const accessApi = {
     return api.get<{ data: string[] }>(`/permissions/parents/${role}`);
   },
 
-  addInheritance: (childRole: string, parentRole: string) => {
+  addInheritance: (childRole: string, parentRole: string, domain?: string) => {
     return api.post("/permissions/inheritance", {
       child_role: childRole,
       parent_role: parentRole,
+      domain,
     });
   },
 
-  removeInheritance: (childRole: string, parentRole: string) => {
+  removeInheritance: (
+    childRole: string,
+    parentRole: string,
+    domain?: string
+  ) => {
     return api.delete("/permissions/inheritance", {
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ child_role: childRole, parent_role: parentRole }),
+      body: JSON.stringify({
+        child_role: childRole,
+        parent_role: parentRole,
+        domain,
+      }),
     } as any);
   },
 

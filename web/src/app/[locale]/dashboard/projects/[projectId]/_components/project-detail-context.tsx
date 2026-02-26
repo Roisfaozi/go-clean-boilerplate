@@ -40,11 +40,7 @@ export function ProjectDetailProvider({
       if (!currentOrganization) return;
       setIsLoading(true);
       try {
-        const resp = await projectsApi.update(
-          currentOrganization.id,
-          project.id,
-          data
-        );
+        const resp = await projectsApi.update(project.id, data);
         if (resp) {
           setProject(resp);
           toast.success("Project updated successfully");
@@ -69,7 +65,7 @@ export function ProjectDetailProvider({
 
     setIsLoading(true);
     try {
-      await projectsApi.delete(currentOrganization.id, project.id);
+      await projectsApi.delete(project.id);
       toast.success("Project deleted successfully");
       router.push("/dashboard/projects");
     } catch (error) {

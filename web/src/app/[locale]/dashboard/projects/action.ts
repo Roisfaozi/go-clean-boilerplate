@@ -24,7 +24,7 @@ export const createProjectAction = authActionClient
     const orgId = await getOrgId();
     if (!orgId) throw new Error("No organization selected");
 
-    const result = await projectsApi.create(orgId, parsedInput);
+    const result = await projectsApi.create(parsedInput);
     revalidatePath(`/dashboard/projects`);
     return result;
   });
@@ -37,7 +37,7 @@ export const updateProjectAction = authActionClient
     const orgId = await getOrgId();
     if (!orgId) throw new Error("No organization selected");
 
-    const result = await projectsApi.update(orgId, id, payload);
+    const result = await projectsApi.update(id, payload);
     revalidatePath(`/dashboard/projects`);
     return result;
   });
@@ -49,7 +49,7 @@ export const deleteProjectAction = authActionClient
     const orgId = await getOrgId();
     if (!orgId) throw new Error("No organization selected");
 
-    await projectsApi.delete(orgId, parsedInput.id);
+    await projectsApi.delete(parsedInput.id);
     revalidatePath(`/dashboard/projects`);
     redirect("/dashboard/projects");
   });
@@ -60,7 +60,7 @@ export async function checkIfFreePlanLimitReached() {
   if (!orgId) return true;
 
   try {
-    const projects = await projectsApi.getAll(orgId);
+    const projects = await projectsApi.getAll();
     return (projects?.length || 0) >= 3;
   } catch (error) {
     return false;
@@ -72,7 +72,7 @@ export async function getProjects() {
   if (!orgId) return [];
 
   try {
-    const projects = await projectsApi.getAll(orgId);
+    const projects = await projectsApi.getAll();
     return projects || [];
   } catch (error) {
     console.error("Failed to fetch projects:", error);
@@ -85,7 +85,7 @@ export async function getProjectById(id: string) {
   if (!orgId) return null;
 
   try {
-    const project = await projectsApi.getByID(orgId, id);
+    const project = await projectsApi.getByID(id);
     return project;
   } catch (error) {
     return null;

@@ -34,7 +34,7 @@ export function ProjectsProvider({
     mutate,
   } = useSWR(
     currentOrganization ? ["/api/v1/projects", currentOrganization.id] : null,
-    ([_, orgId]) => projectsApi.getAll(orgId),
+    () => projectsApi.getAll(),
     {
       fallbackData: initialData,
       keepPreviousData: true,
@@ -49,7 +49,7 @@ export function ProjectsProvider({
     async (data: { name: string; domain: string }) => {
       if (!currentOrganization) return;
       try {
-        await projectsApi.create(currentOrganization.id, data);
+        await projectsApi.create(data);
         toast.success("Project created successfully");
         await mutate();
       } catch (error) {
@@ -64,7 +64,7 @@ export function ProjectsProvider({
     async (id: string, data: any) => {
       if (!currentOrganization) return;
       try {
-        await projectsApi.update(currentOrganization.id, id, data);
+        await projectsApi.update(id, data);
         toast.success("Project updated successfully");
         await mutate();
       } catch (error) {
@@ -78,7 +78,7 @@ export function ProjectsProvider({
     async (id: string) => {
       if (!currentOrganization) return;
       try {
-        await projectsApi.delete(currentOrganization.id, id);
+        await projectsApi.delete(id);
         toast.success("Project deleted successfully");
         await mutate();
       } catch (error) {
