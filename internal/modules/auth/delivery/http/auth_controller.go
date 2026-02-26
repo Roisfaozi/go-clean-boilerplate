@@ -114,15 +114,24 @@ func (h *AuthController) RefreshToken(c *gin.Context) {
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /auth/logout [post]
 func (h *AuthController) Logout(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-	sessionID, _ := c.Get("session_id")
-
-	if userID == nil || sessionID == nil {
+	userID, exists := c.Get("user_id")
+	if !exists || userID == nil {
 		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
 		return
 	}
+	userIDStr, ok := userID.(string)
+	if !ok {
+		response.Unauthorized(c, exception.ErrUnauthorized, "invalid user context")
+		return
+	}
 
-	err := h.AuthUseCase.RevokeToken(c.Request.Context(), userID.(string), sessionID.(string))
+	sessionID, ok := GetSessionIDFromContext(c)
+	if !ok {
+		response.Unauthorized(c, exception.ErrUnauthorized, "invalid session context")
+		return
+	}
+
+	err := h.AuthUseCase.RevokeToken(c.Request.Context(), userIDStr, sessionID)
 	if err != nil {
 		response.HandleError(c, err, "Logout failed")
 		return
@@ -254,8 +263,13 @@ func (h *AuthController) ResendVerification(c *gin.Context) {
 		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
 		return
 	}
+	userIDStr, ok := userID.(string)
+	if !ok {
+		response.Unauthorized(c, exception.ErrUnauthorized, "invalid user context")
+		return
+	}
 
-	err := h.AuthUseCase.RequestVerification(c.Request.Context(), userID.(string))
+	err := h.AuthUseCase.RequestVerification(c.Request.Context(), userIDStr)
 	if err != nil {
 		response.HandleError(c, err, "failed to request verification email")
 		return
@@ -320,12 +334,21 @@ func (h *AuthController) Register(c *gin.Context) {
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Router       /auth/me [get]
 func (h *AuthController) Me(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-	username, _ := c.Get("username")
-	role, _ := c.Get("user_role")
-
-	if userID == nil {
+	userID, exists := c.Get("user_id")
+	if !exists || userID == nil {
 		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+
+	username, ok := GetUsernameFromContext(c)
+	if !ok {
+		response.Unauthorized(c, exception.ErrUnauthorized, "invalid username context")
+		return
+	}
+
+	role, ok := GetRoleFromContext(c)
+	if !ok {
+		response.Unauthorized(c, exception.ErrUnauthorized, "invalid role context")
 		return
 	}
 
@@ -350,15 +373,34 @@ func (h *AuthController) Me(c *gin.Context) {
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /auth/ticket [post]
 func (h *AuthController) GetTicket(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-	if userID == nil {
+	userID, exists := c.Get("user_id")
+	if !exists || userID == nil {
 		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
 		return
 	}
+	userIDStr, ok := userID.(string)
+	if !ok {
+		response.Unauthorized(c, exception.ErrUnauthorized, "invalid user context")
+		return
+	}
 
-	sessionID, _ := GetSessionIDFromContext(c)
-	role, _ := GetRoleFromContext(c)
-	username, _ := GetUsernameFromContext(c)
+	sessionID, ok := GetSessionIDFromContext(c)
+	if !ok {
+		response.Unauthorized(c, exception.ErrUnauthorized, "invalid session context")
+		return
+	}
+
+	role, ok := GetRoleFromContext(c)
+	if !ok {
+		response.Unauthorized(c, exception.ErrUnauthorized, "invalid role context")
+		return
+	}
+
+	username, ok := GetUsernameFromContext(c)
+	if !ok {
+		response.Unauthorized(c, exception.ErrUnauthorized, "invalid username context")
+		return
+	}
 
 	orgID := c.Query("org_id")
 	if orgID == "" {
@@ -372,7 +414,7 @@ func (h *AuthController) GetTicket(c *gin.Context) {
 	ticket, err := h.AuthUseCase.GetTicket(
 		c.Request.Context(),
 		model.UserSessionContext{
-			UserID:    userID.(string),
+			UserID:    userIDStr,
 			OrgID:     orgID,
 			SessionID: sessionID,
 			Role:      role,

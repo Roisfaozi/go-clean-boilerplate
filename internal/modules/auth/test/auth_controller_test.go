@@ -507,3 +507,137 @@ func TestAuthController_Login_XSS(t *testing.T) {
 	assert.Equal(t, 422, w.Code) // Validation Error
 	assert.Contains(t, w.Body.String(), "xss")
 }
+
+func TestAuthHandler_Register_Success(t *testing.T) {
+	mockUseCase := new(mocks.MockAuthUseCase)
+	handler := newTestAuthController(mockUseCase)
+	router := setupAuthTestRouter()
+	router.POST("/auth/register", handler.Register)
+
+	reqBody := model.RegisterRequest{
+		Username: "newuser",
+		Email:    "new@example.com",
+		Password: "password123",
+		Name:     "New User",
+	}
+	loginRes := &model.LoginResponse{AccessToken: "access_token", TokenType: "Bearer"}
+	refreshToken := "refresh_token"
+
+	mockUseCase.On("Register", mock.Anything, mock.MatchedBy(func(r model.RegisterRequest) bool {
+		return r.Username == reqBody.Username
+	})).Return(loginRes, refreshToken, nil)
+
+	bodyBytes, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Contains(t, w.Header().Get("Set-Cookie"), "refresh_token=refresh_token")
+}
+
+func TestAuthHandler_Register_Failure(t *testing.T) {
+	mockUseCase := new(mocks.MockAuthUseCase)
+	handler := newTestAuthController(mockUseCase)
+	router := setupAuthTestRouter()
+	router.POST("/auth/register", handler.Register)
+
+	reqBody := model.RegisterRequest{
+		Username: "existing",
+		Email:    "existing@example.com",
+		Password: "password123",
+		Name:     "Existing User",
+	}
+
+	mockUseCase.On("Register", mock.Anything, mock.Anything).Return(nil, "", errors.New("username already exists"))
+
+	bodyBytes, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code) // Controller uses HandleError -> InternalServerError by default for unknown errors
+}
+
+func TestAuthHandler_Me_Success(t *testing.T) {
+	mockUseCase := new(mocks.MockAuthUseCase)
+	handler := newTestAuthController(mockUseCase)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest(http.MethodGet, "/auth/me", nil)
+	c.Set("user_id", "user-123")
+	c.Set("username", "testuser")
+	c.Set("user_role", "admin")
+
+	handler.Me(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var responseBody map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+	assert.NoError(t, err)
+	user := responseBody["data"].(map[string]interface{})["user"].(map[string]interface{})
+	assert.Equal(t, "user-123", user["id"])
+	assert.Equal(t, "testuser", user["username"])
+	assert.Equal(t, "admin", user["role"])
+}
+
+func TestAuthHandler_Me_Unauthorized(t *testing.T) {
+	mockUseCase := new(mocks.MockAuthUseCase)
+	handler := newTestAuthController(mockUseCase)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest(http.MethodGet, "/auth/me", nil)
+	// Missing context values
+
+	handler.Me(c)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestAuthHandler_GetTicket_Success(t *testing.T) {
+	mockUseCase := new(mocks.MockAuthUseCase)
+	handler := newTestAuthController(mockUseCase)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest(http.MethodPost, "/auth/ticket?org_id=org-123", nil)
+	c.Set("user_id", "user-123")
+	c.Set("session_id", "session-456")
+	c.Set("user_role", "user")
+	c.Set("username", "testuser")
+
+	expectedTicket := "valid-ticket"
+	mockUseCase.On("GetTicket", mock.Anything, mock.MatchedBy(func(ctx model.UserSessionContext) bool {
+		return ctx.UserID == "user-123" && ctx.OrgID == "org-123" && ctx.SessionID == "session-456"
+	})).Return(expectedTicket, nil)
+
+	handler.GetTicket(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var responseBody map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+	assert.NoError(t, err)
+	data := responseBody["data"].(map[string]interface{})
+	assert.Equal(t, expectedTicket, data["ticket"])
+}
+
+func TestAuthHandler_GetTicket_Unauthorized(t *testing.T) {
+	mockUseCase := new(mocks.MockAuthUseCase)
+	handler := newTestAuthController(mockUseCase)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest(http.MethodPost, "/auth/ticket", nil)
+	// Missing context
+
+	handler.GetTicket(c)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	mockUseCase.AssertNotCalled(t, "GetTicket", mock.Anything, mock.Anything)
+}
