@@ -452,9 +452,10 @@ func GetRoleFromContext(c *gin.Context) (string, bool) {
 		return "", false
 	}
 	roleStr, ok := role.(string)
-	if !ok || roleStr == "" {
+	if !ok {
 		return "", false
 	}
+	// Role can be empty for new users or if not enforced
 	return roleStr, true
 }
 

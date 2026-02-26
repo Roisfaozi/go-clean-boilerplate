@@ -86,19 +86,26 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	err = handlers.NewOutboxTaskHandler(auditRepo, env.Logger).ProcessAuditOutbox(ctx, nil)
 	require.NoError(t, err)
 
-	// Wait for any final async processing
-	time.Sleep(500 * time.Millisecond)
-
-	logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
-		Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
-	})
-	require.NoError(t, err)
-
 	var userLogs []auditModel.AuditLogResponse
-	for _, l := range logs {
-		if l.UserID == userID || l.EntityID == userID {
-			userLogs = append(userLogs, l)
+
+	// Poll for logs with retry
+	for i := 0; i < 20; i++ {
+		logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
+			Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
+		})
+		require.NoError(t, err)
+
+		userLogs = nil
+		for _, l := range logs {
+			if l.UserID == userID || l.EntityID == userID {
+				userLogs = append(userLogs, l)
+			}
 		}
+
+		if len(userLogs) >= 4 {
+			break
+		}
+		time.Sleep(250 * time.Millisecond)
 	}
 
 	require.GreaterOrEqual(t, len(userLogs), 4, "Should have at least 4 audit entries for this lifecycle")
