@@ -110,16 +110,7 @@ func TestProjectController_Update_Validation(t *testing.T) {
 	// Mock successful update if validation is bypassed
 	mockUC.On("UpdateProject", mock.Anything, "123", mock.Anything).Return(&model.ProjectResponse{ID: "123"}, nil)
 
-	// Test Case: Empty Name (Should Fail Validation if we had required on Update, but Update is usually optional fields.
-	// However, min=1 means if provided, it must be at least 1 char.
-	// Let's try sending an empty string for name explicitly?)
-	// UpdateProjectRequest: Name string `json:"name" validate:"omitempty,min=1"`
-	// If I send `{"name": ""}`, `omitempty` might ignore it if it's empty value? No, `omitempty` usually means ignore if zero value.
-	// Empty string IS zero value. So `min=1` is skipped.
-
-	// Wait, I plan to add `xss` validation.
-	// If I send `{"name": "<script>alert(1)</script>"}`, it should fail XSS validation (which I will add).
-	// Currently, it has NO XSS validation.
+// Test Case: XSS Payload (Should Fail Validation)
 
 	// So let's test XSS vulnerability.
 	reqBody := model.UpdateProjectRequest{
