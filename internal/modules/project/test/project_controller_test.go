@@ -137,11 +137,7 @@ func TestProjectController_Update_Validation(t *testing.T) {
 	// If fixed (XSS check added & validation enabled): w.Code will be 422/400
 
 	if w.Code == http.StatusOK {
-		t.Log("VULNERABILITY CONFIRMED: Updated project with XSS payload")
-		// t.Fail() // We don't fail here yet because I haven't added XSS tag yet, so this is expected behavior for now.
-		// But once I add XSS tag and fix controller, this SHOULD fail (return 422).
-		// For now, I will assert that we WANT 422, so it fails if it's 200.
-		t.Fail()
+t.Errorf("Vulnerability confirmed: project updated with XSS payload")
 	} else {
 		assert.Contains(t, []int{http.StatusBadRequest, http.StatusUnprocessableEntity}, w.Code, "Expected validation error")
 	}
