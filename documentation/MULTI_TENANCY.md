@@ -69,12 +69,19 @@ The `TenantMiddleware` runs on every request to a tenant-specific route (e.g., `
 
 **Responsibilities:**
 
-1.  **Extract Context**: Reads `X-Org-ID` header or URL parameter.
+1.  **Extract Context**: Reads `X-Organization-ID` or `X-Organization-Slug` headers.
 2.  **Validate Membership**: Checks if the authenticated `User` is a `Member` of the target `Organization`.
     - Uses **Redis Caching** (`org:member:{org}:{user}`) to minimize DB lookups.
 3.  **Inject Context**: Sets the `organization_id` in the request context for downstream controllers.
 
-### 2.2. GORM Scopes (Row-Level Security)
+### 2.2. Frontend Integration (Automatic Header Injection)
+
+To streamline development, the Frontend `ApiClient` (`web/src/lib/api/client.ts`) automatically handles organization context:
+
+*   **Client-Side**: Retrieves the active organization from `useOrganizationStore` and injects `X-Organization-ID` and `X-Organization-Slug` into every outgoing request.
+*   **Server-Side (Next.js)**: Reads organization context from cookies (`organization_id`, `organization_slug`) during Server Component rendering or Server Actions to ensure consistent headers are sent to the Backend.
+
+### 2.3. GORM Scopes (Row-Level Security)
 
 To prevent accidental data leaks, _every_ database query within a tenant context must apply a scope.
 
@@ -89,14 +96,16 @@ func ScopeOrganization(orgID string) func(db *gorm.DB) *gorm.DB {
 }
 ```
 
-### 2.3. Casbin Domains (Tenant RBAC)
+### 2.4. Casbin Domains (Tenant RBAC)
 
 We utilize Casbin's **Domain** feature to scope permissions to specific Organizations.
 
 -   **Grouping Policy**: `g, {user_id}, {role_id}, {organization_id}`
 -   **Policy**: `p, {role_id}, {organization_id}, {resource}, {action}`
 
-All permission management endpoints (Grant, Assign Role) support an optional `domain` parameter (defaults to `global`).
+**Enhancements:**
+*   **Batch Pengecekan**: `BatchCheckPermission` now supports an optional `domain` field per item. This allows checking permissions across different organizations in a single request.
+*   **Dynamic Domain Fallback**: If a domain is not provided in permission requests, the system defaults to `"global"` to maintain backward compatibility while allowing granular tenant-scoped overrides.
 
 ## 3. Implementation Standards
 

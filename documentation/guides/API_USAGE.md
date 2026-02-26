@@ -1,22 +1,18 @@
 # Panduan Penggunaan API & Manajemen Akses
 
-Dokumen ini menjelaskan alur kerja utama (workflow) dalam menggunakan API Casbin Project, mulai dari pendaftaran pengguna hingga manajemen hak akses berbasis peran (RBAC).
+Dokumen ini menjelaskan alur kerja utama (workflow) dalam menggunakan API Casbin Project, mulai dari pendaftaran pengguna hingga manajemen hak akses berbasis peran (RBAC) dengan dukungan multi-tenancy.
 
 ## Daftar Isi
 
 1.  [Manajemen Pengguna (User Management)](#1-manajemen-pengguna-user-management)
     *   [Registrasi Pengguna Baru](#11-registrasi-pengguna-baru)
     *   [Login (Autentikasi)](#12-login-autentikasi)
-    *   [Melihat Profil Pengguna](#13-melihat-profil-pengguna)
-2.  [Manajemen Peran (Role Management)](#2-manajemen-peran-role-management)
-    *   [Membuat Peran Baru](#21-membuat-peran-baru)
-    *   [Menetapkan Peran ke Pengguna (Assign Role)](#22-menetapkan-peran-ke-pengguna-assign-role)
-3.  [Manajemen Izin & Akses (Permission & Access Management)](#3-manajemen-izin--akses-permission--access-management)
-    *   [Konsep Dasar](#konsep-dasar)
-    *   [Langkah 1: Daftarkan Endpoint](#langkah-1-daftarkan-endpoint)
-    *   [Langkah 2: Buat Access Right](#langkah-2-buat-access-right)
-    *   [Langkah 3: Hubungkan Endpoint ke Access Right](#langkah-3-hubungkan-endpoint-ke-access-right)
-    *   [Langkah 4: Berikan Izin ke Peran (Grant Permission)](#langkah-4-berikan-izin-ke-peran-grant-permission)
+2.  [Multi-Tenancy Context (Headers)](#2-multi-tenancy-context-headers)
+3.  [Manajemen Peran (Role Management)](#3-manajemen-peran-role-management)
+    *   [Menetapkan Peran ke Pengguna (Assign Role)](#31-menetapkan-peran-ke-pengguna-assign-role)
+4.  [Manajemen Izin & Akses (Permission Management)](#4-manajemen-izin--akses-permission-management)
+    *   [Memberikan Izin (Grant Permission)](#41-memberikan-izin-grant-permission)
+    *   [Pengecekan Batch (Batch Permission Check)](#42-pengecekan-batch-batch-permission-check)
 
 ---
 
@@ -24,10 +20,9 @@ Dokumen ini menjelaskan alur kerja utama (workflow) dalam menggunakan API Casbin
 
 ### 1.1. Registrasi Pengguna Baru
 
-Setiap pengguna baru yang mendaftar akan secara otomatis diberikan peran **`role:user`**.
+Setiap pengguna baru yang mendaftar akan secara otomatis diberikan peran **`role:user`** di domain `global`.
 
 *   **Endpoint:** `POST /api/v1/users/register`
-*   **Akses:** Publik (Tanpa Token)
 *   **Payload:**
     ```json
     {
@@ -37,159 +32,111 @@ Setiap pengguna baru yang mendaftar akan secara otomatis diberikan peran **`role
       "email": "johndoe@example.com"
     }
     ```
-*   **Response Sukses (201 Created):**
-    Mengembalikan data pengguna yang baru dibuat beserta ID-nya. Simpan `id` ini untuk keperluan administrasi selanjutnya.
 
 ### 1.2. Login (Autentikasi)
 
-Gunakan username dan password untuk mendapatkan **Access Token** (JWT) dan Refresh Token (via Cookie).
+Gunakan username dan password untuk mendapatkan **Access Token** (JWT).
 
 *   **Endpoint:** `POST /api/v1/auth/login`
-*   **Akses:** Publik
-*   **Payload:**
-    ```json
-    {
-      "username": "johndoe",
-      "password": "password123"
-    }
-    ```
 *   **Response Sukses (200 OK):**
     ```json
     {
       "data": {
         "access_token": "eyJhbGciOiJIUzI1NiIs...",
-        "token_type": "Bearer",
-        "expires_in": 900
+        "token_type": "Bearer"
       }
     }
     ```
-    > **Penting:** Gunakan `access_token` ini di header `Authorization: Bearer <token>` untuk setiap request ke endpoint terproteksi.
-
-### 1.3. Melihat Profil Pengguna
-
-*   **Endpoint:** `GET /api/v1/users/me`
-*   **Akses:** Terproteksi (Perlu Token)
-*   **Header:** `Authorization: Bearer <access_token>`
 
 ---
 
-## 2. Manajemen Peran (Role Management)
+## 2. Multi-Tenancy Context (Headers)
 
-Hanya pengguna dengan peran Admin (atau yang memiliki izin khusus) yang dapat mengelola peran.
+Banyak endpoint dalam aplikasi ini bersifat **Organization-Aware**. Untuk mengakses data dalam konteks organisasi tertentu, Anda wajib mengirimkan salah satu header berikut:
 
-### 2.1. Membuat Peran Baru
+-   `X-Organization-ID`: UUID organisasi.
+-   `X-Organization-Slug`: Slug unik organisasi (misal: `acme-corp`).
 
-Jika peran standar (`role:user`, `role:admin`) belum cukup, Anda bisa membuat peran baru.
+Jika header ini tidak disertakan, sistem akan menggunakan konteks `global`.
 
-*   **Endpoint:** `POST /api/v1/roles`
-*   **Akses:** Admin
-*   **Payload:**
-    ```json
-    {
-      "name": "role:editor",
-      "description": "Editor konten dengan akses tulis terbatas"
-    }
-    ```
+---
 
-### 2.2. Menetapkan Peran ke Pengguna (Assign Role)
+## 3. Manajemen Peran (Role Management)
 
-Untuk menjadikan seorang pengguna sebagai Admin atau peran lainnya.
+### 3.1. Menetapkan Peran ke Pengguna (Assign Role)
+
+Anda dapat menetapkan peran kepada pengguna dalam organisasi tertentu menggunakan field `domain`.
 
 *   **Endpoint:** `POST /api/v1/permissions/assign-role`
-*   **Akses:** Admin
 *   **Payload:**
     ```json
     {
-      "user_id": "uuid-user-yang-disimpan-tadi",
-      "role": "role:admin"
+      "user_id": "uuid-user",
+      "role": "role:admin",
+      "domain": "acme-corp" 
     }
     ```
+    *Catatan: Jika `domain` kosong, akan otomatis menggunakan `"global"`.*
 
 ---
 
-## 3. Manajemen Izin & Akses (Permission & Access Management)
+## 4. Manajemen Izin & Akses (Permission Management)
 
-Sistem ini memisahkan definisi endpoint fisik dari hak akses logis untuk fleksibilitas yang lebih baik.
+### 4.1. Memberikan Izin (Grant Permission)
 
-### Konsep Dasar
-
-1.  **Endpoint**: URL API fisik dan metode HTTP-nya (misal: `GET /api/v1/reports`).
-2.  **Access Right**: Nama logis untuk sekumpulan endpoint (misal: `view_reports`).
-3.  **Permission (Policy)**: Aturan yang menghubungkan **Role** dengan **Resource (URL)** dan **Action (Method)**.
-
-### Langkah 1: Daftarkan Endpoint
-
-Misalnya Anda membuat fitur baru untuk melihat laporan penjualan.
-
-*   **Endpoint:** `POST /api/v1/endpoints`
-*   **Payload:**
-    ```json
-    {
-      "path": "/api/v1/sales/reports",
-      "method": "GET"
-    }
-    ```
-    *Simpan `id` endpoint yang dihasilkan (misal: 10).*
-
-### Langkah 2: Buat Access Right
-
-Buat representasi logis dari hak akses tersebut.
-
-*   **Endpoint:** `POST /api/v1/access-rights`
-*   **Payload:**
-    ```json
-    {
-      "name": "sales:view_reports",
-      "description": "Izinkan melihat laporan penjualan"
-    }
-    ```
-    *Simpan `id` access right yang dihasilkan (misal: 5).*
-
-### Langkah 3: Hubungkan Endpoint ke Access Right
-
-Hubungkan endpoint fisik ke hak akses logis. Satu Access Right bisa memiliki banyak Endpoint.
-
-*   **Endpoint:** `POST /api/v1/access-rights/link`
-*   **Payload:**
-    ```json
-    {
-      "access_right_id": 5,
-      "endpoint_id": 10
-    }
-    ```
-
-### Langkah 4: Berikan Izin ke Peran (Grant Permission)
-
-Ini adalah langkah yang mengaktifkan akses di level **Casbin**. Tanpa langkah ini, Role tidak bisa mengakses Endpoint meskipun Access Right sudah dibuat.
+Menghubungkan **Role** dengan **Resource** dan **Action** di domain tertentu.
 
 *   **Endpoint:** `POST /api/v1/permissions/grant`
 *   **Payload:**
     ```json
     {
       "role": "role:editor",
-      "path": "/api/v1/sales/reports",
-      "method": "GET"
+      "path": "/api/v1/projects",
+      "method": "POST",
+      "domain": "acme-corp"
     }
     ```
 
-Sekarang, semua pengguna yang memiliki peran `role:editor` dapat mengakses endpoint `GET /api/v1/sales/reports`.
+### 4.2. Pengecekan Batch (Batch Permission Check)
+
+Sangat berguna untuk Frontend (misal: menentukan tombol mana yang harus muncul). Mendukung pengecekan lintas domain dalam satu request.
+
+*   **Endpoint:** `POST /api/v1/permissions/check-batch`
+*   **Payload:**
+    ```json
+    {
+      "items": [
+        { "resource": "/api/v1/users", "action": "GET", "domain": "global" },
+        { "resource": "/api/v1/projects", "action": "POST", "domain": "acme-corp" },
+        { "resource": "/api/v1/billing", "action": "READ", "domain": "finance-dept" }
+      ]
+    }
+    ```
+*   **Response:**
+    ```json
+    {
+      "data": {
+        "results": {
+          "/api/v1/users:GET": true,
+          "/api/v1/projects:POST": true,
+          "/api/v1/billing:READ": false
+        }
+      }
+    }
+    ```
 
 ---
 
-## 4. Melihat Jejak Audit (Audit Logs)
+## 5. Melihat Jejak Audit (Audit Logs)
 
-Sistem secara otomatis mencatat aktivitas penting seperti Login, Register, dan perubahan User.
+Sistem secara otomatis mencatat aktivitas penting. Pencatatan audit sekarang mencakup `organization_id` untuk kepatuhan multi-tenancy.
 
 *   **Endpoint:** `POST /api/v1/audit-logs/search`
-*   **Akses:** Superadmin
 *   **Contoh Filter (Mencari aksi LOGIN):**
     ```json
     {
       "filter": {
         "action": { "type": "equals", "from": "LOGIN" }
-      },
-      "sort": [
-        { "colId": "created_at", "sort": "desc" }
-      ]
+      }
     }
     ```

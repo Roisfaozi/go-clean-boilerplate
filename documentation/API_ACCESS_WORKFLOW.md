@@ -26,13 +26,20 @@ We use **Casbin** with a RESTful model `(Subject, Object, Action)`.
 -   **Object**: API Path (e.g., `/api/v1/users`).
 -   **Action**: HTTP Method (`GET`, `POST`, `PUT`, `DELETE`).
 
-### Role Privileges Summary
+### 🌳 Advanced Role Hierarchy (Multiple Inheritance)
 
-| Role | capabilities |
-| :--- | :--- |
-| `role:superadmin` | Full CRUD access to all resources (Users, Roles, Permissions, Logs). |
-| `role:admin` | Operational management: View users/roles, update profiles. No deletion/granting. |
-| `role:user` | Self-service: View/Update own profile, use WebSockets, Logout. |
+The system supports a complex role hierarchy where a single role can inherit permissions from **multiple parent roles**.
+
+*   **Mechanism**: Handled via `g` grouping policies in Casbin.
+*   **Tree Visualization**: The `GET /permissions/inheritance-tree` endpoint generates a graph of all roles, identifying all parents and children.
+*   **Cycle Detection**: To prevent infinite loops in deep hierarchies, the system implements a recursive traversal with a "visited" set. If a circular dependency is detected (e.g., Role A -> Role B -> Role A), the recursion stops safely to prevent system crashes.
+
+### 🛡️ Transactional Integrity
+
+Authorization policies are kept in sync with the database using a **Transactional Enforcer**.
+
+*   **Context Propagation**: All permission operations must use `.WithContext(ctx)` to ensure they use the correct GORM transaction handle.
+*   **Atomicity**: If a business operation fails (e.g., user creation), the associated Casbin policy changes (e.g., role assignment) are automatically rolled back along with the database transaction.
 
 ---
 
@@ -71,6 +78,7 @@ We use **Casbin** with a RESTful model `(Subject, Object, Action)`.
 | `GET` | `/api/v1/roles` | List Roles | `role:admin` |
 | `POST` | `/api/v1/permissions/grant` | Grant Policy | `role:superadmin` |
 | `POST` | `/api/v1/permissions/assign-role`| Assign User Role | `role:superadmin` |
+| `GET` | `/api/v1/permissions/inheritance-tree` | Get Full RBAC Graph | `role:admin` |
 
 ### 5. Audit & Access Configuration
 | Method | Path | Description | Required Role |
