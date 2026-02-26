@@ -4,7 +4,9 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
@@ -39,6 +41,12 @@ func (h *ProjectController) Create(c *gin.Context) {
 	var req model.CreateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 
@@ -119,6 +127,12 @@ func (h *ProjectController) Update(c *gin.Context) {
 	var req model.UpdateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
 		return
 	}
 

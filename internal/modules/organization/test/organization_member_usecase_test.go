@@ -468,6 +468,7 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
 		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, userID, "new-role").Return(nil)
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, "", orgID).Return(true, nil)
 		deps.Enforcer.On("AddGroupingPolicy", userID, "new-role", orgID).Return(false, errors.New("casbin error"))
 
@@ -489,6 +490,7 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
 		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, userID, "new-role").Return(nil)
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, "", orgID).Return(true, nil)
 		deps.Enforcer.On("AddGroupingPolicy", userID, "new-role", orgID).Return(true, nil)
 		deps.MemberRepo.On("FindMembers", ctx, orgID).Return(nil, errors.New("db error"))
@@ -589,6 +591,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, userID, "", orgID).Return(true, nil)
 		deps.MemberRepo.On("RemoveMember", ctx, orgID, userID).Return(errors.New("db error"))
 
@@ -859,6 +862,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 		deps.UserRepo.On("Update", ctx, mock.Anything).Return(nil)
 		deps.MemberRepo.On("GetMemberStatus", ctx, inv.OrganizationID, user.ID).Return(entity.MemberStatusInvited, nil)
 		deps.MemberRepo.On("UpdateMemberStatus", ctx, inv.OrganizationID, user.ID, entity.MemberStatusActive).Return(nil)
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("AddGroupingPolicy", user.ID, inv.Role, inv.OrganizationID).Return(false, errors.New("casbin error"))
 
 		err := uc.AcceptInvitation(ctx, req)
@@ -885,6 +889,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 		deps.UserRepo.On("Update", ctx, mock.Anything).Return(nil)
 		deps.MemberRepo.On("GetMemberStatus", ctx, inv.OrganizationID, user.ID).Return(entity.MemberStatusInvited, nil)
 		deps.MemberRepo.On("UpdateMemberStatus", ctx, inv.OrganizationID, user.ID, entity.MemberStatusActive).Return(nil)
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("AddGroupingPolicy", user.ID, inv.Role, inv.OrganizationID).Return(true, nil)
 		deps.InvitationRepo.On("Delete", ctx, inv.ID).Return(errors.New("db error"))
 
