@@ -27,6 +27,7 @@ type RoleInheritanceRequest struct {
 type PermissionCheckItem struct {
 	Resource string `json:"resource" validate:"required,xss"`
 	Action   string `json:"action" validate:"required,xss"`
+	Domain   string `json:"domain" validate:"omitempty,xss"`
 }
 
 type BatchPermissionCheckRequest struct {
@@ -60,6 +61,7 @@ type RoleNode struct {
 	Name                 string     `json:"name"`
 	Description          string     `json:"description,omitempty"`
 	ParentID             *string    `json:"parent_id,omitempty"`
+	Parents              []string   `json:"parents,omitempty"`
 	Children             []RoleNode `json:"children,omitempty"`
 	OwnPermissions       [][]string `json:"own_permissions"`
 	InheritedPermissions [][]string `json:"inherited_permissions"`

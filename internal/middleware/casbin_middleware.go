@@ -17,6 +17,10 @@ type CasbinEnforcer interface {
 // CasbinMiddleware creates a middleware for role-based authorization using Casbin.
 // This middleware must be placed AFTER the JWT AuthMiddleware.
 func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFunc {
+	if enforcer == nil && gin.Mode() == gin.ReleaseMode {
+		log.Error("CRITICAL SECURITY WARNING: Casbin enforcer is nil in release mode. Authorization will be bypassed for all routes protected by this middleware!")
+	}
+
 	return func(c *gin.Context) {
 		if enforcer == nil {
 			c.Next()
