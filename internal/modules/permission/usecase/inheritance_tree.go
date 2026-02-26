@@ -39,7 +39,7 @@ func (uc *PermissionUseCase) GetInheritanceTree(ctx context.Context) (*model.Inh
 		}
 
 		// Get parent roles (role inheritance via Casbin grouping)
-		parents, err := uc.GetParentRoles(ctx, role.Name)
+		parents, err := uc.GetParentRoles(ctx, role.Name, "global")
 		if err == nil && len(parents) > 0 {
 			// For simplicity, we take the first parent
 			// In a real system, you might want to handle multiple inheritance

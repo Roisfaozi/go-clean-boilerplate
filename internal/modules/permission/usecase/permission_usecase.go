@@ -326,22 +326,3 @@ func (uc *PermissionUseCase) UpdatePermission(ctx context.Context, oldPermission
 
 	return true, nil
 }
-
-func (uc *PermissionUseCase) UpdatePermission(ctx context.Context, oldPermission, newPermission []string) (bool, error) {
-	if len(oldPermission) == 0 || len(newPermission) == 0 {
-		return false, errors.New("old and new permissions cannot be empty")
-	}
-
-	uc.log.WithContext(ctx).Infof("Updating permission from %v to %v", oldPermission, newPermission)
-	updated, err := uc.enforcer.WithContext(ctx).UpdatePolicy(oldPermission, newPermission)
-	if err != nil {
-		uc.log.WithContext(ctx).Errorf("Failed update permission: %v", err)
-		return false, err
-	}
-	if !updated {
-		uc.log.WithContext(ctx).Errorf("Policy to update not found: %v", oldPermission)
-		return false, errors.New("policy to update not found")
-	}
-
-	return true, nil
-}
