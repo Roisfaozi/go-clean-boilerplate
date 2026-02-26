@@ -38,11 +38,12 @@ func TestPermissionController_AssignRole(t *testing.T) {
 	req := model.AssignRoleRequest{
 		UserID: "u1",
 		Role:   "role:admin",
+		Domain: "global",
 	}
 	body, _ := json.Marshal(req)
 	c.Request, _ = http.NewRequest("POST", "/permission/assign-role", bytes.NewBuffer(body))
 
-	mockUC.On("AssignRoleToUser", c.Request.Context(), "u1", "role:admin").Return(nil)
+	mockUC.On("AssignRoleToUser", c.Request.Context(), "u1", "role:admin", "global").Return(nil)
 
 	controller.AssignRole(c)
 
@@ -59,11 +60,12 @@ func TestPermissionController_RevokeRole(t *testing.T) {
 	req := model.AssignRoleRequest{
 		UserID: "u1",
 		Role:   "role:admin",
+		Domain: "global",
 	}
 	body, _ := json.Marshal(req)
 	c.Request, _ = http.NewRequest("POST", "/permission/revoke-role", bytes.NewBuffer(body))
 
-	mockUC.On("RevokeRoleFromUser", c.Request.Context(), "u1", "role:admin").Return(nil)
+	mockUC.On("RevokeRoleFromUser", c.Request.Context(), "u1", "role:admin", "global").Return(nil)
 
 	controller.RevokeRole(c)
 

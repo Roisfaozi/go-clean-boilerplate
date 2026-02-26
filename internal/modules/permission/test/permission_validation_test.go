@@ -47,6 +47,7 @@ func TestAssignRole_XSS(t *testing.T) {
 			payload: model.AssignRoleRequest{
 				UserID: "user1",
 				Role:   "admin",
+				Domain: "global",
 			},
 			expectedCode: http.StatusOK,
 		},
@@ -63,7 +64,7 @@ func TestAssignRole_XSS(t *testing.T) {
 			controller := permissionHandler.NewPermissionController(mockUseCase, logger, v)
 
 			if tt.expectedCode == http.StatusOK {
-				mockUseCase.On("AssignRoleToUser", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				mockUseCase.On("AssignRoleToUser", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			}
 
 			w := httptest.NewRecorder()
@@ -121,6 +122,7 @@ func TestGrantPermission_XSS(t *testing.T) {
 				Role:   "admin",
 				Path:   "/api/resource",
 				Method: "GET",
+				Domain: "global",
 			},
 			expectedCode: http.StatusCreated,
 		},
@@ -137,7 +139,7 @@ func TestGrantPermission_XSS(t *testing.T) {
 			controller := permissionHandler.NewPermissionController(mockUseCase, logger, v)
 
 			if tt.expectedCode == http.StatusCreated {
-				mockUseCase.On("GrantPermissionToRole", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				mockUseCase.On("GrantPermissionToRole", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			}
 
 			w := httptest.NewRecorder()
