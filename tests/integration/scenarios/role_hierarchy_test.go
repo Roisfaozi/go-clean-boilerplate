@@ -41,14 +41,14 @@ func TestScenario_RoleHierarchy(t *testing.T) {
 
 	path := "/api/v1/work"
 	method := "GET"
-	err = permService.GrantPermissionToRole(ctx, childRole, path, method)
+	err = permService.GrantPermissionToRole(ctx, childRole, path, method, "global")
 	require.NoError(t, err)
 
 	ok, err := env.Enforcer.Enforce(parentRole, "global", path, method)
 	require.NoError(t, err)
 	assert.False(t, ok, "Parent role should not have access yet")
 
-	err = permService.AddParentRole(ctx, parentRole, childRole)
+	err = permService.AddParentRole(ctx, parentRole, childRole, "global")
 	require.NoError(t, err)
 
 	ok, err = env.Enforcer.Enforce(parentRole, "global", path, method)

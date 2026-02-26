@@ -88,11 +88,11 @@ func TestScenario_AdminSecurity_RBAC_Lifecycle(t *testing.T) {
 	require.NoError(t, err)
 
 	path, method := "/api/v1/articles", "POST"
-	err = permService.GrantPermissionToRole(context.Background(), roleName, path, method)
+	err = permService.GrantPermissionToRole(context.Background(), roleName, path, method, "global")
 	require.NoError(t, err)
 
 	user := setup.CreateTestUser(t, env.DB, "editor_user", "editor@test.com", "pass")
-	err = permService.AssignRoleToUser(context.Background(), user.ID, roleName)
+	err = permService.AssignRoleToUser(context.Background(), user.ID, roleName, "global")
 	require.NoError(t, err)
 
 	ok, err := env.Enforcer.Enforce(roleName, "global", path, method)

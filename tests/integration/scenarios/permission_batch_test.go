@@ -37,12 +37,12 @@ func TestScenario_PermissionBatchCheck(t *testing.T) {
 	require.NoError(t, err)
 
 	user := setup.CreateTestUser(t, env.DB, "editor_user", "editor@batch.com", "pass")
-	err = permService.AssignRoleToUser(ctx, user.ID, roleName)
+	err = permService.AssignRoleToUser(ctx, user.ID, roleName, "global")
 	require.NoError(t, err)
 
-	err = permService.GrantPermissionToRole(ctx, roleName, "/articles", "READ")
+	err = permService.GrantPermissionToRole(ctx, roleName, "/articles", "READ", "global")
 	require.NoError(t, err)
-	err = permService.GrantPermissionToRole(ctx, roleName, "/articles", "WRITE")
+	err = permService.GrantPermissionToRole(ctx, roleName, "/articles", "WRITE", "global")
 	require.NoError(t, err)
 
 	items := []permissionModel.PermissionCheckItem{

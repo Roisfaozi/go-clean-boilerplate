@@ -60,11 +60,11 @@ func TestScenario_RBAC_Orchestration(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = permService.GrantPermissionToRole(ctx, roleName, endpoint.Path, endpoint.Method)
+	err = permService.GrantPermissionToRole(ctx, roleName, endpoint.Path, endpoint.Method, "global")
 	require.NoError(t, err)
 
 	user := setup.CreateTestUser(t, env.DB, "analyst_user", "analyst@test.com", "pass")
-	err = permService.AssignRoleToUser(ctx, user.ID, roleName)
+	err = permService.AssignRoleToUser(ctx, user.ID, roleName, "global")
 	require.NoError(t, err)
 
 	ok, err := env.Enforcer.Enforce(user.ID, "global", endpoint.Path, endpoint.Method)
