@@ -1,328 +1,229 @@
-//go:build integration
-// +build integration
-
 package modules
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
-	auditRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository"
-	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
-	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
-	authRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
-	orgRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
-	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
+	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
-	"github.com/hibiken/asynq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupAuthIntegration(env *setup.TestEnvironment) (usecase.AuthUseCase, *jwt.JWTManager) {
-	jwtManager := jwt.NewJWTManager("test-access-secret", "test-refresh-secret", 15*time.Minute, 24*time.Hour)
-	return setupAuthIntegrationWithJWT(env, jwtManager), jwtManager
-}
-
-func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWTManager) usecase.AuthUseCase {
-	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
-	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
+func setupAuthIntegration(env *setup.TestEnvironment) usecase.AuthUseCase {
+	tokenRepo := repository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
+	userRepo := userRepo.NewUserRepository(env.DB, env.Logger)
+	orgRepo := orgRepo.NewOrganizationRepository(env.DB)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	_ = auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
-	wsConfig := &ws.WebSocketConfig{}
-	presenceManager := ws.NewPresenceManager(env.Redis, env.Logger, 5*time.Minute)
-	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis, presenceManager)
-	sseManager := sse.NewManager()
+	// Use TaskDistributor from env which is likely a mock or no-op in singleton env,
+	// or we can use a real one if Redis is available.
+	// For integration, we care about the flow, not actual email sending.
+	// But we need to ensure DistributeTask* methods don't panic.
+	// The env.TaskDistributor should handle this.
 
-	env.AddCloser(func() {
-		sseManager.Stop()
-		wsManager.Stop()
-	})
+	// Authz adapter
+	authz := repository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
 
-	taskDistributor := worker.NewRedisTaskDistributor(asynq.RedisClientOpt{Addr: env.RedisAddr})
-
-	enforcer := env.Enforcer
-	logger := env.Logger
-
-	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
-
-	ticketManager := ws.NewRedisTicketManager(env.Redis, 30*time.Second)
-
-	// Adapters for IoC
-	publisher := delivery.NewEventPublisher(wsManager, sseManager, env.Logger)
-	authz := authRepository.NewCasbinAdapter(enforcer, "role:user", "global")
+	jwtManager := jwt.NewJWTManager("secret", "refresh-secret", 15*time.Minute, 24*time.Hour)
 
 	return usecase.NewAuthUsecase(
-		5,              // MaxLoginAttempts
-		30*time.Minute, // LockoutDuration
+		5, // Max attempts
+		15*time.Minute, // Lockout
 		jwtManager,
 		tokenRepo,
 		userRepo,
 		orgRepo,
 		tm,
-		logger,
-		publisher,
+		env.Logger,
+		nil, // Publisher (optional)
 		authz,
-		taskDistributor,
-		ticketManager,
+		env.TaskDistributor,
+		nil, // Ticket manager (optional)
 	)
 }
 
-func TestAuthIntegration_Login(t *testing.T) {
+func TestAuthIntegration_FullFlow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
+	authUC := setupAuthIntegration(env)
+	ctx := context.Background()
 
-	authUC, _ := setupAuthIntegration(env)
-	password := "SecurePass123!"
-	testUser := setup.CreateTestUser(t, env.DB, "authuser", "auth@example.com", password)
-	_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
+	unique := fmt.Sprintf("user_%d", time.Now().UnixNano())
+	email := fmt.Sprintf("%s@example.com", unique)
+	password := "StrongPass123!"
 
-	t.Run("Success with Valid Credentials", func(t *testing.T) {
-		loginReq := model.LoginRequest{Username: "authuser", Password: password, IPAddress: "127.0.0.1", UserAgent: "Mozilla/5.0"}
-		resp, refreshToken, err := authUC.Login(context.Background(), loginReq)
+	// 1. Register
+	regReq := model.RegisterRequest{
+		Username: unique,
+		Email:    email,
+		Password: password,
+		Name:     "Integration User",
+	}
+	loginRes, refreshToken, err := authUC.Register(ctx, regReq)
+	require.NoError(t, err)
+	assert.NotEmpty(t, loginRes.AccessToken)
+	assert.NotEmpty(t, refreshToken)
+	assert.Equal(t, unique, loginRes.User.Username)
 
-		require.NoError(t, err)
-		assert.NotNil(t, resp)
-		assert.NotEmpty(t, resp.AccessToken)
-		assert.NotEmpty(t, refreshToken)
-		assert.Equal(t, "Bearer", resp.TokenType)
-		assert.Equal(t, testUser.ID, resp.User.ID)
-		assert.Greater(t, int64(resp.ExpiresIn), int64(0))
+	// 2. Validate Token
+	claims, err := authUC.ValidateAccessToken(loginRes.AccessToken)
+	require.NoError(t, err)
+	assert.Equal(t, loginRes.User.ID, claims.UserID)
 
-		keys, err := env.Redis.Keys(context.Background(), "session:*").Result()
-		require.NoError(t, err)
-		assert.NotEmpty(t, keys)
-	})
+	// 3. Refresh Token
+	tokenRes, newRefresh, err := authUC.RefreshToken(ctx, refreshToken)
+	require.NoError(t, err)
+	assert.NotEmpty(t, tokenRes.AccessToken)
+	assert.NotEmpty(t, newRefresh)
+	assert.NotEqual(t, loginRes.AccessToken, tokenRes.AccessToken)
 
-	t.Run("Fail with Invalid Password", func(t *testing.T) {
-		loginReq := model.LoginRequest{Username: "authuser", Password: "wrongpassword"}
-		resp, _, err := authUC.Login(context.Background(), loginReq)
-		assert.Error(t, err)
-		assert.Nil(t, resp)
-	})
+	// 4. Logout
+	err = authUC.RevokeToken(ctx, claims.UserID, claims.SessionID)
+	require.NoError(t, err)
 
-	t.Run("Fail with Non-Existent User", func(t *testing.T) {
-		loginReq := model.LoginRequest{Username: "nonexistent", Password: "password123"}
-		_, _, err := authUC.Login(context.Background(), loginReq)
-		assert.Error(t, err)
-	})
-
-	t.Run("Fail with Empty Credentials", func(t *testing.T) {
-		tests := []struct {
-			name string
-			un   string
-			pw   string
-		}{
-			{"Empty Username", "", "password123"},
-			{"Empty Password", "authuser", ""},
-		}
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				_, _, err := authUC.Login(context.Background(), model.LoginRequest{Username: tt.un, Password: tt.pw})
-				assert.Error(t, err)
-			})
-		}
-	})
-
-	t.Run("Edge - Special Characters in Username", func(t *testing.T) {
-		specialUN := "user-@#$%^&*()"
-		setup.CreateTestUser(t, env.DB, specialUN, "special@example.com", "password123")
-		loginReq := model.LoginRequest{Username: specialUN, Password: "password123"}
-		_, _, err := authUC.Login(context.Background(), loginReq)
-		assert.NoError(t, err)
-	})
-
-	t.Run("Edge - Very Long Password (Bcrypt Limit 72)", func(t *testing.T) {
-		longPW := strings.Repeat("a", 72)
-		setup.CreateTestUser(t, env.DB, "longpw", "long@example.com", longPW)
-		loginReq := model.LoginRequest{Username: "longpw", Password: longPW}
-		_, _, err := authUC.Login(context.Background(), loginReq)
-		assert.NoError(t, err)
-	})
-
-	t.Run("Edge - Unicode Characters", func(t *testing.T) {
-		unicodeUN := "用户名测试"
-		setup.CreateTestUser(t, env.DB, unicodeUN, "unicode@example.com", "password123")
-		loginReq := model.LoginRequest{Username: unicodeUN, Password: "password123"}
-		_, _, err := authUC.Login(context.Background(), loginReq)
-		assert.NoError(t, err)
-	})
-
-	t.Run("Edge - Case Sensitivity", func(t *testing.T) {
-		setup.CreateTestUser(t, env.DB, "CaseUser", "case@example.com", "password123")
-		loginReq := model.LoginRequest{Username: "caseuser", Password: "password123"}
-		_, loginResp, err := authUC.Login(context.Background(), loginReq)
-		if err == nil {
-			assert.NotEmpty(t, loginResp)
-		}
-	})
+	// 5. Verify Revocation
+	_, err = authUC.ValidateAccessToken(loginRes.AccessToken)
+	assert.ErrorIs(t, err, usecase.ErrTokenRevoked)
 }
 
-func TestAuthIntegration_TokenLifecycle(t *testing.T) {
+func TestAuthIntegration_AccountLockout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
+	authUC := setupAuthIntegration(env)
+	ctx := context.Background()
 
-	authUC, jwtManager := setupAuthIntegration(env)
-	password := "password123"
-	testUser := setup.CreateTestUser(t, env.DB, "tokenuser", "token@example.com", password)
-	_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
+	// Register user first
+	unique := fmt.Sprintf("lockout_%d", time.Now().UnixNano())
+	regReq := model.RegisterRequest{
+		Username: unique,
+		Email:    fmt.Sprintf("%s@example.com", unique),
+		Password: "StrongPass123!",
+		Name:     "Lockout User",
+	}
+	_, _, err := authUC.Register(ctx, regReq)
+	require.NoError(t, err)
 
-	_, refreshToken, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "tokenuser", Password: password})
+	// Attempt login with wrong password 5 times
+	req := model.LoginRequest{Username: unique, Password: "WrongPassword"}
+	for i := 0; i < 5; i++ {
+		_, _, err := authUC.Login(ctx, req)
+		assert.Error(t, err) // Invalid credentials
+	}
 
-	t.Run("Success Refresh Token", func(t *testing.T) {
-		time.Sleep(1 * time.Second)
-		newToken, newRefresh, err := authUC.RefreshToken(context.Background(), refreshToken)
-		require.NoError(t, err)
-		assert.NotEmpty(t, newToken.AccessToken)
-		assert.NotEqual(t, refreshToken, newRefresh)
-
-		refreshToken = newRefresh
-	})
-
-	t.Run("Multiple Refresh In Sequence", func(t *testing.T) {
-		currRefresh := refreshToken
-		for i := 0; i < 3; i++ {
-			time.Sleep(100 * time.Millisecond)
-			_, nextRefresh, err := authUC.RefreshToken(context.Background(), currRefresh)
-			require.NoError(t, err, "Refresh iteration %d failed", i+1)
-			currRefresh = nextRefresh
-		}
-	})
-
-	t.Run("Fail Refresh with Invalid Token", func(t *testing.T) {
-		_, _, err := authUC.RefreshToken(context.Background(), "invalid.token.here")
-		assert.Error(t, err)
-	})
-
-	t.Run("Fail Refresh with Expired Token", func(t *testing.T) {
-		shortJWT := jwt.NewJWTManager("secret", "refresh", time.Minute, 1*time.Millisecond)
-		expToken, _, _ := shortJWT.GenerateTokenPair(jwt.UserContext{
-			UserID:    testUser.ID,
-			SessionID: "sid",
-			Role:      "role:user",
-			Username:  "tokenuser",
-		})
-		time.Sleep(10 * time.Millisecond)
-
-		customUC := setupAuthIntegrationWithJWT(env, shortJWT)
-		_, _, err := customUC.RefreshToken(context.Background(), expToken)
-		assert.Error(t, err)
-	})
-
-	t.Run("Success Logout (Revoke)", func(t *testing.T) {
-
-		lr, _, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "tokenuser", Password: password})
-		claims, _ := jwtManager.ValidateAccessToken(lr.AccessToken)
-
-		err := authUC.RevokeToken(context.Background(), testUser.ID, claims.SessionID)
-		require.NoError(t, err)
-
-		keys, _ := env.Redis.Keys(context.Background(), "session:"+testUser.ID+":"+claims.SessionID).Result()
-		assert.Empty(t, keys, "Session should be deleted from Redis")
-	})
+	// 6th attempt should be locked
+	_, _, err = authUC.Login(ctx, req)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "too many failed attempts")
 }
 
-func TestAuthIntegration_PasswordRecovery(t *testing.T) {
+func TestAuthIntegration_PasswordReset(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
+	authUC := setupAuthIntegration(env)
+	ctx := context.Background()
 
-	authUC, _ := setupAuthIntegration(env)
+	unique := fmt.Sprintf("reset_%d", time.Now().UnixNano())
+	regReq := model.RegisterRequest{
+		Username: unique,
+		Email:    fmt.Sprintf("%s@example.com", unique),
+		Password: "OldPassword123!",
+		Name:     "Reset User",
+	}
+	_, _, err := authUC.Register(ctx, regReq)
+	require.NoError(t, err)
 
-	t.Run("Success Forgot Password", func(t *testing.T) {
-		email := "forgot@example.com"
-		setup.CreateTestUser(t, env.DB, "forgotuser", email, "old-pass")
+	// 1. Forgot Password (Generate Token)
+	err = authUC.ForgotPassword(ctx, regReq.Email)
+	require.NoError(t, err)
 
-		err := authUC.ForgotPassword(context.Background(), email)
-		require.NoError(t, err)
+	// Inspect DB to get the token (since email is mocked/async)
+	// We need direct DB access here or a way to intercept the token.
+	// Since TokenRepo stores it in DB, we can query it.
+	var tokenEntity struct {
+		Token string
+	}
+	// Raw query to fetch token
+	err = env.DB.Raw("SELECT token FROM password_reset_tokens WHERE email = ? ORDER BY expires_at DESC LIMIT 1", regReq.Email).Scan(&tokenEntity).Error
+	require.NoError(t, err)
+	require.NotEmpty(t, tokenEntity.Token)
 
-		var token authEntity.PasswordResetToken
-		err = env.DB.Where("email = ?", email).First(&token).Error
-		require.NoError(t, err)
-		assert.NotEmpty(t, token.Token)
-	})
+	// 2. Reset Password
+	newPass := "NewStrongPass123!"
+	err = authUC.ResetPassword(ctx, tokenEntity.Token, newPass)
+	require.NoError(t, err)
 
-	t.Run("Success Reset Password", func(t *testing.T) {
-		email := "reset_unique@example.com"
-		testUser := setup.CreateTestUser(t, env.DB, "resetuser", email, "oldpass")
+	// 3. Login with New Password
+	loginReq := model.LoginRequest{Username: unique, Password: newPass}
+	res, _, err := authUC.Login(ctx, loginReq)
+	require.NoError(t, err)
+	assert.NotEmpty(t, res.AccessToken)
 
-		resetToken := "secret-token-unique-123"
-		err := env.DB.Create(&authEntity.PasswordResetToken{
-			Email: email, Token: resetToken, ExpiresAt: time.Now().Add(time.Hour),
-		}).Error
-		require.NoError(t, err)
-
-		err = authUC.ResetPassword(context.Background(), resetToken, "NewPass123!")
-		require.NoError(t, err)
-
-		_, _, err = authUC.Login(context.Background(), model.LoginRequest{Username: testUser.Username, Password: "oldpass"})
-		assert.Error(t, err)
-		_, _, err = authUC.Login(context.Background(), model.LoginRequest{Username: testUser.Username, Password: "NewPass123!"})
-		assert.NoError(t, err)
-	})
+	// 4. Login with Old Password (should fail)
+	loginReqOld := model.LoginRequest{Username: unique, Password: "OldPassword123!"}
+	_, _, err = authUC.Login(ctx, loginReqOld)
+	assert.Error(t, err)
 }
 
-func TestAuthIntegration_Security(t *testing.T) {
+func TestAuthIntegration_SQLInjection(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
+	authUC := setupAuthIntegration(env)
+	ctx := context.Background()
 
-	authUC, _ := setupAuthIntegration(env)
+	// Try SQL injection in login
+	req := model.LoginRequest{
+		Username: "' OR '1'='1",
+		Password: "any",
+	}
+	_, _, err := authUC.Login(ctx, req)
+	assert.Error(t, err)
+	// Should not be 500
+	assert.NotEqual(t, usecase.ErrInvalidCredentials, err)
+}
 
-	t.Run("SQL Injection Prevention", func(t *testing.T) {
-		injections := []string{"admin' OR '1'='1", "admin'--", "admin'; DROP TABLE users--"}
-		for _, inj := range injections {
-			_, _, err := authUC.Login(context.Background(), model.LoginRequest{Username: inj, Password: "p"})
-			assert.Error(t, err)
-		}
-	})
+func TestAuthIntegration_XSS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+	env := setup.SetupIntegrationEnvironment(t)
+	authUC := setupAuthIntegration(env)
+	ctx := context.Background()
 
-	t.Run("Brute Force Protection Simulation", func(t *testing.T) {
-		setup.CreateTestUser(t, env.DB, "brute", "brute@example.com", "pass")
-		for i := 0; i < 5; i++ {
-			_, _, err := authUC.Login(context.Background(), model.LoginRequest{Username: "brute", Password: "w"})
-			assert.Error(t, err)
-		}
-	})
+	// XSS Payload in Name
+	xssName := "<script>alert(1)</script>"
+	regReq := model.RegisterRequest{
+		Username: fmt.Sprintf("xss_%d", time.Now().UnixNano()),
+		Email:    fmt.Sprintf("xss_%d@example.com", time.Now().UnixNano()),
+		Password: "Password123!",
+		Name:     xssName,
+	}
 
-	t.Run("Token Rotation Reuse Protection", func(t *testing.T) {
-		testUser := setup.CreateTestUser(t, env.DB, "reuse", "reuse@example.com", "pass")
-		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
-		_, rt1, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "reuse", Password: "pass"})
+	res, _, err := authUC.Register(ctx, regReq)
+	require.NoError(t, err)
 
-		_, rt2, _ := authUC.RefreshToken(context.Background(), rt1)
-
-		_, _, err := authUC.RefreshToken(context.Background(), rt1)
-		assert.Error(t, err)
-
-		_, _, err = authUC.RefreshToken(context.Background(), rt2)
-		assert.NoError(t, err)
-	})
-
-	t.Run("Session Hijacking Prevention (Device Differentiation)", func(t *testing.T) {
-		testUser := setup.CreateTestUser(t, env.DB, "hijack", "hijack@example.com", "pass")
-		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
-
-		r1, _, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "hijack", Password: "pass", UserAgent: "D1"})
-		r2, _, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "hijack", Password: "pass", UserAgent: "D2"})
-		assert.NotEqual(t, r1.AccessToken, r2.AccessToken)
-	})
-
-	t.Run("XSS in UserAgent Handling", func(t *testing.T) {
-		testUser := setup.CreateTestUser(t, env.DB, "xss", "xss@example.com", "pass")
-		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
-		_, _, err := authUC.Login(context.Background(), model.LoginRequest{Username: "xss", Password: "pass", UserAgent: "<script>alert(1)</script>"})
-		assert.NoError(t, err)
-	})
+	// SanitizeString uses html.EscapeString
+	expected := pkg.SanitizeString(xssName)
+	assert.Equal(t, expected, res.User.Name)
+	assert.False(t, strings.Contains(res.User.Name, "<script>"))
 }

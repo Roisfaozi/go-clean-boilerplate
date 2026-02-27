@@ -284,6 +284,7 @@ func (u *userUseCaseImpl) UpdateStatus(ctx context.Context, userID, status strin
 			if u.AuthUC != nil {
 				if err := u.AuthUC.RevokeAllSessions(txCtx, userID); err != nil {
 					u.Log.Errorf("Failed to revoke sessions for user %s: %v", userID, err)
+					// Fail the transaction if security requirement (revoke) fails
 					return exception.ErrInternalServer
 				}
 			}
@@ -442,10 +443,17 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 				u.Log.Warnf("Failed to fetch roles for backup in delete: %v", err)
 			}
 
-			_, err = enf.RemoveFilteredGroupingPolicy(0, user.ID, "", "global")
+			removed, err := enf.RemoveFilteredGroupingPolicy(0, user.ID, "", "global")
 			if err != nil {
 				u.Log.Errorf("Failed to remove user policies: %v", err)
 				return exception.ErrInternalServer
+			}
+			// If removal succeeded but no policy was removed (removed == false), it means user had no roles.
+			// This is acceptable, we proceed.
+			if !removed && len(oldRoles) > 0 {
+				// This case is strange (GetRoles found roles but Remove failed to find them?)
+				// We log a warning but proceed as primary intent (delete user) is done.
+				u.Log.Warnf("GetRoles returned %v but RemoveFilteredGroupingPolicy returned false", oldRoles)
 			}
 		}
 
@@ -468,6 +476,10 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 					for _, role := range oldRoles {
 						if _, errComp := enf.AddGroupingPolicy(user.ID, role, "global"); errComp != nil {
 							u.Log.Errorf("Failed to restore role %s during rollback: %v", role, errComp)
+							// If compensation fails, we are in inconsistent state regarding roles vs user.
+							// However, since transaction rolls back user deletion, user will exist but might be missing roles.
+							// This is severe.
+							return exception.ErrInternalServer
 						}
 					}
 				}

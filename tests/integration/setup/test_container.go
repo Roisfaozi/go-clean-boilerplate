@@ -11,6 +11,8 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
@@ -34,16 +36,18 @@ var (
 )
 
 type TestEnvironment struct {
-	DB        *gorm.DB
-	Redis     *redis.Client
-	Enforcer  usecase.IEnforcer
-	Logger    *logrus.Logger
-	Ctx       context.Context
-	MySQLAddr string
-	RedisAddr string
-	S3URL     string
-	S3Bucket  string
-	Closers   []func()
+	DB              *gorm.DB
+	Redis           *redis.Client
+	Enforcer        usecase.IEnforcer
+	Logger          *logrus.Logger
+	Ctx             context.Context
+	MySQLAddr       string
+	RedisAddr       string
+	S3URL           string
+	S3Bucket        string
+	TM              tx.WithTransactionManager
+	TaskDistributor worker.TaskDistributor
+	Closers         []func()
 }
 
 func (env *TestEnvironment) StartWorker(processor interface {
@@ -187,15 +191,19 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 	_ = globalRDB.FlushDB(ctx).Err()
 	SeedTestData(t, globalDB)
 	enforcer := SetupCasbin(t, globalDB, logger)
+	tm := tx.NewTransactionManager(globalDB, logger)
+	distributor := worker.NewRedisTaskDistributor(globalRDB, logger)
 
 	return &TestEnvironment{
-		DB:        globalDB,
-		Redis:     globalRDB,
-		Enforcer:  enforcer,
-		Logger:    logger,
-		Ctx:       ctx,
-		MySQLAddr: mysqlAddr,
-		RedisAddr: redisAddr,
+		DB:              globalDB,
+		Redis:           globalRDB,
+		Enforcer:        enforcer,
+		Logger:          logger,
+		Ctx:             ctx,
+		MySQLAddr:       mysqlAddr,
+		RedisAddr:       redisAddr,
+		TM:              tm,
+		TaskDistributor: distributor,
 	}
 }
 

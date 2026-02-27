@@ -52,11 +52,18 @@ func (m *TenantMiddleware) RequireOrganization() gin.HandlerFunc {
 			return
 		}
 
-		// Get organization ID from header (preferred), URL parameter, or slug
+		// Get organization ID from header (preferred), or route parameter if explicitly named :orgID
+		// CRITICAL FIX: Do NOT use c.Param("id") loosely as it might be resource ID (e.g. /projects/:id)
 		orgID := c.GetHeader(OrgIDHeader)
 		if orgID == "" {
-			orgID = c.Param("id")
+			orgID = c.Param("orgId") // Strict naming convention
 		}
+
+		// Fallback: If not found in header or specific param, check query param
+		if orgID == "" {
+			orgID = c.Query("orgId")
+		}
+
 		orgSlug := c.GetHeader(OrgSlugHeader)
 
 		if orgID == "" && orgSlug == "" {
@@ -127,6 +134,13 @@ func (m *TenantMiddleware) OptionalOrganization() gin.HandlerFunc {
 		}
 
 		orgID := c.GetHeader(OrgIDHeader)
+		if orgID == "" {
+			orgID = c.Param("orgId")
+		}
+		if orgID == "" {
+			orgID = c.Query("orgId")
+		}
+
 		orgSlug := c.GetHeader(OrgSlugHeader)
 
 		if orgID == "" && orgSlug == "" {

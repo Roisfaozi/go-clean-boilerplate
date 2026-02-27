@@ -203,7 +203,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	locked, ttl, err := s.tokenRepo.IsAccountLocked(ctx, request.Username)
 	if err != nil {
 		s.log.WithContext(ctx).WithError(err).Error("Failed to check account lock status")
-		return nil, "", fmt.Errorf("failed to check account status")
+		return nil, "", fmt.Errorf("failed to check account status: %w", err)
 	}
 	if locked {
 		return nil, "", fmt.Errorf("%w: try again in %v", ErrAccountLocked, ttl.Round(time.Second))
@@ -224,6 +224,9 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 			attempts, incrErr := s.tokenRepo.IncrementLoginAttempts(txCtx, request.Username)
 			if incrErr != nil {
 				s.log.WithContext(txCtx).WithError(incrErr).Error("Failed to increment login attempts")
+				// Even if increment fails, we should still return invalid credentials
+				// But we might want to return an error if the system is completely broken (e.g. Redis down)
+				// For security, proceed with invalid credentials response
 			}
 
 			if attempts >= s.maxLoginAttempts {
@@ -251,6 +254,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		// Password Valid: Reset Attempts
 		if resetErr := s.tokenRepo.ResetLoginAttempts(txCtx, request.Username); resetErr != nil {
 			s.log.WithContext(txCtx).WithError(resetErr).Error("Failed to reset login attempts")
+			// We log but do not fail login for this, as user is authenticated correctly.
 		}
 
 		if user.Status != entity.UserStatusActive {
@@ -288,14 +292,16 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 
 	// Audit Log: Login (Async)
 	if s.taskDistributor != nil {
-		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
+		if err := s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
 			UserID:    user.ID,
 			Action:    "LOGIN",
 			Entity:    "Auth",
 			EntityID:  sessionID,
 			IPAddress: request.IPAddress,
 			UserAgent: request.UserAgent,
-		})
+		}); err != nil {
+			s.log.WithContext(ctx).WithError(err).Warn("Failed to distribute login audit log")
+		}
 	}
 
 	// Broadcast to organization channels via NotificationPublisher
