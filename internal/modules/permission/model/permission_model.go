@@ -70,3 +70,19 @@ type RoleNode struct {
 type InheritanceTreeResponse struct {
 	Roles []RoleNode `json:"roles"`
 }
+
+// AssignAccessRightRequest is used for both bulk assign and revoke of an access right to a role
+type AssignAccessRightRequest struct {
+	Role          string `json:"role" validate:"required,xss"`
+	AccessRightID string `json:"access_right_id" validate:"required,xss"`
+	Domain        string `json:"domain" validate:"omitempty,xss"`
+}
+
+// RoleAccessRightStatus represents an access right with its assignment status for a given role
+type RoleAccessRightStatus struct {
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	Endpoints []string `json:"endpoints"`
+	Assigned  bool     `json:"is_assigned"`
+	Partial   bool     `json:"is_partial"`
+}
