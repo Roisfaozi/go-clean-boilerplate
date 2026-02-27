@@ -586,7 +586,12 @@ func (_m *MockCasbinEnforcer) EXPECT() *MockCasbinEnforcer_Expecter {
 func (_mock *MockCasbinEnforcer) GetRolesForUser(name string, domain ...string) ([]string, error) {
 	var tmpRet mock.Arguments
 	if len(domain) > 0 {
-		tmpRet = _mock.Called(name, domain)
+		args := make([]interface{}, 0, 1+len(domain))
+		args = append(args, name)
+		for _, v := range domain {
+			args = append(args, v)
+		}
+		tmpRet = _mock.Called(args...)
 	} else {
 		tmpRet = _mock.Called(name)
 	}

@@ -30,13 +30,13 @@ type memberTestDeps struct {
 	InvitationRepo  *mocks.MockInvitationRepository
 	UserRepo        *userMocks.MockUserRepository
 	TaskDistributor *mocking.MockTaskDistributor
-	Enforcer        *permissionMocks.IEnforcer
+	Enforcer        *permissionMocks.MockIEnforcer
 	Presence        *mocks.MockPresenceReader
 	TM              *mocking.MockWithTransactionManager
 }
 
 func setupMemberTest() (*memberTestDeps, usecase.OrganizationMemberUseCase) {
-	mockEnforcer := new(permissionMocks.IEnforcer)
+	mockEnforcer := new(permissionMocks.MockIEnforcer)
 	deps := &memberTestDeps{
 		MemberRepo:      new(mocks.MockOrganizationMemberRepository),
 		OrgRepo:         new(mocks.MockOrganizationRepository),

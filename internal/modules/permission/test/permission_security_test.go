@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	accessMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
@@ -25,22 +26,24 @@ import (
 // ============================================================================
 
 type securityPermDeps struct {
-	UserRepo *userMocks.MockUserRepository
-	RoleRepo *roleMocks.MockRoleRepository
-	Enforcer *mocks.IEnforcer
+	UserRepo   *userMocks.MockUserRepository
+	RoleRepo   *roleMocks.MockRoleRepository
+	Enforcer   *mocks.MockIEnforcer
+	AccessRepo *accessMocks.MockAccessRepository
 }
 
 func setupSecurityPermissionTest() (*securityPermDeps, usecase.IPermissionUseCase) {
 	deps := &securityPermDeps{
-		UserRepo: new(userMocks.MockUserRepository),
-		RoleRepo: new(roleMocks.MockRoleRepository),
-		Enforcer: new(mocks.IEnforcer),
+		UserRepo:   new(userMocks.MockUserRepository),
+		RoleRepo:   new(roleMocks.MockRoleRepository),
+		Enforcer:   new(mocks.MockIEnforcer),
+		AccessRepo: new(accessMocks.MockAccessRepository),
 	}
 
 	// Default behavior for enforcer with context to return itself
 	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 
-	uc := usecase.NewPermissionUseCase(deps.Enforcer, logrus.New(), deps.RoleRepo, deps.UserRepo)
+	uc := usecase.NewPermissionUseCase(deps.Enforcer, logrus.New(), deps.RoleRepo, deps.UserRepo, deps.AccessRepo)
 	return deps, uc
 }
 

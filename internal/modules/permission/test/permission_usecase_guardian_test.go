@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	accessMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
@@ -20,16 +21,18 @@ import (
 )
 
 type guardianPermissionTestDeps struct {
-	Enforcer *mocks.IEnforcer
-	RoleRepo *roleMocks.MockRoleRepository
-	UserRepo *userMocks.MockUserRepository
+	Enforcer   *mocks.MockIEnforcer
+	RoleRepo   *roleMocks.MockRoleRepository
+	UserRepo   *userMocks.MockUserRepository
+	AccessRepo *accessMocks.MockAccessRepository
 }
 
 func setupGuardianPermissionTest() (*guardianPermissionTestDeps, usecase.IPermissionUseCase) {
 	deps := &guardianPermissionTestDeps{
-		Enforcer: new(mocks.IEnforcer),
-		RoleRepo: new(roleMocks.MockRoleRepository),
-		UserRepo: new(userMocks.MockUserRepository),
+		Enforcer:   new(mocks.MockIEnforcer),
+		RoleRepo:   new(roleMocks.MockRoleRepository),
+		UserRepo:   new(userMocks.MockUserRepository),
+		AccessRepo: new(accessMocks.MockAccessRepository),
 	}
 
 	// Default behavior for enforcer with context to return itself
@@ -38,7 +41,7 @@ func setupGuardianPermissionTest() (*guardianPermissionTestDeps, usecase.IPermis
 	log := logrus.New()
 	log.SetOutput(ioDiscard)
 
-	uc := usecase.NewPermissionUseCase(deps.Enforcer, log, deps.RoleRepo, deps.UserRepo)
+	uc := usecase.NewPermissionUseCase(deps.Enforcer, log, deps.RoleRepo, deps.UserRepo, deps.AccessRepo)
 	return deps, uc
 }
 

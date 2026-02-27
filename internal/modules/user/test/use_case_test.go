@@ -28,14 +28,14 @@ import (
 type userTestDeps struct {
 	Repo     *mocks.MockUserRepository
 	TM       *mocking.MockWithTransactionManager
-	Enforcer *permMocks.IEnforcer
+	Enforcer *permMocks.MockIEnforcer
 	AuditUC  *auditMocks.MockAuditUseCase
 	AuthUC   *authMocks.MockAuthUseCase
 	Storage  *storageMocks.MockProvider
 }
 
 func setupUserTest() (*userTestDeps, userUseCase.UserUseCase) {
-	mockEnforcer := new(permMocks.IEnforcer)
+	mockEnforcer := new(permMocks.MockIEnforcer)
 	deps := &userTestDeps{
 		Repo:     new(mocks.MockUserRepository),
 		TM:       new(mocking.MockWithTransactionManager),
