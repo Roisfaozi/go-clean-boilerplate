@@ -36,7 +36,7 @@ func TestScenario_RBAC_Orchestration(t *testing.T) {
 	accessService := accessUC.NewAccessUseCase(aRepo, env.Logger)
 
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo)
+	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo)
 
 	roleName := "Analyst"
 	_, err := roleService.Create(ctx, &roleModel.CreateRoleRequest{Name: roleName, Description: "Data Analyst"})
