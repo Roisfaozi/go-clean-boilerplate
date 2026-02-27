@@ -8,7 +8,6 @@ import (
 	"time"
 
 	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
-	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"

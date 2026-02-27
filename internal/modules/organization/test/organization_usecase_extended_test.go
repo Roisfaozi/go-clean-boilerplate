@@ -44,7 +44,10 @@ func setupMemberUseCase(deps *orgTestDeps) usecase.OrganizationMemberUseCase {
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 	var enf permissionUseCase.IEnforcer = deps.Enforcer
-	return usecase.NewOrganizationMemberUseCase(log, deps.TM, deps.MemberRepo, deps.Repo, deps.InviteRepo, deps.UserRepo, deps.TaskDistributor, enf, deps.PresenceReader, "http://frontend")
+	// Cast PresenceReader
+	var pr usecase.PresenceReader = deps.PresenceReader
+
+	return usecase.NewOrganizationMemberUseCase(log, deps.TM, deps.MemberRepo, deps.Repo, deps.InviteRepo, deps.UserRepo, deps.TaskDistributor, enf, pr, "http://frontend")
 }
 
 func TestCreateOrganization_Extended(t *testing.T) {
@@ -56,20 +59,20 @@ func TestCreateOrganization_Extended(t *testing.T) {
 	}
 	uc := setupOrganizationUseCase(deps)
 
-	req := model.CreateOrganizationRequest{Name: "New Org", Slug: "new-org"}
+	req := &model.CreateOrganizationRequest{Name: "New Org", Slug: "new-org"}
 	userID := "user1"
 
 	t.Run("Transaction_Failure", func(t *testing.T) {
-		deps.Repo.On("FindBySlug", mock.Anything, "new-org").Return(nil, nil).Once()
+		deps.Repo.On("SlugExists", mock.Anything, "new-org").Return(false, nil).Once()
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).
 			Run(func(args mock.Arguments) {
 				fn := args.Get(1).(func(context.Context) error)
 				_ = fn(context.Background())
 			}).Return(exception.ErrInternalServer)
 
-		deps.Repo.On("Create", mock.Anything, mock.Anything, "owner").Return(errors.New("db error")).Once()
+		deps.Repo.On("Create", mock.Anything, mock.Anything, "role:org-owner").Return(errors.New("db error")).Once()
 
-		_, err := uc.Create(context.Background(), userID, req)
+		_, err := uc.CreateOrganization(context.Background(), userID, req)
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
 	})
 }
@@ -83,19 +86,36 @@ func TestInviteMember_Extended(t *testing.T) {
 		TM:              new(mocking.MockWithTransactionManager),
 		Enforcer:        new(permMocks.IEnforcer),
 		TaskDistributor: new(mocking.MockTaskDistributor),
+		PresenceReader:  new(authMocks.MockPresenceReader),
 	}
 	uc := setupMemberUseCase(deps)
 
 	orgID := "org1"
-	req := model.InviteMemberRequest{Email: "invitee@example.com", Role: "member"}
+	req := &model.InviteMemberRequest{Email: "invitee@example.com", RoleID: "member"}
 	actorID := "admin1"
 
 	t.Run("Email_Send_Failure", func(t *testing.T) {
-		// Mock checks
-		deps.MemberRepo.On("FindMember", mock.Anything, orgID, actorID).Return(&entity.OrganizationMember{Role: "admin"}, nil).Once()
+		_ = actorID // Unused in this test setup as controller usually handles actor authz logic or middleware
+
+		// 1. Org Check
 		deps.Repo.On("FindByID", mock.Anything, orgID).Return(&entity.Organization{ID: orgID, Name: "Test Org"}, nil).Once()
-		deps.MemberRepo.On("IsMemberByEmail", mock.Anything, orgID, req.Email).Return(false, nil).Once()
-		deps.InviteRepo.On("FindByEmail", mock.Anything, orgID, req.Email).Return(nil, nil).Once()
+
+		// 2. User Check
+		deps.UserRepo.On("FindByEmail", mock.Anything, req.Email).Return(nil, errors.New("user not found")).Once()
+		deps.UserRepo.On("Create", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+			return u.Email == req.Email
+		})).Return(nil).Once()
+
+		// 3. Membership Check
+		deps.MemberRepo.On("CheckMembership", mock.Anything, orgID, mock.Anything).Return(false, nil).Once()
+		deps.MemberRepo.On("GetMemberStatus", mock.Anything, orgID, mock.Anything).Return("", nil).Once()
+
+		// 4. Add Member
+		deps.MemberRepo.On("AddMember", mock.Anything, mock.Anything).Return(nil).Once()
+
+		// 5. Invitation Token
+		deps.InviteRepo.On("DeleteByEmailAndOrg", mock.Anything, req.Email, orgID).Return(nil).Once()
+		deps.InviteRepo.On("Create", mock.Anything, mock.Anything).Return(nil).Once()
 
 		// Transaction
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).
@@ -104,14 +124,12 @@ func TestInviteMember_Extended(t *testing.T) {
 				_ = fn(context.Background())
 			}).Return(nil)
 
-		deps.InviteRepo.On("Create", mock.Anything, mock.Anything).Return(nil).Once()
-
 		// Email failure
 		deps.TaskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.MatchedBy(func(payload *tasks.SendEmailPayload) bool {
 			return payload.To == req.Email
 		})).Return(errors.New("email fail")).Once()
 
-		err := uc.InviteMember(context.Background(), orgID, req, actorID)
+		_, err := uc.InviteMember(context.Background(), orgID, req)
 		// Should log error but NOT fail request (soft failure for notification)
 		assert.NoError(t, err)
 	})
@@ -123,19 +141,32 @@ func TestRemoveMember_Extended(t *testing.T) {
 		MemberRepo: new(orgMocks.MockOrganizationMemberRepository),
 		TM:         new(mocking.MockWithTransactionManager),
 		Enforcer:   new(permMocks.IEnforcer),
+		InviteRepo: new(orgMocks.MockInvitationRepository), // Added missing repo
+		UserRepo:   new(userMocks.MockUserRepository),
+		TaskDistributor: new(mocking.MockTaskDistributor),
+		PresenceReader: new(authMocks.MockPresenceReader),
 	}
 	uc := setupMemberUseCase(deps)
 
 	orgID := "org1"
 	targetUserID := "owner1"
-	actorID := "admin1"
 
 	t.Run("Remove_Owner_Restriction", func(t *testing.T) {
-		// Actor is admin, Target is owner
-		deps.MemberRepo.On("FindMember", mock.Anything, orgID, actorID).Return(&entity.OrganizationMember{Role: "admin"}, nil).Once()
-		deps.MemberRepo.On("FindMember", mock.Anything, orgID, targetUserID).Return(&entity.OrganizationMember{Role: "owner"}, nil).Once()
+		// Mock checks inside transaction
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				err := fn(context.Background())
+				assert.ErrorIs(t, err, exception.ErrForbidden)
+			}).Return(exception.ErrForbidden)
 
-		err := uc.RemoveMember(context.Background(), orgID, targetUserID, actorID)
+		// 1. Check if member exists
+		deps.MemberRepo.On("CheckMembership", mock.Anything, orgID, targetUserID).Return(true, nil).Once()
+
+		// 2. Check if owner
+		deps.Repo.On("FindByID", mock.Anything, orgID).Return(&entity.Organization{ID: orgID, OwnerID: targetUserID}, nil).Once()
+
+		err := uc.RemoveMember(context.Background(), orgID, targetUserID)
 		assert.ErrorIs(t, err, exception.ErrForbidden)
 	})
 }
