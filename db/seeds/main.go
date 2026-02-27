@@ -183,6 +183,10 @@ func seedAccessRightsAndPolicies(db *gorm.DB) {
 			{Path: "/api/v1/permissions/revoke", Method: "DELETE"},
 			{Path: "/api/v1/permissions/inheritance", Method: "POST"},
 			{Path: "/api/v1/permissions/inheritance", Method: "DELETE"},
+			// Bulk Access Right assignment (new)
+			{Path: "/api/v1/permissions/assign-access-right", Method: "POST"},
+			{Path: "/api/v1/permissions/revoke-access-right", Method: "DELETE"},
+			{Path: "/api/v1/permissions/roles/:role/access-rights", Method: "GET"},
 		},
 		"access:view": {
 			{Path: "/api/v1/access-rights", Method: "GET"},
@@ -205,11 +209,17 @@ func seedAccessRightsAndPolicies(db *gorm.DB) {
 
 	roleToRights := map[string][]string{
 		"role:admin": {
-			"dashboard:view", "user:view", "role:view", "role:manage",
-			"project:view", "project:manage", "org:view", "org:manage",
-			"member:manage", "presence:view", "audit:view",
+			"dashboard:view",
+			"user:view", "user:manage",
+			"role:view", "role:manage",
+			"project:view", "project:manage",
+			"org:view", "org:manage",
+			"member:manage", "presence:view",
+			"audit:view",
+			"permission:view", "permission:manage",
+			"access:view", "access:manage",
 		},
-		"role:user": { // FIXED: Mapping changed from member to user
+		"role:user": {
 			"dashboard:view", "project:view", "org:view", "presence:view",
 		},
 	}
