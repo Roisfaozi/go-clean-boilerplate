@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	accessRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
+	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
@@ -46,15 +47,24 @@ type PermissionUseCase struct {
 	RoleRepo    roleRepository.RoleRepository
 	UserRepo    userRepository.UserRepository
 	AccessRepo  accessRepository.AccessRepository
+	AuditUC     auditUseCase.AuditUseCase
 }
 
-func NewPermissionUseCase(enforcer IEnforcer, log *logrus.Logger, roleRepo roleRepository.RoleRepository, userRepo userRepository.UserRepository, accessRepo accessRepository.AccessRepository) IPermissionUseCase {
+func NewPermissionUseCase(
+	enforcer IEnforcer,
+	log *logrus.Logger,
+	roleRepo roleRepository.RoleRepository,
+	userRepo userRepository.UserRepository,
+	accessRepo accessRepository.AccessRepository,
+	auditUC auditUseCase.AuditUseCase,
+) IPermissionUseCase {
 	return &PermissionUseCase{
 		enforcer:   enforcer,
 		log:        log,
 		RoleRepo:   roleRepo,
 		UserRepo:   userRepo,
 		AccessRepo: accessRepo,
+		AuditUC:    auditUC,
 	}
 }
 

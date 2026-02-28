@@ -4,19 +4,17 @@ import (
 	"context"
 	"fmt"
 
+	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 )
 
-// GetRoleAccessRights returns all access rights with their assignment status for a given role.
-// is_assigned = true if ALL endpoints in the access right are granted to the role.
-// is_partial  = true if SOME (but not all) endpoints are granted.
+
 func (uc *PermissionUseCase) GetRoleAccessRights(ctx context.Context, role, domain string) ([]model.RoleAccessRightStatus, error) {
 	if domain == "" {
 		domain = "global"
 	}
 
-	// Reuse existing GetAccessRights which already preloads Endpoints
 	accessRights, err := uc.AccessRepo.GetAccessRights(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch access rights: %w", err)
@@ -51,7 +49,6 @@ func (uc *PermissionUseCase) GetRoleAccessRights(ctx context.Context, role, doma
 	return result, nil
 }
 
-// AssignAccessRight grants all endpoints of an access right to a role via Casbin.
 func (uc *PermissionUseCase) AssignAccessRight(ctx context.Context, req model.AssignAccessRightRequest) error {
 	if req.Domain == "" {
 		req.Domain = "global"
@@ -76,10 +73,19 @@ func (uc *PermissionUseCase) AssignAccessRight(ctx context.Context, req model.As
 
 	uc.log.Infof("Assigned access right '%s' (%d endpoints) to role '%s' in domain '%s'",
 		ar.Name, len(ar.Endpoints), req.Role, req.Domain)
+	
+	if uc.AuditUC != nil {
+		_ = uc.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			Action:     "ASSIGN_ACCESS_RIGHT",
+			Entity:     "roles",
+			EntityID:   req.Role,
+			NewValues:  map[string]any{"access_right_id": ar.ID, "domain": req.Domain},
+		})
+	}
+
 	return nil
 }
 
-// RevokeAccessRight revokes all endpoints of an access right from a role via Casbin.
 func (uc *PermissionUseCase) RevokeAccessRight(ctx context.Context, req model.AssignAccessRightRequest) error {
 	if req.Domain == "" {
 		req.Domain = "global"
@@ -99,5 +105,15 @@ func (uc *PermissionUseCase) RevokeAccessRight(ctx context.Context, req model.As
 
 	uc.log.Infof("Revoked access right '%s' (%d endpoints) from role '%s' in domain '%s'",
 		ar.Name, len(ar.Endpoints), req.Role, req.Domain)
+	
+	if uc.AuditUC != nil {
+		_ = uc.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+			Action:     "REVOKE_ACCESS_RIGHT",
+			Entity:     "roles",
+			EntityID:   req.Role,
+			OldValues:  map[string]any{"access_right_id": ar.ID, "domain": req.Domain},
+		})
+	}
+
 	return nil
 }
