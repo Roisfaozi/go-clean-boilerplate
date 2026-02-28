@@ -20,7 +20,7 @@ func setupPermissionIntegration(env *setup.TestEnvironment) usecase.IPermissionU
 	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
-	return usecase.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo)
+	return usecase.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo, nil)
 }
 
 func TestPermissionIntegration_AssignRoleToUser(t *testing.T) {

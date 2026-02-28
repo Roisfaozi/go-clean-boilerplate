@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	accessMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks"
+	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
@@ -41,7 +42,7 @@ func setupGuardianPermissionTest() (*guardianPermissionTestDeps, usecase.IPermis
 	log := logrus.New()
 	log.SetOutput(ioDiscard)
 
-	uc := usecase.NewPermissionUseCase(deps.Enforcer, log, deps.RoleRepo, deps.UserRepo, deps.AccessRepo)
+	uc := usecase.NewPermissionUseCase(deps.Enforcer, log, deps.RoleRepo, deps.UserRepo, deps.AccessRepo, new(auditMocks.MockAuditUseCase))
 	return deps, uc
 }
 

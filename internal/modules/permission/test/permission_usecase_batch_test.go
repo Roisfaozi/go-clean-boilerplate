@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	accessMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks"
+	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
@@ -29,7 +30,7 @@ func setupBatchTest() (*mocks.MockIEnforcer, usecase.IPermissionUseCase) {
 	// Default behavior for enforcer with context to return itself
 	enforcer.On("WithContext", mock.Anything).Return(enforcer)
 
-	uc := usecase.NewPermissionUseCase(enforcer, log, roleRepo, userRepo, accessRepo)
+	uc := usecase.NewPermissionUseCase(enforcer, log, roleRepo, userRepo, accessRepo, new(auditMocks.MockAuditUseCase))
 
 	return enforcer, uc
 }

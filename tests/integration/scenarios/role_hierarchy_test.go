@@ -31,7 +31,7 @@ func TestScenario_RoleHierarchy(t *testing.T) {
 	roleService := roleUC.NewRoleUseCase(env.Logger, tm, rRepo)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
-	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo)
+	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo, nil)
 
 	parentRole := "Manager"
 	childRole := "Staff"
