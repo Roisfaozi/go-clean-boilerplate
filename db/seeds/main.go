@@ -148,11 +148,11 @@ func authenticateSuperadmin(cfg *config.AppConfig) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("login failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		var errResp map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&errResp)
+		_ = json.NewDecoder(resp.Body).Decode(&errResp)
 		return "", fmt.Errorf("login failed with status %d: %v", resp.StatusCode, errResp)
 	}
 
@@ -193,7 +193,7 @@ func doJSONRequest(method, url string, payload interface{}, token string, expect
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var result map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil && resp.StatusCode != http.StatusNoContent {
@@ -661,11 +661,11 @@ func doJSONRequestWithOrg(apiBaseURL, orgID string, payload interface{}, token s
 		log.Printf("Failed to execute project creation request: %v", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		var errResp map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&errResp)
+		_ = json.NewDecoder(resp.Body).Decode(&errResp)
 		log.Printf("API request to create project failed with status %d: %v", resp.StatusCode, errResp)
 	} else {
 		log.Println("Default Project created successfully.")
