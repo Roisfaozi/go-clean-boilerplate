@@ -130,7 +130,7 @@ func authenticateSuperadmin(cfg *config.AppConfig) (string, error) {
 	if adminPassword == "" {
 		return "", fmt.Errorf("SUPERADMIN_PASSWORD environment variable is missing in .env")
 	}
-	
+
 	apiBaseURL := fmt.Sprintf("http://localhost:%d/api/v1", cfg.Server.Port)
 	loginURL := fmt.Sprintf("%s/auth/login", apiBaseURL)
 
@@ -207,10 +207,9 @@ func doJSONRequest(method, url string, payload interface{}, token string, expect
 	return result, nil
 }
 
-
 func seedAccessRightsAndPoliciesViaAPI(cfg *config.AppConfig, token string) {
 	apiBaseURL := fmt.Sprintf("http://localhost:%d/api/v1", cfg.Server.Port)
-	
+
 	accessMap := map[string][]map[string]string{
 		"dashboard:view": {
 			{"Path": "/api/v1/stats/summary", "Method": "GET"},
@@ -322,7 +321,7 @@ func seedAccessRightsAndPoliciesViaAPI(cfg *config.AppConfig, token string) {
 
 	// 1. Seed Endpoints and AccessRights into DB
 	for arName, eps := range accessMap {
-		
+
 		// Search for access right
 		searchARPayload := map[string]interface{}{
 			"filter": map[string]interface{}{
@@ -332,9 +331,9 @@ func seedAccessRightsAndPoliciesViaAPI(cfg *config.AppConfig, token string) {
 				},
 			},
 		}
-		
+
 		resp, err := doJSONRequest("POST", fmt.Sprintf("%s/access-rights/search", apiBaseURL), searchARPayload, token, http.StatusOK)
-		
+
 		var arID string
 		if err == nil && resp["data"] != nil {
 			if data, ok := resp["data"].([]interface{}); ok && len(data) > 0 {
@@ -347,7 +346,7 @@ func seedAccessRightsAndPoliciesViaAPI(cfg *config.AppConfig, token string) {
 		} else if err != nil {
 			log.Printf("Warning: search access right failed: %v", err)
 		}
-		
+
 		if arID == "" {
 			// Create it
 			createARPayload := map[string]interface{}{
@@ -382,9 +381,9 @@ func seedAccessRightsAndPoliciesViaAPI(cfg *config.AppConfig, token string) {
 					},
 				},
 			}
-			
+
 			resp, err := doJSONRequest("POST", fmt.Sprintf("%s/endpoints/search", apiBaseURL), searchEpPayload, token, http.StatusOK)
-			
+
 			var epID string
 			if err == nil && resp["data"] != nil {
 				if data, ok := resp["data"].([]interface{}); ok && len(data) > 0 {
@@ -395,11 +394,11 @@ func seedAccessRightsAndPoliciesViaAPI(cfg *config.AppConfig, token string) {
 					}
 				}
 			}
-			
+
 			if epID == "" {
 				// Create endpoint
 				createEpPayload := map[string]interface{}{
-					"path": ep["Path"],
+					"path":   ep["Path"],
 					"method": ep["Method"],
 				}
 				resp, err := doJSONRequest("POST", fmt.Sprintf("%s/endpoints", apiBaseURL), createEpPayload, token, http.StatusCreated)
@@ -416,11 +415,11 @@ func seedAccessRightsAndPoliciesViaAPI(cfg *config.AppConfig, token string) {
 					}
 				}
 			}
-			
+
 			// Link in DB
 			linkPayload := map[string]interface{}{
 				"access_right_id": arID,
-				"endpoint_id": epID,
+				"endpoint_id":     epID,
 			}
 			_, _ = doJSONRequest("POST", fmt.Sprintf("%s/access-rights/link", apiBaseURL), linkPayload, token, http.StatusOK)
 			// Ignore error on link if it's already linked
@@ -451,12 +450,12 @@ func seedAccessRightsAndPoliciesViaAPI(cfg *config.AppConfig, token string) {
 					}
 				}
 			}
-			
+
 			if arID != "" {
 				assignPayload := map[string]interface{}{
-					"role": roleName,
+					"role":            roleName,
 					"access_right_id": arID,
-					"domain": "global",
+					"domain":          "global",
 				}
 				_, err := doJSONRequest("POST", fmt.Sprintf("%s/permissions/assign-access-right", apiBaseURL), assignPayload, token, http.StatusOK)
 				if err != nil {
@@ -497,7 +496,7 @@ func seedOrganizationsUsersAndProjects(cfg *config.AppConfig, token string) {
 		"name": "Default Organization",
 		"slug": "default-org",
 	}
-	
+
 	resp, err := doJSONRequest("POST", fmt.Sprintf("%s/organizations", apiBaseURL), orgPayload, token, http.StatusCreated)
 	var orgID string
 	if err != nil {
@@ -526,7 +525,7 @@ func seedOrganizationsUsersAndProjects(cfg *config.AppConfig, token string) {
 	log.Printf("Default Organization seeded/found with ID: %s", orgID)
 
 	// 2. Assign Superadmin as member/owner of default org (often handled by creation, but let's ensure)
-	// We might need to invite or just rely on the API auto-assigning the creator. 
+	// We might need to invite or just rely on the API auto-assigning the creator.
 	// The access control model uses organizations/:id/members.
 	// But first let's create the other users.
 
@@ -542,7 +541,7 @@ func seedOrganizationsUsersAndProjects(cfg *config.AppConfig, token string) {
 			"fullname": u["fullname"],
 			"email":    u["email"],
 		}
-		
+
 		resp, err := doJSONRequest("POST", fmt.Sprintf("%s/users", apiBaseURL), userPayload, token, http.StatusCreated)
 		var userID string
 		if err != nil {
@@ -576,7 +575,7 @@ func seedOrganizationsUsersAndProjects(cfg *config.AppConfig, token string) {
 
 		if userID != "" {
 			log.Printf("User %s seeded/found with ID: %s", u["username"], userID)
-			
+
 			// Get Role ID
 			roleSearchPayload := map[string]interface{}{
 				"filter": map[string]interface{}{
@@ -621,14 +620,14 @@ func seedOrganizationsUsersAndProjects(cfg *config.AppConfig, token string) {
 		"name":   "Sample E-Commerce App",
 		"domain": "e-commerce",
 	}
-	
+
 	// Create project requests typically go to /organizations/:id/projects if nested,
 	// but this boilerplate routes Projects at /api/v1/projects and relies on the user's Context (which includes the Active Organization if set).
 	// Because Superadmin is making the request, we need to ensure they are operating within an organization context.
-	// Since X-Organization-Id might be required by middleware, let's inject it into `doJSONRequest` if needed, 
+	// Since X-Organization-Id might be required by middleware, let's inject it into `doJSONRequest` if needed,
 	// or assume the generic `doJSONRequest` doesn't pass it and see if it falls back.
 	// For now, let's just trace the path.
-	
+
 	// To reliably create a project for an org, we might need a modified request that passes the org ID header,
 	// but let's try the standard POST and see if the controller handles it.
 	doJSONRequestWithOrg(apiBaseURL, orgID, projectPayload, token)
