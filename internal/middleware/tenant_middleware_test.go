@@ -609,7 +609,7 @@ func TestTenantMiddleware_RequireOrgRole(t *testing.T) {
 	})
 }
 
-func TestTenantMiddleware_GetMemberRoleFromContext(t *testing.T) {
+func TestGetMemberRoleFromContext(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	t.Run("exists and valid", func(t *testing.T) {
