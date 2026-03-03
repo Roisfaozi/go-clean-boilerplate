@@ -85,7 +85,7 @@ func TestAuthMiddleware_ValidateWebSocketToken_InvalidTicket(t *testing.T) {
 	mockTicketManager.AssertExpectations(t)
 }
 
-func TestAuthMiddleware_GetUserIDFromContext(t *testing.T) {
+func TestGetUserIDFromContext(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	t.Run("exists and valid", func(t *testing.T) {
