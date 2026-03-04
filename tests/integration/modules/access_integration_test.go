@@ -143,7 +143,26 @@ func TestAccessIntegration_Security_SQLInjectionPrevention(t *testing.T) {
 	payload := "name' OR '1'='1"
 	ar, err := uc.CreateAccessRight(context.Background(), model.CreateAccessRightRequest{Name: payload})
 	if err == nil {
-		// Verify that the stored name is sanitized (HTML escaped)
 		assert.Equal(t, pkg.SanitizeString(payload), ar.Name)
 	}
 }
+
+func TestAccessIntegration_LinkEndpoint_Negative_DuplicateLink(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	uc := setupAccessIntegration(env)
+
+	ar, err := uc.CreateAccessRight(context.Background(), model.CreateAccessRightRequest{Name: "DupLink", Description: "d"})
+	require.NoError(t, err)
+
+	ep, err := uc.CreateEndpoint(context.Background(), model.CreateEndpointRequest{Path: "/api/v1/duplink", Method: "GET"})
+	require.NoError(t, err)
+
+	err = uc.LinkEndpointToAccessRight(context.Background(), model.LinkEndpointRequest{AccessRightID: ar.ID, EndpointID: ep.ID})
+	require.NoError(t, err)
+
+	err = uc.LinkEndpointToAccessRight(context.Background(), model.LinkEndpointRequest{AccessRightID: ar.ID, EndpointID: ep.ID})
+	t.Logf("Duplicate link error (expected idempotent or conflict): %v", err)
+}
+

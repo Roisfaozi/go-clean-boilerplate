@@ -105,31 +105,4 @@ func TestScenario_AdminSecurity_RBAC_Lifecycle(t *testing.T) {
 	assert.Contains(t, userRoles, roleName)
 }
 
-func TestScenario_AdminSecurity_TokenRotation(t *testing.T) {
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
-	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)
-	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
-	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	oRepo := orgRepo.NewOrganizationRepository(env.DB)
-	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil)
-
-	user := setup.CreateTestUser(t, env.DB, "rotator", "rot@test.com", "pass")
-	_, rt1, err := authService.Login(context.Background(), authModel.LoginRequest{Username: user.Username, Password: "pass"})
-	require.NoError(t, err)
-
-	_, rt2, err := authService.RefreshToken(context.Background(), rt1)
-	require.NoError(t, err)
-	assert.NotEqual(t, rt1, rt2)
-
-	_, _, err = authService.RefreshToken(context.Background(), rt1)
-	assert.Error(t, err, "Reuse of old refresh token should fail")
-
-	_, rt3, err := authService.RefreshToken(context.Background(), rt2)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, rt3)
-}

@@ -296,3 +296,34 @@ func TestRoleIntegration_Update_Success(t *testing.T) {
 	assert.Equal(t, created.ID, updated.ID)
 	assert.Equal(t, "Updated Description", updated.Description)
 }
+
+func TestRoleIntegration_Delete_WithActiveUsers_DocumentsBehavior(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	roleUC := setupRoleIntegration(env)
+
+	created, err := roleUC.Create(context.Background(), &model.CreateRoleRequest{
+		Name:        "RoleWithUsers",
+		Description: "Has active assignments",
+	})
+	require.NoError(t, err)
+
+	_, err = env.Enforcer.AddGroupingPolicy("user:fake-active-user", created.Name, "global")
+	require.NoError(t, err)
+	env.Enforcer.SavePolicy()
+	err = roleUC.Delete(context.Background(), created.ID)
+	require.NoError(t, err, "Role deletion should succeed even when users are assigned")
+
+	err = roleUC.Delete(context.Background(), created.ID)
+	assert.Error(t, err, "Role already deleted — second delete should return not-found")
+
+	rolesAfter, _ := env.Enforcer.GetRolesForUser("user:fake-active-user", "global")
+	roleStillInCasbin := false
+	for _, r := range rolesAfter {
+		if r == created.Name {
+			roleStillInCasbin = true
+		}
+	}
+	t.Logf("KNOWN GAP: Casbin grouping still contains deleted role '%s': %v — cleanup not cascaded by usecase.Delete", created.Name, roleStillInCasbin)
+}

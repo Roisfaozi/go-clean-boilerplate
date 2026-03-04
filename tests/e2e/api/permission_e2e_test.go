@@ -287,3 +287,76 @@ func TestPermissionE2E_RemoveInheritance(t *testing.T) {
 		assert.False(t, ok, "Parent should NOT have access after inheritance removed")
 	})
 }
+
+func TestPermissionE2E_Security_PostRoleDeletion_PermissionsRevoked(t *testing.T) {
+	server := setup.SetupTestServer(t)
+	defer server.Cleanup()
+	client := server.Client
+
+	f := fixtures.NewUserFactory(server.DB)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("StrongPass123!"), bcrypt.DefaultCost)
+	passHash := string(hash)
+
+	// Setup admin
+	admin := f.Create(func(u *userEntity.User) {
+		u.Username = "post_del_admin"
+		u.Email = "postdel@admin.com"
+		u.Password = passHash
+	})
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
+	server.Enforcer.SavePolicy()
+
+	resp := client.POST("/api/v1/auth/login", map[string]any{"username": admin.Username, "password": "StrongPass123!"})
+	require.Equal(t, 200, resp.StatusCode)
+	var adminLoginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		} `json:"data"`
+	}
+	resp.JSON(&adminLoginRes)
+	adminToken := adminLoginRes.Data.AccessToken
+
+	// Create role in DB and enforce layer
+	roleID := uuid.New().String()
+	server.DB.Create(&roleEntity.Role{ID: roleID, Name: "EphemeralRole"})
+	server.Enforcer.AddPolicy("EphemeralRole", "global", "/api/v1/secret", "GET")
+	server.Enforcer.SavePolicy()
+
+	// Create user and assign the role
+	targetUser := f.Create(func(u *userEntity.User) { u.Username = "ephemeral_user"; u.Password = passHash })
+	client.POST("/api/v1/permissions/assign-role", map[string]any{
+		"user_id": targetUser.ID,
+		"role":    "EphemeralRole",
+	}, setup.WithAuth(adminToken))
+
+	// Login target user and verify access before deletion
+	resp = client.POST("/api/v1/auth/login", map[string]any{"username": targetUser.Username, "password": "StrongPass123!"})
+	var targetLoginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		} `json:"data"`
+	}
+	resp.JSON(&targetLoginRes)
+	targetToken := targetLoginRes.Data.AccessToken
+
+	roles, _ := server.Enforcer.GetRolesForUser(targetUser.ID, "global")
+	assert.Contains(t, roles, "EphemeralRole", "User should have role before deletion")
+
+	// Admin deletes the role
+	resp = client.DELETE("/api/v1/roles/"+roleID, setup.WithAuth(adminToken))
+	assert.True(t, resp.StatusCode == 200 || resp.StatusCode == 204, "Role deletion should succeed")
+
+	// Verify Casbin policies for the role are cleaned up
+	policies := server.Enforcer.GetFilteredPolicy(0, "EphemeralRole")
+	assert.Empty(t, policies, "All Casbin policies for deleted role must be removed")
+
+	// Verify user no longer holds the role in the enforce layer
+	rolesAfter, _ := server.Enforcer.GetRolesForUser(targetUser.ID, "global")
+	assert.NotContains(t, rolesAfter, "EphemeralRole", "User's role assignment must be removed after role deletion")
+
+	// User's token should no longer grant permission to resources previously covered by that role
+	_ = targetToken // token may still be valid JWT, but Casbin check should deny
+	hasAccess, _ := server.Enforcer.Enforce(targetUser.ID, "global", "/api/v1/secret", "GET")
+	assert.False(t, hasAccess, "User must NOT have access after role deletion")
+}

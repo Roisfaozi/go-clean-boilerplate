@@ -169,3 +169,65 @@ func TestUserE2E_UpdateStatus(t *testing.T) {
 		assert.Equal(t, 422, resp.StatusCode)
 	})
 }
+
+func TestUserE2E_Security_IDOR_UpdateOtherUser(t *testing.T) {
+	server := setup.SetupTestServer(t)
+	defer server.Cleanup()
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte("UserPass123!"), bcrypt.DefaultCost)
+	passHash := string(hash)
+
+	f := fixtures.NewUserFactory(server.DB)
+
+	// Create attacker (regular user, no admin role)
+	attacker := f.Create(func(u *userEntity.User) {
+		u.Username = "idor_attacker"
+		u.Email = "attacker@test.com"
+		u.Password = passHash
+		u.Status = userEntity.UserStatusActive
+	})
+
+	// Create victim user
+	victim := f.Create(func(u *userEntity.User) {
+		u.Username = "idor_victim"
+		u.Email = "victim@test.com"
+		u.Password = passHash
+		u.Status = userEntity.UserStatusActive
+	})
+
+	// Login as attacker
+	resp := server.Client.POST("/api/v1/auth/login", map[string]any{
+		"username": attacker.Username,
+		"password": "UserPass123!",
+	})
+	require.Equal(t, 200, resp.StatusCode)
+	var loginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		} `json:"data"`
+	}
+	resp.JSON(&loginRes)
+	attackerToken := loginRes.Data.AccessToken
+
+	t.Run("Security - IDOR: Attacker cannot update victim profile", func(t *testing.T) {
+		updatePayload := map[string]any{
+			"name":  "Hacked Name",
+			"email": "hacked@evil.com",
+		}
+		resp := server.Client.PATCH("/api/v1/users/"+victim.ID,
+			updatePayload,
+			setup.WithAuth(attackerToken))
+		assert.Equal(t, 403, resp.StatusCode, "Non-admin user must NOT be able to update another user's profile")
+	})
+
+	t.Run("Positive - User can update own profile", func(t *testing.T) {
+		updatePayload := map[string]any{
+			"name": "Attacker Updated Own",
+		}
+		resp := server.Client.PATCH("/api/v1/users/"+attacker.ID,
+			updatePayload,
+			setup.WithAuth(attackerToken))
+		assert.True(t, resp.StatusCode == 200 || resp.StatusCode == 403,
+			"Self-update returns 200 if allowed by policy, 403 if role-gated")
+	})
+}
