@@ -1,9 +1,14 @@
 package test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
@@ -12,13 +17,18 @@ import (
 	authMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	permMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	userHandler "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	storageMocks "github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -910,4 +920,829 @@ func TestUserUseCase_Update_Sanitization(t *testing.T) {
 	// If it fails with "Unexpected call", that counts as test failure.
 	assert.NoError(t, err)
 	deps.Repo.AssertExpectations(t)
+}
+
+
+// --- Merged from use_case_avatar_test.go ---
+
+// Helper to create a reader with valid PNG header
+func createValidImageReader(content string) io.Reader {
+	// PNG magic bytes: 89 50 4E 47 0D 0A 1A 0A
+	header := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
+	return io.MultiReader(strings.NewReader(string(header)), strings.NewReader(content))
+}
+
+// setupAvatarTest creates test dependencies for avatar tests
+func setupAvatarTest() (*userTestDeps, userUseCase.UserUseCase) {
+	mockEnforcer := new(permMocks.MockIEnforcer)
+	deps := &userTestDeps{
+		Repo:     new(mocks.MockUserRepository),
+		TM:       new(mocking.MockWithTransactionManager),
+		Enforcer: mockEnforcer,
+		AuditUC:  new(auditMocks.MockAuditUseCase),
+		AuthUC:   new(authMocks.MockAuthUseCase),
+		Storage:  new(storageMocks.MockProvider),
+	}
+
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+
+	// Cast to interface to ensure correct implementation
+	var enf permissionUseCase.IEnforcer = deps.Enforcer
+
+	uc := userUseCase.NewUserUseCase(deps.TM, log, deps.Repo, enf, deps.AuditUC, deps.AuthUC, deps.Storage)
+
+	return deps, uc
+}
+
+// ============================================================================
+// ✅ POSITIVE CASES
+// ============================================================================
+
+func TestUserUseCase_UpdateAvatar_Success(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-123"
+	filename := "profile.jpg"
+	contentType := "image/png"
+	fileContent := createValidImageReader("fake-image-data")
+	uploadedURL := "https://storage.example.com/avatars/user-123.png"
+
+	existingUser := &entity.User{
+		ID:        userID,
+		Username:  "testuser",
+		Email:     "test@example.com",
+		Name:      "Test User",
+		AvatarURL: "", // No existing avatar
+	}
+
+	// Mock FindByID
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+
+	// Mock Storage Upload
+	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-123.png", "image/png").
+		Return(uploadedURL, nil)
+
+	// Mock Update
+	deps.Repo.On("Update", ctx, mock.MatchedBy(func(u *entity.User) bool {
+		return u.ID == userID && u.AvatarURL == uploadedURL
+	})).Return(nil)
+
+	// Mock Audit Log
+	deps.AuditUC.On("LogActivity", ctx, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.UserID == userID &&
+			req.Action == "UPDATE_AVATAR" &&
+			req.Entity == "User" &&
+			req.EntityID == userID
+	})).Return(nil)
+
+	// Execute
+	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, uploadedURL, result.AvatarURL)
+	deps.Repo.AssertExpectations(t)
+	deps.Storage.AssertExpectations(t)
+	deps.AuditUC.AssertExpectations(t)
+}
+
+func TestUserUseCase_GetAvatarUrl_Success(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-123"
+	avatarURL := "avatars/user-123.png"
+	fullURL := "https://storage.example.com/avatars/user-123.png"
+
+	existingUser := &entity.User{
+		ID:        userID,
+		AvatarURL: avatarURL,
+	}
+
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+	deps.Storage.On("GetFileUrl", ctx, avatarURL).Return(fullURL, nil)
+
+	result, err := uc.GetAvatarUrl(ctx, userID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, fullURL, result)
+}
+
+func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-456"
+	filename := "new-avatar.png"
+	contentType := "image/png"
+	fileContent := createValidImageReader("new-fake-image-data")
+	oldAvatarURL := "https://storage.example.com/avatars/user-456-old.jpg"
+	newAvatarURL := "https://storage.example.com/avatars/user-456.png"
+
+	existingUser := &entity.User{
+		ID:        userID,
+		Username:  "testuser2",
+		Email:     "test2@example.com",
+		Name:      "Test User 2",
+		AvatarURL: oldAvatarURL, // Has existing avatar
+	}
+
+	// Mock FindByID
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+
+	// Mock Storage Upload (replaces old one)
+	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-456.png", "image/png").
+		Return(newAvatarURL, nil)
+
+	// Mock Update
+	deps.Repo.On("Update", ctx, mock.MatchedBy(func(u *entity.User) bool {
+		return u.ID == userID && u.AvatarURL == newAvatarURL
+	})).Return(nil)
+
+	// Mock Audit Log
+	deps.AuditUC.On("LogActivity", ctx, mock.Anything).Return(nil)
+
+	// Execute
+	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, newAvatarURL, result.AvatarURL)
+	assert.NotEqual(t, oldAvatarURL, result.AvatarURL)
+	deps.Repo.AssertExpectations(t)
+	deps.Storage.AssertExpectations(t)
+}
+
+// ============================================================================
+// ❌ NEGATIVE CASES
+// ============================================================================
+
+func TestUserUseCase_UpdateAvatar_UserNotFound(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "nonexistent-user"
+	filename := "profile.jpg"
+	contentType := "image/jpeg"
+	fileContent := strings.NewReader("fake-image-data")
+
+	// Mock FindByID - User not found
+	deps.Repo.On("FindByID", ctx, userID).Return(nil, gorm.ErrRecordNotFound)
+
+	// Execute
+	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, exception.ErrNotFound, err)
+	deps.Repo.AssertExpectations(t)
+	deps.Storage.AssertNotCalled(t, "UploadFile")
+}
+
+func TestUserUseCase_UpdateAvatar_StorageUploadError(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-789"
+	filename := "profile.jpg"
+	contentType := "image/png"
+	fileContent := createValidImageReader("fake-image-data")
+
+	existingUser := &entity.User{
+		ID:       userID,
+		Username: "testuser3",
+		Email:    "test3@example.com",
+		Name:     "Test User 3",
+	}
+
+	// Mock FindByID
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+
+	// Mock Storage Upload - Error
+	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-789.png", "image/png").
+		Return("", errors.New("storage service unavailable"))
+
+	// Execute
+	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, exception.ErrInternalServer, err)
+	deps.Repo.AssertExpectations(t)
+	deps.Storage.AssertExpectations(t)
+	deps.Repo.AssertNotCalled(t, "Update")
+}
+
+func TestUserUseCase_UpdateAvatar_DatabaseUpdateError(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-101"
+	filename := "profile.jpg"
+	contentType := "image/png"
+	fileContent := createValidImageReader("fake-image-data")
+	uploadedURL := "https://storage.example.com/avatars/user-101.png"
+
+	existingUser := &entity.User{
+		ID:       userID,
+		Username: "testuser4",
+		Email:    "test4@example.com",
+		Name:     "Test User 4",
+	}
+
+	// Mock FindByID
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+
+	// Mock Storage Upload - Success
+	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-101.png", "image/png").
+		Return(uploadedURL, nil)
+
+	// Mock Update - Error
+	deps.Repo.On("Update", ctx, mock.Anything).Return(errors.New("database connection lost"))
+
+	// Execute
+	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, exception.ErrInternalServer, err)
+	deps.Repo.AssertExpectations(t)
+	deps.Storage.AssertExpectations(t)
+}
+
+func TestUserUseCase_UpdateAvatar_AuditLogError(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-202"
+	filename := "profile.jpg"
+	contentType := "image/png"
+	fileContent := createValidImageReader("fake-image-data")
+	uploadedURL := "https://storage.example.com/avatars/user-202.png"
+
+	existingUser := &entity.User{
+		ID:       userID,
+		Username: "testuser5",
+		Email:    "test5@example.com",
+		Name:     "Test User 5",
+	}
+
+	// Mock FindByID
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+
+	// Mock Storage Upload
+	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-202.png", "image/png").
+		Return(uploadedURL, nil)
+
+	// Mock Update
+	deps.Repo.On("Update", ctx, mock.Anything).Return(nil)
+
+	// Mock Audit Log - Error (should not fail the operation)
+	deps.AuditUC.On("LogActivity", ctx, mock.Anything).Return(errors.New("audit service down"))
+
+	// Execute
+	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+
+	// Assert - Should still succeed even if audit fails
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, uploadedURL, result.AvatarURL)
+	deps.Repo.AssertExpectations(t)
+	deps.Storage.AssertExpectations(t)
+	deps.AuditUC.AssertExpectations(t)
+}
+
+// ============================================================================
+// 🔄 EDGE CASES
+// ============================================================================
+
+func TestUserUseCase_UpdateAvatar_InvalidFileType(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-303"
+	filename := "malicious.exe"
+	contentType := "application/x-msdownload"
+	fileContent := strings.NewReader("fake-exe-data")
+
+	existingUser := &entity.User{
+		ID:       userID,
+		Username: "testuser6",
+		Email:    "test6@example.com",
+		Name:     "Test User 6",
+	}
+
+	// Mock FindByID
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+
+	// Mock Storage Upload - Should NOT be called
+	// deps.Storage.On("UploadFile", ...).Return(...)
+
+	// Execute
+	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, exception.ErrValidationError, err)
+	deps.Repo.AssertExpectations(t)
+	deps.Storage.AssertNotCalled(t, "UploadFile")
+}
+
+func TestUserUseCase_UpdateAvatar_FileTooLarge(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-404"
+	filename := "huge-image.jpg"
+	contentType := "image/png"
+	// Simulate large file with valid header
+	largeContent := createValidImageReader(strings.Repeat("x", 10*1024*1024)) // 10MB
+
+	existingUser := &entity.User{
+		ID:       userID,
+		Username: "testuser7",
+		Email:    "test7@example.com",
+		Name:     "Test User 7",
+	}
+
+	// Mock FindByID
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+
+	// Mock Storage Upload - Should reject file too large
+	deps.Storage.On("UploadFile", ctx, mock.Anything, "avatars/user-404.png", "image/png").
+		Return("", errors.New("file size exceeds limit"))
+
+	// Execute
+	result, err := uc.UpdateAvatar(ctx, userID, largeContent, filename, contentType)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, exception.ErrInternalServer, err)
+	deps.Repo.AssertExpectations(t)
+	deps.Storage.AssertExpectations(t)
+}
+
+// --- Merged from use_case_avatar_security_test.go ---
+
+func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
+	deps, uc := setupAvatarSecurityTest()
+	ctx := context.Background()
+	userID := "user-sec-123"
+
+	tests := []struct {
+		name        string
+		filename    string
+		contentType string
+		fileContent io.Reader
+		errExpected error
+	}{
+		{
+			name:        "Block SVG (potential XSS)",
+			filename:    "image.svg",
+			contentType: "image/svg+xml",
+			fileContent: strings.NewReader(`<?xml version="1.0" standalone="no"?><!DOCTYPE sql SYSTEM "http://malicious.com"><svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"></svg>`),
+			errExpected: exception.ErrValidationError,
+		},
+		{
+			name:        "Block HTML disguised as image",
+			filename:    "fake.png",
+			contentType: "image/png",
+			fileContent: strings.NewReader(`<html><body><h1>Not an image</h1><script>alert(1)</script></body></html>`),
+			errExpected: exception.ErrValidationError,
+		},
+		{
+			name:        "Block Polyglot (PNG with PHP payload)",
+			filename:    "poly.png",
+			contentType: "image/png",
+			fileContent: io.MultiReader(
+				strings.NewReader("\x89PNG\r\n\x1a\n"),
+				strings.NewReader("<?php echo 'malicious'; ?>"),
+			),
+			errExpected: nil,
+		},
+		{
+			name:        "Block Script File",
+			filename:    "exploit.sh",
+			contentType: "text/x-shellscript",
+			fileContent: strings.NewReader("#!/bin/bash\necho 'hacked'"),
+			errExpected: exception.ErrValidationError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			existingUser := &entity.User{ID: userID, Username: "secuser"}
+			deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil).Once()
+
+			if tt.errExpected == nil {
+				deps.Storage.On("UploadFile", ctx, mock.Anything, mock.Anything, mock.Anything).Return("http://ok.com", nil).Once()
+				deps.Repo.On("Update", ctx, mock.Anything).Return(nil).Once()
+				deps.AuditUC.On("LogActivity", ctx, mock.Anything).Return(nil).Once()
+			}
+
+			_, err := uc.UpdateAvatar(ctx, userID, tt.fileContent, tt.filename, tt.contentType)
+
+			if tt.errExpected != nil {
+				assert.Error(t, err)
+				assert.Equal(t, tt.errExpected, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func setupAvatarSecurityTest() (*userTestDeps, userUseCase.UserUseCase) {
+	mockEnforcer := new(permMocks.MockIEnforcer)
+	deps := &userTestDeps{
+		Repo:     new(mocks.MockUserRepository),
+		TM:       new(mocking.MockWithTransactionManager),
+		Enforcer: mockEnforcer,
+		AuditUC:  new(auditMocks.MockAuditUseCase),
+		AuthUC:   new(authMocks.MockAuthUseCase),
+		Storage:  new(storageMocks.MockProvider),
+	}
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+	uc := userUseCase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
+	return deps, uc
+}
+
+// --- Merged from use_case_cleanup_test.go ---
+
+// setupCleanupTest creates test dependencies for cleanup tests
+func setupCleanupTest() (*userTestDeps, userUseCase.UserUseCase) {
+	mockEnforcer := new(permMocks.MockIEnforcer)
+	deps := &userTestDeps{
+		Repo:     new(mocks.MockUserRepository),
+		TM:       new(mocking.MockWithTransactionManager),
+		Enforcer: mockEnforcer,
+		AuditUC:  new(auditMocks.MockAuditUseCase),
+		AuthUC:   new(authMocks.MockAuthUseCase),
+		Storage:  new(storageMocks.MockProvider),
+	}
+
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+
+	uc := userUseCase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
+
+	return deps, uc
+}
+
+// ============================================================================
+// ✅ POSITIVE CASES
+// ============================================================================
+
+func TestUserUseCase_HardDeleteSoftDeletedUsers_Success(t *testing.T) {
+	deps, uc := setupCleanupTest()
+	ctx := context.Background()
+
+	retentionDays := 30
+
+	// Mock HardDeleteSoftDeletedUsers - Success
+	deps.Repo.On("HardDeleteSoftDeletedUsers", ctx, retentionDays).Return(nil)
+
+	// Execute
+	err := uc.HardDeleteSoftDeletedUsers(ctx, retentionDays)
+
+	// Assert
+	assert.NoError(t, err)
+	deps.Repo.AssertExpectations(t)
+}
+
+func TestUserUseCase_HardDeleteSoftDeletedUsers_NoRecordsToDelete(t *testing.T) {
+	deps, uc := setupCleanupTest()
+	ctx := context.Background()
+
+	retentionDays := 90
+
+	// Mock HardDeleteSoftDeletedUsers - No records found, but no error
+	deps.Repo.On("HardDeleteSoftDeletedUsers", ctx, retentionDays).Return(nil)
+
+	// Execute
+	err := uc.HardDeleteSoftDeletedUsers(ctx, retentionDays)
+
+	// Assert
+	assert.NoError(t, err)
+	deps.Repo.AssertExpectations(t)
+}
+
+// ============================================================================
+// ❌ NEGATIVE CASES
+// ============================================================================
+
+func TestUserUseCase_HardDeleteSoftDeletedUsers_DatabaseError(t *testing.T) {
+	deps, uc := setupCleanupTest()
+	ctx := context.Background()
+
+	retentionDays := 30
+
+	// Mock HardDeleteSoftDeletedUsers - Database error
+	deps.Repo.On("HardDeleteSoftDeletedUsers", ctx, retentionDays).
+		Return(errors.New("database connection lost"))
+
+	// Execute
+	err := uc.HardDeleteSoftDeletedUsers(ctx, retentionDays)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, exception.ErrInternalServer, err)
+	deps.Repo.AssertExpectations(t)
+}
+
+func TestUserUseCase_HardDeleteSoftDeletedUsers_InvalidRetentionDays(t *testing.T) {
+	deps, uc := setupCleanupTest()
+	ctx := context.Background()
+
+	// Negative retention days
+	retentionDays := -10
+
+	// Mock HardDeleteSoftDeletedUsers - Should handle invalid input
+	// Note: Current implementation doesn't validate, but repository might
+	deps.Repo.On("HardDeleteSoftDeletedUsers", ctx, retentionDays).
+		Return(errors.New("invalid retention days"))
+
+	// Execute
+	err := uc.HardDeleteSoftDeletedUsers(ctx, retentionDays)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, exception.ErrInternalServer, err)
+	deps.Repo.AssertExpectations(t)
+}
+
+// ============================================================================
+// 🔄 EDGE CASES
+// ============================================================================
+
+func TestUserUseCase_HardDeleteSoftDeletedUsers_ZeroRetentionDays(t *testing.T) {
+	deps, uc := setupCleanupTest()
+	ctx := context.Background()
+
+	// Zero retention days - delete all soft-deleted users immediately
+	retentionDays := 0
+
+	// Mock HardDeleteSoftDeletedUsers - Should work with 0 days
+	deps.Repo.On("HardDeleteSoftDeletedUsers", ctx, retentionDays).Return(nil)
+
+	// Execute
+	err := uc.HardDeleteSoftDeletedUsers(ctx, retentionDays)
+
+	// Assert
+	assert.NoError(t, err)
+	deps.Repo.AssertExpectations(t)
+}
+
+// --- Merged from use_case_security_test.go ---
+
+func TestUserUseCase_Update_Security_UsernameSanitization(t *testing.T) {
+	deps, uc := setupUserTest()
+
+	// Input with HTML tags
+	inputUsername := "<b>bold</b>"
+	// Expected stored username (sanitized)
+	expectedUsername := "&lt;b&gt;bold&lt;/b&gt;"
+
+	request := &model.UpdateUserRequest{
+		ID:       "user123",
+		Username: inputUsername,
+	}
+
+	existingUser := &entity.User{
+		ID:       "user123",
+		Username: "olduser",
+	}
+
+	// Mock: Find user by ID
+	deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
+
+	// Mock: Check uniqueness
+	// The usecase should sanitize BEFORE checking uniqueness to ensure we check the actual value to be stored.
+	deps.Repo.On("FindByUsername", mock.Anything, expectedUsername).Return(nil, gorm.ErrRecordNotFound)
+
+	// Mock: Transaction
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+
+	// Mock: Update
+	// Expect the USER passed to update to have the SANITIZED username
+	deps.Repo.On("Update", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+		return u.Username == expectedUsername
+	})).Return(nil)
+
+	// Mock: Audit
+	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+
+	// Execute
+	_, err := uc.Update(context.Background(), request)
+
+	// Assert
+	assert.NoError(t, err)
+	deps.Repo.AssertExpectations(t)
+}
+
+// --- Merged from user_atomicity_test.go ---
+
+func TestUserUseCase_UpdateStatus_Atomicity(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("Status updated, but Audit log fails -> Should return error", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		userID := "user-1"
+		status := entity.UserStatusBanned
+
+		deps.Repo.On("FindByID", ctx, userID).Return(&entity.User{ID: userID}, nil).Once()
+		deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(nil).Once()
+		deps.AuthUC.On("RevokeAllSessions", mock.Anything, userID).Return(nil).Once()
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		}).Once()
+		// Audit log fails
+		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error")).Once()
+
+		err := uc.UpdateStatus(ctx, userID, status)
+
+		assert.Error(t, err)
+		assert.Equal(t, exception.ErrInternalServer, err)
+	})
+
+	t.Run("Status updated, but Revoke sessions fails -> Should return error", func(t *testing.T) {
+		deps, uc := setupUserTest()
+		userID := "user-2"
+		status := entity.UserStatusBanned
+
+		deps.Repo.On("FindByID", ctx, userID).Return(&entity.User{ID: userID}, nil).Once()
+		deps.Repo.On("UpdateStatus", mock.Anything, userID, status).Return(nil).Once()
+		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		}).Once()
+		// Revoke sessions fails
+		deps.AuthUC.On("RevokeAllSessions", mock.Anything, userID).Return(errors.New("revoke error")).Once()
+
+		err := uc.UpdateStatus(ctx, userID, status)
+
+		assert.Error(t, err)
+		assert.Equal(t, exception.ErrInternalServer, err)
+	})
+}
+
+// --- Merged from user_ctx_test.go ---
+
+// TestGetUserByID_ContextCancellation tests that context cancellation is propagated to the repository.
+func TestGetUserByID_ContextCancellation(t *testing.T) {
+	// Setup dependencies
+	mockRepo, _, _, _, _, _, _, uc := setupTestUserUseCase()
+
+	// Create a context that is already canceled
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	// Setup expectations
+	// The repository should be called with a context.
+	// We can't strictly assert "ctx.Err() != nil" inside the mock matching easily without a custom matcher,
+	// but we can assert that the context passed IS the same context.
+	expectedErr := context.Canceled
+
+	mockRepo.On("FindByID", mock.MatchedBy(func(c context.Context) bool {
+		return c == ctx
+	}), "user-123").Return(nil, expectedErr)
+
+	// Execute
+	result, err := uc.GetUserByID(ctx, "user-123")
+
+	// Verify
+	assert.Error(t, err)
+	assert.Equal(t, expectedErr, err)
+	assert.Nil(t, result)
+
+	mockRepo.AssertExpectations(t)
+}
+
+// Helper setup function (reused from user_usecase_test.go logic if available, but simplified here for isolation)
+// Assuming standard mocks are available in internal/modules/user/test/mocks based on previous file listings
+func setupTestUserUseCase() (
+	*mocks.MockUserRepository,
+	interface{}, // DB generic
+	interface{}, // Enforcer generic
+	interface{}, // Audit generic
+	interface{}, // Auth generic
+	interface{}, // Storage generic
+	*logrus.Logger,
+	userUseCase.UserUseCase,
+) {
+	mockRepo := new(mocks.MockUserRepository)
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	logger.SetLevel(logrus.FatalLevel)
+
+	// We need nil/mock placeholders for other deps to construct the usecase
+	// Since GetUserByID only needs Repo and Logger, others can be nil or simple mocks if NewUserUseCase enforces non-nil.
+	// Looking at user_usecase.go, NewUserUseCase takes interfaces.
+	// checking if it panics on nil. The implementation struct just assigns them.
+	// u.Repo.FindByID is called.
+
+	// However, we need to respect the constructor signature.
+	// NewUserUseCase(db, log, repo, enforcer, audit, auth, storage)
+
+	// We might need to mock these if NewUserUseCase checks them, or if we want to be safe.
+	// Based on previous files, I'll use simple nil or new() for interfaces if possible,
+	// or valid mocks if I need to import them.
+	// For this specific test, we only access Repo.
+
+	// Re-using the MockTransactionManager from before would be good if available, or just nil if not used in GetUserByID.
+	// GetUserByID does NOT use transaction manager (lines 144-160 of user_usecase.go).
+
+	// So we pass nil for others.
+
+	uc := usecase.NewUserUseCase(nil, logger, mockRepo, nil, nil, nil, nil)
+
+	return mockRepo, nil, nil, nil, nil, nil, logger, uc
+}
+
+// --- Merged from user_validation_test.go ---
+
+func TestUserXSSValidation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v)
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	logger.SetLevel(logrus.FatalLevel)
+	tests := []struct {
+		name         string
+		method       string
+		url          string
+		payload      interface{}
+		expectedCode int
+	}{
+		{
+			name:   "RegisterUser XSS in Name",
+			method: "POST",
+			url:    "/users",
+			payload: model.RegisterUserRequest{
+				Username: "testuser",
+				Password: "password123",
+				Name:     "<script>alert(1)</script>",
+				Email:    "test@example.com",
+			},
+			expectedCode: http.StatusUnprocessableEntity,
+		},
+		{
+			name:   "RegisterUser XSS in Username",
+			method: "POST",
+			url:    "/users",
+			payload: model.RegisterUserRequest{
+				Username: "<img src=x onerror=alert(1)>",
+				Password: "password123",
+				Name:     "Test User",
+				Email:    "test@example.com",
+			},
+			expectedCode: http.StatusUnprocessableEntity,
+		},
+		{
+			name:   "UpdateUser XSS in Name",
+			method: "PUT",
+			url:    "/users/1",
+			payload: model.UpdateUserRequest{
+				Name:     "<iframe src='javascript:alert(1)'></iframe>",
+				Username: "testuser",
+			},
+			expectedCode: http.StatusUnprocessableEntity,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockUC := new(mocks.MockUserUseCase)
+			controller := userHandler.NewUserController(mockUC, logger, v)
+
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+
+			jsonBytes, _ := json.Marshal(tt.payload)
+			c.Request, _ = http.NewRequest(tt.method, tt.url, bytes.NewBuffer(jsonBytes))
+			c.Request.Header.Set("Content-Type", "application/json")
+			c.Set("user_id", "1")
+
+			if tt.method == "POST" {
+				controller.RegisterUser(c)
+			} else {
+				controller.UpdateUser(c)
+			}
+
+			assert.Equal(t, tt.expectedCode, w.Code)
+		})
+	}
 }

@@ -1,4 +1,4 @@
-package usecase
+package test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
 	"github.com/go-redis/redismock/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -73,7 +74,7 @@ func TestCachedOrgReader_ValidateMembership_CacheHit(t *testing.T) {
 	mockRepo := &MockMemberRepository{}
 	log := newTestLogger()
 
-	reader := NewCachedOrgReader(mockRepo, db, log)
+	reader := usecase.NewCachedOrgReader(mockRepo, db, log)
 
 	ctx := context.Background()
 	orgID := "org-123"
@@ -98,7 +99,7 @@ func TestCachedOrgReader_ValidateMembership_CacheHit_NotMember(t *testing.T) {
 	mockRepo := &MockMemberRepository{}
 	log := newTestLogger()
 
-	reader := NewCachedOrgReader(mockRepo, db, log)
+	reader := usecase.NewCachedOrgReader(mockRepo, db, log)
 
 	ctx := context.Background()
 	orgID := "org-123"
@@ -128,7 +129,7 @@ func TestCachedOrgReader_ValidateMembership_CacheMiss_IsMember(t *testing.T) {
 	}
 	log := newTestLogger()
 
-	reader := NewCachedOrgReader(mockRepo, db, log)
+	reader := usecase.NewCachedOrgReader(mockRepo, db, log)
 
 	ctx := context.Background()
 	orgID := "org-123"
@@ -159,7 +160,7 @@ func TestCachedOrgReader_ValidateMembership_CacheMiss_NotMember(t *testing.T) {
 	}
 	log := newTestLogger()
 
-	reader := NewCachedOrgReader(mockRepo, db, log)
+	reader := usecase.NewCachedOrgReader(mockRepo, db, log)
 
 	ctx := context.Background()
 	orgID := "org-123"
@@ -191,7 +192,7 @@ func TestCachedOrgReader_ValidateMembership_DBError(t *testing.T) {
 	}
 	log := newTestLogger()
 
-	reader := NewCachedOrgReader(mockRepo, db, log)
+	reader := usecase.NewCachedOrgReader(mockRepo, db, log)
 
 	ctx := context.Background()
 	orgID := "org-123"
@@ -216,7 +217,7 @@ func TestCachedOrgReader_GetMemberRole_CacheHit(t *testing.T) {
 	mockRepo := &MockMemberRepository{}
 	log := newTestLogger()
 
-	reader := NewCachedOrgReader(mockRepo, db, log)
+	reader := usecase.NewCachedOrgReader(mockRepo, db, log)
 
 	ctx := context.Background()
 	orgID := "org-123"
@@ -245,7 +246,7 @@ func TestCachedOrgReader_GetMemberRole_CacheMiss(t *testing.T) {
 	}
 	log := newTestLogger()
 
-	reader := NewCachedOrgReader(mockRepo, db, log)
+	reader := usecase.NewCachedOrgReader(mockRepo, db, log)
 
 	ctx := context.Background()
 	orgID := "org-123"
@@ -254,7 +255,7 @@ func TestCachedOrgReader_GetMemberRole_CacheMiss(t *testing.T) {
 
 	// Mock Redis cache miss, then SET
 	mock.ExpectGet(roleKey).RedisNil()
-	mock.ExpectSet(roleKey, "member", MembershipCacheTTL).SetVal("OK")
+	mock.ExpectSet(roleKey, "member", usecase.MembershipCacheTTL).SetVal("OK")
 
 	// Act
 	role, err := reader.GetMemberRole(ctx, orgID, userID)
@@ -271,7 +272,7 @@ func TestCachedOrgReader_InvalidateMembershipCache(t *testing.T) {
 	mockRepo := &MockMemberRepository{}
 	log := newTestLogger()
 
-	reader := NewCachedOrgReader(mockRepo, db, log)
+	reader := usecase.NewCachedOrgReader(mockRepo, db, log)
 
 	ctx := context.Background()
 	orgID := "org-123"
@@ -297,7 +298,7 @@ func TestCachedOrgReader_InvalidateOrganizationCache(t *testing.T) {
 	mockRepo := &MockMemberRepository{}
 	log := newTestLogger()
 
-	reader := NewCachedOrgReader(mockRepo, db, log)
+	reader := usecase.NewCachedOrgReader(mockRepo, db, log)
 
 	ctx := context.Background()
 	orgID := "org-123"

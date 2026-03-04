@@ -377,3 +377,44 @@ func TestCreateEndpoint_Sanitization(t *testing.T) {
 
 	deps.Repo.AssertExpectations(t)
 }
+
+func TestCreateEndpoint_DuplicateDetection(t *testing.T) {
+	deps, uc := setupAccessTest()
+
+	req := model.CreateEndpointRequest{
+		Path:   "/api/users",
+		Method: "GET",
+	}
+
+	expectedErr := exception.ErrConflict 
+	deps.Repo.On("CreateEndpoint", mock.Anything, mock.MatchedBy(func(e interface{}) bool {
+		return true
+	})).Return(expectedErr).Once()
+
+	resp, err := uc.CreateEndpoint(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	assert.Equal(t, expectedErr, err)
+
+	deps.Repo.On("CreateEndpoint", mock.Anything, mock.Anything).Return(nil).Once()
+
+}
+
+func TestLinkEndpointToAccessRight_Duplicate(t *testing.T) {
+	deps, uc := setupAccessTest()
+
+	req := model.LinkEndpointRequest{
+		AccessRightID: "access-right-uuid",
+		EndpointID:    "endpoint-uuid",
+	}
+
+	// Case: Duplicate link
+	deps.Repo.On("LinkEndpointToAccessRight", mock.Anything, req.AccessRightID, req.EndpointID).
+		Return(errors.New("duplicate entry")) // Simulate DB error
+
+	err := uc.LinkEndpointToAccessRight(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "duplicate")
+}
