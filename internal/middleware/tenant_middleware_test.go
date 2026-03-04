@@ -371,3 +371,279 @@ func TestInvalidateMembershipCache(t *testing.T) {
 
 // Unused import guard
 var _ = time.Second
+
+func TestTenantMiddleware_OptionalOrganization(t *testing.T) {
+	mockOrgRepo := new(MockOrganizationRepository)
+	mockReader := new(MockOrganizationReader)
+	log := logrus.New()
+
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
+
+	t.Run("no user context", func(t *testing.T) {
+		r := setupTestRouter(middleware)
+		r.Use(middleware.OptionalOrganization())
+		r.GET("/test", func(c *gin.Context) {
+			_, exists := c.Get("organization_id")
+			assert.False(t, exists)
+			c.Status(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("no org specified", func(t *testing.T) {
+		r := setupTestRouter(middleware)
+		r.Use(func(c *gin.Context) {
+			c.Set("user_id", "user123")
+			c.Next()
+		})
+		r.Use(middleware.OptionalOrganization())
+		r.GET("/test", func(c *gin.Context) {
+			_, exists := c.Get("organization_id")
+			assert.False(t, exists)
+			c.Status(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("slug lookup fails", func(t *testing.T) {
+		mockOrgRepo := new(MockOrganizationRepository)
+		mockOrgRepo.On("FindBySlug", mock.Anything, "bad-slug").Return(nil, errors.New("not found"))
+		m := NewTenantMiddleware(mockOrgRepo, mockReader, log)
+
+		r := setupTestRouter(m)
+		r.Use(func(c *gin.Context) {
+			c.Set("user_id", "user123")
+			c.Next()
+		})
+		r.Use(m.OptionalOrganization())
+		r.GET("/test", func(c *gin.Context) {
+			_, exists := c.Get("organization_id")
+			assert.False(t, exists)
+			c.Status(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set(OrgSlugHeader, "bad-slug")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("slug lookup returns nil", func(t *testing.T) {
+		mockOrgRepo := new(MockOrganizationRepository)
+		mockOrgRepo.On("FindBySlug", mock.Anything, "bad-slug2").Return(nil, nil)
+		m := NewTenantMiddleware(mockOrgRepo, mockReader, log)
+
+		r := setupTestRouter(m)
+		r.Use(func(c *gin.Context) {
+			c.Set("user_id", "user123")
+			c.Next()
+		})
+		r.Use(m.OptionalOrganization())
+		r.GET("/test", func(c *gin.Context) {
+			_, exists := c.Get("organization_id")
+			assert.False(t, exists)
+			c.Status(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set(OrgSlugHeader, "bad-slug2")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("membership validation fails", func(t *testing.T) {
+		mockReader := new(MockOrganizationReader)
+		mockReader.On("ValidateMembership", mock.Anything, "org123", "user123").Return(false, errors.New("error"))
+		m := NewTenantMiddleware(mockOrgRepo, mockReader, log)
+
+		r := setupTestRouter(m)
+		r.Use(func(c *gin.Context) {
+			c.Set("user_id", "user123")
+			c.Next()
+		})
+		r.Use(m.OptionalOrganization())
+		r.GET("/test", func(c *gin.Context) {
+			_, exists := c.Get("organization_id")
+			assert.False(t, exists)
+			c.Status(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set(OrgIDHeader, "org123")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("not a member", func(t *testing.T) {
+		mockReader := new(MockOrganizationReader)
+		mockReader.On("ValidateMembership", mock.Anything, "org123", "user123").Return(false, nil)
+		m := NewTenantMiddleware(mockOrgRepo, mockReader, log)
+
+		r := setupTestRouter(m)
+		r.Use(func(c *gin.Context) {
+			c.Set("user_id", "user123")
+			c.Next()
+		})
+		r.Use(m.OptionalOrganization())
+		r.GET("/test", func(c *gin.Context) {
+			_, exists := c.Get("organization_id")
+			assert.False(t, exists)
+			c.Status(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set(OrgIDHeader, "org123")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("success with org ID", func(t *testing.T) {
+		mockReader := new(MockOrganizationReader)
+		mockReader.On("ValidateMembership", mock.Anything, "org123", "user123").Return(true, nil)
+		mockReader.On("GetMemberRole", mock.Anything, "org123", "user123").Return("admin", nil)
+		m := NewTenantMiddleware(mockOrgRepo, mockReader, log)
+
+		r := setupTestRouter(m)
+		r.Use(func(c *gin.Context) {
+			c.Set("user_id", "user123")
+			c.Next()
+		})
+		r.Use(m.OptionalOrganization())
+		r.GET("/test", func(c *gin.Context) {
+			orgID, _ := c.Get("organization_id")
+			role, _ := c.Get("member_role")
+			assert.Equal(t, "org123", orgID)
+			assert.Equal(t, "admin", role)
+			c.Status(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set(OrgIDHeader, "org123")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+}
+
+func TestTenantMiddleware_RequireOrgRole(t *testing.T) {
+	mockOrgRepo := new(MockOrganizationRepository)
+	mockReader := new(MockOrganizationReader)
+	log := logrus.New()
+
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
+
+	t.Run("role not found", func(t *testing.T) {
+		r := setupTestRouter(middleware)
+		r.Use(middleware.RequireOrgRole("admin"))
+		r.GET("/test", func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("insufficient permissions", func(t *testing.T) {
+		r := setupTestRouter(middleware)
+		r.Use(func(c *gin.Context) {
+			c.Set("member_role", "member")
+			c.Next()
+		})
+		r.Use(middleware.RequireOrgRole("admin", "owner"))
+		r.GET("/test", func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("sufficient permissions", func(t *testing.T) {
+		r := setupTestRouter(middleware)
+		r.Use(func(c *gin.Context) {
+			c.Set("member_role", "admin")
+			c.Next()
+		})
+		r.Use(middleware.RequireOrgRole("member", "admin"))
+		r.GET("/test", func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("owner permissions (hierarchy)", func(t *testing.T) {
+		r := setupTestRouter(middleware)
+		r.Use(func(c *gin.Context) {
+			c.Set("member_role", "owner")
+			c.Next()
+		})
+		r.Use(middleware.RequireOrgRole("admin"))
+		r.GET("/test", func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+}
+
+func TestGetMemberRoleFromContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("exists and valid", func(t *testing.T) {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set("member_role", "admin")
+
+		val, ok := GetMemberRoleFromContext(c)
+		assert.True(t, ok)
+		assert.Equal(t, "admin", val)
+	})
+
+	t.Run("not exists", func(t *testing.T) {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+
+		val, ok := GetMemberRoleFromContext(c)
+		assert.False(t, ok)
+		assert.Empty(t, val)
+	})
+
+	t.Run("wrong type", func(t *testing.T) {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set("member_role", 123)
+
+		val, ok := GetMemberRoleFromContext(c)
+		assert.False(t, ok)
+		assert.Empty(t, val)
+	})
+
+	t.Run("empty string", func(t *testing.T) {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set("member_role", "")
+
+		val, ok := GetMemberRoleFromContext(c)
+		assert.False(t, ok)
+		assert.Empty(t, val)
+	})
+}

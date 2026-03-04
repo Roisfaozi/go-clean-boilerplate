@@ -121,3 +121,77 @@ func TestCasbinMiddleware_NoRoleInContext(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "unauthorized")
 	mockEnforcer.AssertNotCalled(t, "Enforce")
 }
+
+func TestCasbinMiddleware_ReleaseModeNilEnforcer(t *testing.T) {
+	oldMode := gin.Mode()
+	gin.SetMode(gin.ReleaseMode)
+	defer gin.SetMode(oldMode)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/users", nil)
+	c.Request = req
+
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	// Pass nil enforcer in release mode
+	casbinMiddleware := middleware.CasbinMiddleware(nil, logger)
+
+	casbinMiddleware(c)
+
+	assert.Equal(t, http.StatusOK, w.Code) // Expected to continue but log critical warning
+}
+
+func TestCasbinMiddleware_WithOrganizationContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/org/data", nil)
+	c.Request = req
+
+	userID := "user-uuid-123"
+	orgID := "org-uuid-456"
+	c.Set("user_id", userID)
+	c.Set("organization_id", orgID)
+
+	mockEnforcer := new(MockCasbinEnforcer)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	mockEnforcer.On("Enforce", userID, orgID, "/api/v1/org/data", "GET").Return(true, nil)
+
+	casbinMiddleware := middleware.CasbinMiddleware(mockEnforcer, logger)
+
+	casbinMiddleware(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockEnforcer.AssertExpectations(t)
+}
+
+func TestCasbinMiddleware_WithInvalidOrganizationContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/org/data", nil)
+	c.Request = req
+
+	userID := "user-uuid-123"
+	// Set invalid type for organization_id
+	c.Set("user_id", userID)
+	c.Set("organization_id", 456)
+
+	mockEnforcer := new(MockCasbinEnforcer)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	// Should fallback to "global" domain
+	mockEnforcer.On("Enforce", userID, "global", "/api/v1/org/data", "GET").Return(true, nil)
+
+	casbinMiddleware := middleware.CasbinMiddleware(mockEnforcer, logger)
+
+	casbinMiddleware(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockEnforcer.AssertExpectations(t)
+}
