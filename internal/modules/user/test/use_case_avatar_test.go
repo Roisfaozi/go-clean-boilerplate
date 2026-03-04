@@ -33,7 +33,7 @@ func createValidImageReader(content string) io.Reader {
 
 // setupAvatarTest creates test dependencies for avatar tests
 func setupAvatarTest() (*userTestDeps, userUseCase.UserUseCase) {
-	mockEnforcer := new(permMocks.MockIEnforcer)
+	mockEnforcer := new(permMocks.IEnforcer)
 	deps := &userTestDeps{
 		Repo:     new(mocks.MockUserRepository),
 		TM:       new(mocking.MockWithTransactionManager),

@@ -1,18 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { PermissionMatrixView } from "~/components/dashboard/access/permission-matrix-view";
-import { PolicyEditorView } from "~/components/dashboard/access/policy-editor-view";
-import { RoleCardsView } from "~/components/dashboard/access/role-cards-view";
-import { RolePermissionSheet } from "~/components/dashboard/access/role-permission-sheet";
-import { RoleDialog } from "~/components/dashboard/roles/role-dialog";
-import { Icon } from "~/components/shared/icon";
-import { Button } from "~/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
   AccessControlProvider,
   useAccessControl,
 } from "./_components/access-control-context";
+import { PermissionMatrixView } from "~/components/dashboard/access/permission-matrix-view";
+import { PolicyEditorView } from "~/components/dashboard/access/policy-editor-view";
+import { RoleCardsView } from "~/components/dashboard/access/role-cards-view";
+import { RoleDialog } from "~/components/dashboard/roles/role-dialog";
+import { Icon } from "~/components/shared/icon";
+import { Button } from "~/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
 export default function AccessPage() {
   return (
@@ -30,15 +28,6 @@ function AccessControlContent() {
     setRoleDialogOpen,
     handleRoleClick,
   } = useAccessControl();
-
-  // State for the permission management sheet
-  const [permSheetOpen, setPermSheetOpen] = useState(false);
-  const [selectedRoleName, setSelectedRoleName] = useState<string | null>(null);
-
-  const handleManagePermissions = (roleName: string) => {
-    setSelectedRoleName(roleName);
-    setPermSheetOpen(true);
-  };
 
   return (
     <div className="space-y-6">
@@ -91,10 +80,7 @@ function AccessControlContent() {
         </TabsContent>
 
         <TabsContent value="cards" className="mt-4">
-          <RoleCardsView
-            onRoleClick={handleRoleClick}
-            onManagePermissions={handleManagePermissions}
-          />
+          <RoleCardsView onRoleClick={handleRoleClick} />
         </TabsContent>
 
         <TabsContent value="policy" className="mt-4">
@@ -106,13 +92,6 @@ function AccessControlContent() {
         open={roleDialogOpen}
         onOpenChange={setRoleDialogOpen}
         onSuccess={() => setActiveTab("cards")}
-      />
-
-      {/* Role Permission Management Sheet */}
-      <RolePermissionSheet
-        roleName={selectedRoleName}
-        open={permSheetOpen}
-        onOpenChange={setPermSheetOpen}
       />
     </div>
   );

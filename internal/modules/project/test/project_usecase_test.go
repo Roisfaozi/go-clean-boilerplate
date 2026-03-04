@@ -153,8 +153,6 @@ func TestProjectUseCase_GetByID_NotFound(t *testing.T) {
 
 // === UpdateProject Tests ===
 
-func stringPtr(s string) *string { return &s }
-
 func TestProjectUseCase_Update_Success(t *testing.T) {
 	deps, uc := setupProjectTest()
 	ctx := context.Background()
@@ -166,7 +164,7 @@ func TestProjectUseCase_Update_Success(t *testing.T) {
 	deps.Repo.On("GetByID", ctx, "p1").Return(existing, nil).Once()
 	deps.Repo.On("Update", ctx, mock.AnythingOfType("*entity.Project")).Return(nil).Once()
 
-	req := model.UpdateProjectRequest{Name: stringPtr("New Name"), Domain: stringPtr("new.com"), Status: stringPtr("inactive")}
+	req := model.UpdateProjectRequest{Name: "New Name", Domain: "new.com", Status: "inactive"}
 	result, err := uc.UpdateProject(ctx, "p1", req)
 
 	assert.NoError(t, err)
@@ -189,7 +187,7 @@ func TestProjectUseCase_Update_PartialUpdate_NameOnly(t *testing.T) {
 	deps.Repo.On("Update", ctx, mock.AnythingOfType("*entity.Project")).Return(nil).Once()
 
 	// Only update name, leave domain and status unchanged
-	req := model.UpdateProjectRequest{Name: stringPtr("Updated Name")}
+	req := model.UpdateProjectRequest{Name: "Updated Name"}
 	result, err := uc.UpdateProject(ctx, "p1", req)
 
 	assert.NoError(t, err)
@@ -206,7 +204,7 @@ func TestProjectUseCase_Update_NotFound(t *testing.T) {
 
 	deps.Repo.On("GetByID", ctx, "nonexistent").Return(nil, gorm.ErrRecordNotFound).Once()
 
-	req := model.UpdateProjectRequest{Name: stringPtr("Updated")}
+	req := model.UpdateProjectRequest{Name: "Updated"}
 	result, err := uc.UpdateProject(ctx, "nonexistent", req)
 
 	assert.Error(t, err)
@@ -228,7 +226,7 @@ func TestProjectUseCase_Update_RepositoryError(t *testing.T) {
 	repoErr := errors.New("update failed")
 	deps.Repo.On("Update", ctx, mock.AnythingOfType("*entity.Project")).Return(repoErr).Once()
 
-	req := model.UpdateProjectRequest{Name: stringPtr("New Name")}
+	req := model.UpdateProjectRequest{Name: "New Name"}
 	result, err := uc.UpdateProject(ctx, "p1", req)
 
 	assert.Error(t, err)

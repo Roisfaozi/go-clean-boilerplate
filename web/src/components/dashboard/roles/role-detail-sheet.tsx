@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Icon } from "~/components/shared/icon";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
@@ -30,7 +30,7 @@ import {
 import { Skeleton } from "~/components/ui/skeleton";
 import { Switch } from "~/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { accessApi, RoleAccessRightStatus } from "~/lib/api/access";
+import { accessApi, AccessRight, Endpoint } from "~/lib/api/access";
 import { Role } from "~/lib/api/roles";
 import { User, usersApi } from "~/lib/api/users";
 import { useOrganizationStore } from "~/stores/use-organization-store";
@@ -222,11 +222,30 @@ export function RoleDetailSheet({
                       )}
                       <CommandGroup>
                         {searchResults.map((user) => (
-                          <SearchUserItem
+                          <CommandItem
                             key={user.id}
-                            user={user}
-                            onSelect={addMember}
-                          />
+                            onSelect={() => addMember(user)}
+                            className="flex cursor-pointer items-center gap-2"
+                          >
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={user.avatar_url} />
+                              <AvatarFallback>
+                                {user.username[0].toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">
+                                {user.username}
+                              </span>
+                              <span className="text-muted-foreground text-[10px]">
+                                {user.email}
+                              </span>
+                            </div>
+                            <Icon
+                              name="Plus"
+                              className="text-muted-foreground ml-auto h-3 w-3"
+                            />
+                          </CommandItem>
                         ))}
                       </CommandGroup>
                     </CommandList>
@@ -259,12 +278,41 @@ export function RoleDetailSheet({
                   </div>
                 ) : (
                   members.map((member) => (
-                    <RoleMemberItem
+                    <div
                       key={member.id}
-                      member={member}
-                      isProcessing={isProcessing === member.id}
-                      onRemove={removeMember}
-                    />
+                      className="hover:bg-muted/50 group flex items-center gap-3 rounded-md p-2 transition-colors"
+                    >
+                      <Avatar className="h-9 w-9 border">
+                        <AvatarImage src={member.avatar_url} />
+                        <AvatarFallback>
+                          {member.username[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 text-sm leading-none font-medium">
+                          {member.username}
+                        </div>
+                        <div className="text-muted-foreground truncate text-xs">
+                          {member.email}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:bg-destructive/10 h-8 w-8 opacity-0 group-hover:opacity-100"
+                        disabled={isProcessing === member.id}
+                        onClick={() => removeMember(member.id, member.username)}
+                      >
+                        {isProcessing === member.id ? (
+                          <Icon
+                            name="Loader"
+                            className="h-4 w-4 animate-spin"
+                          />
+                        ) : (
+                          <Icon name="UserMinus" className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   ))
                 )}
               </div>
@@ -295,23 +343,26 @@ export function RoleDetailSheet({
 
 function RolePermissionsTab({ role }: { role?: Role }) {
   const { currentOrganization } = useOrganizationStore();
-  const [accessRights, setAccessRights] = useState<RoleAccessRightStatus[]>([]);
+  const [accessRights, setAccessRights] = useState<AccessRight[]>([]);
+  const [rolePerms, setRolePerms] = useState<string[][]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
-  const [selectedDomain, setSelectedDomain] = useState<string>(
-    currentOrganization?.slug || "global"
-  );
 
   const fetchData = useCallback(async () => {
     if (!role) return;
     setIsLoading(true);
     try {
-      const resp = await accessApi.getRoleAccessRights(
-        role.name,
-        selectedDomain
-      );
-      if (resp.data) {
-        setAccessRights(resp.data);
+      const [accessResp, permsResp] = await Promise.all([
+        accessApi.getAllAccessRights(),
+        accessApi.getPermissionsForRole(role.name),
+      ]);
+
+      if (accessResp.data.data) {
+        setAccessRights(accessResp.data.data);
+      }
+
+      if (permsResp.data) {
+        setRolePerms(permsResp.data);
       }
     } catch (error) {
       console.error("Failed to fetch permissions data", error);
@@ -319,7 +370,7 @@ function RolePermissionsTab({ role }: { role?: Role }) {
     } finally {
       setIsLoading(false);
     }
-  }, [role, selectedDomain]);
+  }, [role]);
 
   useEffect(() => {
     if (role) {
@@ -327,22 +378,39 @@ function RolePermissionsTab({ role }: { role?: Role }) {
     }
   }, [role, fetchData]);
 
-  const handleToggleGroup = async (
-    right: RoleAccessRightStatus,
-    active: boolean
-  ) => {
-    if (!role) return;
+  const hasPermission = (path: string, method: string) => {
+    return rolePerms.some(
+      (p) => p[1] === path && p[2] === method.toUpperCase()
+    );
+  };
+
+  const isGroupActive = (right: AccessRight) => {
+    if (!right.endpoints || right.endpoints.length === 0) return false;
+    return right.endpoints.every((e) => hasPermission(e.path, e.method));
+  };
+
+  const handleToggleGroup = async (right: AccessRight, active: boolean) => {
+    if (!role || !right.endpoints || right.endpoints.length === 0) return;
 
     setIsProcessing(right.id);
     try {
-      if (active) {
-        await accessApi.assignAccessRight(role.name, right.id, selectedDomain);
-      } else {
-        await accessApi.revokeAccessRight(role.name, right.id, selectedDomain);
-      }
+      const domain = currentOrganization?.slug || "global";
+      const promises = right.endpoints.map((e) => {
+        if (active) {
+          return accessApi.grantPermission(role.name, e.path, e.method, domain);
+        } else {
+          return accessApi.revokePermission(
+            role.name,
+            e.path,
+            e.method,
+            domain
+          );
+        }
+      });
 
+      await Promise.all(promises);
       toast.success(
-        `${active ? "Assigned" : "Revoked"} ${right.name} in ${selectedDomain}`
+        `${active ? "Granted" : "Revoked"} ${right.name} in ${domain}`
       );
       fetchData(); // Refresh permissions
     } catch (error) {
@@ -365,29 +433,6 @@ function RolePermissionsTab({ role }: { role?: Role }) {
 
   return (
     <ScrollArea className="-mx-2 flex-1 px-2">
-      <div className="mb-4 flex flex-col gap-2 rounded-md border p-3">
-        <label className="text-muted-foreground text-xs font-semibold uppercase">
-          Domain Context
-        </label>
-        <div className="flex items-center gap-2">
-          <select
-            className="border-input ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-9 w-full items-center justify-between rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-sm focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            value={selectedDomain}
-            onChange={(e) => setSelectedDomain(e.target.value)}
-            disabled={isLoading || !!isProcessing}
-          >
-            <option value="global">
-              Global Domain (Superadmin / System Wide)
-            </option>
-            {currentOrganization && (
-              <option value={currentOrganization.slug}>
-                {currentOrganization.name} ({currentOrganization.slug})
-              </option>
-            )}
-          </select>
-        </div>
-      </div>
-
       <div className="space-y-4 py-2">
         {accessRights.length === 0 ? (
           <div className="rounded-lg border-2 border-dashed py-12 text-center">
@@ -400,7 +445,7 @@ function RolePermissionsTab({ role }: { role?: Role }) {
             </p>
           </div>
         ) : (
-          accessRights.map((right: RoleAccessRightStatus) => (
+          accessRights.map((right: AccessRight) => (
             <div
               key={right.id}
               className="group hover:bg-muted/30 rounded-lg border p-4 transition-colors"
@@ -409,23 +454,13 @@ function RolePermissionsTab({ role }: { role?: Role }) {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{right.name}</span>
-                    <Badge
-                      variant={
-                        right.is_assigned
-                          ? "default"
-                          : right.is_partial
-                            ? "secondary"
-                            : "outline"
-                      }
-                      className="text-[10px] uppercase"
-                    >
-                      {right.is_assigned
-                        ? "Assigned"
-                        : right.is_partial
-                          ? "Partial"
-                          : `${right.endpoints?.length || 0} ENDPOINTS`}
+                    <Badge variant="outline" className="text-[10px] uppercase">
+                      {right.endpoints?.length || 0} ENDPOINTS
                     </Badge>
                   </div>
+                  <p className="text-muted-foreground text-xs">
+                    {right.description}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {isProcessing === right.id && (
@@ -435,39 +470,36 @@ function RolePermissionsTab({ role }: { role?: Role }) {
                     />
                   )}
                   <Switch
-                    checked={right.is_assigned}
+                    checked={isGroupActive(right)}
                     onCheckedChange={(checked: boolean) =>
                       handleToggleGroup(right, checked)
                     }
-                    disabled={!!isProcessing || role?.name.startsWith("role:")}
+                    disabled={
+                      !!isProcessing || role?.name === "role:superadmin"
+                    }
                   />
                 </div>
               </div>
               {right.endpoints && right.endpoints.length > 0 && (
                 <div className="mt-3 grid grid-cols-1 gap-1 border-t pt-3">
-                  {right.endpoints.map((eStr, idx) => {
-                    // format eStr: "GET /api/v1/users"
-                    const [method, ...pathParts] = eStr.split(" ");
-                    const path = pathParts.join(" ");
-                    return (
-                      <div
-                        key={`${right.id}-ep-${idx}`}
-                        className="flex items-center justify-between text-[11px]"
+                  {right.endpoints.map((e: Endpoint) => (
+                    <div
+                      key={e.id}
+                      className="flex items-center justify-between text-[11px]"
+                    >
+                      <code className="text-muted-foreground">{e.path}</code>
+                      <Badge
+                        variant={
+                          hasPermission(e.path, e.method)
+                            ? "default"
+                            : "secondary"
+                        }
+                        className="h-4 px-1 text-[9px]"
                       >
-                        <code className="text-muted-foreground">{path}</code>
-                        <Badge
-                          variant={
-                            right.is_assigned || right.is_partial
-                              ? "default"
-                              : "secondary"
-                          }
-                          className="h-4 px-1 text-[9px]"
-                        >
-                          {method}
-                        </Badge>
-                      </div>
-                    );
-                  })}
+                        {e.method}
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -477,68 +509,3 @@ function RolePermissionsTab({ role }: { role?: Role }) {
     </ScrollArea>
   );
 }
-
-const SearchUserItem = React.memo(function SearchUserItem({
-  user,
-  onSelect,
-}: {
-  user: User;
-  onSelect: (user: User) => void;
-}) {
-  return (
-    <CommandItem
-      onSelect={() => onSelect(user)}
-      className="flex cursor-pointer items-center gap-2"
-    >
-      <Avatar className="h-6 w-6">
-        <AvatarImage src={user.avatar_url} />
-        <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
-      </Avatar>
-      <div className="flex flex-col">
-        <span className="text-sm font-medium">{user.username}</span>
-        <span className="text-muted-foreground text-[10px]">{user.email}</span>
-      </div>
-      <Icon name="Plus" className="text-muted-foreground ml-auto h-3 w-3" />
-    </CommandItem>
-  );
-});
-
-const RoleMemberItem = React.memo(function RoleMemberItem({
-  member,
-  isProcessing,
-  onRemove,
-}: {
-  member: User;
-  isProcessing: boolean;
-  onRemove: (id: string, username: string) => void;
-}) {
-  return (
-    <div className="hover:bg-muted/50 group flex items-center gap-3 rounded-md p-2 transition-colors">
-      <Avatar className="h-9 w-9 border">
-        <AvatarImage src={member.avatar_url} />
-        <AvatarFallback>{member.username[0].toUpperCase()}</AvatarFallback>
-      </Avatar>
-      <div className="min-w-0 flex-1">
-        <div className="mb-1 text-sm leading-none font-medium">
-          {member.username}
-        </div>
-        <div className="text-muted-foreground truncate text-xs">
-          {member.email}
-        </div>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="text-destructive hover:bg-destructive/10 h-8 w-8 opacity-0 group-hover:opacity-100"
-        disabled={isProcessing}
-        onClick={() => onRemove(member.id, member.username)}
-      >
-        {isProcessing ? (
-          <Icon name="Loader" className="h-4 w-4 animate-spin" />
-        ) : (
-          <Icon name="UserMinus" className="h-4 w-4" />
-        )}
-      </Button>
-    </div>
-  );
-});

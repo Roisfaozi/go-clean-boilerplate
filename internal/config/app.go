@@ -179,11 +179,11 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, storageProvider)
 
-	accessModule := access.NewAccessModule(dbConnection, logger, validate)
-
-	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo, userModule.UserRepo, accessModule.AccessRepo, auditModule)
+	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo, userModule.UserRepo)
 
 	roleModule := role.NewRoleModule(dbConnection, logger, validate, tm)
+
+	accessModule := access.NewAccessModule(dbConnection, logger, validate)
 
 	statsModule := stats.NewStatsModule(dbConnection, logger)
 

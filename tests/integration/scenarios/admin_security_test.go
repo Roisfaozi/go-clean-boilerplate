@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	accessRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	auditRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository"
 	auditUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
@@ -80,10 +79,9 @@ func TestScenario_AdminSecurity_RBAC_Lifecycle(t *testing.T) {
 
 	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
 	uRepoData := userRepo.NewUserRepository(env.DB, env.Logger)
-	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	roleService := roleUC.NewRoleUseCase(env.Logger, tm, rRepo)
-	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepoData, aRepo, nil)
+	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepoData)
 
 	roleName := "content_editor"
 	_, err := roleService.Create(context.Background(), &roleModel.CreateRoleRequest{Name: roleName})

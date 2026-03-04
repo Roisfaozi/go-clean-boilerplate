@@ -89,7 +89,7 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 }
 
 func setupAvatarSecurityTest() (*userTestDeps, userUseCase.UserUseCase) {
-	mockEnforcer := new(permMocks.MockIEnforcer)
+	mockEnforcer := new(permMocks.IEnforcer)
 	deps := &userTestDeps{
 		Repo:     new(mocks.MockUserRepository),
 		TM:       new(mocking.MockWithTransactionManager),

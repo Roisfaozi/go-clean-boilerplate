@@ -7,7 +7,6 @@ import (
 	"context"
 	"testing"
 
-	accessRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	roleRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
@@ -19,8 +18,7 @@ import (
 func setupPermissionIntegration(env *setup.TestEnvironment) usecase.IPermissionUseCase {
 	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
-	return usecase.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo, nil)
+	return usecase.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo)
 }
 
 func TestPermissionIntegration_AssignRoleToUser(t *testing.T) {

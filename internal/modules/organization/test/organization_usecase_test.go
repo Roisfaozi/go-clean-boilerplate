@@ -22,11 +22,11 @@ type organizationTestDeps struct {
 	OrgRepo    *mocks.MockOrganizationRepository
 	MemberRepo *mocks.MockOrganizationMemberRepository
 	TM         *mocking.MockWithTransactionManager
-	Enforcer   *permissionMocks.MockIEnforcer
+	Enforcer   *permissionMocks.IEnforcer
 }
 
 func setupOrganizationTest() (*organizationTestDeps, usecase.OrganizationUseCase) {
-	mockEnforcer := new(permissionMocks.MockIEnforcer)
+	mockEnforcer := new(permissionMocks.IEnforcer)
 	deps := &organizationTestDeps{
 		OrgRepo:    new(mocks.MockOrganizationRepository),
 		MemberRepo: new(mocks.MockOrganizationMemberRepository),

@@ -42,11 +42,6 @@ func (h *ProjectController) Create(c *gin.Context) {
 		return
 	}
 
-	if err := h.validate.Struct(req); err != nil {
-		response.ValidationError(c, err, "validation error")
-		return
-	}
-
 	userID := c.GetString("user_id")
 	orgID := database.GetOrganizationID(c.Request.Context())
 
@@ -124,11 +119,6 @@ func (h *ProjectController) Update(c *gin.Context) {
 	var req model.UpdateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err, "invalid request body")
-		return
-	}
-
-	if err := h.validate.Struct(req); err != nil {
-		response.ValidationError(c, err, "validation error")
 		return
 	}
 

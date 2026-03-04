@@ -11,7 +11,6 @@ import (
 
 type AccessModule struct {
 	AccessController *http.AccessController
-	AccessRepo       repository.AccessRepository
 }
 
 func NewAccessModule(db *gorm.DB, log *logrus.Logger, validate *validator.Validate) *AccessModule {
@@ -21,7 +20,6 @@ func NewAccessModule(db *gorm.DB, log *logrus.Logger, validate *validator.Valida
 
 	return &AccessModule{
 		AccessController: controller,
-		AccessRepo:       repo,
 	}
 }
 

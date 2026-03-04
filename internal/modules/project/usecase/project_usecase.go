@@ -68,14 +68,14 @@ func (u *projectUseCase) UpdateProject(ctx context.Context, id string, req model
 		return nil, exception.ErrNotFound
 	}
 
-	if req.Name != nil {
-		project.Name = *req.Name
+	if req.Name != "" {
+		project.Name = req.Name
 	}
-	if req.Domain != nil {
-		project.Domain = *req.Domain
+	if req.Domain != "" {
+		project.Domain = req.Domain
 	}
-	if req.Status != nil {
-		project.Status = *req.Status
+	if req.Status != "" {
+		project.Status = req.Status
 	}
 
 	if err := u.repo.Update(ctx, project); err != nil {

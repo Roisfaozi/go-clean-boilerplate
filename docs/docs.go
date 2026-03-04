@@ -1081,37 +1081,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/events": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Establishes a Server-Sent Events stream for real-time updates.",
-                "produces": [
-                    "text/event-stream"
-                ],
-                "tags": [
-                    "realtime"
-                ],
-                "summary": "Subscribe to SSE events",
-                "responses": {
-                    "200": {
-                        "description": "Event stream",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
-        },
         "/organizations": {
             "post": {
                 "security": [
@@ -2034,63 +2003,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/permissions/assign-access-right": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Grants all endpoints of the given access right to the specified role",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "permissions"
-                ],
-                "summary": "Bulk assign an access right to a role",
-                "parameters": [
-                    {
-                        "description": "Assign request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignAccessRightRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
-        },
         "/permissions/assign-role": {
             "post": {
                 "security": [
@@ -2647,63 +2559,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/permissions/revoke-access-right": {
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Removes all endpoints of the given access right from the specified role",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "permissions"
-                ],
-                "summary": "Bulk revoke an access right from a role",
-                "parameters": [
-                    {
-                        "description": "Revoke request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignAccessRightRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
-        },
         "/permissions/revoke-role": {
             "post": {
                 "security": [
@@ -2812,73 +2667,6 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
-        },
-        "/permissions/roles/{role}/access-rights": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns all access rights with is_assigned/is_partial flags for the given role",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "permissions"
-                ],
-                "summary": "Get access rights assignment status for a role",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Role name",
-                        "name": "role",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Domain (default: global)",
-                        "name": "domain",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleAccessRightStatus"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
@@ -3559,161 +3347,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Role not found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
-        },
-        "/stats/activity": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns daily activity metrics (logins, audit events) for a given period.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "stats"
-                ],
-                "summary": "Get activity chart data",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Number of days to retrieve (default 7)",
-                        "name": "days",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.DashboardActivity"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
-        },
-        "/stats/insights": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns system-level performance metrics (latency, error rate, uptime).",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "stats"
-                ],
-                "summary": "Get system health insights",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.SystemInsights"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
-        },
-        "/stats/summary": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns high-level system statistics (total users, roles, audit logs, etc.)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "stats"
-                ],
-                "summary": "Get dashboard summary",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.DashboardSummary"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
@@ -4503,38 +4136,6 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/ws": {
-            "get": {
-                "description": "Upgrades the HTTP connection to a WebSocket connection for real-time notifications and presence. Requires a valid ticket obtained from /auth/ticket.",
-                "tags": [
-                    "realtime"
-                ],
-                "summary": "Connect to WebSocket",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "WebSocket authentication ticket",
-                        "name": "ticket",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "101": {
-                        "description": "Switching Protocols",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -4970,24 +4571,6 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignAccessRightRequest": {
-            "type": "object",
-            "required": [
-                "access_right_id",
-                "role"
-            ],
-            "properties": {
-                "access_right_id": {
-                    "type": "string"
-                },
-                "domain": {
-                    "type": "string"
-                },
-                "role": {
-                    "type": "string"
-                }
-            }
-        },
         "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignRoleRequest": {
             "type": "object",
             "required": [
@@ -5128,29 +4711,6 @@ const docTemplate = `{
                     "additionalProperties": {
                         "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceCRUD"
                     }
-                }
-            }
-        },
-        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleAccessRightStatus": {
-            "type": "object",
-            "properties": {
-                "endpoints": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_assigned": {
-                    "type": "boolean"
-                },
-                "is_partial": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
                 }
             }
         },
@@ -5351,65 +4911,6 @@ const docTemplate = `{
             ],
             "properties": {
                 "description": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.ActivityPoint": {
-            "type": "object",
-            "properties": {
-                "audits": {
-                    "type": "integer"
-                },
-                "date": {
-                    "type": "string"
-                },
-                "logins": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.DashboardActivity": {
-            "type": "object",
-            "properties": {
-                "points": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.ActivityPoint"
-                    }
-                }
-            }
-        },
-        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.DashboardSummary": {
-            "type": "object",
-            "properties": {
-                "total_audit_logs": {
-                    "type": "integer"
-                },
-                "total_org_members": {
-                    "type": "integer"
-                },
-                "total_roles": {
-                    "type": "integer"
-                },
-                "total_users": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.SystemInsights": {
-            "type": "object",
-            "properties": {
-                "avg_latency_ms": {
-                    "type": "number"
-                },
-                "error_rate": {
-                    "type": "number"
-                },
-                "most_active_role": {
-                    "type": "string"
-                },
-                "uptime": {
                     "type": "string"
                 }
             }

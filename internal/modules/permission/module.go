@@ -1,8 +1,6 @@
 package permission
 
 import (
-	accessRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
@@ -17,17 +15,9 @@ type PermissionModule struct {
 	PermissionController *http.PermissionController
 }
 
-func NewPermissionModule(
-	enforcer usecase.IEnforcer,
-	validate *validator.Validate,
-	log *logrus.Logger,
-	roleRepo roleRepository.RoleRepository,
-	userRepo userRepository.UserRepository,
-	accessRepo accessRepository.AccessRepository,
-	auditModule *audit.AuditModule,
-) *PermissionModule {
+func NewPermissionModule(enforcer usecase.IEnforcer, validate *validator.Validate, log *logrus.Logger, roleRepo roleRepository.RoleRepository, userRepo userRepository.UserRepository) *PermissionModule {
 
-	permissionUseCase := usecase.NewPermissionUseCase(enforcer, log, roleRepo, userRepo, accessRepo, auditModule.AuditUseCase)
+	permissionUseCase := usecase.NewPermissionUseCase(enforcer, log, roleRepo, userRepo)
 
 	permissionController := http.NewPermissionController(permissionUseCase, log, validate)
 

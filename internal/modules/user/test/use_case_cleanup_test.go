@@ -20,7 +20,7 @@ import (
 
 // setupCleanupTest creates test dependencies for cleanup tests
 func setupCleanupTest() (*userTestDeps, userUseCase.UserUseCase) {
-	mockEnforcer := new(permMocks.MockIEnforcer)
+	mockEnforcer := new(permMocks.IEnforcer)
 	deps := &userTestDeps{
 		Repo:     new(mocks.MockUserRepository),
 		TM:       new(mocking.MockWithTransactionManager),

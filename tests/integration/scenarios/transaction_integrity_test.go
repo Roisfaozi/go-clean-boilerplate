@@ -34,7 +34,7 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	mockEnforcer := new(mocks.MockIEnforcer)
+	mockEnforcer := new(mocks.IEnforcer)
 
 	// Mock WithContext to return itself
 	mockEnforcer.On("WithContext", mock.Anything).Return(mockEnforcer)
