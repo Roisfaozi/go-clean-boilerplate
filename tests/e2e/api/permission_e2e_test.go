@@ -348,7 +348,7 @@ func TestPermissionE2E_Security_PostRoleDeletion_PermissionsRevoked(t *testing.T
 	assert.True(t, resp.StatusCode == 200 || resp.StatusCode == 204, "Role deletion should succeed")
 
 	// Verify Casbin policies for the role are cleaned up
-	policies := server.Enforcer.GetFilteredPolicy(0, "EphemeralRole")
+	policies, _ := server.Enforcer.GetFilteredPolicy(0, "EphemeralRole")
 	assert.Empty(t, policies, "All Casbin policies for deleted role must be removed")
 
 	// Verify user no longer holds the role in the enforce layer

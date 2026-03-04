@@ -1745,3 +1745,151 @@ func TestUserXSSValidation(t *testing.T) {
 		})
 	}
 }
+// --- Tests for SetAvatarURL ---
+
+func TestUserUseCase_SetAvatarURL_Success(t *testing.T) {
+	deps, uc := setupUserTest()
+	userID := "user-123"
+	url := "https://example.com/avatar.png"
+	ctx := context.Background()
+
+	mockUser := &entity.User{
+		ID:        userID,
+		Username:  "testuser",
+		AvatarURL: "",
+	}
+
+	deps.Repo.EXPECT().FindByID(ctx, userID).Return(mockUser, nil)
+	deps.Repo.EXPECT().Update(ctx, mock.MatchedBy(func(u *entity.User) bool {
+		return u.AvatarURL == url
+	})).Return(nil)
+	deps.AuditUC.EXPECT().LogActivity(ctx, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.Action == "UPDATE_AVATAR_TUS" && req.UserID == userID
+	})).Return(nil)
+
+	err := uc.SetAvatarURL(ctx, userID, url)
+	assert.NoError(t, err)
+}
+
+func TestUserUseCase_SetAvatarURL_WithoutAudit(t *testing.T) {
+	mockEnforcer := new(permMocks.MockIEnforcer)
+	deps := &userTestDeps{
+		Repo:     new(mocks.MockUserRepository),
+		TM:       new(mocking.MockWithTransactionManager),
+		Enforcer: mockEnforcer,
+		AuthUC:   new(authMocks.MockAuthUseCase),
+		Storage:  new(storageMocks.MockProvider),
+	}
+
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+	log.SetLevel(logrus.FatalLevel)
+
+	var enf permissionUseCase.IEnforcer = deps.Enforcer
+
+	// Create use case without AuditUC
+	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, enf, nil, deps.AuthUC, deps.Storage)
+
+	userID := "user-123"
+	url := "https://example.com/avatar.png"
+	ctx := context.Background()
+
+	mockUser := &entity.User{
+		ID:        userID,
+		Username:  "testuser",
+		AvatarURL: "",
+	}
+
+	deps.Repo.EXPECT().FindByID(ctx, userID).Return(mockUser, nil)
+	deps.Repo.EXPECT().Update(ctx, mock.MatchedBy(func(u *entity.User) bool {
+		return u.AvatarURL == url
+	})).Return(nil)
+
+	err := uc.SetAvatarURL(ctx, userID, url)
+	assert.NoError(t, err)
+}
+
+func TestUserUseCase_SetAvatarURL_UserNotFound(t *testing.T) {
+	deps, uc := setupUserTest()
+	userID := "not-found"
+	url := "https://example.com/avatar.png"
+	ctx := context.Background()
+
+	deps.Repo.EXPECT().FindByID(ctx, userID).Return(nil, exception.ErrNotFound)
+
+	err := uc.SetAvatarURL(ctx, userID, url)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
+}
+
+func TestUserUseCase_SetAvatarURL_UpdateFailed(t *testing.T) {
+	deps, uc := setupUserTest()
+	userID := "user-123"
+	url := "https://example.com/avatar.png"
+	ctx := context.Background()
+
+	mockUser := &entity.User{
+		ID:        userID,
+		Username:  "testuser",
+		AvatarURL: "",
+	}
+
+	deps.Repo.EXPECT().FindByID(ctx, userID).Return(mockUser, nil)
+	deps.Repo.EXPECT().Update(ctx, mock.AnythingOfType("*entity.User")).Return(errors.New("db error"))
+
+	err := uc.SetAvatarURL(ctx, userID, url)
+	assert.ErrorIs(t, err, exception.ErrInternalServer)
+}
+
+
+// --- Tests for GetAvatarUrl (Error paths) ---
+
+func TestUserUseCase_GetAvatarUrl_UserNotFound(t *testing.T) {
+	deps, uc := setupUserTest()
+	userID := "not-found"
+	ctx := context.Background()
+
+	deps.Repo.EXPECT().FindByID(ctx, userID).Return(nil, exception.ErrNotFound)
+
+	url, err := uc.GetAvatarUrl(ctx, userID)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
+	assert.Empty(t, url)
+}
+
+func TestUserUseCase_GetAvatarUrl_EmptyAvatarURL(t *testing.T) {
+	deps, uc := setupUserTest()
+	userID := "user-123"
+	ctx := context.Background()
+
+	mockUser := &entity.User{
+		ID:        userID,
+		Username:  "testuser",
+		AvatarURL: "", // empty
+	}
+
+	deps.Repo.EXPECT().FindByID(ctx, userID).Return(mockUser, nil)
+
+	url, err := uc.GetAvatarUrl(ctx, userID)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
+	assert.Empty(t, url)
+}
+
+func TestUserUseCase_GetAvatarUrl_StorageError(t *testing.T) {
+	deps, uc := setupUserTest()
+	userID := "user-123"
+	ctx := context.Background()
+	avatarPath := "avatars/user-123.png"
+
+	mockUser := &entity.User{
+		ID:        userID,
+		Username:  "testuser",
+		AvatarURL: avatarPath,
+	}
+
+	storageErr := errors.New("s3 connection error")
+	deps.Repo.EXPECT().FindByID(ctx, userID).Return(mockUser, nil)
+	deps.Storage.EXPECT().GetFileUrl(ctx, avatarPath).Return("", storageErr)
+
+	url, err := uc.GetAvatarUrl(ctx, userID)
+	assert.ErrorIs(t, err, storageErr)
+	assert.Empty(t, url)
+}
