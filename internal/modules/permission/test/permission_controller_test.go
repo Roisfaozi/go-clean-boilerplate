@@ -43,8 +43,9 @@ func TestGrantPermission_Success(t *testing.T) {
 		Role:   "editor",
 		Path:   "/articles",
 		Method: "POST",
+		Domain: "global",
 	}
-	mockUseCase.On("GrantPermissionToRole", mock.Anything, reqBody.Role, reqBody.Path, reqBody.Method).Return(nil)
+	mockUseCase.On("GrantPermissionToRole", mock.Anything, reqBody.Role, reqBody.Path, reqBody.Method, "global").Return(nil)
 
 	bodyBytes, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBuffer(bodyBytes))
@@ -90,9 +91,10 @@ func TestGrantPermission_UseCaseError(t *testing.T) {
 		Role:   "editor",
 		Path:   "/articles",
 		Method: "POST",
+		Domain: "global",
 	}
 	mockError := errors.New("use case failed")
-	mockUseCase.On("GrantPermissionToRole", mock.Anything, reqBody.Role, reqBody.Path, reqBody.Method).Return(mockError)
+	mockUseCase.On("GrantPermissionToRole", mock.Anything, reqBody.Role, reqBody.Path, reqBody.Method, "global").Return(mockError)
 
 	bodyBytes, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBuffer(bodyBytes))

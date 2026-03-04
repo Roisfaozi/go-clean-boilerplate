@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"io"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
@@ -12,17 +14,23 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func setupAccessRepo(t *testing.T) (repository.AccessRepository, *gorm.DB) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	require.NoError(t, err)
 
 	err = db.AutoMigrate(&entity.Endpoint{}, &entity.AccessRight{})
 	require.NoError(t, err)
 
-	logger := logrus.New()
-	repo := repository.NewAccessRepository(db, logger)
+	l := logrus.New()
+	l.SetOutput(io.Discard)
+	l.SetLevel(logrus.FatalLevel)
+
+	repo := repository.NewAccessRepository(db, l)
 	return repo, db
 }
 

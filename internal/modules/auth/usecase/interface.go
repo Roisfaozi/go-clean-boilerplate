@@ -28,6 +28,7 @@ type AuthUseCase interface {
 	ValidateRefreshToken(token string) (*jwt.Claims, error)
 	RevokeToken(ctx context.Context, userID, sessionID string) error
 
+	Register(ctx context.Context, request model.RegisterRequest) (*model.LoginResponse, string, error)
 	Login(ctx context.Context, request model.LoginRequest) (*model.LoginResponse, string, error)
 	RefreshToken(ctx context.Context, refreshToken string) (*model.TokenResponse, string, error)
 	Verify(ctx context.Context, userID string, sessionID string) (*model.Auth, error)
@@ -41,4 +42,7 @@ type AuthUseCase interface {
 	// Email Verification
 	RequestVerification(ctx context.Context, userID string) error
 	VerifyEmail(ctx context.Context, token string) error
+
+	// Ticket
+	GetTicket(ctx context.Context, userContext model.UserSessionContext) (string, error)
 }

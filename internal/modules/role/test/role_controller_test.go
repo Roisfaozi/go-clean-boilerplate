@@ -237,13 +237,16 @@ func TestRoleHandler_Create_XSS_Name(t *testing.T) {
 	createRequest := model.CreateRoleRequest{Name: "<script>alert(1)</script>", Description: "XSS role"}
 	requestBody, _ := json.Marshal(createRequest)
 
+	// Expect sanitized input
+	sanitizedRequest := model.CreateRoleRequest{Name: "&lt;script&gt;alert(1)&lt;/script&gt;", Description: "XSS role"}
+	mockUseCase.On("Create", mock.Anything, &sanitizedRequest).Return(&model.RoleResponse{ID: "uuid", Name: "&lt;script&gt;alert(1)&lt;/script&gt;"}, nil)
+
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/roles", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(w, req)
 
-	// Should return 422 Unprocessable Entity due to xss validation failure
-	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-	assert.Contains(t, w.Body.String(), "validation error")
-	mockUseCase.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+	// Should return 201 Created due to sanitization
+	assert.Equal(t, http.StatusCreated, w.Code)
+	mockUseCase.AssertExpectations(t)
 }

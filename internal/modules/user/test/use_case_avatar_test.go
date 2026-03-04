@@ -12,9 +12,10 @@ import (
 	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	authMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	permMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
+	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	storageMocks "github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/mocks"
 	"github.com/sirupsen/logrus"
@@ -31,11 +32,12 @@ func createValidImageReader(content string) io.Reader {
 }
 
 // setupAvatarTest creates test dependencies for avatar tests
-func setupAvatarTest() (*userTestDeps, usecase.UserUseCase) {
+func setupAvatarTest() (*userTestDeps, userUseCase.UserUseCase) {
+	mockEnforcer := new(permMocks.MockIEnforcer)
 	deps := &userTestDeps{
 		Repo:     new(mocks.MockUserRepository),
 		TM:       new(mocking.MockWithTransactionManager),
-		Enforcer: new(permMocks.IEnforcer),
+		Enforcer: mockEnforcer,
 		AuditUC:  new(auditMocks.MockAuditUseCase),
 		AuthUC:   new(authMocks.MockAuthUseCase),
 		Storage:  new(storageMocks.MockProvider),
@@ -44,7 +46,10 @@ func setupAvatarTest() (*userTestDeps, usecase.UserUseCase) {
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 
-	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
+	// Cast to interface to ensure correct implementation
+	var enf permissionUseCase.IEnforcer = deps.Enforcer
+
+	uc := userUseCase.NewUserUseCase(deps.TM, log, deps.Repo, enf, deps.AuditUC, deps.AuthUC, deps.Storage)
 
 	return deps, uc
 }
@@ -101,6 +106,28 @@ func TestUserUseCase_UpdateAvatar_Success(t *testing.T) {
 	deps.Repo.AssertExpectations(t)
 	deps.Storage.AssertExpectations(t)
 	deps.AuditUC.AssertExpectations(t)
+}
+
+func TestUserUseCase_GetAvatarUrl_Success(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-123"
+	avatarURL := "avatars/user-123.png"
+	fullURL := "https://storage.example.com/avatars/user-123.png"
+
+	existingUser := &entity.User{
+		ID:        userID,
+		AvatarURL: avatarURL,
+	}
+
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+	deps.Storage.On("GetFileUrl", ctx, avatarURL).Return(fullURL, nil)
+
+	result, err := uc.GetAvatarUrl(ctx, userID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, fullURL, result)
 }
 
 func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {

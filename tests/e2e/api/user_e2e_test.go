@@ -14,43 +14,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Helper: Create admin user and get token
-func createAdminAndLogin(t *testing.T, server *setup.TestServer) string {
-	f := fixtures.NewUserFactory(server.DB)
-	hash, _ := bcrypt.GenerateFromPassword([]byte("AdminPass123!"), bcrypt.DefaultCost)
-
-	admin := f.Create(func(u *userEntity.User) {
-		u.Username = "user_admin"
-		u.Email = "user_admin@test.com"
-		u.Password = string(hash)
-	})
-
-	// Grant superadmin role
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
-	server.Enforcer.SavePolicy()
-
-	// Login
-	resp := server.Client.POST("/api/v1/auth/login", map[string]any{
-		"username": admin.Username,
-		"password": "AdminPass123!",
-	})
-	require.Equal(t, 200, resp.StatusCode)
-
-	var loginRes struct {
-		Data struct {
-			AccessToken string `json:"access_token"`
-		} `json:"data"`
-	}
-	resp.JSON(&loginRes)
-	return loginRes.Data.AccessToken
-}
-
 func TestUserE2E_GetAllUsers(t *testing.T) {
 	server := setup.SetupTestServer(t)
 	defer server.Cleanup()
 
-	adminToken := createAdminAndLogin(t, server)
+	adminToken := setup.CreateAdminAndLogin(t, server)
 
 	// Create some users
 	f := fixtures.NewUserFactory(server.DB)
@@ -82,7 +50,7 @@ func TestUserE2E_GetUserByID(t *testing.T) {
 	server := setup.SetupTestServer(t)
 	defer server.Cleanup()
 
-	adminToken := createAdminAndLogin(t, server)
+	adminToken := setup.CreateAdminAndLogin(t, server)
 
 	// Create target user
 	f := fixtures.NewUserFactory(server.DB)
@@ -119,7 +87,7 @@ func TestUserE2E_DeleteUser(t *testing.T) {
 	server := setup.SetupTestServer(t)
 	defer server.Cleanup()
 
-	adminToken := createAdminAndLogin(t, server)
+	adminToken := setup.CreateAdminAndLogin(t, server)
 
 	// Create user to delete
 	f := fixtures.NewUserFactory(server.DB)
@@ -147,7 +115,7 @@ func TestUserE2E_UpdateStatus(t *testing.T) {
 	server := setup.SetupTestServer(t)
 	defer server.Cleanup()
 
-	adminToken := createAdminAndLogin(t, server)
+	adminToken := setup.CreateAdminAndLogin(t, server)
 
 	// Create user and get their token
 	f := fixtures.NewUserFactory(server.DB)

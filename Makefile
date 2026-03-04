@@ -30,7 +30,7 @@ DB_URL_STAG = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_PROD)@tcp($(DB_HOST_PROD)
 SWAG_CLI=go run github.com/swaggo/swag/cmd/swag@v1.8.12
 
 # Binary name
-BINARY_NAME=main.exe
+BINARY_NAME=main
 
 # Default target executed when you just run `make`
 .PHONY: all
@@ -169,13 +169,7 @@ deploy: ## Run Blue-Green deployment
 docs:
 	@echo "Generating Swagger/OpenAPI documentation..."
 	$(SWAG_CLI) init -g cmd/api/main.go --parseDependency --parseInternal --parseDepth 1
-	# sanitize generated file: remove LeftDelim/RightDelim if present (compatibility across swag versions)
-	@{ \
-		if [ -f ./docs/docs.go ]; then \
-			sed -i '/LeftDelim/d' ./docs/docs.go || true; \
-			sed -i '/RightDelim/d' ./docs/docs.go || true; \
-		fi; \
-	}
+	@echo "Swagger documentation generated successfully!"
 
 # Tidy go.mod and go.sum files
 .PHONY: tidy

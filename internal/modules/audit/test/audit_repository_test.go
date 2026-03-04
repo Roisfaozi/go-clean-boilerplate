@@ -2,6 +2,7 @@ package test_test
 
 import (
 	"context"
+	"io"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
@@ -11,11 +12,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
-// setupTestDB in-memory for audit tests
 func setupTestDB(t *testing.T) *gorm.DB {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	require.NoError(t, err)
 	err = db.AutoMigrate(&entity.AuditLog{})
 	require.NoError(t, err)
@@ -25,6 +28,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 func TestAuditRepository_Create(t *testing.T) {
 	db := setupTestDB(t)
 	logger := logrus.New()
+	logger.SetOutput(io.Discard)
 	repo := repository.NewAuditRepository(db, logger)
 
 	t.Run("Success - Create Full Audit Log", func(t *testing.T) {

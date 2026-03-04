@@ -7,27 +7,38 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 type auditTestDeps struct {
-	Repo *mocks.MockAuditRepository
+	Repo   *mocks.MockAuditRepository
+	MockWS *mocks.MockWebSocketManager
 }
 
 func setupAuditTest() (*auditTestDeps, usecase.AuditUseCase) {
 	deps := &auditTestDeps{
-		Repo: new(mocks.MockAuditRepository),
+		Repo:   new(mocks.MockAuditRepository),
+		MockWS: new(mocks.MockWebSocketManager),
 	}
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
-	uc := usecase.NewAuditUseCase(deps.Repo, logger)
+
+	// Default mock behavior
+	deps.MockWS.On("BroadcastToChannel", mock.Anything, mock.Anything).Return()
+
+	uc := usecase.NewAuditUseCase(deps.Repo, logger, deps.MockWS)
 	return deps, uc
 }
 
@@ -45,6 +56,51 @@ func TestLogActivity(t *testing.T) {
 		})).Return(nil)
 
 		err := uc.LogActivity(context.Background(), req)
+		assert.NoError(t, err)
+		deps.Repo.AssertExpectations(t)
+	})
+
+	t.Run("Transactional Path - Write to Outbox", func(t *testing.T) {
+		deps, uc := setupAuditTest()
+		req := model.CreateAuditLogRequest{
+			UserID: "u1", Action: "UPDATE", Entity: "Profile", EntityID: "u1",
+		}
+
+		// Simulate being inside a transaction using real TransactionManager
+		db, mockSQL, _ := sqlmock.New()
+		gormDB, _ := gorm.Open(mysql.New(mysql.Config{Conn: db, SkipInitializeWithVersion: true}), &gorm.Config{})
+		tm := tx.NewTransactionManager(gormDB, logrus.New())
+
+		mockSQL.ExpectBegin()
+		mockSQL.ExpectCommit()
+
+		err := tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
+			deps.Repo.On("CreateOutbox", ctx, mock.MatchedBy(func(outbox *entity.AuditOutbox) bool {
+				return outbox.UserID == "u1" && outbox.Action == "UPDATE"
+			})).Return(nil)
+
+			return uc.LogActivity(ctx, req)
+		})
+
+		assert.NoError(t, err)
+		deps.Repo.AssertExpectations(t)
+		// Should NOT call direct Create
+		deps.Repo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+	})
+
+	t.Run("Organization Context - Captures OrgID", func(t *testing.T) {
+		deps, uc := setupAuditTest()
+		orgID := "org-999"
+		ctx := database.SetOrganizationContext(context.Background(), orgID)
+		req := model.CreateAuditLogRequest{
+			UserID: "u1", Action: "LOGIN", Entity: "Auth", EntityID: "s1",
+		}
+
+		deps.Repo.On("Create", ctx, mock.MatchedBy(func(log *entity.AuditLog) bool {
+			return log.OrganizationID != nil && *log.OrganizationID == orgID
+		})).Return(nil)
+
+		err := uc.LogActivity(ctx, req)
 		assert.NoError(t, err)
 		deps.Repo.AssertExpectations(t)
 	})

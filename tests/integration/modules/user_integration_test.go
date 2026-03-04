@@ -15,6 +15,7 @@ import (
 	authModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	authRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	authUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
@@ -23,6 +24,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,12 +34,14 @@ func setupTestDependencies(env *setup.TestEnvironment) (usecase.UserUseCase, rep
 	userRepo := repository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
+	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
-	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)
 
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
+	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
+	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil)
 
 	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil), userRepo
 }
@@ -45,7 +49,6 @@ func setupTestDependencies(env *setup.TestEnvironment) (usecase.UserUseCase, rep
 func TestUserIntegration_Create_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC, userRepo := setupTestDependencies(env)
 
@@ -66,11 +69,15 @@ func TestUserIntegration_Create_Success(t *testing.T) {
 	assert.Equal(t, req.Username, result.Username)
 	assert.Equal(t, req.Email, result.Email)
 
+	// Sync enforcer after transactional changes
+	err = env.Enforcer.LoadPolicy()
+	require.NoError(t, err)
+
 	user, err := userRepo.FindByID(context.Background(), result.ID)
 	require.NoError(t, err)
 	assert.Equal(t, req.Username, user.Username)
 
-	roles, err := env.Enforcer.GetRolesForUser(result.ID)
+	roles, err := env.Enforcer.GetRolesForUser(result.ID, "global")
 	require.NoError(t, err)
 	assert.Contains(t, roles, "role:user")
 }
@@ -78,7 +85,6 @@ func TestUserIntegration_Create_Success(t *testing.T) {
 func TestUserIntegration_Create_DuplicateUsername(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	setup.CreateTestUser(t, env.DB, "existinguser", "existing@example.com", "password123")
 
@@ -102,7 +108,6 @@ func TestUserIntegration_Create_DuplicateUsername(t *testing.T) {
 func TestUserIntegration_Update_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
 
@@ -129,7 +134,6 @@ func TestUserIntegration_Update_Success(t *testing.T) {
 func TestUserIntegration_Delete_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
 
@@ -151,7 +155,6 @@ func TestUserIntegration_Delete_Success(t *testing.T) {
 func TestUserIntegration_GetByID_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "testuser", "test@example.com", "password123")
 
@@ -169,21 +172,21 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 
-	setup.CleanupDatabase(t, env.DB)
-
 	password := "password123"
 	user := setup.CreateTestUser(t, env.DB, "banneduser", "banned@example.com", password)
 
 	env.DB.Model(&entity.User{}).Where("id = ?", user.ID).Update("status", entity.UserStatusBanned)
 
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", 15*time.Minute, 24*time.Hour)
-	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
+	_ = auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
+	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
+	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil)
 
 	loginReq := authModel.LoginRequest{Username: user.Username, Password: password}
 	loginResp, _, err := authUC.Login(context.Background(), loginReq)
@@ -200,7 +203,6 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 func TestUserIntegration_Create_Positive_ValidData(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -220,7 +222,6 @@ func TestUserIntegration_Create_Positive_ValidData(t *testing.T) {
 func TestUserIntegration_Update_Positive_ValidUpdate(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "updateuser", "update@example.com", "password123")
 	userUC := setupUserUseCase(t, env)
@@ -238,7 +239,6 @@ func TestUserIntegration_Update_Positive_ValidUpdate(t *testing.T) {
 func TestUserIntegration_Create_Negative_DuplicateUsername(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	setup.CreateTestUser(t, env.DB, "duplicate", "first@example.com", "password123")
 	userUC := setupUserUseCase(t, env)
@@ -257,7 +257,6 @@ func TestUserIntegration_Create_Negative_DuplicateUsername(t *testing.T) {
 func TestUserIntegration_Create_Negative_DuplicateEmail(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	setup.CreateTestUser(t, env.DB, "user1", "duplicate@example.com", "password123")
 	userUC := setupUserUseCase(t, env)
@@ -276,7 +275,6 @@ func TestUserIntegration_Create_Negative_DuplicateEmail(t *testing.T) {
 func TestUserIntegration_Update_Negative_NonExistentUser(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -293,7 +291,6 @@ func TestUserIntegration_Update_Negative_NonExistentUser(t *testing.T) {
 func TestUserIntegration_Delete_Negative_NonExistentUser(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -307,7 +304,6 @@ func TestUserIntegration_Delete_Negative_NonExistentUser(t *testing.T) {
 func TestUserIntegration_Create_Edge_MinimumUsernameLength(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -328,7 +324,6 @@ func TestUserIntegration_Create_Edge_MinimumUsernameLength(t *testing.T) {
 func TestUserIntegration_Create_Edge_MaximumUsernameLength(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -347,7 +342,6 @@ func TestUserIntegration_Create_Edge_MaximumUsernameLength(t *testing.T) {
 func TestUserIntegration_Create_Edge_SpecialCharactersInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -365,7 +359,6 @@ func TestUserIntegration_Create_Edge_SpecialCharactersInName(t *testing.T) {
 func TestUserIntegration_Create_Edge_UnicodeInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -383,7 +376,6 @@ func TestUserIntegration_Create_Edge_UnicodeInName(t *testing.T) {
 func TestUserIntegration_Update_Edge_EmptyOptionalFields(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "emptyuser", "empty@example.com", "password123")
 	userUC := setupUserUseCase(t, env)
@@ -402,7 +394,6 @@ func TestUserIntegration_Update_Edge_EmptyOptionalFields(t *testing.T) {
 func TestUserIntegration_Create_Edge_EmailWithPlusSign(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -420,7 +411,6 @@ func TestUserIntegration_Create_Edge_EmailWithPlusSign(t *testing.T) {
 func TestUserIntegration_Security_SQLInjectionInUsername(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -451,7 +441,6 @@ func TestUserIntegration_Security_SQLInjectionInUsername(t *testing.T) {
 func TestUserIntegration_Security_XSSInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -480,7 +469,6 @@ func TestUserIntegration_Security_XSSInName(t *testing.T) {
 func TestUserIntegration_Security_PathTraversalInUsername(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -505,7 +493,6 @@ func TestUserIntegration_Security_PathTraversalInUsername(t *testing.T) {
 func TestUserIntegration_Security_NoSQLInjection(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -534,7 +521,6 @@ func TestUserIntegration_Security_NoSQLInjection(t *testing.T) {
 func TestUserIntegration_Security_PasswordNotInResponse(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	userUC := setupUserUseCase(t, env)
 
@@ -553,7 +539,6 @@ func TestUserIntegration_Security_PasswordNotInResponse(t *testing.T) {
 func TestUserIntegration_Security_UnauthorizedUpdate(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	testUser := setup.CreateTestUser(t, env.DB, "victim", "victim@example.com", "password123")
 	userUC := setupUserUseCase(t, env)
@@ -573,12 +558,14 @@ func setupUserUseCase(t *testing.T, env *setup.TestEnvironment) usecase.UserUseC
 	userRepo := repository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
+	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
-	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)
 
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, tm, env.Logger, nil, nil, env.Enforcer, auditUC, nil)
+	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
+	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil)
 
 	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil)
 }

@@ -55,6 +55,12 @@ func (s *Scheduler) RegisterScheduledTasks() {
 		s.logger.Errorf("Failed to register task %s: %v", tasks.TypePruneAuditLogs, err)
 	}
 
+	// 4. Audit Outbox Sync
+	// Run every 5 seconds (Reduced from 30s for better dev/test feedback)
+	if _, err := s.scheduler.Register("@every 5s", tasks.NewAuditOutboxSyncTask()); err != nil {
+		s.logger.Errorf("Failed to register task %s: %v", tasks.TypeAuditOutboxSync, err)
+	}
+
 	s.logger.Info("Scheduled tasks registered successfully")
 }
 

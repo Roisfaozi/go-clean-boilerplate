@@ -30,6 +30,20 @@ func NewAuditController(uc usecase.AuditUseCase, validate *validator.Validate, l
 	}
 }
 
+// GetLogsDynamic godoc
+// @Summary      Search audit logs
+// @Description  Retrieves audit logs with dynamic filtering and pagination.
+// @Tags         audit-logs
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        filter body querybuilder.DynamicFilter true "Dynamic filter and sort criteria"
+// @Success      200  {object}  response.SwaggerAuditLogListResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid filter format"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /audit-logs/search [post]
 func (h *AuditController) GetLogsDynamic(c *gin.Context) {
 	var filter querybuilder.DynamicFilter
 	if err := c.ShouldBindJSON(&filter); err != nil {
@@ -56,6 +70,18 @@ func (h *AuditController) GetLogsDynamic(c *gin.Context) {
 	})
 }
 
+// Export godoc
+// @Summary      Export audit logs
+// @Description  Exports audit logs to CSV format within a date range.
+// @Tags         audit-logs
+// @Security     BearerAuth
+// @Produce      text/csv
+// @Param        from_date query string false "Start date (YYYY-MM-DD)"
+// @Param        to_date query string false "End date (YYYY-MM-DD)"
+// @Success      200  {file}  file "CSV file download"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /audit-logs/export [get]
 func (h *AuditController) Export(c *gin.Context) {
 	fromDate := c.Query("from_date")
 	toDate := c.Query("to_date")

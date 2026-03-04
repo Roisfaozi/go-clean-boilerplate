@@ -12,6 +12,10 @@ type TestStruct struct {
 	Comment string `validate:"xss"`
 }
 
+type TestSlugStruct struct {
+	Slug string `validate:"slug"`
+}
+
 func TestValidateXSS(t *testing.T) {
 	v := validator.New()
 	err := validation.RegisterCustomValidations(v)
@@ -99,53 +103,63 @@ func TestValidateXSS(t *testing.T) {
 	}
 }
 
-func TestSanitizeString(t *testing.T) {
+func TestValidateSlug(t *testing.T) {
+	v := validator.New()
+	err := validation.RegisterCustomValidations(v)
+	assert.NoError(t, err)
+
 	tests := []struct {
 		name     string
 		input    string
-		expected string
+		expected bool
 	}{
 		{
-			name:     "Clean string",
-			input:    "Hello World",
-			expected: "Hello World",
+			name:     "Valid Slug",
+			input:    "my-slug-123",
+			expected: true,
 		},
 		{
-			name:     "String with script tags",
-			input:    "Hello <script>alert(1)</script> World",
-			expected: "Hello alert(1) World",
+			name:     "Valid Slug - Single Word",
+			input:    "slug",
+			expected: true,
 		},
 		{
-			name:     "String with image tags",
-			input:    "Hello <img src=\"x\"> World",
-			expected: "Hello  World",
+			name:     "Invalid Slug - Uppercase",
+			input:    "My-Slug",
+			expected: false,
 		},
 		{
-			name:     "String with mixed HTML tags",
-			input:    "<b>Bold</b> and <i>Italic</i> <a href=\"#\">Link</a> <script>alert(1)</script>.",
-			expected: "Bold and Italic Link alert(1).",
+			name:     "Invalid Slug - Starts with Dash",
+			input:    "-slug",
+			expected: false,
 		},
 		{
-			name:     "Empty string",
-			input:    "",
-			expected: "",
+			name:     "Invalid Slug - Ends with Dash",
+			input:    "slug-",
+			expected: false,
 		},
 		{
-			name:     "Complex XSS payload",
-			input:    "<svg/onload=alert(document.cookie)>Hello",
-			expected: "Hello",
+			name:     "Invalid Slug - Special Characters",
+			input:    "slug@!",
+			expected: false,
 		},
 		{
-			name:     "Allowed tags are handled by SanitizeString - current implementation removes all",
-			input:    "This is <b>bold</b>",
-			expected: "This is bold",
+			name:     "Invalid Slug - Spaces",
+			input:    "my slug",
+			expected: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := validation.SanitizeString(tt.input)
-			assert.Equal(t, tt.expected, result)
+			s := TestSlugStruct{Slug: tt.input}
+			err := v.Struct(s)
+			if tt.expected {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), "slug")
+			}
 		})
 	}
 }

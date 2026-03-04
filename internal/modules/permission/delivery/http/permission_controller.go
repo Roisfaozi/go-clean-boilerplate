@@ -26,6 +26,22 @@ func NewPermissionController(useCase usecase.IPermissionUseCase, log *logrus.Log
 	}
 }
 
+// AssignRole godoc
+// @Summary      Assign role to user
+// @Description  Assigns a role to a specified user (Casbin). Defaults to 'global' domain.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        X-Organization-ID header string false "Organization ID"
+// @Param        X-Organization-Slug header string false "Organization Slug"
+// @Param        request body model.AssignRoleRequest true "Assign Role Request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Role assigned successfully"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/assign-role [post]
 func (h *PermissionController) AssignRole(c *gin.Context) {
 	var req model.AssignRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -39,7 +55,7 @@ func (h *PermissionController) AssignRole(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.AssignRoleToUser(c.Request.Context(), req.UserID, req.Role)
+	err := h.useCase.AssignRoleToUser(c.Request.Context(), req.UserID, req.Role, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to assign role")
 		return
@@ -48,6 +64,20 @@ func (h *PermissionController) AssignRole(c *gin.Context) {
 	response.Success(c, gin.H{"message": "role assigned successfully"})
 }
 
+// RevokeRole godoc
+// @Summary      Revoke role from user
+// @Description  Revokes a role from a specified user (Casbin). Defaults to 'global' domain.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.AssignRoleRequest true "Revoke Role Request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Role revoked successfully"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/revoke-role [post]
 func (h *PermissionController) RevokeRole(c *gin.Context) {
 	var req model.AssignRoleRequest // Same request structure as Assign
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -61,7 +91,7 @@ func (h *PermissionController) RevokeRole(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.RevokeRoleFromUser(c.Request.Context(), req.UserID, req.Role)
+	err := h.useCase.RevokeRoleFromUser(c.Request.Context(), req.UserID, req.Role, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to revoke role")
 		return
@@ -70,6 +100,20 @@ func (h *PermissionController) RevokeRole(c *gin.Context) {
 	response.Success(c, gin.H{"message": "role revoked successfully"})
 }
 
+// GrantPermission godoc
+// @Summary      Grant permission to role
+// @Description  Grants a permission (path + method) to a role (Casbin). Defaults to 'global' domain.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.GrantPermissionRequest true "Grant Permission Request"
+// @Success      201  {object}  response.SwaggerGeneralResponseWrapper "Permission granted successfully"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/grant [post]
 func (h *PermissionController) GrantPermission(c *gin.Context) {
 	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -83,7 +127,7 @@ func (h *PermissionController) GrantPermission(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.GrantPermissionToRole(c.Request.Context(), req.Role, req.Path, req.Method)
+	err := h.useCase.GrantPermissionToRole(c.Request.Context(), req.Role, req.Path, req.Method, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to grant permission")
 		return
@@ -92,6 +136,16 @@ func (h *PermissionController) GrantPermission(c *gin.Context) {
 	response.Created(c, gin.H{"message": "permission granted successfully"})
 }
 
+// GetAllPermissions godoc
+// @Summary      Get all permissions
+// @Description  Retrieves all Casbin policies.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  response.SwaggerPermissionListResponseWrapper
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions [get]
 func (h *PermissionController) GetAllPermissions(c *gin.Context) {
 	permissions, err := h.useCase.GetAllPermissions(c.Request.Context())
 	if err != nil {
@@ -102,6 +156,18 @@ func (h *PermissionController) GetAllPermissions(c *gin.Context) {
 	response.Success(c, permissions)
 }
 
+// GetPermissionsForRole godoc
+// @Summary      Get permissions for role
+// @Description  Retrieves all permissions assigned to a specific role.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        role path string true "Role name"
+// @Success      200  {object}  response.SwaggerPermissionListResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Role is required"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/roles/{role} [get]
 func (h *PermissionController) GetPermissionsForRole(c *gin.Context) {
 	role := c.Param("role")
 	if role == "" {
@@ -118,6 +184,51 @@ func (h *PermissionController) GetPermissionsForRole(c *gin.Context) {
 	response.Success(c, permissions)
 }
 
+// GetUsersForRole godoc
+// @Summary      Get users for role
+// @Description  Retrieves all user IDs assigned to a specific role. Defaults to 'global' domain.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        role path string true "Role name"
+// @Param        domain query string false "Domain/Organization ID (defaults to 'global')"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "List of user IDs"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Role is required"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/roles/{role}/users [get]
+func (h *PermissionController) GetUsersForRole(c *gin.Context) {
+	role := c.Param("role")
+	if role == "" {
+		response.BadRequest(c, nil, "role is required")
+		return
+	}
+
+	domain := c.Query("domain")
+
+	users, err := h.useCase.GetUsersForRole(c.Request.Context(), role, domain)
+	if err != nil {
+		response.HandleError(c, err, "failed to get users for role")
+		return
+	}
+
+	response.Success(c, users)
+}
+
+// UpdatePermission godoc
+// @Summary      Update permission
+// @Description  Updates an existing Casbin policy.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.UpdatePermissionRequest true "Update Permission Request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Permission updated successfully"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions [put]
 func (h *PermissionController) UpdatePermission(c *gin.Context) {
 	var req model.UpdatePermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -140,6 +251,20 @@ func (h *PermissionController) UpdatePermission(c *gin.Context) {
 	response.Success(c, gin.H{"message": "permission updated successfully"})
 }
 
+// RevokePermission godoc
+// @Summary      Revoke permission from role
+// @Description  Revokes a permission (path + method) from a role (Casbin). Defaults to 'global' domain.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.GrantPermissionRequest true "Revoke Permission Request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Permission revoked successfully"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/revoke [post]
 func (h *PermissionController) RevokePermission(c *gin.Context) {
 	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -153,7 +278,7 @@ func (h *PermissionController) RevokePermission(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.RevokePermissionFromRole(c.Request.Context(), req.Role, req.Path, req.Method)
+	err := h.useCase.RevokePermissionFromRole(c.Request.Context(), req.Role, req.Path, req.Method, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to revoke permission")
 		return
@@ -162,6 +287,20 @@ func (h *PermissionController) RevokePermission(c *gin.Context) {
 	response.Success(c, gin.H{"message": "permission revoked successfully"})
 }
 
+// AddRoleInheritance godoc
+// @Summary      Add role inheritance
+// @Description  Creates a parent-child relationship between two roles. Defaults to 'global' domain.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.RoleInheritanceRequest true "Role Inheritance Request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Role inheritance added successfully"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/inheritance [post]
 func (h *PermissionController) AddRoleInheritance(c *gin.Context) {
 	var req model.RoleInheritanceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -175,7 +314,7 @@ func (h *PermissionController) AddRoleInheritance(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.AddParentRole(c.Request.Context(), req.ChildRole, req.ParentRole)
+	err := h.useCase.AddParentRole(c.Request.Context(), req.ChildRole, req.ParentRole, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to add role inheritance")
 		return
@@ -184,6 +323,20 @@ func (h *PermissionController) AddRoleInheritance(c *gin.Context) {
 	response.Success(c, gin.H{"message": "role inheritance added successfully"})
 }
 
+// RemoveRoleInheritance godoc
+// @Summary      Remove role inheritance
+// @Description  Removes a parent-child relationship between two roles. Defaults to 'global' domain.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.RoleInheritanceRequest true "Role Inheritance Request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Role inheritance removed successfully"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/inheritance [delete]
 func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 	var req model.RoleInheritanceRequest
 
@@ -198,7 +351,7 @@ func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.RemoveParentRole(c.Request.Context(), req.ChildRole, req.ParentRole)
+	err := h.useCase.RemoveParentRole(c.Request.Context(), req.ChildRole, req.ParentRole, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to remove role inheritance")
 		return
@@ -207,6 +360,19 @@ func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 	response.Success(c, gin.H{"message": "role inheritance removed successfully"})
 }
 
+// GetParentRoles godoc
+// @Summary      Get parent roles
+// @Description  Retrieves all parent roles for a given role. Defaults to 'global' domain.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        role path string true "Role name"
+// @Param        domain query string false "Domain/Organization ID (defaults to 'global')"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "List of parent roles"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Role is required"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/parents/{role} [get]
 func (h *PermissionController) GetParentRoles(c *gin.Context) {
 	role := c.Param("role")
 	if role == "" {
@@ -214,7 +380,9 @@ func (h *PermissionController) GetParentRoles(c *gin.Context) {
 		return
 	}
 
-	parents, err := h.useCase.GetParentRoles(c.Request.Context(), role)
+	domain := c.Query("domain")
+
+	parents, err := h.useCase.GetParentRoles(c.Request.Context(), role, domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to get parent roles")
 		return
@@ -223,6 +391,20 @@ func (h *PermissionController) GetParentRoles(c *gin.Context) {
 	response.Success(c, parents)
 }
 
+// BatchCheck godoc
+// @Summary      Batch check permissions
+// @Description  Checks multiple permissions for the current user in a single request.
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.BatchPermissionCheckRequest true "Batch Check Request"
+// @Success      200  {object}  response.SwaggerSuccessResponseWrapper{data=model.BatchPermissionCheckResponse}
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/check-batch [post]
 func (h *PermissionController) BatchCheck(c *gin.Context) {
 	var req model.BatchPermissionCheckRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -249,4 +431,137 @@ func (h *PermissionController) BatchCheck(c *gin.Context) {
 	}
 
 	response.Success(c, model.BatchPermissionCheckResponse{Results: results})
+}
+
+// GetResourceAggregation godoc
+// @Summary      Get resource aggregation
+// @Description  Retrieves permissions aggregated by resource with CRUD mapping
+// @Tags         permissions
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  response.SwaggerSuccessResponseWrapper{data=model.ResourceAggregationResponse} "Resource aggregation retrieved successfully"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/resources [get]
+func (h *PermissionController) GetResourceAggregation(c *gin.Context) {
+	result, err := h.useCase.GetResourceAggregation(c.Request.Context())
+	if err != nil {
+		response.HandleError(c, err, "failed to get resource aggregation")
+		return
+	}
+
+	response.Success(c, result)
+}
+
+// GetInheritanceTree godoc
+// @Summary      Get role inheritance tree
+// @Description  Retrieves role hierarchy with inherited and effective permissions
+// @Tags         permissions
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  response.SwaggerSuccessResponseWrapper{data=model.InheritanceTreeResponse} "Inheritance tree retrieved successfully"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /permissions/inheritance-tree [get]
+func (h *PermissionController) GetInheritanceTree(c *gin.Context) {
+	result, err := h.useCase.GetInheritanceTree(c.Request.Context())
+	if err != nil {
+		response.HandleError(c, err, "failed to get inheritance tree")
+		return
+	}
+
+	response.Success(c, result)
+}
+
+// GetRoleAccessRights godoc
+// @Summary      Get access rights assignment status for a role
+// @Description  Returns all access rights with is_assigned/is_partial flags for the given role
+// @Tags         permissions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        role    path     string  true  "Role name"
+// @Param        domain  query    string  false "Domain (default: global)"
+// @Success      200  {object}  response.SwaggerSuccessResponseWrapper{data=[]model.RoleAccessRightStatus}
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper
+// @Router       /permissions/roles/{role}/access-rights [get]
+func (h *PermissionController) GetRoleAccessRights(c *gin.Context) {
+	role := c.Param("role")
+	domain := c.DefaultQuery("domain", "global")
+
+	result, err := h.useCase.GetRoleAccessRights(c.Request.Context(), role, domain)
+	if err != nil {
+		response.HandleError(c, err, "failed to get role access rights")
+		return
+	}
+
+	response.Success(c, result)
+}
+
+// AssignAccessRight godoc
+// @Summary      Bulk assign an access right to a role
+// @Description  Grants all endpoints of the given access right to the specified role
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request  body     model.AssignAccessRightRequest  true  "Assign request"
+// @Success      200  {object}  response.SwaggerSuccessResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper
+// @Router       /permissions/assign-access-right [post]
+func (h *PermissionController) AssignAccessRight(c *gin.Context) {
+	var req model.AssignAccessRightRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, errors.New("validation failed"), msg)
+		return
+	}
+
+	if err := h.useCase.AssignAccessRight(c.Request.Context(), req); err != nil {
+		response.HandleError(c, err, "failed to assign access right")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "access right assigned successfully"})
+}
+
+// RevokeAccessRight godoc
+// @Summary      Bulk revoke an access right from a role
+// @Description  Removes all endpoints of the given access right from the specified role
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request  body     model.AssignAccessRightRequest  true  "Revoke request"
+// @Success      200  {object}  response.SwaggerSuccessResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper
+// @Router       /permissions/revoke-access-right [delete]
+func (h *PermissionController) RevokeAccessRight(c *gin.Context) {
+	var req model.AssignAccessRightRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, errors.New("validation failed"), msg)
+		return
+	}
+
+	if err := h.useCase.RevokeAccessRight(c.Request.Context(), req); err != nil {
+		response.HandleError(c, err, "failed to revoke access right")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "access right revoked successfully"})
 }

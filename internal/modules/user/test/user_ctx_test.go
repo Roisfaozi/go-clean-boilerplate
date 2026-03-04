@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"io"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
@@ -55,6 +56,8 @@ func setupTestUserUseCase() (
 ) {
 	mockRepo := new(mocks.MockUserRepository)
 	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	logger.SetLevel(logrus.FatalLevel)
 
 	// We need nil/mock placeholders for other deps to construct the usecase
 	// Since GetUserByID only needs Repo and Logger, others can be nil or simple mocks if NewUserUseCase enforces non-nil.

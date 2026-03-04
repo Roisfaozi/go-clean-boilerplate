@@ -18,6 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func setupAuditControllerTest() (*mocks.MockAuditUseCase, *auditHttp.AuditController) {
@@ -89,11 +90,14 @@ func TestAuditController_Export_CSVInjection(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Request, _ = http.NewRequest("GET", "/audit/export", nil)
+	req, err := http.NewRequest("GET", "/audit/export", nil)
+	require.NoError(t, err)
+	c.Request = req
 
 	mockUC.On("ExportLogs", mock.Anything, "", "", mock.Anything).
 		Run(func(args mock.Arguments) {
-			iterator := args.Get(3).(func([]model.AuditLogResponse) error)
+			iterator, ok := args.Get(3).(func([]model.AuditLogResponse) error)
+			require.True(t, ok, "fourth argument should be an iterator function")
 			logs := []model.AuditLogResponse{
 				{
 					ID:     "log-bad",
@@ -101,7 +105,8 @@ func TestAuditController_Export_CSVInjection(t *testing.T) {
 					Action: "HACK",
 				},
 			}
-			_ = iterator(logs)
+			err := iterator(logs)
+			assert.NoError(t, err)
 		}).Return(nil)
 
 	controller.Export(c)

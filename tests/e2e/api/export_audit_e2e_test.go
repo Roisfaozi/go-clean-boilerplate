@@ -30,8 +30,8 @@ func TestAuditExportE2E(t *testing.T) {
 		u.Email = "export@admin.com"
 		u.Password = passHash
 	})
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
 	server.Enforcer.SavePolicy()
 
 	// Login Admin
@@ -73,8 +73,9 @@ func TestAuditExportE2E(t *testing.T) {
 	resp = client.PUT("/api/v1/users/me", updatePayload, setup.WithAuth(targetToken))
 	require.Equal(t, 200, resp.StatusCode)
 
-	// Wait for audit log async processing if any
-	time.Sleep(2 * time.Second)
+	// Wait for audit log async processing (Outbox -> Worker -> Log)
+	// Outbox worker runs every 5s, we wait 10s to be safe
+	time.Sleep(10 * time.Second)
 
 	// Test Export
 	// Get today's date (UTC to match server handling)

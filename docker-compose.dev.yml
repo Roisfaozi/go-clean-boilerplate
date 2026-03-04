@@ -101,6 +101,22 @@ services:
     networks:
       - app_network
 
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: rustfs-server
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # Console UI
+    environment:
+      - RUSTFS_ACCESS_KEY=rustfsadmin
+      - RUSTFS_SECRET_KEY=rustfsadmin
+      - RUSTFS_CONSOLE_ENABLE=true
+      - RUSTFS_VOLUMES=/data
+    volumes:
+      - ./db/rustfs-data:/data
+    networks:
+      - app_network
+
 networks:
   app_network:
     driver: bridge

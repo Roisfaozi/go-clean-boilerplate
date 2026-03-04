@@ -60,3 +60,16 @@ We employ a 3-layer testing strategy:
 3.  **E2E Tests**: Full HTTP flow validation.
 
 *See [TESTING.md](./guides/TESTING.md) for detailed patterns.*
+
+---
+
+## 5. Design Decisions & Standards
+
+### 🔄 Avoiding Circular Dependencies
+To prevent dependency cycles (e.g., `config -> middleware -> usecase -> config`), UseCase constructors **MUST NOT** accept the full `internal/config.AppConfig` struct. Instead, pass the specific required values (strings, ints, etc.) as raw arguments.
+
+### 📁 Storage Context Propagation
+All methods in `pkg/storage.Provider` MUST accept `context.Context`. This ensures that file operations respect request deadlines, cancellations, and allow for proper trace propagation.
+
+### 🛡 Casbin Transactional Integrity
+Casbin operations must be wrapped in the `TransactionalEnforcer` when part of a GORM transaction. The enforcer MUST propagate the transaction handle via `.WithContext(ctx)` to ensure that policy changes are committed or rolled back atomically with other database operations.

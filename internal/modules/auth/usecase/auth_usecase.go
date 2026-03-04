@@ -4,23 +4,21 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
-	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
-	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
@@ -35,13 +33,13 @@ type Service struct {
 	jwtManager       *jwt.JWTManager
 	tokenRepo        repository.TokenRepository
 	userRepo         userRepository.UserRepository
+	orgRepo          orgRepo.OrganizationRepository
 	tm               tx.WithTransactionManager
 	log              *logrus.Logger
-	wsManager        ws.Manager
-	sseManager       *sse.Manager
-	Enforcer         permissionUseCase.IEnforcer
-	auditUC          auditUseCase.AuditUseCase
+	publisher        repository.NotificationPublisher
+	authz            repository.AuthzManager
 	taskDistributor  worker.TaskDistributor
+	ticketManager    ws.TicketManager
 	dummyHash        string
 }
 
@@ -51,13 +49,13 @@ func NewAuthUsecase(
 	jwtManager *jwt.JWTManager,
 	tokenRepo repository.TokenRepository,
 	userRepo userRepository.UserRepository,
+	orgRepo orgRepo.OrganizationRepository,
 	tm tx.WithTransactionManager,
 	log *logrus.Logger,
-	wsManager ws.Manager,
-	sseManager *sse.Manager,
-	enforcer permissionUseCase.IEnforcer,
-	auditUC auditUseCase.AuditUseCase,
+	publisher repository.NotificationPublisher,
+	authz repository.AuthzManager,
 	taskDistributor worker.TaskDistributor,
+	ticketManager ws.TicketManager,
 ) AuthUseCase {
 	s := &Service{
 		maxLoginAttempts: maxLoginAttempts,
@@ -65,13 +63,13 @@ func NewAuthUsecase(
 		jwtManager:       jwtManager,
 		tokenRepo:        tokenRepo,
 		userRepo:         userRepo,
+		orgRepo:          orgRepo,
 		tm:               tm,
 		log:              log,
-		wsManager:        wsManager,
-		sseManager:       sseManager,
-		Enforcer:         enforcer,
-		auditUC:          auditUC,
+		publisher:        publisher,
+		authz:            authz,
 		taskDistributor:  taskDistributor,
+		ticketManager:    ticketManager,
 	}
 
 	// Generate dummy hash for timing attack prevention
@@ -82,14 +80,101 @@ func NewAuthUsecase(
 	return s
 }
 
-func (s *Service) generateAndStoreTokenPair(ctx context.Context, user *entity.User, role, username string) (string, string, string, error) {
+func (s *Service) Register(ctx context.Context, request model.RegisterRequest) (*model.LoginResponse, string, error) {
+	// 1. Check if user exists
+	if existing, _ := s.userRepo.FindByUsername(ctx, request.Username); existing != nil {
+		return nil, "", fmt.Errorf("username already exists")
+	}
+	if existing, _ := s.userRepo.FindByEmail(ctx, request.Email); existing != nil {
+		return nil, "", fmt.Errorf("email already exists")
+	}
+
+	// 2. Hash Password
+	hashedPassword, err := pkg.HashPassword(request.Password)
+	if err != nil {
+		return nil, "", err
+	}
+
+	userID, _ := uuid.NewV7()
+	user := &entity.User{
+		ID:       userID.String(),
+		Username: request.Username,
+		Email:    request.Email,
+		Password: hashedPassword,
+		Name:     request.Name,
+		Status:   entity.UserStatusActive,
+	}
+
+	// 3. Transaction: Create User -> Create Default Workspace -> Add Member
+	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+		// Create User
+		if err := s.userRepo.Create(txCtx, user); err != nil {
+			return err
+		}
+
+		// Add Default Role (via AuthzManager)
+		if s.authz != nil {
+			if err := s.authz.AssignDefaultRole(txCtx, user.ID); err != nil {
+				return err
+			}
+		}
+
+		// Auto-Provisioning: Create Default Workspace
+		defaultOrgName := fmt.Sprintf("%s's Workspace", user.Name)
+		defaultOrg := &orgEntity.Organization{
+			ID:      uuid.New().String(),
+			Name:    defaultOrgName,
+			Slug:    pkg.Slugify(defaultOrgName + "-" + user.Username), // Simple slug generation
+			OwnerID: user.ID,
+			Status:  "active",
+		}
+
+		// Create Organization (Repo handles adding owner member)
+		if err := s.orgRepo.Create(txCtx, defaultOrg, "owner"); err != nil {
+			return err
+		}
+
+		// Audit Log (Async)
+		if s.taskDistributor != nil {
+			_ = s.taskDistributor.DistributeTaskAuditLog(txCtx, auditModel.CreateAuditLogRequest{
+				UserID:   user.ID,
+				Action:   "REGISTER",
+				Entity:   "User",
+				EntityID: user.ID,
+			})
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	telemetry.UserRegistrationsTotal.Inc()
+
+	// 4. Login (Generate Token)
+	return s.Login(ctx, model.LoginRequest{
+		Username:  request.Username,
+		Password:  request.Password,
+		IPAddress: request.IPAddress,
+		UserAgent: request.UserAgent,
+	})
+}
+
+func (s *Service) generateAndStoreTokenPair(ctx context.Context, userContext model.UserSessionContext) (string, string, string, error) {
 	uid, err := uuid.NewV7()
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to generate session id: %w", err)
 	}
 	sessionID := uid.String()
 
-	accessToken, refreshToken, err := s.jwtManager.GenerateTokenPair(user.ID, sessionID, role, username)
+	accessToken, refreshToken, err := s.jwtManager.GenerateTokenPair(jwt.UserContext{
+		UserID:    userContext.UserID,
+		SessionID: sessionID,
+		Role:      userContext.Role,
+		Username:  userContext.Username,
+		OrgID:     userContext.OrgID,
+	})
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to generate token pair: %w", err)
 	}
@@ -97,7 +182,7 @@ func (s *Service) generateAndStoreTokenPair(ctx context.Context, user *entity.Us
 	now := time.Now()
 	session := &model.Auth{
 		ID:           sessionID,
-		UserID:       user.ID,
+		UserID:       userContext.UserID,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		CreatedAt:    now,
@@ -146,9 +231,9 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 					s.log.WithContext(txCtx).WithError(lockErr).Error("Failed to lock account")
 				}
 
-				// Audit Log: ACCOUNT_LOCKED
-				if s.auditUC != nil {
-					_ = s.auditUC.LogActivity(txCtx, auditModel.CreateAuditLogRequest{
+				// Audit Log: ACCOUNT_LOCKED (Async)
+				if s.taskDistributor != nil {
+					_ = s.taskDistributor.DistributeTaskAuditLog(txCtx, auditModel.CreateAuditLogRequest{
 						UserID:    user.ID, // User ID is known since FindByUsername succeeded
 						Action:    "ACCOUNT_LOCKED",
 						Entity:    "User",
@@ -181,8 +266,8 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	}
 
 	var userRole string
-	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+	if s.authz != nil {
+		roles, err := s.authz.GetRolesForUser(ctx, user.ID, "")
 		if err != nil {
 			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during login")
 			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
@@ -192,54 +277,60 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		}
 	}
 
-	accessToken, refreshToken, sessionID, err := s.generateAndStoreTokenPair(ctx, user, userRole, user.Username)
+	accessToken, refreshToken, sessionID, err := s.generateAndStoreTokenPair(ctx, model.UserSessionContext{
+		UserID:   user.ID,
+		Role:     userRole,
+		Username: user.Username,
+	})
 	if err != nil {
 		return nil, "", err
 	}
 
-	// Audit Log: Login (Synchronous)
-	if s.auditUC != nil {
-		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+	// Audit Log: Login (Async)
+	if s.taskDistributor != nil {
+		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
 			UserID:    user.ID,
 			Action:    "LOGIN",
 			Entity:    "Auth",
 			EntityID:  sessionID,
 			IPAddress: request.IPAddress,
 			UserAgent: request.UserAgent,
-		}); err != nil {
-			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
-		}
+		})
 	}
 
-	notification := map[string]string{
-		"type":    "user_login",
-		"user_id": user.ID,
-		"message": fmt.Sprintf("User '%s' has just logged in.", user.Name),
-		"time":    time.Now().Format(time.RFC3339),
-	}
-	notificationJSON, _ := json.Marshal(notification)
-	if s.wsManager != nil {
-		s.wsManager.BroadcastToChannel("global_notifications", notificationJSON)
+	// Broadcast to organization channels via NotificationPublisher
+	orgs, err := s.orgRepo.FindUserOrganizations(ctx, user.ID)
+	if err != nil {
+		s.log.WithContext(ctx).Warnf("Failed to fetch user organizations for notification: %v", err)
 	}
 
-	if s.sseManager != nil {
-		s.sseManager.Broadcast("user_login", notification)
+	var orgIDs []string
+	for _, org := range orgs {
+		orgIDs = append(orgIDs, org.ID)
+	}
+
+	userInfo := model.UserInfo{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Username:  user.Username,
+		Role:      userRole,
+		AvatarURL: user.AvatarURL,
+	}
+
+	if s.publisher != nil {
+		s.publisher.PublishUserLoggedIn(ctx, userInfo, orgIDs)
 	}
 
 	accessTokenDuration := s.jwtManager.GetAccessTokenDuration()
 	telemetry.UserLoginsTotal.WithLabelValues("success").Inc()
 	loginResponse := &model.LoginResponse{
-		AccessToken: accessToken,
-		TokenType:   "Bearer",
-		ExpiresIn:   int64(accessTokenDuration.Seconds()),
-		ExpiresAt:   time.Now().Add(accessTokenDuration),
-		User: model.UserInfo{
-			ID:       user.ID,
-			Name:     user.Name,
-			Email:    user.Email,
-			Username: user.Username,
-			Role:     userRole,
-		},
+		AccessToken:  accessToken,
+		TokenType:    "Bearer",
+		ExpiresIn:    int64(accessTokenDuration.Seconds()),
+		RefreshToken: refreshToken,
+		ExpiresAt:    time.Now().Add(accessTokenDuration),
+		User:         userInfo,
 	}
 
 	return loginResponse, refreshToken, nil
@@ -262,8 +353,8 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 	}
 
 	var userRole string
-	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+	if s.authz != nil {
+		roles, err := s.authz.GetRolesForUser(ctx, user.ID, "")
 		if err != nil {
 			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during refresh token")
 			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
@@ -277,14 +368,19 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 		s.log.WithContext(ctx).WithError(err).Warn("Failed to revoke old session during refresh")
 	}
 
-	newAccessToken, newRefreshToken, _, err := s.generateAndStoreTokenPair(ctx, user, userRole, user.Username)
+	newAccessToken, newRefreshToken, _, err := s.generateAndStoreTokenPair(ctx, model.UserSessionContext{
+		UserID:   user.ID,
+		Role:     userRole,
+		Username: user.Username,
+	})
 	if err != nil {
 		return nil, "", err
 	}
 
 	tokenResponse := &model.TokenResponse{
-		AccessToken: newAccessToken,
-		TokenType:   "Bearer",
+		AccessToken:  newAccessToken,
+		TokenType:    "Bearer",
+		RefreshToken: newRefreshToken,
 	}
 
 	return tokenResponse, newRefreshToken, nil
@@ -332,16 +428,14 @@ func (s *Service) Verify(ctx context.Context, userID string, sessionID string) (
 func (s *Service) RevokeToken(ctx context.Context, userID, sessionID string) error {
 	s.log.WithContext(ctx).Infof("Revoking token for user %s with session %s", userID, sessionID)
 
-	// Audit Log: Logout (Revoke) (Synchronous)
-	if s.auditUC != nil {
-		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+	// Audit Log: Logout (Revoke) (Async)
+	if s.taskDistributor != nil {
+		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   userID,
 			Action:   "LOGOUT",
 			Entity:   "Auth",
 			EntityID: sessionID,
-		}); err != nil {
-			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
-		}
+		})
 	}
 
 	return s.tokenRepo.DeleteToken(ctx, userID, sessionID)
@@ -356,16 +450,14 @@ func (s *Service) GetUserSessions(ctx context.Context, userID string) ([]*model.
 func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
 	s.log.WithContext(ctx).Infof("Revoking all sessions for user %s", userID)
 
-	// Audit Log: Revoke All (Synchronous)
-	if s.auditUC != nil {
-		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+	// Audit Log: Revoke All (Async)
+	if s.taskDistributor != nil {
+		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   userID,
 			Action:   "REVOKE_ALL_SESSIONS",
 			Entity:   "Auth",
 			EntityID: userID,
-		}); err != nil {
-			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
-		}
+		})
 	}
 
 	return s.tokenRepo.RevokeAllSessions(ctx, userID)
@@ -373,8 +465,8 @@ func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
 
 func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
 	var userRole string
-	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+	if s.authz != nil {
+		roles, err := s.authz.GetRolesForUser(context.Background(), user.ID, "")
 		if err != nil {
 			s.log.WithContext(context.Background()).WithError(err).Error("Failed to get roles for user when generating access token")
 			return "", fmt.Errorf("failed to get user roles: %w", err)
@@ -388,14 +480,19 @@ func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	accessToken, _, err := s.jwtManager.GenerateTokenPair(user.ID, uid.String(), userRole, user.Username)
+	accessToken, _, err := s.jwtManager.GenerateTokenPair(jwt.UserContext{
+		UserID:    user.ID,
+		SessionID: uid.String(),
+		Role:      userRole,
+		Username:  user.Username,
+	})
 	return accessToken, err
 }
 
 func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
 	var userRole string
-	if s.Enforcer != nil {
-		roles, err := s.Enforcer.GetRolesForUser(user.ID)
+	if s.authz != nil {
+		roles, err := s.authz.GetRolesForUser(context.Background(), user.ID, "")
 		if err != nil {
 			s.log.WithContext(context.Background()).WithError(err).Error("Failed to get roles for user when generating refresh token")
 			return "", fmt.Errorf("failed to get user roles: %w", err)
@@ -409,24 +506,36 @@ func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, refreshToken, err := s.jwtManager.GenerateTokenPair(user.ID, uid.String(), userRole, user.Username)
+	_, refreshToken, err := s.jwtManager.GenerateTokenPair(jwt.UserContext{
+		UserID:    user.ID,
+		SessionID: uid.String(),
+		Role:      userRole,
+		Username:  user.Username,
+	})
 	return refreshToken, err
 }
 
 func (s *Service) ForgotPassword(ctx context.Context, email string) error {
-	user, err := s.userRepo.FindByEmail(ctx, email)
-	if err != nil {
-		// Security: Don't reveal if email exists
-		s.log.WithContext(ctx).Warnf("Forgot password attempt for non-existent email: %s", email)
-		return nil
-	}
-
-	// Generate 32-char hex token
+	// Generate 32-char hex token unconditionally to prevent timing leaks
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
 		return fmt.Errorf("failed to generate random token: %w", err)
 	}
 	token := hex.EncodeToString(b)
+
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		// Security: Don't reveal if email exists
+		s.log.WithContext(ctx).Warnf("Forgot password attempt for non-existent email: %s", email)
+
+		// Simulate DB/Network latency (20-50ms) to prevent user enumeration via timing attacks
+		// The success path involves a DB write and task enqueue which typically takes this amount of time.
+		// We use a simple modulo on UnixNano to get a pseudo-random duration without importing math/rand.
+		sleepDuration := time.Duration(20+(time.Now().UnixNano()%30)) * time.Millisecond
+		time.Sleep(sleepDuration)
+
+		return nil
+	}
 
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     email,
@@ -456,15 +565,13 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 		s.log.WithContext(ctx).Warnf("Email distributor not configured. Password reset token generated for %s but not logged for security.", email)
 	}
 
-	if s.auditUC != nil {
-		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+	if s.taskDistributor != nil {
+		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   user.ID,
 			Action:   "FORGOT_PASSWORD_REQUEST",
 			Entity:   "User",
 			EntityID: user.ID,
-		}); err != nil {
-			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
-		}
+		})
 	}
 
 	return nil
@@ -486,10 +593,19 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return ErrInvalidResetToken
 	}
 
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
 	user.Password = string(hashedPassword)
 
 	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+		// Enforce fail closed: Revoke sessions first.
+		if err := s.tokenRepo.RevokeAllSessions(txCtx, user.ID); err != nil {
+			s.log.WithContext(txCtx).WithError(err).Error("Failed to revoke sessions during password reset")
+			return err
+		}
+
 		if err := s.userRepo.Update(txCtx, user); err != nil {
 			return err
 		}
@@ -500,15 +616,13 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return err
 	}
 
-	if s.auditUC != nil {
-		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+	if s.taskDistributor != nil {
+		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   user.ID,
 			Action:   "PASSWORD_RESET_SUCCESS",
 			Entity:   "User",
 			EntityID: user.ID,
-		}); err != nil {
-			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
-		}
+		})
 	}
 
 	return nil
@@ -558,15 +672,13 @@ func (s *Service) RequestVerification(ctx context.Context, userID string) error 
 		s.log.WithContext(ctx).Warnf("Email distributor not configured. Email verification token generated for %s but not logged for security.", user.Email)
 	}
 
-	if s.auditUC != nil {
-		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+	if s.taskDistributor != nil {
+		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   user.ID,
 			Action:   "VERIFICATION_EMAIL_REQUESTED",
 			Entity:   "User",
 			EntityID: user.ID,
-		}); err != nil {
-			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
-		}
+		})
 	}
 
 	return nil
@@ -608,16 +720,29 @@ func (s *Service) VerifyEmail(ctx context.Context, token string) error {
 		return err
 	}
 
-	if s.auditUC != nil {
-		if err := s.auditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+	if s.taskDistributor != nil {
+		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   user.ID,
 			Action:   "EMAIL_VERIFIED",
 			Entity:   "User",
 			EntityID: user.ID,
-		}); err != nil {
-			s.log.WithContext(ctx).Warnf("Failed to log activity: %v", err)
-		}
+		})
 	}
 
 	return nil
+}
+
+func (s *Service) GetTicket(ctx context.Context, userContext model.UserSessionContext) (string, error) {
+	// 1. Check if user is active (Optional, but good practice since we are in UseCase now)
+	user, err := s.userRepo.FindByID(ctx, userContext.UserID)
+	if err != nil {
+		s.log.WithContext(ctx).WithError(err).Error("GetTicket failed: could not find user")
+		return "", fmt.Errorf("failed to find user: %w", err)
+	}
+	if user.Status != entity.UserStatusActive {
+		return "", ErrAccountSuspended
+	}
+
+	// 2. Delegate to TicketManager
+	return s.ticketManager.CreateTicket(ctx, userContext.UserID, userContext.OrgID, userContext.SessionID, userContext.Role, userContext.Username)
 }

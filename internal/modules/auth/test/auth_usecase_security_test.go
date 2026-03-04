@@ -11,12 +11,12 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
-	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	mock_auth "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
-	mock_permission "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
+	mock_org "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	mock_user "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
@@ -35,12 +35,13 @@ type securityTestDeps struct {
 	jwtManager      *jwt.JWTManager
 	tokenRepo       *mock_auth.MockTokenRepository
 	userRepo        *mock_user.MockUserRepository
+	orgRepo         *mock_org.MockOrganizationRepository
 	tm              *mocking.MockWithTransactionManager
-	wsManager       *mocking.MockManager
-	enforcer        *mock_permission.IEnforcer
+	publisher       *mock_auth.MockNotificationPublisher
+	authz           *mock_auth.MockAuthzManager
 	log             *logrus.Logger
-	auditUC         *auditMocks.MockAuditUseCase
 	taskDistributor *mocking.MockTaskDistributor
+	ticketManager   *mock_auth.MockTicketManager
 }
 
 func setupSecurityTest(t *testing.T) (usecase.AuthUseCase, *securityTestDeps) {
@@ -50,12 +51,13 @@ func setupSecurityTest(t *testing.T) (usecase.AuthUseCase, *securityTestDeps) {
 		jwtManager:      jwtManager,
 		tokenRepo:       new(mock_auth.MockTokenRepository),
 		userRepo:        new(mock_user.MockUserRepository),
+		orgRepo:         new(mock_org.MockOrganizationRepository),
 		tm:              new(mocking.MockWithTransactionManager),
-		wsManager:       new(mocking.MockManager),
-		enforcer:        new(mock_permission.IEnforcer),
+		publisher:       new(mock_auth.MockNotificationPublisher),
+		authz:           new(mock_auth.MockAuthzManager),
 		log:             logrus.New(),
-		auditUC:         new(auditMocks.MockAuditUseCase),
 		taskDistributor: new(mocking.MockTaskDistributor),
+		ticketManager:   new(mock_auth.MockTicketManager),
 	}
 
 	deps.log.SetOutput(io.Discard)
@@ -66,13 +68,13 @@ func setupSecurityTest(t *testing.T) (usecase.AuthUseCase, *securityTestDeps) {
 		deps.jwtManager,
 		deps.tokenRepo,
 		deps.userRepo,
+		deps.orgRepo,
 		deps.tm,
 		deps.log,
-		deps.wsManager,
-		nil, // sseManager
-		deps.enforcer,
-		deps.auditUC,
+		deps.publisher,
+		deps.authz,
 		deps.taskDistributor,
+		deps.ticketManager,
 	)
 
 	return authService, deps
@@ -173,9 +175,9 @@ func TestLogin_Concurrent_AccountLockAtThreshold(t *testing.T) {
 			atomic.AddInt32(&lockCalled, 1)
 		}).Return(nil).Once()
 
-	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.Action == "ACCOUNT_LOCKED"
-	})).Return(nil).Once()
+	}), mock.Anything).Return(nil).Once()
 
 	loginReq := model.LoginRequest{
 		Username: user.Username,
@@ -198,7 +200,7 @@ func TestRefreshToken_SessionCleanupFailure(t *testing.T) {
 	sessionID := "session-to-refresh"
 
 	// Generate a valid refresh token
-	refreshToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "test-refresh-secret", 24*time.Hour)
+	refreshToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "", "test-refresh-secret", 24*time.Hour)
 	assert.NoError(t, err)
 
 	// Mock session valid (for ValidateRefreshToken -> validateSession)
@@ -213,14 +215,14 @@ func TestRefreshToken_SessionCleanupFailure(t *testing.T) {
 	// Mock user lookup
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
 
-	// Mock enforcer
-	deps.enforcer.On("GetRolesForUser", user.ID).Return([]string{"role:user"}, nil)
+	// Mock authz
+	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{"role:user"}, nil)
 
 	// Mock RevokeToken internal calls:
-	// 1. AuditUC.LogActivity (LOGOUT action)
-	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+	// 1. taskDistributor.DistributeTaskAuditLog (LOGOUT action)
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.Action == "LOGOUT" && req.Entity == "Auth"
-	})).Return(nil)
+	}), mock.Anything).Return(nil)
 
 	// 2. FORCE ERROR: Old session deletion fails
 	deps.tokenRepo.On("DeleteToken", mock.Anything, user.ID, sessionID).Return(errors.New("redis connection lost"))
@@ -243,7 +245,7 @@ func TestRefreshToken_ExpiredButOrphanedSession(t *testing.T) {
 	sessionID := "orphaned-session"
 
 	// Generate an EXPIRED refresh token
-	expiredToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "test-refresh-secret", -1*time.Hour)
+	expiredToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "", "test-refresh-secret", -1*time.Hour)
 	assert.NoError(t, err)
 
 	// No need to mock anything else - JWT validation should fail first
@@ -263,7 +265,7 @@ func TestValidateAccessToken_ReplayAttack_SameTokenAfterRefresh(t *testing.T) {
 	sessionID := "session-1"
 
 	// Generate old access token
-	oldAccessToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "test-access-secret", 15*time.Minute)
+	oldAccessToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "", "test-access-secret", 15*time.Minute)
 	assert.NoError(t, err)
 
 	// After refresh, stored token is NEW, but attacker uses OLD token
@@ -289,7 +291,7 @@ func TestValidateRefreshToken_ReplayAttack_SameTokenAfterRefresh(t *testing.T) {
 	sessionID := "session-1"
 
 	// Generate old refresh token
-	oldRefreshToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "test-refresh-secret", 24*time.Hour)
+	oldRefreshToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "", "test-refresh-secret", 24*time.Hour)
 	assert.NoError(t, err)
 
 	// After refresh, stored token is NEW
@@ -345,10 +347,10 @@ func TestVerifyEmail_TokenReplay_SameTokenTwice(t *testing.T) {
 	// Mock: Delete verification token by email
 	deps.tokenRepo.On("DeleteVerificationTokenByEmail", mock.Anything, user.Email).Return(nil).Once()
 
-	// Mock: Audit log
-	deps.auditUC.On("LogActivity", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+	// Mock: Audit log (Async)
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.Action == "EMAIL_VERIFIED" && req.Entity == "User"
-	})).Return(nil).Once()
+	}), mock.Anything).Return(nil).Once()
 
 	// First call should succeed
 	err := authService.VerifyEmail(context.Background(), verificationToken)
@@ -373,7 +375,7 @@ func TestValidateAccessToken_Concurrent_MultipleGoroutines(t *testing.T) {
 	numConcurrent := 20
 
 	// Generate valid access token
-	accessToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "test-access-secret", 15*time.Minute)
+	accessToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "", "test-access-secret", 15*time.Minute)
 	assert.NoError(t, err)
 
 	// Mock valid session
@@ -420,13 +422,15 @@ func TestLogin_NilEnforcer(t *testing.T) {
 
 	tokenRepo := new(mock_auth.MockTokenRepository)
 	userRepo := new(mock_user.MockUserRepository)
+	orgRepo := new(mock_org.MockOrganizationRepository)
 	tm := new(mocking.MockWithTransactionManager)
-	wsManager := new(mocking.MockManager)
-	auditUC := new(auditMocks.MockAuditUseCase)
 	taskDistributor := new(mocking.MockTaskDistributor)
 
 	log := logrus.New()
 	log.SetOutput(io.Discard)
+
+	mockPublisher := new(mock_auth.MockNotificationPublisher)
+	mockPublisher.On("PublishUserLoggedIn", mock.Anything, mock.Anything, mock.Anything).Return()
 
 	authService := usecase.NewAuthUsecase(
 		5,
@@ -434,13 +438,13 @@ func TestLogin_NilEnforcer(t *testing.T) {
 		jwtManager,
 		tokenRepo,
 		userRepo,
+		orgRepo,
 		tm,
 		log,
-		wsManager,
-		nil, // sseManager
-		nil, // NIL ENFORCER
-		auditUC,
+		mockPublisher,
+		nil, // NIL AUTHZ
 		taskDistributor,
+		new(mock_auth.MockTicketManager),
 	)
 
 	user, password := createSecurityTestUser("password123")
@@ -456,12 +460,11 @@ func TestLogin_NilEnforcer(t *testing.T) {
 
 	userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
 	tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
-	auditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+	orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
+	taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
-
 	assert.NoError(t, err)
 	assert.NotNil(t, loginResp)
 	assert.NotEmpty(t, refreshToken)
@@ -475,13 +478,15 @@ func TestLogin_NilAuditUC(t *testing.T) {
 
 	tokenRepo := new(mock_auth.MockTokenRepository)
 	userRepo := new(mock_user.MockUserRepository)
+	orgRepo := new(mock_org.MockOrganizationRepository)
 	tm := new(mocking.MockWithTransactionManager)
-	wsManager := new(mocking.MockManager)
-	enforcer := new(mock_permission.IEnforcer)
-	taskDistributor := new(mocking.MockTaskDistributor)
+	authz := new(mock_auth.MockAuthzManager)
 
 	log := logrus.New()
 	log.SetOutput(io.Discard)
+
+	mockPublisher := new(mock_auth.MockNotificationPublisher)
+	mockPublisher.On("PublishUserLoggedIn", mock.Anything, mock.Anything, mock.Anything).Return()
 
 	authService := usecase.NewAuthUsecase(
 		5,
@@ -489,13 +494,13 @@ func TestLogin_NilAuditUC(t *testing.T) {
 		jwtManager,
 		tokenRepo,
 		userRepo,
+		orgRepo,
 		tm,
 		log,
-		wsManager,
-		nil,
-		enforcer,
-		nil, // NIL AUDIT UC
-		taskDistributor,
+		mockPublisher,
+		authz,
+		nil, // NIL TASK DISTRIBUTOR
+		new(mock_auth.MockTicketManager),
 	)
 
 	user, password := createSecurityTestUser("password123")
@@ -510,9 +515,9 @@ func TestLogin_NilAuditUC(t *testing.T) {
 		}).Return(nil)
 
 	userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	enforcer.On("GetRolesForUser", user.ID).Return([]string{"role:user"}, nil)
+	authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{"role:user"}, nil)
 	tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	wsManager.On("BroadcastToChannel", "global_notifications", mock.Anything).Return()
+	orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
 	loginReq := model.LoginRequest{Username: user.Username, Password: password}
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)

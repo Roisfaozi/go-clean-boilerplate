@@ -29,8 +29,8 @@ func TestSearchAuditE2E_DynamicSearchAndAudit(t *testing.T) {
 		u.Email = "audit@admin.com"
 		u.Password = passHash
 	})
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
 	server.Enforcer.SavePolicy()
 
 	loginPayload := map[string]any{"username": admin.Username, "password": "StrongPass123!"}
@@ -69,7 +69,9 @@ func TestSearchAuditE2E_DynamicSearchAndAudit(t *testing.T) {
 	resp = client.PUT("/api/v1/users/me", updatePayload, setup.WithAuth(targetToken))
 	require.Equal(t, 200, resp.StatusCode)
 
-	time.Sleep(2 * time.Second)
+	// Wait for audit log async processing (Outbox -> Worker -> Log)
+	// Outbox worker runs every 5s, we wait 10s to be safe
+	time.Sleep(10 * time.Second)
 
 	searchPayload := map[string]any{
 		"filter": map[string]any{
@@ -121,8 +123,8 @@ func TestSearchAuditE2E_UserDynamicSearch(t *testing.T) {
 		u.Email = "search@admin.com"
 		u.Password = passHash
 	})
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
 	server.Enforcer.SavePolicy()
 
 	resp := client.POST("/api/v1/auth/login", map[string]any{"username": admin.Username, "password": "StrongPass123!"})

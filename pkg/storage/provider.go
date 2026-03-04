@@ -14,5 +14,5 @@ type Provider interface {
 	DeleteFile(ctx context.Context, filename string) error
 
 	// GetFileUrl returns the accessible URL for the file
-	GetFileUrl(filename string) (string, error)
+	GetFileUrl(ctx context.Context, filename string) (string, error)
 }

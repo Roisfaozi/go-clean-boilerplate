@@ -17,6 +17,10 @@ type CasbinEnforcer interface {
 // CasbinMiddleware creates a middleware for role-based authorization using Casbin.
 // This middleware must be placed AFTER the JWT AuthMiddleware.
 func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFunc {
+	if enforcer == nil && gin.Mode() == gin.ReleaseMode {
+		log.Error("CRITICAL SECURITY WARNING: Casbin enforcer is nil in release mode. Authorization will be bypassed for all routes protected by this middleware!")
+	}
+
 	return func(c *gin.Context) {
 		if enforcer == nil {
 			c.Next()
@@ -34,7 +38,15 @@ func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFu
 		obj := c.Request.URL.Path
 		act := c.Request.Method
 
-		ok, err := enforcer.Enforce(userID.(string), obj, act)
+		// Get organization ID for multi-tenancy (domain in Casbin)
+		dom := "global"
+		if orgID, exists := c.Get("organization_id"); exists {
+			if idStr, ok := orgID.(string); ok && idStr != "" {
+				dom = idStr
+			}
+		}
+
+		ok, err := enforcer.Enforce(userID.(string), dom, obj, act)
 		if err != nil {
 			log.WithError(err).Error("Casbin enforce error")
 			response.InternalServerError(c, errors.New("authorization error"), "internal server error")
@@ -43,7 +55,7 @@ func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFu
 		}
 
 		if !ok {
-			log.Warnf("Casbin authorization failed for subject '%s' on %s %s", userID, act, obj)
+			log.Warnf("Casbin authorization failed for subject '%s' in domain '%s' on %s %s", userID, dom, act, obj)
 			response.Forbidden(c, errors.New("you don't have permission to access this resource"), "forbidden")
 			c.Abort()
 			return

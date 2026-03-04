@@ -5,7 +5,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
-	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 )
 
 type MockAuditRepository struct {
@@ -29,5 +29,25 @@ func (_m *MockAuditRepository) DeleteLogsOlderThan(ctx context.Context, cutoffTi
 
 func (_m *MockAuditRepository) FindAllInBatches(ctx context.Context, startTime, endTime int64, batchSize int, process func([]*entity.AuditLog) error) error {
 	ret := _m.Called(ctx, startTime, endTime, batchSize, process)
+	return ret.Error(0)
+}
+
+func (_m *MockAuditRepository) CreateOutbox(ctx context.Context, outbox *entity.AuditOutbox) error {
+	ret := _m.Called(ctx, outbox)
+	return ret.Error(0)
+}
+
+func (_m *MockAuditRepository) FindPendingOutbox(ctx context.Context, limit int) ([]*entity.AuditOutbox, error) {
+	ret := _m.Called(ctx, limit)
+	return ret.Get(0).([]*entity.AuditOutbox), ret.Error(1)
+}
+
+func (_m *MockAuditRepository) UpdateOutboxStatus(ctx context.Context, id string, status string, lastError string) error {
+	ret := _m.Called(ctx, id, status, lastError)
+	return ret.Error(0)
+}
+
+func (_m *MockAuditRepository) DeleteOutbox(ctx context.Context, id string) error {
+	ret := _m.Called(ctx, id)
 	return ret.Error(0)
 }

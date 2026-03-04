@@ -1,9 +1,11 @@
 package ws
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -53,6 +55,48 @@ func (m *MockManager) Run() {
 	m.Called()
 }
 
+func (m *MockManager) PresenceUpdate(orgID string, event string, userData *PresenceUser) {
+	m.Called(orgID, event, userData)
+}
+
+func (m *MockManager) GetPresenceManager() PresenceManager {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(PresenceManager)
+}
+
+// MockPresenceManager is a mock implementation of the PresenceManager interface
+type MockPresenceManager struct {
+	mock.Mock
+}
+
+func (m *MockPresenceManager) SetUserOnline(ctx context.Context, orgID, userID string, userData *PresenceUser) error {
+	args := m.Called(ctx, orgID, userID, userData)
+	return args.Error(0)
+}
+
+func (m *MockPresenceManager) SetUserOffline(ctx context.Context, orgID, userID string) error {
+	args := m.Called(ctx, orgID, userID)
+	return args.Error(0)
+}
+
+func (m *MockPresenceManager) GetOnlineUsers(ctx context.Context, orgID string) ([]PresenceUser, error) {
+	args := m.Called(ctx, orgID)
+	return args.Get(0).([]PresenceUser), args.Error(1)
+}
+
+func (m *MockPresenceManager) RefreshUserHeartbeat(ctx context.Context, orgID, userID string) error {
+	args := m.Called(ctx, orgID, userID)
+	return args.Error(0)
+}
+
+func (m *MockPresenceManager) PruneStaleUsers(ctx context.Context, timeout time.Duration) (map[string][]string, error) {
+	args := m.Called(ctx, timeout)
+	return args.Get(0).(map[string][]string), args.Error(1)
+}
+
 // TestNewWebSocketController_CheckOrigin is a placeholder for the logic test, but verification is done in TestWebSocketOrigin
 
 // Simplified test checking the logic by making `upgrader` public or adding a getter?
@@ -96,7 +140,7 @@ func TestWebSocketOrigin(t *testing.T) {
 			manager.On("RegisterClient", mock.Anything).Return().Maybe()
 			manager.On("UnregisterClient", mock.Anything).Return().Maybe()
 
-			ctrl := NewWebSocketController(log, manager, tt.allowedOrigins)
+			ctrl := NewWebSocketController(log, manager, tt.allowedOrigins, nil, nil)
 
 			// Start a test server
 			r := http.NewServeMux()

@@ -32,8 +32,10 @@ func TestPermissionE2E_RoleHierarchy(t *testing.T) {
 		u.Password = passHash
 	})
 
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
+	// Add grouping policy (user, role, domain)
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	// Add policy (sub, dom, obj, act)
+	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
 	server.Enforcer.SavePolicy()
 
 	loginPayload := map[string]any{"username": admin.Username, "password": "StrongPass123!"}
@@ -110,8 +112,8 @@ func TestPermissionE2E_BatchCheck(t *testing.T) {
 	passHash := string(hash)
 
 	admin := f.Create(func(u *userEntity.User) { u.Username = "batch_admin"; u.Password = passHash })
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
 	server.Enforcer.SavePolicy()
 
 	resp := client.POST("/api/v1/auth/login", map[string]any{"username": admin.Username, "password": "StrongPass123!"})
@@ -140,7 +142,7 @@ func TestPermissionE2E_BatchCheck(t *testing.T) {
 	resp.JSON(&userRes)
 	userToken := userRes.Data.AccessToken
 
-	roles, _ := server.Enforcer.GetRolesForUser(user.ID)
+	roles, _ := server.Enforcer.GetRolesForUser(user.ID, "global")
 	t.Logf("DEBUG: Roles for user %s: %v", user.ID, roles)
 
 	req := model.BatchPermissionCheckRequest{
@@ -182,8 +184,8 @@ func TestPermissionE2E_RevokeRole(t *testing.T) {
 		u.Password = passHash
 	})
 
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
 	server.Enforcer.SavePolicy()
 
 	resp := client.POST("/api/v1/auth/login", map[string]any{"username": admin.Username, "password": "StrongPass123!"})
@@ -208,7 +210,7 @@ func TestPermissionE2E_RevokeRole(t *testing.T) {
 	require.Equal(t, 200, resp.StatusCode)
 
 	// Verify role assigned
-	roles, _ := server.Enforcer.GetRolesForUser(user.ID)
+	roles, _ := server.Enforcer.GetRolesForUser(user.ID, "global")
 	assert.Contains(t, roles, "RevokeTestRole")
 
 	t.Run("Success - Revoke Role", func(t *testing.T) {
@@ -219,7 +221,7 @@ func TestPermissionE2E_RevokeRole(t *testing.T) {
 		assert.Equal(t, 200, resp.StatusCode)
 
 		// Verify role revoked
-		rolesAfter, _ := server.Enforcer.GetRolesForUser(user.ID)
+		rolesAfter, _ := server.Enforcer.GetRolesForUser(user.ID, "global")
 		assert.NotContains(t, rolesAfter, "RevokeTestRole")
 	})
 }
@@ -239,8 +241,8 @@ func TestPermissionE2E_RemoveInheritance(t *testing.T) {
 		u.Password = passHash
 	})
 
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin")
-	server.Enforcer.AddPolicy("role:superadmin", "*", "*")
+	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
 	server.Enforcer.SavePolicy()
 
 	resp := client.POST("/api/v1/auth/login", map[string]any{"username": admin.Username, "password": "StrongPass123!"})
@@ -270,7 +272,7 @@ func TestPermissionE2E_RemoveInheritance(t *testing.T) {
 	require.Equal(t, 200, resp.StatusCode)
 
 	// Verify inheritance
-	ok, _ := server.Enforcer.Enforce("ParentRole", "/api/v1/inherited", "GET")
+	ok, _ := server.Enforcer.Enforce("ParentRole", "global", "/api/v1/inherited", "GET")
 	assert.True(t, ok, "Parent should have access via inheritance")
 
 	t.Run("Success - Remove Inheritance", func(t *testing.T) {
@@ -281,7 +283,7 @@ func TestPermissionE2E_RemoveInheritance(t *testing.T) {
 		assert.Equal(t, 200, resp.StatusCode)
 
 		// Verify inheritance removed
-		ok, _ := server.Enforcer.Enforce("ParentRole", "/api/v1/inherited", "GET")
+		ok, _ := server.Enforcer.Enforce("ParentRole", "global", "/api/v1/inherited", "GET")
 		assert.False(t, ok, "Parent should NOT have access after inheritance removed")
 	})
 }

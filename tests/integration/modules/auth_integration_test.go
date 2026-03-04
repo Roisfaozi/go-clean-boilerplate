@@ -9,17 +9,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	auditRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository"
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	authRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/hibiken/asynq"
@@ -33,20 +36,34 @@ func setupAuthIntegration(env *setup.TestEnvironment) (usecase.AuthUseCase, *jwt
 }
 
 func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWTManager) usecase.AuthUseCase {
-	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger)
+	_ = auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
 
 	wsConfig := &ws.WebSocketConfig{}
-	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis)
+	presenceManager := ws.NewPresenceManager(env.Redis, env.Logger, 5*time.Minute)
+	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis, presenceManager)
 	sseManager := sse.NewManager()
+
+	env.AddCloser(func() {
+		sseManager.Stop()
+		wsManager.Stop()
+	})
 
 	taskDistributor := worker.NewRedisTaskDistributor(asynq.RedisClientOpt{Addr: env.RedisAddr})
 
 	enforcer := env.Enforcer
 	logger := env.Logger
+
+	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
+
+	ticketManager := ws.NewRedisTicketManager(env.Redis, 30*time.Second)
+
+	// Adapters for IoC
+	publisher := delivery.NewEventPublisher(wsManager, sseManager, env.Logger)
+	authz := authRepository.NewCasbinAdapter(enforcer, "role:user", "global")
 
 	return usecase.NewAuthUsecase(
 		5,              // MaxLoginAttempts
@@ -54,25 +71,24 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 		jwtManager,
 		tokenRepo,
 		userRepo,
+		orgRepo,
 		tm,
 		logger,
-		wsManager,
-		sseManager,
-		enforcer,
-		auditUC,
+		publisher,
+		authz,
 		taskDistributor,
+		ticketManager,
 	)
 }
 
 func TestAuthIntegration_Login(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	authUC, _ := setupAuthIntegration(env)
 	password := "SecurePass123!"
 	testUser := setup.CreateTestUser(t, env.DB, "authuser", "auth@example.com", password)
-	_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+	_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
 
 	t.Run("Success with Valid Credentials", func(t *testing.T) {
 		loginReq := model.LoginRequest{Username: "authuser", Password: password, IPAddress: "127.0.0.1", UserAgent: "Mozilla/5.0"}
@@ -158,12 +174,11 @@ func TestAuthIntegration_Login(t *testing.T) {
 func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	authUC, jwtManager := setupAuthIntegration(env)
 	password := "password123"
 	testUser := setup.CreateTestUser(t, env.DB, "tokenuser", "token@example.com", password)
-	_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+	_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
 
 	_, refreshToken, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "tokenuser", Password: password})
 
@@ -194,7 +209,12 @@ func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 
 	t.Run("Fail Refresh with Expired Token", func(t *testing.T) {
 		shortJWT := jwt.NewJWTManager("secret", "refresh", time.Minute, 1*time.Millisecond)
-		expToken, _, _ := shortJWT.GenerateTokenPair(testUser.ID, "sid", "role:user", "tokenuser")
+		expToken, _, _ := shortJWT.GenerateTokenPair(jwt.UserContext{
+			UserID:    testUser.ID,
+			SessionID: "sid",
+			Role:      "role:user",
+			Username:  "tokenuser",
+		})
 		time.Sleep(10 * time.Millisecond)
 
 		customUC := setupAuthIntegrationWithJWT(env, shortJWT)
@@ -218,7 +238,6 @@ func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 func TestAuthIntegration_PasswordRecovery(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	authUC, _ := setupAuthIntegration(env)
 
@@ -258,7 +277,6 @@ func TestAuthIntegration_PasswordRecovery(t *testing.T) {
 func TestAuthIntegration_Security(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	authUC, _ := setupAuthIntegration(env)
 
@@ -280,7 +298,7 @@ func TestAuthIntegration_Security(t *testing.T) {
 
 	t.Run("Token Rotation Reuse Protection", func(t *testing.T) {
 		testUser := setup.CreateTestUser(t, env.DB, "reuse", "reuse@example.com", "pass")
-		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
 		_, rt1, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "reuse", Password: "pass"})
 
 		_, rt2, _ := authUC.RefreshToken(context.Background(), rt1)
@@ -294,7 +312,7 @@ func TestAuthIntegration_Security(t *testing.T) {
 
 	t.Run("Session Hijacking Prevention (Device Differentiation)", func(t *testing.T) {
 		testUser := setup.CreateTestUser(t, env.DB, "hijack", "hijack@example.com", "pass")
-		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
 
 		r1, _, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "hijack", Password: "pass", UserAgent: "D1"})
 		r2, _, _ := authUC.Login(context.Background(), model.LoginRequest{Username: "hijack", Password: "pass", UserAgent: "D2"})
@@ -303,7 +321,7 @@ func TestAuthIntegration_Security(t *testing.T) {
 
 	t.Run("XSS in UserAgent Handling", func(t *testing.T) {
 		testUser := setup.CreateTestUser(t, env.DB, "xss", "xss@example.com", "pass")
-		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user")
+		_, _ = env.Enforcer.AddGroupingPolicy(testUser.ID, "role:user", "global")
 		_, _, err := authUC.Login(context.Background(), model.LoginRequest{Username: "xss", Password: "pass", UserAgent: "<script>alert(1)</script>"})
 		assert.NoError(t, err)
 	})

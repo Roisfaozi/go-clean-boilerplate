@@ -14,11 +14,13 @@ import (
 	auditUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	authUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	userUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -34,11 +36,13 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 
 	realAuditRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
-	realAuditUC := auditUC.NewAuditUseCase(realAuditRepo, env.Logger)
+	realAuditUC := auditUC.NewAuditUseCase(realAuditRepo, env.Logger, nil)
 
-	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB)
+	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, tm, env.Logger, nil, nil, env.Enforcer, realAuditUC, nil)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB)
+	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil)
 
 	setupService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, realAuditUC, authService, nil)
 	regReq := &userModel.RegisterUserRequest{
@@ -47,11 +51,15 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	userResp, err := setupService.Create(context.Background(), regReq)
 	require.NoError(t, err)
 
+	// Sync enforcer after transactional changes
+	err = env.Enforcer.LoadPolicy()
+	require.NoError(t, err)
+
 	user, err := uRepo.FindByID(context.Background(), userResp.ID)
 	require.NoError(t, err)
 	require.NotNil(t, user)
 
-	roles, err := env.Enforcer.GetRolesForUser(user.ID)
+	roles, err := env.Enforcer.GetRolesForUser(user.ID, "global")
 	require.NoError(t, err)
 	require.Contains(t, roles, "role:user")
 
@@ -66,12 +74,16 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "internal server error")
 
+	// Sync enforcer after rollback (though it should remain same, LoadPolicy ensures we see the actual state)
+	err = env.Enforcer.LoadPolicy()
+	require.NoError(t, err)
+
 	userAfter, err := uRepo.FindByID(context.Background(), user.ID)
 	assert.NoError(t, err)
 	assert.NotNil(t, userAfter)
 	assert.Equal(t, user.ID, userAfter.ID)
 
-	rolesAfter, err := env.Enforcer.GetRolesForUser(user.ID)
+	rolesAfter, err := env.Enforcer.GetRolesForUser(user.ID, "global")
 	assert.NoError(t, err)
 
 	assert.Contains(t, rolesAfter, "role:user", "Roles should be restored/preserved on rollback")

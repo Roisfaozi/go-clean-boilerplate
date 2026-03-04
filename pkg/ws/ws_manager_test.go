@@ -1,6 +1,7 @@
 package ws_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -25,6 +26,24 @@ func (w *NoOpWriter) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
+type NoOpPresenceManager struct{}
+
+func (m *NoOpPresenceManager) SetUserOnline(ctx context.Context, orgID, userID string, userData *ws.PresenceUser) error {
+	return nil
+}
+func (m *NoOpPresenceManager) SetUserOffline(ctx context.Context, orgID, userID string) error {
+	return nil
+}
+func (m *NoOpPresenceManager) GetOnlineUsers(ctx context.Context, orgID string) ([]ws.PresenceUser, error) {
+	return []ws.PresenceUser{}, nil
+}
+func (m *NoOpPresenceManager) RefreshUserHeartbeat(ctx context.Context, orgID, userID string) error {
+	return nil
+}
+func (m *NoOpPresenceManager) PruneStaleUsers(ctx context.Context, timeout time.Duration) (map[string][]string, error) {
+	return nil, nil
+}
+
 func setupTestServer() (*ws.WebSocketManager, *httptest.Server) {
 	config := &ws.WebSocketConfig{
 		WriteWait:      10 * time.Second,
@@ -35,7 +54,8 @@ func setupTestServer() (*ws.WebSocketManager, *httptest.Server) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 	// For unit tests, we don't need Redis scaling, so pass nil
-	manager := ws.NewWebSocketManager(config, logger, nil)
+	presence := &NoOpPresenceManager{}
+	manager := ws.NewWebSocketManager(config, logger, nil, presence)
 	go manager.Run()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +66,7 @@ func setupTestServer() (*ws.WebSocketManager, *httptest.Server) {
 		if err != nil {
 			return
 		}
-		client := ws.NewWebsocketClient(conn, manager, logger, config)
+		client := ws.NewWebsocketClient(conn, manager, logger, config, "u1", "org1", nil)
 		manager.RegisterClient(client)
 		go client.WritePump()
 		go client.ReadPump()

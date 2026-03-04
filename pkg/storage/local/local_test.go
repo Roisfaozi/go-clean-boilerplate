@@ -99,11 +99,11 @@ func TestDeleteFile(t *testing.T) {
 func TestGetFileUrl(t *testing.T) {
 	ls := &local.LocalStorage{BaseURL: "http://localhost"}
 
-	url, err := ls.GetFileUrl("test.png")
+	url, err := ls.GetFileUrl(context.Background(), "test.png")
 	assert.NoError(t, err)
 	assert.Equal(t, "http://localhost/test.png", url)
 
-	url, err = ls.GetFileUrl("../test.png")
+	url, err = ls.GetFileUrl(context.Background(), "../test.png")
 	assert.NoError(t, err)
 	assert.Equal(t, "http://localhost/test.png", url)
 }

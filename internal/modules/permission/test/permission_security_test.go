@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	accessMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks"
+	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
@@ -25,19 +27,24 @@ import (
 // ============================================================================
 
 type securityPermDeps struct {
-	UserRepo *userMocks.MockUserRepository
-	RoleRepo *roleMocks.MockRoleRepository
-	Enforcer *mocks.IEnforcer
+	UserRepo   *userMocks.MockUserRepository
+	RoleRepo   *roleMocks.MockRoleRepository
+	Enforcer   *mocks.MockIEnforcer
+	AccessRepo *accessMocks.MockAccessRepository
 }
 
 func setupSecurityPermissionTest() (*securityPermDeps, usecase.IPermissionUseCase) {
 	deps := &securityPermDeps{
-		UserRepo: new(userMocks.MockUserRepository),
-		RoleRepo: new(roleMocks.MockRoleRepository),
-		Enforcer: new(mocks.IEnforcer),
+		UserRepo:   new(userMocks.MockUserRepository),
+		RoleRepo:   new(roleMocks.MockRoleRepository),
+		Enforcer:   new(mocks.MockIEnforcer),
+		AccessRepo: new(accessMocks.MockAccessRepository),
 	}
 
-	uc := usecase.NewPermissionUseCase(deps.Enforcer, logrus.New(), deps.RoleRepo, deps.UserRepo)
+	// Default behavior for enforcer with context to return itself
+	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
+
+	uc := usecase.NewPermissionUseCase(deps.Enforcer, logrus.New(), deps.RoleRepo, deps.UserRepo, deps.AccessRepo, new(auditMocks.MockAuditUseCase))
 	return deps, uc
 }
 
@@ -59,14 +66,14 @@ func TestCircularRoleInheritance_DirectCycle(t *testing.T) {
 	deps.RoleRepo.On("FindByName", mock.Anything, "admin").Return(roleA, nil)
 
 	// AddGroupingPolicy is called with raw role names, not prefixed
-	deps.Enforcer.On("AddGroupingPolicy", "editor", "admin").Return(true, nil)
+	deps.Enforcer.On("AddGroupingPolicy", "editor", "admin", "global").Return(true, nil)
 
 	// The test here demonstrates the NEED for circular detection
 	// In production, before calling AddGroupingPolicy, we should check for cycles
 
 	// This is a design test - checking that the function doesn't crash
 	// In a proper implementation, this should return an error for circular inheritance
-	err := uc.AddParentRole(context.Background(), "editor", "admin")
+	err := uc.AddParentRole(context.Background(), "editor", "admin", "global")
 
 	// Current implementation allows this - documenting need for cycle detection
 	assert.NoError(t, err)
@@ -88,10 +95,10 @@ func TestCircularRoleInheritance_IndirectCycle(t *testing.T) {
 	deps.RoleRepo.On("FindByName", mock.Anything, "moderator").Return(roleC, nil)
 
 	// AddGroupingPolicy is called with raw role names, not prefixed
-	deps.Enforcer.On("AddGroupingPolicy", "superadmin", "moderator").Return(true, nil)
+	deps.Enforcer.On("AddGroupingPolicy", "superadmin", "moderator", "global").Return(true, nil)
 
 	// Document the need for cycle detection
-	err := uc.AddParentRole(context.Background(), "superadmin", "moderator")
+	err := uc.AddParentRole(context.Background(), "superadmin", "moderator", "global")
 	assert.NoError(t, err)
 
 	deps.RoleRepo.AssertExpectations(t)
@@ -113,13 +120,13 @@ func TestGrantPermissionToRole_SQLInjection_InPath(t *testing.T) {
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(&roleEntity.Role{Name: roleName}, nil)
 
 	// Casbin should receive the raw string - parameterized at DB level
-	deps.Enforcer.On("AddPolicy", roleName, maliciousPath, method).Return(true, nil)
+	deps.Enforcer.On("AddPolicy", roleName, "global", maliciousPath, method).Return(true, nil)
 
-	err := uc.GrantPermissionToRole(context.Background(), roleName, maliciousPath, method)
+	err := uc.GrantPermissionToRole(context.Background(), roleName, maliciousPath, method, "global")
 
 	// Should not error - string is passed as-is, DB handles escaping
 	assert.NoError(t, err)
-	deps.Enforcer.AssertCalled(t, "AddPolicy", roleName, maliciousPath, method)
+	deps.Enforcer.AssertCalled(t, "AddPolicy", roleName, "global", maliciousPath, method)
 }
 
 // TestGrantPermissionToRole_SQLInjection_InRoleName tests SQL injection in role name.
@@ -133,7 +140,7 @@ func TestGrantPermissionToRole_SQLInjection_InRoleName(t *testing.T) {
 	// Repository should handle this safely
 	deps.RoleRepo.On("FindByName", mock.Anything, maliciousRole).Return(nil, errors.New("record not found"))
 
-	err := uc.GrantPermissionToRole(context.Background(), maliciousRole, path, method)
+	err := uc.GrantPermissionToRole(context.Background(), maliciousRole, path, method, "global")
 
 	assert.Error(t, err)
 	deps.Enforcer.AssertNotCalled(t, "AddPolicy", mock.Anything, mock.Anything, mock.Anything)
@@ -148,9 +155,9 @@ func TestGrantPermissionToRole_SQLInjection_InMethod(t *testing.T) {
 	maliciousMethod := "GET; DROP TABLE policies; --"
 
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(&roleEntity.Role{Name: roleName}, nil)
-	deps.Enforcer.On("AddPolicy", roleName, path, maliciousMethod).Return(true, nil)
+	deps.Enforcer.On("AddPolicy", roleName, "global", path, maliciousMethod).Return(true, nil)
 
-	err := uc.GrantPermissionToRole(context.Background(), roleName, path, maliciousMethod)
+	err := uc.GrantPermissionToRole(context.Background(), roleName, path, maliciousMethod, "global")
 
 	// Method validation should ideally reject this, but if not validated:
 	assert.NoError(t, err)
@@ -171,7 +178,7 @@ func TestGrantPermissionToRole_Concurrent_SameRole(t *testing.T) {
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(role, nil).Maybe()
 
 	var successCount int32
-	deps.Enforcer.On("AddPolicy", mock.Anything, mock.Anything, mock.Anything).
+	deps.Enforcer.On("AddPolicy", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
 			atomic.AddInt32(&successCount, 1)
 		}).Return(true, nil).Maybe()
@@ -184,7 +191,7 @@ func TestGrantPermissionToRole_Concurrent_SameRole(t *testing.T) {
 		go func(idx int) {
 			defer wg.Done()
 			path := "/api/resource/" + string(rune('a'+idx))
-			err := uc.GrantPermissionToRole(context.Background(), roleName, path, "GET")
+			err := uc.GrantPermissionToRole(context.Background(), roleName, path, "GET", "global")
 			errChan <- err
 		}(i)
 	}
@@ -210,7 +217,7 @@ func TestRevokePermissionFromRole_Concurrent(t *testing.T) {
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(role, nil).Maybe()
 
 	var revokeCount int32
-	deps.Enforcer.On("RemovePolicy", mock.Anything, mock.Anything, mock.Anything).
+	deps.Enforcer.On("RemovePolicy", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
 			atomic.AddInt32(&revokeCount, 1)
 		}).Return(true, nil)
@@ -223,7 +230,7 @@ func TestRevokePermissionFromRole_Concurrent(t *testing.T) {
 		go func(idx int) {
 			defer wg.Done()
 			path := "/api/resource/" + string(rune('a'+idx))
-			err := uc.RevokePermissionFromRole(context.Background(), roleName, path, "DELETE")
+			err := uc.RevokePermissionFromRole(context.Background(), roleName, path, "DELETE", "global")
 			errChan <- err
 		}(i)
 	}
@@ -249,7 +256,7 @@ func TestGrantPermissionToRole_EmptyPath(t *testing.T) {
 	roleName := "editor"
 
 	// Empty path is rejected by implementation (role, path, and method are required)
-	err := uc.GrantPermissionToRole(context.Background(), roleName, "", "GET")
+	err := uc.GrantPermissionToRole(context.Background(), roleName, "", "GET", "global")
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "required")
@@ -264,9 +271,9 @@ func TestGrantPermissionToRole_WildcardPath(t *testing.T) {
 	wildcardPath := "/api/*"
 
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(role, nil)
-	deps.Enforcer.On("AddPolicy", roleName, wildcardPath, "*").Return(true, nil)
+	deps.Enforcer.On("AddPolicy", roleName, "global", wildcardPath, "*").Return(true, nil)
 
-	err := uc.GrantPermissionToRole(context.Background(), roleName, wildcardPath, "*")
+	err := uc.GrantPermissionToRole(context.Background(), roleName, wildcardPath, "*", "global")
 
 	assert.NoError(t, err)
 }
@@ -280,9 +287,9 @@ func TestGrantPermissionToRole_UnicodeInPath(t *testing.T) {
 	unicodePath := "/api/用户/管理" // Chinese characters
 
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(role, nil)
-	deps.Enforcer.On("AddPolicy", roleName, unicodePath, "GET").Return(true, nil)
+	deps.Enforcer.On("AddPolicy", roleName, "global", unicodePath, "GET").Return(true, nil)
 
-	err := uc.GrantPermissionToRole(context.Background(), roleName, unicodePath, "GET")
+	err := uc.GrantPermissionToRole(context.Background(), roleName, unicodePath, "GET", "global")
 
 	assert.NoError(t, err)
 }
@@ -299,9 +306,9 @@ func TestGrantPermissionToRole_EnforcerConnectionError(t *testing.T) {
 	role := &roleEntity.Role{ID: "role-editor", Name: roleName}
 
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(role, nil)
-	deps.Enforcer.On("AddPolicy", roleName, "/api/test", "GET").Return(false, errors.New("connection refused"))
+	deps.Enforcer.On("AddPolicy", roleName, "global", "/api/test", "GET").Return(false, errors.New("connection refused"))
 
-	err := uc.GrantPermissionToRole(context.Background(), roleName, "/api/test", "GET")
+	err := uc.GrantPermissionToRole(context.Background(), roleName, "/api/test", "GET", "global")
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "connection refused")
@@ -316,9 +323,9 @@ func TestRevokePermissionFromRole_PolicyNotExists(t *testing.T) {
 
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(role, nil)
 	// RemovePolicy returns false when policy doesn't exist
-	deps.Enforcer.On("RemovePolicy", roleName, "/api/nonexistent", "DELETE").Return(false, nil)
+	deps.Enforcer.On("RemovePolicy", roleName, "global", "/api/nonexistent", "DELETE").Return(false, nil)
 
-	err := uc.RevokePermissionFromRole(context.Background(), roleName, "/api/nonexistent", "DELETE")
+	err := uc.RevokePermissionFromRole(context.Background(), roleName, "/api/nonexistent", "DELETE", "global")
 
 	// Implementation returns error when policy doesn't exist (line 243 of usecase)
 	assert.Error(t, err)
@@ -344,7 +351,7 @@ func TestBatchCheckPermission_LargeScale(t *testing.T) {
 		items[i] = struct{ Resource, Action string }{resource, action}
 
 		// Alternate between allowed and denied
-		deps.Enforcer.On("Enforce", userID, resource, action).Return(i%2 == 0, nil).Maybe()
+		deps.Enforcer.On("Enforce", userID, "global", resource, action).Return(i%2 == 0, nil).Maybe()
 	}
 
 	// Build permission check items
@@ -369,9 +376,9 @@ func TestBatchCheckPermission_EnforceError(t *testing.T) {
 	userID := "user-123"
 
 	// First item succeeds, second fails with error
-	deps.Enforcer.On("Enforce", userID, "/api/success", "GET").Return(true, nil)
-	deps.Enforcer.On("Enforce", userID, "/api/error", "POST").Return(false, errors.New("enforcer error"))
-	deps.Enforcer.On("Enforce", userID, "/api/after-error", "GET").Return(true, nil)
+	deps.Enforcer.On("Enforce", userID, "global", "/api/success", "GET").Return(true, nil)
+	deps.Enforcer.On("Enforce", userID, "global", "/api/error", "POST").Return(false, errors.New("enforcer error"))
+	deps.Enforcer.On("Enforce", userID, "global", "/api/after-error", "GET").Return(true, nil)
 
 	items := []model.PermissionCheckItem{
 		{Resource: "/api/success", Action: "GET"},
@@ -407,9 +414,9 @@ func TestGrantPermissionToRole_UpdateExistingPolicy(t *testing.T) {
 
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(role, nil)
 	// AddPolicy returns false if policy already exists (idempotent)
-	deps.Enforcer.On("AddPolicy", roleName, "/api/users", "GET").Return(false, nil)
+	deps.Enforcer.On("AddPolicy", roleName, "global", "/api/users", "GET").Return(false, nil)
 
-	err := uc.GrantPermissionToRole(context.Background(), roleName, "/api/users", "GET")
+	err := uc.GrantPermissionToRole(context.Background(), roleName, "/api/users", "GET", "global")
 
 	// Should not error even if policy already exists
 	assert.NoError(t, err)
@@ -424,7 +431,7 @@ func TestConcurrentBatchPermissionCheck(t *testing.T) {
 	itemsPerCheck := 5
 
 	// Setup mock to handle multiple concurrent calls
-	deps.Enforcer.On("Enforce", mock.Anything, mock.Anything, mock.Anything).Return(true, nil).Maybe()
+	deps.Enforcer.On("Enforce", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(true, nil).Maybe()
 
 	var wg sync.WaitGroup
 	var successCount int32

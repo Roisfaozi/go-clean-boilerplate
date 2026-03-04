@@ -80,7 +80,6 @@ func (uc *roleUseCase) Update(ctx context.Context, id string, request *model.Upd
 			return exception.ErrInternalServer
 		}
 
-		// Update fields
 		role.Description = request.Description
 
 		if err := uc.RoleRepository.Update(txCtx, role); err != nil {
