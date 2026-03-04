@@ -73,11 +73,14 @@ func TestProjectIntegration_CRUD_Lifecycle(t *testing.T) {
 	assert.Equal(t, "lifecycle.example.com", fetched.Domain)
 
 	// 3. Update
-	updateReq := model.UpdateProjectRequest{
-		Name:   "Updated Lifecycle",
-		Domain: "updated.example.com",
-		Status: "inactive",
-	}
+		name := "Updated Lifecycle"
+		domain := "updated.example.com"
+		status := "inactive"
+		updateReq := model.UpdateProjectRequest{
+			Name:   &name,
+			Domain: &domain,
+			Status: &status,
+		}
 	updated, err := uc.UpdateProject(ctx, projectID, updateReq)
 	require.NoError(t, err)
 	assert.Equal(t, "Updated Lifecycle", updated.Name)
@@ -140,8 +143,9 @@ func TestProjectIntegration_PartialUpdate(t *testing.T) {
 	require.NoError(t, err)
 
 	// Partial update - only name
+	nameStr := "Updated Name Only"
 	updated, err := uc.UpdateProject(ctx, created.ID, model.UpdateProjectRequest{
-		Name: "Updated Name Only",
+		Name: &nameStr,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Updated Name Only", updated.Name)

@@ -664,7 +664,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "expired"}
 		inv := &entity.InvitationToken{
-			ID: "inv-1",
+			ID:        "inv-1",
 			ExpiresAt: time.Now().Add(-1 * time.Hour).UnixMilli(),
 		}
 

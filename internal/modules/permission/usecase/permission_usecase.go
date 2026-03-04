@@ -42,12 +42,12 @@ type IPermissionUseCase interface {
 }
 
 type PermissionUseCase struct {
-	enforcer    IEnforcer
-	log         *logrus.Logger
-	RoleRepo    roleRepository.RoleRepository
-	UserRepo    userRepository.UserRepository
-	AccessRepo  accessRepository.AccessRepository
-	AuditUC     auditUseCase.AuditUseCase
+	enforcer   IEnforcer
+	log        *logrus.Logger
+	RoleRepo   roleRepository.RoleRepository
+	UserRepo   userRepository.UserRepository
+	AccessRepo accessRepository.AccessRepository
+	AuditUC    auditUseCase.AuditUseCase
 }
 
 func NewPermissionUseCase(

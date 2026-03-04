@@ -9,7 +9,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 )
 
-
 func (uc *PermissionUseCase) GetRoleAccessRights(ctx context.Context, role, domain string) ([]model.RoleAccessRightStatus, error) {
 	if domain == "" {
 		domain = "global"
@@ -73,13 +72,13 @@ func (uc *PermissionUseCase) AssignAccessRight(ctx context.Context, req model.As
 
 	uc.log.Infof("Assigned access right '%s' (%d endpoints) to role '%s' in domain '%s'",
 		ar.Name, len(ar.Endpoints), req.Role, req.Domain)
-	
+
 	if uc.AuditUC != nil {
 		_ = uc.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
-			Action:     "ASSIGN_ACCESS_RIGHT",
-			Entity:     "roles",
-			EntityID:   req.Role,
-			NewValues:  map[string]any{"access_right_id": ar.ID, "domain": req.Domain},
+			Action:    "ASSIGN_ACCESS_RIGHT",
+			Entity:    "roles",
+			EntityID:  req.Role,
+			NewValues: map[string]any{"access_right_id": ar.ID, "domain": req.Domain},
 		})
 	}
 
@@ -105,13 +104,13 @@ func (uc *PermissionUseCase) RevokeAccessRight(ctx context.Context, req model.As
 
 	uc.log.Infof("Revoked access right '%s' (%d endpoints) from role '%s' in domain '%s'",
 		ar.Name, len(ar.Endpoints), req.Role, req.Domain)
-	
+
 	if uc.AuditUC != nil {
 		_ = uc.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
-			Action:     "REVOKE_ACCESS_RIGHT",
-			Entity:     "roles",
-			EntityID:   req.Role,
-			OldValues:  map[string]any{"access_right_id": ar.ID, "domain": req.Domain},
+			Action:    "REVOKE_ACCESS_RIGHT",
+			Entity:    "roles",
+			EntityID:  req.Role,
+			OldValues: map[string]any{"access_right_id": ar.ID, "domain": req.Domain},
 		})
 	}
 

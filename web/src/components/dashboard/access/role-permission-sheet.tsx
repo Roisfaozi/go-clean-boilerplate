@@ -1,6 +1,5 @@
 "use client";
 
-
 import {
   AlertTriangle,
   ChevronDown,
@@ -10,14 +9,20 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Badge } from '~/components/ui/badge';
-import { Input } from '~/components/ui/input';
-import { ScrollArea } from '~/components/ui/scroll-area';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '~/components/ui/sheet';
-import { Skeleton } from '~/components/ui/skeleton';
-import { Switch } from '~/components/ui/switch';
-import { accessApi, RoleAccessRightStatus } from '~/lib/api/access';
-import { cn } from '~/lib/utils';
+import { Badge } from "~/components/ui/badge";
+import { Input } from "~/components/ui/input";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "~/components/ui/sheet";
+import { Skeleton } from "~/components/ui/skeleton";
+import { Switch } from "~/components/ui/switch";
+import { accessApi, RoleAccessRightStatus } from "~/lib/api/access";
+import { cn } from "~/lib/utils";
 
 interface RolePermissionSheetProps {
   roleName: string | null;
@@ -222,15 +227,15 @@ export function RolePermissionSheet({
                               className={cn(
                                 "w-14 rounded px-1 py-0.5 text-center font-mono font-semibold",
                                 method === "GET" &&
-                                "bg-emerald-400/10 text-emerald-400",
+                                  "bg-emerald-400/10 text-emerald-400",
                                 method === "POST" &&
-                                "bg-blue-400/10 text-blue-400",
+                                  "bg-blue-400/10 text-blue-400",
                                 method === "PUT" &&
-                                "bg-amber-400/10 text-amber-400",
+                                  "bg-amber-400/10 text-amber-400",
                                 method === "PATCH" &&
-                                "bg-orange-400/10 text-orange-400",
+                                  "bg-orange-400/10 text-orange-400",
                                 method === "DELETE" &&
-                                "bg-red-400/10 text-red-400"
+                                  "bg-red-400/10 text-red-400"
                               )}
                             >
                               {method}
