@@ -22,7 +22,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
-	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	storageMocks "github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/mocks"
@@ -44,7 +43,7 @@ type userTestDeps struct {
 	Storage  *storageMocks.MockProvider
 }
 
-func setupUserTest() (*userTestDeps, userUseCase.UserUseCase) {
+func setupUserTest() (*userTestDeps, usecase.UserUseCase) {
 	mockEnforcer := new(permMocks.MockIEnforcer)
 	deps := &userTestDeps{
 		Repo:     new(mocks.MockUserRepository),
@@ -62,7 +61,7 @@ func setupUserTest() (*userTestDeps, userUseCase.UserUseCase) {
 	// Cast to interface to ensure correct implementation
 	var enf permissionUseCase.IEnforcer = deps.Enforcer
 
-	uc := userUseCase.NewUserUseCase(deps.TM, log, deps.Repo, enf, deps.AuditUC, deps.AuthUC, deps.Storage)
+	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, enf, deps.AuditUC, deps.AuthUC, deps.Storage)
 
 	return deps, uc
 }
@@ -933,7 +932,7 @@ func createValidImageReader(content string) io.Reader {
 }
 
 // setupAvatarTest creates test dependencies for avatar tests
-func setupAvatarTest() (*userTestDeps, userUseCase.UserUseCase) {
+func setupAvatarTest() (*userTestDeps, usecase.UserUseCase) {
 	mockEnforcer := new(permMocks.MockIEnforcer)
 	deps := &userTestDeps{
 		Repo:     new(mocks.MockUserRepository),
@@ -950,7 +949,7 @@ func setupAvatarTest() (*userTestDeps, userUseCase.UserUseCase) {
 	// Cast to interface to ensure correct implementation
 	var enf permissionUseCase.IEnforcer = deps.Enforcer
 
-	uc := userUseCase.NewUserUseCase(deps.TM, log, deps.Repo, enf, deps.AuditUC, deps.AuthUC, deps.Storage)
+	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, enf, deps.AuditUC, deps.AuthUC, deps.Storage)
 
 	return deps, uc
 }
@@ -1361,7 +1360,7 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 	}
 }
 
-func setupAvatarSecurityTest() (*userTestDeps, userUseCase.UserUseCase) {
+func setupAvatarSecurityTest() (*userTestDeps, usecase.UserUseCase) {
 	mockEnforcer := new(permMocks.MockIEnforcer)
 	deps := &userTestDeps{
 		Repo:     new(mocks.MockUserRepository),
@@ -1373,14 +1372,14 @@ func setupAvatarSecurityTest() (*userTestDeps, userUseCase.UserUseCase) {
 	}
 	log := logrus.New()
 	log.SetOutput(io.Discard)
-	uc := userUseCase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
+	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
 	return deps, uc
 }
 
 // --- Merged from use_case_cleanup_test.go ---
 
 // setupCleanupTest creates test dependencies for cleanup tests
-func setupCleanupTest() (*userTestDeps, userUseCase.UserUseCase) {
+func setupCleanupTest() (*userTestDeps, usecase.UserUseCase) {
 	mockEnforcer := new(permMocks.MockIEnforcer)
 	deps := &userTestDeps{
 		Repo:     new(mocks.MockUserRepository),
@@ -1394,7 +1393,7 @@ func setupCleanupTest() (*userTestDeps, userUseCase.UserUseCase) {
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 
-	uc := userUseCase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
+	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
 
 	return deps, uc
 }
@@ -1639,7 +1638,7 @@ func setupTestUserUseCase() (
 	interface{}, // Auth generic
 	interface{}, // Storage generic
 	*logrus.Logger,
-	userUseCase.UserUseCase,
+	usecase.UserUseCase,
 ) {
 	mockRepo := new(mocks.MockUserRepository)
 	logger := logrus.New()
