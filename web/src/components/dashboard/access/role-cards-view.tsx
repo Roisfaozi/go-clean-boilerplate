@@ -13,6 +13,7 @@ import { rolesApi, type Role } from "~/lib/api/roles";
 
 interface RoleCardsViewProps {
   onRoleClick?: (role: Role) => void;
+  onManagePermissions?: (roleName: string) => void;
 }
 
 interface RoleCardData extends Role {
@@ -20,7 +21,10 @@ interface RoleCardData extends Role {
   resourceCount: number;
 }
 
-export function RoleCardsView({ onRoleClick }: RoleCardsViewProps) {
+export function RoleCardsView({
+  onRoleClick,
+  onManagePermissions,
+}: RoleCardsViewProps) {
   const { density } = useDensity();
   const isCompact = density === "compact";
   const [roles, setRoles] = useState<RoleCardData[]>([]);
@@ -138,14 +142,23 @@ export function RoleCardsView({ onRoleClick }: RoleCardsViewProps) {
                   </div>
                 </div>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`text-primary w-full justify-start px-0 ${isCompact ? "h-6 text-xs" : ""}`}
-                  onClick={() => onRoleClick?.(role)}
-                >
-                  Edit →
-                </Button>
+                <div className="mt-2 flex flex-col gap-1.5">
+                  <Button
+                    size="sm"
+                    className={`w-full ${isCompact ? "h-7 text-xs" : ""}`}
+                    onClick={() => onManagePermissions?.(role.name)}
+                  >
+                    Manage Permissions
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`text-muted-foreground w-full justify-start px-0 ${isCompact ? "h-6 text-xs" : ""}`}
+                    onClick={() => onRoleClick?.(role)}
+                  >
+                    Edit details →
+                  </Button>
+                </div>
               </div>
             </div>
           );

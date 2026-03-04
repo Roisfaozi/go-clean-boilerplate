@@ -16,14 +16,14 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func setupOrganizationUseCase() (*mocks.MockOrganizationRepository, *mocks.MockOrganizationMemberRepository, *txMock.MockTransactionManager, *permissionMocks.IEnforcer, usecase.OrganizationUseCase) {
+func setupOrganizationUseCase() (*mocks.MockOrganizationRepository, *mocks.MockOrganizationMemberRepository, *txMock.MockTransactionManager, *permissionMocks.MockIEnforcer, usecase.OrganizationUseCase) {
 	log := logrus.New()
 	log.SetLevel(logrus.ErrorLevel) // Suppress log output in tests
 
 	orgRepo := new(mocks.MockOrganizationRepository)
 	memberRepo := new(mocks.MockOrganizationMemberRepository)
 	tm := new(txMock.MockTransactionManager)
-	enforcer := new(permissionMocks.IEnforcer)
+	enforcer := new(permissionMocks.MockIEnforcer)
 
 	// Default behavior for enforcer with context to return itself
 	enforcer.On("WithContext", mock.Anything).Return(enforcer)

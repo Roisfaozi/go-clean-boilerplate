@@ -62,6 +62,14 @@ export interface AccessRightListResponse {
   };
 }
 
+export interface RoleAccessRightStatus {
+  id: string;
+  name: string;
+  endpoints: string[];
+  is_assigned: boolean;
+  is_partial: boolean;
+}
+
 export const accessApi = {
   getAllPermissions: () => {
     return api.get<{ data: string[][] }>("/permissions");
@@ -200,5 +208,38 @@ export const accessApi = {
 
   searchEndpoints: (filter: any) => {
     return api.post<{ data: Endpoint[] }>("/endpoints/search", filter);
+  },
+
+  getRoleAccessRights: (role: string, domain = "global") => {
+    return api.get<{ data: RoleAccessRightStatus[] }>(
+      `/permissions/roles/${encodeURIComponent(role)}/access-rights?domain=${domain}`
+    );
+  },
+
+  assignAccessRight: (
+    role: string,
+    accessRightId: string,
+    domain = "global"
+  ) => {
+    return api.post("/permissions/assign-access-right", {
+      role,
+      access_right_id: accessRightId,
+      domain,
+    });
+  },
+
+  revokeAccessRight: (
+    role: string,
+    accessRightId: string,
+    domain = "global"
+  ) => {
+    return api.delete("/permissions/revoke-access-right", {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        role,
+        access_right_id: accessRightId,
+        domain,
+      }),
+    } as any);
   },
 };

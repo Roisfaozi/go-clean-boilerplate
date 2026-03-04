@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	accessRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
+	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
@@ -29,24 +31,40 @@ type IPermissionUseCase interface {
 
 	BatchCheckPermission(ctx context.Context, userID string, items []model.PermissionCheckItem) (map[string]bool, error)
 
-	// New methods for Matrix View
+	// Matrix View
 	GetResourceAggregation(ctx context.Context) (*model.ResourceAggregationResponse, error)
 	GetInheritanceTree(ctx context.Context) (*model.InheritanceTreeResponse, error)
+
+	// Bulk Access Right assignment
+	GetRoleAccessRights(ctx context.Context, role, domain string) ([]model.RoleAccessRightStatus, error)
+	AssignAccessRight(ctx context.Context, req model.AssignAccessRightRequest) error
+	RevokeAccessRight(ctx context.Context, req model.AssignAccessRightRequest) error
 }
 
 type PermissionUseCase struct {
-	enforcer IEnforcer
-	log      *logrus.Logger
-	RoleRepo roleRepository.RoleRepository
-	UserRepo userRepository.UserRepository
+	enforcer   IEnforcer
+	log        *logrus.Logger
+	RoleRepo   roleRepository.RoleRepository
+	UserRepo   userRepository.UserRepository
+	AccessRepo accessRepository.AccessRepository
+	AuditUC    auditUseCase.AuditUseCase
 }
 
-func NewPermissionUseCase(enforcer IEnforcer, log *logrus.Logger, roleRepo roleRepository.RoleRepository, userRepo userRepository.UserRepository) IPermissionUseCase {
+func NewPermissionUseCase(
+	enforcer IEnforcer,
+	log *logrus.Logger,
+	roleRepo roleRepository.RoleRepository,
+	userRepo userRepository.UserRepository,
+	accessRepo accessRepository.AccessRepository,
+	auditUC auditUseCase.AuditUseCase,
+) IPermissionUseCase {
 	return &PermissionUseCase{
-		enforcer: enforcer,
-		log:      log,
-		RoleRepo: roleRepo,
-		UserRepo: userRepo,
+		enforcer:   enforcer,
+		log:        log,
+		RoleRepo:   roleRepo,
+		UserRepo:   userRepo,
+		AccessRepo: accessRepo,
+		AuditUC:    auditUC,
 	}
 }
 

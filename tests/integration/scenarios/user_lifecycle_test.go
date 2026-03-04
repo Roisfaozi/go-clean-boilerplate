@@ -86,34 +86,29 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	err = handlers.NewOutboxTaskHandler(auditRepo, env.Logger).ProcessAuditOutbox(ctx, nil)
 	require.NoError(t, err)
 
+	// Wait for any final async processing using a retry loop instead of fixed sleep
 	var userLogs []auditModel.AuditLogResponse
+	var actions map[string]bool
 
-	// Poll for logs with retry
-	for i := 0; i < 20; i++ {
+	require.Eventually(t, func() bool {
 		logs, _, err := auditUC.GetLogsDynamic(ctx, &querybuilder.DynamicFilter{
 			Sort: &[]querybuilder.SortModel{{ColId: "CreatedAt", Sort: "asc"}},
 		})
-		require.NoError(t, err)
+		if err != nil {
+			return false
+		}
 
 		userLogs = nil
+		actions = make(map[string]bool)
 		for _, l := range logs {
 			if l.UserID == userID || l.EntityID == userID {
 				userLogs = append(userLogs, l)
+				actions[l.Action] = true
 			}
 		}
 
-		if len(userLogs) >= 4 {
-			break
-		}
-		time.Sleep(250 * time.Millisecond)
-	}
-
-	require.GreaterOrEqual(t, len(userLogs), 4, "Should have at least 4 audit entries for this lifecycle")
-
-	actions := make(map[string]bool)
-	for _, l := range userLogs {
-		actions[l.Action] = true
-	}
+		return len(userLogs) >= 4 && actions["CREATE"] && actions["LOGIN"] && actions["UPDATE"] && actions["DELETE"]
+	}, 5*time.Second, 100*time.Millisecond, "Should have at least 4 audit entries and all actions for this lifecycle")
 
 	assert.True(t, actions["CREATE"], "CREATE log missing")
 	assert.True(t, actions["LOGIN"], "LOGIN log missing")

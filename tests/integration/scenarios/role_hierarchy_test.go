@@ -7,6 +7,7 @@ import (
 	"context"
 	"testing"
 
+	accessRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	permissionUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	roleModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	roleRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
@@ -29,7 +30,8 @@ func TestScenario_RoleHierarchy(t *testing.T) {
 	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
 	roleService := roleUC.NewRoleUseCase(env.Logger, tm, rRepo)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo)
+	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
+	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo, nil)
 
 	parentRole := "Manager"
 	childRole := "Staff"

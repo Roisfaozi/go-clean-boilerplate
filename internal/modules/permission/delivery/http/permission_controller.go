@@ -472,3 +472,96 @@ func (h *PermissionController) GetInheritanceTree(c *gin.Context) {
 
 	response.Success(c, result)
 }
+
+// GetRoleAccessRights godoc
+// @Summary      Get access rights assignment status for a role
+// @Description  Returns all access rights with is_assigned/is_partial flags for the given role
+// @Tags         permissions
+// @Security     BearerAuth
+// @Produce      json
+// @Param        role    path     string  true  "Role name"
+// @Param        domain  query    string  false "Domain (default: global)"
+// @Success      200  {object}  response.SwaggerSuccessResponseWrapper{data=[]model.RoleAccessRightStatus}
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper
+// @Router       /permissions/roles/{role}/access-rights [get]
+func (h *PermissionController) GetRoleAccessRights(c *gin.Context) {
+	role := c.Param("role")
+	domain := c.DefaultQuery("domain", "global")
+
+	result, err := h.useCase.GetRoleAccessRights(c.Request.Context(), role, domain)
+	if err != nil {
+		response.HandleError(c, err, "failed to get role access rights")
+		return
+	}
+
+	response.Success(c, result)
+}
+
+// AssignAccessRight godoc
+// @Summary      Bulk assign an access right to a role
+// @Description  Grants all endpoints of the given access right to the specified role
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request  body     model.AssignAccessRightRequest  true  "Assign request"
+// @Success      200  {object}  response.SwaggerSuccessResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper
+// @Router       /permissions/assign-access-right [post]
+func (h *PermissionController) AssignAccessRight(c *gin.Context) {
+	var req model.AssignAccessRightRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, errors.New("validation failed"), msg)
+		return
+	}
+
+	if err := h.useCase.AssignAccessRight(c.Request.Context(), req); err != nil {
+		response.HandleError(c, err, "failed to assign access right")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "access right assigned successfully"})
+}
+
+// RevokeAccessRight godoc
+// @Summary      Bulk revoke an access right from a role
+// @Description  Removes all endpoints of the given access right from the specified role
+// @Tags         permissions
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request  body     model.AssignAccessRightRequest  true  "Revoke request"
+// @Success      200  {object}  response.SwaggerSuccessResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper
+// @Router       /permissions/revoke-access-right [delete]
+func (h *PermissionController) RevokeAccessRight(c *gin.Context) {
+	var req model.AssignAccessRightRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, errors.New("validation failed"), msg)
+		return
+	}
+
+	if err := h.useCase.RevokeAccessRight(c.Request.Context(), req); err != nil {
+		response.HandleError(c, err, "failed to revoke access right")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "access right revoked successfully"})
+}

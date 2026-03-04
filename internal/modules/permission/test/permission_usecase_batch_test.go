@@ -6,6 +6,8 @@ import (
 	"io"
 	"testing"
 
+	accessMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks"
+	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
@@ -17,17 +19,18 @@ import (
 )
 
 // setupBatchTest creates test dependencies for batch permission tests
-func setupBatchTest() (*mocks.IEnforcer, usecase.IPermissionUseCase) {
-	enforcer := new(mocks.IEnforcer)
+func setupBatchTest() (*mocks.MockIEnforcer, usecase.IPermissionUseCase) {
+	enforcer := new(mocks.MockIEnforcer)
 	roleRepo := new(roleMocks.MockRoleRepository)
 	userRepo := new(userMocks.MockUserRepository)
+	accessRepo := new(accessMocks.MockAccessRepository)
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 
 	// Default behavior for enforcer with context to return itself
 	enforcer.On("WithContext", mock.Anything).Return(enforcer)
 
-	uc := usecase.NewPermissionUseCase(enforcer, log, roleRepo, userRepo)
+	uc := usecase.NewPermissionUseCase(enforcer, log, roleRepo, userRepo, accessRepo, new(auditMocks.MockAuditUseCase))
 
 	return enforcer, uc
 }

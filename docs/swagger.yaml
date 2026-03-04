@@ -295,6 +295,18 @@ definitions:
       total:
         type: integer
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignAccessRightRequest:
+    properties:
+      access_right_id:
+        type: string
+      domain:
+        type: string
+      role:
+        type: string
+    required:
+    - access_right_id
+    - role
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignRoleRequest:
     properties:
       domain:
@@ -388,6 +400,21 @@ definitions:
         additionalProperties:
           $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.ResourceCRUD'
         type: object
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleAccessRightStatus:
+    properties:
+      endpoints:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      is_assigned:
+        type: boolean
+      is_partial:
+        type: boolean
+      name:
+        type: string
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleInheritanceRequest:
     properties:
@@ -523,6 +550,44 @@ definitions:
         type: string
     required:
     - description
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.ActivityPoint:
+    properties:
+      audits:
+        type: integer
+      date:
+        type: string
+      logins:
+        type: integer
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.DashboardActivity:
+    properties:
+      points:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.ActivityPoint'
+        type: array
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.DashboardSummary:
+    properties:
+      total_audit_logs:
+        type: integer
+      total_org_members:
+        type: integer
+      total_roles:
+        type: integer
+      total_users:
+        type: integer
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.SystemInsights:
+    properties:
+      avg_latency_ms:
+        type: number
+      error_rate:
+        type: number
+      most_active_role:
+        type: string
+      uptime:
+        type: string
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.RegisterUserRequest:
     properties:
@@ -1473,6 +1538,25 @@ paths:
       summary: Get endpoints with dynamic filters
       tags:
       - endpoints
+  /events:
+    get:
+      description: Establishes a Server-Sent Events stream for real-time updates.
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: Event stream
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Subscribe to SSE events
+      tags:
+      - realtime
   /organizations:
     post:
       consumes:
@@ -2041,6 +2125,43 @@ paths:
       summary: Update permission
       tags:
       - permissions
+  /permissions/assign-access-right:
+    post:
+      consumes:
+      - application/json
+      description: Grants all endpoints of the given access right to the specified
+        role
+      parameters:
+      - description: Assign request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignAccessRightRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Bulk assign an access right to a role
+      tags:
+      - permissions
   /permissions/assign-role:
     post:
       consumes:
@@ -2392,6 +2513,43 @@ paths:
       summary: Revoke permission from role
       tags:
       - permissions
+  /permissions/revoke-access-right:
+    delete:
+      consumes:
+      - application/json
+      description: Removes all endpoints of the given access right from the specified
+        role
+      parameters:
+      - description: Revoke request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.AssignAccessRightRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Bulk revoke an access right from a role
+      tags:
+      - permissions
   /permissions/revoke-role:
     post:
       consumes:
@@ -2464,6 +2622,47 @@ paths:
       security:
       - BearerAuth: []
       summary: Get permissions for role
+      tags:
+      - permissions
+  /permissions/roles/{role}/access-rights:
+    get:
+      description: Returns all access rights with is_assigned/is_partial flags for
+        the given role
+      parameters:
+      - description: Role name
+        in: path
+        name: role
+        required: true
+        type: string
+      - description: 'Domain (default: global)'
+        in: query
+        name: domain
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_permission_model.RoleAccessRightStatus'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get access rights assignment status for a role
       tags:
       - permissions
   /permissions/roles/{role}/users:
@@ -2897,6 +3096,98 @@ paths:
       summary: Get roles with dynamic filters
       tags:
       - roles
+  /stats/activity:
+    get:
+      description: Returns daily activity metrics (logins, audit events) for a given
+        period.
+      parameters:
+      - description: Number of days to retrieve (default 7)
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.DashboardActivity'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get activity chart data
+      tags:
+      - stats
+  /stats/insights:
+    get:
+      description: Returns system-level performance metrics (latency, error rate,
+        uptime).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.SystemInsights'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get system health insights
+      tags:
+      - stats
+  /stats/summary:
+    get:
+      description: Returns high-level system statistics (total users, roles, audit
+        logs, etc.)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_stats_model.DashboardSummary'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get dashboard summary
+      tags:
+      - stats
   /upload/files/:
     post:
       consumes:
@@ -3402,6 +3693,28 @@ paths:
       summary: Get users with dynamic filters
       tags:
       - users
+  /ws:
+    get:
+      description: Upgrades the HTTP connection to a WebSocket connection for real-time
+        notifications and presence. Requires a valid ticket obtained from /auth/ticket.
+      parameters:
+      - description: WebSocket authentication ticket
+        in: query
+        name: ticket
+        required: true
+        type: string
+      responses:
+        "101":
+          description: Switching Protocols
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      summary: Connect to WebSocket
+      tags:
+      - realtime
 securityDefinitions:
   BearerAuth:
     description: '"Type ''Bearer '' followed by a space and the access token."'
