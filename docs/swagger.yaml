@@ -486,9 +486,11 @@ definitions:
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_project_model.CreateProjectRequest:
     properties:
       domain:
+        maxLength: 100
         minLength: 1
         type: string
       name:
+        maxLength: 100
         minLength: 1
         type: string
     required:
@@ -517,12 +519,15 @@ definitions:
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_project_model.UpdateProjectRequest:
     properties:
       domain:
+        maxLength: 100
         minLength: 1
         type: string
       name:
+        maxLength: 100
         minLength: 1
         type: string
       status:
+        maxLength: 100
         type: string
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.CreateRoleRequest:

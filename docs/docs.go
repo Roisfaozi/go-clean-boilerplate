@@ -5262,10 +5262,12 @@ const docTemplate = `{
             "properties": {
                 "domain": {
                     "type": "string",
+                    "maxLength": 100,
                     "minLength": 1
                 },
                 "name": {
                     "type": "string",
+                    "maxLength": 100,
                     "minLength": 1
                 }
             }
@@ -5304,14 +5306,17 @@ const docTemplate = `{
             "properties": {
                 "domain": {
                     "type": "string",
+                    "maxLength": 100,
                     "minLength": 1
                 },
                 "name": {
                     "type": "string",
+                    "maxLength": 100,
                     "minLength": 1
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100
                 }
             }
         },
