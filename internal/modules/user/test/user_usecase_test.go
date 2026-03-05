@@ -1075,9 +1075,170 @@ func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {
 	deps.Storage.AssertExpectations(t)
 }
 
+func TestUserUseCase_SetAvatarURL_Success(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-123"
+	url := "https://storage.example.com/avatars/user-123.png"
+
+	existingUser := &entity.User{
+		ID:        userID,
+		Username:  "testuser",
+		Email:     "test@example.com",
+		Name:      "Test User",
+		AvatarURL: "",
+	}
+
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+	deps.Repo.On("Update", ctx, mock.MatchedBy(func(u *entity.User) bool {
+		return u.ID == userID && u.AvatarURL == url
+	})).Return(nil)
+	deps.AuditUC.On("LogActivity", ctx, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.UserID == userID && req.Action == "UPDATE_AVATAR_TUS"
+	})).Return(nil)
+
+	err := uc.SetAvatarURL(ctx, userID, url)
+
+	assert.NoError(t, err)
+	deps.Repo.AssertExpectations(t)
+	deps.AuditUC.AssertExpectations(t)
+}
+
 // ============================================================================
 // ❌ NEGATIVE CASES
 // ============================================================================
+
+func TestUserUseCase_SetAvatarURL_UserNotFound(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "nonexistent-user"
+	url := "https://storage.example.com/avatars/user-123.png"
+
+	deps.Repo.On("FindByID", ctx, userID).Return(nil, gorm.ErrRecordNotFound)
+
+	err := uc.SetAvatarURL(ctx, userID, url)
+
+	assert.Error(t, err)
+	assert.Equal(t, exception.ErrNotFound, err)
+	deps.Repo.AssertExpectations(t)
+	deps.Repo.AssertNotCalled(t, "Update")
+}
+
+func TestUserUseCase_SetAvatarURL_DatabaseError(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-123"
+	url := "https://storage.example.com/avatars/user-123.png"
+
+	existingUser := &entity.User{
+		ID:        userID,
+		Username:  "testuser",
+		Email:     "test@example.com",
+		Name:      "Test User",
+		AvatarURL: "",
+	}
+
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+	deps.Repo.On("Update", ctx, mock.Anything).Return(errors.New("db error"))
+
+	err := uc.SetAvatarURL(ctx, userID, url)
+
+	assert.Error(t, err)
+	assert.Equal(t, exception.ErrInternalServer, err)
+	deps.Repo.AssertExpectations(t)
+}
+
+func TestUserUseCase_SetAvatarURL_AuditLogError(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-123"
+	url := "https://storage.example.com/avatars/user-123.png"
+
+	existingUser := &entity.User{
+		ID:        userID,
+		Username:  "testuser",
+		Email:     "test@example.com",
+		Name:      "Test User",
+		AvatarURL: "",
+	}
+
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+	deps.Repo.On("Update", ctx, mock.Anything).Return(nil)
+	deps.AuditUC.On("LogActivity", ctx, mock.Anything).Return(errors.New("audit error"))
+
+	err := uc.SetAvatarURL(ctx, userID, url)
+
+	assert.NoError(t, err)
+	deps.Repo.AssertExpectations(t)
+	deps.AuditUC.AssertExpectations(t)
+}
+
+func TestUserUseCase_GetAvatarUrl_UserNotFound(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "nonexistent-user"
+
+	deps.Repo.On("FindByID", ctx, userID).Return(nil, gorm.ErrRecordNotFound)
+
+	result, err := uc.GetAvatarUrl(ctx, userID)
+
+	assert.Error(t, err)
+	assert.Equal(t, exception.ErrNotFound, err)
+	assert.Empty(t, result)
+	deps.Repo.AssertExpectations(t)
+}
+
+func TestUserUseCase_GetAvatarUrl_NoAvatar(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-123"
+
+	existingUser := &entity.User{
+		ID:        userID,
+		Username:  "testuser",
+		Email:     "test@example.com",
+		Name:      "Test User",
+		AvatarURL: "",
+	}
+
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+
+	result, err := uc.GetAvatarUrl(ctx, userID)
+
+	assert.Error(t, err)
+	assert.Equal(t, exception.ErrNotFound, err)
+	assert.Empty(t, result)
+	deps.Repo.AssertExpectations(t)
+}
+
+func TestUserUseCase_GetAvatarUrl_StorageError(t *testing.T) {
+	deps, uc := setupAvatarTest()
+	ctx := context.Background()
+
+	userID := "user-123"
+	avatarURL := "avatars/user-123.png"
+
+	existingUser := &entity.User{
+		ID:        userID,
+		AvatarURL: avatarURL,
+	}
+
+	deps.Repo.On("FindByID", ctx, userID).Return(existingUser, nil)
+	deps.Storage.On("GetFileUrl", ctx, avatarURL).Return("", errors.New("storage error"))
+
+	result, err := uc.GetAvatarUrl(ctx, userID)
+
+	assert.Error(t, err)
+	assert.Empty(t, result)
+	deps.Repo.AssertExpectations(t)
+	deps.Storage.AssertExpectations(t)
+}
 
 func TestUserUseCase_UpdateAvatar_UserNotFound(t *testing.T) {
 	deps, uc := setupAvatarTest()
