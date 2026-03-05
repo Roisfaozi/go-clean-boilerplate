@@ -104,5 +104,3 @@ func TestScenario_AdminSecurity_RBAC_Lifecycle(t *testing.T) {
 	userRoles, _ := env.Enforcer.GetRolesForUser(user.ID, "global")
 	assert.Contains(t, userRoles, roleName)
 }
-
-

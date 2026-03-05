@@ -73,14 +73,14 @@ func TestProjectIntegration_CRUD_Lifecycle(t *testing.T) {
 	assert.Equal(t, "lifecycle.example.com", fetched.Domain)
 
 	// 3. Update
-		name := "Updated Lifecycle"
-		domain := "updated.example.com"
-		status := "inactive"
-		updateReq := model.UpdateProjectRequest{
-			Name:   &name,
-			Domain: &domain,
-			Status: &status,
-		}
+	name := "Updated Lifecycle"
+	domain := "updated.example.com"
+	status := "inactive"
+	updateReq := model.UpdateProjectRequest{
+		Name:   &name,
+		Domain: &domain,
+		Status: &status,
+	}
 	updated, err := uc.UpdateProject(ctx, projectID, updateReq)
 	require.NoError(t, err)
 	assert.Equal(t, "Updated Lifecycle", updated.Name)

@@ -447,7 +447,6 @@ func TestOrganizationUseCase_DeleteOrganization(t *testing.T) {
 	})
 }
 
-
 // ===============================================
 // SECURITY TESTS
 // ===============================================

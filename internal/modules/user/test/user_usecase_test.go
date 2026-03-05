@@ -921,7 +921,6 @@ func TestUserUseCase_Update_Sanitization(t *testing.T) {
 	deps.Repo.AssertExpectations(t)
 }
 
-
 // --- Merged from use_case_avatar_test.go ---
 
 // Helper to create a reader with valid PNG header

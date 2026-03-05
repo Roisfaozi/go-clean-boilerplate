@@ -108,7 +108,6 @@ func TestGrantPermission_UseCaseError(t *testing.T) {
 	mockUseCase.AssertExpectations(t)
 }
 
-
 // --- Handler Tests ---
 
 func setupPermissionControllerTest() (*mocks.MockIPermissionUseCase, *permHandler.PermissionController) {

@@ -386,7 +386,7 @@ func TestCreateEndpoint_DuplicateDetection(t *testing.T) {
 		Method: "GET",
 	}
 
-	expectedErr := exception.ErrConflict 
+	expectedErr := exception.ErrConflict
 	deps.Repo.On("CreateEndpoint", mock.Anything, mock.MatchedBy(func(e interface{}) bool {
 		return true
 	})).Return(expectedErr).Once()

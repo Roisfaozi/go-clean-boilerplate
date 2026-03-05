@@ -165,4 +165,3 @@ func TestAccessIntegration_LinkEndpoint_Negative_DuplicateLink(t *testing.T) {
 	err = uc.LinkEndpointToAccessRight(context.Background(), model.LinkEndpointRequest{AccessRightID: ar.ID, EndpointID: ep.ID})
 	t.Logf("Duplicate link error (expected idempotent or conflict): %v", err)
 }
-

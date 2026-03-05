@@ -280,8 +280,6 @@ func TestAuthMiddleware_ContextSet(t *testing.T) {
 	mockAuthUseCase.AssertExpectations(t)
 }
 
-
-
 func TestAuthMiddleware_ValidateWebSocketToken_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()

@@ -503,5 +503,3 @@ func TestUserIntegration_Security_UnauthorizedUpdate(t *testing.T) {
 		assert.NotNil(t, result)
 	}
 }
-
-
