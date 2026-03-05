@@ -37,11 +37,17 @@ type AppConfig struct {
 		ServiceName  string `env:"OTEL_SERVICE_NAME" envDefault:"go-clean-api"`
 		CollectorURL string `env:"OTEL_COLLECTOR_URL" envDefault:"localhost:4317"`
 	}
-	Tus TusConfig `mapstructure:"tus"`
+	Tus   TusConfig   `mapstructure:"tus"`
+	Pprof PprofConfig `mapstructure:"pprof"`
 }
 
 type TusConfig struct {
 	BasePath string `mapstructure:"base_path"`
+}
+
+type PprofConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+	Port    int  `mapstructure:"port"`
 }
 
 type StorageConfig struct {
@@ -207,6 +213,8 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("storage.local.base_url", "http://localhost:8080/uploads")
 	v.SetDefault("storage.s3.use_ssl", true)
 	v.SetDefault("tus.base_path", "/api/v1/upload/files/")
+	v.SetDefault("pprof.enabled", false)
+	v.SetDefault("pprof.port", 6060)
 
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
@@ -230,6 +238,9 @@ func NewConfig() (*AppConfig, error) {
 	cfg.Storage.S3.ForcePathStyle = v.GetBool("storage.s3.force_path_style")
 
 	cfg.Tus.BasePath = v.GetString("tus.base_path")
+
+	cfg.Pprof.Enabled = v.GetBool("pprof.enabled")
+	cfg.Pprof.Port = v.GetInt("pprof.port")
 
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")
