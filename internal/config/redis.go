@@ -19,6 +19,7 @@ func NewRedisConfig(cfg *AppConfig, log *logrus.Logger) *redis.Client {
 		WriteTimeout: cfg.Redis.WriteTimeout,
 		// Force RESP2 for compatibility across various environments and versions
 		Protocol: 2,
+		DisableIdentity: true,
 	})
 
 	log.Infof("Redis connection established: %s", cfg.Redis.Addr)
