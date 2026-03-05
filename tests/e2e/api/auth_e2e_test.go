@@ -4,12 +4,16 @@
 package api
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
+	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/e2e/setup"
+	"github.com/Roisfaozi/go-clean-boilerplate/tests/fixtures"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TestAuthE2E_RegisterLoginLogout(t *testing.T) {
@@ -254,4 +258,65 @@ func TestAuthE2E_Security_BruteForceProtection(t *testing.T) {
 		resp := server.Client.POST("/api/v1/auth/login", loginReq)
 		assert.True(t, resp.StatusCode == 401 || resp.StatusCode == 429)
 	}
+}
+
+func TestSecurityE2E_TokenRotation(t *testing.T) {
+	server := setup.SetupTestServer(t)
+	defer server.Cleanup()
+	client := server.Client
+
+	f := fixtures.NewUserFactory(server.DB)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("StrongPass123!"), bcrypt.DefaultCost)
+
+	user := f.Create(func(u *userEntity.User) {
+		u.Username = "rotate_user"
+		u.Email = "rot@test.com"
+		u.Password = string(hash)
+	})
+	server.Enforcer.AddGroupingPolicy(user.ID, "role:user", "global")
+
+	resp := client.POST("/api/v1/auth/login", map[string]any{
+		"username": user.Username, "password": "StrongPass123!",
+	})
+	require.Equal(t, 200, resp.StatusCode)
+
+	cookies := resp.Cookies()
+	var refreshToken1 *http.Cookie
+	for _, c := range cookies {
+		if c.Name == "refresh_token" {
+			refreshToken1 = c
+			break
+		}
+	}
+	require.NotNil(t, refreshToken1, "Refresh token cookie not found")
+
+	req, _ := http.NewRequest("POST", server.BaseURL+"/api/v1/auth/refresh", nil)
+	req.AddCookie(refreshToken1)
+
+	clientWithCookie := &http.Client{}
+	respRotate, err := clientWithCookie.Do(req)
+	require.NoError(t, err)
+	defer respRotate.Body.Close()
+
+	require.Equal(t, 200, respRotate.StatusCode)
+
+	cookies2 := respRotate.Cookies()
+	var refreshToken2 *http.Cookie
+	for _, c := range cookies2 {
+		if c.Name == "refresh_token" {
+			refreshToken2 = c
+			break
+		}
+	}
+	require.NotNil(t, refreshToken2)
+	assert.NotEqual(t, refreshToken1.Value, refreshToken2.Value)
+
+	reqReuse, _ := http.NewRequest("POST", server.BaseURL+"/api/v1/auth/refresh", nil)
+	reqReuse.AddCookie(refreshToken1)
+
+	respReuse, err := clientWithCookie.Do(reqReuse)
+	require.NoError(t, err)
+	defer respReuse.Body.Close()
+
+	assert.Contains(t, []int{401, 400}, respReuse.StatusCode)
 }

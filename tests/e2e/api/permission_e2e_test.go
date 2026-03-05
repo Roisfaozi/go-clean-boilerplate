@@ -1,11 +1,9 @@
-//go:build e2e
-// +build e2e
-
 package api
 
 import (
 	"testing"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
@@ -32,11 +30,13 @@ func TestPermissionE2E_RoleHierarchy(t *testing.T) {
 		u.Password = passHash
 	})
 
-	// Add grouping policy (user, role, domain)
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
-	// Add policy (sub, dom, obj, act)
-	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
-	server.Enforcer.SavePolicy()
+	_, err := server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	require.NoError(t, err)
+
+	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
+	require.NoError(t, err)
+	err = server.Enforcer.SavePolicy()
+	require.NoError(t, err)
 
 	loginPayload := map[string]any{"username": admin.Username, "password": "StrongPass123!"}
 	resp := client.POST("/api/v1/auth/login", loginPayload)
@@ -47,7 +47,8 @@ func TestPermissionE2E_RoleHierarchy(t *testing.T) {
 			AccessToken string `json:"access_token"`
 		}
 	}
-	resp.JSON(&loginRes)
+	err = resp.JSON(&loginRes)
+	require.NoError(t, err)
 	adminToken := loginRes.Data.AccessToken
 
 	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Supervisor"})
@@ -71,7 +72,8 @@ func TestPermissionE2E_RoleHierarchy(t *testing.T) {
 			AccessToken string `json:"access_token"`
 		}
 	}
-	resp.JSON(&supLoginRes)
+	err = resp.JSON(&supLoginRes)
+	require.NoError(t, err)
 	supToken := supLoginRes.Data.AccessToken
 
 	batchReq := model.BatchPermissionCheckRequest{
@@ -84,7 +86,8 @@ func TestPermissionE2E_RoleHierarchy(t *testing.T) {
 	var checkRes struct {
 		Data model.BatchPermissionCheckResponse `json:"data"`
 	}
-	resp.JSON(&checkRes)
+	err = resp.JSON(&checkRes)
+	require.NoError(t, err)
 
 	assert.False(t, checkRes.Data.Results["/api/v1/coffee:GET"], "Supervisor should NOT have access yet")
 
@@ -97,7 +100,8 @@ func TestPermissionE2E_RoleHierarchy(t *testing.T) {
 
 	resp = client.POST("/api/v1/permissions/check-batch", batchReq, setup.WithAuth(supToken))
 	require.Equal(t, 200, resp.StatusCode)
-	resp.JSON(&checkRes)
+	err = resp.JSON(&checkRes)
+	require.NoError(t, err)
 
 	assert.True(t, checkRes.Data.Results["/api/v1/coffee:GET"], "Supervisor SHOULD have access after inheritance")
 }
@@ -112,9 +116,12 @@ func TestPermissionE2E_BatchCheck(t *testing.T) {
 	passHash := string(hash)
 
 	admin := f.Create(func(u *userEntity.User) { u.Username = "batch_admin"; u.Password = passHash })
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
-	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
-	server.Enforcer.SavePolicy()
+	_, err := server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	require.NoError(t, err)
+	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
+	require.NoError(t, err)
+	err = server.Enforcer.SavePolicy()
+	require.NoError(t, err)
 
 	resp := client.POST("/api/v1/auth/login", map[string]any{"username": admin.Username, "password": "StrongPass123!"})
 	var adminRes struct {
@@ -122,7 +129,8 @@ func TestPermissionE2E_BatchCheck(t *testing.T) {
 			AccessToken string `json:"access_token"`
 		}
 	}
-	resp.JSON(&adminRes)
+	err = resp.JSON(&adminRes)
+	require.NoError(t, err)
 	adminToken := adminRes.Data.AccessToken
 
 	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Editor"})
@@ -139,7 +147,8 @@ func TestPermissionE2E_BatchCheck(t *testing.T) {
 			AccessToken string `json:"access_token"`
 		}
 	}
-	resp.JSON(&userRes)
+	err = resp.JSON(&userRes)
+	require.NoError(t, err)
 	userToken := userRes.Data.AccessToken
 
 	roles, _ := server.Enforcer.GetRolesForUser(user.ID, "global")
@@ -160,7 +169,7 @@ func TestPermissionE2E_BatchCheck(t *testing.T) {
 	var checkRes struct {
 		Data model.BatchPermissionCheckResponse `json:"data"`
 	}
-	err := resp.JSON(&checkRes)
+	err = resp.JSON(&checkRes)
 	require.NoError(t, err)
 
 	assert.True(t, checkRes.Data.Results["/news:READ"])
@@ -184,9 +193,12 @@ func TestPermissionE2E_RevokeRole(t *testing.T) {
 		u.Password = passHash
 	})
 
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
-	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
-	server.Enforcer.SavePolicy()
+	_, err := server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	require.NoError(t, err)
+	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
+	require.NoError(t, err)
+	err = server.Enforcer.SavePolicy()
+	require.NoError(t, err)
 
 	resp := client.POST("/api/v1/auth/login", map[string]any{"username": admin.Username, "password": "StrongPass123!"})
 	require.Equal(t, 200, resp.StatusCode)
@@ -195,21 +207,19 @@ func TestPermissionE2E_RevokeRole(t *testing.T) {
 			AccessToken string `json:"access_token"`
 		} `json:"data"`
 	}
-	resp.JSON(&loginRes)
+	err = resp.JSON(&loginRes)
+	require.NoError(t, err)
 	adminToken := loginRes.Data.AccessToken
 
-	// Create role and user
 	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "RevokeTestRole"})
 	user := f.Create(func(u *userEntity.User) { u.Username = "revoke_user"; u.Password = passHash })
 
-	// Assign role
 	resp = client.POST("/api/v1/permissions/assign-role", map[string]any{
 		"user_id": user.ID,
 		"role":    "RevokeTestRole",
 	}, setup.WithAuth(adminToken))
 	require.Equal(t, 200, resp.StatusCode)
 
-	// Verify role assigned
 	roles, _ := server.Enforcer.GetRolesForUser(user.ID, "global")
 	assert.Contains(t, roles, "RevokeTestRole")
 
@@ -220,7 +230,6 @@ func TestPermissionE2E_RevokeRole(t *testing.T) {
 		}, setup.WithAuth(adminToken))
 		assert.Equal(t, 200, resp.StatusCode)
 
-		// Verify role revoked
 		rolesAfter, _ := server.Enforcer.GetRolesForUser(user.ID, "global")
 		assert.NotContains(t, rolesAfter, "RevokeTestRole")
 	})
@@ -241,9 +250,12 @@ func TestPermissionE2E_RemoveInheritance(t *testing.T) {
 		u.Password = passHash
 	})
 
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
-	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
-	server.Enforcer.SavePolicy()
+	_, err := server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	require.NoError(t, err)
+	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
+	require.NoError(t, err)
+	err = server.Enforcer.SavePolicy()
+	require.NoError(t, err)
 
 	resp := client.POST("/api/v1/auth/login", map[string]any{"username": admin.Username, "password": "StrongPass123!"})
 	require.Equal(t, 200, resp.StatusCode)
@@ -252,26 +264,23 @@ func TestPermissionE2E_RemoveInheritance(t *testing.T) {
 			AccessToken string `json:"access_token"`
 		} `json:"data"`
 	}
-	resp.JSON(&loginRes)
+	err = resp.JSON(&loginRes)
+	require.NoError(t, err)
 	adminToken := loginRes.Data.AccessToken
 
-	// Create roles
 	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "ParentRole"})
 	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "ChildRole"})
 
-	// Grant permission to child
 	client.POST("/api/v1/permissions/grant", map[string]any{
 		"role": "ChildRole", "path": "/api/v1/inherited", "method": "GET",
 	}, setup.WithAuth(adminToken))
 
-	// Add inheritance - Parent inherits from Child
 	resp = client.POST("/api/v1/permissions/inheritance", map[string]any{
 		"child_role":  "ParentRole",
 		"parent_role": "ChildRole",
 	}, setup.WithAuth(adminToken))
 	require.Equal(t, 200, resp.StatusCode)
 
-	// Verify inheritance
 	ok, _ := server.Enforcer.Enforce("ParentRole", "global", "/api/v1/inherited", "GET")
 	assert.True(t, ok, "Parent should have access via inheritance")
 
@@ -282,7 +291,6 @@ func TestPermissionE2E_RemoveInheritance(t *testing.T) {
 		}, setup.WithAuth(adminToken))
 		assert.Equal(t, 200, resp.StatusCode)
 
-		// Verify inheritance removed
 		ok, _ := server.Enforcer.Enforce("ParentRole", "global", "/api/v1/inherited", "GET")
 		assert.False(t, ok, "Parent should NOT have access after inheritance removed")
 	})
@@ -297,15 +305,17 @@ func TestPermissionE2E_Security_PostRoleDeletion_PermissionsRevoked(t *testing.T
 	hash, _ := bcrypt.GenerateFromPassword([]byte("StrongPass123!"), bcrypt.DefaultCost)
 	passHash := string(hash)
 
-	// Setup admin
 	admin := f.Create(func(u *userEntity.User) {
 		u.Username = "post_del_admin"
 		u.Email = "postdel@admin.com"
 		u.Password = passHash
 	})
-	server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
-	server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
-	server.Enforcer.SavePolicy()
+	_, err := server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	require.NoError(t, err)
+	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
+	require.NoError(t, err)
+	err = server.Enforcer.SavePolicy()
+	require.NoError(t, err)
 
 	resp := client.POST("/api/v1/auth/login", map[string]any{"username": admin.Username, "password": "StrongPass123!"})
 	require.Equal(t, 200, resp.StatusCode)
@@ -314,49 +324,346 @@ func TestPermissionE2E_Security_PostRoleDeletion_PermissionsRevoked(t *testing.T
 			AccessToken string `json:"access_token"`
 		} `json:"data"`
 	}
-	resp.JSON(&adminLoginRes)
+	err = resp.JSON(&adminLoginRes)
+	require.NoError(t, err)
 	adminToken := adminLoginRes.Data.AccessToken
 
-	// Create role in DB and enforce layer
 	roleID := uuid.New().String()
 	server.DB.Create(&roleEntity.Role{ID: roleID, Name: "EphemeralRole"})
-	server.Enforcer.AddPolicy("EphemeralRole", "global", "/api/v1/secret", "GET")
-	server.Enforcer.SavePolicy()
+	_, err = server.Enforcer.AddPolicy("EphemeralRole", "global", "/api/v1/secret", "GET")
+	require.NoError(t, err)
+	err = server.Enforcer.SavePolicy()
+	require.NoError(t, err)
 
-	// Create user and assign the role
 	targetUser := f.Create(func(u *userEntity.User) { u.Username = "ephemeral_user"; u.Password = passHash })
 	client.POST("/api/v1/permissions/assign-role", map[string]any{
 		"user_id": targetUser.ID,
 		"role":    "EphemeralRole",
 	}, setup.WithAuth(adminToken))
 
-	// Login target user and verify access before deletion
 	resp = client.POST("/api/v1/auth/login", map[string]any{"username": targetUser.Username, "password": "StrongPass123!"})
 	var targetLoginRes struct {
 		Data struct {
 			AccessToken string `json:"access_token"`
 		} `json:"data"`
 	}
-	resp.JSON(&targetLoginRes)
+	err = resp.JSON(&targetLoginRes)
+	require.NoError(t, err)
 	targetToken := targetLoginRes.Data.AccessToken
 
 	roles, _ := server.Enforcer.GetRolesForUser(targetUser.ID, "global")
 	assert.Contains(t, roles, "EphemeralRole", "User should have role before deletion")
 
-	// Admin deletes the role
 	resp = client.DELETE("/api/v1/roles/"+roleID, setup.WithAuth(adminToken))
 	assert.True(t, resp.StatusCode == 200 || resp.StatusCode == 204, "Role deletion should succeed")
 
-	// Verify Casbin policies for the role are cleaned up
-	policies := server.Enforcer.GetFilteredPolicy(0, "EphemeralRole")
+	policies, _ := server.Enforcer.GetFilteredPolicy(0, "EphemeralRole")
 	assert.Empty(t, policies, "All Casbin policies for deleted role must be removed")
 
-	// Verify user no longer holds the role in the enforce layer
 	rolesAfter, _ := server.Enforcer.GetRolesForUser(targetUser.ID, "global")
 	assert.NotContains(t, rolesAfter, "EphemeralRole", "User's role assignment must be removed after role deletion")
 
-	// User's token should no longer grant permission to resources previously covered by that role
-	_ = targetToken // token may still be valid JWT, but Casbin check should deny
+	_ = targetToken
 	hasAccess, _ := server.Enforcer.Enforce(targetUser.ID, "global", "/api/v1/secret", "GET")
 	assert.False(t, hasAccess, "User must NOT have access after role deletion")
+}
+
+func TestPermissionE2E_AccessRightAssignment(t *testing.T) {
+	server := setup.SetupTestServer(t)
+	defer server.Cleanup()
+	client := server.Client
+
+	f := fixtures.NewUserFactory(server.DB)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("StrongPass123!"), bcrypt.DefaultCost)
+	passHash := string(hash)
+
+	admin := f.Create(func(u *userEntity.User) {
+		u.Username = "ar_admin"
+		u.Email = "ar@admin.com"
+		u.Password = passHash
+	})
+
+	_, err := server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	require.NoError(t, err)
+	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
+	require.NoError(t, err)
+	err = server.Enforcer.SavePolicy()
+	require.NoError(t, err)
+
+	loginPayload := map[string]any{"username": admin.Username, "password": "StrongPass123!"}
+	resp := client.POST("/api/v1/auth/login", loginPayload)
+	require.Equal(t, 200, resp.StatusCode)
+
+	var loginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		}
+	}
+	err = resp.JSON(&loginRes)
+	require.NoError(t, err)
+	adminToken := loginRes.Data.AccessToken
+
+	ep1 := entity.Endpoint{Path: "/api/test", Method: "GET"}
+	ep2 := entity.Endpoint{Path: "/api/test", Method: "POST"}
+	server.DB.Create(&ep1)
+	server.DB.Create(&ep2)
+
+	ar := entity.AccessRight{
+		Name:      "Test Access Right",
+		Endpoints: []entity.Endpoint{ep1, ep2},
+	}
+	server.DB.Create(&ar)
+
+	roleName := "TestRole"
+
+	t.Run("GetRoleAccessRights - Unassigned", func(t *testing.T) {
+		resp := client.GET("/api/v1/permissions/roles/"+roleName+"/access-rights", setup.WithAuth(adminToken))
+		require.Equal(t, 200, resp.StatusCode)
+
+		var res struct {
+			Data []model.RoleAccessRightStatus `json:"data"`
+		}
+		err = resp.JSON(&res)
+		require.NoError(t, err)
+
+		found := false
+		for _, s := range res.Data {
+			if s.ID == ar.ID {
+				found = true
+				assert.False(t, s.Assigned)
+				assert.False(t, s.Partial)
+			}
+		}
+		assert.True(t, found, "Access right should be in the list")
+	})
+
+	t.Run("AssignAccessRight", func(t *testing.T) {
+		payload := map[string]any{
+			"role":            roleName,
+			"access_right_id": ar.ID,
+		}
+		resp := client.POST("/api/v1/permissions/assign-access-right", payload, setup.WithAuth(adminToken))
+		require.Equal(t, 200, resp.StatusCode)
+
+		ok, _ := server.Enforcer.Enforce(roleName, "global", "/api/test", "GET")
+		assert.True(t, ok)
+		ok2, _ := server.Enforcer.Enforce(roleName, "global", "/api/test", "POST")
+		assert.True(t, ok2)
+	})
+
+	t.Run("GetRoleAccessRights - Assigned", func(t *testing.T) {
+		resp := client.GET("/api/v1/permissions/roles/"+roleName+"/access-rights", setup.WithAuth(adminToken))
+		require.Equal(t, 200, resp.StatusCode)
+
+		var res struct {
+			Data []model.RoleAccessRightStatus `json:"data"`
+		}
+		err = resp.JSON(&res)
+		require.NoError(t, err)
+
+		for _, s := range res.Data {
+			if s.ID == ar.ID {
+				assert.True(t, s.Assigned)
+			}
+		}
+	})
+
+	t.Run("RevokeAccessRight", func(t *testing.T) {
+		payload := map[string]any{
+			"role":            roleName,
+			"access_right_id": ar.ID,
+		}
+		resp := client.DELETE("/api/v1/permissions/revoke-access-right", payload, setup.WithAuth(adminToken))
+		require.Equal(t, 200, resp.StatusCode)
+
+		ok, _ := server.Enforcer.Enforce(roleName, "global", "/api/test", "GET")
+		assert.False(t, ok)
+		ok2, _ := server.Enforcer.Enforce(roleName, "global", "/api/test", "POST")
+		assert.False(t, ok2)
+	})
+}
+
+func TestAccessRightsFlowE2E(t *testing.T) {
+	server := setup.SetupTestServer(t)
+	defer server.Cleanup()
+	client := server.Client
+
+	f := fixtures.NewUserFactory(server.DB)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("AdminPass123!"), bcrypt.DefaultCost)
+	admin := f.Create(func(u *userEntity.User) {
+		u.Username = "flow_admin"
+		u.Password = string(hash)
+	})
+	_, err := server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	require.NoError(t, err)
+	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
+	require.NoError(t, err)
+	err = server.Enforcer.SavePolicy()
+	require.NoError(t, err)
+
+	resp := client.POST("/api/v1/auth/login", map[string]any{
+		"username": admin.Username,
+		"password": "AdminPass123!",
+	})
+	require.Equal(t, 200, resp.StatusCode)
+	var loginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		}
+	}
+	err = resp.JSON(&loginRes)
+	require.NoError(t, err)
+	adminToken := loginRes.Data.AccessToken
+
+	resp = client.POST("/api/v1/access-rights", map[string]any{
+		"name":        "User Management",
+		"description": "Operations related to user accounts",
+	}, setup.WithAuth(adminToken))
+	require.Equal(t, 201, resp.StatusCode)
+	var arRes struct {
+		Data struct {
+			ID string `json:"id"`
+		}
+	}
+	err = resp.JSON(&arRes)
+	require.NoError(t, err)
+	arID := arRes.Data.ID
+
+	resp = client.POST("/api/v1/endpoints", map[string]any{
+		"path":   "/api/v1/users",
+		"method": "GET",
+	}, setup.WithAuth(adminToken))
+	require.Equal(t, 201, resp.StatusCode)
+	var epRes struct {
+		Data struct {
+			ID string `json:"id"`
+		}
+	}
+	err = resp.JSON(&epRes)
+	require.NoError(t, err)
+	epID := epRes.Data.ID
+
+	resp = client.POST("/api/v1/access-rights/link", map[string]any{
+		"access_right_id": arID,
+		"endpoint_id":     epID,
+	}, setup.WithAuth(adminToken))
+	assert.Equal(t, 200, resp.StatusCode)
+
+	roleID := uuid.New().String()
+	server.DB.Create(&roleEntity.Role{ID: roleID, Name: "UserManager"})
+
+	resp = client.POST("/api/v1/permissions/grant", map[string]any{
+		"role":   "UserManager",
+		"path":   "/api/v1/users",
+		"method": "GET",
+	}, setup.WithAuth(adminToken))
+	assert.Equal(t, 201, resp.StatusCode)
+
+	user := f.Create(func(u *userEntity.User) { u.Username = "manager_user"; u.Password = string(hash) })
+	client.POST("/api/v1/permissions/assign-role", map[string]any{
+		"user_id": user.ID,
+		"role":    "UserManager",
+	}, setup.WithAuth(adminToken))
+
+	ok, err := server.Enforcer.Enforce(user.ID, "global", "/api/v1/users", "GET")
+	require.NoError(t, err)
+	assert.True(t, ok, "User should have access to linked endpoint")
+}
+
+func TestSecurityE2E_DynamicRBAC(t *testing.T) {
+	server := setup.SetupTestServer(t)
+	defer server.Cleanup()
+	client := server.Client
+
+	f := fixtures.NewUserFactory(server.DB)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("StrongPass123!"), bcrypt.DefaultCost)
+	passHash := string(hash)
+
+	user := f.Create(func(u *userEntity.User) {
+		u.Username = "rbac_user"
+		u.Email = "rbac@test.com"
+		u.Password = passHash
+	})
+
+	admin := f.Create(func(u *userEntity.User) {
+		u.Username = "super_admin"
+		u.Email = "super@admin.com"
+		u.Password = passHash
+	})
+
+	_, err := server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	require.NoError(t, err)
+	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "/api/v1/permissions/grant", "POST")
+	require.NoError(t, err)
+	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "/api/v1/permissions/assign-role", "POST")
+	require.NoError(t, err)
+	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "/api/v1/roles", "GET")
+	require.NoError(t, err)
+
+	err = server.Enforcer.SavePolicy()
+	require.NoError(t, err)
+
+	loginPayload := map[string]any{"username": user.Username, "password": "StrongPass123!"}
+	resp := client.POST("/api/v1/auth/login", loginPayload)
+	var loginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		}
+	}
+	err = resp.JSON(&loginRes)
+	require.NoError(t, err)
+	userToken := loginRes.Data.AccessToken
+
+	adminLoginPayload := map[string]any{"username": admin.Username, "password": "StrongPass123!"}
+	respAdmin := client.POST("/api/v1/auth/login", adminLoginPayload)
+	var adminLoginRes struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		}
+	}
+	err = respAdmin.JSON(&adminLoginRes)
+	require.NoError(t, err)
+	adminToken := adminLoginRes.Data.AccessToken
+
+	resp = client.GET("/api/v1/roles", setup.WithAuth(userToken))
+	assert.Equal(t, 403, resp.StatusCode)
+
+	roleName := "DynamicViewer"
+
+	server.DB.Create(&roleEntity.Role{Name: roleName})
+
+	grantPayload := map[string]any{
+		"role":   roleName,
+		"path":   "/api/v1/roles",
+		"method": "GET",
+	}
+	resp = client.POST("/api/v1/permissions/grant", grantPayload, setup.WithAuth(adminToken))
+	require.Equal(t, 201, resp.StatusCode)
+
+	assignPayload := map[string]any{
+
+		"user_id": user.ID,
+
+		"role": roleName,
+	}
+
+	resp = client.POST("/api/v1/permissions/assign-role", assignPayload, setup.WithAuth(adminToken))
+
+	require.Equal(t, 200, resp.StatusCode)
+
+	userRoles, _ := server.Enforcer.GetRolesForUser(user.ID, "global")
+
+	t.Logf("DEBUG: Roles for user %s: %v", user.ID, userRoles)
+
+	hasPermission, _ := server.Enforcer.HasPolicy(roleName, "global", "/api/v1/roles", "GET")
+
+	t.Logf("DEBUG: Role %s has permission GET /api/v1/roles: %v", roleName, hasPermission)
+
+	err = server.Enforcer.LoadPolicy()
+	require.NoError(t, err)
+
+	resp = client.GET("/api/v1/roles", setup.WithAuth(userToken))
+
+	assert.Equal(t, 200, resp.StatusCode)
+
 }
