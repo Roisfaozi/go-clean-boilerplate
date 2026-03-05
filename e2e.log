@@ -1,0 +1,207 @@
+Running E2E tests...
+go test -v ./tests/e2e/... -tags=e2e -p 1 -timeout=15m
+=== RUN   TestAccessE2E_AccessRightsCRUD
+2026/03/05 12:01:17 github.com/testcontainers/testcontainers-go - Connected to docker:
+  Server Version: 29.1.5
+  API Version: 1.51
+  Operating System: Ubuntu 24.04.3 LTS
+  Total Memory: 7959 MB
+  Testcontainers for Go Version: v0.40.0
+  Resolved Docker Host: unix:///var/run/docker.sock
+  Resolved Docker Socket Path: /var/run/docker.sock
+  Test SessionID: 1b8ffc4b3ead9576b108304b54f08d3638ef4d277bff7ad649a6d7dc5692d8a8
+  Test ProcessID: 9c7633a5-0665-4942-9241-df415421a5cb
+2026/03/05 12:01:17 No image auth found for https://index.docker.io/v1/. Setting empty credentials for the image: mysql:lts. This is expected for public images. Details: credentials not found in native keychain
+    test_container.go:139: Skipping integration tests: Docker environment not available or failed to start: run mysql: generic container: create container: Error response from daemon: error from registry: You have reached your unauthenticated pull rate limit. https://www.docker.com/increase-rate-limit
+--- SKIP: TestAccessE2E_AccessRightsCRUD (0.91s)
+=== RUN   TestAccessE2E_EndpointsCRUD
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAccessE2E_EndpointsCRUD (0.00s)
+=== RUN   TestAccessE2E_LinkEndpointToAccessRight
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAccessE2E_LinkEndpointToAccessRight (0.00s)
+=== RUN   TestAccessE2E_DynamicSearch
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAccessE2E_DynamicSearch (0.00s)
+=== RUN   TestAuthE2E_RegisterLoginLogout
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_RegisterLoginLogout (0.00s)
+=== RUN   TestAuthE2E_InvalidCredentials
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_InvalidCredentials (0.00s)
+=== RUN   TestAuthE2E_ForgotPasswordFlow
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_ForgotPasswordFlow (0.00s)
+=== RUN   TestAuthE2E_Register_Negative_DuplicateUsername
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_Register_Negative_DuplicateUsername (0.00s)
+=== RUN   TestAuthE2E_ProtectedEndpoint_Negative_NoToken
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_ProtectedEndpoint_Negative_NoToken (0.00s)
+=== RUN   TestAuthE2E_ProtectedEndpoint_Negative_InvalidToken
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_ProtectedEndpoint_Negative_InvalidToken (0.00s)
+=== RUN   TestAuthE2E_Register_Edge_SpecialCharactersInUsername
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_Register_Edge_SpecialCharactersInUsername (0.00s)
+=== RUN   TestAuthE2E_Login_Edge_CaseSensitiveUsername
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_Login_Edge_CaseSensitiveUsername (0.00s)
+=== RUN   TestAuthE2E_Security_SQLInjectionInLogin
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_Security_SQLInjectionInLogin (0.00s)
+=== RUN   TestAuthE2E_Security_XSSInRegistration
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_Security_XSSInRegistration (0.00s)
+=== RUN   TestAuthE2E_Security_BruteForceProtection
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_Security_BruteForceProtection (0.00s)
+=== RUN   TestSecurityE2E_TokenRotation
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestSecurityE2E_TokenRotation (0.00s)
+=== RUN   TestAuthE2E_EmailVerificationFlow
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_EmailVerificationFlow (0.00s)
+=== RUN   TestAuthE2E_VerifyEmail_InvalidToken
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_VerifyEmail_InvalidToken (0.00s)
+=== RUN   TestAuthE2E_ResendVerification_Unauthenticated
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuthE2E_ResendVerification_Unauthenticated (0.00s)
+=== RUN   TestAuditExportE2E
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAuditExportE2E (0.00s)
+=== RUN   TestMultiTenancyE2E_MemberFlow
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestMultiTenancyE2E_MemberFlow (0.00s)
+=== RUN   TestOrganizationE2E_Create_Success
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestOrganizationE2E_Create_Success (0.00s)
+=== RUN   TestOrganizationE2E_CRUD
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestOrganizationE2E_CRUD (0.00s)
+=== RUN   TestPermissionE2E_RoleHierarchy
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestPermissionE2E_RoleHierarchy (0.00s)
+=== RUN   TestPermissionE2E_BatchCheck
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestPermissionE2E_BatchCheck (0.00s)
+=== RUN   TestPermissionE2E_RevokeRole
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestPermissionE2E_RevokeRole (0.00s)
+=== RUN   TestPermissionE2E_RemoveInheritance
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestPermissionE2E_RemoveInheritance (0.00s)
+=== RUN   TestPermissionE2E_Security_PostRoleDeletion_PermissionsRevoked
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestPermissionE2E_Security_PostRoleDeletion_PermissionsRevoked (0.00s)
+=== RUN   TestPermissionE2E_AccessRightAssignment
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestPermissionE2E_AccessRightAssignment (0.00s)
+=== RUN   TestAccessRightsFlowE2E
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestAccessRightsFlowE2E (0.00s)
+=== RUN   TestSecurityE2E_DynamicRBAC
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestSecurityE2E_DynamicRBAC (0.00s)
+=== RUN   TestProjectE2E_CRUD_Lifecycle
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestProjectE2E_CRUD_Lifecycle (0.00s)
+=== RUN   TestProjectE2E_CreateMultiple
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestProjectE2E_CreateMultiple (0.00s)
+=== RUN   TestProjectE2E_Unauthorized
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestProjectE2E_Unauthorized (0.00s)
+=== RUN   TestProjectE2E_GetByID_NotFound
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestProjectE2E_GetByID_NotFound (0.00s)
+=== RUN   TestRoleE2E_CreateRole
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestRoleE2E_CreateRole (0.00s)
+=== RUN   TestRoleE2E_DeleteRole
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestRoleE2E_DeleteRole (0.00s)
+=== RUN   TestRoleE2E_GetAllRoles
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestRoleE2E_GetAllRoles (0.00s)
+=== RUN   TestRoleE2E_UpdateRole
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestRoleE2E_UpdateRole (0.00s)
+=== RUN   TestRoleE2E_DynamicSearch
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestRoleE2E_DynamicSearch (0.00s)
+=== RUN   TestStatsE2E_GetSummary
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestStatsE2E_GetSummary (0.00s)
+=== RUN   TestStatsE2E_GetActivity
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestStatsE2E_GetActivity (0.00s)
+=== RUN   TestStatsE2E_GetInsights
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestStatsE2E_GetInsights (0.00s)
+=== RUN   TestStatsE2E_Unauthorized
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestStatsE2E_Unauthorized (0.00s)
+=== RUN   TestUserE2E_GetAllUsers
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestUserE2E_GetAllUsers (0.00s)
+=== RUN   TestUserE2E_GetUserByID
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestUserE2E_GetUserByID (0.00s)
+=== RUN   TestUserE2E_DeleteUser
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestUserE2E_DeleteUser (0.00s)
+=== RUN   TestUserE2E_UpdateStatus
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestUserE2E_UpdateStatus (0.00s)
+=== RUN   TestUserE2E_Security_IDOR_UpdateOtherUser
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestUserE2E_Security_IDOR_UpdateOtherUser (0.00s)
+=== RUN   TestSecurityE2E_AdminBanUser
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestSecurityE2E_AdminBanUser (0.00s)
+=== RUN   TestUserE2E_DynamicSearch
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestUserE2E_DynamicSearch (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/tests/e2e/api	(cached)
+=== RUN   TestTUS_E2E_Lifecycle
+2026/03/05 12:01:21 github.com/testcontainers/testcontainers-go - Connected to docker:
+  Server Version: 29.1.5
+  API Version: 1.51
+  Operating System: Ubuntu 24.04.3 LTS
+  Total Memory: 7959 MB
+  Testcontainers for Go Version: v0.40.0
+  Resolved Docker Host: unix:///var/run/docker.sock
+  Resolved Docker Socket Path: /var/run/docker.sock
+  Test SessionID: 1b8ffc4b3ead9576b108304b54f08d3638ef4d277bff7ad649a6d7dc5692d8a8
+  Test ProcessID: f4d71926-db6a-4a16-964e-de948f805a28
+2026/03/05 12:01:21 No image auth found for https://index.docker.io/v1/. Setting empty credentials for the image: mysql:lts. This is expected for public images. Details: credentials not found in native keychain
+    test_container.go:139: Skipping integration tests: Docker environment not available or failed to start: run mysql: generic container: create container: Error response from daemon: error from registry: You have reached your unauthenticated pull rate limit. https://www.docker.com/increase-rate-limit
+--- SKIP: TestTUS_E2E_Lifecycle (0.86s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/tests/e2e/modules	(cached)
+=== RUN   TestSSE_EventSubscription
+2026/03/05 12:01:25 github.com/testcontainers/testcontainers-go - Connected to docker:
+  Server Version: 29.1.5
+  API Version: 1.51
+  Operating System: Ubuntu 24.04.3 LTS
+  Total Memory: 7959 MB
+  Testcontainers for Go Version: v0.40.0
+  Resolved Docker Host: unix:///var/run/docker.sock
+  Resolved Docker Socket Path: /var/run/docker.sock
+  Test SessionID: 1b8ffc4b3ead9576b108304b54f08d3638ef4d277bff7ad649a6d7dc5692d8a8
+  Test ProcessID: a435f2c1-1ce4-435f-9023-0b493850a446
+2026/03/05 12:01:25 No image auth found for https://index.docker.io/v1/. Setting empty credentials for the image: mysql:lts. This is expected for public images. Details: credentials not found in native keychain
+    test_container.go:139: Skipping integration tests: Docker environment not available or failed to start: run mysql: generic container: create container: Error response from daemon: error from registry: You have reached your unauthenticated pull rate limit. https://www.docker.com/increase-rate-limit
+--- SKIP: TestSSE_EventSubscription (0.90s)
+=== RUN   TestWebSocketE2E_NotificationFlow
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestWebSocketE2E_NotificationFlow (0.00s)
+=== RUN   TestPresenceE2E_IsolationAndEvents
+    test_container.go:179: Skipping integration tests: Database not initialized (likely due to missing Docker)
+--- SKIP: TestPresenceE2E_IsolationAndEvents (0.00s)
+PASS
+ok  	github.com/Roisfaozi/go-clean-boilerplate/tests/e2e/realtime	(cached)
+?   	github.com/Roisfaozi/go-clean-boilerplate/tests/e2e/setup	[no test files]
