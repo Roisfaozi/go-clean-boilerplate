@@ -1545,7 +1545,8 @@ paths:
       - endpoints
   /events:
     get:
-      description: Establishes a Server-Sent Events stream for real-time updates.
+      description: Establishes a Server-Sent Events connection for unidirectional
+        real-time notifications.
       produces:
       - text/event-stream
       responses:
@@ -1559,9 +1560,27 @@ paths:
             $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
-      summary: Subscribe to SSE events
+      summary: SSE connection
       tags:
       - realtime
+  /health:
+    get:
+      description: Returns the health status of the application and its core dependencies
+        (MySQL, Redis).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: System is healthy
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "503":
+          description: System is degraded
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      summary: System Health Check
+      tags:
+      - system
   /organizations:
     post:
       consumes:
@@ -3196,12 +3215,13 @@ paths:
   /upload/files/:
     post:
       consumes:
-      - application/json
-      description: Initializes a new resumable upload session using the TUS protocol.
+      - application/offset+octet-stream
+      description: Implements the TUS protocol for resumable file uploads. Supports
+        POST (initiate), PATCH (content), and HEAD (status).
       parameters:
-      - description: TUS protocol version (must be 1.0.0)
+      - description: Organization ID
         in: header
-        name: Tus-Resumable
+        name: X-Organization-ID
         required: true
         type: string
       - description: Total size of the file in bytes
@@ -3209,31 +3229,31 @@ paths:
         name: Upload-Length
         required: true
         type: integer
-      - description: Base64 encoded metadata (e.g. type, filename)
+      - description: TUS protocol version (e.g., 1.0.0)
+        in: header
+        name: Tus-Resumable
+        required: true
+        type: string
+      - description: Metadata for the upload (base64 encoded)
         in: header
         name: Upload-Metadata
-        required: true
         type: string
       produces:
       - application/json
       responses:
         "201":
-          description: Created
+          description: Created (Location header contains upload URL)
           schema:
             type: string
         "401":
           description: Unauthorized
           schema:
             $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
-      summary: Create a new resumable upload
+      summary: Resumable File Upload
       tags:
-      - upload
+      - storage
   /upload/files/{id}:
     delete:
       description: Terminates an ongoing resumable upload and removes its partial
@@ -3266,22 +3286,16 @@ paths:
       tags:
       - upload
     head:
-      description: Returns the current offset (number of bytes already uploaded) for
-        a specific resumable upload.
+      description: Retrieves the current offset and status of a TUS upload.
       parameters:
       - description: Upload ID
         in: path
         name: id
         required: true
         type: string
-      - description: TUS protocol version (must be 1.0.0)
-        in: header
-        name: Tus-Resumable
-        required: true
-        type: string
       responses:
         "200":
-          description: OK
+          description: OK (Upload-Offset header contains current progress)
           schema:
             type: string
         "401":
@@ -3294,50 +3308,45 @@ paths:
             $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
-      summary: Check upload offset
+      summary: Get Upload Status
       tags:
-      - upload
+      - storage
     patch:
       consumes:
-      - application/octet-stream
-      description: Sends a chunk of binary data to an existing resumable upload session.
+      - application/offset+octet-stream
+      description: Uploads a chunk of data to an existing TUS upload.
       parameters:
       - description: Upload ID
         in: path
         name: id
         required: true
         type: string
-      - description: TUS protocol version (must be 1.0.0)
-        in: header
-        name: Tus-Resumable
-        required: true
-        type: string
-      - description: Current offset of the chunk being sent
+      - description: Offset within the file where this chunk starts
         in: header
         name: Upload-Offset
         required: true
         type: integer
-      - description: Must be application/offset+octet-stream
+      - description: application/offset+octet-stream
         in: header
         name: Content-Type
         required: true
         type: string
+      produces:
+      - application/json
       responses:
         "204":
           description: No Content
+          schema:
+            type: string
         "401":
           description: Unauthorized
           schema:
             $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-        "409":
-          description: Overlap or mismatching offset
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
-      summary: Upload file chunk
+      summary: Upload File Chunk
       tags:
-      - upload
+      - storage
   /users:
     get:
       description: Retrieves a list of all users with optional pagination and filtering.
@@ -3700,13 +3709,11 @@ paths:
       - users
   /ws:
     get:
-      description: Upgrades the HTTP connection to a WebSocket connection for real-time
-        notifications and presence. Requires a valid ticket obtained from /auth/ticket.
+      description: Establishes a WebSocket connection for real-time updates and presence.
       parameters:
-      - description: WebSocket authentication ticket
+      - description: One-time WebSocket ticket (if not using Bearer header)
         in: query
         name: ticket
-        required: true
         type: string
       responses:
         "101":
@@ -3717,7 +3724,9 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-      summary: Connect to WebSocket
+      security:
+      - BearerAuth: []
+      summary: WebSocket connection
       tags:
       - realtime
 securityDefinitions:

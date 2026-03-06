@@ -1081,14 +1081,14 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Establishes a Server-Sent Events stream for real-time updates.",
+                "description": "Establishes a Server-Sent Events connection for unidirectional real-time notifications.",
                 "produces": [
                     "text/event-stream"
                 ],
                 "tags": [
                     "realtime"
                 ],
-                "summary": "Subscribe to SSE events",
+                "summary": "SSE connection",
                 "responses": {
                     "200": {
                         "description": "Event stream",
@@ -1098,6 +1098,32 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Returns the health status of the application and its core dependencies (MySQL, Redis).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "system"
+                ],
+                "summary": "System Health Check",
+                "responses": {
+                    "200": {
+                        "description": "System is healthy",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
+                        }
+                    },
+                    "503": {
+                        "description": "System is degraded",
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
@@ -3727,22 +3753,22 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Initializes a new resumable upload session using the TUS protocol.",
+                "description": "Implements the TUS protocol for resumable file uploads. Supports POST (initiate), PATCH (content), and HEAD (status).",
                 "consumes": [
-                    "application/json"
+                    "application/offset+octet-stream"
                 ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "upload"
+                    "storage"
                 ],
-                "summary": "Create a new resumable upload",
+                "summary": "Resumable File Upload",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "TUS protocol version (must be 1.0.0)",
-                        "name": "Tus-Resumable",
+                        "description": "Organization ID",
+                        "name": "X-Organization-ID",
                         "in": "header",
                         "required": true
                     },
@@ -3755,27 +3781,27 @@
                     },
                     {
                         "type": "string",
-                        "description": "Base64 encoded metadata (e.g. type, filename)",
-                        "name": "Upload-Metadata",
+                        "description": "TUS protocol version (e.g., 1.0.0)",
+                        "name": "Tus-Resumable",
                         "in": "header",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Metadata for the upload (base64 encoded)",
+                        "name": "Upload-Metadata",
+                        "in": "header"
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Created (Location header contains upload URL)",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
@@ -3835,11 +3861,11 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns the current offset (number of bytes already uploaded) for a specific resumable upload.",
+                "description": "Retrieves the current offset and status of a TUS upload.",
                 "tags": [
-                    "upload"
+                    "storage"
                 ],
-                "summary": "Check upload offset",
+                "summary": "Get Upload Status",
                 "parameters": [
                     {
                         "type": "string",
@@ -3847,18 +3873,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "TUS protocol version (must be 1.0.0)",
-                        "name": "Tus-Resumable",
-                        "in": "header",
-                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "OK (Upload-Offset header contains current progress)",
                         "schema": {
                             "type": "string"
                         }
@@ -3883,14 +3902,17 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Sends a chunk of binary data to an existing resumable upload session.",
+                "description": "Uploads a chunk of data to an existing TUS upload.",
                 "consumes": [
-                    "application/octet-stream"
+                    "application/offset+octet-stream"
+                ],
+                "produces": [
+                    "application/json"
                 ],
                 "tags": [
-                    "upload"
+                    "storage"
                 ],
-                "summary": "Upload file chunk",
+                "summary": "Upload File Chunk",
                 "parameters": [
                     {
                         "type": "string",
@@ -3900,22 +3922,15 @@
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "description": "TUS protocol version (must be 1.0.0)",
-                        "name": "Tus-Resumable",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
                         "type": "integer",
-                        "description": "Current offset of the chunk being sent",
+                        "description": "Offset within the file where this chunk starts",
                         "name": "Upload-Offset",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Must be application/offset+octet-stream",
+                        "description": "application/offset+octet-stream",
                         "name": "Content-Type",
                         "in": "header",
                         "required": true
@@ -3923,16 +3938,13 @@
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
                     },
                     "401": {
                         "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "409": {
-                        "description": "Overlap or mismatching offset",
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
@@ -4499,18 +4511,22 @@
         },
         "/ws": {
             "get": {
-                "description": "Upgrades the HTTP connection to a WebSocket connection for real-time notifications and presence. Requires a valid ticket obtained from /auth/ticket.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Establishes a WebSocket connection for real-time updates and presence.",
                 "tags": [
                     "realtime"
                 ],
-                "summary": "Connect to WebSocket",
+                "summary": "WebSocket connection",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "WebSocket authentication ticket",
+                        "description": "One-time WebSocket ticket (if not using Bearer header)",
                         "name": "ticket",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     }
                 ],
                 "responses": {

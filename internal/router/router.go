@@ -19,7 +19,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	userHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse" // Import local tus pkg
+	_ "github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -27,7 +28,7 @@ import (
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"github.com/tus/tusd/v2/pkg/handler" // Import tusd handler
+	"github.com/tus/tusd/v2/pkg/handler"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"gorm.io/gorm"
 )
@@ -125,39 +126,10 @@ func SetupRouter(
 
 	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	router.GET("/api/health", func(c *gin.Context) {
-		status := "OK"
-		details := make(map[string]string)
-
-		if db != nil {
-			sqlDB, err := db.DB()
-			if err != nil {
-				status = "DEGRADED"
-				details["mysql"] = "CONNECTION_ERROR"
-			} else if err := sqlDB.Ping(); err != nil {
-				status = "DEGRADED"
-				details["mysql"] = "DOWN"
-			} else {
-				details["mysql"] = "UP"
-			}
-		}
-
-		if redisClient != nil {
-			if err := redisClient.Ping(c.Request.Context()).Err(); err != nil {
-				status = "DEGRADED"
-				details["redis"] = "DOWN"
-			} else {
-				details["redis"] = "UP"
-			}
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"status":  status,
-			"details": details,
-		})
-	})
+	router.GET("/api/health", GetHealth(db, redisClient))
 
 	if cfg.MetricsEnabled {
+
 		metricsGroup := router.Group("/metrics")
 		if cfg.MetricsAuth {
 			metricsGroup.Use(gin.BasicAuth(gin.Accounts{
@@ -265,4 +237,46 @@ func SetupRouter(
 	}
 
 	return router
+}
+
+// GetHealth godoc
+// @Summary      System Health Check
+// @Description  Returns the health status of the application and its core dependencies (MySQL, Redis).
+// @Tags         system
+// @Produce      json
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "System is healthy"
+// @Failure      503  {object}  response.SwaggerErrorResponseWrapper "System is degraded"
+// @Router       /health [get]
+func GetHealth(db *gorm.DB, redisClient *redis.Client) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		status := "OK"
+		details := make(map[string]string)
+
+		if db != nil {
+			sqlDB, err := db.DB()
+			if err != nil {
+				status = "DEGRADED"
+				details["mysql"] = "CONNECTION_ERROR"
+			} else if err := sqlDB.Ping(); err != nil {
+				status = "DEGRADED"
+				details["mysql"] = "DOWN"
+			} else {
+				details["mysql"] = "UP"
+			}
+		}
+
+		if redisClient != nil {
+			if err := redisClient.Ping(c.Request.Context()).Err(); err != nil {
+				status = "DEGRADED"
+				details["redis"] = "DOWN"
+			} else {
+				details["redis"] = "UP"
+			}
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status":  status,
+			"details": details,
+		})
+	}
 }

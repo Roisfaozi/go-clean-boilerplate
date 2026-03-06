@@ -6,6 +6,7 @@ import (
 	"time"
 
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	_ "github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -53,6 +54,15 @@ func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins 
 	}
 }
 
+// HandleWebSocket godoc
+// @Summary      WebSocket connection
+// @Description  Establishes a WebSocket connection for real-time updates and presence.
+// @Tags         realtime
+// @Security     BearerAuth
+// @Param        ticket query string false "One-time WebSocket ticket (if not using Bearer header)"
+// @Success      101  {string}  string "Switching Protocols"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Router       /ws [get]
 func (c *WebSocketController) HandleWebSocket(ctx *gin.Context) {
 	conn, err := c.upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
