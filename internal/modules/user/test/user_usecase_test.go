@@ -1235,7 +1235,8 @@ func TestUserUseCase_GetAvatarUrl_StorageError(t *testing.T) {
 
 	result, err := uc.GetAvatarUrl(ctx, userID)
 
-	assert.Error(t, err)
+assert.Error(t, err)
+	assert.Equal(t, exception.ErrInternalServer, err)
 	assert.Empty(t, result)
 	deps.Repo.AssertExpectations(t)
 	deps.Storage.AssertExpectations(t)
