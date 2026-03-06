@@ -359,7 +359,7 @@ func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file 
 
 	// 5. Audit Log
 	if u.AuditUC != nil {
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   userID,
 			Action:   "UPDATE_AVATAR",
 			Entity:   "User",
@@ -367,7 +367,10 @@ func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file 
 			NewValues: map[string]string{
 				"avatar_url": url,
 			},
-		})
+		}); err != nil {
+			u.Log.Errorf("Failed to log activity for avatar update: %v", err)
+			return nil, exception.ErrInternalServer
+		}
 	}
 
 	return converter.UserToResponse(user), nil
@@ -386,7 +389,7 @@ func (u *userUseCaseImpl) SetAvatarURL(ctx context.Context, userID string, url s
 	}
 
 	if u.AuditUC != nil {
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   userID,
 			Action:   "UPDATE_AVATAR_TUS",
 			Entity:   "User",
@@ -394,7 +397,10 @@ func (u *userUseCaseImpl) SetAvatarURL(ctx context.Context, userID string, url s
 			NewValues: map[string]interface{}{
 				"avatar_url": url,
 			},
-		})
+		}); err != nil {
+			u.Log.Errorf("Failed to log activity for avatar update (TUS): %v", err)
+			return exception.ErrInternalServer
+		}
 	}
 
 	return nil
@@ -410,7 +416,13 @@ func (u *userUseCaseImpl) GetAvatarUrl(ctx context.Context, userID string) (stri
 		return "", exception.ErrNotFound
 	}
 
-	return u.Storage.GetFileUrl(ctx, user.AvatarURL)
+	url, err := u.Storage.GetFileUrl(ctx, user.AvatarURL)
+	if err != nil {
+		u.Log.Errorf("Failed to get avatar URL from storage: %v", err)
+		return "", exception.ErrInternalServer
+	}
+
+	return url, nil
 }
 
 func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error {
