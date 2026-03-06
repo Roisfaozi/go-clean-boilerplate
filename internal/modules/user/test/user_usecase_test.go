@@ -1172,7 +1172,8 @@ func TestUserUseCase_SetAvatarURL_AuditLogError(t *testing.T) {
 
 	err := uc.SetAvatarURL(ctx, userID, url)
 
-	assert.NoError(t, err)
+assert.Error(t, err)
+	assert.Equal(t, exception.ErrInternalServer, err)
 	deps.Repo.AssertExpectations(t)
 	deps.AuditUC.AssertExpectations(t)
 }
