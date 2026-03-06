@@ -14,6 +14,15 @@ ChadNext addresses common pain points, making it easier to:
 - Interact with databases effortlessly
 - Deploy with ease
 
+### 🔗 Backend Integration
+
+This frontend is specifically configured to work with the **Go Clean Boilerplate** backend:
+
+- **API Base**: `http://localhost:8080/api/v1` (configurable via `NEXT_PUBLIC_API_URL`).
+- **Auth**: Uses HttpOnly Cookies for secure session management.
+- **Tenancy**: Automatically injects `X-Organization-ID` headers based on the selected organization in the UI.
+- **Real-time**: Integrated with the Go WebSocket & SSE managers for live updates and presence tracking.
+
 Save time and effort, and build performant apps with an excellent developer experience.
 
 ## Getting Started 🚀
