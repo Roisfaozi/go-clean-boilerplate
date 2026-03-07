@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
@@ -18,7 +19,9 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
@@ -40,6 +43,7 @@ type Service struct {
 	authz            repository.AuthzManager
 	taskDistributor  worker.TaskDistributor
 	ticketManager    ws.TicketManager
+	ssoProviders     map[string]sso.Provider
 	dummyHash        string
 }
 
@@ -56,6 +60,7 @@ func NewAuthUsecase(
 	authz repository.AuthzManager,
 	taskDistributor worker.TaskDistributor,
 	ticketManager ws.TicketManager,
+	ssoProviders map[string]sso.Provider,
 ) AuthUseCase {
 	s := &Service{
 		maxLoginAttempts: maxLoginAttempts,
@@ -70,6 +75,7 @@ func NewAuthUsecase(
 		authz:            authz,
 		taskDistributor:  taskDistributor,
 		ticketManager:    ticketManager,
+		ssoProviders:     ssoProviders,
 	}
 
 	// Generate dummy hash for timing attack prevention
@@ -745,4 +751,166 @@ func (s *Service) GetTicket(ctx context.Context, userContext model.UserSessionCo
 
 	// 2. Delegate to TicketManager
 	return s.ticketManager.CreateTicket(ctx, userContext.UserID, userContext.OrgID, userContext.SessionID, userContext.Role, userContext.Username)
+}
+
+func (s *Service) GetSSORedirectURL(ctx context.Context, providerName string) (string, error) {
+	provider, exists := s.ssoProviders[providerName]
+	if !exists {
+		return "", exception.ErrBadRequest
+	}
+
+	state := "randomize_state_here"
+
+	url := provider.GetLoginURL(state)
+	return url, nil
+}
+
+func (s *Service) HandleSSOCallback(ctx context.Context, providerName string, code string) (*model.LoginResponse, string, error) {
+	provider, exists := s.ssoProviders[providerName]
+	if !exists {
+		return nil, "", exception.ErrBadRequest
+	}
+
+	token, err := provider.ExchangeCode(ctx, code)
+	if err != nil {
+		s.log.Errorf("Failed to exchange code: %v", err)
+		return nil, "", exception.ErrUnauthorized
+	}
+
+	userInfo, err := provider.GetUserInfo(ctx, token)
+	if err != nil {
+		s.log.Errorf("Failed to get user info: %v", err)
+		return nil, "", exception.ErrUnauthorized
+	}
+
+	// 1. Check if user SSO identity already exists
+	ssoIdentity, err := s.userRepo.FindBySSOIdentity(ctx, providerName, userInfo.ProviderID)
+
+	var usr *entity.User
+
+	if err == nil {
+		// SSO Identity found, get associated user
+		usr, err = s.userRepo.FindByID(ctx, ssoIdentity.UserID)
+		if err != nil {
+			s.log.WithContext(ctx).WithError(err).Error("Failed to find user for SSO identity")
+			return nil, "", exception.ErrUnauthorized
+		}
+	} else {
+		// SSO Identity not found, check if user with same email exists
+		usr, err = s.userRepo.FindByEmail(ctx, userInfo.Email)
+		if err != nil {
+			// User does not exist, create a new user
+			usrID, _ := uuid.NewV7()
+			usr = &entity.User{
+				ID:       usrID.String(),
+				Email:    userInfo.Email,
+				Name:     userInfo.Name,
+				Password: "",                      // No password for SSO users
+				Status:   entity.UserStatusActive, // Activate immediately
+			}
+
+			err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+				if err := s.userRepo.Create(txCtx, usr); err != nil {
+					return err
+				}
+
+				// Add Default Role
+				if s.authz != nil {
+					if err := s.authz.AssignDefaultRole(txCtx, usr.ID); err != nil {
+						return err
+					}
+				}
+
+				// Create Default Workspace
+				defaultOrgName := fmt.Sprintf("%s's Workspace", usr.Name)
+				defaultOrg := &orgEntity.Organization{
+					ID:      uuid.New().String(),
+					Name:    defaultOrgName,
+					Slug:    pkg.Slugify(defaultOrgName + "-" + strings.Split(usr.Email, "@")[0]),
+					OwnerID: usr.ID,
+					Status:  "active",
+				}
+
+				if err := s.orgRepo.Create(txCtx, defaultOrg, "owner"); err != nil {
+					return err
+				}
+				return nil
+			})
+
+			if err != nil {
+				s.log.WithContext(ctx).WithError(err).Error("Failed to auto-provision user during SSO callback")
+				return nil, "", fmt.Errorf("failed to provision user")
+			}
+		}
+
+		// Create new SSO Identity and link it to the user
+		newSSOIdentity := entity.UserSSOIdentity{
+			UserID:     usr.ID,
+			Provider:   providerName,
+			ProviderID: userInfo.ProviderID,
+		}
+		if err := s.userRepo.CreateSSOIdentity(ctx, &newSSOIdentity); err != nil {
+			s.log.WithContext(ctx).WithError(err).Error("Failed to create SSO identity")
+			return nil, "", fmt.Errorf("failed to link SSO identity")
+		}
+	}
+
+	if usr.Status != entity.UserStatusActive {
+		return nil, "", ErrAccountSuspended
+	}
+
+	// 2. Generate Tokens
+	sessionID := uuid.New().String()
+	accessToken, err := s.GenerateAccessToken(usr)
+	if err != nil {
+		s.log.WithContext(ctx).WithError(err).Error("Failed to generate access token")
+		return nil, "", err
+	}
+
+	refreshToken, err := s.GenerateRefreshToken(usr)
+	if err != nil {
+		s.log.WithContext(ctx).WithError(err).Error("Failed to generate refresh token")
+		return nil, "", err
+	}
+
+	now := time.Now()
+	session := &model.Auth{
+		ID:           sessionID,
+		UserID:       usr.ID,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+		ExpiresAt:    now.Add(s.jwtManager.GetRefreshTokenDuration()),
+	}
+
+	err = s.tokenRepo.StoreToken(ctx, session)
+	if err != nil {
+		s.log.WithContext(ctx).WithError(err).Error("Failed to store session in Redis")
+		return nil, "", fmt.Errorf("failed to store session: %w", err)
+	}
+
+	// 3. Clear failed login attempts after successful SSO login
+	_ = s.tokenRepo.ResetLoginAttempts(ctx, usr.Email)
+
+	if s.taskDistributor != nil {
+		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
+			UserID:   usr.ID,
+			Action:   "SSO_LOGIN",
+			Entity:   "User",
+			EntityID: usr.ID,
+		})
+	}
+
+	s.log.Infof("SSO Login successful for user %s via %s", usr.Email, providerName)
+
+	return &model.LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User: model.UserInfo{
+			ID:    usr.ID,
+			Name:  usr.Name,
+			Email: usr.Email,
+		},
+	}, sessionID, nil
 }

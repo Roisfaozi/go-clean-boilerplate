@@ -3,6 +3,8 @@ package http
 import (
 	"errors"
 
+	"net/http"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
@@ -426,4 +428,55 @@ func GetUsernameFromContext(c *gin.Context) (string, bool) {
 		return "", false
 	}
 	return usernameStr, true
+}
+
+// SSOLogin godoc
+// @Summary      Initiate SSO Login
+// @Description  Redirects the user to the specific OAuth2 provider (google, microsoft).
+// @Tags         auth
+// @Param        provider path string true "Provider Name" Enums(google, microsoft)
+// @Success      302
+// @Router       /auth/sso/{provider} [get]
+func (ac *AuthController) SSOLogin(c *gin.Context) {
+	provider := c.Param("provider")
+
+	url, err := ac.AuthUseCase.GetSSORedirectURL(c.Request.Context(), provider)
+	if err != nil {
+		response.HandleError(c, err, "Failed to initiate SSO")
+		return
+	}
+
+	c.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+// SSOCallback godoc
+// @Summary      SSO Callback Handler
+// @Description  Handles the OAuth2 callback, exchanges code for token, and authenticates user.
+// @Tags         auth
+// @Param        provider path string true "Provider Name"
+// @Param        code query string true "Authorization Code"
+// @Param        state query string false "State"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper{data=model.LoginResponse}
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper
+// @Router       /auth/sso/{provider}/callback [get]
+func (ac *AuthController) SSOCallback(c *gin.Context) {
+	provider := c.Param("provider")
+	code := c.Query("code")
+
+	if code == "" {
+		err := errors.New("authorization code is required")
+		response.BadRequest(c, err, "authorization code is required")
+		return
+	}
+
+	res, refreshToken, err := ac.AuthUseCase.HandleSSOCallback(c.Request.Context(), provider, code)
+	if err != nil {
+		response.HandleError(c, err, "Failed to handle SSO callback")
+		return
+	}
+
+	c.SetCookie("refresh_token", refreshToken, 3600*24*30, "/", "", false, true) // 30 days, HttpOnly
+	c.SetCookie("access_token", res.AccessToken, int(res.ExpiresIn), "/", "", false, true)
+
+	response.Success(c, res)
 }

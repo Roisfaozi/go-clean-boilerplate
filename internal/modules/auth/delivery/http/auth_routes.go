@@ -13,6 +13,10 @@ func RegisterPublicRoutes(router *gin.RouterGroup, controller *AuthController) {
 		authGroup.POST("/forgot-password", controller.ForgotPassword)
 		authGroup.POST("/reset-password", controller.ResetPassword)
 		authGroup.POST("/verify-email", controller.VerifyEmail)
+
+		// SSO Routes
+		authGroup.GET("/sso/:provider", controller.SSOLogin)
+		authGroup.GET("/sso/:provider/callback", controller.SSOCallback)
 	}
 }
 

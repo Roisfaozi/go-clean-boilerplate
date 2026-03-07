@@ -160,6 +160,8 @@ func SetupRouter(
 		authGroup.POST("/reset-password", authModule.AuthController.ResetPassword)
 		authGroup.POST("/verify-email", authModule.AuthController.VerifyEmail)
 		authGroup.POST("/register", authModule.AuthController.Register)
+		authGroup.GET("/sso/:provider", authModule.AuthController.SSOLogin)
+		authGroup.GET("/sso/:provider/callback", authModule.AuthController.SSOCallback)
 
 		userHttp.RegisterPublicRoutes(public, userModule.UserController)
 		organizationHttp.RegisterPublicRoutes(public, organizationModule.OrganizationController)
@@ -231,8 +233,6 @@ func SetupRouter(
 	uploadGroup := router.Group("/api/v1/upload")
 	uploadGroup.Use(authMiddleware.ValidateToken())
 	{
-		// StripPrefix is required for tusd to handle relative paths correctly
-		// TUS_BASE_PATH should match what is stripped.
 		uploadGroup.Any("/files/*any", gin.WrapH(http.StripPrefix("/api/v1/upload/files/", tusHandler)))
 	}
 

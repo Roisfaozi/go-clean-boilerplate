@@ -14,6 +14,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
@@ -47,6 +48,7 @@ func NewAuthModule(
 	ticketManager ws.TicketManager,
 	defaultRole string,
 	defaultDomain string,
+	ssoProviders map[string]sso.Provider,
 ) *AuthModule {
 	tokenRepo := repository.NewTokenRepositoryRedis(redisClient, log, db, &util.RealClock{})
 	userRepository := userRepo.NewUserRepository(db, log)
@@ -67,6 +69,7 @@ func NewAuthModule(
 		authz,
 		taskDistributor,
 		ticketManager,
+		ssoProviders,
 	)
 	authController := http.NewAuthController(authUseCase, log, validate)
 
