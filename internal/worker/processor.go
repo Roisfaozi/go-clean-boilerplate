@@ -75,6 +75,7 @@ func (processor *RedisTaskProcessor) Start() error {
 
 	auditHandler := handlers.NewAuditTaskHandler(processor.logger, processor.auditUC)
 	mux.HandleFunc(tasks.TypeAuditLogCreate, auditHandler.ProcessTaskAuditLog)
+	mux.HandleFunc(tasks.TypeAuditLogExport, auditHandler.ProcessTaskAuditLogExport)
 
 	outboxHandler := handlers.NewOutboxTaskHandler(processor.auditRepo, processor.logger)
 	mux.HandleFunc(tasks.TypeAuditOutboxSync, outboxHandler.ProcessAuditOutbox)
