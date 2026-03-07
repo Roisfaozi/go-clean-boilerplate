@@ -19,6 +19,7 @@ import (
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	userUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -41,18 +42,24 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
-	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger, nil)
+	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger, nil, nil)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authz := authRepo.NewCasbinAdapter(mockEnforcer, "role:user", "global")
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
 
 	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, mockEnforcer, auditService, authService, nil)
 
 	expectedErr := errors.New("casbin connection error")
 
 	// My manual mock uses variadic params...interface{} which mockery packs into a slice.
-	mockEnforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, "global").Return(false, expectedErr)
+	mockEnforcer.On("AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
+		if len(params) != 3 {
+			return false
+		}
+		// Check if the last param is "global" as expected in the test
+		return params[2] == "global"
+	})).Return(false, expectedErr)
 
 	req := &userModel.RegisterUserRequest{
 		Username: "rollback_user",

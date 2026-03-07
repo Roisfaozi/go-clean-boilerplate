@@ -22,6 +22,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -41,7 +42,7 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
+	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil, nil)
 
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
@@ -54,7 +55,7 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	processor := worker.NewRedisTaskProcessor(redisOpt, env.Logger, cleanupHandler, auditUC, auditRepo, workerCfg)
 	env.StartWorker(processor)
 
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, oRepo, tm, env.Logger, nil, authz, taskDistributor, nil)
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, oRepo, tm, env.Logger, nil, authz, taskDistributor, nil, make(map[string]sso.Provider))
 	userUC := userUseCase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil)
 
 	ctx := context.Background()

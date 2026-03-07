@@ -23,6 +23,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -34,14 +35,14 @@ func setupUserIntegration(env *setup.TestEnvironment) usecase.UserUseCase {
 	userRepo := repository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
+	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil, nil)
 
 	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", time.Hour, time.Hour*24)
 
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
 	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil)
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
 
 	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil)
 }
@@ -132,11 +133,11 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	_ = auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
+	_ = auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil, nil)
 
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
 	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil)
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
 
 	loginReq := authModel.LoginRequest{Username: user.Username, Password: password}
 	loginResp, _, err := authUC.Login(context.Background(), loginReq)
