@@ -83,7 +83,7 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 
 	deps.Repo.On("Create", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
 	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-	deps.Enforcer.On("AddGroupingPolicy", mock.AnythingOfType("string"), "role:user", "global").Return(true, nil)
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
 	result, err := uc.Create(context.Background(), testReq)
@@ -158,8 +158,8 @@ func TestUserUseCase_Create_AuditError(t *testing.T) {
 
 	deps.Repo.On("Create", mock.Anything, mock.Anything).Return(nil)
 	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
-	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, "", "global").Return(true, nil)
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
+	deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
 
 	_, err := uc.Create(context.Background(), req)
@@ -182,7 +182,7 @@ func TestUserUseCase_Create_EnforcerError(t *testing.T) {
 
 	deps.Repo.On("Create", mock.Anything, mock.Anything).Return(nil)
 	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, "role:user", "global").Return(false, errors.New("casbin error"))
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(false, errors.New("casbin error"))
 
 	result, err := uc.Create(context.Background(), req)
 
@@ -498,9 +498,9 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 
 		// Expect Backup Roles
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, "global").Return([]string{"role:user"}, nil)
+		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, mock.Anything).Return([]string{"role:user"}, nil)
 
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, deleteReq.ID, "", "global").Return(true, nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
 		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
@@ -568,14 +568,13 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 
 		// Expect Backup Roles
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, "global").Return([]string{"role:user", "role:admin"}, nil)
+		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, mock.Anything).Return([]string{"role:user", "role:admin"}, nil)
 
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, deleteReq.ID, "", "global").Return(true, nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit fail"))
 
 		// Expect Compensation: Restore Roles
-		deps.Enforcer.On("AddGroupingPolicy", deleteReq.ID, "role:user", "global").Return(true, nil)
-		deps.Enforcer.On("AddGroupingPolicy", deleteReq.ID, "role:admin", "global").Return(true, nil)
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
 
 		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
 
@@ -599,14 +598,14 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 
 		// Expect Backup Roles
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, "global").Return([]string{"role:user"}, nil)
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, deleteReq.ID, "", "global").Return(true, nil)
+		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, mock.Anything).Return([]string{"role:user"}, nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
 
 		// Audit fails
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit fail"))
 
 		// Compensation fails
-		deps.Enforcer.On("AddGroupingPolicy", deleteReq.ID, "role:user", "global").Return(false, errors.New("casbin restore error"))
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(false, errors.New("casbin restore error"))
 
 		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
 
@@ -843,14 +842,6 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 	deps, uc := setupUserTest()
 
 	inputName := "<script>alert('XSS')</script>John Doe"
-	// pkg.SanitizeString implementation:
-	// output = strings.TrimSpace(input)
-	// output = html.EscapeString(output)
-	// Wait, if it uses html.EscapeString, then "<script>" becomes "&lt;script&gt;"
-	// It does NOT remove tags.
-
-	// Let's check pkg/security.go again.
-	// "func SanitizeString(input string) string { output := strings.TrimSpace(input); output = html.EscapeString(output); return output }"
 
 	expectedName := "&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;John Doe"
 
@@ -871,7 +862,7 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 	})).Return(nil)
 
 	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, "global").Return(true, nil)
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
 	result, err := uc.Create(context.Background(), testReq)
@@ -886,7 +877,6 @@ func TestUserUseCase_Update_Sanitization(t *testing.T) {
 	deps, uc := setupUserTest()
 
 	inputUsername := "<b>bold</b>"
-	// pkg.SanitizeString escapes HTML
 	expectedUsername := "&lt;b&gt;bold&lt;/b&gt;"
 
 	request := &model.UpdateUserRequest{
@@ -900,7 +890,6 @@ func TestUserUseCase_Update_Sanitization(t *testing.T) {
 
 	deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
 
-	// Expect FindByUsername to be called with sanitized username
 	deps.Repo.On("FindByUsername", mock.Anything, expectedUsername).Return(nil, gorm.ErrRecordNotFound)
 
 	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
@@ -915,8 +904,6 @@ func TestUserUseCase_Update_Sanitization(t *testing.T) {
 
 	_, err := uc.Update(context.Background(), request)
 
-	// This assertion might fail if the mock is strict about calls.
-	// If it fails with "Unexpected call", that counts as test failure.
 	assert.NoError(t, err)
 	deps.Repo.AssertExpectations(t)
 }

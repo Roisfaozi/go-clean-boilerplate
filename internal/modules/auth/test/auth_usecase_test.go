@@ -85,6 +85,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		deps.authz,
 		deps.taskDistributor,
 		deps.ticketManager,
+		nil,
 	)
 
 	return authService, deps
@@ -290,6 +291,7 @@ func TestLogin_Security_BruteForceProtection(t *testing.T) {
 		deps.authz,
 		deps.taskDistributor,
 		deps.ticketManager,
+		nil,
 	)
 
 	user, _ := createTestUser("password123")
@@ -1646,6 +1648,7 @@ func TestLogin_NilEnforcer(t *testing.T) {
 		nil, // NIL AUTHZ
 		taskDistributor,
 		new(mock_auth.MockTicketManager),
+		nil,
 	)
 
 	user, password := createTestUser("password123")
@@ -1702,6 +1705,7 @@ func TestLogin_NilAuditUC(t *testing.T) {
 		authz,
 		nil, // NIL TASK DISTRIBUTOR
 		new(mock_auth.MockTicketManager),
+		nil,
 	)
 
 	user, password := createTestUser("password123")

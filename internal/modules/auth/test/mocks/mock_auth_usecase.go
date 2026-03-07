@@ -217,6 +217,72 @@ func (_c *MockAuthUseCase_GenerateRefreshToken_Call) RunAndReturn(run func(user 
 	return _c
 }
 
+// GetSSORedirectURL provides a mock function for the type MockAuthUseCase
+func (_mock *MockAuthUseCase) GetSSORedirectURL(ctx context.Context, provider string) (string, error) {
+	ret := _mock.Called(ctx, provider)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetSSORedirectURL")
+	}
+
+	var r0 string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
+		return returnFunc(ctx, provider)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) string); ok {
+		r0 = returnFunc(ctx, provider)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, provider)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthUseCase_GetSSORedirectURL_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSSORedirectURL'
+type MockAuthUseCase_GetSSORedirectURL_Call struct {
+	*mock.Call
+}
+
+// GetSSORedirectURL is a helper method to define mock.On call
+//   - ctx context.Context
+//   - provider string
+func (_e *MockAuthUseCase_Expecter) GetSSORedirectURL(ctx interface{}, provider interface{}) *MockAuthUseCase_GetSSORedirectURL_Call {
+	return &MockAuthUseCase_GetSSORedirectURL_Call{Call: _e.mock.On("GetSSORedirectURL", ctx, provider)}
+}
+
+func (_c *MockAuthUseCase_GetSSORedirectURL_Call) Run(run func(ctx context.Context, provider string)) *MockAuthUseCase_GetSSORedirectURL_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthUseCase_GetSSORedirectURL_Call) Return(s string, err error) *MockAuthUseCase_GetSSORedirectURL_Call {
+	_c.Call.Return(s, err)
+	return _c
+}
+
+func (_c *MockAuthUseCase_GetSSORedirectURL_Call) RunAndReturn(run func(ctx context.Context, provider string) (string, error)) *MockAuthUseCase_GetSSORedirectURL_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetTicket provides a mock function for the type MockAuthUseCase
 func (_mock *MockAuthUseCase) GetTicket(ctx context.Context, userContext model.UserSessionContext) (string, error) {
 	ret := _mock.Called(ctx, userContext)
@@ -347,6 +413,86 @@ func (_c *MockAuthUseCase_GetUserSessions_Call) Return(auths []*model.Auth, err 
 }
 
 func (_c *MockAuthUseCase_GetUserSessions_Call) RunAndReturn(run func(ctx context.Context, userID string) ([]*model.Auth, error)) *MockAuthUseCase_GetUserSessions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// HandleSSOCallback provides a mock function for the type MockAuthUseCase
+func (_mock *MockAuthUseCase) HandleSSOCallback(ctx context.Context, provider string, code string) (*model.LoginResponse, string, error) {
+	ret := _mock.Called(ctx, provider, code)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HandleSSOCallback")
+	}
+
+	var r0 *model.LoginResponse
+	var r1 string
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*model.LoginResponse, string, error)); ok {
+		return returnFunc(ctx, provider, code)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *model.LoginResponse); ok {
+		r0 = returnFunc(ctx, provider, code)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.LoginResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) string); ok {
+		r1 = returnFunc(ctx, provider, code)
+	} else {
+		r1 = ret.Get(1).(string)
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, provider, code)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockAuthUseCase_HandleSSOCallback_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HandleSSOCallback'
+type MockAuthUseCase_HandleSSOCallback_Call struct {
+	*mock.Call
+}
+
+// HandleSSOCallback is a helper method to define mock.On call
+//   - ctx context.Context
+//   - provider string
+//   - code string
+func (_e *MockAuthUseCase_Expecter) HandleSSOCallback(ctx interface{}, provider interface{}, code interface{}) *MockAuthUseCase_HandleSSOCallback_Call {
+	return &MockAuthUseCase_HandleSSOCallback_Call{Call: _e.mock.On("HandleSSOCallback", ctx, provider, code)}
+}
+
+func (_c *MockAuthUseCase_HandleSSOCallback_Call) Run(run func(ctx context.Context, provider string, code string)) *MockAuthUseCase_HandleSSOCallback_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthUseCase_HandleSSOCallback_Call) Return(loginResponse *model.LoginResponse, s string, err error) *MockAuthUseCase_HandleSSOCallback_Call {
+	_c.Call.Return(loginResponse, s, err)
+	return _c
+}
+
+func (_c *MockAuthUseCase_HandleSSOCallback_Call) RunAndReturn(run func(ctx context.Context, provider string, code string) (*model.LoginResponse, string, error)) *MockAuthUseCase_HandleSSOCallback_Call {
 	_c.Call.Return(run)
 	return _c
 }

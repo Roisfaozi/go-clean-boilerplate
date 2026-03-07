@@ -112,6 +112,78 @@ func (_c *MockTaskDistributor_DistributeTaskAuditLog_Call) RunAndReturn(run func
 	return _c
 }
 
+// DistributeTaskAuditLogExport provides a mock function for the type MockTaskDistributor
+func (_mock *MockTaskDistributor) DistributeTaskAuditLogExport(ctx context.Context, payload model.AuditLogExportPayload, opts ...asynq.Option) error {
+	var tmpRet mock.Arguments
+	if len(opts) > 0 {
+		tmpRet = _mock.Called(ctx, payload, opts)
+	} else {
+		tmpRet = _mock.Called(ctx, payload)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for DistributeTaskAuditLogExport")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, model.AuditLogExportPayload, ...asynq.Option) error); ok {
+		r0 = returnFunc(ctx, payload, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockTaskDistributor_DistributeTaskAuditLogExport_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DistributeTaskAuditLogExport'
+type MockTaskDistributor_DistributeTaskAuditLogExport_Call struct {
+	*mock.Call
+}
+
+// DistributeTaskAuditLogExport is a helper method to define mock.On call
+//   - ctx context.Context
+//   - payload model.AuditLogExportPayload
+//   - opts ...asynq.Option
+func (_e *MockTaskDistributor_Expecter) DistributeTaskAuditLogExport(ctx interface{}, payload interface{}, opts ...interface{}) *MockTaskDistributor_DistributeTaskAuditLogExport_Call {
+	return &MockTaskDistributor_DistributeTaskAuditLogExport_Call{Call: _e.mock.On("DistributeTaskAuditLogExport",
+		append([]interface{}{ctx, payload}, opts...)...)}
+}
+
+func (_c *MockTaskDistributor_DistributeTaskAuditLogExport_Call) Run(run func(ctx context.Context, payload model.AuditLogExportPayload, opts ...asynq.Option)) *MockTaskDistributor_DistributeTaskAuditLogExport_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 model.AuditLogExportPayload
+		if args[1] != nil {
+			arg1 = args[1].(model.AuditLogExportPayload)
+		}
+		var arg2 []asynq.Option
+		var variadicArgs []asynq.Option
+		if len(args) > 2 {
+			variadicArgs = args[2].([]asynq.Option)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTaskDistributor_DistributeTaskAuditLogExport_Call) Return(err error) *MockTaskDistributor_DistributeTaskAuditLogExport_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockTaskDistributor_DistributeTaskAuditLogExport_Call) RunAndReturn(run func(ctx context.Context, payload model.AuditLogExportPayload, opts ...asynq.Option) error) *MockTaskDistributor_DistributeTaskAuditLogExport_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DistributeTaskAuditOutboxSync provides a mock function for the type MockTaskDistributor
 func (_mock *MockTaskDistributor) DistributeTaskAuditOutboxSync(ctx context.Context, opts ...asynq.Option) error {
 	var tmpRet mock.Arguments

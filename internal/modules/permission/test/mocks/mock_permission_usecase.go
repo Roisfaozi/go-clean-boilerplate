@@ -43,7 +43,7 @@ func (_m *MockIEnforcer) EXPECT() *MockIEnforcer_Expecter {
 func (_mock *MockIEnforcer) AddGroupingPolicy(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments
 	if len(params) > 0 {
-		tmpRet = _mock.Called(params...)
+		tmpRet = _mock.Called(params)
 	} else {
 		tmpRet = _mock.Called()
 	}
@@ -112,7 +112,7 @@ func (_c *MockIEnforcer_AddGroupingPolicy_Call) RunAndReturn(run func(params ...
 func (_mock *MockIEnforcer) AddPolicy(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments
 	if len(params) > 0 {
-		tmpRet = _mock.Called(params...)
+		tmpRet = _mock.Called(params)
 	} else {
 		tmpRet = _mock.Called()
 	}
@@ -181,7 +181,7 @@ func (_c *MockIEnforcer_AddPolicy_Call) RunAndReturn(run func(params ...interfac
 func (_mock *MockIEnforcer) Enforce(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments
 	if len(params) > 0 {
-		tmpRet = _mock.Called(params...)
+		tmpRet = _mock.Called(params)
 	} else {
 		tmpRet = _mock.Called()
 	}
@@ -250,12 +250,7 @@ func (_c *MockIEnforcer_Enforce_Call) RunAndReturn(run func(params ...interface{
 func (_mock *MockIEnforcer) GetFilteredPolicy(fieldIndex int, fieldValues ...string) ([][]string, error) {
 	var tmpRet mock.Arguments
 	if len(fieldValues) > 0 {
-		args := make([]interface{}, 0, 1+len(fieldValues))
-		args = append(args, fieldIndex)
-		for _, v := range fieldValues {
-			args = append(args, v)
-		}
-		tmpRet = _mock.Called(args...)
+		tmpRet = _mock.Called(fieldIndex, fieldValues)
 	} else {
 		tmpRet = _mock.Called(fieldIndex)
 	}
@@ -387,12 +382,7 @@ func (_c *MockIEnforcer_GetPolicy_Call) RunAndReturn(run func() ([][]string, err
 func (_mock *MockIEnforcer) GetRolesForUser(name string, domain ...string) ([]string, error) {
 	var tmpRet mock.Arguments
 	if len(domain) > 0 {
-		args := make([]interface{}, 0, 1+len(domain))
-		args = append(args, name)
-		for _, v := range domain {
-			args = append(args, v)
-		}
-		tmpRet = _mock.Called(args...)
+		tmpRet = _mock.Called(name, domain)
 	} else {
 		tmpRet = _mock.Called(name)
 	}
@@ -469,12 +459,7 @@ func (_c *MockIEnforcer_GetRolesForUser_Call) RunAndReturn(run func(name string,
 func (_mock *MockIEnforcer) GetUsersForRole(name string, domain ...string) ([]string, error) {
 	var tmpRet mock.Arguments
 	if len(domain) > 0 {
-		args := make([]interface{}, 0, 1+len(domain))
-		args = append(args, name)
-		for _, v := range domain {
-			args = append(args, v)
-		}
-		tmpRet = _mock.Called(args...)
+		tmpRet = _mock.Called(name, domain)
 	} else {
 		tmpRet = _mock.Called(name)
 	}
@@ -551,7 +536,7 @@ func (_c *MockIEnforcer_GetUsersForRole_Call) RunAndReturn(run func(name string,
 func (_mock *MockIEnforcer) HasGroupingPolicy(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments
 	if len(params) > 0 {
-		tmpRet = _mock.Called(params...)
+		tmpRet = _mock.Called(params)
 	} else {
 		tmpRet = _mock.Called()
 	}
@@ -620,7 +605,7 @@ func (_c *MockIEnforcer_HasGroupingPolicy_Call) RunAndReturn(run func(params ...
 func (_mock *MockIEnforcer) HasPolicy(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments
 	if len(params) > 0 {
-		tmpRet = _mock.Called(params...)
+		tmpRet = _mock.Called(params)
 	} else {
 		tmpRet = _mock.Called()
 	}
@@ -733,12 +718,7 @@ func (_c *MockIEnforcer_LoadPolicy_Call) RunAndReturn(run func() error) *MockIEn
 func (_mock *MockIEnforcer) RemoveFilteredGroupingPolicy(fieldIndex int, fieldValues ...string) (bool, error) {
 	var tmpRet mock.Arguments
 	if len(fieldValues) > 0 {
-		args := make([]interface{}, 0, 1+len(fieldValues))
-		args = append(args, fieldIndex)
-		for _, v := range fieldValues {
-			args = append(args, v)
-		}
-		tmpRet = _mock.Called(args...)
+		tmpRet = _mock.Called(fieldIndex, fieldValues)
 	} else {
 		tmpRet = _mock.Called(fieldIndex)
 	}
@@ -813,7 +793,7 @@ func (_c *MockIEnforcer_RemoveFilteredGroupingPolicy_Call) RunAndReturn(run func
 func (_mock *MockIEnforcer) RemovePolicy(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments
 	if len(params) > 0 {
-		tmpRet = _mock.Called(params...)
+		tmpRet = _mock.Called(params)
 	} else {
 		tmpRet = _mock.Called()
 	}

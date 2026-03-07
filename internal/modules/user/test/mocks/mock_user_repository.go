@@ -97,6 +97,63 @@ func (_c *MockUserRepository_Create_Call) RunAndReturn(run func(ctx context.Cont
 	return _c
 }
 
+// CreateSSOIdentity provides a mock function for the type MockUserRepository
+func (_mock *MockUserRepository) CreateSSOIdentity(ctx context.Context, identity *entity.UserSSOIdentity) error {
+	ret := _mock.Called(ctx, identity)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateSSOIdentity")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entity.UserSSOIdentity) error); ok {
+		r0 = returnFunc(ctx, identity)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserRepository_CreateSSOIdentity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateSSOIdentity'
+type MockUserRepository_CreateSSOIdentity_Call struct {
+	*mock.Call
+}
+
+// CreateSSOIdentity is a helper method to define mock.On call
+//   - ctx context.Context
+//   - identity *entity.UserSSOIdentity
+func (_e *MockUserRepository_Expecter) CreateSSOIdentity(ctx interface{}, identity interface{}) *MockUserRepository_CreateSSOIdentity_Call {
+	return &MockUserRepository_CreateSSOIdentity_Call{Call: _e.mock.On("CreateSSOIdentity", ctx, identity)}
+}
+
+func (_c *MockUserRepository_CreateSSOIdentity_Call) Run(run func(ctx context.Context, identity *entity.UserSSOIdentity)) *MockUserRepository_CreateSSOIdentity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *entity.UserSSOIdentity
+		if args[1] != nil {
+			arg1 = args[1].(*entity.UserSSOIdentity)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserRepository_CreateSSOIdentity_Call) Return(err error) *MockUserRepository_CreateSSOIdentity_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserRepository_CreateSSOIdentity_Call) RunAndReturn(run func(ctx context.Context, identity *entity.UserSSOIdentity) error) *MockUserRepository_CreateSSOIdentity_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Delete provides a mock function for the type MockUserRepository
 func (_mock *MockUserRepository) Delete(ctx context.Context, id string) error {
 	ret := _mock.Called(ctx, id)
@@ -434,6 +491,80 @@ func (_c *MockUserRepository_FindByID_Call) Return(user *entity.User, err error)
 }
 
 func (_c *MockUserRepository_FindByID_Call) RunAndReturn(run func(ctx context.Context, id string) (*entity.User, error)) *MockUserRepository_FindByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindBySSOIdentity provides a mock function for the type MockUserRepository
+func (_mock *MockUserRepository) FindBySSOIdentity(ctx context.Context, provider string, providerID string) (*entity.UserSSOIdentity, error) {
+	ret := _mock.Called(ctx, provider, providerID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindBySSOIdentity")
+	}
+
+	var r0 *entity.UserSSOIdentity
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*entity.UserSSOIdentity, error)); ok {
+		return returnFunc(ctx, provider, providerID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *entity.UserSSOIdentity); ok {
+		r0 = returnFunc(ctx, provider, providerID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.UserSSOIdentity)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, provider, providerID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUserRepository_FindBySSOIdentity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindBySSOIdentity'
+type MockUserRepository_FindBySSOIdentity_Call struct {
+	*mock.Call
+}
+
+// FindBySSOIdentity is a helper method to define mock.On call
+//   - ctx context.Context
+//   - provider string
+//   - providerID string
+func (_e *MockUserRepository_Expecter) FindBySSOIdentity(ctx interface{}, provider interface{}, providerID interface{}) *MockUserRepository_FindBySSOIdentity_Call {
+	return &MockUserRepository_FindBySSOIdentity_Call{Call: _e.mock.On("FindBySSOIdentity", ctx, provider, providerID)}
+}
+
+func (_c *MockUserRepository_FindBySSOIdentity_Call) Run(run func(ctx context.Context, provider string, providerID string)) *MockUserRepository_FindBySSOIdentity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserRepository_FindBySSOIdentity_Call) Return(userSSOIdentity *entity.UserSSOIdentity, err error) *MockUserRepository_FindBySSOIdentity_Call {
+	_c.Call.Return(userSSOIdentity, err)
+	return _c
+}
+
+func (_c *MockUserRepository_FindBySSOIdentity_Call) RunAndReturn(run func(ctx context.Context, provider string, providerID string) (*entity.UserSSOIdentity, error)) *MockUserRepository_FindBySSOIdentity_Call {
 	_c.Call.Return(run)
 	return _c
 }

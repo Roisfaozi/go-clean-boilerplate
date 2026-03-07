@@ -581,3 +581,90 @@ func TestAccessHandler_CreateEndpoint_XSS(t *testing.T) {
 		})
 	}
 }
+
+func TestAccessHandler_UnlinkEndpointFromAccessRight(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		mockUseCase := new(mocks.MockIAccessUseCase)
+		handler := newTestAccessController(mockUseCase)
+		router := setupAccessTestRouter()
+		router.POST("/access-rights/unlink", handler.UnlinkEndpointFromAccessRight)
+
+		reqBody := model.LinkEndpointRequest{
+			AccessRightID: "1",
+			EndpointID:    "1",
+		}
+
+		mockUseCase.On("UnlinkEndpointFromAccessRight", mock.Anything, reqBody).Return(nil)
+
+		bodyBytes, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest(http.MethodPost, "/access-rights/unlink", bytes.NewBuffer(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockUseCase.AssertExpectations(t)
+	})
+
+	t.Run("InvalidBody", func(t *testing.T) {
+		mockUseCase := new(mocks.MockIAccessUseCase)
+		handler := newTestAccessController(mockUseCase)
+		router := setupAccessTestRouter()
+		router.POST("/access-rights/unlink", handler.UnlinkEndpointFromAccessRight)
+
+		req, _ := http.NewRequest(http.MethodPost, "/access-rights/unlink", bytes.NewBufferString(`{"access_right_id":`))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		mockUseCase.AssertNotCalled(t, "UnlinkEndpointFromAccessRight", mock.Anything, mock.Anything)
+	})
+
+	t.Run("ValidationErrors", func(t *testing.T) {
+		mockUseCase := new(mocks.MockIAccessUseCase)
+		handler := newTestAccessController(mockUseCase)
+		router := setupAccessTestRouter()
+		router.POST("/access-rights/unlink", handler.UnlinkEndpointFromAccessRight)
+
+		reqBody := model.LinkEndpointRequest{
+			AccessRightID: "",
+			EndpointID:    "",
+		}
+
+		bodyBytes, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest(http.MethodPost, "/access-rights/unlink", bytes.NewBuffer(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+		mockUseCase.AssertNotCalled(t, "UnlinkEndpointFromAccessRight", mock.Anything, mock.Anything)
+	})
+
+	t.Run("UseCaseError", func(t *testing.T) {
+		mockUseCase := new(mocks.MockIAccessUseCase)
+		handler := newTestAccessController(mockUseCase)
+		router := setupAccessTestRouter()
+		router.POST("/access-rights/unlink", handler.UnlinkEndpointFromAccessRight)
+
+		reqBody := model.LinkEndpointRequest{
+			AccessRightID: "1",
+			EndpointID:    "1",
+		}
+		mockUseCase.On("UnlinkEndpointFromAccessRight", mock.Anything, reqBody).Return(errors.New("db error"))
+
+		bodyBytes, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest(http.MethodPost, "/access-rights/unlink", bytes.NewBuffer(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		mockUseCase.AssertExpectations(t)
+	})
+}

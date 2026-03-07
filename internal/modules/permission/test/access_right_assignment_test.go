@@ -43,13 +43,13 @@ func TestGetRoleAccessRights_Success(t *testing.T) {
 
 	deps.AccessRepo.On("GetAccessRights", mock.Anything).Return(accessRights, nil)
 
-	deps.Enforcer.On("Enforce", "admin", "global", "/api/roles", "GET").Return(true, nil)
-	deps.Enforcer.On("Enforce", "admin", "global", "/api/roles", "POST").Return(true, nil)
+	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/roles", "GET"}).Return(true, nil)
+	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/roles", "POST"}).Return(true, nil)
 
-	deps.Enforcer.On("Enforce", "admin", "global", "/api/users", "GET").Return(true, nil)
-	deps.Enforcer.On("Enforce", "admin", "global", "/api/users/:id", "DELETE").Return(false, nil)
+	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/users", "GET"}).Return(true, nil)
+	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/users/:id", "DELETE"}).Return(false, nil)
 
-	deps.Enforcer.On("Enforce", "admin", "global", "/api/stats", "GET").Return(false, nil)
+	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/stats", "GET"}).Return(false, nil)
 
 	res, err := uc.GetRoleAccessRights(context.Background(), "admin", "")
 
@@ -95,9 +95,9 @@ func TestAssignAccessRight_Success(t *testing.T) {
 	deps.AccessRepo.On("GetAccessRightByID", mock.Anything, "ar1").Return(ar, nil)
 
 	// One already granted, one not granted
-	deps.Enforcer.On("Enforce", "admin", "global", "/api/roles", "GET").Return(true, nil)
-	deps.Enforcer.On("Enforce", "admin", "global", "/api/roles", "POST").Return(false, nil)
-	deps.Enforcer.On("AddPolicy", "admin", "global", "/api/roles", "POST").Return(true, nil)
+	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/roles", "GET"}).Return(true, nil)
+	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/roles", "POST"}).Return(false, nil)
+	deps.Enforcer.On("AddPolicy", []interface{}{"admin", "global", "/api/roles", "POST"}).Return(true, nil)
 
 	req := model.AssignAccessRightRequest{
 		AccessRightID: "ar1",
@@ -163,8 +163,8 @@ func TestRevokeAccessRight_Success(t *testing.T) {
 
 	deps.AccessRepo.On("GetAccessRightByID", mock.Anything, "ar1").Return(ar, nil)
 
-	deps.Enforcer.On("RemovePolicy", "admin", "global", "/api/roles", "GET").Return(true, nil)
-	deps.Enforcer.On("RemovePolicy", "admin", "global", "/api/roles", "POST").Return(true, nil)
+	deps.Enforcer.On("RemovePolicy", []interface{}{"admin", "global", "/api/roles", "GET"}).Return(true, nil)
+	deps.Enforcer.On("RemovePolicy", []interface{}{"admin", "global", "/api/roles", "POST"}).Return(true, nil)
 
 	req := model.AssignAccessRightRequest{
 		AccessRightID: "ar1",

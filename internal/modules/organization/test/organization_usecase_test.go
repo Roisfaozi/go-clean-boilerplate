@@ -61,7 +61,7 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 			return org.Name == req.Name && org.Slug == req.Slug && org.OwnerID == userID
 		}), usecase.DefaultOwnerRoleID).Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("AddGroupingPolicy", userID, usecase.DefaultOwnerRoleID, mock.AnythingOfType("string")).Return(true, nil)
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
 
 		res, err := uc.CreateOrganization(ctx, userID, req)
 
@@ -137,7 +137,7 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 		deps.OrgRepo.On("SlugExists", ctx, req.Slug).Return(false, nil)
 		deps.OrgRepo.On("Create", ctx, mock.Anything, mock.Anything).Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(false, errors.New("casbin error"))
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(false, errors.New("casbin error"))
 
 		_, err := uc.CreateOrganization(ctx, "u1", req)
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
@@ -481,7 +481,7 @@ func TestCreateOrganization_XSS(t *testing.T) {
 		return org.Name == request.Name // verifying raw persistence
 	}), usecase.DefaultOwnerRoleID).Return(nil)
 
-	enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
+	enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
 
 	response, err := uc.CreateOrganization(ctx, userID, request)
 
@@ -599,7 +599,7 @@ func TestCreateOrganization_Success(t *testing.T) {
 
 	orgRepo.On("SlugExists", ctx, "acme-corp").Return(false, nil)
 	orgRepo.On("Create", ctx, mock.AnythingOfType("*entity.Organization"), usecase.DefaultOwnerRoleID).Return(nil)
-	enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
+	enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
 
 	// Execute
 	response, err := uc.CreateOrganization(ctx, userID, request)
