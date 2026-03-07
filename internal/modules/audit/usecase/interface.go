@@ -25,4 +25,5 @@ type AuditUseCase interface {
 	LogActivity(ctx context.Context, req model.CreateAuditLogRequest) error
 	GetLogsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]model.AuditLogResponse, int64, error)
 	ExportLogs(ctx context.Context, fromDate, toDate string, process func([]model.AuditLogResponse) error) error
+	ExportLogsAsync(ctx context.Context, userID, orgID, fromDate, toDate, format string) error
 }

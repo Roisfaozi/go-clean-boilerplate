@@ -12,6 +12,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
+	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,17 +20,23 @@ var (
 	exportBatchSize = 1000
 )
 
-type auditUseCase struct {
-	repo AuditRepository
-	log  *logrus.Logger
-	ws   ws.Manager
+type TaskDistributor interface {
+	DistributeTaskAuditLogExport(ctx context.Context, payload model.AuditLogExportPayload, opts ...asynq.Option) error
 }
 
-func NewAuditUseCase(repo AuditRepository, log *logrus.Logger, ws ws.Manager) AuditUseCase {
+type auditUseCase struct {
+	repo            AuditRepository
+	log             *logrus.Logger
+	ws              ws.Manager
+	taskDistributor TaskDistributor
+}
+
+func NewAuditUseCase(repo AuditRepository, log *logrus.Logger, ws ws.Manager, taskDistributor TaskDistributor) AuditUseCase {
 	return &auditUseCase{
-		repo: repo,
-		log:  log,
-		ws:   ws,
+		repo:            repo,
+		log:             log,
+		ws:              ws,
+		taskDistributor: taskDistributor,
 	}
 }
 
@@ -198,4 +205,20 @@ func (uc *auditUseCase) ExportLogs(ctx context.Context, fromDate, toDate string,
 		}
 		return process(response)
 	})
+}
+
+func (uc *auditUseCase) ExportLogsAsync(ctx context.Context, userID, orgID, fromDate, toDate, format string) error {
+	if uc.taskDistributor == nil {
+		return fmt.Errorf("task distributor not configured")
+	}
+
+	payload := model.AuditLogExportPayload{
+		UserID:         userID,
+		OrganizationID: orgID,
+		FromDate:       fromDate,
+		ToDate:         toDate,
+		Format:         format,
+	}
+
+	return uc.taskDistributor.DistributeTaskAuditLogExport(ctx, payload)
 }
