@@ -25,3 +25,11 @@ type AuditLogResponse struct {
 	UserAgent      string      `json:"user_agent"`
 	CreatedAt      int64       `json:"created_at"`
 }
+
+type AuditLogExportPayload struct {
+	UserID         string `json:"user_id"`
+	OrganizationID string `json:"organization_id"`
+	FromDate       string `json:"from_date"`
+	ToDate         string `json:"to_date"`
+	Format         string `json:"format"` // "csv" or "excel" (future)
+}
