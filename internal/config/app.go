@@ -26,6 +26,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/circuitbreaker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/storage"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tus"
@@ -41,7 +42,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Application holds all major application components.
 type Application struct {
 	Server          *http.Server
 	DB              *gorm.DB
@@ -55,11 +55,9 @@ type Application struct {
 	StorageProvider storage.Provider
 }
 
-// NewApplication initializes and wires up all application components.
 func NewApplication(cfg *AppConfig) (*Application, error) {
 	logger := NewLogrus(cfg)
 
-	// Configure Circuit Breaker
 	circuitbreaker.Configure(
 		cfg.CircuitBreaker.Enabled,
 		cfg.CircuitBreaker.MaxRequests,
@@ -67,7 +65,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		cfg.CircuitBreaker.Timeout,
 	)
 
-	// Initialize OpenTelemetry
 	var tracerShutdown func(context.Context) error
 	if cfg.Telemetry.Enabled {
 		var err error
@@ -84,7 +81,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	redisClient := NewRedisConfig(cfg, logger)
 
-	// Redis Option for Asynq
 	redisOpt := asynq.RedisClientOpt{
 		Addr:     cfg.Redis.Addr,
 		Password: cfg.Redis.Password,
@@ -102,17 +98,14 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		cfg.JWT.RefreshTokenDuration,
 	)
 
-	// Online Presence Manager
 	presenceManager := ws2.NewPresenceManager(redisClient, logger, 5*time.Minute)
 
-	// Ticket Manager
 	ticketManager := ws2.NewRedisTicketManager(redisClient, 30*time.Second)
 
 	wsConfig := NewDefaultWebSocketConfig()
 	wsManager := ws2.NewWebSocketManager(wsConfig.ToPkgConfig(), logger, redisClient, presenceManager)
 	go wsManager.Run()
 
-	// Pruning Loop for Presence
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)
 		for range ticker.C {
@@ -121,7 +114,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 				logger.WithError(err).Error("Failed to prune stale users")
 				continue
 			}
-			// Broadcast leave event for each pruned user
 			for orgID, userIDs := range removed {
 				for _, uid := range userIDs {
 					wsManager.PresenceUpdate(orgID, "leave", &ws2.PresenceUser{UserID: uid})
@@ -141,7 +133,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		return nil, err
 	}
 
-	// Use TransactionalEnforcer to support SQL transaction integrity for policy changes
 	enforcer := usecase.NewTransactionalEnforcer(globalEnforcer, cfg.Casbin.Model)
 
 	storageProvider, err := NewStorageProvider(cfg)
@@ -153,10 +144,28 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
 	organizationRepository := orgRepo.NewOrganizationRepository(dbConnection)
 
-	// Audit Module (Initialize early to inject into others)
-	auditModule := audit.NewAuditModule(dbConnection, logger, validate, wsManager)
+	ssoProviders := make(map[string]sso.Provider)
+	ssoProviders["google"] = sso.NewGoogleProvider(sso.ProviderConfig{
+		ClientID:     cfg.SSO.Google.ClientID,
+		ClientSecret: cfg.SSO.Google.ClientSecret,
+		RedirectURL:  cfg.SSO.Google.RedirectURL,
+		Scopes:       cfg.SSO.Google.Scopes,
+	})
+	ssoProviders["microsoft"] = sso.NewMicrosoftProvider(sso.ProviderConfig{
+		ClientID:     cfg.SSO.Microsoft.ClientID,
+		ClientSecret: cfg.SSO.Microsoft.ClientSecret,
+		RedirectURL:  cfg.SSO.Microsoft.RedirectURL,
+		Scopes:       cfg.SSO.Microsoft.Scopes,
+	})
+	ssoProviders["github"] = sso.NewGitHubProvider(sso.ProviderConfig{
+		ClientID:     cfg.SSO.GitHub.ClientID,
+		ClientSecret: cfg.SSO.GitHub.ClientSecret,
+		RedirectURL:  cfg.SSO.GitHub.RedirectURL,
+		Scopes:       cfg.SSO.GitHub.Scopes,
+	})
 
-	// Inject TaskDistributor to AuthModule
+	auditModule := audit.NewAuditModule(dbConnection, logger, validate, wsManager, taskDistributor)
+
 	authModule := auth.NewAuthModule(
 		cfg.Security.MaxLoginAttempts,
 		cfg.Security.LockoutDuration,
@@ -175,6 +184,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		ticketManager,
 		cfg.Casbin.DefaultRole,
 		cfg.Casbin.DefaultDomain,
+		ssoProviders,
 	)
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, storageProvider)
@@ -193,7 +203,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	logger.Info("Application modules initialized.")
 
-	// Worker Handlers
 	cleanupHandler := handlers.NewCleanupTaskHandler(
 		authModule.TokenRepo,
 		userModule.UserRepo,
@@ -201,7 +210,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		logger,
 	)
 
-	// Map AppConfig to WorkerConfig (Manual mapping to avoid cycle)
 	workerCfg := worker.WorkerConfig{
 		SMTP: worker.SMTPConfig{
 			Host:       cfg.SMTP.Host,
@@ -217,7 +225,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	scheduler := worker.NewScheduler(redisOpt, logger)
 	scheduler.RegisterScheduledTasks()
 
-	// Access AuthUseCase via AuthController
 	authUseCase := authModule.AuthController.AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger, ticketManager)
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
@@ -234,10 +241,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	// ---------------------------------------------------------
 	tusRegistry := tus.NewRegistry()
 
-	// Register Avatar Hook
 	tusRegistry.Register("avatar", &userUseCase.AvatarHook{UserUseCase: userModule.UserUseCase})
 
-	// Initialize AWS S3 Client for TUS
 	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(),
 		awsconfig.WithRegion(cfg.Storage.S3.Region),
 		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.Storage.S3.AccessKey, cfg.Storage.S3.SecretKey, "")),
@@ -262,8 +267,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}, tusRegistry, s3Client, logger)
 	if err != nil {
 		logger.Errorf("Failed to init TUS handler: %v", err)
-		// Don't kill app, just log? Or kill.
-		// If TUS is critical, kill. But better to log for now.
 	} else {
 		logger.Info("TUS Handler initialized.")
 	}
@@ -306,7 +309,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		sseManager,
 		dbConnection,
 		redisClient,
-		tusHandler, // Pass TUS Handler
+		tusHandler,
 		logger,
 	)
 	logger.Info("Router setup complete.")
@@ -318,7 +321,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 	logger.Infof("Server configured to run on port %s", serverPort)
 
-	// Start Worker Processor in Goroutine
 	go func() {
 		logger.Info("Starting Background Worker Processor...")
 		if err := taskProcessor.Start(); err != nil {
@@ -342,14 +344,12 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	return app, nil
 }
 
-// Shutdown gracefully shuts down all application components.
 func (app *Application) Shutdown(ctx context.Context) error {
 	app.Log.Info("Shutting down HTTP server...")
 	if err := app.Server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("server forced to shutdown: %w", err)
 	}
 
-	// Shutdown Tracer
 	if app.TracerShutdown != nil {
 		app.Log.Info("Shutting down Tracer Provider...")
 		if err := app.TracerShutdown(ctx); err != nil {
