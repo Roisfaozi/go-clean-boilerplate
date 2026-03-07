@@ -39,6 +39,20 @@ type AppConfig struct {
 	}
 	Tus   TusConfig   `mapstructure:"tus"`
 	Pprof PprofConfig `mapstructure:"pprof"`
+	SSO   SSOConfig   `mapstructure:"sso"`
+}
+
+type SSOConfig struct {
+	Google    OAuthProviderConfig `mapstructure:"google"`
+	Microsoft OAuthProviderConfig `mapstructure:"microsoft"`
+	GitHub    OAuthProviderConfig `mapstructure:"github"`
+}
+
+type OAuthProviderConfig struct {
+	ClientID     string   `mapstructure:"client_id"`
+	ClientSecret string   `mapstructure:"client_secret"`
+	RedirectURL  string   `mapstructure:"redirect_url"`
+	Scopes       []string `mapstructure:"scopes"`
 }
 
 type TusConfig struct {
@@ -244,6 +258,18 @@ func NewConfig() (*AppConfig, error) {
 
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")
+
+	cfg.SSO.Google.ClientID = v.GetString("sso.google.client_id")
+	cfg.SSO.Google.ClientSecret = v.GetString("sso.google.client_secret")
+	cfg.SSO.Google.RedirectURL = v.GetString("sso.google.redirect_url")
+
+	cfg.SSO.Microsoft.ClientID = v.GetString("sso.microsoft.client_id")
+	cfg.SSO.Microsoft.ClientSecret = v.GetString("sso.microsoft.client_secret")
+	cfg.SSO.Microsoft.RedirectURL = v.GetString("sso.microsoft.redirect_url")
+
+	cfg.SSO.GitHub.ClientID = v.GetString("sso.github.client_id")
+	cfg.SSO.GitHub.ClientSecret = v.GetString("sso.github.client_secret")
+	cfg.SSO.GitHub.RedirectURL = v.GetString("sso.github.redirect_url")
 
 	cfg.Security.MaxLoginAttempts = v.GetInt("security.max_login_attempts")
 	cfg.Security.LockoutDuration = v.GetDuration("security.lockout_duration")
