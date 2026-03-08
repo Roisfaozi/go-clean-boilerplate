@@ -30,13 +30,12 @@ func TestScenario_RBAC_Orchestration(t *testing.T) {
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 
 	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
-	roleService := roleUC.NewRoleUseCase(env.Logger, tm, rRepo)
-
 	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
 	accessService := accessUC.NewAccessUseCase(aRepo, env.Logger)
 
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo, nil)
+	roleService := roleUC.NewRoleUseCase(env.Logger, tm, rRepo, permService)
 
 	roleName := "Analyst"
 	_, err := roleService.Create(ctx, &roleModel.CreateRoleRequest{Name: roleName, Description: "Data Analyst"})
