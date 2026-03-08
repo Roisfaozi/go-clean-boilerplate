@@ -193,7 +193,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo, userModule.UserRepo, accessModule.AccessRepo, auditModule)
 
-	roleModule := role.NewRoleModule(dbConnection, logger, validate, tm)
+	roleModule := role.NewRoleModule(dbConnection, logger, validate, tm, permissionModule.PermissionUseCase)
 
 	statsModule := stats.NewStatsModule(dbConnection, logger)
 
