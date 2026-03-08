@@ -12,6 +12,9 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase"
+	permissionUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	accessRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -22,7 +25,8 @@ import (
 func setupRoleIntegration(env *setup.TestEnvironment) usecase.RoleUseCase {
 	roleRepo := repository.NewRoleRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	return usecase.NewRoleUseCase(env.Logger, tm, roleRepo)
+	permUC := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo, userRepository.NewUserRepository(env.DB, env.Logger), accessRepository.NewAccessRepository(env.DB, env.Logger), nil)
+	return usecase.NewRoleUseCase(env.Logger, tm, roleRepo, permUC)
 }
 
 func TestRoleIntegration_Create_Success(t *testing.T) {

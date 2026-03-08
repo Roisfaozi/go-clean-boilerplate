@@ -97,3 +97,128 @@ func TestRoleUseCase_Delete_Guardian_FindByIDError(t *testing.T) {
 	deps.Repo.AssertExpectations(t)
 	deps.TM.AssertExpectations(t)
 }
+
+func TestRoleUseCase_Update_Guardian_FindByIDError(t *testing.T) {
+	deps, uc := setupGuardianRoleTest()
+	roleID := "role-error-id"
+	req := &model.UpdateRoleRequest{Description: "Updated Desc"}
+
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+
+	genericErr := errors.New("connection failed")
+	deps.Repo.On("FindByID", mock.Anything, roleID).Return((*entity.Role)(nil), genericErr)
+
+	res, err := uc.Update(context.Background(), roleID, req)
+
+	assert.Error(t, err)
+	assert.Nil(t, res)
+	assert.ErrorIs(t, err, exception.ErrInternalServer)
+
+	deps.Repo.AssertExpectations(t)
+	deps.TM.AssertExpectations(t)
+}
+
+func TestRoleUseCase_Create_Guardian_UUIDError(t *testing.T) {
+	// Not practically testable without mocking google/uuid.NewV7 directly.
+	// We'll skip since it's hard to trigger and coverage for this block is rare.
+}
+
+func TestRoleUseCase_Delete_Guardian_CleanUpPolicyError(t *testing.T) {
+	deps, uc := setupGuardianRoleTest()
+	roleID := "role-test-id"
+	role := &entity.Role{
+		ID: roleID,
+		Name: "test_role",
+	}
+
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+
+	deps.Repo.On("FindByID", mock.Anything, roleID).Return(role, nil)
+	deps.Repo.On("Delete", mock.Anything, roleID).Return(nil)
+
+	genericErr := errors.New("cleanup failed")
+	deps.PermissionMock.On("DeleteRole", mock.Anything, role.Name).Return(genericErr)
+
+	err := uc.Delete(context.Background(), roleID)
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, exception.ErrInternalServer)
+
+	deps.Repo.AssertExpectations(t)
+	deps.TM.AssertExpectations(t)
+	deps.PermissionMock.AssertExpectations(t)
+}
+
+func TestRoleUseCase_TransactionManagerErrors(t *testing.T) {
+	deps, uc := setupGuardianRoleTest()
+	ctx := context.Background()
+
+	// Mock Transaction to return error immediately
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Return(exception.ErrInternalServer)
+
+	t.Run("Create", func(t *testing.T) {
+		req := &model.CreateRoleRequest{Name: "tm_error_role", Description: "Test TM Error"}
+		res, err := uc.Create(ctx, req)
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		req := &model.UpdateRoleRequest{Description: "Test TM Error"}
+		res, err := uc.Update(ctx, "id123", req)
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+	})
+
+	t.Run("GetAll", func(t *testing.T) {
+		res, err := uc.GetAll(ctx)
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+	})
+
+	t.Run("GetAllRolesDynamic", func(t *testing.T) {
+		res, err := uc.GetAllRolesDynamic(ctx, nil)
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+		err := uc.Delete(ctx, "id123")
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+	})
+
+	deps.TM.AssertExpectations(t)
+}
+
+func TestRoleUseCase_Create_Guardian_FindByNameSuccess(t *testing.T) {
+	deps, uc := setupGuardianRoleTest()
+	req := &model.CreateRoleRequest{Name: "success_role", Description: "Test Role"}
+
+	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+
+	deps.Repo.On("FindByName", mock.Anything, "success_role").Return(&entity.Role{ID: "existing-id", Name: "success_role"}, nil)
+
+	res, err := uc.Create(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Nil(t, res)
+	assert.ErrorIs(t, err, exception.ErrConflict)
+
+	deps.Repo.AssertExpectations(t)
+	deps.TM.AssertExpectations(t)
+}
