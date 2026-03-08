@@ -1096,6 +1096,39 @@ paths:
       summary: Export audit logs
       tags:
       - audit-logs
+  /audit-logs/export-async:
+    get:
+      description: Initiates an asynchronous export of audit logs to CSV format. Returns
+        immediately.
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: from_date
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: to_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Export task initiated
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Export audit logs (Async)
+      tags:
+      - audit-logs
   /audit-logs/search:
     post:
       consumes:
@@ -1378,11 +1411,79 @@ paths:
       summary: Reset password
       tags:
       - auth
+  /auth/sso/{provider}:
+    get:
+      description: Redirects the user to the specific OAuth2 provider (google, microsoft).
+      parameters:
+      - description: Provider Name
+        enum:
+        - google
+        - microsoft
+        - github
+        in: path
+        name: provider
+        required: true
+        type: string
+      responses:
+        "302":
+          description: Found
+      summary: Initiate SSO Login
+      tags:
+      - auth
+  /auth/sso/{provider}/callback:
+    get:
+      description: Handles the OAuth2 callback, exchanges code for token, and authenticates
+        user.
+      parameters:
+      - description: Provider Name
+        enum:
+        - google
+        - microsoft
+        - github
+        in: path
+        name: provider
+        required: true
+        type: string
+      - description: Authorization Code
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: State
+        in: query
+        name: state
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.LoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      summary: SSO Callback Handler
+      tags:
+      - auth
   /auth/ticket:
     post:
       consumes:
       - application/json
       description: Generates a one-time ticket for WebSocket authentication.
+      parameters:
+      - description: Organization ID
+        in: query
+        name: org_id
+        type: string
+      - description: Alternative Organization ID
+        in: query
+        name: organization_id
+        type: string
       produces:
       - application/json
       responses:
@@ -1793,63 +1894,6 @@ paths:
       summary: Get organization members
       tags:
       - organizations
-    post:
-      consumes:
-      - application/json
-      description: Invites a user by user ID to join an organization
-      parameters:
-      - description: Organization ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Invite member request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.InviteMemberRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            allOf:
-            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
-            - properties:
-                data:
-                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.MemberResponse'
-              type: object
-        "400":
-          description: Validation error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-        "404":
-          description: Organization not found
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-        "409":
-          description: User already a member
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-      security:
-      - BearerAuth: []
-      summary: Invite member to organization
-      tags:
-      - organizations
   /organizations/{id}/members/{userId}:
     delete:
       description: Removes a member from an organization (owner cannot be removed)
@@ -1948,6 +1992,64 @@ paths:
       security:
       - BearerAuth: []
       summary: Update member role
+      tags:
+      - organizations
+  /organizations/{id}/members/invite:
+    post:
+      consumes:
+      - application/json
+      description: Invites a user by user ID to join an organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Invite member request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.InviteMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_organization_model.MemberResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Organization not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "409":
+          description: User already a member
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Invite member to organization
       tags:
       - organizations
   /organizations/{id}/presence:

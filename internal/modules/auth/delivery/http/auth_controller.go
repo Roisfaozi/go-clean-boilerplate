@@ -347,6 +347,8 @@ func (h *AuthController) Me(c *gin.Context) {
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
+// @Param        org_id query string false "Organization ID"
+// @Param        organization_id query string false "Alternative Organization ID"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
@@ -434,7 +436,7 @@ func GetUsernameFromContext(c *gin.Context) (string, bool) {
 // @Summary      Initiate SSO Login
 // @Description  Redirects the user to the specific OAuth2 provider (google, microsoft).
 // @Tags         auth
-// @Param        provider path string true "Provider Name" Enums(google, microsoft)
+// @Param        provider path string true "Provider Name" Enums(google, microsoft, github)
 // @Success      302
 // @Router       /auth/sso/{provider} [get]
 func (ac *AuthController) SSOLogin(c *gin.Context) {
@@ -453,7 +455,7 @@ func (ac *AuthController) SSOLogin(c *gin.Context) {
 // @Summary      SSO Callback Handler
 // @Description  Handles the OAuth2 callback, exchanges code for token, and authenticates user.
 // @Tags         auth
-// @Param        provider path string true "Provider Name"
+// @Param        provider path string true "Provider Name" Enums(google, microsoft, github)
 // @Param        code query string true "Authorization Code"
 // @Param        state query string false "State"
 // @Success      200  {object}  response.SwaggerGeneralResponseWrapper{data=model.LoginResponse}

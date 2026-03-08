@@ -300,7 +300,7 @@ func (ctrl *OrganizationController) AcceptInvitation(c *gin.Context) {
 // @Failure      404      {object}  response.SwaggerErrorResponseWrapper  "Organization not found"
 // @Failure      409      {object}  response.SwaggerErrorResponseWrapper  "User already a member"
 // @Failure      500      {object}  response.SwaggerErrorResponseWrapper  "Internal server error"
-// @Router       /organizations/{id}/members [post]
+// @Router       /organizations/{id}/members/invite [post]
 func (ctrl *OrganizationController) InviteMember(c *gin.Context) {
 	orgID := c.Param("id")
 

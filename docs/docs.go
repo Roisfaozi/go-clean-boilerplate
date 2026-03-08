@@ -385,6 +385,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/audit-logs/export-async": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Initiates an asynchronous export of audit logs to CSV format. Returns immediately.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit-logs"
+                ],
+                "summary": "Export audit logs (Async)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "from_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "to_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Export task initiated",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
         "/audit-logs/search": {
             "post": {
                 "security": [
@@ -823,6 +874,96 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/sso/{provider}": {
+            "get": {
+                "description": "Redirects the user to the specific OAuth2 provider (google, microsoft).",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Initiate SSO Login",
+                "parameters": [
+                    {
+                        "enum": [
+                            "google",
+                            "microsoft",
+                            "github"
+                        ],
+                        "type": "string",
+                        "description": "Provider Name",
+                        "name": "provider",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Found"
+                    }
+                }
+            }
+        },
+        "/auth/sso/{provider}/callback": {
+            "get": {
+                "description": "Handles the OAuth2 callback, exchanges code for token, and authenticates user.",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "SSO Callback Handler",
+                "parameters": [
+                    {
+                        "enum": [
+                            "google",
+                            "microsoft",
+                            "github"
+                        ],
+                        "type": "string",
+                        "description": "Provider Name",
+                        "name": "provider",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Authorization Code",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "State",
+                        "name": "state",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.LoginResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/ticket": {
             "post": {
                 "security": [
@@ -841,6 +982,20 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Get WebSocket Ticket",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "org_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Alternative Organization ID",
+                        "name": "organization_id",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1649,7 +1804,9 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/organizations/{id}/members/invite": {
             "post": {
                 "security": [
                     {
