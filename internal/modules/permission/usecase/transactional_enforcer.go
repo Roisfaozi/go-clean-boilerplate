@@ -92,6 +92,16 @@ func (e *transactionalEnforcer) GetUsersForRole(name string, domain ...string) (
 	return e.globalEnforcer.GetUsersForRole(name, domain...)
 }
 
+func (e *transactionalEnforcer) RemoveFilteredPolicy(fieldIndex int, fieldValues ...string) (bool, error) {
+	return e.globalEnforcer.RemoveFilteredPolicy(fieldIndex, fieldValues...)
+}
+
+func (e *transactionalEnforcer) DeleteRole(role string) (bool, error) {
+	// Built-in DeleteRole should work if AutoSave is on.
+	// It removes from both policy (p) and grouping policy (g).
+	return e.globalEnforcer.DeleteRole(role)
+}
+
 func (e *transactionalEnforcer) SavePolicy() error {
 	return e.globalEnforcer.SavePolicy()
 }
@@ -154,6 +164,14 @@ func (e *transientEnforcer) Enforce(params ...interface{}) (bool, error) {
 
 func (e *transientEnforcer) GetUsersForRole(name string, domain ...string) ([]string, error) {
 	return e.inner.GetUsersForRole(name, domain...)
+}
+
+func (e *transientEnforcer) RemoveFilteredPolicy(fieldIndex int, fieldValues ...string) (bool, error) {
+	return e.inner.RemoveFilteredPolicy(fieldIndex, fieldValues...)
+}
+
+func (e *transientEnforcer) DeleteRole(role string) (bool, error) {
+	return e.inner.DeleteRole(role)
 }
 
 func (e *transientEnforcer) SavePolicy() error {
