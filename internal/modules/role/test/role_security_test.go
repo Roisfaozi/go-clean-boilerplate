@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	permissionMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test/mocks"
@@ -24,18 +25,19 @@ func (m *MockTransactionManager) WithinTransaction(ctx context.Context, fn func(
 	return fn(ctx)
 }
 
-func setupSecurityRoleTest() (*mocks.MockRoleRepository, usecase.RoleUseCase) {
+func setupSecurityRoleTest() (*mocks.MockRoleRepository, *permissionMocks.MockIPermissionUseCase, usecase.RoleUseCase) {
 	mockRepo := new(mocks.MockRoleRepository)
+	mockPerm := new(permissionMocks.MockIPermissionUseCase)
 	logger := logrus.New()
 	mockTM := new(MockTransactionManager)
 
-	uc := usecase.NewRoleUseCase(logger, mockTM, mockRepo)
-	return mockRepo, uc
+	uc := usecase.NewRoleUseCase(logger, mockTM, mockRepo, mockPerm)
+	return mockRepo, mockPerm, uc
 }
 
 // TestDeleteRole_SuperadminProtection tests that superadmin role cannot be deleted.
 func TestDeleteRole_SuperadminProtection(t *testing.T) {
-	repo, uc := setupSecurityRoleTest()
+	repo, _, uc := setupSecurityRoleTest()
 
 	roleID := "role-superadmin-id"
 	role := &entity.Role{ID: roleID, Name: "role:superadmin"}
@@ -52,16 +54,18 @@ func TestDeleteRole_SuperadminProtection(t *testing.T) {
 // TestDeleteRole_SuperadminProtection_CaseSensitive tests bypass attempts with case variations.
 // Current implementation uses exact string match, so ensure we know behavior for variations.
 func TestDeleteRole_SuperadminProtection_CaseSensitive(t *testing.T) {
-	repo, uc := setupSecurityRoleTest()
+	repo, perm, uc := setupSecurityRoleTest()
 
 	// If a role is named "Role:SuperAdmin", it technically isn't "role:superadmin".
 	// This test verifies if the system allows deleting it (which is correct behavior if strict).
 	// But if the system intends to protect all case variations, this test will fail (or indicate need for fix).
 	roleID := "role-fake-superadmin"
-	role := &entity.Role{ID: roleID, Name: "Role:SuperAdmin"}
+	roleName := "Role:SuperAdmin"
+	role := &entity.Role{ID: roleID, Name: roleName}
 
 	repo.On("FindByID", mock.Anything, roleID).Return(role, nil)
 	repo.On("Delete", mock.Anything, roleID).Return(nil)
+	perm.On("DeleteRole", mock.Anything, roleName).Return(nil)
 
 	err := uc.Delete(context.Background(), roleID)
 
@@ -71,7 +75,7 @@ func TestDeleteRole_SuperadminProtection_CaseSensitive(t *testing.T) {
 
 // TestUpdateRole_SuperadminProtection tests if updating superadmin is allowed.
 func TestUpdateRole_SuperadminProtection(t *testing.T) {
-	repo, uc := setupSecurityRoleTest()
+	repo, _, uc := setupSecurityRoleTest()
 
 	roleID := "role-superadmin-id"
 	role := &entity.Role{ID: roleID, Name: "role:superadmin"}

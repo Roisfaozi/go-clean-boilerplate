@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
+	permissionMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test/mocks"
@@ -17,20 +18,22 @@ import (
 )
 
 type guardianRoleTestDeps struct {
-	Repo *mocks.MockRoleRepository
-	TM   *mocking.MockWithTransactionManager
+	Repo           *mocks.MockRoleRepository
+	TM             *mocking.MockWithTransactionManager
+	PermissionMock *permissionMocks.MockIPermissionUseCase
 }
 
 func setupGuardianRoleTest() (*guardianRoleTestDeps, usecase.RoleUseCase) {
 	deps := &guardianRoleTestDeps{
-		Repo: new(mocks.MockRoleRepository),
-		TM:   new(mocking.MockWithTransactionManager),
+		Repo:           new(mocks.MockRoleRepository),
+		TM:             new(mocking.MockWithTransactionManager),
+		PermissionMock: new(permissionMocks.MockIPermissionUseCase),
 	}
 	// Use discarded logger for tests
 	log := logrus.New()
 	log.SetOutput(ioDiscard)
 
-	uc := usecase.NewRoleUseCase(log, deps.TM, deps.Repo)
+	uc := usecase.NewRoleUseCase(log, deps.TM, deps.Repo, deps.PermissionMock)
 	return deps, uc
 }
 

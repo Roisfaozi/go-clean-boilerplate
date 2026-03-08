@@ -177,6 +177,66 @@ func (_c *MockIEnforcer_AddPolicy_Call) RunAndReturn(run func(params ...interfac
 	return _c
 }
 
+// DeleteRole provides a mock function for the type MockIEnforcer
+func (_mock *MockIEnforcer) DeleteRole(role string) (bool, error) {
+	ret := _mock.Called(role)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteRole")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) (bool, error)); ok {
+		return returnFunc(role)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) bool); ok {
+		r0 = returnFunc(role)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(role)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockIEnforcer_DeleteRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteRole'
+type MockIEnforcer_DeleteRole_Call struct {
+	*mock.Call
+}
+
+// DeleteRole is a helper method to define mock.On call
+//   - role string
+func (_e *MockIEnforcer_Expecter) DeleteRole(role interface{}) *MockIEnforcer_DeleteRole_Call {
+	return &MockIEnforcer_DeleteRole_Call{Call: _e.mock.On("DeleteRole", role)}
+}
+
+func (_c *MockIEnforcer_DeleteRole_Call) Run(run func(role string)) *MockIEnforcer_DeleteRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIEnforcer_DeleteRole_Call) Return(b bool, err error) *MockIEnforcer_DeleteRole_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockIEnforcer_DeleteRole_Call) RunAndReturn(run func(role string) (bool, error)) *MockIEnforcer_DeleteRole_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Enforce provides a mock function for the type MockIEnforcer
 func (_mock *MockIEnforcer) Enforce(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments
@@ -789,6 +849,81 @@ func (_c *MockIEnforcer_RemoveFilteredGroupingPolicy_Call) RunAndReturn(run func
 	return _c
 }
 
+// RemoveFilteredPolicy provides a mock function for the type MockIEnforcer
+func (_mock *MockIEnforcer) RemoveFilteredPolicy(fieldIndex int, fieldValues ...string) (bool, error) {
+	var tmpRet mock.Arguments
+	if len(fieldValues) > 0 {
+		tmpRet = _mock.Called(fieldIndex, fieldValues)
+	} else {
+		tmpRet = _mock.Called(fieldIndex)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveFilteredPolicy")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int, ...string) (bool, error)); ok {
+		return returnFunc(fieldIndex, fieldValues...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int, ...string) bool); ok {
+		r0 = returnFunc(fieldIndex, fieldValues...)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(int, ...string) error); ok {
+		r1 = returnFunc(fieldIndex, fieldValues...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockIEnforcer_RemoveFilteredPolicy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveFilteredPolicy'
+type MockIEnforcer_RemoveFilteredPolicy_Call struct {
+	*mock.Call
+}
+
+// RemoveFilteredPolicy is a helper method to define mock.On call
+//   - fieldIndex int
+//   - fieldValues ...string
+func (_e *MockIEnforcer_Expecter) RemoveFilteredPolicy(fieldIndex interface{}, fieldValues ...interface{}) *MockIEnforcer_RemoveFilteredPolicy_Call {
+	return &MockIEnforcer_RemoveFilteredPolicy_Call{Call: _e.mock.On("RemoveFilteredPolicy",
+		append([]interface{}{fieldIndex}, fieldValues...)...)}
+}
+
+func (_c *MockIEnforcer_RemoveFilteredPolicy_Call) Run(run func(fieldIndex int, fieldValues ...string)) *MockIEnforcer_RemoveFilteredPolicy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int
+		if args[0] != nil {
+			arg0 = args[0].(int)
+		}
+		var arg1 []string
+		var variadicArgs []string
+		if len(args) > 1 {
+			variadicArgs = args[1].([]string)
+		}
+		arg1 = variadicArgs
+		run(
+			arg0,
+			arg1...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIEnforcer_RemoveFilteredPolicy_Call) Return(b bool, err error) *MockIEnforcer_RemoveFilteredPolicy_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockIEnforcer_RemoveFilteredPolicy_Call) RunAndReturn(run func(fieldIndex int, fieldValues ...string) (bool, error)) *MockIEnforcer_RemoveFilteredPolicy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RemovePolicy provides a mock function for the type MockIEnforcer
 func (_mock *MockIEnforcer) RemovePolicy(params ...interface{}) (bool, error) {
 	var tmpRet mock.Arguments
@@ -1313,6 +1448,63 @@ func (_c *MockIPermissionUseCase_BatchCheckPermission_Call) Return(stringToBool 
 }
 
 func (_c *MockIPermissionUseCase_BatchCheckPermission_Call) RunAndReturn(run func(ctx context.Context, userID string, items []model.PermissionCheckItem) (map[string]bool, error)) *MockIPermissionUseCase_BatchCheckPermission_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteRole provides a mock function for the type MockIPermissionUseCase
+func (_mock *MockIPermissionUseCase) DeleteRole(ctx context.Context, roleName string) error {
+	ret := _mock.Called(ctx, roleName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteRole")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, roleName)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockIPermissionUseCase_DeleteRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteRole'
+type MockIPermissionUseCase_DeleteRole_Call struct {
+	*mock.Call
+}
+
+// DeleteRole is a helper method to define mock.On call
+//   - ctx context.Context
+//   - roleName string
+func (_e *MockIPermissionUseCase_Expecter) DeleteRole(ctx interface{}, roleName interface{}) *MockIPermissionUseCase_DeleteRole_Call {
+	return &MockIPermissionUseCase_DeleteRole_Call{Call: _e.mock.On("DeleteRole", ctx, roleName)}
+}
+
+func (_c *MockIPermissionUseCase_DeleteRole_Call) Run(run func(ctx context.Context, roleName string)) *MockIPermissionUseCase_DeleteRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIPermissionUseCase_DeleteRole_Call) Return(err error) *MockIPermissionUseCase_DeleteRole_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockIPermissionUseCase_DeleteRole_Call) RunAndReturn(run func(ctx context.Context, roleName string) error) *MockIPermissionUseCase_DeleteRole_Call {
 	_c.Call.Return(run)
 	return _c
 }

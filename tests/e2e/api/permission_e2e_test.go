@@ -357,6 +357,10 @@ func TestPermissionE2E_Security_PostRoleDeletion_PermissionsRevoked(t *testing.T
 	resp = client.DELETE("/api/v1/roles/"+roleID, setup.WithAuth(adminToken))
 	assert.True(t, resp.StatusCode == 200 || resp.StatusCode == 204, "Role deletion should succeed")
 
+	// Explicitly reload policy in the test enforcer to reflect DB changes
+	err = server.Enforcer.LoadPolicy()
+	require.NoError(t, err)
+
 	policies, _ := server.Enforcer.GetFilteredPolicy(0, "EphemeralRole")
 	assert.Empty(t, policies, "All Casbin policies for deleted role must be removed")
 
