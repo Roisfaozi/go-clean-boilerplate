@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	permissionUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model/converter"
@@ -17,16 +18,23 @@ import (
 )
 
 type roleUseCase struct {
-	Log            *logrus.Logger
-	TM             tx.WithTransactionManager
-	RoleRepository repository.RoleRepository
+	Log               *logrus.Logger
+	TM                tx.WithTransactionManager
+	RoleRepository    repository.RoleRepository
+	PermissionUseCase permissionUC.IPermissionUseCase
 }
 
-func NewRoleUseCase(log *logrus.Logger, tm tx.WithTransactionManager, roleRepository repository.RoleRepository) RoleUseCase {
+func NewRoleUseCase(
+	log *logrus.Logger,
+	tm tx.WithTransactionManager,
+	roleRepository repository.RoleRepository,
+	permissionUseCase permissionUC.IPermissionUseCase,
+) RoleUseCase {
 	return &roleUseCase{
-		Log:            log,
-		TM:             tm,
-		RoleRepository: roleRepository,
+		Log:               log,
+		TM:                tm,
+		RoleRepository:    roleRepository,
+		PermissionUseCase: permissionUseCase,
 	}
 }
 
@@ -133,6 +141,12 @@ func (uc *roleUseCase) Delete(ctx context.Context, id string) error {
 
 		if err := uc.RoleRepository.Delete(txCtx, id); err != nil {
 			uc.Log.WithContext(txCtx).Errorf("Failed to delete role: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		// Clean up Casbin policies for this role
+		if err := uc.PermissionUseCase.DeleteRole(txCtx, role.Name); err != nil {
+			uc.Log.WithContext(txCtx).Errorf("Failed to clean up Casbin policies for role %s: %v", role.Name, err)
 			return exception.ErrInternalServer
 		}
 

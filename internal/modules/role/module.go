@@ -1,6 +1,7 @@
 package role
 
 import (
+	permissionUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase"
@@ -14,9 +15,9 @@ type RoleModule struct {
 	RoleController *http.RoleController
 }
 
-func NewRoleModule(db *gorm.DB, log *logrus.Logger, validator *validator.Validate, tm tx.WithTransactionManager) *RoleModule {
+func NewRoleModule(db *gorm.DB, log *logrus.Logger, validator *validator.Validate, tm tx.WithTransactionManager, permissionUseCase permissionUC.IPermissionUseCase) *RoleModule {
 	roleRepo := repository.NewRoleRepository(db, log)
-	roleUseCase := usecase.NewRoleUseCase(log, tm, roleRepo)
+	roleUseCase := usecase.NewRoleUseCase(log, tm, roleRepo, permissionUseCase)
 	roleController := http.NewRoleController(roleUseCase, log, validator)
 
 	return &RoleModule{
