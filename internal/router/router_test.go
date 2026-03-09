@@ -7,6 +7,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
@@ -37,7 +38,9 @@ func createTestRouter(cfg RouterConfig) *gin.Engine {
 		&audit.AuditModule{},
 		&stats.StatsModule{},
 		&project.ProjectModule{},
+		&api_key.ApiKeyModule{},
 		&middleware.AuthMiddleware{},
+		&middleware.APIKeyMiddleware{},
 		func(c *gin.Context) { c.Next() },
 		&middleware.TenantMiddleware{},
 		&ws.WebSocketController{},
