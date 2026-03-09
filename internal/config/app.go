@@ -8,6 +8,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
@@ -189,6 +190,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, storageProvider)
 
+	apiKeyModule := api_key.NewApiKeyModule(dbConnection, logger, validate)
+
 	accessModule := access.NewAccessModule(dbConnection, logger, validate)
 
 	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo, userModule.UserRepo, accessModule.AccessRepo, auditModule)
@@ -227,6 +230,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	authUseCase := authModule.AuthController.AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger, ticketManager)
+	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(apiKeyModule.UseCase, userModule.UserRepo, logger)
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	tenantMiddleware := middleware.NewTenantMiddleware(
 		organizationModule.OrgRepo,
@@ -302,7 +306,9 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		auditModule,
 		statsModule,
 		projectModule,
+		apiKeyModule,
 		authMiddleware,
+		apiKeyMiddleware,
 		casbinMiddleware,
 		tenantMiddleware,
 		wsController,

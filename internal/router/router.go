@@ -6,6 +6,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
 	accessHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key"
+	api_keyHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	auditHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
@@ -61,7 +63,9 @@ func SetupRouter(
 	auditModule *audit.AuditModule,
 	statsModule *stats.StatsModule,
 	projectModule *project.ProjectModule,
+	apiKeyModule *api_key.ApiKeyModule,
 	authMiddleware *middleware.AuthMiddleware,
+	apiKeyMiddleware *middleware.APIKeyMiddleware,
 	casbinMiddleware gin.HandlerFunc,
 	tenantMiddleware *middleware.TenantMiddleware,
 	wsController *ws.WebSocketController,
@@ -168,6 +172,7 @@ func SetupRouter(
 	}
 
 	authenticated := apiV1.Group("")
+	authenticated.Use(apiKeyMiddleware.Authenticate())
 	authenticated.Use(authMiddleware.ValidateToken())
 	authenticated.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	if authLimiter != nil {
@@ -192,9 +197,11 @@ func SetupRouter(
 		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
 		organizationHttp.RegisterAuthenticatedRoutes(authenticated, organizationModule.OrganizationController)
 		permissionHttp.RegisterBatchCheckRoute(authenticated, permissionModule.PermissionController)
+		api_keyHttp.RegisterApiKeyRoutes(authenticated, apiKeyModule.Controller, authMiddleware, tenantMiddleware)
 	}
 
 	tenant := apiV1.Group("")
+	tenant.Use(apiKeyMiddleware.Authenticate())
 	tenant.Use(authMiddleware.ValidateToken())
 	tenant.Use(tenantMiddleware.RequireOrganization())
 	if authLimiter != nil {
@@ -215,6 +222,7 @@ func SetupRouter(
 	}
 
 	authorized := apiV1.Group("")
+	authorized.Use(apiKeyMiddleware.Authenticate())
 	authorized.Use(authMiddleware.ValidateToken())
 	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	authorized.Use(casbinMiddleware)
