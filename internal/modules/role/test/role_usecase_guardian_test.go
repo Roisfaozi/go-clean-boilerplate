@@ -130,7 +130,7 @@ func TestRoleUseCase_Delete_Guardian_CleanUpPolicyError(t *testing.T) {
 	deps, uc := setupGuardianRoleTest()
 	roleID := "role-test-id"
 	role := &entity.Role{
-		ID: roleID,
+		ID:   roleID,
 		Name: "test_role",
 	}
 
