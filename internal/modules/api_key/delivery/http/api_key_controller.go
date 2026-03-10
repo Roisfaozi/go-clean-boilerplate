@@ -26,6 +26,18 @@ func NewApiKeyController(useCase usecase.ApiKeyUseCase, log *logrus.Logger, vali
 	}
 }
 
+// Create godoc
+// @Summary      Create API Key
+// @Description  Generates a new API Key for the authenticated user and organization. The raw key is returned only once.
+// @Tags         api-keys
+// @Accept       json
+// @Produce      json
+// @Param        request  body      model.CreateApiKeyRequest  true  "Create API Key Request"
+// @Success      201      {object}  response.SwaggerSuccessResponseWrapper{data=model.CreateApiKeyResponse}
+// @Failure      400      {object}  response.SwaggerErrorResponseWrapper
+// @Failure      401      {object}  response.SwaggerErrorResponseWrapper
+// @Security     BearerAuth
+// @Router       /api-keys [post]
 func (h *ApiKeyController) Create(c *gin.Context) {
 	var req model.CreateApiKeyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -54,6 +66,15 @@ func (h *ApiKeyController) Create(c *gin.Context) {
 	response.Created(c, res)
 }
 
+// List godoc
+// @Summary      List API Keys
+// @Description  Returns all active API Keys associated with the current organization.
+// @Tags         api-keys
+// @Produce      json
+// @Success      200      {object}  response.SwaggerSuccessResponseWrapper{data=[]model.ApiKeyResponse}
+// @Failure      401      {object}  response.SwaggerErrorResponseWrapper
+// @Security     BearerAuth
+// @Router       /api-keys [get]
 func (h *ApiKeyController) List(c *gin.Context) {
 	orgID := c.GetString("organization_id")
 	if orgID == "" {
@@ -70,6 +91,15 @@ func (h *ApiKeyController) List(c *gin.Context) {
 	response.Success(c, res)
 }
 
+// Revoke godoc
+// @Summary      Revoke API Key
+// @Description  Permanently revokes and deletes an API Key.
+// @Tags         api-keys
+// @Param        id   path      string  true  "API Key ID"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper
+// @Security     BearerAuth
+// @Router       /api-keys/{id} [delete]
 func (h *ApiKeyController) Revoke(c *gin.Context) {
 	id := c.Param("id")
 	orgID := c.GetString("organization_id")

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
+	apiKeyEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/entity"
 	auditEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
@@ -30,6 +31,7 @@ func RunMigrations(t *testing.T, db *gorm.DB) {
 		&orgEntity.OrganizationMember{},
 		&orgEntity.InvitationToken{},
 		&projectEntity.Project{},
+		&apiKeyEntity.ApiKey{},
 	)
 	if t != nil {
 		require.NoError(t, err, "Failed to run migrations")
@@ -90,6 +92,7 @@ func CleanupDatabase(t *testing.T, db *gorm.DB) {
 		"password_reset_tokens",
 		"email_verification_tokens",
 		"invitation_tokens",
+		"api_keys",
 	}
 
 	db.Exec("SET FOREIGN_KEY_CHECKS = 0")

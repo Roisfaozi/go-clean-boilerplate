@@ -59,7 +59,11 @@ func (uc *apiKeyUseCase) Create(ctx context.Context, userID, orgID string, req *
 	}
 
 	if err := uc.repo.Create(ctx, apiKey); err != nil {
-		uc.log.Errorf("Failed to create API key: %v", err)
+		uc.log.WithFields(logrus.Fields{
+			"error": err,
+			"userID": userID,
+			"orgID": orgID,
+		}).Error("Failed to create API key in database")
 		return nil, exception.ErrInternalServer
 	}
 

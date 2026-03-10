@@ -76,6 +76,70 @@ definitions:
     - access_right_id
     - endpoint_id
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.ApiKeyResponse:
+    properties:
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      last_used_at:
+        type: string
+      name:
+        type: string
+      organization_id:
+        type: string
+      scopes:
+        items:
+          type: string
+        type: array
+      user_id:
+        type: string
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.CreateApiKeyRequest:
+    properties:
+      expires_at:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 3
+        type: string
+      scopes:
+        items:
+          type: string
+        type: array
+    required:
+    - name
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.CreateApiKeyResponse:
+    properties:
+      api_key:
+        description: Only returned once upon creation
+        type: string
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      last_used_at:
+        type: string
+      name:
+        type: string
+      organization_id:
+        type: string
+      scopes:
+        items:
+          type: string
+        type: array
+      user_id:
+        type: string
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_auth_model.ForgotPasswordRequest:
     properties:
       email:
@@ -1064,6 +1128,92 @@ paths:
       summary: Unlink endpoint from access right
       tags:
       - access-rights
+  /api-keys:
+    get:
+      description: Returns all active API Keys associated with the current organization.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.ApiKeyResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: List API Keys
+      tags:
+      - api-keys
+    post:
+      consumes:
+      - application/json
+      description: Generates a new API Key for the authenticated user and organization.
+        The raw key is returned only once.
+      parameters:
+      - description: Create API Key Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.CreateApiKeyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.CreateApiKeyResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Create API Key
+      tags:
+      - api-keys
+  /api-keys/{id}:
+    delete:
+      description: Permanently revokes and deletes an API Key.
+      parameters:
+      - description: API Key ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Revoke API Key
+      tags:
+      - api-keys
   /audit-logs/export:
     get:
       description: Exports audit logs to CSV format within a date range.
