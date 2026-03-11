@@ -58,7 +58,7 @@ func TestClient_Pump_Errors(t *testing.T) {
 
 	clientConn, err := connectMockClient(server.URL)
 	assert.NoError(t, err)
-	defer clientConn.Close()
+	defer func() { _ = clientConn.Close() }()
 
 	<-done
 
@@ -74,7 +74,7 @@ func TestClient_Pump_Errors(t *testing.T) {
 	mockManager.On("UnregisterClient", client).Return()
 
 	// Test ReadPump on closed connection
-	serverConn.Close()
+	_ = serverConn.Close()
 	client.ReadPump() // Should return immediately due to error
 
 	// Re-establish connection for WritePump test
@@ -90,12 +90,12 @@ func TestClient_Pump_Errors(t *testing.T) {
 
 	clientConn2, err := connectMockClient(server2.URL)
 	assert.NoError(t, err)
-	defer clientConn2.Close()
+	defer func() { _ = clientConn2.Close() }()
 	<-done2
 
 	client.Conn = serverConn
 	client.Send <- []byte("test") // Queue a message
-	serverConn.Close() // Close to cause write error
+	_ = serverConn.Close() // Close to cause write error
 	client.WritePump() // Should return on error
 
 	// Wait for ping ticker write error
@@ -112,7 +112,7 @@ func TestClient_Pump_Errors(t *testing.T) {
 
 	clientConn3, err := connectMockClient(server3.URL)
 	assert.NoError(t, err)
-	defer clientConn3.Close()
+	defer func() { _ = clientConn3.Close() }()
 	<-done3
 
 	client.Conn = serverConn
@@ -122,7 +122,7 @@ func TestClient_Pump_Errors(t *testing.T) {
 	}
 
 	// Close connection to cause ping error
-	serverConn.Close()
+	_ = serverConn.Close()
 	client.WritePump()
 }
 
