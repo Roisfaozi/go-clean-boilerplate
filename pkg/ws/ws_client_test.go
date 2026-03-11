@@ -3,9 +3,13 @@ package ws
 import (
 	"encoding/json"
 	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -29,6 +33,97 @@ func setupClientTest() (*Client, *MockManager, *MockPresenceManager) {
 	}
 
 	return client, mockManager, mockPresence
+}
+
+func connectMockClient(url string) (*websocket.Conn, error) {
+	wsURL := "ws" + strings.TrimPrefix(url, "http")
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	return conn, err
+}
+
+func TestClient_Pump_Errors(t *testing.T) {
+	// Setup test server to get a real websocket connection
+	var clientConn *websocket.Conn
+	var serverConn *websocket.Conn
+	done := make(chan struct{})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader := websocket.Upgrader{}
+		var err error
+		serverConn, err = upgrader.Upgrade(w, r, nil)
+		assert.NoError(t, err)
+		close(done)
+	}))
+	defer server.Close()
+
+	clientConn, err := connectMockClient(server.URL)
+	assert.NoError(t, err)
+	defer clientConn.Close()
+
+	<-done
+
+	client, mockManager, _ := setupClientTest()
+	client.Conn = serverConn
+	client.Config = &WebSocketConfig{
+		WriteWait:      1 * time.Second,
+		PongWait:       1 * time.Second,
+		PingPeriod:     10 * time.Millisecond,
+		MaxMessageSize: 512,
+	}
+
+	mockManager.On("UnregisterClient", client).Return()
+
+	// Test ReadPump on closed connection
+	serverConn.Close()
+	client.ReadPump() // Should return immediately due to error
+
+	// Re-establish connection for WritePump test
+	done2 := make(chan struct{})
+	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader := websocket.Upgrader{}
+		var err error
+		serverConn, err = upgrader.Upgrade(w, r, nil)
+		assert.NoError(t, err)
+		close(done2)
+	}))
+	defer server2.Close()
+
+	clientConn2, err := connectMockClient(server2.URL)
+	assert.NoError(t, err)
+	defer clientConn2.Close()
+	<-done2
+
+	client.Conn = serverConn
+	client.Send <- []byte("test") // Queue a message
+	serverConn.Close() // Close to cause write error
+	client.WritePump() // Should return on error
+
+	// Wait for ping ticker write error
+	// Reset connection
+	done3 := make(chan struct{})
+	server3 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader := websocket.Upgrader{}
+		var err error
+		serverConn, err = upgrader.Upgrade(w, r, nil)
+		assert.NoError(t, err)
+		close(done3)
+	}))
+	defer server3.Close()
+
+	clientConn3, err := connectMockClient(server3.URL)
+	assert.NoError(t, err)
+	defer clientConn3.Close()
+	<-done3
+
+	client.Conn = serverConn
+	// Empty out the queue
+	for len(client.Send) > 0 {
+		<-client.Send
+	}
+
+	// Close connection to cause ping error
+	serverConn.Close()
+	client.WritePump()
 }
 
 func TestClient_HandleMessage_Subscribe(t *testing.T) {
@@ -109,6 +204,20 @@ func TestClient_HandleMessage_PresenceHeartbeat(t *testing.T) {
 	mockPresence.AssertExpectations(t)
 	// Heartbeat does not send response
 	assert.Empty(t, client.Send)
+}
+
+func TestClient_HandleMessage_Message(t *testing.T) {
+	client, mockManager, _ := setupClientTest()
+	msg := ClientMessage{
+		Type:    "message",
+		Channel: "test",
+		Data:    []byte(`"hello"`),
+	}
+	payload, _ := json.Marshal(msg)
+
+	client.handleMessage(payload)
+
+	mockManager.AssertNotCalled(t, "SubscribeToChannel")
 }
 
 func TestClient_HandleMessage_UnknownType(t *testing.T) {
