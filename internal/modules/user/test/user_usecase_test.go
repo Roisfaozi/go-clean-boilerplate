@@ -22,6 +22,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	webhookMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	storageMocks "github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/mocks"
@@ -40,6 +41,7 @@ type userTestDeps struct {
 	Enforcer *permMocks.MockIEnforcer
 	AuditUC  *auditMocks.MockAuditUseCase
 	AuthUC   *authMocks.MockAuthUseCase
+	Webhook  *webhookMocks.MockWebhookUseCase
 	Storage  *storageMocks.MockProvider
 }
 
@@ -51,6 +53,7 @@ func setupUserTest() (*userTestDeps, usecase.UserUseCase) {
 		Enforcer: mockEnforcer,
 		AuditUC:  new(auditMocks.MockAuditUseCase),
 		AuthUC:   new(authMocks.MockAuthUseCase),
+		Webhook:  new(webhookMocks.MockWebhookUseCase),
 		Storage:  new(storageMocks.MockProvider),
 	}
 
@@ -61,7 +64,7 @@ func setupUserTest() (*userTestDeps, usecase.UserUseCase) {
 	// Cast to interface to ensure correct implementation
 	var enf permissionUseCase.IEnforcer = deps.Enforcer
 
-	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, enf, deps.AuditUC, deps.AuthUC, deps.Storage)
+	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, enf, deps.AuditUC, deps.AuthUC, deps.Webhook, deps.Storage)
 
 	return deps, uc
 }
@@ -85,6 +88,7 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 	deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+	deps.Webhook.On("Trigger", mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	result, err := uc.Create(context.Background(), testReq)
 
@@ -864,6 +868,7 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 	deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+	deps.Webhook.On("Trigger", mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	result, err := uc.Create(context.Background(), testReq)
 
@@ -935,7 +940,7 @@ func setupAvatarTest() (*userTestDeps, usecase.UserUseCase) {
 	// Cast to interface to ensure correct implementation
 	var enf permissionUseCase.IEnforcer = deps.Enforcer
 
-	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, enf, deps.AuditUC, deps.AuthUC, deps.Storage)
+	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, enf, deps.AuditUC, deps.AuthUC, deps.Webhook, deps.Storage)
 
 	return deps, uc
 }
@@ -1358,7 +1363,7 @@ func setupAvatarSecurityTest() (*userTestDeps, usecase.UserUseCase) {
 	}
 	log := logrus.New()
 	log.SetOutput(io.Discard)
-	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
+	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Webhook, deps.Storage)
 	return deps, uc
 }
 
@@ -1379,7 +1384,7 @@ func setupCleanupTest() (*userTestDeps, usecase.UserUseCase) {
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 
-	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Storage)
+	uc := usecase.NewUserUseCase(deps.TM, log, deps.Repo, deps.Enforcer, deps.AuditUC, deps.AuthUC, deps.Webhook, deps.Storage)
 
 	return deps, uc
 }
@@ -1813,7 +1818,7 @@ func setupTestUserUseCase() (
 
 	// So we pass nil for others.
 
-	uc := usecase.NewUserUseCase(nil, logger, mockRepo, nil, nil, nil, nil)
+	uc := usecase.NewUserUseCase(nil, logger, mockRepo, nil, nil, nil, nil, nil)
 
 	return mockRepo, nil, nil, nil, nil, nil, logger, uc
 }

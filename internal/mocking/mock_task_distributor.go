@@ -317,12 +317,85 @@ func (_c *MockTaskDistributor_DistributeTaskSendEmail_Call) Return(err error) *M
 	return _c
 }
 
-func (_c *MockTaskDistributor_DistributeTaskSendEmail_Call) RunAndReturn(run func(ctx context.Context, payload *tasks.SendEmailPayload, opts ...asynq.Option) error) *MockTaskDistributor_DistributeTaskSendEmail_Call {
+func (_c *MockTaskDistributor_DistributeTaskSendEmail_Call) RunAndReturn(run func(context.Context, *tasks.SendEmailPayload, ...asynq.Option) error) *MockTaskDistributor_DistributeTaskSendEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DistributeTaskWebhookTrigger provides a mock function for the type MockTaskDistributor
+func (_mock *MockTaskDistributor) DistributeTaskWebhookTrigger(ctx context.Context, payload tasks.WebhookTriggerPayload, opts ...asynq.Option) error {
+	var tmpRet mock.Arguments
+	if len(opts) > 0 {
+		tmpRet = _mock.Called(ctx, payload, opts)
+	} else {
+		tmpRet = _mock.Called(ctx, payload)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for DistributeTaskWebhookTrigger")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, tasks.WebhookTriggerPayload, ...asynq.Option) error); ok {
+		r0 = returnFunc(ctx, payload, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockTaskDistributor_DistributeTaskWebhookTrigger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DistributeTaskWebhookTrigger'
+type MockTaskDistributor_DistributeTaskWebhookTrigger_Call struct {
+	*mock.Call
+}
+
+// DistributeTaskWebhookTrigger is a helper method to define mock.On call
+//   - ctx context.Context
+//   - payload tasks.WebhookTriggerPayload
+//   - opts ...asynq.Option
+func (_e *MockTaskDistributor_Expecter) DistributeTaskWebhookTrigger(ctx interface{}, payload interface{}, opts ...interface{}) *MockTaskDistributor_DistributeTaskWebhookTrigger_Call {
+	return &MockTaskDistributor_DistributeTaskWebhookTrigger_Call{Call: _e.mock.On("DistributeTaskWebhookTrigger",
+		append([]interface{}{ctx, payload}, opts...)...)}
+}
+
+func (_c *MockTaskDistributor_DistributeTaskWebhookTrigger_Call) Run(run func(ctx context.Context, payload tasks.WebhookTriggerPayload, opts ...asynq.Option)) *MockTaskDistributor_DistributeTaskWebhookTrigger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 tasks.WebhookTriggerPayload
+		if args[1] != nil {
+			arg1 = args[1].(tasks.WebhookTriggerPayload)
+		}
+		var arg2 []asynq.Option
+		var variadicArgs []asynq.Option
+		if len(args) > 2 {
+			variadicArgs = args[2].([]asynq.Option)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTaskDistributor_DistributeTaskWebhookTrigger_Call) Return(err error) *MockTaskDistributor_DistributeTaskWebhookTrigger_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockTaskDistributor_DistributeTaskWebhookTrigger_Call) RunAndReturn(run func(ctx context.Context, payload tasks.WebhookTriggerPayload, opts ...asynq.Option) error) *MockTaskDistributor_DistributeTaskWebhookTrigger_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // NewMockTaskProcessor creates a new instance of MockTaskProcessor. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+
 // The first argument is typically a *testing.T value.
 func NewMockTaskProcessor(t interface {
 	mock.TestingT

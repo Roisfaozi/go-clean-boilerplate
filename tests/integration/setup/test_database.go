@@ -11,6 +11,7 @@ import (
 	projectEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/entity"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	webhookEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/entity"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
@@ -32,6 +33,8 @@ func RunMigrations(t *testing.T, db *gorm.DB) {
 		&orgEntity.InvitationToken{},
 		&projectEntity.Project{},
 		&apiKeyEntity.ApiKey{},
+		&webhookEntity.Webhook{},
+		&webhookEntity.WebhookLog{},
 	)
 	if t != nil {
 		require.NoError(t, err, "Failed to run migrations")
@@ -70,6 +73,13 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 		{"role:user", "global", "/api/v1/users/me", "GET"},
 		{"role:user", "global", "/api/v1/users/me", "PUT"},
 		{"role:user", "global", "/api/v1/auth/logout", "POST"},
+		// Superadmin permissions for E2E
+		{"role:superadmin", "global", "/api/v1/webhooks", "POST"},
+		{"role:superadmin", "global", "/api/v1/webhooks", "GET"},
+		{"role:superadmin", "global", "/api/v1/webhooks/:id", "GET"},
+		{"role:superadmin", "global", "/api/v1/webhooks/:id", "PUT"},
+		{"role:superadmin", "global", "/api/v1/webhooks/:id", "DELETE"},
+		{"role:superadmin", "global", "/api/v1/webhooks/:id/logs", "GET"},
 	}
 
 	for _, p := range policies {
@@ -93,6 +103,8 @@ func CleanupDatabase(t *testing.T, db *gorm.DB) {
 		"email_verification_tokens",
 		"invitation_tokens",
 		"api_keys",
+		"webhooks",
+		"webhook_logs",
 	}
 
 	db.Exec("SET FOREIGN_KEY_CHECKS = 0")

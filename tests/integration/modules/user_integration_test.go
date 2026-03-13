@@ -44,7 +44,7 @@ func setupUserIntegration(env *setup.TestEnvironment) usecase.UserUseCase {
 	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
 	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
 
-	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil)
+	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil, nil)
 }
 
 func TestUserIntegration_Positive_Delete(t *testing.T) {

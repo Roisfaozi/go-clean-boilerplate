@@ -52,11 +52,11 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	// Start worker to process audit logs
 	cleanupHandler := handlers.NewCleanupTaskHandler(tokenRepo, userRepo, auditRepo, env.Logger)
 	workerCfg := worker.WorkerConfig{} // Minimal config
-	processor := worker.NewRedisTaskProcessor(redisOpt, env.Logger, cleanupHandler, auditUC, auditRepo, workerCfg)
+	processor := worker.NewRedisTaskProcessor(redisOpt, env.Logger, cleanupHandler, nil, auditUC, auditRepo, workerCfg)
 	env.StartWorker(processor)
 
 	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, oRepo, tm, env.Logger, nil, authz, taskDistributor, nil, make(map[string]sso.Provider))
-	userUC := userUseCase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil)
+	userUC := userUseCase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil, nil)
 
 	ctx := context.Background()
 

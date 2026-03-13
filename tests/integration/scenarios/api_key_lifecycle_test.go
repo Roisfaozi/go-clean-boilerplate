@@ -15,9 +15,9 @@ import (
 	apiKeyModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
 	apiKeyRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/repository"
 	apiKeyUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/usecase"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
-	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -40,7 +40,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 	// Repositories
 	uRepo := userRepo.NewUserRepository(env.DB, logger)
 	akRepo := apiKeyRepo.NewApiKeyRepository(env.DB)
-	
+
 	// UseCases
 	akUC := apiKeyUC.NewApiKeyUseCase(akRepo, logger)
 
@@ -100,7 +100,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		
+
 		var resp map[string]string
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)

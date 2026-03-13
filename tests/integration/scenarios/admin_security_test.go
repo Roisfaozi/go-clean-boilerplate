@@ -48,7 +48,7 @@ func TestScenario_AdminSecurity_AccountSuspension(t *testing.T) {
 	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
 	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
 
-	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, auditService, authService, nil)
+	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, auditService, authService, nil, nil)
 
 	password := "Pass123!"
 	user := setup.CreateTestUser(t, env.DB, "suspend_target", "suspend@test.com", password)

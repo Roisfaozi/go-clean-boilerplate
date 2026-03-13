@@ -48,7 +48,7 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 	authz := authRepo.NewCasbinAdapter(mockEnforcer, "role:user", "global")
 	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
 
-	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, mockEnforcer, auditService, authService, nil)
+	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, mockEnforcer, auditService, authService, nil, nil)
 
 	expectedErr := errors.New("casbin connection error")
 

@@ -45,7 +45,7 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
 	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
 
-	setupService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, realAuditUC, authService, nil)
+	setupService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, realAuditUC, authService, nil, nil)
 	regReq := &userModel.RegisterUserRequest{
 		Username: "todelete", Email: "delete@test.com", Password: "Pass123!", Name: "To Delete",
 	}
@@ -67,7 +67,7 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	mockAuditUC := new(mocks.MockAuditUseCase)
 	mockAuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("intentional audit failure"))
 
-	targetService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, mockAuditUC, authService, nil)
+	targetService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, mockAuditUC, authService, nil, nil)
 
 	delReq := &userModel.DeleteUserRequest{ID: user.ID}
 	err = targetService.DeleteUser(context.Background(), "admin-id", delReq)

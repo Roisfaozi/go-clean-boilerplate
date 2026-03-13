@@ -418,3 +418,30 @@ func TestLinkEndpointToAccessRight_Duplicate(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "duplicate")
 }
+
+func TestUnlinkEndpointFromAccessRight(t *testing.T) {
+	t.Run("Success - Unlink Valid IDs", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
+		deps.Repo.On("UnlinkEndpointFromAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(nil).Once()
+		err := uc.UnlinkEndpointFromAccessRight(ctx, req)
+		assert.NoError(t, err)
+		deps.Repo.AssertExpectations(t)
+	})
+
+	t.Run("Error - Repository Fails", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
+		repoErr := errors.New("db error")
+		deps.Repo.On("UnlinkEndpointFromAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(repoErr).Once()
+
+		err := uc.UnlinkEndpointFromAccessRight(ctx, req)
+		assert.Error(t, err)
+		assert.Equal(t, repoErr, err)
+		deps.Repo.AssertExpectations(t)
+	})
+}

@@ -57,7 +57,7 @@ func setupTUSDeps(t *testing.T, env *setup.TestEnvironment, s3Client *s3.Client,
 
 	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
 
-	uc := userUseCase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil)
+	uc := userUseCase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil, nil)
 
 	registry := tus.NewRegistry()
 	avatarHook := &userUseCase.AvatarHook{UserUseCase: uc}
