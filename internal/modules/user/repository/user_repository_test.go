@@ -345,7 +345,7 @@ func TestUserRepository_UpdateStatus_Error(t *testing.T) {
 	ctx := context.Background()
 
 	dbSQL, _ := db.DB()
-	defer func() { _ = dbSQL.Close() }()
+	_ = dbSQL.Close()
 
 	err := repo.UpdateStatus(ctx, "1", entity.UserStatusBanned)
 	assert.Error(t, err)
@@ -356,7 +356,7 @@ func TestUserRepository_Delete_Error(t *testing.T) {
 	ctx := context.Background()
 
 	dbSQL, _ := db.DB()
-	defer func() { _ = dbSQL.Close() }()
+	_ = dbSQL.Close()
 
 	err := repo.Delete(ctx, "1")
 	assert.Error(t, err)
@@ -367,7 +367,7 @@ func TestUserRepository_FindByID_Error(t *testing.T) {
 	ctx := context.Background()
 
 	dbSQL, _ := db.DB()
-	defer func() { _ = dbSQL.Close() }()
+	_ = dbSQL.Close()
 
 	_, err := repo.FindByID(ctx, "1")
 	assert.Error(t, err)
@@ -379,7 +379,7 @@ func TestUserRepository_FindByEmail_Error(t *testing.T) {
 	ctx := context.Background()
 
 	dbSQL, _ := db.DB()
-	defer func() { _ = dbSQL.Close() }()
+	_ = dbSQL.Close()
 
 	_, err := repo.FindByEmail(ctx, "test@test.com")
 	assert.Error(t, err)
@@ -391,7 +391,7 @@ func TestUserRepository_FindByToken_Error(t *testing.T) {
 	ctx := context.Background()
 
 	dbSQL, _ := db.DB()
-	defer func() { _ = dbSQL.Close() }()
+	_ = dbSQL.Close()
 
 	_, err := repo.FindByToken(ctx, "token")
 	assert.Error(t, err)
@@ -403,7 +403,7 @@ func TestUserRepository_FindByUsername_Error(t *testing.T) {
 	ctx := context.Background()
 
 	dbSQL, _ := db.DB()
-	defer func() { _ = dbSQL.Close() }()
+	_ = dbSQL.Close()
 
 	_, err := repo.FindByUsername(ctx, "username")
 	assert.Error(t, err)
@@ -434,7 +434,7 @@ func TestUserRepository_FindAll_Error(t *testing.T) {
 	ctx := context.Background()
 
 	dbSQL, _ := db.DB()
-	defer func() { _ = dbSQL.Close() }()
+	_ = dbSQL.Close()
 
 	_, _, err := repo.FindAll(ctx, &model.GetUserListRequest{})
 	assert.Error(t, err)
@@ -464,7 +464,7 @@ func TestUserRepository_FindAllDynamic_Error(t *testing.T) {
 	ctx := context.Background()
 
 	dbSQL, _ := db.DB()
-	defer func() { _ = dbSQL.Close() }()
+	_ = dbSQL.Close()
 
 	_, _, err := repo.FindAllDynamic(ctx, &querybuilder.DynamicFilter{})
 	assert.Error(t, err)
@@ -475,7 +475,7 @@ func TestUserRepository_HardDeleteSoftDeletedUsers_Error(t *testing.T) {
 	ctx := context.Background()
 
 	dbSQL, _ := db.DB()
-	defer func() { _ = dbSQL.Close() }()
+	_ = dbSQL.Close()
 
 	err := repo.HardDeleteSoftDeletedUsers(ctx, 30)
 	assert.Error(t, err)
@@ -502,7 +502,7 @@ func TestUserRepository_GetByOrganization_Error(t *testing.T) {
 	ctx := context.Background()
 
 	dbSQL, _ := db.DB()
-	defer func() { _ = dbSQL.Close() }()
+	_ = dbSQL.Close()
 
 	_, err := repo.GetByOrganization(ctx, "org1")
 	assert.Error(t, err)
@@ -543,7 +543,7 @@ func TestUserRepository_FindBySSOIdentity_Error(t *testing.T) {
 	repo, db := setupUserRepo(t)
 
 	dbSQL, _ := db.DB()
-	defer func() { _ = dbSQL.Close() }()
+	_ = dbSQL.Close()
 
 	_, err := repo.FindBySSOIdentity(context.Background(), "google", "g1")
 	assert.Error(t, err)
