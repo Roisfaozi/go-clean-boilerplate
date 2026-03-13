@@ -299,6 +299,15 @@ func seedAccessRightsAndPoliciesViaAPI(cfg *config.AppConfig, token string) {
 		"audit:view": {
 			{"Path": "/api/v1/audit-logs/search", "Method": "POST"},
 			{"Path": "/api/v1/audit-logs/export", "Method": "GET"},
+			{"Path": "/api/v1/audit-logs/export-async", "Method": "POST"},
+		},
+		"webhook:manage": {
+			{"Path": "/api/v1/webhooks", "Method": "POST"},
+			{"Path": "/api/v1/webhooks", "Method": "GET"},
+			{"Path": "/api/v1/webhooks/:id", "Method": "GET"},
+			{"Path": "/api/v1/webhooks/:id", "Method": "PUT"},
+			{"Path": "/api/v1/webhooks/:id", "Method": "DELETE"},
+			{"Path": "/api/v1/webhooks/:id/logs", "Method": "GET"},
 		},
 	}
 
@@ -313,6 +322,7 @@ func seedAccessRightsAndPoliciesViaAPI(cfg *config.AppConfig, token string) {
 			"audit:view",
 			"permission:view", "permission:manage",
 			"access:view", "access:manage",
+			"webhook:manage",
 		},
 		"role:user": {
 			"dashboard:view", "project:view", "org:view", "presence:view",
