@@ -98,6 +98,7 @@ We maintain high quality via:
 - [Getting Started Guide](./GETTING_STARTED.md) - Set up your environment.
 - [Architecture Deep Dive](./ARCHITECTURE.md) - Understand the internal design.
 - [API Usage & Examples](./guides/API_USAGE.md) - How to talk to the API.
+- [Outbound Webhooks Guide](./guides/WEBHOOKS.md) - Integrating external systems.
 - [Real-time Specs](./guides/REALTIME.md) - WS & SSE implementation.
 - [Frontend Guide](../web/README.md) - Frontend-specific documentation.
 

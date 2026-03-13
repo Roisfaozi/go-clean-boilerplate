@@ -727,6 +727,71 @@ definitions:
       username:
         type: string
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_webhook_model.CreateWebhookRequest:
+    properties:
+      events:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      name:
+        maxLength: 255
+        minLength: 3
+        type: string
+      organization_id:
+        type: string
+      secret:
+        minLength: 8
+        type: string
+      url:
+        type: string
+    required:
+    - events
+    - name
+    - organization_id
+    - secret
+    - url
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_webhook_model.UpdateWebhookRequest:
+    properties:
+      events:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      is_active:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 3
+        type: string
+      secret:
+        minLength: 8
+        type: string
+      url:
+        type: string
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_internal_modules_webhook_model.WebhookResponse:
+    properties:
+      created_at:
+        type: integer
+      events:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      organization_id:
+        type: string
+      updated_at:
+        type: integer
+      url:
+        type: string
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_pkg_querybuilder.DynamicFilter:
     properties:
       filter:
@@ -913,6 +978,32 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_user_model.UserResponse'
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerWebhookListResponseWrapper:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_webhook_model.WebhookResponse'
+        type: array
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerWebhookLogListResponseWrapper:
+    properties:
+      data:
+        items:
+          additionalProperties: true
+          type: object
+        type: array
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerWebhookResponseWrapper:
+    properties:
+      data:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_webhook_model.WebhookResponse'
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
@@ -3959,6 +4050,218 @@ paths:
       summary: Get users with dynamic filters
       tags:
       - users
+  /webhooks:
+    get:
+      description: Returns a list of all webhooks registered for the given organization.
+      parameters:
+      - description: Organization ID
+        in: query
+        name: organization_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerWebhookListResponseWrapper'
+        "400":
+          description: Missing organization_id
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      summary: List organization webhooks
+      tags:
+      - webhooks
+    post:
+      consumes:
+      - application/json
+      description: Registers a new webhook URL to receive specified events.
+      parameters:
+      - description: Webhook Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_webhook_model.CreateWebhookRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerWebhookResponseWrapper'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      summary: Create a new outbound webhook
+      tags:
+      - webhooks
+  /webhooks/{id}:
+    delete:
+      description: Deletes an outbound webhook configuration.
+      parameters:
+      - description: Webhook ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Organization ID
+        in: query
+        name: organization_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Webhook deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Missing organization_id
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Webhook not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      summary: Delete a webhook
+      tags:
+      - webhooks
+    get:
+      description: Returns the details of a specific webhook.
+      parameters:
+      - description: Webhook ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Organization ID
+        in: query
+        name: organization_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerWebhookResponseWrapper'
+        "400":
+          description: Missing organization_id
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Webhook not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      summary: Get webhook details
+      tags:
+      - webhooks
+    put:
+      consumes:
+      - application/json
+      description: Updates the configuration of an existing webhook.
+      parameters:
+      - description: Webhook ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Organization ID
+        in: query
+        name: organization_id
+        required: true
+        type: string
+      - description: Webhook Update Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_webhook_model.UpdateWebhookRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerWebhookResponseWrapper'
+        "400":
+          description: Invalid request body or missing organization_id
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "404":
+          description: Webhook not found
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      summary: Update an existing webhook
+      tags:
+      - webhooks
+  /webhooks/{id}/logs:
+    get:
+      description: Returns a paginated list of delivery logs for a specific webhook.
+      parameters:
+      - description: Webhook ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Organization ID
+        in: query
+        name: organization_id
+        required: true
+        type: string
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerWebhookLogListResponseWrapper'
+        "400":
+          description: Missing organization_id
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      summary: Get webhook logs
+      tags:
+      - webhooks
   /ws:
     get:
       description: Establishes a WebSocket connection for real-time updates and presence.

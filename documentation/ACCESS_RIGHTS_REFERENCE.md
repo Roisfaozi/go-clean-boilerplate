@@ -23,7 +23,8 @@ This document provides a detailed reference for the **Access Rights** (grouped p
 | **`permission:manage`** | Manage permissions and role assignments | `POST /api/v1/permissions/assign-role`<br>`DELETE /api/v1/permissions/revoke-role`<br>`POST /api/v1/permissions/grant`<br>`PUT /api/v1/permissions`<br>`DELETE /api/v1/permissions/revoke`<br>`POST /api/v1/permissions/inheritance`<br>`DELETE /api/v1/permissions/inheritance` |
 | **`access:view`**       | View access rights definitions          | `GET /api/v1/access-rights`<br>`POST /api/v1/access-rights/search`<br>`POST /api/v1/endpoints/search`                                                                                                                                                                            |
 | **`access:manage`**     | Manage access rights definitions        | `POST /api/v1/access-rights`<br>`DELETE /api/v1/access-rights/:id`<br>`POST /api/v1/access-rights/link`<br>`POST /api/v1/access-rights/unlink`<br>`POST /api/v1/endpoints`<br>`DELETE /api/v1/endpoints/:id`                                                                     |
-| **`audit:view`**        | View and export audit logs              | `POST /api/v1/audit-logs/search`<br>`GET /api/v1/audit-logs/export`                                                                                                                                                                                                              |
+| **`audit:view`**        | View and export audit logs              | `POST /api/v1/audit-logs/search`<br>`GET /api/v1/audit-logs/export`<br>`POST /api/v1/audit-logs/export-async`                                                                                                                                                                     |
+| **`webhook:manage`**    | Manage outbound webhooks                | `POST /api/v1/webhooks`<br>`GET /api/v1/webhooks`<br>`GET /api/v1/webhooks/:id`<br>`PUT /api/v1/webhooks/:id`<br>`DELETE /api/v1/webhooks/:id`<br>`GET /api/v1/webhooks/:id/logs`                                                                                                  |
 
 ## 2. Default Role Assignments
 
@@ -32,7 +33,7 @@ These are the default Access Rights assigned to the standard roles.
 | Role                  | Assigned Access Rights                                                                                                                                                              |
 | :-------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`role:superadmin`** | _All Permissions_ (via wildcard policy `*`, `*`)                                                                                                                                    |
-| **`role:admin`**      | `dashboard:view`<br>`user:view`<br>`role:view`, `role:manage`<br>`project:view`, `project:manage`<br>`org:view`, `org:manage`<br>`member:manage`<br>`presence:view`<br>`audit:view` |
+| **`role:admin`**      | `dashboard:view`<br>`user:view`<br>`role:view`, `role:manage`<br>`project:view`, `project:manage`<br>`org:view`, `org:manage`<br>`member:manage`<br>`presence:view`<br>`audit:view`<br>`webhook:manage` |
 | **`role:user`**       | `dashboard:view`<br>`project:view`<br>`org:view`<br>`presence:view`                                                                                                                 |
 
 ## 3. Excluded Endpoints
