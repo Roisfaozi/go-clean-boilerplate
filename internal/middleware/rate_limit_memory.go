@@ -66,6 +66,13 @@ func RateLimitMiddlewareMemory(rps float64, burst int) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
+
+		// Whitelist localhost for seeding/internal tools
+		if ip == "127.0.0.1" || ip == "::1" {
+			c.Next()
+			return
+		}
+
 		if !limiter.GetLimiter(ip).Allow() {
 			response.ErrorResponse(c, http.StatusTooManyRequests, errors.New("too many requests"), "rate limit exceeded")
 			c.Abort()

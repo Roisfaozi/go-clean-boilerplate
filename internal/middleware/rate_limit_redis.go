@@ -43,6 +43,12 @@ func RateLimitMiddlewareRedis(redisClient *redis.Client, log *logrus.Logger, lim
 			return
 		}
 
+		// Whitelist localhost for seeding/internal tools
+		if c.ClientIP() == "127.0.0.1" || c.ClientIP() == "::1" {
+			c.Next()
+			return
+		}
+
 		var identifier string
 		var key string
 

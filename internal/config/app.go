@@ -21,6 +21,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/router"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
@@ -188,7 +189,9 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		ssoProviders,
 	)
 
-	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, storageProvider)
+	webhookModule := webhook.NewWebhookModule(dbConnection, logger, validate, taskDistributor)
+
+	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, webhookModule, storageProvider)
 
 	apiKeyModule := api_key.NewApiKeyModule(dbConnection, logger, validate)
 
@@ -213,6 +216,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		logger,
 	)
 
+	webhookHandler := handlers.NewWebhookHandler(webhookModule.Repo, logger)
+
 	workerCfg := worker.WorkerConfig{
 		SMTP: worker.SMTPConfig{
 			Host:       cfg.SMTP.Host,
@@ -224,7 +229,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		},
 	}
 
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler, auditModule.AuditController.UseCase, auditModule.AuditRepo, workerCfg)
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler, webhookHandler, auditModule.AuditController.UseCase, auditModule.AuditRepo, workerCfg)
 	scheduler := worker.NewScheduler(redisOpt, logger)
 	scheduler.RegisterScheduledTasks()
 
@@ -307,6 +312,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		statsModule,
 		projectModule,
 		apiKeyModule,
+		webhookModule,
 		authMiddleware,
 		apiKeyMiddleware,
 		casbinMiddleware,

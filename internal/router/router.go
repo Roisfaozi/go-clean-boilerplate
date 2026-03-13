@@ -21,6 +21,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	userHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook"
+	webhookHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/delivery/http"
 	_ "github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
@@ -64,6 +66,7 @@ func SetupRouter(
 	statsModule *stats.StatsModule,
 	projectModule *project.ProjectModule,
 	apiKeyModule *api_key.ApiKeyModule,
+	webhookModule *webhook.WebhookModule,
 	authMiddleware *middleware.AuthMiddleware,
 	apiKeyMiddleware *middleware.APIKeyMiddleware,
 	casbinMiddleware gin.HandlerFunc,
@@ -235,6 +238,7 @@ func SetupRouter(
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
 		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
 		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
+		webhookHttp.RegisterWebhookRoutes(authorized, webhookModule.Controller, authMiddleware.ValidateToken(), casbinMiddleware)
 	}
 
 	// TUS Upload Handler

@@ -15,6 +15,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model/converter"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	webhookModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/model"
+	webhookUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
@@ -27,13 +29,14 @@ import (
 )
 
 type userUseCaseImpl struct {
-	DB       tx.WithTransactionManager
-	Log      *logrus.Logger
-	Repo     repository.UserRepository
-	Enforcer permissionUseCase.IEnforcer
-	AuditUC  auditUseCase.AuditUseCase
-	AuthUC   authUseCase.AuthUseCase
-	Storage  storage.Provider
+	DB        tx.WithTransactionManager
+	Log       *logrus.Logger
+	Repo      repository.UserRepository
+	Enforcer  permissionUseCase.IEnforcer
+	AuditUC   auditUseCase.AuditUseCase
+	AuthUC    authUseCase.AuthUseCase
+	WebhookUC webhookUseCase.WebhookUseCase
+	Storage   storage.Provider
 }
 
 func NewUserUseCase(
@@ -43,16 +46,18 @@ func NewUserUseCase(
 	enforcer permissionUseCase.IEnforcer,
 	auditUC auditUseCase.AuditUseCase,
 	authUC authUseCase.AuthUseCase,
+	webhookUC webhookUseCase.WebhookUseCase,
 	storage storage.Provider,
 ) UserUseCase {
 	return &userUseCaseImpl{
-		DB:       db,
-		Log:      log,
-		Repo:     repo,
-		Enforcer: enforcer,
-		AuditUC:  auditUC,
-		AuthUC:   authUC,
-		Storage:  storage,
+		DB:        db,
+		Log:       log,
+		Repo:      repo,
+		Enforcer:  enforcer,
+		AuditUC:   auditUC,
+		AuthUC:    authUC,
+		WebhookUC: webhookUC,
+		Storage:   storage,
 	}
 }
 
@@ -133,6 +138,25 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 
 	if err != nil {
 		return nil, err
+	}
+
+	// Trigger Webhook Event (Out-of-transaction for reliability)
+	if u.WebhookUC != nil {
+		go func() {
+			err := u.WebhookUC.Trigger(context.Background(), webhookModel.TriggerWebhookRequest{
+				OrganizationID: "global", // Standard user registration is global
+				EventType:      "user.created",
+				Payload: map[string]interface{}{
+					"id":       user.ID,
+					"username": user.Username,
+					"email":    user.Email,
+					"name":     user.Name,
+				},
+			})
+			if err != nil {
+				u.Log.Errorf("Failed to trigger webhook user.created: %v", err)
+			}
+		}()
 	}
 
 	telemetry.UserRegistrationsTotal.Inc()
