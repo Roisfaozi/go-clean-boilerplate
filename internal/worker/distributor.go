@@ -14,6 +14,7 @@ type TaskDistributor interface {
 	DistributeTaskAuditLog(ctx context.Context, payload auditModel.CreateAuditLogRequest, opts ...asynq.Option) error
 	DistributeTaskAuditOutboxSync(ctx context.Context, opts ...asynq.Option) error
 	DistributeTaskAuditLogExport(ctx context.Context, payload auditModel.AuditLogExportPayload, opts ...asynq.Option) error
+	DistributeTaskWebhookTrigger(ctx context.Context, payload tasks.WebhookTriggerPayload, opts ...asynq.Option) error
 }
 
 type RedisTaskDistributor struct {
@@ -25,6 +26,20 @@ func NewRedisTaskDistributor(redisOpt asynq.RedisClientOpt) TaskDistributor {
 	return &RedisTaskDistributor{
 		client: client,
 	}
+}
+
+func (d *RedisTaskDistributor) DistributeTaskWebhookTrigger(ctx context.Context, payload tasks.WebhookTriggerPayload, opts ...asynq.Option) error {
+	task, err := tasks.NewWebhookTriggerTask(payload)
+	if err != nil {
+		return fmt.Errorf("failed to create webhook trigger task: %w", err)
+	}
+
+	_, err = d.client.EnqueueContext(ctx, task, opts...)
+	if err != nil {
+		return fmt.Errorf("failed to enqueue webhook trigger task: %w", err)
+	}
+
+	return nil
 }
 
 func (d *RedisTaskDistributor) DistributeTaskSendEmail(ctx context.Context, payload *tasks.SendEmailPayload, opts ...asynq.Option) error {

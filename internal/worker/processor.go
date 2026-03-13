@@ -19,6 +19,7 @@ type RedisTaskProcessor struct {
 	server         *asynq.Server
 	logger         *logrus.Logger
 	cleanupHandler *handlers.CleanupTaskHandler
+	webhookHandler *handlers.WebhookHandler
 	auditUC        auditUseCase.AuditUseCase
 	auditRepo      auditUseCase.AuditRepository
 	cfg            WorkerConfig
@@ -28,6 +29,7 @@ func NewRedisTaskProcessor(
 	redisOpt asynq.RedisClientOpt,
 	logger *logrus.Logger,
 	cleanupHandler *handlers.CleanupTaskHandler,
+	webhookHandler *handlers.WebhookHandler,
 	auditUC auditUseCase.AuditUseCase,
 	auditRepo auditUseCase.AuditRepository,
 	cfg WorkerConfig,
@@ -51,6 +53,7 @@ func NewRedisTaskProcessor(
 		server:         server,
 		logger:         logger,
 		cleanupHandler: cleanupHandler,
+		webhookHandler: webhookHandler,
 		auditUC:        auditUC,
 		auditRepo:      auditRepo,
 		cfg:            cfg,
@@ -79,6 +82,10 @@ func (processor *RedisTaskProcessor) Start() error {
 
 	outboxHandler := handlers.NewOutboxTaskHandler(processor.auditRepo, processor.logger)
 	mux.HandleFunc(tasks.TypeAuditOutboxSync, outboxHandler.ProcessAuditOutbox)
+
+	if processor.webhookHandler != nil {
+		mux.HandleFunc(tasks.TypeWebhookTrigger, processor.webhookHandler.ProcessTaskWebhookTrigger)
+	}
 
 	// Register Cleanup Handlers
 	if processor.cleanupHandler != nil {
