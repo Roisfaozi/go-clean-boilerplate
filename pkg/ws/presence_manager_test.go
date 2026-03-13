@@ -111,4 +111,17 @@ func TestRedisPresenceManager(t *testing.T) {
 		val, _ := mr.Get("presence:user:user-stale")
 		assert.Empty(t, val)
 	})
+
+	t.Run("RefreshUserHeartbeat", func(t *testing.T) {
+		_ = manager.SetUserOnline(ctx, "org-A", "user-heartbeat", &PresenceUser{Name: "Heartbeat"})
+		err := manager.RefreshUserHeartbeat(ctx, "org-A", "user-heartbeat")
+		assert.NoError(t, err)
+
+		val, _ := mr.Get("presence:user:user-heartbeat")
+		assert.NotEmpty(t, val)
+
+		score, err := mr.ZScore("presence:org:org-A", "user-heartbeat")
+		assert.NoError(t, err)
+		assert.True(t, score > 0)
+	})
 }
