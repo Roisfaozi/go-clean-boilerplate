@@ -1,6 +1,7 @@
 package repository_test
 
 import (
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"context"
 	"fmt"
 	"testing"
@@ -337,4 +338,255 @@ func TestUserRepository_HardDeleteSoftDeletedUsers(t *testing.T) {
 	var count3 int64
 	db.Model(&entity.User{}).Where("id = ?", "3").Count(&count3)
 	assert.Equal(t, int64(1), count3)
+}
+
+func TestUserRepository_UpdateStatus_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	dbSQL, _ := db.DB()
+	_ = dbSQL.Close()
+
+	err := repo.UpdateStatus(ctx, "1", entity.UserStatusBanned)
+	assert.Error(t, err)
+}
+
+func TestUserRepository_Delete_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	dbSQL, _ := db.DB()
+	_ = dbSQL.Close()
+
+	err := repo.Delete(ctx, "1")
+	assert.Error(t, err)
+}
+
+func TestUserRepository_FindByID_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	dbSQL, _ := db.DB()
+	_ = dbSQL.Close()
+
+	_, err := repo.FindByID(ctx, "1")
+	assert.Error(t, err)
+	assert.NotEqual(t, "user not found", err.Error())
+}
+
+func TestUserRepository_FindByEmail_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	dbSQL, _ := db.DB()
+	_ = dbSQL.Close()
+
+	_, err := repo.FindByEmail(ctx, "test@test.com")
+	assert.Error(t, err)
+	assert.NotEqual(t, "user not found", err.Error())
+}
+
+func TestUserRepository_FindByToken_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	dbSQL, _ := db.DB()
+	_ = dbSQL.Close()
+
+	_, err := repo.FindByToken(ctx, "token")
+	assert.Error(t, err)
+	assert.NotEqual(t, "user not found", err.Error())
+}
+
+func TestUserRepository_FindByUsername_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	dbSQL, _ := db.DB()
+	_ = dbSQL.Close()
+
+	_, err := repo.FindByUsername(ctx, "username")
+	assert.Error(t, err)
+	assert.NotEqual(t, gorm.ErrRecordNotFound, err)
+}
+
+func TestUserRepository_FindAll_WithOrg(t *testing.T) {
+	repo, db := setupUserRepo(t)
+
+	db.Exec("CREATE TABLE organization_members (user_id text, organization_id text)")
+	db.Exec("INSERT INTO organization_members (user_id, organization_id) VALUES ('1', 'org1')")
+	db.Exec("INSERT INTO organization_members (user_id, organization_id) VALUES ('2', 'org2')")
+
+	db.Create(&entity.User{ID: "1", Username: "user1", Email: "user1@test.com"})
+	db.Create(&entity.User{ID: "2", Username: "user2", Email: "user2@test.com"})
+
+	ctx := database.SetOrganizationContext(context.Background(), "org1")
+
+	users, total, err := repo.FindAll(ctx, &model.GetUserListRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	assert.Len(t, users, 1)
+	assert.Equal(t, "1", users[0].ID)
+}
+
+func TestUserRepository_FindAll_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	dbSQL, _ := db.DB()
+	_ = dbSQL.Close()
+
+	_, _, err := repo.FindAll(ctx, &model.GetUserListRequest{})
+	assert.Error(t, err)
+}
+
+func TestUserRepository_FindAllDynamic_WithOrg(t *testing.T) {
+	repo, db := setupUserRepo(t)
+
+	db.Exec("CREATE TABLE organization_members (user_id text, organization_id text)")
+	db.Exec("INSERT INTO organization_members (user_id, organization_id) VALUES ('1', 'org1')")
+	db.Exec("INSERT INTO organization_members (user_id, organization_id) VALUES ('2', 'org2')")
+
+	db.Create(&entity.User{ID: "1", Username: "user1", Email: "user1@test.com"})
+	db.Create(&entity.User{ID: "2", Username: "user2", Email: "user2@test.com"})
+
+	ctx := database.SetOrganizationContext(context.Background(), "org1")
+
+	users, total, err := repo.FindAllDynamic(ctx, &querybuilder.DynamicFilter{})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	assert.Len(t, users, 1)
+	assert.Equal(t, "1", users[0].ID)
+}
+
+func TestUserRepository_FindAllDynamic_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	dbSQL, _ := db.DB()
+	_ = dbSQL.Close()
+
+	_, _, err := repo.FindAllDynamic(ctx, &querybuilder.DynamicFilter{})
+	assert.Error(t, err)
+}
+
+func TestUserRepository_HardDeleteSoftDeletedUsers_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	dbSQL, _ := db.DB()
+	_ = dbSQL.Close()
+
+	err := repo.HardDeleteSoftDeletedUsers(ctx, 30)
+	assert.Error(t, err)
+}
+
+func TestUserRepository_GetByOrganization(t *testing.T) {
+	repo, db := setupUserRepo(t)
+
+	db.Exec("CREATE TABLE organization_members (user_id text, organization_id text)")
+	db.Exec("INSERT INTO organization_members (user_id, organization_id) VALUES ('1', 'org1')")
+	db.Exec("INSERT INTO organization_members (user_id, organization_id) VALUES ('2', 'org2')")
+
+	db.Create(&entity.User{ID: "1", Username: "user1", Email: "user1@test.com"})
+	db.Create(&entity.User{ID: "2", Username: "user2", Email: "user2@test.com"})
+
+	users, err := repo.GetByOrganization(context.Background(), "org1")
+	require.NoError(t, err)
+	assert.Len(t, users, 1)
+	assert.Equal(t, "1", users[0].ID)
+}
+
+func TestUserRepository_GetByOrganization_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+	ctx := context.Background()
+
+	dbSQL, _ := db.DB()
+	_ = dbSQL.Close()
+
+	_, err := repo.GetByOrganization(ctx, "org1")
+	assert.Error(t, err)
+}
+
+func TestUserRepository_FindBySSOIdentity(t *testing.T) {
+	repo, db := setupUserRepo(t)
+
+	err := db.AutoMigrate(&entity.UserSSOIdentity{})
+	require.NoError(t, err)
+
+	identity := &entity.UserSSOIdentity{
+		ID:         "1",
+		UserID:     "u1",
+		Provider:   "google",
+		ProviderID: "g1",
+	}
+	db.Create(identity)
+
+	result, err := repo.FindBySSOIdentity(context.Background(), "google", "g1")
+	require.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "1", result.ID)
+}
+
+func TestUserRepository_FindBySSOIdentity_NotFound(t *testing.T) {
+	repo, db := setupUserRepo(t)
+
+	err := db.AutoMigrate(&entity.UserSSOIdentity{})
+	require.NoError(t, err)
+
+	_, err = repo.FindBySSOIdentity(context.Background(), "google", "notfound")
+	assert.Error(t, err)
+	assert.Equal(t, gorm.ErrRecordNotFound, err)
+}
+
+func TestUserRepository_FindBySSOIdentity_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+
+	dbSQL, _ := db.DB()
+	_ = dbSQL.Close()
+
+	_, err := repo.FindBySSOIdentity(context.Background(), "google", "g1")
+	assert.Error(t, err)
+	assert.NotEqual(t, gorm.ErrRecordNotFound, err)
+}
+
+func TestUserRepository_CreateSSOIdentity(t *testing.T) {
+	repo, db := setupUserRepo(t)
+
+	err := db.AutoMigrate(&entity.UserSSOIdentity{})
+	require.NoError(t, err)
+
+	identity := &entity.UserSSOIdentity{
+		ID:         "1",
+		UserID:     "u1",
+		Provider:   "google",
+		ProviderID: "g1",
+	}
+
+	err = repo.CreateSSOIdentity(context.Background(), identity)
+	require.NoError(t, err)
+
+	var saved entity.UserSSOIdentity
+	db.First(&saved, "id = ?", "1")
+	assert.Equal(t, "google", saved.Provider)
+}
+
+func TestUserRepository_CreateSSOIdentity_Error(t *testing.T) {
+	repo, db := setupUserRepo(t)
+
+	err := db.AutoMigrate(&entity.UserSSOIdentity{})
+	require.NoError(t, err)
+
+	identity := &entity.UserSSOIdentity{
+		ID:         "1",
+		UserID:     "u1",
+		Provider:   "google",
+		ProviderID: "g1",
+	}
+
+	// Cause duplicate key error
+	db.Create(identity)
+
+	err = repo.CreateSSOIdentity(context.Background(), identity)
+	assert.Error(t, err)
 }
