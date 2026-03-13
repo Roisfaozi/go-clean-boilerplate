@@ -72,6 +72,14 @@ packages:
     config:
       dir: internal/modules/api_key/test/mocks
       filename: mock_api_key_usecase.go
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/repository:
+    config:
+      dir: internal/modules/webhook/test/mocks
+      filename: mock_webhook_repository.go
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/usecase:
+    config:
+      dir: internal/modules/webhook/test/mocks
+      filename: mock_webhook_usecase.go
   github.com/Roisfaozi/go-clean-boilerplate/pkg/storage:
     config:
       dir: pkg/storage/mocks
