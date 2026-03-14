@@ -231,7 +231,7 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 	// Wait for async registration
 	time.Sleep(500 * time.Millisecond)
 
-	wPresence := server.Client.GET("/api/v1/organizations/"+org1ID+"/presence", setup.WithAuth(tokenA))
+	wPresence := server.Client.GET("/api/v1/organizations/"+org1ID+"/presence", setup.WithAuth(tokenA), setup.WithOrg(org1ID))
 	require.Equal(t, 200, wPresence.StatusCode)
 	assert.Contains(t, string(wPresence.BodyBytes), uidA)
 

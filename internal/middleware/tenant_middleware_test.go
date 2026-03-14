@@ -647,3 +647,163 @@ func TestGetMemberRoleFromContext(t *testing.T) {
 		assert.Empty(t, val)
 	})
 }
+
+func TestTenantMiddleware_RequireOrganization_FindBySlugError(t *testing.T) {
+	mockOrgRepo := new(MockOrganizationRepository)
+	mockReader := new(MockOrganizationReader)
+	log := logrus.New()
+
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
+
+	userID := "user-456"
+	orgSlug := "test-org"
+
+	mockOrgRepo.On("FindBySlug", mock.Anything, orgSlug).Return(nil, errors.New("db error"))
+
+	r := setupTestRouter(middleware)
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", userID)
+		c.Next()
+	})
+	r.Use(middleware.RequireOrganization())
+	r.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set(OrgSlugHeader, orgSlug)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	mockOrgRepo.AssertExpectations(t)
+}
+
+func TestTenantMiddleware_RequireOrganization_GetMemberRoleError(t *testing.T) {
+	mockOrgRepo := new(MockOrganizationRepository)
+	mockReader := new(MockOrganizationReader)
+	log := logrus.New()
+
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
+
+	orgID := "org-123"
+	userID := "user-456"
+
+	mockReader.On("ValidateMembership", mock.Anything, orgID, userID).Return(true, nil)
+	mockReader.On("GetMemberRole", mock.Anything, orgID, userID).Return("", errors.New("reader error"))
+
+	r := setupTestRouter(middleware)
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", userID)
+		c.Next()
+	})
+	r.Use(middleware.RequireOrganization())
+	r.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set(OrgIDHeader, orgID)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockReader.AssertExpectations(t)
+}
+
+func TestTenantMiddleware_OptionalOrganization_FindBySlugError(t *testing.T) {
+	mockOrgRepo := new(MockOrganizationRepository)
+	mockReader := new(MockOrganizationReader)
+	log := logrus.New()
+
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
+
+	userID := "user-456"
+	orgSlug := "test-org"
+
+	mockOrgRepo.On("FindBySlug", mock.Anything, orgSlug).Return(nil, errors.New("db error"))
+
+	r := setupTestRouter(middleware)
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", userID)
+		c.Next()
+	})
+	r.Use(middleware.OptionalOrganization())
+	r.GET("/test", func(c *gin.Context) {
+		_, exists := c.Get("organization_id")
+		assert.False(t, exists)
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set(OrgSlugHeader, orgSlug)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockOrgRepo.AssertExpectations(t)
+}
+
+func TestTenantMiddleware_OptionalOrganization_FindBySlugSuccess(t *testing.T) {
+	mockOrgRepo := new(MockOrganizationRepository)
+	mockReader := new(MockOrganizationReader)
+	log := logrus.New()
+
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
+
+	userID := "user-456"
+	orgSlug := "test-org"
+	orgID := "org-123"
+
+	mockOrgRepo.On("FindBySlug", mock.Anything, orgSlug).Return(&entity.Organization{ID: orgID}, nil)
+	mockReader.On("ValidateMembership", mock.Anything, orgID, userID).Return(true, nil)
+	mockReader.On("GetMemberRole", mock.Anything, orgID, userID).Return("member", nil)
+
+	r := setupTestRouter(middleware)
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", userID)
+		c.Next()
+	})
+	r.Use(middleware.OptionalOrganization())
+	r.GET("/test", func(c *gin.Context) {
+		id, exists := c.Get("organization_id")
+		assert.True(t, exists)
+		assert.Equal(t, orgID, id)
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set(OrgSlugHeader, orgSlug)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockOrgRepo.AssertExpectations(t)
+	mockReader.AssertExpectations(t)
+}
+
+func TestTenantMiddleware_RequireOrganization_ParamFallbackRemoved(t *testing.T) {
+	mockOrgRepo := new(MockOrganizationRepository)
+	mockReader := new(MockOrganizationReader)
+	log := logrus.New()
+
+	middleware := NewTenantMiddleware(mockOrgRepo, mockReader, log)
+
+	userID := "user-456"
+
+	r := setupTestRouter(middleware)
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", userID)
+		c.Next()
+	})
+	r.Use(middleware.RequireOrganization())
+	r.GET("/test/:id", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/test/org-123", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}

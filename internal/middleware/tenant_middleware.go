@@ -52,11 +52,8 @@ func (m *TenantMiddleware) RequireOrganization() gin.HandlerFunc {
 			return
 		}
 
-		// Get organization ID from header (preferred), URL parameter, or slug
+		// Get organization ID from header (preferred) or slug
 		orgID := c.GetHeader(OrgIDHeader)
-		if orgID == "" {
-			orgID = c.Param("id")
-		}
 		orgSlug := c.GetHeader(OrgSlugHeader)
 
 		if orgID == "" && orgSlug == "" {
