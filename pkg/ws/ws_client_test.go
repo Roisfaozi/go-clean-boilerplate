@@ -95,8 +95,8 @@ func TestClient_Pump_Errors(t *testing.T) {
 
 	client.Conn = serverConn
 	client.Send <- []byte("test") // Queue a message
-	_ = serverConn.Close() // Close to cause write error
-	client.WritePump() // Should return on error
+	_ = serverConn.Close()        // Close to cause write error
+	client.WritePump()            // Should return on error
 
 	// Wait for ping ticker write error
 	// Reset connection

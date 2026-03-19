@@ -193,7 +193,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, webhookModule, storageProvider)
 
-	apiKeyModule := api_key.NewApiKeyModule(dbConnection, logger, validate)
+	apiKeyModule := api_key.NewApiKeyModule(dbConnection, userModule.UserRepo, redisClient, logger, validate)
 
 	accessModule := access.NewAccessModule(dbConnection, logger, validate)
 

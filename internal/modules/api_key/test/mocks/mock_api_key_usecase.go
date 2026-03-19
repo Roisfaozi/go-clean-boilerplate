@@ -7,7 +7,6 @@ package mocks
 import (
 	"context"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -40,23 +39,23 @@ func (_m *MockApiKeyUseCase) EXPECT() *MockApiKeyUseCase_Expecter {
 }
 
 // Authenticate provides a mock function for the type MockApiKeyUseCase
-func (_mock *MockApiKeyUseCase) Authenticate(ctx context.Context, key string) (*entity.ApiKey, error) {
+func (_mock *MockApiKeyUseCase) Authenticate(ctx context.Context, key string) (*model.ApiKeyIdentity, error) {
 	ret := _mock.Called(ctx, key)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Authenticate")
 	}
 
-	var r0 *entity.ApiKey
+	var r0 *model.ApiKeyIdentity
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*entity.ApiKey, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*model.ApiKeyIdentity, error)); ok {
 		return returnFunc(ctx, key)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *entity.ApiKey); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *model.ApiKeyIdentity); ok {
 		r0 = returnFunc(ctx, key)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*entity.ApiKey)
+			r0 = ret.Get(0).(*model.ApiKeyIdentity)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
@@ -97,12 +96,12 @@ func (_c *MockApiKeyUseCase_Authenticate_Call) Run(run func(ctx context.Context,
 	return _c
 }
 
-func (_c *MockApiKeyUseCase_Authenticate_Call) Return(apiKey *entity.ApiKey, err error) *MockApiKeyUseCase_Authenticate_Call {
-	_c.Call.Return(apiKey, err)
+func (_c *MockApiKeyUseCase_Authenticate_Call) Return(_a0 *model.ApiKeyIdentity, _a1 error) *MockApiKeyUseCase_Authenticate_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockApiKeyUseCase_Authenticate_Call) RunAndReturn(run func(ctx context.Context, key string) (*entity.ApiKey, error)) *MockApiKeyUseCase_Authenticate_Call {
+func (_c *MockApiKeyUseCase_Authenticate_Call) RunAndReturn(run func(ctx context.Context, key string) (*model.ApiKeyIdentity, error)) *MockApiKeyUseCase_Authenticate_Call {
 	_c.Call.Return(run)
 	return _c
 }

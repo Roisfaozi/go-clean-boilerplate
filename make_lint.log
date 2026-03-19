@@ -1,0 +1,153 @@
+Running linter...
+golangci-lint run
+internal/modules/api_key/usecase/api_key_usecase.go:33:9: undefined: redis (typecheck)
+	redis *redis.Client
+	       ^
+internal/modules/api_key/usecase/api_key_usecase.go:37:64: undefined: redis (typecheck)
+func NewApiKeyUseCase(repo repository.ApiKeyRepository, redis *redis.Client, log *logrus.Logger) ApiKeyUseCase {
+                                                               ^
+internal/modules/permission/usecase/transactional_enforcer.go:12:18: undefined: casbin (typecheck)
+	globalEnforcer *casbin.Enforcer
+	                ^
+internal/modules/permission/usecase/transactional_enforcer.go:114:9: undefined: casbin (typecheck)
+	inner *casbin.Enforcer
+	       ^
+internal/modules/permission/usecase/transactional_enforcer.go:16:47: undefined: casbin (typecheck)
+func NewTransactionalEnforcer(globalEnforcer *casbin.Enforcer, casbinModelPath string) IEnforcer {
+                                              ^
+internal/modules/auth/repository/token_repository.go:19:10: undefined: redis (typecheck)
+	client *redis.Client
+	        ^
+pkg/validation/custom_validators.go:15:35: undefined: validator (typecheck)
+func RegisterCustomValidations(v *validator.Validate) error {
+                                  ^
+pkg/validation/custom_validators.go:26:21: undefined: validator (typecheck)
+func validateXSS(fl validator.FieldLevel) bool {
+                    ^
+pkg/validation/custom_validators.go:44:22: undefined: validator (typecheck)
+func validateSlug(fl validator.FieldLevel) bool {
+                     ^
+cmd/gen/main.go:10:2: could not import unicode (-: could not load export data: internal error in importing "unicode" (unsupported version: 2); please report an issue) (typecheck)
+	"unicode"
+	^
+internal/mocking/mock_task_distributor.go:25:26: mock.AssertExpectations undefined (type *MockTaskDistributor has no field or method AssertExpectations) (typecheck)
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+	                        ^
+internal/mocking/mock_task_distributor.go:47:18: _mock.Called undefined (type *MockTaskDistributor has no field or method Called) (typecheck)
+		tmpRet = _mock.Called(ctx, payload, opts)
+		               ^
+internal/mocking/mock_task_distributor.go:49:18: _mock.Called undefined (type *MockTaskDistributor has no field or method Called) (typecheck)
+		tmpRet = _mock.Called(ctx, payload)
+		               ^
+internal/mocking/mock_task_distributor.go:119:18: _mock.Called undefined (type *MockTaskDistributor has no field or method Called) (typecheck)
+		tmpRet = _mock.Called(ctx, payload, opts)
+		               ^
+internal/mocking/mock_task_distributor.go:407:26: mock.AssertExpectations undefined (type *MockTaskProcessor has no field or method AssertExpectations) (typecheck)
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+	                        ^
+internal/mocking/mock_task_distributor.go:427:8: _mock.Called undefined (type *MockTaskProcessor has no field or method Called) (typecheck)
+	_mock.Called()
+	      ^
+internal/mocking/mock_task_distributor.go:460:15: _mock.Called undefined (type *MockTaskProcessor has no field or method Called) (typecheck)
+	ret := _mock.Called()
+	             ^
+internal/mocking/mock_transaction_manager.go:22:26: mock.AssertExpectations undefined (type *MockWithTransactionManager has no field or method AssertExpectations) (typecheck)
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+	                        ^
+internal/mocking/mock_transaction_manager.go:42:15: _mock.Called undefined (type *MockWithTransactionManager has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, fn)
+	             ^
+internal/mocking/mock_websocket.go:14:4: m.Called undefined (type *MockWebSocketManager has no field or method Called) (typecheck)
+	m.Called()
+	  ^
+internal/mocking/mock_websocket.go:18:4: m.Called undefined (type *MockWebSocketManager has no field or method Called) (typecheck)
+	m.Called(client)
+	  ^
+internal/mocking/mock_websocket.go:22:4: m.Called undefined (type *MockWebSocketManager has no field or method Called) (typecheck)
+	m.Called(client)
+	  ^
+internal/mocking/mock_websocket_manager.go:24:26: mock.AssertExpectations undefined (type *MockPresenceManager has no field or method AssertExpectations) (typecheck)
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+	                        ^
+internal/mocking/mock_websocket_manager.go:44:15: _mock.Called undefined (type *MockPresenceManager has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, orgID)
+	             ^
+internal/mocking/mock_websocket_manager.go:112:15: _mock.Called undefined (type *MockPresenceManager has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, timeout)
+	             ^
+internal/mocking/mock_websocket_manager.go:180:15: _mock.Called undefined (type *MockPresenceManager has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, orgID, userID)
+	             ^
+internal/mocking/mock_websocket_manager.go:382:26: mock.AssertExpectations undefined (type *MockTicketManager has no field or method AssertExpectations) (typecheck)
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+	                        ^
+internal/mocking/mock_websocket_manager.go:402:15: _mock.Called undefined (type *MockTicketManager has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, userID, orgID, sessionID, role, username)
+	             ^
+internal/mocking/mock_websocket_manager.go:492:15: _mock.Called undefined (type *MockTicketManager has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, ticket)
+	             ^
+internal/mocking/mock_websocket_manager.go:567:26: mock.AssertExpectations undefined (type *MockCasbinEnforcer has no field or method AssertExpectations) (typecheck)
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+	                        ^
+internal/mocking/mock_websocket_manager.go:589:18: _mock.Called undefined (type *MockCasbinEnforcer has no field or method Called) (typecheck)
+		tmpRet = _mock.Called(name, domain)
+		               ^
+internal/mocking/mock_websocket_manager.go:591:18: _mock.Called undefined (type *MockCasbinEnforcer has no field or method Called) (typecheck)
+		tmpRet = _mock.Called(name)
+		               ^
+internal/mocking/mock_websocket_manager.go:671:26: mock.AssertExpectations undefined (type *MockManager has no field or method AssertExpectations) (typecheck)
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+	                        ^
+internal/mocking/mock_websocket_manager.go:691:8: _mock.Called undefined (type *MockManager has no field or method Called) (typecheck)
+	_mock.Called(channel, message)
+	      ^
+internal/mocking/mock_websocket_manager.go:737:15: _mock.Called undefined (type *MockManager has no field or method Called) (typecheck)
+	ret := _mock.Called(channel)
+	             ^
+internal/mocking/mock_websocket_manager.go:788:15: _mock.Called undefined (type *MockManager has no field or method Called) (typecheck)
+	ret := _mock.Called()
+	             ^
+internal/modules/access/test/mocks/mock_access_repository.go:24:26: mock.AssertExpectations undefined (type *MockAccessRepository has no field or method AssertExpectations) (typecheck)
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+	                        ^
+internal/modules/access/test/mocks/mock_access_repository.go:44:15: _mock.Called undefined (type *MockAccessRepository has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, accessRight)
+	             ^
+internal/modules/access/test/mocks/mock_access_repository.go:101:15: _mock.Called undefined (type *MockAccessRepository has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, endpoint)
+	             ^
+internal/modules/access/test/mocks/mock_access_repository.go:158:15: _mock.Called undefined (type *MockAccessRepository has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, id)
+	             ^
+internal/modules/access/test/mocks/mock_access_usecase.go:24:26: mock.AssertExpectations undefined (type *MockIAccessUseCase has no field or method AssertExpectations) (typecheck)
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+	                        ^
+internal/modules/access/test/mocks/mock_access_usecase.go:44:15: _mock.Called undefined (type *MockIAccessUseCase has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, req)
+	             ^
+internal/modules/access/test/mocks/mock_access_usecase.go:112:15: _mock.Called undefined (type *MockIAccessUseCase has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, req)
+	             ^
+internal/modules/access/test/mocks/mock_access_usecase.go:180:15: _mock.Called undefined (type *MockIAccessUseCase has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, id)
+	             ^
+internal/modules/api_key/test/mocks/mock_api_key_repository.go:23:26: mock.AssertExpectations undefined (type *MockApiKeyRepository has no field or method AssertExpectations) (typecheck)
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+	                        ^
+internal/modules/api_key/test/mocks/mock_api_key_repository.go:43:15: _mock.Called undefined (type *MockApiKeyRepository has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, apiKey)
+	             ^
+internal/modules/api_key/test/mocks/mock_api_key_repository.go:100:15: _mock.Called undefined (type *MockApiKeyRepository has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, id)
+	             ^
+internal/modules/api_key/test/mocks/mock_api_key_repository.go:157:15: _mock.Called undefined (type *MockApiKeyRepository has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, keyHash)
+	             ^
+internal/modules/api_key/test/mocks/mock_api_key_usecase.go:24:26: mock.AssertExpectations undefined (type *MockApiKeyUseCase has no field or method AssertExpectations) (typecheck)
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+	                        ^
+internal/modules/api_key/test/mocks/mock_api_key_usecase.go:44:15: _mock.Called undefined (type *MockApiKeyUseCase has no field or method Called) (typecheck)
+	ret := _mock.Called(ctx, key)
+	             ^
+make: *** [Makefile:184: lint] Error 1
