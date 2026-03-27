@@ -81,7 +81,11 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 		_ = h.repo.CreateLog(ctx, logEntry)
 		return fmt.Errorf("webhook request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			h.log.WithError(err).Warn("failed to close response body")
+		}
+	}()
 
 	body, _ := io.ReadAll(resp.Body)
 	logEntry.ResponseStatusCode = resp.StatusCode
