@@ -194,7 +194,7 @@ func TestRoleRepository_ErrorPath(t *testing.T) {
 
 	// Close db to force error
 	sqlDB, _ := db.DB()
-	sqlDB.Close()
+	_ = sqlDB.Close()
 
 	// Create
 	err := repo.Create(ctx, &entity.Role{})
