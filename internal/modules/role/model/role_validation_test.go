@@ -1,4 +1,4 @@
-package test
+package model_test
 
 import (
 	"bytes"
