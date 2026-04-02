@@ -504,3 +504,62 @@ func TestUserIntegration_Security_UnauthorizedUpdate(t *testing.T) {
 		assert.NotNil(t, result)
 	}
 }
+
+func TestUserRepository_Integration(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	setup.CleanupDatabase(t, env.DB)
+
+	userRepo := repository.NewUserRepository(env.DB, env.Logger)
+
+	t.Run("GetByOrganization", func(t *testing.T) {
+		setup.CleanupDatabase(t, env.DB)
+
+		user := &entity.User{
+			ID:       "user-org-1",
+			Username: "orguser",
+			Email:    "orguser@example.com",
+			Status:   "ACTIVE",
+		}
+		err := userRepo.Create(context.Background(), user)
+		require.NoError(t, err)
+
+		orgID := "org-1"
+		env.DB.Exec("CREATE TABLE IF NOT EXISTS organization_members (id text, organization_id text, user_id text, role text, status text, created_at timestamp, updated_at timestamp, deleted_at timestamp)")
+		err = env.DB.Exec("INSERT INTO organization_members (id, organization_id, user_id, role, status) VALUES (?, ?, ?, ?, ?)", "mem-1", orgID, user.ID, "ADMIN", "ACTIVE").Error
+		require.NoError(t, err)
+
+		users, err := userRepo.GetByOrganization(context.Background(), orgID)
+		require.NoError(t, err)
+		require.Len(t, users, 1)
+		assert.Equal(t, user.ID, users[0].ID)
+
+
+	})
+
+	t.Run("SSOIdentity", func(t *testing.T) {
+		setup.CleanupDatabase(t, env.DB)
+
+		user := &entity.User{
+			ID:       "user-sso-1",
+			Username: "ssouser",
+			Email:    "ssouser@example.com",
+			Status:   "ACTIVE",
+		}
+		err := userRepo.Create(context.Background(), user)
+		require.NoError(t, err)
+
+		identity := &entity.UserSSOIdentity{
+			ID:         "sso-id-1",
+			UserID:     user.ID,
+			Provider:   "google",
+			ProviderID: "google-123",
+		}
+		err = userRepo.CreateSSOIdentity(context.Background(), identity)
+		require.NoError(t, err)
+
+		found, err := userRepo.FindBySSOIdentity(context.Background(), "google", "google-123")
+		require.NoError(t, err)
+		assert.Equal(t, identity.ID, found.ID)
+		assert.Equal(t, user.ID, found.UserID)
+	})
+}
