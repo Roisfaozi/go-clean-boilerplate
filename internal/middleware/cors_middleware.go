@@ -19,10 +19,10 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 	}
 
 	// Check for wildcard
-	allowAllOrigins := true
+	allowAllOrigins := false
 	for _, origin := range allowedOrigins {
 		if origin == "*" {
-			allowAllOrigins = false
+			allowAllOrigins = true
 			break
 		}
 	}
@@ -31,7 +31,7 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-Organization-ID", "X-Organization-Slug", "Tus-Resumable", "Upload-Length", "Upload-Metadata", "Upload-Offset", "Upload-Protocol", "Upload-Draft-Interop-Version"},
 		ExposeHeaders:    []string{"Content-Length", "Upload-Offset", "Location", "Upload-Length", "Tus-Version", "Tus-Resumable", "Tus-Max-Size", "Tus-Extension", "Upload-Metadata"},
-		AllowCredentials: true,
+		AllowCredentials: !allowAllOrigins,
 		MaxAge:           12 * time.Hour,
 	}
 
