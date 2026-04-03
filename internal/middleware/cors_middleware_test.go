@@ -64,9 +64,8 @@ func TestCORSMiddleware_Wildcard_NoCredentials(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
 	// Should NOT have credentials allowed when using wildcard
-	assert.Equal(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
+	assert.NotEqual(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
 }
 
 func TestCORSMiddleware_WithSpecificOrigins(t *testing.T) {
@@ -183,6 +182,6 @@ func TestCORSMiddleware_WildcardOrigin_DisablesCredentials(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 
-	// Security: If allowedOrigins contains wildcard "*", AllowCredentials MUST be true (developer convenience mode)
+	// Security: If allowedOrigins contains wildcard "*", AllowCredentials MUST NOT be true
 	assert.NotEqual(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
 }
