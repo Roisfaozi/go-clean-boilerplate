@@ -10,6 +10,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -135,4 +136,118 @@ func TestRoleRepository_CRUD(t *testing.T) {
 	_, err = repo.FindByID(ctx, role.ID)
 	assert.Error(t, err)
 	assert.Equal(t, gorm.ErrRecordNotFound, err)
+}
+
+func TestRoleRepository_Context(t *testing.T) {
+	repo, db := setupRoleRepo(t)
+
+	// Create context with txKey
+	// txKey is private in tx package so we can't create it directly but we can use WithinTransaction
+	tm := tx.NewTransactionManager(db, logrus.New())
+
+	err := tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
+		role := &entity.Role{
+			ID:          "role-ctx-1",
+			Name:        "TestRoleCtx",
+			Description: "Original Description",
+		}
+
+		err := repo.Create(ctx, role)
+		require.NoError(t, err)
+
+		found, err := repo.FindByID(ctx, role.ID)
+		require.NoError(t, err)
+		assert.Equal(t, role.Name, found.Name)
+
+		return nil
+	})
+
+	require.NoError(t, err)
+}
+
+func TestRoleRepository_UpdateContext(t *testing.T) {
+	// Not actually needed since we just need to hit the line returning txDB in getDB.
+	// TestRoleRepository_Context covers that line.
+}
+
+
+func TestRoleRepository_Update(t *testing.T) {
+	repo, _ := setupRoleRepo(t)
+	ctx := context.Background()
+
+	role := &entity.Role{
+		ID:          "role-update-1",
+		Name:        "TestRoleUpdate",
+		Description: "Original Description",
+	}
+
+	err := repo.Create(ctx, role)
+	require.NoError(t, err)
+
+	updateRole := &entity.Role{
+		ID:          "role-update-1",
+		Name:        "TestRoleUpdateIgnored",
+		Description: "Updated Description",
+	}
+
+	err = repo.Update(ctx, updateRole)
+	require.NoError(t, err)
+
+	found, err := repo.FindByID(ctx, role.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "TestRoleUpdate", found.Name) // Name should not be updated due to Omit
+	assert.Equal(t, "Updated Description", found.Description)
+}
+
+func TestRoleRepository_Errors(t *testing.T) {
+	repo, db := setupRoleRepo(t)
+	ctx := context.Background()
+
+	// Try dynamic filter error before closing DB to hit GenerateDynamicSort error
+	// We can pass an invalid sort column
+	_, err := repo.FindAllDynamic(ctx, &querybuilder.DynamicFilter{
+		Sort: &[]querybuilder.SortModel{{ColId: "InvalidColumn", Sort: "desc"}},
+	})
+	assert.Error(t, err)
+
+	// Try dynamic filter error to hit GenerateDynamicQuery error
+	_, err = repo.FindAllDynamic(ctx, &querybuilder.DynamicFilter{
+		Filter: map[string]querybuilder.Filter{
+			"InvalidColumn": {Type: "equals", From: "test"},
+		},
+	})
+	assert.Error(t, err)
+
+
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	err = sqlDB.Close()
+	require.NoError(t, err)
+
+	role := &entity.Role{
+		ID:          "role-err-1",
+		Name:        "TestRoleErr",
+		Description: "Test Description",
+	}
+
+	err = repo.Create(ctx, role)
+	assert.Error(t, err)
+
+	err = repo.Update(ctx, role)
+	assert.Error(t, err)
+
+	_, err = repo.FindByID(ctx, "role-err-1")
+	assert.Error(t, err)
+
+	_, err = repo.FindByName(ctx, "TestRoleErr")
+	assert.Error(t, err)
+
+	_, err = repo.FindAll(ctx)
+	assert.Error(t, err)
+
+	_, err = repo.FindAllDynamic(ctx, &querybuilder.DynamicFilter{})
+	assert.Error(t, err)
+
+	err = repo.Delete(ctx, "role-err-1")
+	assert.Error(t, err)
 }
