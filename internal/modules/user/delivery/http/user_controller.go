@@ -2,7 +2,6 @@ package http
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
@@ -48,7 +47,7 @@ func (h *UserController) RegisterUser(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body")
-		response.BadRequest(c, errors.New("bad request"), fmt.Sprintf("invalid request body: %v", err))
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -133,7 +132,7 @@ func (h *UserController) UpdateUser(c *gin.Context) {
 	var req model.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body")
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -183,7 +182,7 @@ func (h *UserController) UpdateAvatar(c *gin.Context) {
 	// 1. Get file from form
 	file, header, err := c.Request.FormFile("avatar")
 	if err != nil {
-		response.BadRequest(c, err, "failed to get avatar file from request")
+		response.BadRequest(c, exception.ErrBadRequest, "failed to get avatar file from request")
 		return
 	}
 	defer func() {
@@ -231,7 +230,7 @@ func (h *UserController) UpdateUserStatus(c *gin.Context) {
 	var req model.UpdateUserStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body")
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -273,7 +272,7 @@ func (h *UserController) GetAllUsers(c *gin.Context) {
 
 	if err := c.ShouldBindQuery(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind query parameters")
-		response.BadRequest(c, err, "invalid query parameters")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid query parameters")
 		return
 	}
 
@@ -381,7 +380,7 @@ func (h *UserController) GetUsersDynamic(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&filter); err != nil {
 		h.Log.WithError(err).Error("failed to bind dynamic filter request body")
-		response.BadRequest(c, err, "invalid request body for dynamic filter")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body for dynamic filter")
 		return
 	}
 
