@@ -5,9 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	apiKeyEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/entity"
+	apiKeyModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
 	apiKeyMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/test/mocks"
-	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -33,17 +32,14 @@ func TestAPIKeyMiddleware_Authenticate(t *testing.T) {
 		})
 
 		key := "sk_live_valid_key"
-		keyEntity := &apiKeyEntity.ApiKey{
+
+		identity := &apiKeyModel.ApiKeyIdentity{
 			UserID:         "user-123",
 			OrganizationID: "org-456",
-		}
-		user := &userEntity.User{
-			ID:       "user-123",
-			Username: "api_user",
+			Username:       "api_user",
 		}
 
-		mockUseCase.On("Authenticate", mock.Anything, key).Return(keyEntity, nil)
-		mockUserRepo.On("FindByID", mock.Anything, "user-123").Return(user, nil)
+		mockUseCase.On("Authenticate", mock.Anything, key).Return(identity, nil)
 
 		req, _ := http.NewRequest("GET", "/test", nil)
 		req.Header.Set("X-API-Key", key)
