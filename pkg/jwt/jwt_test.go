@@ -105,3 +105,27 @@ func TestValidateToken_MalformedToken(t *testing.T) {
 	assert.Error(t, err, "Validation should fail for a malformed token")
 	assert.Nil(t, claims)
 }
+
+func TestJWTGetAccessTokenDuration(t *testing.T) {
+	manager := NewJWTManager(testAccessSecret, testRefreshSecret, time.Minute, time.Hour)
+	assert.Equal(t, time.Minute, manager.GetAccessTokenDuration())
+}
+
+func TestJWTGetRefreshTokenDuration(t *testing.T) {
+	manager := NewJWTManager(testAccessSecret, testRefreshSecret, time.Minute, time.Hour)
+	assert.Equal(t, time.Hour, manager.GetRefreshTokenDuration())
+}
+
+func TestJWTGenerateTestToken(t *testing.T) {
+	manager := NewJWTManager(testAccessSecret, testRefreshSecret, time.Minute, time.Hour)
+
+	token, err := GenerateTestToken("user123", "sess123", "admin", "admin_user", "org456", testAccessSecret, time.Minute)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, token)
+
+	claims, err := manager.ValidateAccessToken(token)
+	assert.NoError(t, err)
+	assert.Equal(t, "user123", claims.Subject)
+	assert.Equal(t, "org456", claims.OrgID)
+	assert.Equal(t, "admin", claims.Role)
+}
