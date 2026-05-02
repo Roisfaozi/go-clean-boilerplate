@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	apiKeyEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/entity"
+	apiKeyModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
 	apiKeyMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/test/mocks"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
@@ -33,7 +33,7 @@ func TestAPIKeyMiddleware_Authenticate(t *testing.T) {
 		})
 
 		key := "sk_live_valid_key"
-		keyEntity := &apiKeyEntity.ApiKey{
+		keyEntity := &apiKeyModel.ApiKeyIdentity{
 			UserID:         "user-123",
 			OrganizationID: "org-456",
 		}
@@ -53,6 +53,22 @@ func TestAPIKeyMiddleware_Authenticate(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "user-123", w.Body.String())
+	})
+
+	t.Run("Empty API Key", func(t *testing.T) {
+		r := gin.New()
+		r.Use(mw.Authenticate())
+		r.GET("/test", func(c *gin.Context) {
+			c.String(http.StatusOK, "passed")
+		})
+
+		req, _ := http.NewRequest("GET", "/test", nil)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "passed", w.Body.String())
 	})
 
 	t.Run("Invalid API Key", func(t *testing.T) {
