@@ -27,6 +27,11 @@ func NewAuthMiddleware(authUseCase authUsecase.AuthUseCase, log *logrus.Logger, 
 
 func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if _, exists := c.Get("user_id"); exists {
+			c.Next()
+			return
+		}
+
 		token := ""
 		authHeader := c.GetHeader("Authorization")
 		if authHeader != "" {

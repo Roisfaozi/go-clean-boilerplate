@@ -1,6 +1,8 @@
 package setup
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
@@ -80,6 +82,10 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 		{"role:superadmin", "global", "/api/v1/webhooks/:id", "PUT"},
 		{"role:superadmin", "global", "/api/v1/webhooks/:id", "DELETE"},
 		{"role:superadmin", "global", "/api/v1/webhooks/:id/logs", "GET"},
+		// API Keys permissions
+		{"role:superadmin", "global", "/api/v1/api-keys", "POST"},
+		{"role:superadmin", "global", "/api/v1/api-keys", "GET"},
+		{"role:superadmin", "global", "/api/v1/api-keys/:id", "DELETE"},
 	}
 
 	for _, p := range policies {
@@ -160,4 +166,9 @@ func CreateTestRole(t *testing.T, db *gorm.DB, name string) *roleEntity.Role {
 	}
 
 	return role
+}
+
+func HashSHA256(data string) string {
+	hash := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(hash[:])
 }

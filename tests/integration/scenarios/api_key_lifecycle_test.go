@@ -42,7 +42,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 	akRepo := apiKeyRepo.NewApiKeyRepository(env.DB)
 
 	// UseCases
-	akUC := apiKeyUC.NewApiKeyUseCase(akRepo, logger)
+	akUC := apiKeyUC.NewApiKeyUseCase(akRepo, uRepo, env.Redis, logger)
 
 	// Middlewares
 	akMiddleware := middleware.NewAPIKeyMiddleware(akUC, uRepo, logger)
