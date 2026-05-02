@@ -251,14 +251,7 @@ func SetupRouter(
 	return router
 }
 
-// GetHealth godoc
-// @Summary      System Health Check
-// @Description  Returns the health status of the application and its core dependencies (MySQL, Redis).
-// @Tags         system
-// @Produce      json
-// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "System is healthy"
-// @Failure      503  {object}  response.SwaggerErrorResponseWrapper "System is degraded"
-// @Router       /health [get]
+// GetHealth returns the health status of the application and its core dependencies.
 func GetHealth(db *gorm.DB, redisClient *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		status := "OK"

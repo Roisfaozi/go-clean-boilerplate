@@ -77,7 +77,7 @@ func (h *PermissionController) AssignRole(c *gin.Context) {
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /permissions/revoke-role [post]
+// @Router       /permissions/revoke-role [delete]
 func (h *PermissionController) RevokeRole(c *gin.Context) {
 	var req model.AssignRoleRequest // Same request structure as Assign
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -167,7 +167,7 @@ func (h *PermissionController) GetAllPermissions(c *gin.Context) {
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Role is required"
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /permissions/roles/{role} [get]
+// @Router       /permissions/{role} [get]
 func (h *PermissionController) GetPermissionsForRole(c *gin.Context) {
 	role := c.Param("role")
 	if role == "" {
@@ -264,7 +264,7 @@ func (h *PermissionController) UpdatePermission(c *gin.Context) {
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /permissions/revoke [post]
+// @Router       /permissions/revoke [delete]
 func (h *PermissionController) RevokePermission(c *gin.Context) {
 	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -372,7 +372,7 @@ func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Role is required"
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /permissions/parents/{role} [get]
+// @Router       /permissions/{role}/parents [get]
 func (h *PermissionController) GetParentRoles(c *gin.Context) {
 	role := c.Param("role")
 	if role == "" {
