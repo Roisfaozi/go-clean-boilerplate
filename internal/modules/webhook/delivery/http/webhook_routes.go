@@ -4,9 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterWebhookRoutes(r *gin.RouterGroup, controller *WebhookController, authMiddleware gin.HandlerFunc, casbinMiddleware gin.HandlerFunc) {
+func RegisterWebhookRoutes(r *gin.RouterGroup, controller *WebhookController) {
 	webhooks := r.Group("/webhooks")
-	webhooks.Use(authMiddleware, casbinMiddleware)
 	{
 		webhooks.POST("", controller.Create)
 		webhooks.GET("", controller.FindByOrganization)

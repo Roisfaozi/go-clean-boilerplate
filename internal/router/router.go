@@ -203,18 +203,20 @@ func SetupRouter(
 		api_keyHttp.RegisterApiKeyRoutes(authenticated, apiKeyModule.Controller, authMiddleware, tenantMiddleware)
 	}
 
-	tenant := apiV1.Group("")
-	tenant.Use(apiKeyMiddleware.Authenticate())
-	tenant.Use(authMiddleware.ValidateToken())
-	tenant.Use(tenantMiddleware.RequireOrganization())
+	tenantAuthorized := apiV1.Group("")
+	tenantAuthorized.Use(apiKeyMiddleware.Authenticate())
+	tenantAuthorized.Use(authMiddleware.ValidateToken())
+	tenantAuthorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
+	tenantAuthorized.Use(tenantMiddleware.RequireOrganization())
+	tenantAuthorized.Use(casbinMiddleware)
 	if authLimiter != nil {
-		tenant.Use(authLimiter)
+		tenantAuthorized.Use(authLimiter)
 	}
 	{
-		organizationHttp.RegisterTenantRoutes(tenant, organizationModule.OrganizationController)
+		organizationHttp.RegisterTenantRoutes(tenantAuthorized, organizationModule.OrganizationController)
 
 		// Project Routes
-		projectGroup := tenant.Group("/projects")
+		projectGroup := tenantAuthorized.Group("/projects")
 		{
 			projectGroup.POST("", projectModule.ProjectController.Create)
 			projectGroup.GET("", projectModule.ProjectController.GetAll)
@@ -222,6 +224,8 @@ func SetupRouter(
 			projectGroup.PUT("/:id", projectModule.ProjectController.Update)
 			projectGroup.DELETE("/:id", projectModule.ProjectController.Delete)
 		}
+
+		webhookHttp.RegisterWebhookRoutes(tenantAuthorized, webhookModule.Controller)
 	}
 
 	authorized := apiV1.Group("")
@@ -238,7 +242,6 @@ func SetupRouter(
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
 		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
 		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
-		webhookHttp.RegisterWebhookRoutes(authorized, webhookModule.Controller, authMiddleware.ValidateToken(), casbinMiddleware)
 	}
 
 	// TUS Upload Handler

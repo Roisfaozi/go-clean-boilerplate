@@ -14,18 +14,6 @@ func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *Organizati
 
 		// Get organizations the user is a member of
 		orgGroup.GET("/me", controller.GetMyOrganizations)
-
-		// Get organization by ID (requires membership - use middleware in future)
-		orgGroup.GET("/:id", controller.GetOrganization)
-
-		// Get organization by slug
-		orgGroup.GET("/slug/:slug", controller.GetOrganizationBySlug)
-
-		// Update organization (requires owner/admin role - use middleware)
-		orgGroup.PUT("/:id", controller.UpdateOrganization)
-
-		// Delete organization (owner only)
-		orgGroup.DELETE("/:id", controller.DeleteOrganization)
 	}
 }
 
@@ -42,6 +30,11 @@ func RegisterPublicRoutes(router *gin.RouterGroup, controller *OrganizationContr
 func RegisterTenantRoutes(router *gin.RouterGroup, controller *OrganizationController) {
 	orgGroup := router.Group("/organizations")
 	{
+		orgGroup.GET("/:id", controller.GetOrganization)
+		orgGroup.GET("/slug/:slug", controller.GetOrganizationBySlug)
+		orgGroup.PUT("/:id", controller.UpdateOrganization)
+		orgGroup.DELETE("/:id", controller.DeleteOrganization)
+
 		// Member Management
 		membersGroup := orgGroup.Group("/:id/members")
 		{
