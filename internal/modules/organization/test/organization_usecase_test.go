@@ -325,6 +325,24 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 		_, err := uc.UpdateOrganization(ctx, "org-1", &model.UpdateOrganizationRequest{Name: "New"})
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
 	})
+
+	t.Run("Forbidden for non manager actor", func(t *testing.T) {
+		deps, uc := setupOrganizationTest()
+		ctx := usecase.WithActorUserID(context.Background(), "user-2")
+		existingOrg := &entity.Organization{ID: "org-1", OwnerID: "owner-1"}
+
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(ctx)
+		}).Return(exception.ErrForbidden)
+
+		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(existingOrg, nil)
+		deps.MemberRepo.On("CheckMembership", ctx, "org-1", "user-2").Return(true, nil)
+		deps.MemberRepo.On("GetMemberRole", ctx, "org-1", "user-2").Return("role:user", nil)
+
+		_, err := uc.UpdateOrganization(ctx, "org-1", &model.UpdateOrganizationRequest{Name: "Blocked"})
+		assert.ErrorIs(t, err, exception.ErrForbidden)
+	})
 }
 
 func TestOrganizationUseCase_GetUserOrganizations(t *testing.T) {

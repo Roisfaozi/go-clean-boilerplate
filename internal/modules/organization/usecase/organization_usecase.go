@@ -17,6 +17,7 @@ import (
 const (
 	// DefaultOwnerRoleID is the default role assigned to organization owners
 	DefaultOwnerRoleID = "role:org-owner"
+	adminRoleID        = "role:admin"
 )
 
 type organizationUseCase struct {
@@ -128,13 +129,9 @@ func (uc *organizationUseCase) UpdateOrganization(ctx context.Context, id string
 	var response *model.OrganizationResponse
 
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
-		org, err := uc.OrgRepo.FindByID(txCtx, id)
+		org, err := uc.authorizeOrganizationManagement(txCtx, id)
 		if err != nil {
-			uc.Log.WithContext(txCtx).Errorf("Failed to find organization: %v", err)
-			return exception.ErrInternalServer
-		}
-		if org == nil {
-			return exception.ErrNotFound
+			return err
 		}
 
 		// Update fields
@@ -158,6 +155,47 @@ func (uc *organizationUseCase) UpdateOrganization(ctx context.Context, id string
 	})
 
 	return response, err
+}
+
+func (uc *organizationUseCase) authorizeOrganizationManagement(ctx context.Context, orgID string) (*entity.Organization, error) {
+	org, err := uc.OrgRepo.FindByID(ctx, orgID)
+	if err != nil {
+		uc.Log.WithContext(ctx).Errorf("Failed to find organization: %v", err)
+		return nil, exception.ErrInternalServer
+	}
+	if org == nil {
+		return nil, exception.ErrNotFound
+	}
+
+	actorUserID, ok := actorUserIDFromContext(ctx)
+	if !ok {
+		return org, nil
+	}
+
+	if org.OwnerID == actorUserID {
+		return org, nil
+	}
+
+	isMember, err := uc.MemberRepo.CheckMembership(ctx, orgID, actorUserID)
+	if err != nil {
+		uc.Log.WithContext(ctx).Errorf("Failed to validate actor membership: %v", err)
+		return nil, exception.ErrInternalServer
+	}
+	if !isMember {
+		return nil, exception.ErrForbidden
+	}
+
+	roleID, err := uc.MemberRepo.GetMemberRole(ctx, orgID, actorUserID)
+	if err != nil {
+		uc.Log.WithContext(ctx).Errorf("Failed to get actor organization role: %v", err)
+		return nil, exception.ErrInternalServer
+	}
+
+	if roleID != adminRoleID && roleID != DefaultOwnerRoleID {
+		return nil, exception.ErrForbidden
+	}
+
+	return org, nil
 }
 
 // GetUserOrganizations retrieves all organizations a user is a member of
