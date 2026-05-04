@@ -55,9 +55,16 @@ All webhooks are sent as `POST` requests with a `application/json` content type.
 | :---------------- | :-------------------------------------- | :--------------- |
 | Create Webhook    | `POST /api/v1/webhooks`                 | `webhook:manage` |
 | List Webhooks     | `GET /api/v1/webhooks`                  | `webhook:manage` |
+| Get Webhook       | `GET /api/v1/webhooks/:id`              | `webhook:manage` |
 | Get Webhook Logs  | `GET /api/v1/webhooks/:id/logs`         | `webhook:manage` |
 | Update Webhook    | `PUT /api/v1/webhooks/:id`              | `webhook:manage` |
 | Delete Webhook    | `DELETE /api/v1/webhooks/:id`           | `webhook:manage` |
+
+### Tenant Context Requirements
+
+- All webhook management endpoints require a valid tenant context via `X-Organization-ID` or `X-Organization-Slug`.
+- The server resolves the active organization from middleware context, not from `organization_id` fields in request bodies or query parameters.
+- API keys may access webhook management endpoints only if the key belongs to the active organization and includes the `webhook:manage` scope.
 
 ## 6. Best Practices
 

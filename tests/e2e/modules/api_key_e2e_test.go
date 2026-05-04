@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	apiKeyModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
-	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/e2e/setup"
 	integrationSetup "github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
@@ -46,9 +45,10 @@ func TestApiKeyE2E_LifecycleAndAccess(t *testing.T) {
 	_ = loginResp.JSON(&loginData)
 	server.Client.Token = loginData.Data.AccessToken
 
-	// 4. Create API Key
+	// 4. Create API Keys with different scopes
 	createReq := apiKeyModel.CreateApiKeyRequest{
-		Name: "E2E Test Key",
+		Name:   "E2E Read Key",
+		Scopes: []string{"project:view"},
 	}
 	createResp := server.Client.POST("/api/v1/api-keys", createReq, func(r *http.Request) {
 		r.Header.Set("X-Organization-ID", "global")
@@ -59,38 +59,87 @@ func TestApiKeyE2E_LifecycleAndAccess(t *testing.T) {
 		Data apiKeyModel.CreateApiKeyResponse `json:"data"`
 	}
 	_ = createResp.JSON(&createData)
-	apiKey := createData.Data.Key
-	apiKeyID := createData.Data.ID
-	require.NotEmpty(t, apiKey)
+	readOnlyAPIKey := createData.Data.Key
+	readOnlyAPIKeyID := createData.Data.ID
+	require.NotEmpty(t, readOnlyAPIKey)
 
-	// 5. Use API Key to access /api/v1/users/me
-	// Clear Bearer Token to ensure we use X-API-Key
-	server.Client.Token = ""
-
-	meResp := server.Client.GET("/api/v1/users/me", func(r *http.Request) {
-		r.Header.Set("X-API-Key", apiKey)
-	})
-
-	require.Equal(t, http.StatusOK, meResp.StatusCode)
-
-	var meData struct {
-		Data userModel.UserResponse `json:"data"`
-	}
-	_ = meResp.JSON(&meData)
-	assert.Equal(t, admin.ID, meData.Data.ID)
-	assert.Equal(t, "api_admin", meData.Data.Username)
-
-	// 6. Revoke API Key (Needs admin token again)
-	server.Client.Token = loginData.Data.AccessToken
-	revokeResp := server.Client.DELETE("/api/v1/api-keys/"+apiKeyID, func(r *http.Request) {
+	createManageResp := server.Client.POST("/api/v1/api-keys", apiKeyModel.CreateApiKeyRequest{
+		Name:   "E2E Manage Key",
+		Scopes: []string{"project:manage"},
+	}, func(r *http.Request) {
 		r.Header.Set("X-Organization-ID", "global")
 	})
-	require.Equal(t, http.StatusOK, revokeResp.StatusCode)
+	require.Equal(t, http.StatusCreated, createManageResp.StatusCode)
 
-	// 7. Verify API Key no longer works
+	var manageData struct {
+		Data apiKeyModel.CreateApiKeyResponse `json:"data"`
+	}
+	_ = createManageResp.JSON(&manageData)
+	manageAPIKey := manageData.Data.Key
+	manageAPIKeyID := manageData.Data.ID
+	require.NotEmpty(t, manageAPIKey)
+
+	// 5. Use API Keys
 	server.Client.Token = ""
-	failResp := server.Client.GET("/api/v1/users/me", func(r *http.Request) {
-		r.Header.Set("X-API-Key", apiKey)
+
+	t.Run("API key is rejected on session-only endpoint", func(t *testing.T) {
+		meResp := server.Client.GET("/api/v1/users/me", func(r *http.Request) {
+			r.Header.Set("X-API-Key", readOnlyAPIKey)
+		})
+
+		require.Equal(t, http.StatusForbidden, meResp.StatusCode)
+	})
+
+	t.Run("Read-scoped API key can list projects", func(t *testing.T) {
+		listResp := server.Client.GET("/api/v1/projects", func(r *http.Request) {
+			r.Header.Set("X-API-Key", readOnlyAPIKey)
+			r.Header.Set("X-Organization-ID", "global")
+		})
+
+		require.Equal(t, http.StatusOK, listResp.StatusCode)
+	})
+
+	t.Run("Read-scoped API key cannot create project", func(t *testing.T) {
+		createProjectResp := server.Client.POST("/api/v1/projects", map[string]string{
+			"name":   "blocked-project",
+			"domain": "blocked.example.com",
+		}, func(r *http.Request) {
+			r.Header.Set("X-API-Key", readOnlyAPIKey)
+			r.Header.Set("X-Organization-ID", "global")
+		})
+
+		require.Equal(t, http.StatusForbidden, createProjectResp.StatusCode)
+	})
+
+	t.Run("Manage-scoped API key can create project", func(t *testing.T) {
+		createProjectResp := server.Client.POST("/api/v1/projects", map[string]string{
+			"name":   "managed-project",
+			"domain": "managed.example.com",
+		}, func(r *http.Request) {
+			r.Header.Set("X-API-Key", manageAPIKey)
+			r.Header.Set("X-Organization-ID", "global")
+		})
+
+		require.Equal(t, http.StatusCreated, createProjectResp.StatusCode)
+	})
+
+	// 6. Revoke API Keys (Needs admin token again)
+	server.Client.Token = loginData.Data.AccessToken
+	revokeReadResp := server.Client.DELETE("/api/v1/api-keys/"+readOnlyAPIKeyID, func(r *http.Request) {
+		r.Header.Set("X-Organization-ID", "global")
+	})
+	require.Equal(t, http.StatusOK, revokeReadResp.StatusCode)
+
+	revokeManageResp := server.Client.DELETE("/api/v1/api-keys/"+manageAPIKeyID, func(r *http.Request) {
+		r.Header.Set("X-Organization-ID", "global")
+	})
+	require.Equal(t, http.StatusOK, revokeManageResp.StatusCode)
+
+	// 7. Verify revoked API Key no longer works
+	server.Client.Token = ""
+	failResp := server.Client.GET("/api/v1/projects", func(r *http.Request) {
+		r.Header.Set("X-API-Key", readOnlyAPIKey)
+		r.Header.Set("X-Organization-ID", "global")
 	})
 	assert.Equal(t, http.StatusUnauthorized, failResp.StatusCode)
 }
