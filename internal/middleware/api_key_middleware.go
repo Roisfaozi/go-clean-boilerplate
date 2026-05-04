@@ -1,11 +1,22 @@
 package middleware
 
 import (
+	"errors"
+	"strings"
+
 	apiKeyUsecase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/usecase"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	authMethodContextKey   = "auth_method"
+	authMethodAPIKey       = "api_key"
+	authMethodJWT          = "jwt"
+	apiKeyIDContextKey     = "api_key_id"
+	apiKeyScopesContextKey = "api_key_scopes"
 )
 
 type APIKeyMiddleware struct {
@@ -42,8 +53,91 @@ func (m *APIKeyMiddleware) Authenticate() gin.HandlerFunc {
 		c.Set("user_id", identity.UserID)
 		c.Set("organization_id", identity.OrganizationID)
 		c.Set("username", identity.Username)
-		c.Set("auth_method", "api_key")
+		c.Set(authMethodContextKey, authMethodAPIKey)
+		c.Set(apiKeyIDContextKey, identity.ApiKeyID)
+		c.Set(apiKeyScopesContextKey, identity.Scopes)
 
 		c.Next()
 	}
+}
+
+func (m *APIKeyMiddleware) RequireUserSession() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if IsAPIKeyAuth(c) {
+			response.Forbidden(c, errors.New("api key authentication is not allowed for this endpoint"), "forbidden")
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func (m *APIKeyMiddleware) RequireScopes(requiredScopes ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !IsAPIKeyAuth(c) {
+			c.Next()
+			return
+		}
+
+		scopes, ok := GetAPIKeyScopesFromContext(c)
+		if !ok || !hasRequiredScope(scopes, requiredScopes...) {
+			response.Forbidden(c, errors.New("api key scope is not sufficient for this endpoint"), "forbidden")
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func IsAPIKeyAuth(c *gin.Context) bool {
+	authMethod, exists := c.Get(authMethodContextKey)
+	if !exists {
+		return false
+	}
+
+	authMethodStr, ok := authMethod.(string)
+	return ok && authMethodStr == authMethodAPIKey
+}
+
+func GetAPIKeyScopesFromContext(c *gin.Context) ([]string, bool) {
+	rawScopes, exists := c.Get(apiKeyScopesContextKey)
+	if !exists {
+		return nil, false
+	}
+
+	scopes, ok := rawScopes.([]string)
+	if !ok {
+		return nil, false
+	}
+
+	return scopes, true
+}
+
+func hasRequiredScope(grantedScopes []string, requiredScopes ...string) bool {
+	if len(requiredScopes) == 0 {
+		return true
+	}
+
+	for _, granted := range grantedScopes {
+		if granted == "*" {
+			return true
+		}
+
+		for _, required := range requiredScopes {
+			if granted == required {
+				return true
+			}
+
+			if strings.HasSuffix(granted, ":*") {
+				prefix := strings.TrimSuffix(granted, "*")
+				if strings.HasPrefix(required, prefix) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }

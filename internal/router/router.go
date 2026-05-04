@@ -177,6 +177,7 @@ func SetupRouter(
 	authenticated := apiV1.Group("")
 	authenticated.Use(apiKeyMiddleware.Authenticate())
 	authenticated.Use(authMiddleware.ValidateToken())
+	authenticated.Use(apiKeyMiddleware.RequireUserSession())
 	authenticated.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	if authLimiter != nil {
 		authenticated.Use(authLimiter)
@@ -213,24 +214,25 @@ func SetupRouter(
 		tenantAuthorized.Use(authLimiter)
 	}
 	{
-		organizationHttp.RegisterTenantRoutes(tenantAuthorized, organizationModule.OrganizationController)
+		organizationHttp.RegisterTenantRoutes(tenantAuthorized, organizationModule.OrganizationController, apiKeyMiddleware)
 
 		// Project Routes
 		projectGroup := tenantAuthorized.Group("/projects")
 		{
-			projectGroup.POST("", projectModule.ProjectController.Create)
-			projectGroup.GET("", projectModule.ProjectController.GetAll)
-			projectGroup.GET("/:id", projectModule.ProjectController.GetByID)
-			projectGroup.PUT("/:id", projectModule.ProjectController.Update)
-			projectGroup.DELETE("/:id", projectModule.ProjectController.Delete)
+			projectGroup.POST("", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Create)
+			projectGroup.GET("", apiKeyMiddleware.RequireScopes("project:view", "project:manage"), projectModule.ProjectController.GetAll)
+			projectGroup.GET("/:id", apiKeyMiddleware.RequireScopes("project:view", "project:manage"), projectModule.ProjectController.GetByID)
+			projectGroup.PUT("/:id", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Update)
+			projectGroup.DELETE("/:id", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Delete)
 		}
 
-		webhookHttp.RegisterWebhookRoutes(tenantAuthorized, webhookModule.Controller)
+		webhookHttp.RegisterWebhookRoutes(tenantAuthorized, webhookModule.Controller, apiKeyMiddleware)
 	}
 
 	authorized := apiV1.Group("")
 	authorized.Use(apiKeyMiddleware.Authenticate())
 	authorized.Use(authMiddleware.ValidateToken())
+	authorized.Use(apiKeyMiddleware.RequireUserSession())
 	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	authorized.Use(casbinMiddleware)
 	if authLimiter != nil {

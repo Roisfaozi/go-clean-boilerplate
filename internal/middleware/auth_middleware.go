@@ -27,7 +27,7 @@ func NewAuthMiddleware(authUseCase authUsecase.AuthUseCase, log *logrus.Logger, 
 
 func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if _, exists := c.Get("user_id"); exists {
+		if IsAPIKeyAuth(c) {
 			c.Next()
 			return
 		}
@@ -81,6 +81,7 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 		c.Set("session_id", claims.SessionID)
 		c.Set("user_role", claims.Role)
 		c.Set("username", claims.Username)
+		c.Set(authMethodContextKey, authMethodJWT)
 
 		c.Next()
 	}
