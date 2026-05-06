@@ -18,6 +18,8 @@ const (
 	// DefaultOwnerRoleID is the default role assigned to organization owners
 	DefaultOwnerRoleID = "role:org-owner"
 	adminRoleID        = "role:admin"
+	defaultUserRoleID  = "role:user"
+	globalDomain       = "global"
 )
 
 type organizationUseCase struct {
@@ -85,7 +87,13 @@ func (uc *organizationUseCase) CreateOrganization(ctx context.Context, userID st
 
 		// Add Casbin Grouping Policy for owner in this org domain
 		if uc.Enforcer != nil {
-			if _, err := uc.Enforcer.WithContext(txCtx).AddGroupingPolicy(userID, DefaultOwnerRoleID, org.ID); err != nil {
+			enf := uc.Enforcer.WithContext(txCtx)
+			if err := uc.bootstrapOrganizationPolicies(enf, org.ID); err != nil {
+				uc.Log.WithContext(txCtx).Errorf("Failed to bootstrap organization policies: %v", err)
+				return exception.ErrInternalServer
+			}
+
+			if _, err := enf.AddGroupingPolicy(userID, DefaultOwnerRoleID, org.ID); err != nil {
 				uc.Log.WithContext(txCtx).Errorf("Failed to add Casbin grouping policy: %v", err)
 				return exception.ErrInternalServer
 			}
@@ -94,8 +102,41 @@ func (uc *organizationUseCase) CreateOrganization(ctx context.Context, userID st
 		response = converter.OrganizationToResponse(org)
 		return nil
 	})
+	if err == nil && uc.Enforcer != nil {
+		if loadErr := uc.Enforcer.LoadPolicy(); loadErr != nil {
+			uc.Log.WithContext(ctx).Errorf("Failed to reload Casbin policy after organization creation: %v", loadErr)
+			return nil, exception.ErrInternalServer
+		}
+	}
 
 	return response, err
+}
+
+func (uc *organizationUseCase) bootstrapOrganizationPolicies(enf permissionUseCase.IEnforcer, orgID string) error {
+	defaultRoles := []string{adminRoleID, defaultUserRoleID}
+
+	for _, roleID := range defaultRoles {
+		policies, err := enf.GetFilteredPolicy(0, roleID, globalDomain)
+		if err != nil {
+			return err
+		}
+
+		for _, policy := range policies {
+			if len(policy) < 4 {
+				continue
+			}
+
+			if _, err := enf.AddPolicy(policy[0], orgID, policy[2], policy[3]); err != nil {
+				return err
+			}
+		}
+	}
+
+	if _, err := enf.AddGroupingPolicy(DefaultOwnerRoleID, adminRoleID, orgID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetOrganization retrieves an organization by ID
