@@ -96,6 +96,7 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 		{"role:admin", "global", "/api/v1/projects/:id", "PUT"},
 		{"role:admin", "global", "/api/v1/projects/:id", "DELETE"},
 		// Superadmin permissions for E2E
+		{"role:superadmin", "global", "*", "*"},
 		{"role:superadmin", "global", "/api/v1/webhooks", "POST"},
 		{"role:superadmin", "global", "/api/v1/webhooks", "GET"},
 		{"role:superadmin", "global", "/api/v1/webhooks/:id", "GET"},
