@@ -316,8 +316,8 @@ func TestUpdateAvatar(t *testing.T) {
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
 		part, _ := writer.CreateFormFile("avatar", "test.jpg")
-		part.Write([]byte("fake image data"))
-		writer.Close()
+		_, _ = part.Write([]byte("fake image data"))
+		_ = writer.Close()
 
 		mockRes := &model.UserResponse{
 			ID:        "123",
@@ -355,7 +355,7 @@ func TestUpdateAvatar(t *testing.T) {
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
-		writer.Close() // Empty form data
+		_ = writer.Close() // Empty form data
 
 		req, _ := http.NewRequest(http.MethodPatch, "/users/me/avatar", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -377,8 +377,8 @@ func TestUpdateAvatar(t *testing.T) {
 		part, _ := writer.CreateFormFile("avatar", "test.jpg")
 		// Write exactly 2MB + 1 byte
 		largeData := strings.Repeat("a", (2*1024*1024)+1)
-		part.Write([]byte(largeData))
-		writer.Close()
+		_, _ = part.Write([]byte(largeData))
+		_ = writer.Close()
 
 		req, _ := http.NewRequest(http.MethodPatch, "/users/me/avatar", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -399,8 +399,8 @@ func TestUpdateAvatar(t *testing.T) {
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
 		part, _ := writer.CreateFormFile("avatar", "test.jpg")
-		part.Write([]byte("fake image data"))
-		writer.Close()
+		_, _ = part.Write([]byte("fake image data"))
+		_ = writer.Close()
 
 		uc.EXPECT().UpdateAvatar(mock.Anything, "123", mock.Anything, "test.jpg", mock.Anything).Return(nil, exception.ErrInternalServer).Once()
 

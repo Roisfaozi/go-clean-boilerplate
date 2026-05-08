@@ -1,10 +1,16 @@
 all: true
 dir: '{{.InterfaceDir}}'
-with-expecter: true
+force-file-write: true
+formatter: goimports
+generate: true
 include-auto-generated: false
 log-level: info
 structname: 'Mock{{.InterfaceName}}'
+pkgname: mocks
 recursive: false
+require-template-schema-exists: true
+template: testify
+template-schema: '{{.Template}}.schema.json'
 packages:
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository:
     config:
@@ -82,11 +88,14 @@ packages:
     config:
       dir: internal/mocking
       filename: mock_task_distributor.go
+      pkgname: mocking
   github.com/Roisfaozi/go-clean-boilerplate/pkg/tx:
     config:
       dir: internal/mocking
       filename: mock_transaction_manager.go
+      pkgname: mocking
   github.com/Roisfaozi/go-clean-boilerplate/pkg/ws:
     config:
       dir: internal/mocking
       filename: mock_websocket_manager.go
+      pkgname: mocking
