@@ -66,7 +66,12 @@ export default function LoginV1() {
       toast.success("Login berhasil!");
       navigate("/");
     } catch {
-      login({ id: "1", name: "Admin User", email: "admin@nexus.dev", username: result.data.username });
+      login({
+        id: "1",
+        name: "Admin User",
+        email: "admin@nexus.dev",
+        username: result.data.username,
+      });
       navigate("/");
     } finally {
       setLoading(false);

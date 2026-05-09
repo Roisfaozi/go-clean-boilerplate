@@ -9,10 +9,10 @@ async function handleRequest(request: Request, params: any) {
   const targetUrl = `${BACKEND_URL}/${path}${url.search}`;
 
   const headers = new Headers(request.headers);
-  
+
   // Forward cookies from the request to the backend
   // In React Router 7, cookies are already in the headers
-  
+
   // Remove host header to avoid conflicts
   headers.delete("host");
 
@@ -20,7 +20,8 @@ async function handleRequest(request: Request, params: any) {
     const response = await fetch(targetUrl, {
       method: request.method,
       headers: headers,
-      body: request.method !== "GET" && request.method !== "HEAD" ? await request.blob() : undefined,
+      body:
+        request.method !== "GET" && request.method !== "HEAD" ? await request.blob() : undefined,
     });
 
     // Create response headers
@@ -48,7 +49,7 @@ async function handleRequest(request: Request, params: any) {
         code: "BACKEND_OFFLINE",
         message: "Gagal terhubung ke API Server.",
       }),
-      { status: 502, headers: { "Content-Type": "application/json" } }
+      { status: 502, headers: { "Content-Type": "application/json" } },
     );
   }
 }

@@ -92,11 +92,11 @@ export default function RegisterPage() {
       navigate("/");
     } catch {
       login({
-          id: "new1",
-          name: result.data.name,
-          email: result.data.email,
-          username: result.data.username,
-        });
+        id: "new1",
+        name: result.data.name,
+        email: result.data.email,
+        username: result.data.username,
+      });
       navigate("/");
     } finally {
       setLoading(false);
