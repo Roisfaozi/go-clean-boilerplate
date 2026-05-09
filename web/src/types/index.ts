@@ -38,20 +38,3 @@ export interface Project {
   created_at: number;
   updated_at: number;
 }
-
-export interface SendOTPProps {
-  toMail: string;
-  code: string;
-  userName: string;
-}
-
-export interface SendWelcomeEmailProps {
-  toMail: string;
-  userName: string;
-}
-
-export interface SubscriptionPlan {
-  name: string;
-  description: string;
-  stripePriceId: string;
-}
