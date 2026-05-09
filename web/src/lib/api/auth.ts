@@ -38,8 +38,13 @@ export const authApi = {
     return api.post<AuthResponse>("/auth/register", data);
   },
 
+  /**
+   * Cek user yang sedang login.
+   * Menggunakan silentGet agar 401 tidak memicu redirect ke /login
+   * (penting untuk public pages seperti landing page).
+   */
   getCurrentUser: () => {
-    return api.get<{ user: any }>("/auth/me");
+    return api.silentGet<{ user: any }>("/auth/me");
   },
 
   resendVerification: () => {

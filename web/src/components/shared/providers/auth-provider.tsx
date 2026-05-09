@@ -7,6 +7,7 @@ import { authApi } from "~/lib/api/auth";
 import { useAuthStore } from "~/stores/use-auth-store";
 import { usePermissionStore } from "~/stores/use-permission-store";
 
+/** Halaman auth: tidak perlu sync sama sekali */
 const AUTH_PATHS = [
   "/login",
   "/register",
@@ -14,14 +15,21 @@ const AUTH_PATHS = [
   "/reset-password",
 ];
 
+/** Halaman publik: coba sync tapi JANGAN redirect jika gagal */
+const PUBLIC_PATHS = ["/", "/about", "/changelog", "/pricing"];
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { user, setUser, logout } = useAuthStore();
   const { setPermissions, clearPermissions } = usePermissionStore();
   const pathname = usePathname();
 
   const isAuthPage = AUTH_PATHS.some((p) => pathname?.includes(p));
+  const isPublicPage =
+    PUBLIC_PATHS.some((p) => pathname === p || pathname?.startsWith(p + "/")) ||
+    (!pathname?.includes("/dashboard") && !isAuthPage);
 
   useEffect(() => {
+    // Di halaman auth, tidak perlu sync
     if (isAuthPage) return;
 
     async function syncAuth() {
@@ -37,11 +45,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setPermissions(permsResp.data);
           }
         } else {
+          // Tidak ada user: hapus state lokal
           logout();
           clearPermissions();
+          // Redirect ke login hanya dari area dashboard
+          // (redirect dari public page ditangani oleh proxy.ts middleware)
         }
       } catch (error) {
-        console.error("Auth sync failed:", error);
+        // Jika gagal (misal: 401 dari public page), bersihkan state saja
+        // tanpa redirect — redirect dari public pages hanya terjadi jika
+        // user secara aktif mencoba akses area yang protected (/dashboard)
+        console.log("Auth Error", error);
         logout();
         clearPermissions();
       }

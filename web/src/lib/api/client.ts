@@ -3,6 +3,8 @@ import { useOrganizationStore } from "~/stores/use-organization-store";
 
 type FetchOptions = RequestInit & {
   headers?: Record<string, string>;
+  /** Jika true, 401 tidak akan memicu redirect ke halaman login */
+  silent?: boolean;
 };
 
 const isServer = typeof window === "undefined";
@@ -85,12 +87,19 @@ class ApiClient {
           : options.body,
     };
 
+    const silent = options?.silent ?? false;
+
     try {
       const response = await fetch(url, config);
 
       if (response.status === 401) {
         if (endpoint === "/auth/refresh") {
           return response as any;
+        }
+
+        // Jika silent mode, lempar error biasa tanpa redirect
+        if (silent) {
+          throw new Error("Unauthenticated");
         }
 
         const refreshed = await this.tryRefresh();
@@ -110,7 +119,11 @@ class ApiClient {
 
       return await this.parseResponse<T>(response);
     } catch (error) {
-      if (error instanceof Error && error.message === "Session expired") {
+      if (
+        error instanceof Error &&
+        (error.message === "Session expired" ||
+          error.message === "Unauthenticated")
+      ) {
         throw error;
       }
       console.error("API Request Failed:", error);
@@ -148,25 +161,37 @@ class ApiClient {
 
     useAuthStore.getState().logout();
 
-    if (
-      typeof window !== "undefined" &&
-      !window.location.pathname.includes("/login")
-    ) {
-      const returnTo = encodeURIComponent(
-        window.location.pathname + window.location.search
-      );
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname;
 
-      // Clear HttpOnly cookies via server-side API route, then redirect
-      fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      }).finally(() => {
-        isLoggingOut = false;
-        window.location.href = `/login?returnTo=${returnTo}`;
-      });
-    } else {
-      isLoggingOut = false;
+      // Jangan redirect jika sudah di auth pages atau di public pages
+      const isAuthPage =
+        path.includes("/login") ||
+        path.includes("/register") ||
+        path.includes("/forgot-password") ||
+        path.includes("/reset-password");
+
+      // Hanya redirect ke login jika sedang di area yang butuh auth (dashboard)
+      const isDashboardPage = path.includes("/dashboard");
+
+      if (!isAuthPage && isDashboardPage) {
+        const returnTo = encodeURIComponent(
+          window.location.pathname + window.location.search
+        );
+
+        // Clear HttpOnly cookies via server-side API route, then redirect
+        fetch("/api/auth/logout", {
+          method: "POST",
+          credentials: "include",
+        }).finally(() => {
+          isLoggingOut = false;
+          window.location.href = `/login?returnTo=${returnTo}`;
+        });
+        return;
+      }
     }
+
+    isLoggingOut = false;
   }
 
   private async parseResponse<T>(response: Response): Promise<T> {
@@ -235,6 +260,15 @@ class ApiClient {
 
   delete<T>(endpoint: string, options?: FetchOptions) {
     return this.request<T>(endpoint, { ...options, method: "DELETE" });
+  }
+
+  /** GET dengan silent=true: 401 tidak akan memicu redirect */
+  silentGet<T>(endpoint: string, options?: Omit<FetchOptions, "silent">) {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: "GET",
+      silent: true,
+    });
   }
 }
 
