@@ -550,7 +550,6 @@ func TestGetAllUsers(t *testing.T) {
 
 
 
-func TestGetUserByID(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
