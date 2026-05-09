@@ -3,7 +3,7 @@ import type { Organization, PaginatedResponse } from "@/lib/api/schemas";
 
 export const organizationService = {
   list: (params?: { page?: number; limit?: number }) =>
-    apiClient.get<PaginatedResponse<Organization>>("/organizations", undefined, { params }),
+    apiClient.get<PaginatedResponse<Organization>>("/organizations/me", undefined, { params }),
   create: (data: { name: string; slug?: string }) =>
     apiClient.post<Organization>("/organizations", data),
   update: (id: string, data: Partial<Organization>) =>

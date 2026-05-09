@@ -92,8 +92,7 @@ func SetupRouter(
 	if cfg.MetricsEnabled {
 		router.Use(middleware.PrometheusMiddleware())
 	}
-	router.GET("/ws", authMiddleware.ValidateWebSocketToken(), wsController.HandleWebSocket)
-	router.GET("/events", authMiddleware.ValidateToken(), sseManager.ServeHTTP())
+
 
 	router.Use(middleware.RequestLogger(logger))
 	router.Use(middleware.RecoveryMiddleware(logger))
@@ -131,9 +130,10 @@ func SetupRouter(
 		}
 	}
 
-	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	apiV1 := router.Group("/api/v1")
+	apiV1.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	router.GET("/api/health", GetHealth(db, redisClient))
+
 
 	if cfg.MetricsEnabled {
 
@@ -146,7 +146,10 @@ func SetupRouter(
 		metricsGroup.GET("", gin.WrapH(promhttp.Handler()))
 	}
 
-	apiV1 := router.Group("/api/v1")
+
+	apiV1.GET("/events", authMiddleware.ValidateToken(), sseManager.ServeHTTP())
+	apiV1.GET("/ws", authMiddleware.ValidateWebSocketToken(), wsController.HandleWebSocket)
+	apiV1.GET("/health", GetHealth(db, redisClient))
 
 	public := apiV1.Group("")
 	if publicLimiter != nil {

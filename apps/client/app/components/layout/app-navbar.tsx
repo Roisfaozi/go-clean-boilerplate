@@ -1,13 +1,51 @@
-import { useUIStore } from "@/stores";
-import { NexusButton } from "@casbin/ui";
-import { Search, Sun, Moon, Menu, Maximize2, Minimize2 } from "lucide-react";
-import { NexusInput } from "@casbin/ui";
+import { useUIStore, useAuthStore } from "@/stores";
+import {
+  NexusButton,
+  NexusInput,
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@casbin/ui";
+import {
+  Search,
+  Sun,
+  Moon,
+  Menu,
+  Maximize2,
+  Minimize2,
+  LogOut,
+  User as UserIcon,
+  Settings as SettingsIcon,
+} from "lucide-react";
+import { authApi } from "@/lib/api/auth";
+import { useNavigate } from "react-router";
 import { NotificationBell } from "@/components/realtime/notification-bell";
 import { RealtimeIndicator } from "@/components/realtime/realtime-indicator";
 import { PresenceAvatars } from "@/components/realtime/presence-avatars";
 
 export function AppNavbar() {
   const { theme, setTheme, density, setDensity, toggleSidebarCollapse } = useUIStore();
+  const { logout: clearStore, user } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch (err) {
+      console.error("Logout failed", err);
+    } finally {
+      clearStore();
+      navigate("/login");
+    }
+  };
+
+  const userInitial = user?.username?.charAt(0).toUpperCase() || "A";
 
   return (
     <header className="h-navbar border-border bg-background px-layout sticky top-0 z-10 flex items-center justify-between border-b">
@@ -54,9 +92,43 @@ export function AppNavbar() {
 
         <NotificationBell />
 
-        <div className="bg-primary/20 text-small text-primary ml-2 flex h-8 w-8 items-center justify-center rounded-full font-semibold">
-          A
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="ml-2 focus:outline-none">
+              <Avatar className="h-8 w-8 cursor-pointer ring-offset-2 transition-transform hover:scale-105 active:scale-95">
+                <AvatarImage src={user?.avatar_url} />
+                <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+                  {userInitial}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm leading-none font-medium">{user?.username}</p>
+                <p className="text-muted-foreground text-xs leading-none">{user?.email}</p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer">
+              <UserIcon className="mr-2 h-4 w-4" />
+              <span>Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
+              <SettingsIcon className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive cursor-pointer"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

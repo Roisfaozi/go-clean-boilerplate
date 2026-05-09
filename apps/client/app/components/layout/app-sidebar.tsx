@@ -84,6 +84,7 @@ const navSections: NavSection[] = [
     label: "System",
     items: [
       { label: "Audit Logs", path: "/audit-logs", icon: FileText },
+      { label: "API Docs", path: "/api/v1/docs/index.html", icon: FileText },
       { label: "System Health", path: "/system-health", icon: HeartPulse },
       { label: "System Insights", path: "/system-insights", icon: BarChart3 },
       { label: "Uploads", path: "/uploads", icon: Upload },

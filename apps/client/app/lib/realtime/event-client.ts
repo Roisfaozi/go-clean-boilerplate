@@ -41,11 +41,10 @@ export class EventClient {
   connect(): void {
     if (this.eventSource) this.disconnect();
 
-    const token = localStorage.getItem("nexus_token");
-    const url = token ? `${this.url}?token=${encodeURIComponent(token)}` : this.url;
+    const url = this.url;
 
     try {
-      this.eventSource = new EventSource(url);
+      this.eventSource = new EventSource(url, { withCredentials: true });
 
       this.eventSource.onopen = () => {
         this._connected = true;

@@ -1,12 +1,13 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080/api/v1";
+const BACKEND_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080/api/v1"
+).replace("/api/v1", "");
 
 async function handleRequest(request: Request, params: any) {
   const url = new URL(request.url);
-  // Extract the path after /api/v1
-  const path = params["*"];
-  const targetUrl = `${BACKEND_URL}/${path}${url.search}`;
+  // Construct target URL maintaining the full path from the request
+  const targetUrl = `${BACKEND_BASE_URL}${url.pathname}${url.search}`;
 
   console.log(`[Proxy] ${request.method} ${url.pathname} -> ${targetUrl}`);
 
@@ -49,8 +50,10 @@ async function handleRequest(request: Request, params: any) {
       }
     });
 
-    const body = await response.blob();
-    return new Response(body, {
+    const { readable, writable } = new TransformStream();
+    response.body?.pipeTo(writable);
+
+    return new Response(readable, {
       status: response.status,
       headers: responseHeaders,
     });
