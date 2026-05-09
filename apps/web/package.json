@@ -9,7 +9,6 @@
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write 'src/**/*.{ts,tsx,js,jsx,css}'",
-    "preinstall": "lefthook install",
     "release": "release-it"
   },
   "dependencies": {

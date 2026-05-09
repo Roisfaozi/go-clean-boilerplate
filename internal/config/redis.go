@@ -10,6 +10,7 @@ import (
 )
 
 type silentLogger struct{}
+
 func (l silentLogger) Printf(ctx context.Context, format string, v ...interface{}) {}
 
 func NewRedisConfig(cfg *AppConfig, log *logrus.Logger) *redis.Client {
@@ -17,7 +18,7 @@ func NewRedisConfig(cfg *AppConfig, log *logrus.Logger) *redis.Client {
 	if gin.Mode() == gin.TestMode {
 		redis.SetLogger(silentLogger{})
 	}
-	
+
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:         cfg.Redis.Addr,
 		Password:     cfg.Redis.Password,

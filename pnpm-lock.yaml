@@ -12,6 +12,9 @@ importers:
 
   .:
     devDependencies:
+      lefthook:
+        specifier: ^1.10.7
+        version: 1.13.6
       prettier:
         specifier: 3.5.3
         version: 3.5.3

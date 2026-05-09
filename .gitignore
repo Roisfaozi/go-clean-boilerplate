@@ -188,3 +188,4 @@ web-lovable/node_modules/
 .turbo
 e2e-test
 web-lovable-backup/
+*.log

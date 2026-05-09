@@ -14,9 +14,11 @@
     "go:test-integration": "make test-integration",
     "go:test-e2e": "make test-e2e",
     "go:docs": "make docs",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
+    "lefthook": "^1.10.7",
     "prettier": "3.5.3",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "turbo": "^2.5.0"

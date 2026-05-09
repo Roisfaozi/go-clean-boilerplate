@@ -4,175 +4,169 @@
 > react-router build
 
 [36mvite v8.0.11 [32mbuilding client environment for production...[36m[39m
-[2Ktransforming (56) [2m../../node_modules/.pnpm/react-router@7.15.0_react-dom@19.2.6_react@19.2.6__react@19.2.6/node_modules/react-router/dis[2Ktransforming (70) [2mapp/pages/NotFound.tsx[0m[2Ktransforming (71) [2mapp/pages/errors/Error500V1.tsx[0m[2Ktransforming (105) [2mapp/pages/showcase/ShowcaseOverlays.tsx[0m[2Ktransforming (137) [2mapp/components/layout/page-header.tsx[0m[2Ktransforming (181) [2mapp/features/organizations/organizationHooks.ts[0m[2Ktransforming (182) [2mapp/components/realtime/realtime-indicator.tsx[0m[2Ktransforming (183) [2mapp/features/roles/roleHooks.ts[0m[2Ktransforming (184) [2mapp/components/admin/audit-log-table.tsx[0m[2Ktransforming (185) [2mapp/components/data/data-display.tsx[0m[2Ktransforming (186) [2mapp/components/navigation/sidebar-nav.tsx[0m[2Ktransforming (187) [2mapp/features/organizations/organization-switcher.tsx[0m[2Ktransforming (188) [2mapp/components/layout/dashboard-grid.tsx[0m[2Ktransforming (189) [2mapp/components/navigation/mega-dropdown.tsx[0m[2Ktransforming (190) [2m../../node_modules/.pnpm/recharts@2.15.4_react-dom@19.2.6_react@19.2.6__react@19.2.6/node_modules/recharts/es6/index.[2Ktransforming (191) [2mapp/components/data/analytics-cards.tsx[0m[2Ktransforming (207) [2m../../node_modules/.pnpm/@tanstack+react-query-devtools@5.100.9_@tanstack+react-query@5.100.9_react@19.2.6__react@19.[2Ktransforming (208) [2m../../node_modules/.pnpm/@tanstack+react-query-devtools@5.100.9_@tanstack+react-query@5.100.9_react@19.2.6__react@19.[2Ktransforming (209) [2m../../packages/ui/src/tooltip.tsx[0m[2Ktransforming (390) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.6/node_modules/lucide-react/dist/esm/icons/square-dashed-text[2Ktransforming (391) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.6/node_modules/lucide-react/dist/esm/icons/square-code.mjs[0[2Ktransforming (1389) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.6/node_modules/lucide-react/dist/esm/icons/network.mjs[0m[2Ktransforming (1392) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.6/node_modules/lucide-react/dist/esm/icons/paint-roller.mjs[2Ktransforming (1390) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.6/node_modules/lucide-react/dist/esm/icons/cloud-upload.mjs[2Ktransforming (1391) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.6/node_modules/lucide-react/dist/esm/icons/newspaper.mjs[0m[2Ktransforming (2204) [2m../../node_modules/.pnpm/framer-motion@12.38.0_react-dom@19.2.6_react@19.2.6__react@19.2.6/node_modules/framer-motio[2Ktransforming (2206) [2m../../node_modules/.pnpm/framer-motion@12.38.0_react-dom@19.2.6_react@19.2.6__react@19.2.6/node_modules/framer-motio[2Ktransforming (2205) [2m../../node_modules/.pnpm/framer-motion@12.38.0_react-dom@19.2.6_react@19.2.6__react@19.2.6/node_modules/framer-motio[2Ktransforming (2713) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.6/node_modules/lucide-react/dist/esm/shared/src/utils/mergeC[2Ktransforming (2714) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.6/node_modules/lucide-react/dist/esm/shared/src/utils/toPasc[2Ktransforming (2715) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.6/node_modules/lucide-react/dist/esm/defaultAttributes.mjs[[2Ktransforming (2813) [2m../../node_modules/.pnpm/lodash@4.18.1/node_modules/lodash/isNumber.js[0m[2Ktransforming (2812) [2m../../node_modules/.pnpm/lodash@4.18.1/node_modules/lodash/isString.js[0m[2Ktransforming (2814) [2m../../node_modules/.pnpm/tus-js-client@4.3.1/node_modules/tus-js-client/lib.esm/logger.js[0m[2Ktransforming (2842) [2m../../node_modules/.pnpm/motion-utils@12.36.0/node_modules/motion-utils/dist/es/format-error-message.mjs[0m[2Ktransforming (3843) [2m../../node_modules/.pnpm/lucide-react@0.462.0_react@19.2.6/node_modules/lucide-react/dist/esm/icons/meh.js[0m[2Ktransforming (3842) [2m../../node_modules/.pnpm/lucide-react@0.462.0_react@19.2.6/node_modules/lucide-react/dist/esm/icons/merge.js[0m[2Ktransforming (3841) [2m../../node_modules/.pnpm/lucide-react@0.462.0_react@19.2.6/node_modules/lucide-react/dist/esm/icons/megaphone-off.js[2Ktransforming (3844) [2m../../node_modules/.pnpm/lucide-react@0.462.0_react@19.2.6/node_modules/lucide-react/dist/esm/icons/medal.js[0m[2Ktransforming (3845) [2m../../node_modules/.pnpm/lucide-react@0.462.0_react@19.2.6/node_modules/lucide-react/dist/esm/icons/megaphone.js[0m[2Ktransforming (4489) [2m../../node_modules/.pnpm/recharts-scale@0.4.5/node_modules/recharts-scale/es6/index.js[0m[2Ktransforming (4490) [2m../../node_modules/.pnpm/lodash@4.18.1/node_modules/lodash/flatMap.js[0m[2Ktransforming (4650) [2m../../node_modules/.pnpm/framer-motion@12.38.0_react-dom@19.2.6_react@19.2.6__react@19.2.6/node_modules/framer-motio[2Ktransforming (4651) [2m../../node_modules/.pnpm/framer-motion@12.38.0_react-dom@19.2.6_react@19.2.6__react@19.2.6/node_modules/framer-motio[2Ktransforming (4652) [2m../../node_modules/.pnpm/framer-motion@12.38.0_react-dom@19.2.6_react@19.2.6__react@19.2.6/node_modules/framer-motio[2Ktransforming (4653) [2m../../node_modules/.pnpm/framer-motion@12.38.0_react-dom@19.2.6_react@19.2.6__react@19.2.6/node_modules/framer-motio[2Ktransforming (4654) [2m../../node_modules/.pnpm/framer-motion@12.38.0_react-dom@19.2.6_react@19.2.6__react@19.2.6/node_modules/framer-motio[2Ktransforming (4665) [2m../../node_modules/.pnpm/lodash@4.18.1/node_modules/lodash/_baseForOwn.js[0m[2Ktransforming (4664) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/date-fns/locale/ar-DZ/_lib/formatLong.js[0m[2Ktransforming (4826) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/date-fns/locale/gd/_lib/formatDistance.js[0m[2Ktransforming (4827) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/date-fns/locale/gd/_lib/localize.js[0m[2Ktransforming (4825) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/date-fns/locale/gd/_lib/formatRelative.js[0m[2Ktransforming (5265) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/date-fns/locale/sr-Latn/_lib/formatRelative.js[0m[2Ktransforming (5565) [2m../../node_modules/.pnpm/lodash@4.18.1/node_modules/lodash/_baseIsNaN.js[0m[2Ktransforming (5566) [2m../../node_modules/.pnpm/d3-interpolate@3.0.1/node_modules/d3-interpolate/src/color.js[0m[2K[32m✓[39m 5619 modules transformed.
-[2Krendering chunks (1)...[2Krendering chunks (2)...[2Krendering chunks (3)...[2Krendering chunks (4)...[2Krendering chunks (5)...[2Krendering chunks (6)...[2Krendering chunks (7)...[2Krendering chunks (8)...[2Krendering chunks (9)...[2Krendering chunks (10)...[2Krendering chunks (11)...[2Krendering chunks (12)...[2Krendering chunks (13)...[2Krendering chunks (14)...[2Krendering chunks (15)...[2Krendering chunks (16)...[2Krendering chunks (17)...[2Krendering chunks (18)...[2Krendering chunks (19)...[2Krendering chunks (20)...[2Krendering chunks (21)...[2Krendering chunks (22)...[2Krendering chunks (23)...[2Krendering chunks (24)...[2Krendering chunks (25)...[2Krendering chunks (26)...[2Krendering chunks (27)...[2Krendering chunks (28)...[2Krendering chunks (29)...[2Krendering chunks (30)...[2Krendering chunks (31)...[2Krendering chunks (32)...[2Krendering chunks (33)...[2Krendering chunks (34)...[2Krendering chunks (35)...[2Krendering chunks (36)...[2Krendering chunks (37)...[2Krendering chunks (38)...[2Krendering chunks (39)...[2Krendering chunks (40)...[2Krendering chunks (41)...[2Krendering chunks (42)...[2Krendering chunks (43)...[2Krendering chunks (44)...[2Krendering chunks (45)...[2Krendering chunks (46)...[2Krendering chunks (47)...[2Krendering chunks (48)...[2Krendering chunks (49)...[2Krendering chunks (50)...[2Krendering chunks (51)...[2Krendering chunks (52)...[2Krendering chunks (53)...[2Krendering chunks (54)...[2Krendering chunks (55)...[2Krendering chunks (56)...[2Krendering chunks (57)...[2Krendering chunks (58)...[2Krendering chunks (59)...[2Krendering chunks (60)...[2Krendering chunks (61)...[2Krendering chunks (62)...[2Krendering chunks (63)...[2Krendering chunks (64)...[2Krendering chunks (65)...[2Krendering chunks (66)...[2Krendering chunks (67)...[2Krendering chunks (68)...[2Krendering chunks (69)...[2Krendering chunks (70)...[2Krendering chunks (71)...[2Krendering chunks (72)...[2Krendering chunks (73)...[2Krendering chunks (74)...[2Krendering chunks (75)...[2Krendering chunks (76)...[2Krendering chunks (77)...[2Krendering chunks (78)...[2Krendering chunks (79)...[2Krendering chunks (80)...[2Krendering chunks (81)...[2Krendering chunks (82)...[2Krendering chunks (83)...[2Krendering chunks (84)...[2Krendering chunks (85)...[2Krendering chunks (86)...[2Krendering chunks (87)...[2Krendering chunks (88)...[2Krendering chunks (89)...[2Krendering chunks (90)...[2Krendering chunks (91)...[2Krendering chunks (92)...[2Krendering chunks (93)...[2Krendering chunks (94)...[2Krendering chunks (95)...[2Krendering chunks (96)...[2Krendering chunks (97)...[2Krendering chunks (98)...[2Krendering chunks (99)...[2Krendering chunks (100)...[2Krendering chunks (101)...[2Krendering chunks (102)...[2Krendering chunks (103)...[2Krendering chunks (104)...[2Krendering chunks (105)...[2Krendering chunks (106)...[2Krendering chunks (107)...[2Krendering chunks (108)...[2Krendering chunks (109)...[2Krendering chunks (110)...[2Krendering chunks (111)...[2Krendering chunks (112)...[2Krendering chunks (113)...[2Krendering chunks (114)...[2Krendering chunks (115)...[2Krendering chunks (116)...[2Krendering chunks (117)...[2Krendering chunks (118)...[2Krendering chunks (119)...[2Krendering chunks (120)...[2Krendering chunks (121)...[2Krendering chunks (122)...[2Krendering chunks (123)...[2Krendering chunks (124)...[2Krendering chunks (125)...[2Krendering chunks (126)...[2Krendering chunks (127)...[2Krendering chunks (128)...[2Krendering chunks (129)...[2Krendering chunks (130)...[2Krendering chunks (131)...[2Krendering chunks (132)...[2Krendering chunks (133)...[2Krendering chunks (134)...[2Krendering chunks (135)...[2Krendering chunks (136)...[2Krendering chunks (137)...[2Krendering chunks (138)...[2Krendering chunks (139)...[2Krendering chunks (140)...[2Krendering chunks (141)...[2Krendering chunks (142)...[2Krendering chunks (143)...[2Krendering chunks (144)...[2Krendering chunks (145)...[2Krendering chunks (146)...[2Krendering chunks (147)...[2Krendering chunks (148)...[2Krendering chunks (149)...[2Kcomputing gzip size...
-[2K[2mbuild/client/[0m[32m.vite/manifest.json                       [39m[2m[1m 50.90 kB[0m[0m[2m │ gzip:   5.09 kB[0m
+[2Ktransforming (31) [2m../../node_modules/.pnpm/react-dom@19.2.6_react@19.2.6/nod[2Ktransforming (30) [2m../../node_modules/.pnpm/react@19.2.6/node_modules/react/j[2Ktransforming (32) [2m../../node_modules/.pnpm/react@19.2.6/node_modules/react/i[2Ktransforming (71) [2mapp/routes/app-layout.tsx[0m[2Ktransforming (94) [2mapp/pages/errors/Error404V2.tsx[0m[2Ktransforming (120) [2mapp/pages/showcase/ShowcaseCards.tsx[0m[2Ktransforming (139) [2mapp/components/layout/page-header.tsx[0m[2Ktransforming (189) [2mapp/components/forms/stepper-form.tsx[0m[2Ktransforming (209) [2mapp/components/layout/app-navbar.tsx[0m[2Ktransforming (394) [2mapp/app.css[0m[2Ktransforming (395) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.6[2Ktransforming (1394) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.[2Ktransforming (2393) [2m../../node_modules/.pnpm/framer-motion@12.38.0_react-dom[2Ktransforming (2470) [2m../../node_modules/.pnpm/clsx@2.1.1/node_modules/clsx/di[2Ktransforming (2471) [2m../../node_modules/.pnpm/@radix-ui+primitive@1.1.3/node_[2Ktransforming (2529) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.[2Ktransforming (2528) [2m../../node_modules/.pnpm/lucide-react@1.14.0_react@19.2.[2Ktransforming (2592) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/dat[2Ktransforming (2596) [2m../../node_modules/.pnpm/framer-motion@12.38.0_react-dom[2Ktransforming (2594) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/dat[2Ktransforming (2593) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/dat[2Ktransforming (2595) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/dat[2Ktransforming (2597) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/dat[2Ktransforming (2850) [2m../../node_modules/.pnpm/motion-dom@12.38.0/node_modules[2Ktransforming (2852) [2m../../node_modules/.pnpm/lodash@4.18.1/node_modules/loda[2Ktransforming (2851) [2m../../node_modules/.pnpm/framer-motion@12.38.0_react-dom[2Ktransforming (2862) [2m../../node_modules/.pnpm/motion-dom@12.38.0/node_modules[2Ktransforming (2863) [2m../../node_modules/.pnpm/motion-dom@12.38.0/node_modules[2Ktransforming (3862) [2m../../node_modules/.pnpm/lucide-react@0.462.0_react@19.2[2Ktransforming (3861) [2m../../node_modules/.pnpm/lucide-react@0.462.0_react@19.2[2Ktransforming (4506) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/dat[2Ktransforming (4507) [2m../../node_modules/.pnpm/tus-js-client@4.3.1/node_module[2Ktransforming (4508) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/dat[2Ktransforming (4637) [2m../../node_modules/.pnpm/react-remove-scroll@2.7.2_@type[2Ktransforming (4638) [2m../../node_modules/.pnpm/lodash@4.18.1/node_modules/loda[2Ktransforming (4680) [2m../../node_modules/.pnpm/lodash@4.18.1/node_modules/loda[2Ktransforming (4679) [2m../../node_modules/.pnpm/lodash@4.18.1/node_modules/loda[2Ktransforming (4836) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/dat[2Ktransforming (4839) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/dat[2Ktransforming (4837) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/dat[2Ktransforming (4838) [2m../../node_modules/.pnpm/date-fns@4.1.0/node_modules/dat[2Ktransforming (5329) [2m../../node_modules/.pnpm/lodash@4.18.1/node_modules/loda[2Ktransforming (5436) [2m../../node_modules/.pnpm/recharts-scale@0.4.5/node_modul[2K[32m✓[39m 5621 modules transformed.
+[2Krendering chunks (1)...[2Krendering chunks (2)...[2Krendering chunks (3)...[2Krendering chunks (4)...[2Krendering chunks (5)...[2Krendering chunks (6)...[2Krendering chunks (7)...[2Krendering chunks (8)...[2Krendering chunks (9)...[2Krendering chunks (10)...[2Krendering chunks (11)...[2Krendering chunks (12)...[2Krendering chunks (13)...[2Krendering chunks (14)...[2Krendering chunks (15)...[2Krendering chunks (16)...[2Krendering chunks (17)...[2Krendering chunks (18)...[2Krendering chunks (19)...[2Krendering chunks (20)...[2Krendering chunks (21)...[2Krendering chunks (22)...[2Krendering chunks (23)...[2Krendering chunks (24)...[2Krendering chunks (25)...[2Krendering chunks (26)...[2Krendering chunks (27)...[2Krendering chunks (28)...[2Krendering chunks (29)...[2Krendering chunks (30)...[2Krendering chunks (31)...[2Krendering chunks (32)...[2Krendering chunks (33)...[2Krendering chunks (34)...[2Krendering chunks (35)...[2Krendering chunks (36)...[2Krendering chunks (37)...[2Krendering chunks (38)...[2Krendering chunks (39)...[2Krendering chunks (40)...[2Krendering chunks (41)...[2Krendering chunks (42)...[2Krendering chunks (43)...[2Krendering chunks (44)...[2Krendering chunks (45)...[2Krendering chunks (46)...[2Krendering chunks (47)...[2Krendering chunks (48)...[2Krendering chunks (49)...[2Krendering chunks (50)...[2Krendering chunks (51)...[2Krendering chunks (52)...[2Krendering chunks (53)...[2Krendering chunks (54)...[2Krendering chunks (55)...[2Krendering chunks (56)...[2Krendering chunks (57)...[2Krendering chunks (58)...[2Krendering chunks (59)...[2Krendering chunks (60)...[2Krendering chunks (61)...[2Krendering chunks (62)...[2Krendering chunks (63)...[2Krendering chunks (64)...[2Krendering chunks (65)...[2Krendering chunks (66)...[2Krendering chunks (67)...[2Krendering chunks (68)...[2Krendering chunks (69)...[2Krendering chunks (70)...[2Krendering chunks (71)...[2Krendering chunks (72)...[2Krendering chunks (73)...[2Krendering chunks (74)...[2Krendering chunks (75)...[2Krendering chunks (76)...[2Krendering chunks (77)...[2Krendering chunks (78)...[2Krendering chunks (79)...[2Krendering chunks (80)...[2Krendering chunks (81)...[2Krendering chunks (82)...[2Krendering chunks (83)...[2Krendering chunks (84)...[2Krendering chunks (85)...[2Krendering chunks (86)...[2Krendering chunks (87)...[2Krendering chunks (88)...[2Krendering chunks (89)...[2Krendering chunks (90)...[2Krendering chunks (91)...[2Krendering chunks (92)...[2Krendering chunks (93)...[2Krendering chunks (94)...[2Krendering chunks (95)...[2Krendering chunks (96)...[2Krendering chunks (97)...[2Krendering chunks (98)...[2Krendering chunks (99)...[2Krendering chunks (100)...[2Krendering chunks (101)...[2Krendering chunks (102)...[2Krendering chunks (103)...[2Krendering chunks (104)...[2Krendering chunks (105)...[2Krendering chunks (106)...[2Krendering chunks (107)...[2Krendering chunks (108)...[2Krendering chunks (109)...[2Krendering chunks (110)...[2Krendering chunks (111)...[2Krendering chunks (112)...[2Krendering chunks (113)...[2Krendering chunks (114)...[2Krendering chunks (115)...[2Krendering chunks (116)...[2Krendering chunks (117)...[2Krendering chunks (118)...[2Krendering chunks (119)...[2Krendering chunks (120)...[2Krendering chunks (121)...[2Krendering chunks (122)...[2Krendering chunks (123)...[2Krendering chunks (124)...[2Krendering chunks (125)...[2Krendering chunks (126)...[2Krendering chunks (127)...[2Krendering chunks (128)...[2Krendering chunks (129)...[2Krendering chunks (130)...[2Krendering chunks (131)...[2Krendering chunks (132)...[2Krendering chunks (133)...[2Krendering chunks (134)...[2Krendering chunks (135)...[2Krendering chunks (136)...[2Krendering chunks (137)...[2Krendering chunks (138)...[2Krendering chunks (139)...[2Krendering chunks (140)...[2Krendering chunks (141)...[2Krendering chunks (142)...[2Krendering chunks (143)...[2Krendering chunks (144)...[2Krendering chunks (145)...[2Krendering chunks (146)...[2Krendering chunks (147)...[2Krendering chunks (148)...[2Krendering chunks (149)...[2Krendering chunks (150)...[2Kcomputing gzip size...
+[2K[2mbuild/client/[0m[32m.vite/manifest.json                       [39m[2m[1m 51.13 kB[0m[0m[2m │ gzip:   5.12 kB[0m
 [2mbuild/client/[0m[2massets/[0m[35mroot-vvwoCkdx.css                  [39m[2m[1m108.06 kB[0m[0m[2m │ gzip:  15.91 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mminus-BJHNjB72.js                  [39m[2m[1m  0.11 kB[0m[0m[2m │ gzip:   0.13 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mcheck-BF4kQfMe.js                  [39m[2m[1m  0.12 kB[0m[0m[2m │ gzip:   0.14 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mchevron-down-BsUSmX0e.js           [39m[2m[1m  0.12 kB[0m[0m[2m │ gzip:   0.14 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mchevron-left-DUGfTfNC.js           [39m[2m[1m  0.13 kB[0m[0m[2m │ gzip:   0.14 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mchevron-right-CqhTBOXv.js          [39m[2m[1m  0.13 kB[0m[0m[2m │ gzip:   0.14 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mloader-circle-CHn61GB0.js          [39m[2m[1m  0.14 kB[0m[0m[2m │ gzip:   0.15 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mplus-dNesrOOG.js                   [39m[2m[1m  0.15 kB[0m[0m[2m │ gzip:   0.15 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mx-C2RkvWrZ.js                      [39m[2m[1m  0.15 kB[0m[0m[2m │ gzip:   0.15 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36marrow-left-BCw7aEOS.js             [39m[2m[1m  0.16 kB[0m[0m[2m │ gzip:   0.16 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36marrow-right-CDyzx3x0.js            [39m[2m[1m  0.16 kB[0m[0m[2m │ gzip:   0.16 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mclock-B_GmvovX.js                  [39m[2m[1m  0.16 kB[0m[0m[2m │ gzip:   0.16 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36msearch-CVZrZVWu.js                 [39m[2m[1m  0.17 kB[0m[0m[2m │ gzip:   0.17 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mcircle-check-BHF5CI-x.js           [39m[2m[1m  0.17 kB[0m[0m[2m │ gzip:   0.16 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36muser-lvsV9d3z.js                   [39m[2m[1m  0.19 kB[0m[0m[2m │ gzip:   0.18 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36minfo-Dz5hQ8ch.js                   [39m[2m[1m  0.20 kB[0m[0m[2m │ gzip:   0.17 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mlock-BBU5xLxz.js                   [39m[2m[1m  0.20 kB[0m[0m[2m │ gzip:   0.19 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mmail-_xQ8WrYC.js                   [39m[2m[1m  0.21 kB[0m[0m[2m │ gzip:   0.20 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mmoon-De6b--9K.js                   [39m[2m[1m  0.21 kB[0m[0m[2m │ gzip:   0.19 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mellipsis-B8h29tgA.js               [39m[2m[1m  0.22 kB[0m[0m[2m │ gzip:   0.16 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mupload-DVtqn-lD.js                 [39m[2m[1m  0.23 kB[0m[0m[2m │ gzip:   0.19 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mlog-in-Bc4CsDF1.js                 [39m[2m[1m  0.23 kB[0m[0m[2m │ gzip:   0.18 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mhexagon-WuF6-cra.js                [39m[2m[1m  0.23 kB[0m[0m[2m │ gzip:   0.18 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mmessage-square-7Np8z3KM.js         [39m[2m[1m  0.23 kB[0m[0m[2m │ gzip:   0.20 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mactivity-C7KCqzft.js               [39m[2m[1m  0.23 kB[0m[0m[2m │ gzip:   0.20 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mglobe-Jd3N6jh5.js                  [39m[2m[1m  0.24 kB[0m[0m[2m │ gzip:   0.19 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mcircle-alert-zBT75shO.js           [39m[2m[1m  0.25 kB[0m[0m[2m │ gzip:   0.18 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36morganization-store-Bwbbw6Mf.js     [39m[2m[1m  0.25 kB[0m[0m[2m │ gzip:   0.18 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mchart-column-DPA0xurv.js           [39m[2m[1m  0.25 kB[0m[0m[2m │ gzip:   0.19 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mexternal-link-CXSq67Uz.js          [39m[2m[1m  0.25 kB[0m[0m[2m │ gzip:   0.20 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36meye-D4PLbz8b.js                    [39m[2m[1m  0.25 kB[0m[0m[2m │ gzip:   0.20 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mzap-BX_jkxCF.js                    [39m[2m[1m  0.26 kB[0m[0m[2m │ gzip:   0.20 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mtriangle-alert-CEcyPHvy.js         [39m[2m[1m  0.26 kB[0m[0m[2m │ gzip:   0.21 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mfile-Dq1caF5W.js                   [39m[2m[1m  0.27 kB[0m[0m[2m │ gzip:   0.21 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mshield-CGmh26vc.js                 [39m[2m[1m  0.27 kB[0m[0m[2m │ gzip:   0.22 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mwifi-BSwIhaiz.js                   [39m[2m[1m  0.28 kB[0m[0m[2m │ gzip:   0.21 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mhouse-CkDkmbPO.js                  [39m[2m[1m  0.28 kB[0m[0m[2m │ gzip:   0.21 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36msend-C-JQcV5b.js                   [39m[2m[1m  0.29 kB[0m[0m[2m │ gzip:   0.23 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mtrending-up-BD3MnCUo.js            [39m[2m[1m  0.30 kB[0m[0m[2m │ gzip:   0.21 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36musers-C8NxwmzH.js                  [39m[2m[1m  0.30 kB[0m[0m[2m │ gzip:   0.22 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36muser-plus-D-BWP3Jk.js              [39m[2m[1m  0.31 kB[0m[0m[2m │ gzip:   0.23 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mshield-check-2hCQtHA2.js           [39m[2m[1m  0.32 kB[0m[0m[2m │ gzip:   0.25 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mrefresh-cw-BsgTi6gM.js             [39m[2m[1m  0.32 kB[0m[0m[2m │ gzip:   0.22 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mtrash-2-CYrEGmcE.js                [39m[2m[1m  0.32 kB[0m[0m[2m │ gzip:   0.21 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mfolder-kanban-CHGrucpv.js          [39m[2m[1m  0.34 kB[0m[0m[2m │ gzip:   0.24 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mkey-round-Dqz1gk4y.js              [39m[2m[1m  0.35 kB[0m[0m[2m │ gzip:   0.26 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mfile-text-IdXhDqnM.js              [39m[2m[1m  0.38 kB[0m[0m[2m │ gzip:   0.25 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mshield-off-CWlEzzYZ.js             [39m[2m[1m  0.40 kB[0m[0m[2m │ gzip:   0.28 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mserver-crash-B2JBBi8i.js           [39m[2m[1m  0.41 kB[0m[0m[2m │ gzip:   0.24 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mlayers-CQR1xUQI.js                 [39m[2m[1m  0.42 kB[0m[0m[2m │ gzip:   0.24 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mminimize-2-CRx0WCxF.js             [39m[2m[1m  0.42 kB[0m[0m[2m │ gzip:   0.24 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36msun-DB56LFy5.js                    [39m[2m[1m  0.47 kB[0m[0m[2m │ gzip:   0.25 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36msettings-BeZOkmSZ.js               [39m[2m[1m  0.48 kB[0m[0m[2m │ gzip:   0.26 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36msparkles-DOoclP1v.js               [39m[2m[1m  0.49 kB[0m[0m[2m │ gzip:   0.28 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mauth-Di87iJe5.js                   [39m[2m[1m  0.49 kB[0m[0m[2m │ gzip:   0.28 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mpalette-DcXLwFNW.js                [39m[2m[1m  0.51 kB[0m[0m[2m │ gzip:   0.28 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mpage-header-Cgpsi2mc.js            [39m[2m[1m  0.54 kB[0m[0m[2m │ gzip:   0.31 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mform-group-Cv1gbDk4.js             [39m[2m[1m  0.55 kB[0m[0m[2m │ gzip:   0.30 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36meye-off-D3I7WIAU.js                [39m[2m[1m  0.57 kB[0m[0m[2m │ gzip:   0.34 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36muser-check-CjtHoXvM.js             [39m[2m[1m  0.57 kB[0m[0m[2m │ gzip:   0.32 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mmenu-Cg1l-kYV.js                   [39m[2m[1m  0.59 kB[0m[0m[2m │ gzip:   0.32 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mreact-SYaAncsP.js                  [39m[2m[1m  0.65 kB[0m[0m[2m │ gzip:   0.40 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mShowcaseBadges-EWRsfCE6.js         [39m[2m[1m  0.65 kB[0m[0m[2m │ gzip:   0.35 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mauth-store-k6BIvKVi.js             [39m[2m[1m  0.65 kB[0m[0m[2m │ gzip:   0.31 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mNotFound-BZooenJl.js               [39m[2m[1m  0.68 kB[0m[0m[2m │ gzip:   0.40 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mchevrons-left-DTgtunRI.js          [39m[2m[1m  0.68 kB[0m[0m[2m │ gzip:   0.34 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mstores-4LtNGeKv.js                 [39m[2m[1m  0.70 kB[0m[0m[2m │ gzip:   0.37 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mresourceHooks-CF6b3TbW.js          [39m[2m[1m  1.05 kB[0m[0m[2m │ gzip:   0.44 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mShowcaseOverlays-CVyyF7iW.js       [39m[2m[1m  1.11 kB[0m[0m[2m │ gzip:   0.54 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mcreateLucideIcon-DkkYYuqR.js       [39m[2m[1m  1.38 kB[0m[0m[2m │ gzip:   0.77 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mnewsletter-service-CQ0mebXo.js     [39m[2m[1m  1.39 kB[0m[0m[2m │ gzip:   0.71 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mShowcaseButtons-D6DcLFkT.js        [39m[2m[1m  1.49 kB[0m[0m[2m │ gzip:   0.54 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mError404V2-I9wchefE.js             [39m[2m[1m  1.82 kB[0m[0m[2m │ gzip:   0.78 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mError403V2-DrBpMgXL.js             [39m[2m[1m  1.84 kB[0m[0m[2m │ gzip:   0.81 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mError401V2-DsjEtGBA.js             [39m[2m[1m  1.84 kB[0m[0m[2m │ gzip:   0.80 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mError500V2-dNTzxtyI.js             [39m[2m[1m  1.86 kB[0m[0m[2m │ gzip:   0.81 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mmiddleware-Cj6d6EwR.js             [39m[2m[1m  1.91 kB[0m[0m[2m │ gzip:   0.95 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mError404V1-CqqvhM7v.js             [39m[2m[1m  2.09 kB[0m[0m[2m │ gzip:   0.84 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mError403V1-D9gDTmWV.js             [39m[2m[1m  2.10 kB[0m[0m[2m │ gzip:   0.84 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mError401V1-SkVPv_E6.js             [39m[2m[1m  2.11 kB[0m[0m[2m │ gzip:   0.85 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mError500V1-CKTmn-bn.js             [39m[2m[1m  2.16 kB[0m[0m[2m │ gzip:   0.87 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mError403V3-Dh3axmmJ.js             [39m[2m[1m  2.16 kB[0m[0m[2m │ gzip:   0.90 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mError401V3-h-Enntae.js             [39m[2m[1m  2.17 kB[0m[0m[2m │ gzip:   0.88 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mError500V3-CLaKmMaI.js             [39m[2m[1m  2.21 kB[0m[0m[2m │ gzip:   0.91 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mschemas-CE539RFu.js                [39m[2m[1m  2.24 kB[0m[0m[2m │ gzip:   0.71 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mSettingsPage-DaFiRNAt.js           [39m[2m[1m  2.25 kB[0m[0m[2m │ gzip:   0.82 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mErrorShowcasePage-DgR8e2A_.js      [39m[2m[1m  2.33 kB[0m[0m[2m │ gzip:   0.89 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mError404V3-Du1fzPyJ.js             [39m[2m[1m  2.35 kB[0m[0m[2m │ gzip:   1.00 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mShowcaseCharts-a77PIfgp.js         [39m[2m[1m  2.57 kB[0m[0m[2m │ gzip:   0.98 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36maccessRightPage-BvVwwJva.js        [39m[2m[1m  3.09 kB[0m[0m[2m │ gzip:   1.14 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mSystemInsightsPage-DfSOyDen.js     [39m[2m[1m  3.17 kB[0m[0m[2m │ gzip:   1.26 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mShowcaseFeedback-Bw71G4Zl.js       [39m[2m[1m  3.20 kB[0m[0m[2m │ gzip:   1.12 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mmetrics-panel-CdFQmLQQ.js          [39m[2m[1m  3.22 kB[0m[0m[2m │ gzip:   1.09 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mShowcaseCards-DPTud8bu.js          [39m[2m[1m  3.32 kB[0m[0m[2m │ gzip:   1.12 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mrolePage-CHd6XCLT.js               [39m[2m[1m  3.35 kB[0m[0m[2m │ gzip:   1.45 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36morganization-switcher-BVBk_g60.js  [39m[2m[1m  3.36 kB[0m[0m[2m │ gzip:   1.09 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mreact-dom-CcfsP4OU.js              [39m[2m[1m  3.54 kB[0m[0m[2m │ gzip:   1.34 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mprojectPage-Cr5qletD.js            [39m[2m[1m  3.56 kB[0m[0m[2m │ gzip:   1.37 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mresourcePage-D7kYwnv_.js           [39m[2m[1m  3.71 kB[0m[0m[2m │ gzip:   1.47 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mNewsletterConfirmPage-C2WZgg1S.js  [39m[2m[1m  3.84 kB[0m[0m[2m │ gzip:   1.24 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mAnimatePresence-B3ncAeqC.js        [39m[2m[1m  3.96 kB[0m[0m[2m │ gzip:   1.84 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mForgotPasswordV2-DfHZYE2R.js       [39m[2m[1m  4.17 kB[0m[0m[2m │ gzip:   1.62 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mComponentShowcasePage-Bicw1I_3.js  [39m[2m[1m  4.24 kB[0m[0m[2m │ gzip:   1.88 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mForgotPasswordV3-CQPCCk2s.js       [39m[2m[1m  4.28 kB[0m[0m[2m │ gzip:   1.65 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mForgotPasswordPage-CgJpWZxD.js     [39m[2m[1m  4.30 kB[0m[0m[2m │ gzip:   1.71 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36morganizationPage-BZYZzInu.js       [39m[2m[1m  4.41 kB[0m[0m[2m │ gzip:   1.74 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mpermissionPage-CVLIySSU.js         [39m[2m[1m  4.62 kB[0m[0m[2m │ gzip:   1.62 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mShowcaseNavigation-C-w11gWJ.js     [39m[2m[1m  5.18 kB[0m[0m[2m │ gzip:   1.82 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mForgotPasswordV1-pTu2xixX.js       [39m[2m[1m  5.24 kB[0m[0m[2m │ gzip:   1.93 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mLoginV2-xocbrKvv.js                [39m[2m[1m  5.38 kB[0m[0m[2m │ gzip:   2.24 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mShowcaseRealtime-DBQTNR7E.js       [39m[2m[1m  5.57 kB[0m[0m[2m │ gzip:   1.80 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36muserPage-BPyNCFAW.js               [39m[2m[1m  5.81 kB[0m[0m[2m │ gzip:   2.01 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mSystemHealthPage-CgWEOeO6.js       [39m[2m[1m  5.85 kB[0m[0m[2m │ gzip:   2.14 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mResetPasswordV3-BwYV_AVp.js        [39m[2m[1m  5.90 kB[0m[0m[2m │ gzip:   2.03 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mResetPasswordV2-SZGM-vhJ.js        [39m[2m[1m  5.94 kB[0m[0m[2m │ gzip:   2.05 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mendpointPage-B50CdJbW.js           [39m[2m[1m  6.00 kB[0m[0m[2m │ gzip:   2.14 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mAuthShowcasePage-CM3p5-xY.js       [39m[2m[1m  6.11 kB[0m[0m[2m │ gzip:   1.83 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mAuditLogsPage-BfintUV1.js          [39m[2m[1m  6.21 kB[0m[0m[2m │ gzip:   2.09 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mResetPasswordV1-CsBg6rY4.js        [39m[2m[1m  6.22 kB[0m[0m[2m │ gzip:   2.16 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mRegisterV2-oKlFB_OL.js             [39m[2m[1m  6.40 kB[0m[0m[2m │ gzip:   2.53 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mResetPasswordPage-DAy_2sed.js      [39m[2m[1m  6.99 kB[0m[0m[2m │ gzip:   2.40 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mLoginV1-BoP9EmGn.js                [39m[2m[1m  7.01 kB[0m[0m[2m │ gzip:   2.62 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mLoginPage-Cxjnu87c.js              [39m[2m[1m  7.05 kB[0m[0m[2m │ gzip:   2.65 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mUploadsPage-C9pz2OPM.js            [39m[2m[1m  7.53 kB[0m[0m[2m │ gzip:   2.79 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mRegisterPage-2RtQJ6Fz.js           [39m[2m[1m  7.84 kB[0m[0m[2m │ gzip:   3.11 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mRegisterV1-DLoP8J28.js             [39m[2m[1m  8.01 kB[0m[0m[2m │ gzip:   2.93 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mLoginV3-BRzr7TSU.js                [39m[2m[1m  8.12 kB[0m[0m[2m │ gzip:   2.77 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mroot-CKtIz_Ur.js                   [39m[2m[1m  8.93 kB[0m[0m[2m │ gzip:   3.12 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mpresence-avatars-D97Gbwff.js       [39m[2m[1m  9.12 kB[0m[0m[2m │ gzip:   3.21 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mRegisterV3-3p5Z60Ny.js             [39m[2m[1m 10.03 kB[0m[0m[2m │ gzip:   3.22 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mshared-BVjGORFr.js                 [39m[2m[1m 10.18 kB[0m[0m[2m │ gzip:   3.53 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mWorkspacePage-DKf8VKBh.js          [39m[2m[1m 10.28 kB[0m[0m[2m │ gzip:   3.14 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36museMutation-CeltBU27.js            [39m[2m[1m 10.88 kB[0m[0m[2m │ gzip:   3.72 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mShowcaseForms-BtRJvZEC.js          [39m[2m[1m 11.40 kB[0m[0m[2m │ gzip:   3.61 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mRolesPermissionsPage-oaW4ZQk1.js   [39m[2m[1m 11.46 kB[0m[0m[2m │ gzip:   3.37 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mDesignSystemPage-K8tM4QJO.js       [39m[2m[1m 12.51 kB[0m[0m[2m │ gzip:   3.23 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mShowcaseDataDisplay-ldbSQcTh.js    [39m[2m[1m 12.63 kB[0m[0m[2m │ gzip:   3.95 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mDashboardPage-IL1gEZoQ.js          [39m[2m[1m 13.56 kB[0m[0m[2m │ gzip:   3.74 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mQueryClientProvider-D3T8m6qK.js    [39m[2m[1m 18.40 kB[0m[0m[2m │ gzip:   5.86 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mapp-layout-cx8fzwSy.js             [39m[2m[1m 27.69 kB[0m[0m[2m │ gzip:   8.37 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mcharts-D7ua8-ha.js                 [39m[2m[1m 30.94 kB[0m[0m[2m │ gzip:   8.25 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mLandingPage-CrBQb7Pf.js            [39m[2m[1m 37.32 kB[0m[0m[2m │ gzip:   9.21 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mclient-DcDPy5zA.js                 [39m[2m[1m 42.79 kB[0m[0m[2m │ gzip:  16.52 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mtypes-DPqyRACB.js                  [39m[2m[1m 56.48 kB[0m[0m[2m │ gzip:  12.92 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mupload-progress--6pJ2ydf.js        [39m[2m[1m 73.09 kB[0m[0m[2m │ gzip:  19.82 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mproxy-CnK1IQf_.js                  [39m[2m[1m120.57 kB[0m[0m[2m │ gzip:  39.13 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mjsx-runtime-CNuXus8X.js            [39m[2m[1m129.55 kB[0m[0m[2m │ gzip:  42.77 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mentry.client-Z5tPis6E.js           [39m[2m[1m183.07 kB[0m[0m[2m │ gzip:  58.05 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36mAreaChart-D6JVeIT7.js              [39m[2m[1m367.04 kB[0m[0m[2m │ gzip:  94.66 kB[0m
-[2mbuild/client/[0m[2massets/[0m[36msrc-BbPh2q5C.js                    [39m[33m[1m508.06 kB[0m[39m[2m │ gzip: 152.98 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mapi-proxy-DF-jyl7g.js              [39m[2m[1m  0.00 kB[0m[0m[2m │ gzip:   0.02 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mminus-0dr8Sd13.js                  [39m[2m[1m  0.11 kB[0m[0m[2m │ gzip:   0.13 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mcheck-mzofAMUB.js                  [39m[2m[1m  0.12 kB[0m[0m[2m │ gzip:   0.14 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mchevron-down-BfAx1mzQ.js           [39m[2m[1m  0.12 kB[0m[0m[2m │ gzip:   0.14 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mchevron-left-Cfu8AcYC.js           [39m[2m[1m  0.13 kB[0m[0m[2m │ gzip:   0.14 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mchevron-right-DYXdYIbL.js          [39m[2m[1m  0.13 kB[0m[0m[2m │ gzip:   0.14 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mloader-circle-CIdmN6pU.js          [39m[2m[1m  0.14 kB[0m[0m[2m │ gzip:   0.15 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mplus-DtgemAxU.js                   [39m[2m[1m  0.15 kB[0m[0m[2m │ gzip:   0.15 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mx-D-kZKv9O.js                      [39m[2m[1m  0.15 kB[0m[0m[2m │ gzip:   0.15 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36marrow-left-B6hz4ttm.js             [39m[2m[1m  0.16 kB[0m[0m[2m │ gzip:   0.16 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36marrow-right-DkLm2UFZ.js            [39m[2m[1m  0.16 kB[0m[0m[2m │ gzip:   0.16 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mclock-CYI_uATL.js                  [39m[2m[1m  0.16 kB[0m[0m[2m │ gzip:   0.16 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36msearch-CqF9kUY5.js                 [39m[2m[1m  0.17 kB[0m[0m[2m │ gzip:   0.16 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mcircle-check-Cdf-MgQj.js           [39m[2m[1m  0.17 kB[0m[0m[2m │ gzip:   0.16 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36muser-zowM_83J.js                   [39m[2m[1m  0.19 kB[0m[0m[2m │ gzip:   0.18 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36minfo-DSx0DzT9.js                   [39m[2m[1m  0.20 kB[0m[0m[2m │ gzip:   0.17 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mlock-CiYAoJtJ.js                   [39m[2m[1m  0.20 kB[0m[0m[2m │ gzip:   0.19 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mmail-B8hypjpb.js                   [39m[2m[1m  0.21 kB[0m[0m[2m │ gzip:   0.20 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mmoon-C_3vkuq9.js                   [39m[2m[1m  0.21 kB[0m[0m[2m │ gzip:   0.19 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mellipsis-BX41Uuhr.js               [39m[2m[1m  0.22 kB[0m[0m[2m │ gzip:   0.16 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mupload-DHKTHLm0.js                 [39m[2m[1m  0.23 kB[0m[0m[2m │ gzip:   0.19 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mlog-in-BsuYS1c1.js                 [39m[2m[1m  0.23 kB[0m[0m[2m │ gzip:   0.18 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mhexagon-D7Q1no4o.js                [39m[2m[1m  0.23 kB[0m[0m[2m │ gzip:   0.18 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mmessage-square-C0BIga04.js         [39m[2m[1m  0.23 kB[0m[0m[2m │ gzip:   0.20 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mactivity-QNkWATNH.js               [39m[2m[1m  0.23 kB[0m[0m[2m │ gzip:   0.19 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mglobe-BY2Te7Zw.js                  [39m[2m[1m  0.24 kB[0m[0m[2m │ gzip:   0.18 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mcircle-alert-BFp7v4sj.js           [39m[2m[1m  0.25 kB[0m[0m[2m │ gzip:   0.18 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36morganization-store-9fpu5kiD.js     [39m[2m[1m  0.25 kB[0m[0m[2m │ gzip:   0.18 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mchart-column-CRRW9LK3.js           [39m[2m[1m  0.25 kB[0m[0m[2m │ gzip:   0.19 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mexternal-link-5S7qWFl0.js          [39m[2m[1m  0.25 kB[0m[0m[2m │ gzip:   0.19 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36meye-ZftQ9gMU.js                    [39m[2m[1m  0.25 kB[0m[0m[2m │ gzip:   0.20 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mzap-2wZXsLeT.js                    [39m[2m[1m  0.26 kB[0m[0m[2m │ gzip:   0.20 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mtriangle-alert-B-GnaL2t.js         [39m[2m[1m  0.26 kB[0m[0m[2m │ gzip:   0.21 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mfile-BIJBYlED.js                   [39m[2m[1m  0.27 kB[0m[0m[2m │ gzip:   0.21 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mshield-Dekd2b8O.js                 [39m[2m[1m  0.27 kB[0m[0m[2m │ gzip:   0.22 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mwifi-RDfm74gn.js                   [39m[2m[1m  0.28 kB[0m[0m[2m │ gzip:   0.20 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mhouse-DFUwKk3l.js                  [39m[2m[1m  0.28 kB[0m[0m[2m │ gzip:   0.21 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36msend-CqDz_VnF.js                   [39m[2m[1m  0.29 kB[0m[0m[2m │ gzip:   0.22 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mtrending-up-C3EKxOfa.js            [39m[2m[1m  0.30 kB[0m[0m[2m │ gzip:   0.20 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36musers-NfdEMhEk.js                  [39m[2m[1m  0.30 kB[0m[0m[2m │ gzip:   0.22 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36muser-plus-0kytuxX-.js              [39m[2m[1m  0.31 kB[0m[0m[2m │ gzip:   0.23 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mshield-check-Dv9I0hU9.js           [39m[2m[1m  0.32 kB[0m[0m[2m │ gzip:   0.24 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mrefresh-cw-BzSVa0Q0.js             [39m[2m[1m  0.32 kB[0m[0m[2m │ gzip:   0.22 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mtrash-2-DvOLFTkF.js                [39m[2m[1m  0.32 kB[0m[0m[2m │ gzip:   0.21 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mfolder-kanban-BHAOOEIu.js          [39m[2m[1m  0.34 kB[0m[0m[2m │ gzip:   0.24 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mkey-round-BURcoSjt.js              [39m[2m[1m  0.35 kB[0m[0m[2m │ gzip:   0.25 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mauth-store-xbcTnuFB.js             [39m[2m[1m  0.36 kB[0m[0m[2m │ gzip:   0.22 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mfile-text-oJuFziw_.js              [39m[2m[1m  0.38 kB[0m[0m[2m │ gzip:   0.25 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mshield-off-B_5bJvAi.js             [39m[2m[1m  0.40 kB[0m[0m[2m │ gzip:   0.28 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mserver-crash-CCmrqyki.js           [39m[2m[1m  0.41 kB[0m[0m[2m │ gzip:   0.24 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mlayers-Bm_zo258.js                 [39m[2m[1m  0.42 kB[0m[0m[2m │ gzip:   0.24 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mminimize-2-BvhGgbWs.js             [39m[2m[1m  0.42 kB[0m[0m[2m │ gzip:   0.24 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36msun-CLmwuOGR.js                    [39m[2m[1m  0.47 kB[0m[0m[2m │ gzip:   0.25 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36msettings-BIs9nJo-.js               [39m[2m[1m  0.48 kB[0m[0m[2m │ gzip:   0.25 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36msparkles-HX02ZjQm.js               [39m[2m[1m  0.49 kB[0m[0m[2m │ gzip:   0.28 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mauth-BerqyqzR.js                   [39m[2m[1m  0.49 kB[0m[0m[2m │ gzip:   0.28 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mpalette-Fig0eKba.js                [39m[2m[1m  0.51 kB[0m[0m[2m │ gzip:   0.27 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mpage-header-BYFmI3Cl.js            [39m[2m[1m  0.54 kB[0m[0m[2m │ gzip:   0.32 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mform-group-BPD4O4HG.js             [39m[2m[1m  0.55 kB[0m[0m[2m │ gzip:   0.31 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36meye-off-BDqPBWsP.js                [39m[2m[1m  0.57 kB[0m[0m[2m │ gzip:   0.34 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36muser-check-C-KHlR_a.js             [39m[2m[1m  0.57 kB[0m[0m[2m │ gzip:   0.32 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mmenu-BFQNFgE_.js                   [39m[2m[1m  0.59 kB[0m[0m[2m │ gzip:   0.32 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mreact-DA69xnfv.js                  [39m[2m[1m  0.65 kB[0m[0m[2m │ gzip:   0.40 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mShowcaseBadges-DKlAnp1n.js         [39m[2m[1m  0.65 kB[0m[0m[2m │ gzip:   0.35 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mNotFound-CCvAoxuj.js               [39m[2m[1m  0.68 kB[0m[0m[2m │ gzip:   0.41 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mchevrons-left-tDVxw90T.js          [39m[2m[1m  0.68 kB[0m[0m[2m │ gzip:   0.34 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mstores-DzTRQo82.js                 [39m[2m[1m  0.70 kB[0m[0m[2m │ gzip:   0.37 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mresourceHooks-CN2uvsm3.js          [39m[2m[1m  1.05 kB[0m[0m[2m │ gzip:   0.44 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mShowcaseOverlays-CNadpTzu.js       [39m[2m[1m  1.11 kB[0m[0m[2m │ gzip:   0.54 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mcreateLucideIcon-Ba3y-nOo.js       [39m[2m[1m  1.38 kB[0m[0m[2m │ gzip:   0.78 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mnewsletter-service-Df8Y8_fj.js     [39m[2m[1m  1.39 kB[0m[0m[2m │ gzip:   0.71 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mShowcaseButtons-w_Gpx2JT.js        [39m[2m[1m  1.49 kB[0m[0m[2m │ gzip:   0.55 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mError404V2-DBKU7pF4.js             [39m[2m[1m  1.82 kB[0m[0m[2m │ gzip:   0.79 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mError403V2-B8gQLABe.js             [39m[2m[1m  1.84 kB[0m[0m[2m │ gzip:   0.81 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mError401V2-B-kAAqrc.js             [39m[2m[1m  1.84 kB[0m[0m[2m │ gzip:   0.81 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mError500V2-DVVySTQD.js             [39m[2m[1m  1.86 kB[0m[0m[2m │ gzip:   0.82 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mmiddleware-BUt2JyYA.js             [39m[2m[1m  1.91 kB[0m[0m[2m │ gzip:   0.95 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mError404V1-C_i6fTfe.js             [39m[2m[1m  2.09 kB[0m[0m[2m │ gzip:   0.84 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mError403V1-DdTHmatU.js             [39m[2m[1m  2.10 kB[0m[0m[2m │ gzip:   0.85 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mError401V1-DM-wtv6y.js             [39m[2m[1m  2.11 kB[0m[0m[2m │ gzip:   0.85 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mError500V1-UYNA3_dB.js             [39m[2m[1m  2.16 kB[0m[0m[2m │ gzip:   0.88 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mError403V3-BLy_J0gs.js             [39m[2m[1m  2.16 kB[0m[0m[2m │ gzip:   0.90 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mError401V3-CrYHiQz_.js             [39m[2m[1m  2.17 kB[0m[0m[2m │ gzip:   0.88 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mError500V3-Yxx1Hf-s.js             [39m[2m[1m  2.21 kB[0m[0m[2m │ gzip:   0.91 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mschemas-CH_ZTZou.js                [39m[2m[1m  2.24 kB[0m[0m[2m │ gzip:   0.71 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mSettingsPage-CbxZZisM.js           [39m[2m[1m  2.25 kB[0m[0m[2m │ gzip:   0.83 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mErrorShowcasePage-A8rc1iSO.js      [39m[2m[1m  2.33 kB[0m[0m[2m │ gzip:   0.89 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mError404V3-DUyH4XoG.js             [39m[2m[1m  2.35 kB[0m[0m[2m │ gzip:   1.00 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mShowcaseCharts-CrpMtS2R.js         [39m[2m[1m  2.57 kB[0m[0m[2m │ gzip:   0.98 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36maccessRightPage-BU0Ps2I4.js        [39m[2m[1m  3.09 kB[0m[0m[2m │ gzip:   1.15 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mSystemInsightsPage-HQyUmfIQ.js     [39m[2m[1m  3.17 kB[0m[0m[2m │ gzip:   1.26 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mShowcaseFeedback-BBzpPYQP.js       [39m[2m[1m  3.20 kB[0m[0m[2m │ gzip:   1.13 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mmetrics-panel-CUOLtPYl.js          [39m[2m[1m  3.22 kB[0m[0m[2m │ gzip:   1.09 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mShowcaseCards-e4cRvuzo.js          [39m[2m[1m  3.32 kB[0m[0m[2m │ gzip:   1.13 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mrolePage-DQOylu1I.js               [39m[2m[1m  3.35 kB[0m[0m[2m │ gzip:   1.45 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36morganization-switcher-DqRv5d2Y.js  [39m[2m[1m  3.36 kB[0m[0m[2m │ gzip:   1.08 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mreact-dom-BAywnhqR.js              [39m[2m[1m  3.54 kB[0m[0m[2m │ gzip:   1.34 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mprojectPage-BYHqx8OA.js            [39m[2m[1m  3.56 kB[0m[0m[2m │ gzip:   1.37 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mresourcePage-DisiZT0l.js           [39m[2m[1m  3.71 kB[0m[0m[2m │ gzip:   1.47 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mNewsletterConfirmPage-MpEiZYsj.js  [39m[2m[1m  3.84 kB[0m[0m[2m │ gzip:   1.25 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mAnimatePresence-B_kpIXpL.js        [39m[2m[1m  3.96 kB[0m[0m[2m │ gzip:   1.84 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mForgotPasswordV2-D6JUaQmb.js       [39m[2m[1m  4.17 kB[0m[0m[2m │ gzip:   1.64 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mComponentShowcasePage-D45Jk4g7.js  [39m[2m[1m  4.24 kB[0m[0m[2m │ gzip:   1.88 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mForgotPasswordV3-D54B-ZX8.js       [39m[2m[1m  4.28 kB[0m[0m[2m │ gzip:   1.66 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mForgotPasswordPage-DbxebrdG.js     [39m[2m[1m  4.30 kB[0m[0m[2m │ gzip:   1.71 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36morganizationPage-C77ezhgI.js       [39m[2m[1m  4.41 kB[0m[0m[2m │ gzip:   1.74 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mpermissionPage-DL_uvmg_.js         [39m[2m[1m  4.62 kB[0m[0m[2m │ gzip:   1.62 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mShowcaseNavigation-Kaq4JC0t.js     [39m[2m[1m  5.18 kB[0m[0m[2m │ gzip:   1.83 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mForgotPasswordV1-st52AqtD.js       [39m[2m[1m  5.24 kB[0m[0m[2m │ gzip:   1.95 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mLoginV2-Cq3p6XTF.js                [39m[2m[1m  5.25 kB[0m[0m[2m │ gzip:   2.19 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mShowcaseRealtime-DfpYaqn-.js       [39m[2m[1m  5.57 kB[0m[0m[2m │ gzip:   1.79 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36muserPage-Bq3cWW1d.js               [39m[2m[1m  5.81 kB[0m[0m[2m │ gzip:   2.01 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mSystemHealthPage-BUtISE-Z.js       [39m[2m[1m  5.85 kB[0m[0m[2m │ gzip:   2.14 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mResetPasswordV3-BZJ7aSwZ.js        [39m[2m[1m  5.90 kB[0m[0m[2m │ gzip:   2.03 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mResetPasswordV2-CdYmWnhw.js        [39m[2m[1m  5.94 kB[0m[0m[2m │ gzip:   2.08 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mendpointPage-CrKI1iR2.js           [39m[2m[1m  6.00 kB[0m[0m[2m │ gzip:   2.15 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mAuthShowcasePage-He0gpewf.js       [39m[2m[1m  6.11 kB[0m[0m[2m │ gzip:   1.83 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mAuditLogsPage-CvbjWFBO.js          [39m[2m[1m  6.21 kB[0m[0m[2m │ gzip:   2.09 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mResetPasswordV1-CFfAPwtP.js        [39m[2m[1m  6.22 kB[0m[0m[2m │ gzip:   2.18 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mRegisterV2-Cs_muiik.js             [39m[2m[1m  6.26 kB[0m[0m[2m │ gzip:   2.48 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mLoginV1-DLjeFAzE.js                [39m[2m[1m  6.87 kB[0m[0m[2m │ gzip:   2.57 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mResetPasswordPage-Cyoz5fX9.js      [39m[2m[1m  6.99 kB[0m[0m[2m │ gzip:   2.42 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mLoginPage-BdG9CqqH.js              [39m[2m[1m  7.00 kB[0m[0m[2m │ gzip:   2.63 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mUploadsPage-Bl8ZamUM.js            [39m[2m[1m  7.53 kB[0m[0m[2m │ gzip:   2.80 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mRegisterPage-B154b4OQ.js           [39m[2m[1m  7.69 kB[0m[0m[2m │ gzip:   3.07 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mRegisterV1-Dx3sfI2Q.js             [39m[2m[1m  7.88 kB[0m[0m[2m │ gzip:   2.88 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mLoginV3-CGG6_l_d.js                [39m[2m[1m  7.99 kB[0m[0m[2m │ gzip:   2.71 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mroot-CCpMpzvA.js                   [39m[2m[1m  8.89 kB[0m[0m[2m │ gzip:   3.09 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mpresence-avatars-CFG9s4SH.js       [39m[2m[1m  9.12 kB[0m[0m[2m │ gzip:   3.23 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mRegisterV3-CcOknrrM.js             [39m[2m[1m  9.90 kB[0m[0m[2m │ gzip:   3.16 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mshared-ZdZdX2xW.js                 [39m[2m[1m 10.18 kB[0m[0m[2m │ gzip:   3.54 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mWorkspacePage-CyXAOVv9.js          [39m[2m[1m 10.28 kB[0m[0m[2m │ gzip:   3.15 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36museMutation-BRNVaZEh.js            [39m[2m[1m 10.88 kB[0m[0m[2m │ gzip:   3.72 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mShowcaseForms-BxuLnoSJ.js          [39m[2m[1m 11.40 kB[0m[0m[2m │ gzip:   3.62 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mRolesPermissionsPage-DqMSB_GZ.js   [39m[2m[1m 11.46 kB[0m[0m[2m │ gzip:   3.36 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mDesignSystemPage-wqFsOjX0.js       [39m[2m[1m 12.52 kB[0m[0m[2m │ gzip:   3.24 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mShowcaseDataDisplay-CoG-OqSY.js    [39m[2m[1m 12.64 kB[0m[0m[2m │ gzip:   3.97 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mDashboardPage-CpPFWaOh.js          [39m[2m[1m 13.56 kB[0m[0m[2m │ gzip:   3.74 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mQueryClientProvider-CAFd4htw.js    [39m[2m[1m 18.40 kB[0m[0m[2m │ gzip:   5.86 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mapp-layout-DYeVO-NL.js             [39m[2m[1m 27.69 kB[0m[0m[2m │ gzip:   8.39 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mcharts-CS_wbSKR.js                 [39m[2m[1m 30.94 kB[0m[0m[2m │ gzip:   8.25 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mLandingPage-BXX9wcvt.js            [39m[2m[1m 37.32 kB[0m[0m[2m │ gzip:   9.26 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mclient-CadgZDrW.js                 [39m[2m[1m 42.63 kB[0m[0m[2m │ gzip:  16.46 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mtypes-DxZFdvX9.js                  [39m[2m[1m 56.48 kB[0m[0m[2m │ gzip:  12.92 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mupload-progress-Blbgio7I.js        [39m[2m[1m 73.09 kB[0m[0m[2m │ gzip:  19.83 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mproxy-D_wEPM6v.js                  [39m[2m[1m120.57 kB[0m[0m[2m │ gzip:  39.13 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mjsx-runtime-9MW6F5CI.js            [39m[2m[1m129.55 kB[0m[0m[2m │ gzip:  42.77 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mentry.client-BfL2wG6o.js           [39m[2m[1m183.07 kB[0m[0m[2m │ gzip:  58.05 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36mAreaChart-BAxGOgKC.js              [39m[2m[1m367.04 kB[0m[0m[2m │ gzip:  94.67 kB[0m
+[2mbuild/client/[0m[2massets/[0m[36msrc-a-zjyOWw.js                    [39m[33m[1m508.06 kB[0m[39m[2m │ gzip: 153.13 kB[0m
 
 [2K[1G[33m[plugin builtin:vite-reporter] [33m[1m
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[0m[33m[39m
-[2K[1G[33m[33m[PLUGIN_TIMINGS] Warning:[0m Your build spent significant time in plugins. Here is a breakdown:
-  - react-router:virtual-modules (43%)
-  - react-router:dot-server (37%)
-  - react-router:inject-hmr-runtime (12%)
-  - react-router:hmr-runtime (3%)
-See https://rolldown.rs/options/checks#plugintimings for more details.
-[39m
-[32m✓ built in 5.44s[39m
+[32m✓ built in 7.00s[39m
 [36mvite v8.0.11 [32mbuilding ssr environment for production...[36m[39m
-[2Ktransforming (3) [2mapp/pages/errors/Error403V2.tsx[0m[2Ktransforming (69) [2mapp/components/landing/landing-testimonials.tsx[0m[2Ktransforming (199) [2mapp/features/organizations/member-role-selector.tsx[0m[2Ktransforming (201) [2mapp/components/layout/app-breadcrumb.tsx[0m[2Ktransforming (200) [2mapp/features/roles/roleService.ts[0m[2Ktransforming (245) [2mapp/components/layout/app-navbar.tsx[0m[2Ktransforming (246) [2m../../packages/hooks/src/use-mounted.ts[0m[2Ktransforming (292) [2m../../node_modules/.pnpm/react-remove-scroll@2.7.2_@types+react@19.2.14_react@19.2.6/node_modules/react-remove-scroll[2K[32m✓[39m 333 modules transformed.
+[2Ktransforming (3) [2mapp/pages/LandingPage.tsx[0m[2Ktransforming (4) [2mapp/pages/auth/LoginV2.tsx[0m[2Ktransforming (126) [2mapp/features/resources/resourceService.ts[0m[2Ktransforming (127) [2mapp/features/roles/roleService.ts[0m[2Ktransforming (128) [2mapp/features/users/userService.ts[0m[2Ktransforming (213) [2m../../node_modules/.pnpm/class-variance-authority@0.7.1/n[2Ktransforming (214) [2m../../node_modules/.pnpm/@radix-ui+react-avatar@1.1.11_@t[2K[32m✓[39m 334 modules transformed.
 [2Krendering chunks (1)...[2K
 [32m✓[39m 1 asset cleaned from React Router server build.
 [2mbuild/server/assets/server-build-vvwoCkdx.css[22m
@@ -180,6 +174,6 @@ See https://rolldown.rs/options/checks#plugintimings for more details.
 computing gzip size...
 [2K[2mbuild/server/[0m[32m.vite/manifest.json               [39m[2m[1m    0.22 kB[0m[0m[2m │ gzip:   0.14 kB[0m
 [2mbuild/server/[0m[2massets/[0m[35mserver-build-vvwoCkdx.css  [39m[2m[1m  108.06 kB[0m[0m[2m │ gzip:  15.91 kB[0m
-[2mbuild/server/[0m[36mindex.js                          [39m[33m[1m1,498.19 kB[0m[39m[2m │ gzip: 283.66 kB[0m
+[2mbuild/server/[0m[36mindex.js                          [39m[33m[1m1,499.10 kB[0m[39m[2m │ gzip: 284.25 kB[0m
 
-[32m✓ built in 1.44s[39m
+[32m✓ built in 1.09s[39m
