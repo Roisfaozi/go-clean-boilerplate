@@ -18,7 +18,8 @@ type CasbinEnforcer interface {
 // This middleware must be placed AFTER the JWT AuthMiddleware.
 func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFunc {
 	if enforcer == nil && gin.Mode() == gin.ReleaseMode {
-		log.Error("CRITICAL SECURITY WARNING: Casbin enforcer is nil in release mode. Authorization will be bypassed for all routes protected by this middleware!")
+		log.Fatal("CRITICAL SECURITY ERROR: Casbin enforcer is nil in release mode. Set CASBIN_ENABLED=true to run in production safely.")
+		panic("Casbin authorization cannot be disabled in production mode.")
 	}
 
 	return func(c *gin.Context) {
@@ -36,6 +37,10 @@ func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFu
 		}
 
 		obj := c.Request.URL.Path
+		// Strip trailing slash for consistency in Casbin enforcement
+		if len(obj) > 1 && obj[len(obj)-1] == '/' {
+			obj = obj[:len(obj)-1]
+		}
 		act := c.Request.Method
 
 		// Get organization ID for multi-tenancy (domain in Casbin)
