@@ -6,7 +6,7 @@ export { cn } from "./lib/utils";
 
 // Hooks
 export { useToast, toast } from "./hooks/use-toast";
-export { useIsMobile } from "./hooks/use-mobile";
+export { useIsMobile } from "./hooks";
 
 // Components
 export * from "./accordion";

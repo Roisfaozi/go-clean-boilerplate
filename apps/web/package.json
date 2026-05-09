@@ -13,6 +13,9 @@
     "release": "release-it"
   },
   "dependencies": {
+    "@casbin/api-types": "workspace:*",
+    "@casbin/hooks": "workspace:*",
+    "@casbin/utils": "workspace:*",
     "@hookform/resolvers": "^3.10.0",
     "@oslojs/crypto": "^1.0.1",
     "@oslojs/encoding": "^1.1.0",

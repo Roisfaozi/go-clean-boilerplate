@@ -1,14 +1,4 @@
-// Defines global types used in the frontend
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  picture?: string;
-  avatarUrl?: string;
-  status?: "active" | "suspended" | "banned";
-}
+export * from "@casbin/api-types";
 
 export interface payload {
   name: string;
@@ -17,24 +7,14 @@ export interface payload {
 }
 
 export interface Session {
-  user: User;
+  user: import("@casbin/api-types").User;
   accessToken: string;
   expiresAt: string;
 }
 
 export interface AuthState {
-  user: User | null;
+  user: import("@casbin/api-types").User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
 
-export interface Project {
-  id: string;
-  organization_id: string;
-  user_id: string;
-  name: string;
-  domain: string;
-  status: string;
-  created_at: number;
-  updated_at: number;
-}

@@ -1,14 +1,2 @@
-"use client";
+export { useMounted } from "@casbin/hooks";
 
-import { useSyncExternalStore } from "react";
-
-const emptySubscribe = () => () => {};
-
-export function useMounted() {
-  const isMounted = useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
-  );
-  return isMounted;
-}

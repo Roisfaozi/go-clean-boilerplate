@@ -4,11 +4,20 @@ import (
 	"context"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
+type silentLogger struct{}
+func (l silentLogger) Printf(ctx context.Context, format string, v ...interface{}) {}
+
 func NewRedisConfig(cfg *AppConfig, log *logrus.Logger) *redis.Client {
+	// Silence redis internal logger in test mode to avoid handshake warnings
+	if gin.Mode() == gin.TestMode {
+		redis.SetLogger(silentLogger{})
+	}
+	
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:         cfg.Redis.Addr,
 		Password:     cfg.Redis.Password,
@@ -18,7 +27,8 @@ func NewRedisConfig(cfg *AppConfig, log *logrus.Logger) *redis.Client {
 		ReadTimeout:  cfg.Redis.ReadTimeout,
 		WriteTimeout: cfg.Redis.WriteTimeout,
 		// Force RESP2 for compatibility across various environments and versions
-		Protocol: 2,
+		Protocol:        2,
+		DisableIdentity: true,
 	})
 
 	log.Infof("Redis connection established: %s", cfg.Redis.Addr)

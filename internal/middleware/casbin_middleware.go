@@ -18,7 +18,7 @@ type CasbinEnforcer interface {
 // This middleware must be placed AFTER the JWT AuthMiddleware.
 func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFunc {
 	if enforcer == nil && gin.Mode() == gin.ReleaseMode {
-		log.Fatal("CRITICAL SECURITY ERROR: Casbin enforcer is nil in release mode. Set CASBIN_ENABLED=true to run in production safely.")
+		log.Error("CRITICAL SECURITY ERROR: Casbin enforcer is nil in release mode. Set CASBIN_ENABLED=true to run in production safely.")
 		panic("Casbin authorization cannot be disabled in production mode.")
 	}
 
