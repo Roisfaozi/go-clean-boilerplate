@@ -14,8 +14,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -46,7 +46,7 @@ func setupTest() (*userTestDeps, *userHttp.UserController, *gin.Engine) {
 
 func TestSetup(t *testing.T) {
 	deps, c, r := setupTest()
-		uc := deps.UC
+	uc := deps.UC
 	assert.NotNil(t, c)
 	assert.NotNil(t, uc)
 	assert.NotNil(t, r)
@@ -548,8 +548,7 @@ func TestGetAllUsers(t *testing.T) {
 	})
 }
 
-
-
+func TestGetUserByID(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
