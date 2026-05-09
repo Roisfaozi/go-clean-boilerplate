@@ -7,7 +7,8 @@ import { useState } from "react";
 export interface RoleNode {
   id: string;
   name: string;
-  permissions: string[];
+  description?: string;
+  effective_permissions?: string[][];
   children?: RoleNode[];
 }
 
@@ -54,7 +55,7 @@ function TreeNode({
         <Shield className="text-primary h-4 w-4 shrink-0" />
         <span className="font-medium">{node.name}</span>
         <Badge variant="secondary" className="ml-auto text-[10px]">
-          {node.permissions.length} perms
+          {(node.effective_permissions || []).length} perms
         </Badge>
       </button>
       {expanded && hasChildren && (

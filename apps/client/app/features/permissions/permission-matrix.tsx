@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@casbin/ui";
 import { Checkbox } from "@casbin/ui";
 import { NexusCard } from "@casbin/ui";
@@ -23,6 +23,11 @@ export function PermissionMatrix({
   const { toast } = useToast();
   const [permissions, setPermissions] =
     useState<Record<string, Record<string, string[]>>>(initialPermissions);
+
+  // Sync with parent data
+  useEffect(() => {
+    setPermissions(initialPermissions);
+  }, [JSON.stringify(initialPermissions)]);
 
   const hasPermission = (role: string, resource: string, action: string) =>
     permissions[role]?.[resource]?.includes(action) ?? false;
