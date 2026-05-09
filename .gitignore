@@ -180,3 +180,7 @@ _bmad
 .claude
 .gemini
 _bmad-Output
+
+node_modules/
+web-lovable/node_modules/
+.build.lob
