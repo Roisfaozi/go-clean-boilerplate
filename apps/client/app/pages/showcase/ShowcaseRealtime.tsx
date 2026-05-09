@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
-import {  NexusButton  } from "@casbin/ui";
-import {  NexusCard, NexusCardHeader, NexusCardTitle, NexusCardDescription, NexusCardContent  } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
+import {
+  NexusCard,
+  NexusCardHeader,
+  NexusCardTitle,
+  NexusCardDescription,
+  NexusCardContent,
+} from "@casbin/ui";
 import { RealtimeIndicator } from "@/components/realtime/realtime-indicator";
 import { LiveActivityFeed } from "@/components/realtime/live-activity-feed";
 import { PresenceAvatars } from "@/components/realtime/presence-avatars";
@@ -25,7 +31,11 @@ export default function ShowcaseRealtime() {
       "Authentication failure detected",
     ];
     const idx = counter % 4;
-    addNotification({ title: titles[idx], description: "Simulated realtime event", type: types[idx] });
+    addNotification({
+      title: titles[idx],
+      description: "Simulated realtime event",
+      type: types[idx],
+    });
     setCounter((c) => c + 1);
   };
 
@@ -50,7 +60,7 @@ export default function ShowcaseRealtime() {
   };
 
   return (
-    <div className="space-y-10 max-w-6xl">
+    <div className="max-w-6xl space-y-10">
       <PageHeader
         title="Realtime"
         description="SSE & WebSocket powered live components — notifications, presence, and activity feed."
@@ -60,24 +70,26 @@ export default function ShowcaseRealtime() {
       <NexusCard>
         <NexusCardHeader>
           <NexusCardTitle>Simulate Events</NexusCardTitle>
-          <NexusCardDescription>Trigger mock events to see the components update in realtime.</NexusCardDescription>
+          <NexusCardDescription>
+            Trigger mock events to see the components update in realtime.
+          </NexusCardDescription>
         </NexusCardHeader>
         <NexusCardContent>
           <div className="flex flex-wrap gap-3">
             <NexusButton variant="primary" onClick={simulateNotification}>
-              <Bell className="h-4 w-4 mr-1" /> Add Notification
+              <Bell className="mr-1 h-4 w-4" /> Add Notification
             </NexusButton>
             <NexusButton variant="secondary" onClick={simulateActivity}>
-              <Activity className="h-4 w-4 mr-1" /> Add Activity
+              <Activity className="mr-1 h-4 w-4" /> Add Activity
             </NexusButton>
             <NexusButton variant="outline" onClick={simulatePresence}>
-              <Users className="h-4 w-4 mr-1" /> Simulate User Join (5s)
+              <Users className="mr-1 h-4 w-4" /> Simulate User Join (5s)
             </NexusButton>
           </div>
         </NexusCardContent>
       </NexusCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Realtime Indicator */}
         <NexusCard>
           <NexusCardHeader>
@@ -96,7 +108,8 @@ export default function ShowcaseRealtime() {
               </div>
             </div>
             <p className="text-caption text-muted-foreground">
-              Hover to see detailed SSE/WS status. In demo mode, connections show as offline since there's no backend.
+              Hover to see detailed SSE/WS status. In demo mode, connections show as offline since
+              there's no backend.
             </p>
           </NexusCardContent>
         </NexusCard>
@@ -105,7 +118,9 @@ export default function ShowcaseRealtime() {
         <NexusCard>
           <NexusCardHeader>
             <NexusCardTitle>NotificationBell</NexusCardTitle>
-            <NexusCardDescription>Dropdown notification center with unread badge.</NexusCardDescription>
+            <NexusCardDescription>
+              Dropdown notification center with unread badge.
+            </NexusCardDescription>
           </NexusCardHeader>
           <NexusCardContent>
             <div className="flex items-center gap-4">

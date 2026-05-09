@@ -14,11 +14,7 @@ import {
   CommandItem,
   CommandList,
 } from "~/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import {
   Sheet,
@@ -41,11 +37,7 @@ interface RoleDetailSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function RoleDetailSheet({
-  role,
-  open,
-  onOpenChange,
-}: RoleDetailSheetProps) {
+export function RoleDetailSheet({ role, open, onOpenChange }: RoleDetailSheetProps) {
   const { currentOrganization } = useOrganizationStore();
   const [members, setMembers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,14 +65,14 @@ export function RoleDetailSheet({
         usersApi.getById(id).catch((err) => {
           console.warn(`Failed to fetch user ${id}`, err);
           return null;
-        })
+        }),
       );
       const userResps = await Promise.all(userPromises);
       setMembers(
         userResps
           .filter((r): r is NonNullable<typeof r> => r !== null)
           .map((r) => r.data)
-          .filter(Boolean) as User[]
+          .filter(Boolean) as User[],
       );
     } catch (error) {
       console.error("Failed to fetch role members", error);
@@ -160,24 +152,17 @@ export function RoleDetailSheet({
             <SheetTitle className="text-xl">{role?.name}</SheetTitle>
           </div>
           <SheetDescription>
-            {role?.description ||
-              "Manage members and permissions for this role."}
+            {role?.description || "Manage members and permissions for this role."}
           </SheetDescription>
         </SheetHeader>
 
-        <Tabs
-          defaultValue="members"
-          className="mt-6 flex flex-1 flex-col overflow-hidden"
-        >
+        <Tabs defaultValue="members" className="mt-6 flex flex-1 flex-col overflow-hidden">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="permissions">Permissions</TabsTrigger>
           </TabsList>
 
-          <TabsContent
-            value="members"
-            className="mt-4 flex min-h-0 flex-1 flex-col"
-          >
+          <TabsContent value="members" className="mt-4 flex min-h-0 flex-1 flex-col">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
                 <Icon name="Users" className="text-muted-foreground h-4 w-4" />
@@ -201,20 +186,13 @@ export function RoleDetailSheet({
                     <CommandList>
                       {isSearching && (
                         <div className="p-4 text-center">
-                          <Icon
-                            name="Loader"
-                            className="mx-auto mb-2 h-4 w-4 animate-spin"
-                          />
-                          <span className="text-muted-foreground text-xs">
-                            Searching...
-                          </span>
+                          <Icon name="Loader" className="mx-auto mb-2 h-4 w-4 animate-spin" />
+                          <span className="text-muted-foreground text-xs">Searching...</span>
                         </div>
                       )}
-                      {!isSearching &&
-                        searchResults.length === 0 &&
-                        searchQuery.length >= 2 && (
-                          <CommandEmpty>No users found.</CommandEmpty>
-                        )}
+                      {!isSearching && searchResults.length === 0 && searchQuery.length >= 2 && (
+                        <CommandEmpty>No users found.</CommandEmpty>
+                      )}
                       {!isSearching && searchQuery.length < 2 && (
                         <div className="text-muted-foreground p-4 text-center text-xs">
                           Type at least 2 characters to search...
@@ -222,11 +200,7 @@ export function RoleDetailSheet({
                       )}
                       <CommandGroup>
                         {searchResults.map((user) => (
-                          <SearchUserItem
-                            key={user.id}
-                            user={user}
-                            onSelect={addMember}
-                          />
+                          <SearchUserItem key={user.id} user={user} onSelect={addMember} />
                         ))}
                       </CommandGroup>
                     </CommandList>
@@ -249,13 +223,8 @@ export function RoleDetailSheet({
                   ))
                 ) : members.length === 0 ? (
                   <div className="rounded-lg border-2 border-dashed py-12 text-center">
-                    <Icon
-                      name="Users"
-                      className="text-muted-foreground/30 mx-auto mb-2 h-8 w-8"
-                    />
-                    <p className="text-muted-foreground text-sm">
-                      No members assigned yet.
-                    </p>
+                    <Icon name="Users" className="text-muted-foreground/30 mx-auto mb-2 h-8 w-8" />
+                    <p className="text-muted-foreground text-sm">No members assigned yet.</p>
                   </div>
                 ) : (
                   members.map((member) => (
@@ -271,20 +240,13 @@ export function RoleDetailSheet({
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent
-            value="permissions"
-            className="mt-4 flex min-h-0 flex-1 flex-col"
-          >
+          <TabsContent value="permissions" className="mt-4 flex min-h-0 flex-1 flex-col">
             <RolePermissionsTab role={role} />
           </TabsContent>
         </Tabs>
 
         <div className="mt-auto border-t pt-6">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button variant="outline" className="w-full" onClick={() => onOpenChange(false)}>
             Close
           </Button>
         </div>
@@ -299,17 +261,14 @@ function RolePermissionsTab({ role }: { role?: Role }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<string>(
-    currentOrganization?.slug || "global"
+    currentOrganization?.slug || "global",
   );
 
   const fetchData = useCallback(async () => {
     if (!role) return;
     setIsLoading(true);
     try {
-      const resp = await accessApi.getRoleAccessRights(
-        role.name,
-        selectedDomain
-      );
+      const resp = await accessApi.getRoleAccessRights(role.name, selectedDomain);
       if (resp.data) {
         setAccessRights(resp.data);
       }
@@ -327,10 +286,7 @@ function RolePermissionsTab({ role }: { role?: Role }) {
     }
   }, [role, fetchData]);
 
-  const handleToggleGroup = async (
-    right: RoleAccessRightStatus,
-    active: boolean
-  ) => {
+  const handleToggleGroup = async (right: RoleAccessRightStatus, active: boolean) => {
     if (!role) return;
 
     setIsProcessing(right.id);
@@ -341,9 +297,7 @@ function RolePermissionsTab({ role }: { role?: Role }) {
         await accessApi.revokeAccessRight(role.name, right.id, selectedDomain);
       }
 
-      toast.success(
-        `${active ? "Assigned" : "Revoked"} ${right.name} in ${selectedDomain}`
-      );
+      toast.success(`${active ? "Assigned" : "Revoked"} ${right.name} in ${selectedDomain}`);
       fetchData(); // Refresh permissions
     } catch (error) {
       console.error("Permission update failed", error);
@@ -376,9 +330,7 @@ function RolePermissionsTab({ role }: { role?: Role }) {
             onChange={(e) => setSelectedDomain(e.target.value)}
             disabled={isLoading || !!isProcessing}
           >
-            <option value="global">
-              Global Domain (Superadmin / System Wide)
-            </option>
+            <option value="global">Global Domain (Superadmin / System Wide)</option>
             {currentOrganization && (
               <option value={currentOrganization.slug}>
                 {currentOrganization.name} ({currentOrganization.slug})
@@ -391,13 +343,8 @@ function RolePermissionsTab({ role }: { role?: Role }) {
       <div className="space-y-4 py-2">
         {accessRights.length === 0 ? (
           <div className="rounded-lg border-2 border-dashed py-12 text-center">
-            <Icon
-              name="Shield"
-              className="text-muted-foreground/30 mx-auto mb-2 h-8 w-8"
-            />
-            <p className="text-muted-foreground text-sm">
-              No access rights defined.
-            </p>
+            <Icon name="Shield" className="text-muted-foreground/30 mx-auto mb-2 h-8 w-8" />
+            <p className="text-muted-foreground text-sm">No access rights defined.</p>
           </div>
         ) : (
           accessRights.map((right: RoleAccessRightStatus) => (
@@ -411,11 +358,7 @@ function RolePermissionsTab({ role }: { role?: Role }) {
                     <span className="font-medium">{right.name}</span>
                     <Badge
                       variant={
-                        right.is_assigned
-                          ? "default"
-                          : right.is_partial
-                            ? "secondary"
-                            : "outline"
+                        right.is_assigned ? "default" : right.is_partial ? "secondary" : "outline"
                       }
                       className="text-[10px] uppercase"
                     >
@@ -429,16 +372,11 @@ function RolePermissionsTab({ role }: { role?: Role }) {
                 </div>
                 <div className="flex items-center gap-2">
                   {isProcessing === right.id && (
-                    <Icon
-                      name="Loader"
-                      className="text-muted-foreground h-3 w-3 animate-spin"
-                    />
+                    <Icon name="Loader" className="text-muted-foreground h-3 w-3 animate-spin" />
                   )}
                   <Switch
                     checked={right.is_assigned}
-                    onCheckedChange={(checked: boolean) =>
-                      handleToggleGroup(right, checked)
-                    }
+                    onCheckedChange={(checked: boolean) => handleToggleGroup(right, checked)}
                     disabled={!!isProcessing || role?.name.startsWith("role:")}
                   />
                 </div>
@@ -456,11 +394,7 @@ function RolePermissionsTab({ role }: { role?: Role }) {
                       >
                         <code className="text-muted-foreground">{path}</code>
                         <Badge
-                          variant={
-                            right.is_assigned || right.is_partial
-                              ? "default"
-                              : "secondary"
-                          }
+                          variant={right.is_assigned || right.is_partial ? "default" : "secondary"}
                           className="h-4 px-1 text-[9px]"
                         >
                           {method}
@@ -486,10 +420,7 @@ const SearchUserItem = React.memo(function SearchUserItem({
   onSelect: (user: User) => void;
 }) {
   return (
-    <CommandItem
-      onSelect={() => onSelect(user)}
-      className="flex cursor-pointer items-center gap-2"
-    >
+    <CommandItem onSelect={() => onSelect(user)} className="flex cursor-pointer items-center gap-2">
       <Avatar className="h-6 w-6">
         <AvatarImage src={user.avatar_url} />
         <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
@@ -519,12 +450,8 @@ const RoleMemberItem = React.memo(function RoleMemberItem({
         <AvatarFallback>{member.username[0].toUpperCase()}</AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
-        <div className="mb-1 text-sm leading-none font-medium">
-          {member.username}
-        </div>
-        <div className="text-muted-foreground truncate text-xs">
-          {member.email}
-        </div>
+        <div className="mb-1 text-sm leading-none font-medium">{member.username}</div>
+        <div className="text-muted-foreground truncate text-xs">{member.email}</div>
       </div>
       <Button
         variant="ghost"

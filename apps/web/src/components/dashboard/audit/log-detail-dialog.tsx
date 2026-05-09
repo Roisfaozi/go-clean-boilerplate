@@ -20,10 +20,8 @@ interface LogDetailDialogProps {
 }
 
 const JsonViewer = ({ data, title }: { data: any; title: string }) => {
-  const jsonStr =
-    typeof data === "string" ? data : JSON.stringify(data, null, 2);
-  const isEmpty =
-    !data || jsonStr === "{}" || jsonStr === "[]" || jsonStr === "null";
+  const jsonStr = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+  const isEmpty = !data || jsonStr === "{}" || jsonStr === "[]" || jsonStr === "null";
 
   return (
     <div className="space-y-2">
@@ -32,9 +30,7 @@ const JsonViewer = ({ data, title }: { data: any; title: string }) => {
       </h4>
       <div className="bg-muted max-h-[300px] overflow-auto rounded-md p-4 font-mono text-xs">
         {isEmpty ? (
-          <span className="text-muted-foreground italic">
-            No data available
-          </span>
+          <span className="text-muted-foreground italic">No data available</span>
         ) : (
           <pre className="break-all whitespace-pre-wrap">{jsonStr}</pre>
         )}
@@ -43,11 +39,7 @@ const JsonViewer = ({ data, title }: { data: any; title: string }) => {
   );
 };
 
-export function LogDetailDialog({
-  log,
-  open,
-  onOpenChange,
-}: LogDetailDialogProps) {
+export function LogDetailDialog({ log, open, onOpenChange }: LogDetailDialogProps) {
   if (!log) return null;
 
   const formatDate = (timestamp: number) => {
@@ -65,9 +57,7 @@ export function LogDetailDialog({
             >
               {log.action}
             </Badge>
-            <span className="text-muted-foreground text-xs">
-              {formatDate(log.created_at)}
-            </span>
+            <span className="text-muted-foreground text-xs">{formatDate(log.created_at)}</span>
           </div>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Icon name="FileText" className="text-muted-foreground h-5 w-5" />

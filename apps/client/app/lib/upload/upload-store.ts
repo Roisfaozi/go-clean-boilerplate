@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import type { UploadItem, UploadStatus, TusUploaderOptions, DuplicateResolution } from "./tus-client";
+import type {
+  UploadItem,
+  UploadStatus,
+  TusUploaderOptions,
+  DuplicateResolution,
+} from "./tus-client";
 import { createTusUpload } from "./tus-client";
 import { toast } from "@casbin/ui";
 import { mapUploadError, logUploadEvent } from "./upload-errors";
@@ -79,8 +84,7 @@ function getRelativePath(file: File) {
 
 function isSameTargetPath(a: UploadItem, file: File, options?: AddFilesOptions) {
   return (
-    a.fileName === file.name &&
-    (a.targetFolderId ?? null) === (options?.targetFolderId ?? null)
+    a.fileName === file.name && (a.targetFolderId ?? null) === (options?.targetFolderId ?? null)
   );
 }
 
@@ -119,7 +123,8 @@ export const useUploadStore = create<UploadState>()((set, get) => {
         progressTracker.set(id, { lastBytes: bytes, lastTs: now });
       }
       const remaining = item.fileSize - bytes;
-      const etaSeconds = speedBps && speedBps > 0 ? Math.max(0, Math.round(remaining / speedBps)) : undefined;
+      const etaSeconds =
+        speedBps && speedBps > 0 ? Math.max(0, Math.round(remaining / speedBps)) : undefined;
       get()._updateItem(id, {
         progress,
         status: "uploading",
@@ -146,7 +151,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
       get().startAll();
       get()._onItemFinalized(id);
       if (item) {
-        window.dispatchEvent(new CustomEvent("nexus:upload-complete", { detail: { item: { ...item, url } } }));
+        window.dispatchEvent(
+          new CustomEvent("nexus:upload-complete", { detail: { item: { ...item, url } } }),
+        );
       }
     },
     onError: (id, error) => {
@@ -201,7 +208,8 @@ export const useUploadStore = create<UploadState>()((set, get) => {
     setMaxConcurrent: (value) => set({ maxConcurrent: Math.max(1, Math.min(6, value)) }),
 
     setManagerOpen: (open) => {
-      if (typeof window !== "undefined") window.localStorage.setItem(MANAGER_OPEN_KEY, String(open));
+      if (typeof window !== "undefined")
+        window.localStorage.setItem(MANAGER_OPEN_KEY, String(open));
       set({ managerOpen: open });
     },
 
@@ -209,9 +217,7 @@ export const useUploadStore = create<UploadState>()((set, get) => {
 
     addFiles: (files, options) => {
       // Detect duplicates within the same target folder against existing non-canceled items.
-      const existing = get().items.filter(
-        (i) => i.status !== "canceled" && i.status !== "error",
-      );
+      const existing = get().items.filter((i) => i.status !== "canceled" && i.status !== "error");
       const duplicates: { file: File; existingId: string }[] = [];
       const fresh: File[] = [];
       files.forEach((f) => {
@@ -222,7 +228,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
 
       // If a global resolution was provided, apply it directly.
       const usedNames = new Set(existing.map((i) => i.fileName));
-      const resolved: { file: File; renamedTo?: string; replacesId?: string }[] = fresh.map((f) => ({ file: f }));
+      const resolved: { file: File; renamedTo?: string; replacesId?: string }[] = fresh.map(
+        (f) => ({ file: f }),
+      );
       if (options?.duplicateResolution) {
         files.forEach((f) => {
           const dup = existing.find((i) => isSameTargetPath(i, f, options));
@@ -260,10 +268,15 @@ export const useUploadStore = create<UploadState>()((set, get) => {
       });
 
       if (newItems.length > 0) {
-        set((s) => ({ items: [...s.items, ...newItems], uploadQueue: [...s.uploadQueue, ...newItems] }));
+        set((s) => ({
+          items: [...s.items, ...newItems],
+          uploadQueue: [...s.uploadQueue, ...newItems],
+        }));
         get().setManagerOpen(true);
         toast.success(`${newItems.length} upload${newItems.length > 1 ? "s" : ""} added to queue`);
-        newItems.forEach((it) => logUploadEvent("upload_started", { id: it.id, fileName: it.fileName }));
+        newItems.forEach((it) =>
+          logUploadEvent("upload_started", { id: it.id, fileName: it.fileName }),
+        );
         get().startAll();
       }
 
@@ -298,7 +311,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
     startAll: () => {
       const { items, maxConcurrent, startUpload } = get();
       const queued = items.filter((i) => i.status === "queued");
-      const active = items.filter((i) => i.status === "preparing" || i.status === "uploading").length;
+      const active = items.filter(
+        (i) => i.status === "preparing" || i.status === "uploading",
+      ).length;
       const toStart = queued.slice(0, maxConcurrent - active);
       toStart.forEach((i) => startUpload(i.id));
     },
@@ -343,14 +358,16 @@ export const useUploadStore = create<UploadState>()((set, get) => {
     },
 
     cancelAllUploading: () => {
-      get().items
-        .filter((i) => i.status === "uploading" || i.status === "preparing" || i.status === "paused")
+      get()
+        .items.filter(
+          (i) => i.status === "uploading" || i.status === "preparing" || i.status === "paused",
+        )
         .forEach((i) => get().cancelUpload(i.id));
     },
 
     cancelAllQueued: () => {
-      get().items
-        .filter((i) => i.status === "queued")
+      get()
+        .items.filter((i) => i.status === "queued")
         .forEach((i) => get().cancelUpload(i.id));
     },
 
@@ -376,7 +393,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
     },
 
     retryAllFailed: () => {
-      get().items.filter((i) => i.status === "error").forEach((i) => get().retryUpload(i.id));
+      get()
+        .items.filter((i) => i.status === "error")
+        .forEach((i) => get().retryUpload(i.id));
     },
 
     removeItem: (id) => {
@@ -391,7 +410,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
 
     clearCompleted: () => {
       set((s) => {
-        const uploadQueue = s.uploadQueue.filter((i) => i.status !== "success" && i.status !== "canceled");
+        const uploadQueue = s.uploadQueue.filter(
+          (i) => i.status !== "success" && i.status !== "canceled",
+        );
         return { items: uploadQueue, uploadQueue };
       });
     },
@@ -420,7 +441,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
     getSummary: () => {
       const items = get().items;
       const total = items.length;
-      const active = items.filter((i) => i.status === "uploading" || i.status === "preparing").length;
+      const active = items.filter(
+        (i) => i.status === "uploading" || i.status === "preparing",
+      ).length;
       const queued = items.filter((i) => i.status === "queued").length;
       const done = items.filter((i) => i.status === "success").length;
       const failed = items.filter((i) => i.status === "error").length;
@@ -434,7 +457,18 @@ export const useUploadStore = create<UploadState>()((set, get) => {
         0,
       );
       const etaSeconds = speedBps > 0 ? Math.round(remainingBytes / speedBps) : undefined;
-      return { total, active, queued, done, failed, canceled, paused, progress, speedBps, etaSeconds };
+      return {
+        total,
+        active,
+        queued,
+        done,
+        failed,
+        canceled,
+        paused,
+        progress,
+        speedBps,
+        etaSeconds,
+      };
     },
 
     _updateItem: (id, patch) => {

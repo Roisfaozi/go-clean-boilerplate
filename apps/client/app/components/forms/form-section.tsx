@@ -31,10 +31,10 @@ export function FieldGroup({ layout = "vertical", children, className }: FieldGr
   return (
     <div
       className={cn(
-        layout === "horizontal" && "grid grid-cols-1 md:grid-cols-2 gap-4",
+        layout === "horizontal" && "grid grid-cols-1 gap-4 md:grid-cols-2",
         layout === "vertical" && "space-y-4",
         layout === "inline" && "flex flex-wrap items-end gap-3",
-        className
+        className,
       )}
     >
       {children}

@@ -57,8 +57,7 @@ export default function Pricing() {
             Simple, transparent pricing
           </h2>
           <p className="mt-4 text-lg text-slate-500 dark:text-slate-400">
-            Choose the license that fits your needs. One-time payment, lifetime
-            updates.
+            Choose the license that fits your needs. One-time payment, lifetime updates.
           </p>
         </div>
 
@@ -83,9 +82,7 @@ export default function Pricing() {
                   {tier.name}
                 </h3>
                 <div className="mt-4 flex items-baseline text-slate-900 dark:text-slate-50">
-                  <span className="text-4xl font-bold tracking-tight">
-                    {tier.price}
-                  </span>
+                  <span className="text-4xl font-bold tracking-tight">{tier.price}</span>
                   <span className="ml-1 text-xl font-semibold text-slate-500 dark:text-slate-400">
                     /lifetime
                   </span>
@@ -99,9 +96,7 @@ export default function Pricing() {
                 {tier.features.map((feature) => (
                   <li key={feature} className="flex items-start">
                     <Check className="mr-3 h-5 w-5 shrink-0 text-indigo-500" />
-                    <span className="text-sm text-slate-700 dark:text-slate-300">
-                      {feature}
-                    </span>
+                    <span className="text-sm text-slate-700 dark:text-slate-300">{feature}</span>
                   </li>
                 ))}
               </ul>

@@ -1,5 +1,5 @@
 import { cn } from "@casbin/ui";
-import {  NexusCard  } from "@casbin/ui";
+import { NexusCard } from "@casbin/ui";
 import { FileText, Image, Film, Music, Archive, File } from "lucide-react";
 
 interface FilePreviewProps {
@@ -31,23 +31,23 @@ export function FilePreview({ file, url, className }: FilePreviewProps) {
   return (
     <NexusCard className={cn("overflow-hidden", className)}>
       {/* Preview area */}
-      <div className="aspect-video bg-muted/50 flex items-center justify-center overflow-hidden">
+      <div className="bg-muted/50 flex aspect-video items-center justify-center overflow-hidden">
         {previewUrl ? (
           <img
             src={previewUrl}
             alt={file.name}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
             onLoad={() => URL.revokeObjectURL(previewUrl)}
           />
         ) : (
-          <Icon className="h-12 w-12 text-muted-foreground/50" />
+          <Icon className="text-muted-foreground/50 h-12 w-12" />
         )}
       </div>
 
       {/* Info */}
-      <div className="p-3 space-y-1">
-        <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+      <div className="space-y-1 p-3">
+        <p className="text-foreground truncate text-sm font-medium">{file.name}</p>
+        <div className="text-muted-foreground flex items-center gap-2 text-[11px]">
           <span>{formatFileSize(file.size)}</span>
           <span>·</span>
           <span className="uppercase">{file.name.split(".").pop()}</span>
@@ -57,7 +57,7 @@ export function FilePreview({ file, url, className }: FilePreviewProps) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] text-primary hover:underline truncate block"
+            className="text-primary block truncate text-[11px] hover:underline"
           >
             View uploaded file
           </a>

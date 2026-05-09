@@ -22,20 +22,20 @@ export function LandingCtaBanner({
   const isPrimary = variant === "primary";
 
   return (
-    <section className="border-b border-border bg-background py-16 md:py-20">
-      <div className="mx-auto max-w-7xl px-layout">
+    <section className="border-border bg-background border-b py-16 md:py-20">
+      <div className="px-layout mx-auto max-w-7xl">
         <div
           className={cn(
             "relative overflow-hidden rounded-xl p-8 md:p-12 lg:p-14",
             isPrimary
-              ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-xl"
-              : "border border-border bg-surface text-foreground"
+              ? "from-primary to-accent text-primary-foreground bg-gradient-to-br shadow-xl"
+              : "border-border bg-surface text-foreground border",
           )}
         >
           {isPrimary && (
             <>
-              <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full bg-primary-foreground/10 blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-16 -left-16 h-72 w-72 rounded-full bg-primary-foreground/10 blur-3xl" />
+              <div className="bg-primary-foreground/10 pointer-events-none absolute -top-16 -right-16 h-72 w-72 rounded-full blur-3xl" />
+              <div className="bg-primary-foreground/10 pointer-events-none absolute -bottom-16 -left-16 h-72 w-72 rounded-full blur-3xl" />
             </>
           )}
 
@@ -44,8 +44,8 @@ export function LandingCtaBanner({
               {eyebrow && (
                 <span
                   className={cn(
-                    "text-caption font-semibold uppercase tracking-wider",
-                    isPrimary ? "text-primary-foreground/80" : "text-primary"
+                    "text-caption font-semibold tracking-wider uppercase",
+                    isPrimary ? "text-primary-foreground/80" : "text-primary",
                   )}
                 >
                   {eyebrow}
@@ -54,15 +54,15 @@ export function LandingCtaBanner({
               <h3
                 className={cn(
                   "mt-2 text-2xl font-bold tracking-tight md:text-3xl",
-                  isPrimary ? "text-primary-foreground" : "text-foreground"
+                  isPrimary ? "text-primary-foreground" : "text-foreground",
                 )}
               >
                 {title}
               </h3>
               <p
                 className={cn(
-                  "mt-3 text-body-lg",
-                  isPrimary ? "text-primary-foreground/85" : "text-muted-foreground"
+                  "text-body-lg mt-3",
+                  isPrimary ? "text-primary-foreground/85" : "text-muted-foreground",
                 )}
               >
                 {description}
@@ -73,10 +73,10 @@ export function LandingCtaBanner({
               <Link
                 to={primaryCta.to}
                 className={cn(
-                  "group inline-flex h-btn items-center justify-center gap-2 rounded-md px-6 text-body font-medium shadow-sm transition-all",
+                  "group h-btn text-body inline-flex items-center justify-center gap-2 rounded-md px-6 font-medium shadow-sm transition-all",
                   isPrimary
                     ? "bg-background text-foreground hover:bg-surface"
-                    : "bg-primary text-primary-foreground hover:bg-primary-hover"
+                    : "bg-primary text-primary-foreground hover:bg-primary-hover",
                 )}
               >
                 {primaryCta.label}
@@ -86,10 +86,10 @@ export function LandingCtaBanner({
                 <Link
                   to={secondaryCta.to}
                   className={cn(
-                    "inline-flex h-btn items-center justify-center rounded-md border px-6 text-body font-medium transition-colors",
+                    "h-btn text-body inline-flex items-center justify-center rounded-md border px-6 font-medium transition-colors",
                     isPrimary
                       ? "border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
-                      : "border-border text-foreground hover:bg-surface-hover"
+                      : "border-border text-foreground hover:bg-surface-hover",
                   )}
                 >
                   {secondaryCta.label}

@@ -25,18 +25,10 @@ export interface SystemInsights {
 }
 
 export const statsApi = {
-  getSummary: () =>
-    api
-      .get<{ data: DashboardSummary }>("/stats/summary")
-      .then((res) => res.data),
+  getSummary: () => api.get<{ data: DashboardSummary }>("/stats/summary").then((res) => res.data),
 
   getActivity: (days: number = 7) =>
-    api
-      .get<{ data: DashboardActivity }>(`/stats/activity?days=${days}`)
-      .then((res) => res.data),
+    api.get<{ data: DashboardActivity }>(`/stats/activity?days=${days}`).then((res) => res.data),
 
-  getInsights: () =>
-    api
-      .get<{ data: SystemInsights }>("/stats/insights")
-      .then((res) => res.data),
+  getInsights: () => api.get<{ data: SystemInsights }>("/stats/insights").then((res) => res.data),
 };

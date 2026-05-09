@@ -13,9 +13,12 @@
     "go:test": "make test",
     "go:test-integration": "make test-integration",
     "go:test-e2e": "make test-e2e",
-    "go:docs": "make docs"
+    "go:docs": "make docs",
+    "format": "prettier --write ."
   },
   "devDependencies": {
+    "prettier": "3.5.3",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "turbo": "^2.5.0"
   },
   "pnpm": {

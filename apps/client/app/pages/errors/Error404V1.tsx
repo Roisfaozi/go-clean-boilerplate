@@ -1,17 +1,17 @@
 import { Search, ArrowLeft, Home } from "lucide-react";
 import { useNavigate } from "react-router";
-import {  NexusButton  } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
 
 export default function Error404V1() {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen flex bg-background">
-      <div className="hidden lg:flex w-1/2 bg-muted/50 items-center justify-center relative overflow-hidden">
+    <div className="bg-background flex min-h-screen">
+      <div className="bg-muted/50 relative hidden w-1/2 items-center justify-center overflow-hidden lg:flex">
         <div className="absolute inset-0">
           {[...Array(5)].map((_, i) => (
             <div
               key={i}
-              className="absolute rounded-full border border-primary/10"
+              className="border-primary/10 absolute rounded-full border"
               style={{
                 width: `${200 + i * 120}px`,
                 height: `${200 + i * 120}px`,
@@ -22,27 +22,27 @@ export default function Error404V1() {
             />
           ))}
         </div>
-        <div className="relative z-10 text-center space-y-6 px-12">
-          <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-            <Search className="h-12 w-12 text-primary" />
+        <div className="relative z-10 space-y-6 px-12 text-center">
+          <div className="bg-primary/10 mx-auto flex h-24 w-24 items-center justify-center rounded-full">
+            <Search className="text-primary h-12 w-12" />
           </div>
-          <h2 className="text-3xl font-bold text-foreground">Lost in Space</h2>
-          <p className="text-muted-foreground text-lg max-w-md">
+          <h2 className="text-foreground text-3xl font-bold">Lost in Space</h2>
+          <p className="text-muted-foreground max-w-md text-lg">
             The page you're looking for has been moved, deleted, or never existed.
           </p>
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="max-w-md w-full text-center space-y-8">
+      <div className="flex flex-1 items-center justify-center p-8">
+        <div className="w-full max-w-md space-y-8 text-center">
           <div className="space-y-2">
-            <p className="text-8xl font-black text-primary/20">404</p>
-            <h1 className="text-3xl font-bold text-foreground">Page Not Found</h1>
+            <p className="text-primary/20 text-8xl font-black">404</p>
+            <h1 className="text-foreground text-3xl font-bold">Page Not Found</h1>
             <p className="text-muted-foreground">
               We couldn't find the page you were looking for. Check the URL or navigate back.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="flex flex-col justify-center gap-3 sm:flex-row">
             <NexusButton variant="primary" onClick={() => navigate("/")}>
               <Home className="h-4 w-4" />
               Go Home

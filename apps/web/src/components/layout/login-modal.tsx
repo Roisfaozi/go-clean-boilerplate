@@ -1,12 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import AuthForm from "../auth/login-form";
 
 export default function LoginModal() {
@@ -19,9 +14,7 @@ export default function LoginModal() {
       <DialogContent className="w-full max-w-[400px] rounded-md">
         <DialogHeader>
           <DialogTitle asChild>
-            <h2 className="font-semibold tracking-tight transition-colors">
-              Login
-            </h2>
+            <h2 className="font-semibold tracking-tight transition-colors">Login</h2>
           </DialogTitle>
         </DialogHeader>
         <AuthForm />

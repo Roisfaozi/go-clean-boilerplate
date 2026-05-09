@@ -57,8 +57,7 @@ export function MemberInviteDialog() {
         <DialogHeader>
           <DialogTitle>Invite new member</DialogTitle>
           <DialogDescription>
-            Invite someone to join {currentOrganization.name} by their email
-            address.
+            Invite someone to join {currentOrganization.name} by their email address.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -92,13 +91,8 @@ export function MemberInviteDialog() {
           <Button variant="outline" onClick={() => setIsOpen(false)}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isInviting || !email || !roleId}
-          >
-            {isInviting && (
-              <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-            )}
+          <Button onClick={handleSubmit} disabled={isInviting || !email || !roleId}>
+            {isInviting && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
             Send Invitation
           </Button>
         </DialogFooter>

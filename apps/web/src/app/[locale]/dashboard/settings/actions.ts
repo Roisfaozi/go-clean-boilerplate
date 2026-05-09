@@ -7,10 +7,7 @@ import { authActionClient } from "~/lib/client/safe-action";
 
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
-  username: z
-    .string()
-    .min(3, "Username must be at least 3 characters")
-    .optional(),
+  username: z.string().min(3, "Username must be at least 3 characters").optional(),
 });
 
 export const updateUserAction = authActionClient
@@ -23,10 +20,7 @@ export const updateUserAction = authActionClient
     return result;
   });
 
-export async function removeUserOldImageFromCDN(
-  newImageUrl: string,
-  currentImageUrl: string
-) {
+export async function removeUserOldImageFromCDN(newImageUrl: string, currentImageUrl: string) {
   // Placeholder logic for now
   console.log("Removing old image:", currentImageUrl);
 }

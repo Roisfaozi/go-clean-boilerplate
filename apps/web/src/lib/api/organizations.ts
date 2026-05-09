@@ -24,9 +24,7 @@ export const organizationsApi = {
   },
 
   getMyOrganizations: () => {
-    return api.get<{ data: { organizations: Organization[]; total: number } }>(
-      "/organizations/me"
-    );
+    return api.get<{ data: { organizations: Organization[]; total: number } }>("/organizations/me");
   },
 
   getBySlug: (slug: string) => {
@@ -43,7 +41,7 @@ export const organizationsApi = {
       name?: string;
       status?: "active" | "suspended" | "inactive";
       settings?: OrganizationSettings;
-    }
+    },
   ) => {
     return api.put<{ data: Organization }>(`/organizations/${id}`, data);
   },
@@ -57,32 +55,18 @@ export const organizationsApi = {
   },
 
   inviteMember: (orgId: string, data: { email: string; role_id: string }) => {
-    return api.post<{ data: Member }>(
-      `/organizations/${orgId}/members/invite`,
-      data
-    );
+    return api.post<{ data: Member }>(`/organizations/${orgId}/members/invite`, data);
   },
 
-  updateMemberRole: (
-    orgId: string,
-    userId: string,
-    data: { role_id: string }
-  ) => {
-    return api.patch<{ data: Member }>(
-      `/organizations/${orgId}/members/${userId}`,
-      data
-    );
+  updateMemberRole: (orgId: string, userId: string, data: { role_id: string }) => {
+    return api.patch<{ data: Member }>(`/organizations/${orgId}/members/${userId}`, data);
   },
 
   removeMember: (orgId: string, userId: string) => {
     return api.delete(`/organizations/${orgId}/members/${userId}`);
   },
 
-  acceptInvitation: (data: {
-    token: string;
-    password?: string;
-    name?: string;
-  }) => {
+  acceptInvitation: (data: { token: string; password?: string; name?: string }) => {
     return api.post("/organizations/invitations/accept", data);
   },
 

@@ -51,15 +51,15 @@ Belum boleh masuk package:
 
 ## Ringkasan Keputusan
 
-| Area | Baseline | Status |
-|---|---|---|
-| `packages/ui` | `web-lovable` | layak dipindah lebih dulu |
-| `packages/hooks` | `web` | hanya hook netral |
-| `packages/utils` | campuran, mulai dari `web-lovable` | parsial |
-| `packages/api-types` | `web-lovable` | layak setelah audit DTO |
-| `packages/patterns` | `web-lovable` | layak setelah netralisasi dependency |
-| shared API client | `web` secara correctness, tapi jangan dipackagekan dulu | tunda |
-| auth / tenant / realtime logic | `web` | tetap di app |
+| Area                           | Baseline                                                | Status                               |
+| ------------------------------ | ------------------------------------------------------- | ------------------------------------ |
+| `packages/ui`                  | `web-lovable`                                           | layak dipindah lebih dulu            |
+| `packages/hooks`               | `web`                                                   | hanya hook netral                    |
+| `packages/utils`               | campuran, mulai dari `web-lovable`                      | parsial                              |
+| `packages/api-types`           | `web-lovable`                                           | layak setelah audit DTO              |
+| `packages/patterns`            | `web-lovable`                                           | layak setelah netralisasi dependency |
+| shared API client              | `web` secara correctness, tapi jangan dipackagekan dulu | tunda                                |
+| auth / tenant / realtime logic | `web`                                                   | tetap di app                         |
 
 ## 1. Kandidat `packages/ui`
 

@@ -13,13 +13,7 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Icon } from "~/components/shared/icon";
 
 export function ProjectDangerZone() {
@@ -48,17 +42,15 @@ export function ProjectDangerZone() {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the
-                project and remove all its data from our servers.
+                This action cannot be undone. This will permanently delete the project and remove
+                all its data from our servers.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction asChild>
                 <Button variant="destructive" onClick={deleteProject}>
-                  {isLoading && (
-                    <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-                  )}
+                  {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
                   Yes, Delete Project
                 </Button>
               </AlertDialogAction>

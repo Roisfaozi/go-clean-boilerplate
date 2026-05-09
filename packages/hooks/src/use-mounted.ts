@@ -10,7 +10,7 @@ export function useMounted() {
   const isMounted = useSyncExternalStore(
     emptySubscribe,
     () => true,
-    () => false
+    () => false,
   );
   return isMounted;
 }

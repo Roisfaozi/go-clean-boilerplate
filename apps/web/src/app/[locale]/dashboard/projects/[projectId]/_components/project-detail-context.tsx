@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  ReactNode,
-} from "react";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { Project, projectsApi } from "~/lib/api/projects";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
@@ -19,9 +13,7 @@ interface ProjectDetailContextType {
   deleteProject: () => Promise<void>;
 }
 
-const ProjectDetailContext = createContext<
-  ProjectDetailContextType | undefined
->(undefined);
+const ProjectDetailContext = createContext<ProjectDetailContextType | undefined>(undefined);
 
 export function ProjectDetailProvider({
   initialProject,
@@ -51,16 +43,12 @@ export function ProjectDetailProvider({
         setIsLoading(false);
       }
     },
-    [currentOrganization, project.id]
+    [currentOrganization, project.id],
   );
 
   const deleteProject = useCallback(async () => {
     if (!currentOrganization) return;
-    if (
-      !confirm(
-        "Are you sure you want to delete this project? This action cannot be undone."
-      )
-    )
+    if (!confirm("Are you sure you want to delete this project? This action cannot be undone."))
       return;
 
     setIsLoading(true);
@@ -92,9 +80,7 @@ export function ProjectDetailProvider({
 export function useProjectDetail() {
   const context = useContext(ProjectDetailContext);
   if (context === undefined) {
-    throw new Error(
-      "useProjectDetail must be used within a ProjectDetailProvider"
-    );
+    throw new Error("useProjectDetail must be used within a ProjectDetailProvider");
   }
   return context;
 }

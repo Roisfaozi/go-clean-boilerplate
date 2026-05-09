@@ -15,7 +15,13 @@ export interface UploadResult {
 const UPLOAD_ENDPOINT = "/uploads";
 
 export const uploadService = {
-  async uploadFile({ file, targetFolderId, relativePath, signal, onProgress }: UploadRequest): Promise<UploadResult> {
+  async uploadFile({
+    file,
+    targetFolderId,
+    relativePath,
+    signal,
+    onProgress,
+  }: UploadRequest): Promise<UploadResult> {
     const form = new FormData();
     form.append("file", file);
     if (targetFolderId) form.append("folderId", targetFolderId);

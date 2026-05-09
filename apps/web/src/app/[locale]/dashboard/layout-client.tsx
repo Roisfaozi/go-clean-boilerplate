@@ -4,11 +4,7 @@ import { DashboardHeader } from "~/components/layout/dashboard/header";
 import { Sidebar } from "~/components/layout/sidebar";
 import { usePresence } from "~/hooks/use-presence";
 
-export function DashboardLayoutClient({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function DashboardLayoutClient({ children }: { children: React.ReactNode }) {
   usePresence();
 
   return (
@@ -20,9 +16,7 @@ export function DashboardLayoutClient({
       <div className="flex min-h-screen flex-1 flex-col transition-all">
         <DashboardHeader />
 
-        <main className="flex-1 overflow-y-auto p-[var(--layout-padding)]">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto p-[var(--layout-padding)]">{children}</main>
       </div>
     </div>
   );

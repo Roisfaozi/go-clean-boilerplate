@@ -33,47 +33,49 @@ export default function NewsletterConfirmPage() {
   }, [token]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="border-b border-border">
+    <div className="bg-background text-foreground flex min-h-screen flex-col">
+      <header className="border-border border-b">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-6">
           <Link to="/" className="flex items-center gap-2">
-            <Hexagon className="h-7 w-7 text-primary" />
+            <Hexagon className="text-primary h-7 w-7" />
             <span className="text-lg font-bold tracking-tight">NexusOS</span>
           </Link>
         </div>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-6 py-16">
-        <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card p-8 text-center shadow-md md:p-10">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-accent/10 blur-3xl" />
+        <div className="border-border bg-card relative w-full max-w-md overflow-hidden rounded-2xl border p-8 text-center shadow-md md:p-10">
+          <div className="bg-primary/10 pointer-events-none absolute -top-16 -right-16 h-56 w-56 rounded-full blur-3xl" />
+          <div className="bg-accent/10 pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full blur-3xl" />
 
           <div className="relative">
             {status === "loading" && (
               <>
-                <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <div className="bg-primary/10 text-primary mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full">
                   <Loader2 className="h-7 w-7 animate-spin" />
                 </div>
                 <h1 className="mb-2 text-xl font-bold tracking-tight md:text-2xl">
                   Confirming your subscription
                 </h1>
-                <p className="text-sm text-muted-foreground">Hang tight, this only takes a moment...</p>
+                <p className="text-muted-foreground text-sm">
+                  Hang tight, this only takes a moment...
+                </p>
               </>
             )}
 
             {status === "success" && (
               <>
-                <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-success/10 text-success">
+                <div className="bg-success/10 text-success mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full">
                   <CheckCircle2 className="h-7 w-7" />
                 </div>
                 <h1 className="mb-2 text-xl font-bold tracking-tight md:text-2xl">
                   You're subscribed!
                 </h1>
-                <p className="mb-6 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mb-6 text-sm">
                   {email ? (
                     <>
-                      <span className="font-medium text-foreground">{email}</span> is now
-                      confirmed. Welcome to the NexusOS newsletter.
+                      <span className="text-foreground font-medium">{email}</span> is now confirmed.
+                      Welcome to the NexusOS newsletter.
                     </>
                   ) : (
                     <>Your email is now confirmed. Welcome to the NexusOS newsletter.</>
@@ -81,7 +83,7 @@ export default function NewsletterConfirmPage() {
                 </p>
                 <Link
                   to="/"
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover"
+                  className="bg-primary text-primary-foreground hover:bg-primary-hover inline-flex h-10 items-center justify-center gap-2 rounded-md px-5 text-sm font-medium shadow-sm transition-colors"
                 >
                   Back to home
                   <ArrowRight className="h-4 w-4" />
@@ -91,16 +93,16 @@ export default function NewsletterConfirmPage() {
 
             {status === "error" && (
               <>
-                <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-danger/10 text-danger">
+                <div className="bg-danger/10 text-danger mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full">
                   <AlertCircle className="h-7 w-7" />
                 </div>
                 <h1 className="mb-2 text-xl font-bold tracking-tight md:text-2xl">
                   Confirmation failed
                 </h1>
-                <p className="mb-6 text-sm text-muted-foreground">{message}</p>
+                <p className="text-muted-foreground mb-6 text-sm">{message}</p>
                 <Link
                   to="/#newsletter"
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-background px-5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                  className="border-border bg-background text-foreground hover:bg-muted inline-flex h-10 items-center justify-center gap-2 rounded-md border px-5 text-sm font-medium transition-colors"
                 >
                   Try subscribing again
                 </Link>

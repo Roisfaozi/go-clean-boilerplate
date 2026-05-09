@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  ReactNode,
-  useEffect,
-} from "react";
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
 import { Member, organizationsApi } from "~/lib/api/organizations";
 import { Role, rolesApi } from "~/lib/api/roles";
 import { useOrganizationStore } from "~/stores/use-organization-store";
@@ -73,38 +66,29 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         setIsInviting(false);
       }
     },
-    [currentOrganization, fetchData]
+    [currentOrganization, fetchData],
   );
 
   const updateMemberRole = useCallback(
     async (userId: string, roleId: string) => {
       if (!currentOrganization) return;
       try {
-        await organizationsApi.updateMemberRole(
-          currentOrganization.id,
-          userId,
-          {
-            role_id: roleId,
-          }
-        );
+        await organizationsApi.updateMemberRole(currentOrganization.id, userId, {
+          role_id: roleId,
+        });
         toast.success("Member role updated");
         await fetchData();
       } catch (error) {
         toast.error("Failed to update role");
       }
     },
-    [currentOrganization, fetchData]
+    [currentOrganization, fetchData],
   );
 
   const removeMember = useCallback(
     async (userId: string, name: string) => {
       if (!currentOrganization) return;
-      if (
-        !confirm(
-          `Are you sure you want to remove ${name} from the organization?`
-        )
-      )
-        return;
+      if (!confirm(`Are you sure you want to remove ${name} from the organization?`)) return;
 
       try {
         await organizationsApi.removeMember(currentOrganization.id, userId);
@@ -114,7 +98,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
         toast.error("Failed to remove member");
       }
     },
-    [currentOrganization, fetchData]
+    [currentOrganization, fetchData],
   );
 
   return (

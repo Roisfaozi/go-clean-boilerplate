@@ -11,13 +11,10 @@ export default function OpenSource() {
             Open Source & Community
           </h2>
           <p className="max-w-[600px] text-lg text-slate-500 dark:text-slate-400">
-            NexusOS is built on top of open standards. Join our community to
-            contribute, report bugs, or request features.
+            NexusOS is built on top of open standards. Join our community to contribute, report
+            bugs, or request features.
           </p>
-          <Link
-            href="https://github.com/Roisfaozi/go-clean-boilerplate"
-            target="_blank"
-          >
+          <Link href="https://github.com/Roisfaozi/go-clean-boilerplate" target="_blank">
             <Button size="lg" variant="outline" className="h-12 gap-2 px-8">
               <Github className="h-5 w-5" />
               Star on GitHub

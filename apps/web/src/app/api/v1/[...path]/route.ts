@@ -1,13 +1,9 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080/api/v1";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080/api/v1";
 
-export async function ALL(
-  request: NextRequest,
-  { params }: { params: { path: string[] } }
-) {
+export async function ALL(request: NextRequest, { params }: { params: { path: string[] } }) {
   const resolvedParams = await params;
   const path = resolvedParams.path.join("/");
   const url = `${BACKEND_URL}/${path}${request.nextUrl.search}`;
@@ -22,9 +18,7 @@ export async function ALL(
   // Explicitly forward all cookies from Next.js cookie store to the backend
   const allCookies = cookieStore.getAll();
   if (allCookies.length > 0) {
-    const cookieHeader = allCookies
-      .map((c) => `${c.name}=${c.value}`)
-      .join("; ");
+    const cookieHeader = allCookies.map((c) => `${c.name}=${c.value}`).join("; ");
     headers.set("Cookie", cookieHeader);
   }
 
@@ -33,9 +27,7 @@ export async function ALL(
 
   try {
     const body =
-      request.method !== "GET" && request.method !== "HEAD"
-        ? await request.blob()
-        : undefined;
+      request.method !== "GET" && request.method !== "HEAD" ? await request.blob() : undefined;
 
     const response = await fetch(url, {
       method: request.method,
@@ -77,10 +69,9 @@ export async function ALL(
       {
         success: false,
         code: "BACKEND_OFFLINE",
-        message:
-          "Gagal terhubung ke API Server. Pastikan backend sudah menyala di port 8080.",
+        message: "Gagal terhubung ke API Server. Pastikan backend sudah menyala di port 8080.",
       },
-      { status: 502 }
+      { status: 502 },
     );
   }
 }

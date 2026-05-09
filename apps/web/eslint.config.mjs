@@ -10,7 +10,7 @@ export default [
       "public/sw.js",
       "ui/*",
       "**/*.d.ts",
-      "**/*.config.*"
+      "**/*.config.*",
     ],
   },
   ...nextConfig,
@@ -18,7 +18,7 @@ export default [
   {
     rules: {
       // Custom rules
-      "@next/next/no-html-link-for-pages": "off"
-    }
-  }
+      "@next/next/no-html-link-for-pages": "off",
+    },
+  },
 ];

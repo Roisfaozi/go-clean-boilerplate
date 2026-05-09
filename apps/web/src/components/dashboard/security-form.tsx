@@ -21,13 +21,9 @@ import { usersApi } from "~/lib/api/users";
 
 const securitySchema = z
   .object({
-    current_password: z
-      .string()
-      .min(8, "Password must be at least 8 characters."),
+    current_password: z.string().min(8, "Password must be at least 8 characters."),
     new_password: z.string().min(8, "Password must be at least 8 characters."),
-    confirm_password: z
-      .string()
-      .min(8, "Password must be at least 8 characters."),
+    confirm_password: z.string().min(8, "Password must be at least 8 characters."),
   })
   .refine((data) => data.new_password === data.confirm_password, {
     message: "Passwords do not match",
@@ -87,9 +83,7 @@ export function SecurityForm() {
               <FormControl>
                 <Input type="password" placeholder="••••••••" {...field} />
               </FormControl>
-              <FormDescription>
-                Must be at least 8 characters long.
-              </FormDescription>
+              <FormDescription>Must be at least 8 characters long.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -110,14 +104,8 @@ export function SecurityForm() {
         />
 
         <div className="pt-4">
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="w-full sm:w-auto"
-          >
-            {isLoading && (
-              <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-            )}
+          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+            {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
             Change Password
           </Button>
         </div>

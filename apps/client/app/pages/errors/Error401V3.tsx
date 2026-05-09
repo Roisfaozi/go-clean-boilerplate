@@ -1,39 +1,42 @@
 import { Lock, ArrowLeft, LogIn, Shield } from "lucide-react";
 import { useNavigate } from "react-router";
-import {  NexusButton  } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
 
 export default function Error401V3() {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-sidebar flex items-center justify-center p-8 relative overflow-hidden">
+    <div className="bg-sidebar relative flex min-h-screen items-center justify-center overflow-hidden p-8">
       {/* Grid pattern */}
       <div
         className="absolute inset-0 opacity-[0.03]"
         style={{
-          backgroundImage: "linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)",
+          backgroundImage:
+            "linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)",
           backgroundSize: "60px 60px",
         }}
       />
       {/* Glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px]" />
+      <div className="bg-primary/5 absolute top-1/3 left-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[120px]" />
 
-      <div className="relative z-10 max-w-2xl w-full text-center space-y-10">
+      <div className="relative z-10 w-full max-w-2xl space-y-10 text-center">
         <div className="flex items-center justify-center gap-4">
-          <Shield className="h-8 w-8 text-primary/40" />
-          <span className="text-9xl font-black text-primary/10 leading-none">401</span>
-          <Shield className="h-8 w-8 text-primary/40" />
+          <Shield className="text-primary/40 h-8 w-8" />
+          <span className="text-primary/10 text-9xl leading-none font-black">401</span>
+          <Shield className="text-primary/40 h-8 w-8" />
         </div>
         <div className="space-y-4">
-          <h1 className="text-4xl font-bold text-sidebar-foreground">Authentication Required</h1>
-          <p className="text-muted-foreground text-lg max-w-md mx-auto">
+          <h1 className="text-sidebar-foreground text-4xl font-bold">Authentication Required</h1>
+          <p className="text-muted-foreground mx-auto max-w-md text-lg">
             Access denied. Valid credentials are required to view this resource.
           </p>
         </div>
-        <div className="p-6 bg-sidebar-accent/50 border border-border rounded-xl max-w-sm mx-auto">
-          <Lock className="h-8 w-8 text-primary mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">This area requires authentication. Please sign in with your credentials.</p>
+        <div className="bg-sidebar-accent/50 border-border mx-auto max-w-sm rounded-xl border p-6">
+          <Lock className="text-primary mx-auto mb-3 h-8 w-8" />
+          <p className="text-muted-foreground text-sm">
+            This area requires authentication. Please sign in with your credentials.
+          </p>
         </div>
-        <div className="flex gap-3 justify-center">
+        <div className="flex justify-center gap-3">
           <NexusButton variant="primary" size="lg" onClick={() => navigate("/login")}>
             <LogIn className="h-4 w-4" />
             Sign In

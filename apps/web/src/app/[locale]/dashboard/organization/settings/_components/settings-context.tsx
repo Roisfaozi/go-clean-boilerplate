@@ -1,17 +1,7 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
-import {
-  OrganizationSettings,
-  organizationsApi,
-  Organization,
-} from "~/lib/api/organizations";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { OrganizationSettings, organizationsApi, Organization } from "~/lib/api/organizations";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -29,16 +19,13 @@ interface SettingsContextType {
   currentOrganization: Organization | null;
 }
 
-const SettingsContext = createContext<SettingsContextType | undefined>(
-  undefined
-);
+const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const { currentOrganization, setCurrentOrganization } =
-    useOrganizationStore();
+  const { currentOrganization, setCurrentOrganization } = useOrganizationStore();
   const [name, setName] = useState(currentOrganization?.name || "");
   const [settings, setSettings] = useState<OrganizationSettings>(
-    currentOrganization?.settings || {}
+    currentOrganization?.settings || {},
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -81,7 +68,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (!currentOrganization) return;
     if (
       !confirm(
-        `Are you sure you want to permanently delete ${currentOrganization.name}? This action cannot be undone.`
+        `Are you sure you want to permanently delete ${currentOrganization.name}? This action cannot be undone.`,
       )
     )
       return;
@@ -101,8 +88,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const hasChanges =
     name !== currentOrganization?.name ||
-    JSON.stringify(settings) !==
-      JSON.stringify(currentOrganization?.settings || {});
+    JSON.stringify(settings) !== JSON.stringify(currentOrganization?.settings || {});
 
   return (
     <SettingsContext.Provider

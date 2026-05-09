@@ -12,10 +12,7 @@ interface EmailVerificationBannerProps {
   email: string;
 }
 
-export function EmailVerificationBanner({
-  isVerified,
-  email,
-}: EmailVerificationBannerProps) {
+export function EmailVerificationBanner({ isVerified, email }: EmailVerificationBannerProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   if (isVerified) {
@@ -52,8 +49,7 @@ export function EmailVerificationBanner({
       <AlertTitle>Email not verified</AlertTitle>
       <AlertDescription className="mt-2 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <span>
-          Please verify your email <strong>{email}</strong> to access all
-          features.
+          Please verify your email <strong>{email}</strong> to access all features.
         </span>
         <Button
           variant="outline"

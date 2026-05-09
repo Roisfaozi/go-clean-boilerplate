@@ -11,9 +11,7 @@ export function RolesHeader() {
     <div className="flex items-center justify-between">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Roles & Access</h2>
-        <p className="text-muted-foreground">
-          Manage system roles and their permissions.
-        </p>
+        <p className="text-muted-foreground">Manage system roles and their permissions.</p>
       </div>
       <Button onClick={handleCreate}>
         <Icon name="Plus" className="mr-2 h-4 w-4" />

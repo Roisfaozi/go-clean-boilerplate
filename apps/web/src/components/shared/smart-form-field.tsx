@@ -5,12 +5,7 @@ import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { Icon } from "./icon";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 
 interface SmartFormFieldProps extends React.ComponentProps<typeof Input> {
   label: string;
@@ -26,24 +21,8 @@ interface SmartFormFieldProps extends React.ComponentProps<typeof Input> {
  * Combines Label, Input, Error, and AI features.
  * Adapts layout based on global density: Vertical (Comfort) vs Horizontal (Compact).
  */
-export const SmartFormField = React.forwardRef<
-  HTMLInputElement,
-  SmartFormFieldProps
->(
-  (
-    {
-      label,
-      error,
-      hint,
-      isAI,
-      onAiClick,
-      isLoadingAi,
-      className,
-      id,
-      ...props
-    },
-    ref
-  ) => {
+export const SmartFormField = React.forwardRef<HTMLInputElement, SmartFormFieldProps>(
+  ({ label, error, hint, isAI, onAiClick, isLoadingAi, className, id, ...props }, ref) => {
     const generatedId = React.useId();
     const fieldId = id || generatedId;
 
@@ -52,7 +31,7 @@ export const SmartFormField = React.forwardRef<
         className={cn(
           "group flex flex-col gap-2",
           // Density adaptation: Horizontal layout in compact mode
-          "[data-density=compact]:flex-row [data-density=compact]:items-center [data-density=compact]:justify-between [data-density=compact]:gap-4"
+          "[data-density=compact]:flex-row [data-density=compact]:items-center [data-density=compact]:justify-between [data-density=compact]:gap-4",
         )}
       >
         <div className="flex flex-col gap-1 [data-density=compact]:w-1/3">
@@ -60,16 +39,14 @@ export const SmartFormField = React.forwardRef<
             htmlFor={fieldId}
             className={cn(
               "group-focus-within:text-primary text-sm font-medium transition-colors",
-              "[data-density=compact]:text-muted-foreground [data-density=compact]:text-xs"
+              "[data-density=compact]:text-muted-foreground [data-density=compact]:text-xs",
             )}
           >
             {label}
             {props.required && <span className="text-destructive ml-1">*</span>}
           </Label>
           {hint && !error && (
-            <p className="text-muted-foreground text-xs [data-density=compact]:hidden">
-              {hint}
-            </p>
+            <p className="text-muted-foreground text-xs [data-density=compact]:hidden">{hint}</p>
           )}
         </div>
 
@@ -80,7 +57,7 @@ export const SmartFormField = React.forwardRef<
             className={cn(
               error && "border-destructive focus-visible:ring-destructive",
               isAI && "pr-10",
-              className
+              className,
             )}
             {...props}
           />
@@ -98,7 +75,7 @@ export const SmartFormField = React.forwardRef<
                         "hover:bg-accent flex items-center justify-center rounded-sm transition-all",
                         isLoadingAi
                           ? "animate-pulse text-violet-500"
-                          : "text-muted-foreground hover:text-violet-500"
+                          : "text-muted-foreground hover:text-violet-500",
                       )}
                     >
                       <Icon
@@ -124,7 +101,7 @@ export const SmartFormField = React.forwardRef<
         </div>
       </div>
     );
-  }
+  },
 );
 
 SmartFormField.displayName = "SmartFormField";

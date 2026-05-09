@@ -9,8 +9,7 @@ export function UsersPagination() {
   return (
     <div className="flex items-center justify-end space-x-2 py-4">
       <div className="text-muted-foreground flex-1 text-sm">
-        Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of{" "}
-        {total} results
+        Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} results
       </div>
       <div className="space-x-2">
         <Button

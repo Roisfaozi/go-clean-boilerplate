@@ -70,17 +70,11 @@ export function CreateArDialog() {
           </div>
         </div>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setIsOpen(false)}
-            disabled={isCreating}
-          >
+          <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isCreating}>
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isCreating || !name}>
-            {isCreating && (
-              <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-            )}
+            {isCreating && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
             Create
           </Button>
         </DialogFooter>

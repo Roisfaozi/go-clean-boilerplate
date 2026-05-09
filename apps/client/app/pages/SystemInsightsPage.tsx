@@ -1,13 +1,25 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { MetricsPanel, MetricSummary, TimeSeriesPoint } from "@/components/admin/metrics-panel";
-import {  NexusCard, NexusCardHeader, NexusCardTitle  } from "@casbin/ui";
-import {  Badge  } from "@casbin/ui";
+import { NexusCard, NexusCardHeader, NexusCardTitle } from "@casbin/ui";
+import { Badge } from "@casbin/ui";
 import { Users, Shield, FileText, Zap, TrendingUp, Activity } from "lucide-react";
 
 const requestMetrics: MetricSummary[] = [
-  { label: "Total Requests", value: "1.24M", change: 14.2, changeLabel: "vs last week", icon: Activity },
+  {
+    label: "Total Requests",
+    value: "1.24M",
+    change: 14.2,
+    changeLabel: "vs last week",
+    icon: Activity,
+  },
   { label: "Avg Latency", value: "42ms", change: -8.1, changeLabel: "vs last week", icon: Zap },
-  { label: "Error Rate", value: "0.12%", change: -22.5, changeLabel: "vs last week", icon: TrendingUp },
+  {
+    label: "Error Rate",
+    value: "0.12%",
+    change: -22.5,
+    changeLabel: "vs last week",
+    icon: TrendingUp,
+  },
   { label: "Active Users", value: "1,847", change: 6.3, changeLabel: "vs last week", icon: Users },
 ];
 
@@ -25,7 +37,13 @@ const securityMetrics: MetricSummary[] = [
   { label: "Failed Logins", value: "47", change: -15.3, changeLabel: "vs last week", icon: Shield },
   { label: "Role Changes", value: "12", change: 33.0, changeLabel: "vs last week", icon: Shield },
   { label: "New Permissions", value: "8", change: 0, changeLabel: "this week", icon: Shield },
-  { label: "Audit Events", value: "3,421", change: 5.8, changeLabel: "vs last week", icon: FileText },
+  {
+    label: "Audit Events",
+    value: "3,421",
+    change: 5.8,
+    changeLabel: "vs last week",
+    icon: FileText,
+  },
 ];
 
 const securityTimeline: TimeSeriesPoint[] = [
@@ -63,7 +81,7 @@ export default function SystemInsightsPage() {
         chartLabel="Requests"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <MetricsPanel
           title="Security Events"
           description="Audit events and failed login attempts"
@@ -82,11 +100,13 @@ export default function SystemInsightsPage() {
             {topEndpoints.map((ep) => (
               <div
                 key={ep.endpoint}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/80 transition-colors"
+                className="bg-muted/50 hover:bg-muted/80 flex items-center justify-between rounded-lg p-3 transition-colors"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-mono text-foreground truncate">{ep.endpoint}</p>
-                  <p className="text-xs text-muted-foreground">{ep.calls} calls · p99: {ep.p99}</p>
+                  <p className="text-foreground truncate font-mono text-sm">{ep.endpoint}</p>
+                  <p className="text-muted-foreground text-xs">
+                    {ep.calls} calls · p99: {ep.p99}
+                  </p>
                 </div>
                 <Badge variant={ep.status === "healthy" ? "secondary" : "outline"}>
                   {ep.status}

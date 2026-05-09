@@ -8,12 +8,7 @@ import { useAuthStore } from "~/stores/use-auth-store";
 import { usePermissionStore } from "~/stores/use-permission-store";
 
 /** Halaman auth: tidak perlu sync sama sekali */
-const AUTH_PATHS = [
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
-];
+const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 /** Halaman publik: coba sync tapi JANGAN redirect jika gagal */
 const PUBLIC_PATHS = ["/", "/about", "/changelog", "/pricing"];
@@ -38,9 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (userResp.user) {
           setUser(userResp.user);
 
-          const permsResp = await accessApi.getPermissionsForRole(
-            userResp.user.role
-          );
+          const permsResp = await accessApi.getPermissionsForRole(userResp.user.role);
           if (permsResp.data) {
             setPermissions(permsResp.data);
           }

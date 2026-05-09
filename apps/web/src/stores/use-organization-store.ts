@@ -19,6 +19,6 @@ export const useOrganizationStore = create<OrganizationState>()(
     }),
     {
       name: "nexus-organization-storage",
-    }
-  )
+    },
+  ),
 );

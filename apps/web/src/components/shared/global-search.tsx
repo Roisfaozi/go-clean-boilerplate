@@ -53,14 +53,12 @@ export function GlobalSearch() {
           // Comfort: Full width input-like
           "w-full md:w-64 lg:w-80",
           // Compact: Icon only or smaller width
-          "[data-density=compact]:w-10 [data-density=compact]:justify-center [data-density=compact]:px-0"
+          "[data-density=compact]:w-10 [data-density=compact]:justify-center [data-density=compact]:px-0",
         )}
         onClick={() => setOpen(true)}
       >
         <Search className="h-4 w-4 shrink-0 [data-density=comfort]:mr-2" />
-        <span className="inline-flex [data-density=compact]:hidden">
-          Search...
-        </span>
+        <span className="inline-flex [data-density=compact]:hidden">Search...</span>
         <kbd className="bg-muted pointer-events-none absolute top-1/2 right-2 hidden h-5 -translate-y-1/2 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 select-none md:flex [data-density=compact]:hidden">
           <span className="text-xs">⌘</span>K
         </kbd>

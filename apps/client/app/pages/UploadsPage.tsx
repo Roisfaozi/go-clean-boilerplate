@@ -3,7 +3,7 @@ import { FileUploader } from "@/components/upload/file-uploader";
 import { UploadQueue } from "@/components/upload/upload-queue";
 import { FilePreview } from "@/components/upload/file-preview";
 import { useUploadStore } from "@/lib/upload/upload-store";
-import {  NexusCard  } from "@casbin/ui";
+import { NexusCard } from "@casbin/ui";
 
 export default function UploadsPage() {
   const items = useUploadStore((s) => s.uploadQueue);
@@ -16,7 +16,7 @@ export default function UploadsPage() {
         description="Resumable file uploads with TUS protocol — drag & drop, pause, resume, retry"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <FileUploader />
         <FileUploader
           directory
@@ -31,8 +31,8 @@ export default function UploadsPage() {
 
       {completed.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-foreground mb-3">Completed Uploads</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <h3 className="text-foreground mb-3 text-sm font-semibold">Completed Uploads</h3>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {completed.map((item) => (
               <FilePreview key={item.id} file={item.file} url={item.url} />
             ))}
@@ -41,7 +41,7 @@ export default function UploadsPage() {
       )}
 
       {items.length === 0 && (
-        <NexusCard className="p-8 text-center text-muted-foreground text-sm">
+        <NexusCard className="text-muted-foreground p-8 text-center text-sm">
           No uploads yet. Drop files above or click to browse.
         </NexusCard>
       )}

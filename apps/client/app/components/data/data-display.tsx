@@ -26,7 +26,15 @@ export function TreeView({ nodes, onSelect, className }: TreeViewProps) {
   );
 }
 
-function TreeNode({ node, onSelect, depth }: { node: TreeNode; onSelect?: (n: TreeNode) => void; depth: number }) {
+function TreeNode({
+  node,
+  onSelect,
+  depth,
+}: {
+  node: TreeNode;
+  onSelect?: (n: TreeNode) => void;
+  depth: number;
+}) {
   const [open, setOpen] = useState(false);
   const hasChildren = node.children && node.children.length > 0;
 
@@ -37,11 +45,15 @@ function TreeNode({ node, onSelect, depth }: { node: TreeNode; onSelect?: (n: Tr
           if (hasChildren) setOpen(!open);
           onSelect?.(node);
         }}
-        className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-body hover:bg-surface-hover transition-colors text-left"
+        className="text-body hover:bg-surface-hover flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors"
         style={{ paddingLeft: `${depth * 20 + 8}px` }}
       >
         {hasChildren ? (
-          open ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          open ? (
+            <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
+          ) : (
+            <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
+          )
         ) : (
           <span className="w-4" />
         )}
@@ -68,16 +80,21 @@ interface KeyValueListProps {
 
 export function KeyValueList({ items, striped, className }: KeyValueListProps) {
   return (
-    <dl className={cn("divide-y divide-border rounded-lg border border-border overflow-hidden", className)}>
+    <dl
+      className={cn(
+        "divide-border border-border divide-y overflow-hidden rounded-lg border",
+        className,
+      )}
+    >
       {items.map((item, i) => (
         <div
           key={item.key}
           className={cn(
             "flex items-start justify-between gap-4 px-4 py-3",
-            striped && i % 2 === 0 && "bg-surface"
+            striped && i % 2 === 0 && "bg-surface",
           )}
         >
-          <dt className="text-small font-medium text-muted-foreground shrink-0">{item.key}</dt>
+          <dt className="text-small text-muted-foreground shrink-0 font-medium">{item.key}</dt>
           <dd className="text-body text-foreground text-right">{item.value}</dd>
         </div>
       ))}
@@ -94,14 +111,19 @@ interface CodeBlockProps {
 
 export function CodeBlock({ code, language, className }: CodeBlockProps) {
   return (
-    <div className={cn("relative rounded-lg border border-border bg-surface overflow-hidden", className)}>
+    <div
+      className={cn(
+        "border-border bg-surface relative overflow-hidden rounded-lg border",
+        className,
+      )}
+    >
       {language && (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-          <span className="text-caption font-mono text-muted-foreground">{language}</span>
+        <div className="border-border flex items-center justify-between border-b px-4 py-2">
+          <span className="text-caption text-muted-foreground font-mono">{language}</span>
         </div>
       )}
-      <pre className="p-4 overflow-x-auto">
-        <code className="text-small font-mono text-foreground whitespace-pre">{code}</code>
+      <pre className="overflow-x-auto p-4">
+        <code className="text-small text-foreground font-mono whitespace-pre">{code}</code>
       </pre>
     </div>
   );
@@ -136,14 +158,21 @@ export function Timeline({ items, className }: TimelineProps) {
       {items.map((item, i) => (
         <div key={item.id} className="flex gap-4">
           <div className="flex flex-col items-center">
-            <div className={cn("flex items-center justify-center h-8 w-8 rounded-full shrink-0", timelineColors[item.variant || "default"])}>
-              {item.icon || <div className="h-2 w-2 rounded-full bg-background" />}
+            <div
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                timelineColors[item.variant || "default"],
+              )}
+            >
+              {item.icon || <div className="bg-background h-2 w-2 rounded-full" />}
             </div>
-            {i < items.length - 1 && <div className="w-px flex-1 bg-border" />}
+            {i < items.length - 1 && <div className="bg-border w-px flex-1" />}
           </div>
-          <div className="pb-6 pt-1">
-            <p className="text-body font-medium text-foreground">{item.title}</p>
-            {item.description && <p className="text-small text-muted-foreground mt-0.5">{item.description}</p>}
+          <div className="pt-1 pb-6">
+            <p className="text-body text-foreground font-medium">{item.title}</p>
+            {item.description && (
+              <p className="text-small text-muted-foreground mt-0.5">{item.description}</p>
+            )}
             <p className="text-caption text-muted-foreground mt-1">{item.time}</p>
           </div>
         </div>
@@ -168,21 +197,25 @@ interface ActivityFeedProps {
 
 export function ActivityFeed({ items, className }: ActivityFeedProps) {
   return (
-    <div className={cn("divide-y divide-border", className)}>
+    <div className={cn("divide-border divide-y", className)}>
       {items.map((item) => (
         <div key={item.id} className="flex items-start gap-3 py-3">
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-caption font-bold shrink-0">
+          <div className="bg-primary/10 text-primary text-caption flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold">
             {item.user.avatar ? (
-              <img src={item.user.avatar} alt={item.user.name} className="h-8 w-8 rounded-full object-cover" />
+              <img
+                src={item.user.avatar}
+                alt={item.user.name}
+                className="h-8 w-8 rounded-full object-cover"
+              />
             ) : (
               item.user.name.charAt(0).toUpperCase()
             )}
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-body">
-              <span className="font-semibold text-foreground">{item.user.name}</span>{" "}
+              <span className="text-foreground font-semibold">{item.user.name}</span>{" "}
               <span className="text-muted-foreground">{item.action}</span>{" "}
-              {item.target && <span className="font-medium text-foreground">{item.target}</span>}
+              {item.target && <span className="text-foreground font-medium">{item.target}</span>}
             </p>
             <p className="text-caption text-muted-foreground">{item.time}</p>
           </div>

@@ -55,11 +55,7 @@ export function UserTable({
           <EmptyState
             case="search"
             searchTerm={searchTerm}
-            action={
-              onClearSearch
-                ? { label: "Clear search", onClick: onClearSearch }
-                : undefined
-            }
+            action={onClearSearch ? { label: "Clear search", onClick: onClearSearch } : undefined}
           />
         ) : (
           <EmptyState
@@ -90,9 +86,7 @@ export function UserTable({
             <TableHead>Username</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Joined</TableHead>
-            {(canUpdate || canDelete) && (
-              <TableHead className="w-[50px]"></TableHead>
-            )}
+            {(canUpdate || canDelete) && <TableHead className="w-[50px]"></TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -171,11 +165,7 @@ const MemoizedUserTableRow = memo(function UserTableRow({
       <TableCell>
         <Badge
           variant={user.status === "active" ? "default" : "secondary"}
-          className={
-            user.status === "active"
-              ? "bg-emerald-500 hover:bg-emerald-600"
-              : ""
-          }
+          className={user.status === "active" ? "bg-emerald-500 hover:bg-emerald-600" : ""}
         >
           {user.status || "Unknown"}
         </Badge>
@@ -200,10 +190,7 @@ const MemoizedUserTableRow = memo(function UserTableRow({
                 </DropdownMenuItem>
               )}
               {canDelete && (
-                <DropdownMenuItem
-                  onClick={() => onDelete(user)}
-                  className="text-destructive"
-                >
+                <DropdownMenuItem onClick={() => onDelete(user)} className="text-destructive">
                   <Icon name="Trash" className="mr-2 h-4 w-4" />
                   Delete
                 </DropdownMenuItem>

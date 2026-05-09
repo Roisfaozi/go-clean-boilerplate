@@ -26,7 +26,7 @@ export function AccessRightsList() {
         acc[groupName].push(ep);
         return acc;
       },
-      {} as Record<string, Endpoint[]>
+      {} as Record<string, Endpoint[]>,
     );
   }, [endpoints]);
 
@@ -37,9 +37,7 @@ export function AccessRightsList() {
   if (accessRights.length === 0) {
     return (
       <div className="py-12 text-center">
-        <p className="text-muted-foreground italic">
-          No access rights created yet.
-        </p>
+        <p className="text-muted-foreground italic">No access rights created yet.</p>
       </div>
     );
   }
@@ -48,11 +46,7 @@ export function AccessRightsList() {
     <div className="bg-card rounded-md border">
       <Accordion type="multiple" className="w-full">
         {accessRights.map((ar) => (
-          <AccessRightItem
-            key={ar.id}
-            accessRight={ar}
-            groupedEndpoints={groupedEndpoints}
-          />
+          <AccessRightItem key={ar.id} accessRight={ar} groupedEndpoints={groupedEndpoints} />
         ))}
       </Accordion>
     </div>
@@ -75,8 +69,8 @@ function AccessRightItem({
           <div className="flex flex-col items-start gap-1 text-left">
             <span className="text-lg font-semibold">{accessRight.name}</span>
             <span className="text-muted-foreground text-sm font-normal">
-              {accessRight.description || "No description"} •{" "}
-              {accessRight.endpoints?.length || 0} endpoints
+              {accessRight.description || "No description"} • {accessRight.endpoints?.length || 0}{" "}
+              endpoints
             </span>
           </div>
         </AccordionTrigger>
@@ -133,7 +127,7 @@ function EndpointGroup({
   isProcessing: string | null;
 }) {
   const selectedInGroup = eps.filter((ep) =>
-    accessRight.endpoints?.some((e) => e.id === ep.id)
+    accessRight.endpoints?.some((e) => e.id === ep.id),
   ).length;
 
   return (
@@ -162,24 +156,16 @@ function EndpointGroup({
                   id={`ar-${accessRight.id}-ep-${ep.id}`}
                   checked={isLinked}
                   disabled={isProcessing === processId}
-                  onCheckedChange={() =>
-                    toggleLink(accessRight.id, ep.id, !!isLinked)
-                  }
+                  onCheckedChange={() => toggleLink(accessRight.id, ep.id, !!isLinked)}
                 />
                 <label
                   htmlFor={`ar-${accessRight.id}-ep-${ep.id}`}
                   className="flex flex-1 cursor-pointer items-center gap-2 text-xs leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  <Badge
-                    variant="outline"
-                    className="h-4 px-1 font-mono text-[8px]"
-                  >
+                  <Badge variant="outline" className="h-4 px-1 font-mono text-[8px]">
                     {ep.method}
                   </Badge>
-                  <span
-                    className="truncate font-mono text-[10px] opacity-80"
-                    title={ep.path}
-                  >
+                  <span className="truncate font-mono text-[10px] opacity-80" title={ep.path}>
                     {ep.path}
                   </span>
                 </label>

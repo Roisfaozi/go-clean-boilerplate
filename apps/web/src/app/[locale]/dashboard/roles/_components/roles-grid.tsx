@@ -79,10 +79,7 @@ const RoleCard = memo(function RoleCard({ role }: { role: Role }) {
             <CardTitle className="text-lg">{role.name}</CardTitle>
           </div>
           {role.name.startsWith("role:") ? (
-            <Badge
-              variant="secondary"
-              className="bg-primary/5 text-primary border-primary/10"
-            >
+            <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10">
               System
             </Badge>
           ) : (

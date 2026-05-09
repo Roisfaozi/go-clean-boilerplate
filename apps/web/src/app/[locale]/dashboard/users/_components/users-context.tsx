@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  ReactNode,
-} from "react";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import useSWR, { KeyedMutator } from "swr";
 import { User, usersApi, UserListResponse } from "~/lib/api/users";
@@ -71,7 +65,7 @@ export function UsersProvider({
     {
       fallbackData: initialData,
       keepPreviousData: true,
-    }
+    },
   );
 
   const users = response?.data || [];
@@ -96,7 +90,7 @@ export function UsersProvider({
       params.set("page", "1");
       replace(`${pathname}?${params.toString()}`);
     },
-    [searchParams, pathname, replace]
+    [searchParams, pathname, replace],
   );
 
   const clearSearch = useCallback(() => {
@@ -112,7 +106,7 @@ export function UsersProvider({
       params.set("page", newPage.toString());
       replace(`${pathname}?${params.toString()}`);
     },
-    [searchParams, pathname, replace]
+    [searchParams, pathname, replace],
   );
 
   const handleCreate = useCallback(() => {

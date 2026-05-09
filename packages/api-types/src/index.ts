@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // ── Primitives ──
 export const emailSchema = z.string().trim().email().max(255);
@@ -75,7 +75,7 @@ export interface Resource {
 export interface Endpoint {
   id: string;
   name: string;
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
   resource_id: string;
   resource_name?: string;
@@ -232,7 +232,7 @@ export const resourceSchema = z.object({
 export const endpointSchema = z.object({
   id: z.string(),
   name: z.string().trim().min(1).max(200),
-  method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
+  method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
   path: z.string().trim().min(1).max(500),
   resource_id: z.string(),
   resource_name: z.string().optional(),
@@ -265,15 +265,15 @@ export const permissionSchema = z.object({
 });
 
 export const loginRequestSchema = z.object({
-  username: z.string().trim().min(1, 'Username is required'),
-  password: z.string().min(1, 'Password is required'),
+  username: z.string().trim().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
 });
 
 export const registerRequestSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required').max(100),
+  name: z.string().trim().min(1, "Name is required").max(100),
   email: emailSchema,
-  username: z.string().trim().min(3, 'Min 3 characters').max(50),
-  password: z.string().min(8, 'Min 8 characters'),
+  username: z.string().trim().min(3, "Min 3 characters").max(50),
+  password: z.string().min(8, "Min 8 characters"),
 });
 
 export const loginResponseSchema = z.object({

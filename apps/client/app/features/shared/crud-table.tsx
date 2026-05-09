@@ -1,19 +1,31 @@
 import { useState, useMemo } from "react";
 import { cn } from "@casbin/ui";
-import {  NexusButton  } from "@casbin/ui";
-import {  NexusInput  } from "@casbin/ui";
-import {  NexusBadge  } from "@casbin/ui";
-import {  Checkbox  } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
+import { NexusInput } from "@casbin/ui";
+import { NexusBadge } from "@casbin/ui";
+import { Checkbox } from "@casbin/ui";
 import {
-  ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight,
-  ChevronsLeft, ChevronsRight, Search, MoreHorizontal, Pencil, Trash2, Eye,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Search,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Eye,
 } from "lucide-react";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@casbin/ui";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@casbin/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@casbin/ui";
 
 /* ── Types ── */
 export interface CrudColumnDef<T> {
@@ -41,7 +53,11 @@ interface CrudTableProps<T extends { id: string | number }> {
   onDelete?: (row: T) => void;
   onView?: (row: T) => void;
   selectable?: boolean;
-  bulkActions?: { label: string; icon?: React.ReactNode; onClick: (ids: (string | number)[]) => void }[];
+  bulkActions?: {
+    label: string;
+    icon?: React.ReactNode;
+    onClick: (ids: (string | number)[]) => void;
+  }[];
   className?: string;
 }
 
@@ -74,7 +90,7 @@ export function CrudTable<T extends { id: string | number }>({
         columns.some((col) => {
           const val = col.accessorKey ? row[col.accessorKey] : null;
           return val != null && String(val).toLowerCase().includes(lower);
-        })
+        }),
       );
     }
     Object.entries(filters).forEach(([colId, filterVal]) => {
@@ -95,7 +111,9 @@ export function CrudTable<T extends { id: string | number }>({
         if (!col?.accessorKey) continue;
         const aVal = a[col.accessorKey];
         const bVal = b[col.accessorKey];
-        const cmp = String(aVal ?? "").localeCompare(String(bVal ?? ""), undefined, { numeric: true });
+        const cmp = String(aVal ?? "").localeCompare(String(bVal ?? ""), undefined, {
+          numeric: true,
+        });
         if (cmp !== 0) return sort.direction === "asc" ? cmp : -cmp;
       }
       return 0;
@@ -110,17 +128,20 @@ export function CrudTable<T extends { id: string | number }>({
     setSorts((prev) => {
       const existing = prev.find((s) => s.column === colId);
       if (!existing) return [{ column: colId, direction: "asc" }];
-      if (existing.direction === "asc") return prev.map((s) => (s.column === colId ? { ...s, direction: "desc" as const } : s));
+      if (existing.direction === "asc")
+        return prev.map((s) => (s.column === colId ? { ...s, direction: "desc" as const } : s));
       return prev.filter((s) => s.column !== colId);
     });
   };
 
   const getSortIcon = (colId: string) => {
     const s = sorts.find((s) => s.column === colId);
-    if (!s) return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />;
-    return s.direction === "asc"
-      ? <ArrowUp className="h-3.5 w-3.5 text-primary" />
-      : <ArrowDown className="h-3.5 w-3.5 text-primary" />;
+    if (!s) return <ArrowUpDown className="text-muted-foreground h-3.5 w-3.5" />;
+    return s.direction === "asc" ? (
+      <ArrowUp className="text-primary h-3.5 w-3.5" />
+    ) : (
+      <ArrowDown className="text-primary h-3.5 w-3.5" />
+    );
   };
 
   const toggleAll = () => {
@@ -130,7 +151,8 @@ export function CrudTable<T extends { id: string | number }>({
 
   const toggleRow = (id: string | number) => {
     const next = new Set(selected);
-    if (next.has(id)) next.delete(id); else next.add(id);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
     setSelected(next);
   };
 
@@ -140,37 +162,50 @@ export function CrudTable<T extends { id: string | number }>({
     <div className={cn("space-y-4", className)}>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative max-w-sm min-w-[200px] flex-1">
+          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <NexusInput
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(0);
+            }}
             placeholder="Search…"
-            className="pl-9 h-9"
+            className="h-9 pl-9"
           />
         </div>
         {filterableCols.map((col) => (
           <Select
             key={col.id}
             value={filters[col.id] || "__all__"}
-            onValueChange={(val) => { setFilters((p) => ({ ...p, [col.id]: val })); setPage(0); }}
+            onValueChange={(val) => {
+              setFilters((p) => ({ ...p, [col.id]: val }));
+              setPage(0);
+            }}
           >
-            <SelectTrigger className="w-[140px] h-9">
+            <SelectTrigger className="h-9 w-[140px]">
               <SelectValue placeholder={col.header} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">All {col.header}</SelectItem>
               {col.filterOptions!.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         ))}
         {bulkActions && selected.size > 0 && (
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-sm text-muted-foreground">{selected.size} selected</span>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-muted-foreground text-sm">{selected.size} selected</span>
             {bulkActions.map((action) => (
-              <NexusButton key={action.label} variant="outline" size="sm" onClick={() => action.onClick(Array.from(selected))}>
+              <NexusButton
+                key={action.label}
+                variant="outline"
+                size="sm"
+                onClick={() => action.onClick(Array.from(selected))}
+              >
                 {action.icon}
                 {action.label}
               </NexusButton>
@@ -180,27 +215,35 @@ export function CrudTable<T extends { id: string | number }>({
       </div>
 
       {/* Table */}
-      <div className="border border-border rounded-lg overflow-auto">
+      <div className="border-border overflow-auto rounded-lg border">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-border bg-muted/30">
+            <tr className="border-border bg-muted/30 border-b">
               {selectable && (
                 <th className="w-10 px-3 py-3">
-                  <Checkbox checked={paged.length > 0 && selected.size === paged.length} onCheckedChange={toggleAll} />
+                  <Checkbox
+                    checked={paged.length > 0 && selected.size === paged.length}
+                    onCheckedChange={toggleAll}
+                  />
                 </th>
               )}
               {columns.map((col) => (
                 <th
                   key={col.id}
-                  className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider"
+                  className="text-muted-foreground px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase"
                   style={{ width: col.width, minWidth: col.minWidth }}
                 >
                   {col.sortable ? (
-                    <button onClick={() => toggleSort(col.id)} className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors">
+                    <button
+                      onClick={() => toggleSort(col.id)}
+                      className="hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
+                    >
                       {col.header}
                       {getSortIcon(col.id)}
                     </button>
-                  ) : col.header}
+                  ) : (
+                    col.header
+                  )}
                 </th>
               ))}
               {hasActions && <th className="w-14 px-3 py-3" />}
@@ -209,17 +252,30 @@ export function CrudTable<T extends { id: string | number }>({
           <tbody>
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <tr key={i} className="border-b border-border">
-                  {selectable && <td className="px-3 py-4"><div className="h-4 w-4 bg-muted animate-pulse rounded" /></td>}
+                <tr key={i} className="border-border border-b">
+                  {selectable && (
+                    <td className="px-3 py-4">
+                      <div className="bg-muted h-4 w-4 animate-pulse rounded" />
+                    </td>
+                  )}
                   {columns.map((col) => (
-                    <td key={col.id} className="px-4 py-4"><div className="h-4 w-24 bg-muted animate-pulse rounded" /></td>
+                    <td key={col.id} className="px-4 py-4">
+                      <div className="bg-muted h-4 w-24 animate-pulse rounded" />
+                    </td>
                   ))}
-                  {hasActions && <td className="px-3 py-4"><div className="h-4 w-6 bg-muted animate-pulse rounded" /></td>}
+                  {hasActions && (
+                    <td className="px-3 py-4">
+                      <div className="bg-muted h-4 w-6 animate-pulse rounded" />
+                    </td>
+                  )}
                 </tr>
               ))
             ) : paged.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + (selectable ? 1 : 0) + (hasActions ? 1 : 0)} className="text-center py-12 text-muted-foreground">
+                <td
+                  colSpan={columns.length + (selectable ? 1 : 0) + (hasActions ? 1 : 0)}
+                  className="text-muted-foreground py-12 text-center"
+                >
                   No records found
                 </td>
               </tr>
@@ -228,18 +284,25 @@ export function CrudTable<T extends { id: string | number }>({
                 <tr
                   key={row.id}
                   className={cn(
-                    "border-b border-border last:border-b-0 hover:bg-muted/20 transition-colors",
-                    selected.has(row.id) && "bg-primary/5"
+                    "border-border hover:bg-muted/20 border-b transition-colors last:border-b-0",
+                    selected.has(row.id) && "bg-primary/5",
                   )}
                 >
                   {selectable && (
                     <td className="px-3 py-3">
-                      <Checkbox checked={selected.has(row.id)} onCheckedChange={() => toggleRow(row.id)} />
+                      <Checkbox
+                        checked={selected.has(row.id)}
+                        onCheckedChange={() => toggleRow(row.id)}
+                      />
                     </td>
                   )}
                   {columns.map((col) => (
                     <td key={col.id} className="px-4 py-3 text-sm">
-                      {col.cell ? col.cell(row) : col.accessorKey ? String(row[col.accessorKey] ?? "") : ""}
+                      {col.cell
+                        ? col.cell(row)
+                        : col.accessorKey
+                          ? String(row[col.accessorKey] ?? "")
+                          : ""}
                     </td>
                   ))}
                   {hasActions && (
@@ -253,19 +316,22 @@ export function CrudTable<T extends { id: string | number }>({
                         <DropdownMenuContent align="end">
                           {onView && (
                             <DropdownMenuItem onClick={() => onView(row)}>
-                              <Eye className="h-4 w-4 mr-2" /> View
+                              <Eye className="mr-2 h-4 w-4" /> View
                             </DropdownMenuItem>
                           )}
                           {onEdit && (
                             <DropdownMenuItem onClick={() => onEdit(row)}>
-                              <Pencil className="h-4 w-4 mr-2" /> Edit
+                              <Pencil className="mr-2 h-4 w-4" /> Edit
                             </DropdownMenuItem>
                           )}
                           {onDelete && (
                             <>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => onDelete(row)} className="text-destructive focus:text-destructive">
-                                <Trash2 className="h-4 w-4 mr-2" /> Delete
+                              <DropdownMenuItem
+                                onClick={() => onDelete(row)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
                               </DropdownMenuItem>
                             </>
                           )}
@@ -282,21 +348,49 @@ export function CrudTable<T extends { id: string | number }>({
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          {sorted.length === 0 ? "0 records" : `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, sorted.length)} of ${sorted.length}`}
+        <p className="text-muted-foreground text-xs">
+          {sorted.length === 0
+            ? "0 records"
+            : `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, sorted.length)} of ${sorted.length}`}
         </p>
         <div className="flex items-center gap-1">
-          <NexusButton variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(0)} disabled={page === 0}>
+          <NexusButton
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setPage(0)}
+            disabled={page === 0}
+          >
             <ChevronsLeft className="h-4 w-4" />
           </NexusButton>
-          <NexusButton variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(page - 1)} disabled={page === 0}>
+          <NexusButton
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setPage(page - 1)}
+            disabled={page === 0}
+          >
             <ChevronLeft className="h-4 w-4" />
           </NexusButton>
-          <span className="px-3 text-sm text-foreground">{page + 1} / {totalPages}</span>
-          <NexusButton variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(page + 1)} disabled={page >= totalPages - 1}>
+          <span className="text-foreground px-3 text-sm">
+            {page + 1} / {totalPages}
+          </span>
+          <NexusButton
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setPage(page + 1)}
+            disabled={page >= totalPages - 1}
+          >
             <ChevronRight className="h-4 w-4" />
           </NexusButton>
-          <NexusButton variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(totalPages - 1)} disabled={page >= totalPages - 1}>
+          <NexusButton
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setPage(totalPages - 1)}
+            disabled={page >= totalPages - 1}
+          >
             <ChevronsRight className="h-4 w-4" />
           </NexusButton>
         </div>

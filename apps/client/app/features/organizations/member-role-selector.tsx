@@ -1,11 +1,5 @@
-import {  Badge  } from "@casbin/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@casbin/ui";
+import { Badge } from "@casbin/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@casbin/ui";
 
 const roles = [
   { value: "owner", label: "Owner", color: "destructive" as const },
@@ -23,14 +17,14 @@ interface MemberRoleSelectorProps {
 export function MemberRoleSelector({ value, onChange, disabled }: MemberRoleSelectorProps) {
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger className="w-[120px] h-8 text-xs">
+      <SelectTrigger className="h-8 w-[120px] text-xs">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {roles.map((role) => (
           <SelectItem key={role.value} value={role.value}>
             <div className="flex items-center gap-2">
-              <Badge variant={role.color} className="text-[10px] px-1.5 py-0">
+              <Badge variant={role.color} className="px-1.5 py-0 text-[10px]">
                 {role.label}
               </Badge>
             </div>

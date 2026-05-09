@@ -1,18 +1,46 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { DashboardGrid } from "@/components/layout/dashboard-grid";
-import {  NexusButton  } from "@casbin/ui";
-import {  NexusBadge  } from "@casbin/ui";
-import { MetricCard, ChartCard, AnalyticsCard, InsightMetric, TrendIndicator } from "@/components/data/analytics-cards";
+import { NexusButton } from "@casbin/ui";
+import { NexusBadge } from "@casbin/ui";
+import {
+  MetricCard,
+  ChartCard,
+  AnalyticsCard,
+  InsightMetric,
+  TrendIndicator,
+} from "@/components/data/analytics-cards";
 import { Sparkline } from "@/components/charts/charts";
 import {
-  Users, Shield, Building2, FileText, Activity, Zap, AlertTriangle,
-  Clock, ArrowUpRight, UserCheck, BarChart3, TrendingUp,
+  Users,
+  Shield,
+  Building2,
+  FileText,
+  Activity,
+  Zap,
+  AlertTriangle,
+  Clock,
+  ArrowUpRight,
+  UserCheck,
+  BarChart3,
+  TrendingUp,
 } from "lucide-react";
 import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  PieChart, Pie, Cell, ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
 } from "recharts";
 
 /* ── Mock data simulating API responses ── */
@@ -81,7 +109,7 @@ const performanceTimeline = [
   { time: "08:00", latency: 52, errors: 0.15 },
   { time: "12:00", latency: 65, errors: 0.22 },
   { time: "16:00", latency: 48, errors: 0.18 },
-  { time: "20:00", latency: 42, errors: 0.10 },
+  { time: "20:00", latency: 42, errors: 0.1 },
   { time: "24:00", latency: 36, errors: 0.06 },
 ];
 
@@ -144,7 +172,12 @@ export default function DashboardPage() {
           trend={summaryTrends.total_org_members}
           icon={Building2}
           iconColor="bg-secondary/10"
-          sparkline={<Sparkline data={[1100, 1180, 1250, 1300, 1350, 1400, 1432]} color="hsl(168, 76%, 42%)" />}
+          sparkline={
+            <Sparkline
+              data={[1100, 1180, 1250, 1300, 1350, 1400, 1432]}
+              color="hsl(168, 76%, 42%)"
+            />
+          }
         />
         <MetricCard
           title="Audit Logs"
@@ -152,12 +185,14 @@ export default function DashboardPage() {
           trend={summaryTrends.total_audit_logs}
           icon={FileText}
           iconColor="bg-warning/10"
-          sparkline={<Sparkline data={[560, 540, 580, 520, 550, 530, 542]} color="hsl(38, 92%, 50%)" />}
+          sparkline={
+            <Sparkline data={[560, 540, 580, 520, 550, 530, 542]} color="hsl(38, 92%, 50%)" />
+          }
         />
       </DashboardGrid>
 
       {/* ═══ Activity Analytics ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-gap">
+      <div className="gap-gap grid grid-cols-1 lg:grid-cols-3">
         <ChartCard
           title="Activity Analytics"
           description="Daily logins and audit events"
@@ -165,7 +200,7 @@ export default function DashboardPage() {
           height={320}
           actions={
             <NexusBadge variant="info">
-              <Activity className="h-3 w-3 mr-1" />
+              <Activity className="mr-1 h-3 w-3" />
               Live
             </NexusBadge>
           }
@@ -186,8 +221,22 @@ export default function DashboardPage() {
             <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend />
-            <Area type="monotone" dataKey="logins" name="Daily Logins" stroke="hsl(239, 84%, 67%)" fill="url(#loginGrad)" strokeWidth={2} />
-            <Area type="monotone" dataKey="audits" name="Audit Events" stroke="hsl(168, 76%, 42%)" fill="url(#auditGrad)" strokeWidth={2} />
+            <Area
+              type="monotone"
+              dataKey="logins"
+              name="Daily Logins"
+              stroke="hsl(239, 84%, 67%)"
+              fill="url(#loginGrad)"
+              strokeWidth={2}
+            />
+            <Area
+              type="monotone"
+              dataKey="audits"
+              name="Audit Events"
+              stroke="hsl(168, 76%, 42%)"
+              fill="url(#auditGrad)"
+              strokeWidth={2}
+            />
           </AreaChart>
         </ChartCard>
 
@@ -222,25 +271,29 @@ export default function DashboardPage() {
 
           {/* Mini performance gauges */}
           <div className="mt-4 grid grid-cols-3 gap-3">
-            <div className="text-center space-y-1">
-              <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-success/10">
-                <Zap className="h-4 w-4 text-success" />
+            <div className="space-y-1 text-center">
+              <div className="bg-success/10 inline-flex h-10 w-10 items-center justify-center rounded-full">
+                <Zap className="text-success h-4 w-4" />
               </div>
-              <p className="text-caption font-medium text-foreground">{insightsData.avg_latency_ms}ms</p>
+              <p className="text-caption text-foreground font-medium">
+                {insightsData.avg_latency_ms}ms
+              </p>
               <p className="text-caption text-muted-foreground">Latency</p>
             </div>
-            <div className="text-center space-y-1">
-              <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-danger/10">
-                <AlertTriangle className="h-4 w-4 text-danger" />
+            <div className="space-y-1 text-center">
+              <div className="bg-danger/10 inline-flex h-10 w-10 items-center justify-center rounded-full">
+                <AlertTriangle className="text-danger h-4 w-4" />
               </div>
-              <p className="text-caption font-medium text-foreground">{insightsData.error_rate}%</p>
+              <p className="text-caption text-foreground font-medium">{insightsData.error_rate}%</p>
               <p className="text-caption text-muted-foreground">Errors</p>
             </div>
-            <div className="text-center space-y-1">
-              <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-primary/10">
-                <Clock className="h-4 w-4 text-primary" />
+            <div className="space-y-1 text-center">
+              <div className="bg-primary/10 inline-flex h-10 w-10 items-center justify-center rounded-full">
+                <Clock className="text-primary h-4 w-4" />
               </div>
-              <p className="text-caption font-medium text-foreground">{insightsData.uptime_percent}%</p>
+              <p className="text-caption text-foreground font-medium">
+                {insightsData.uptime_percent}%
+              </p>
               <p className="text-caption text-muted-foreground">Uptime</p>
             </div>
           </div>
@@ -248,7 +301,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ═══ User Insights & Performance ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-gap">
+      <div className="gap-gap grid grid-cols-1 lg:grid-cols-2">
         {/* User Growth */}
         <ChartCard title="User Growth" description="Monthly registered users" height={280}>
           <BarChart data={userGrowthData}>
@@ -261,22 +314,47 @@ export default function DashboardPage() {
         </ChartCard>
 
         {/* Performance Timeline */}
-        <ChartCard title="Performance Timeline" description="Latency & error rate (24h)" height={280}>
+        <ChartCard
+          title="Performance Timeline"
+          description="Latency & error rate (24h)"
+          height={280}
+        >
           <LineChart data={performanceTimeline}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="time" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
             <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+            />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend />
-            <Line yAxisId="left" type="monotone" dataKey="latency" name="Latency (ms)" stroke="hsl(239, 84%, 67%)" strokeWidth={2} dot={false} />
-            <Line yAxisId="right" type="monotone" dataKey="errors" name="Error Rate (%)" stroke="hsl(0, 72%, 51%)" strokeWidth={2} dot={false} strokeDasharray="5 5" />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="latency"
+              name="Latency (ms)"
+              stroke="hsl(239, 84%, 67%)"
+              strokeWidth={2}
+              dot={false}
+            />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="errors"
+              name="Error Rate (%)"
+              stroke="hsl(0, 72%, 51%)"
+              strokeWidth={2}
+              dot={false}
+              strokeDasharray="5 5"
+            />
           </LineChart>
         </ChartCard>
       </div>
 
       {/* ═══ Bottom Row: Role Distribution + Quick Metrics ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-gap">
+      <div className="gap-gap grid grid-cols-1 lg:grid-cols-3">
         <ChartCard title="Role Distribution" description="Active user roles" height={260}>
           <PieChart>
             <Pie
@@ -297,34 +375,38 @@ export default function DashboardPage() {
           </PieChart>
         </ChartCard>
 
-        <AnalyticsCard title="Growth Metrics" description="Key performance indicators" className="lg:col-span-2">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <AnalyticsCard
+          title="Growth Metrics"
+          description="Key performance indicators"
+          className="lg:col-span-2"
+        >
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
               { label: "New Users", value: "347", trend: 15.2, icon: UserCheck },
               { label: "Active Sessions", value: "1,204", trend: 8.7, icon: Activity },
               { label: "API Calls", value: "284K", trend: -3.4, icon: BarChart3 },
               { label: "Conversions", value: "12.4%", trend: 22.1, icon: TrendingUp },
             ].map((metric) => (
-              <div key={metric.label} className="bg-surface rounded-lg p-4 space-y-2">
+              <div key={metric.label} className="bg-surface space-y-2 rounded-lg p-4">
                 <div className="flex items-center justify-between">
-                  <metric.icon className="h-4 w-4 text-muted-foreground" />
+                  <metric.icon className="text-muted-foreground h-4 w-4" />
                   <TrendIndicator value={metric.trend} size="sm" />
                 </div>
-                <p className="text-h2 font-bold text-foreground">{metric.value}</p>
+                <p className="text-h2 text-foreground font-bold">{metric.value}</p>
                 <p className="text-caption text-muted-foreground">{metric.label}</p>
               </div>
             ))}
           </div>
 
           {/* Recent activity summary */}
-          <div className="mt-4 pt-4 border-t border-border">
+          <div className="border-border mt-4 border-t pt-4">
             <div className="flex items-center justify-between">
               <p className="text-small text-muted-foreground">Platform health score</p>
               <div className="flex items-center gap-2">
-                <div className="w-32 h-2 rounded-full bg-muted overflow-hidden">
-                  <div className="h-full rounded-full bg-success" style={{ width: "94%" }} />
+                <div className="bg-muted h-2 w-32 overflow-hidden rounded-full">
+                  <div className="bg-success h-full rounded-full" style={{ width: "94%" }} />
                 </div>
-                <span className="text-body font-semibold text-success">94%</span>
+                <span className="text-body text-success font-semibold">94%</span>
               </div>
             </div>
           </div>

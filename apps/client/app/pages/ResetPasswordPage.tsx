@@ -1,21 +1,23 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { z } from "zod";
-import {  NexusButton  } from "@casbin/ui";
-import {  NexusInput  } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
+import { NexusInput } from "@casbin/ui";
 import { FormGroup } from "@/components/patterns/form-group";
 import { Hexagon, CheckCircle, ShieldCheck, Lock, Eye, EyeOff } from "lucide-react";
 import { authApi } from "@/lib/api/auth";
 import { toast } from "@casbin/ui";
 import { motion, AnimatePresence } from "framer-motion";
 
-const resetSchema = z.object({
-  password: z.string().min(8, "Minimal 8 karakter"),
-  confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
-}).refine((d) => d.password === d.confirmPassword, {
-  message: "Password tidak cocok",
-  path: ["confirmPassword"],
-});
+const resetSchema = z
+  .object({
+    password: z.string().min(8, "Minimal 8 karakter"),
+    confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Password tidak cocok",
+    path: ["confirmPassword"],
+  });
 
 const requirements = [
   { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
@@ -64,48 +66,53 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="flex min-h-screen">
       {/* Left dark panel */}
-      <div className="hidden md:flex md:w-[400px] lg:w-[480px] bg-foreground relative overflow-hidden">
+      <div className="bg-foreground relative hidden overflow-hidden md:flex md:w-[400px] lg:w-[480px]">
         {/* Animated lock pattern */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-          backgroundImage: "radial-gradient(circle at 2px 2px, hsl(var(--background)) 1px, transparent 0)",
-          backgroundSize: "24px 24px",
-        }} />
-        
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 2px 2px, hsl(var(--background)) 1px, transparent 0)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+
         <motion.div
           animate={{ rotate: [0, 360] }}
           transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
         >
-          <div className="h-[300px] w-[300px] rounded-full border border-background/5" />
+          <div className="border-background/5 h-[300px] w-[300px] rounded-full border" />
         </motion.div>
         <motion.div
           animate={{ rotate: [360, 0] }}
           transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
         >
-          <div className="h-[200px] w-[200px] rounded-full border border-background/8" />
+          <div className="border-background/8 h-[200px] w-[200px] rounded-full border" />
         </motion.div>
 
-        <div className="relative z-10 flex flex-col items-center justify-center w-full text-background p-12">
+        <div className="text-background relative z-10 flex w-full flex-col items-center justify-center p-12">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", delay: 0.2 }}
-            className="h-20 w-20 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center mb-6"
+            className="bg-primary/20 border-primary/30 mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border"
           >
-            <ShieldCheck className="h-10 w-10 text-primary" />
+            <ShieldCheck className="text-primary h-10 w-10" />
           </motion.div>
-          <h2 className="text-2xl font-bold mb-2">Secure Reset</h2>
-          <p className="text-sm opacity-50 text-center max-w-xs">
-            Your password is encrypted end-to-end. Choose a strong password to keep your account safe.
+          <h2 className="mb-2 text-2xl font-bold">Secure Reset</h2>
+          <p className="max-w-xs text-center text-sm opacity-50">
+            Your password is encrypted end-to-end. Choose a strong password to keep your account
+            safe.
           </p>
         </div>
       </div>
 
       {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center bg-background p-6 sm:p-12">
+      <div className="bg-background flex flex-1 items-center justify-center p-6 sm:p-12">
         <AnimatePresence mode="wait">
           {!done ? (
             <motion.div
@@ -117,11 +124,13 @@ export default function ResetPasswordPage() {
               className="w-full max-w-[420px] space-y-8"
             >
               <div className="flex items-center gap-3 md:hidden">
-                <Hexagon className="h-8 w-8 text-primary" />
+                <Hexagon className="text-primary h-8 w-8" />
               </div>
 
               <div className="space-y-2">
-                <h1 className="text-3xl font-bold text-foreground tracking-tight">Set new password</h1>
+                <h1 className="text-foreground text-3xl font-bold tracking-tight">
+                  Set new password
+                </h1>
                 <p className="text-muted-foreground">
                   Your new password must be different from previously used passwords.
                 </p>
@@ -141,7 +150,7 @@ export default function ResetPasswordPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 transition-colors"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -162,7 +171,9 @@ export default function ResetPasswordPage() {
                           key={req.label}
                           className={`flex items-center gap-2 text-xs transition-colors ${met ? "text-success" : "text-muted-foreground"}`}
                         >
-                          <div className={`h-4 w-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${met ? "border-success bg-success/10" : "border-border"}`}>
+                          <div
+                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${met ? "border-success bg-success/10" : "border-border"}`}
+                          >
                             {met && <CheckCircle className="h-3 w-3" />}
                           </div>
                           <span>{req.label}</span>
@@ -185,24 +196,24 @@ export default function ResetPasswordPage() {
                     <button
                       type="button"
                       onClick={() => setShowConfirm(!showConfirm)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 transition-colors"
                     >
                       {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                   {confirmPassword.length > 0 && password === confirmPassword && (
-                    <p className="text-xs text-success mt-1 flex items-center gap-1">
+                    <p className="text-success mt-1 flex items-center gap-1 text-xs">
                       <CheckCircle className="h-3 w-3" /> Passwords match
                     </p>
                   )}
                 </FormGroup>
 
-                <NexusButton className="w-full h-11 gap-2" loading={loading}>
+                <NexusButton className="h-11 w-full gap-2" loading={loading}>
                   <Lock className="h-4 w-4" /> Reset Password
                 </NexusButton>
               </form>
 
-              <Link to="/login" className="block text-center text-sm text-primary hover:underline">
+              <Link to="/login" className="text-primary block text-center text-sm hover:underline">
                 Back to Sign In
               </Link>
             </motion.div>
@@ -212,7 +223,7 @@ export default function ResetPasswordPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
-              className="w-full max-w-md text-center space-y-6"
+              className="w-full max-w-md space-y-6 text-center"
             >
               <motion.div
                 initial={{ scale: 0 }}
@@ -220,15 +231,19 @@ export default function ResetPasswordPage() {
                 transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
                 className="flex justify-center"
               >
-                <div className="h-24 w-24 rounded-full bg-success/10 border-4 border-success/20 flex items-center justify-center">
-                  <CheckCircle className="h-12 w-12 text-success" />
+                <div className="bg-success/10 border-success/20 flex h-24 w-24 items-center justify-center rounded-full border-4">
+                  <CheckCircle className="text-success h-12 w-12" />
                 </div>
               </motion.div>
-              <h1 className="text-3xl font-bold text-foreground">All done!</h1>
-              <p className="text-muted-foreground max-w-xs mx-auto">
-                Your password has been successfully reset. You can now sign in with your new password.
+              <h1 className="text-foreground text-3xl font-bold">All done!</h1>
+              <p className="text-muted-foreground mx-auto max-w-xs">
+                Your password has been successfully reset. You can now sign in with your new
+                password.
               </p>
-              <NexusButton className="w-full max-w-xs mx-auto h-11" onClick={() => navigate("/login")}>
+              <NexusButton
+                className="mx-auto h-11 w-full max-w-xs"
+                onClick={() => navigate("/login")}
+              >
                 Continue to Sign In
               </NexusButton>
             </motion.div>

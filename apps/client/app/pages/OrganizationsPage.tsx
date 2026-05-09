@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTable } from "@/components/patterns/data-table";
-import {  NexusBadge  } from "@casbin/ui";
-import {  NexusButton  } from "@casbin/ui";
+import { NexusBadge } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
 import { Plus, MoreHorizontal } from "lucide-react";
 
 const mockOrgs = [
@@ -18,7 +18,7 @@ export default function OrganizationsPage() {
     {
       key: "status",
       header: "Status",
-      render: (o: typeof mockOrgs[0]) => (
+      render: (o: (typeof mockOrgs)[0]) => (
         <NexusBadge variant={o.status === "active" ? "success" : "danger"}>{o.status}</NexusBadge>
       ),
     },

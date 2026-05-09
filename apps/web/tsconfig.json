@@ -1,15 +1,8 @@
 {
   "compilerOptions": {
     "target": "es2017",
-    "types": [
-      "@serwist/next/typings"
-    ],
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext",
-      "webworker"
-    ],
+    "types": ["@serwist/next/typings"],
+    "lib": ["dom", "dom.iterable", "esnext", "webworker"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -29,12 +22,8 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "~/*": [
-        "./src/*"
-      ],
-      "content": [
-        "./.velite"
-      ]
+      "~/*": ["./src/*"],
+      "content": ["./.velite"]
     }
   },
   "include": [
@@ -44,10 +33,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    ".next",
-    ".velite",
-    "public/sw.js"
-  ]
+  "exclude": ["node_modules", ".next", ".velite", "public/sw.js"]
 }

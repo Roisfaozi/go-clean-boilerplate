@@ -265,11 +265,7 @@ Contoh awal:
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [
-        ".next/**",
-        "dist/**",
-        "build/**"
-      ]
+      "outputs": [".next/**", "dist/**", "build/**"]
     },
     "lint": {
       "dependsOn": ["^lint"],

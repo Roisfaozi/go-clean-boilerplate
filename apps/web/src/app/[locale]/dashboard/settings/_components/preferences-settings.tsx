@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 
 export function PreferencesSettings() {
@@ -14,9 +8,7 @@ export function PreferencesSettings() {
     <Card>
       <CardHeader>
         <CardTitle>App Preferences</CardTitle>
-        <CardDescription>
-          Customize your interface and density settings.
-        </CardDescription>
+        <CardDescription>Customize your interface and density settings.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex max-w-2xl flex-col gap-6 py-4">

@@ -27,7 +27,7 @@ const nexusButtonVariants = cva(
       variant: "primary",
       size: "default",
     },
-  }
+  },
 );
 
 export interface NexusButtonProps
@@ -51,7 +51,7 @@ const NexusButton = React.forwardRef<HTMLButtonElement, NexusButtonProps>(
         {children}
       </Comp>
     );
-  }
+  },
 );
 NexusButton.displayName = "NexusButton";
 

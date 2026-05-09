@@ -1,13 +1,7 @@
 "use client";
 
 import { useSettings } from "./settings-context";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Label } from "~/components/ui/label";
 import { Switch } from "~/components/ui/switch";
 import {
@@ -59,16 +53,13 @@ export function PreferencesSettingsCard() {
           <div className="flex flex-col space-y-1">
             <Label htmlFor="mfa">Require MFA</Label>
             <p className="text-muted-foreground text-xs">
-              Force all members to enable Multi-Factor Authentication to access
-              this organization.
+              Force all members to enable Multi-Factor Authentication to access this organization.
             </p>
           </div>
           <Switch
             id="mfa"
             checked={settings.mfa_required || false}
-            onCheckedChange={(checked) =>
-              updateSetting("mfa_required", checked)
-            }
+            onCheckedChange={(checked) => updateSetting("mfa_required", checked)}
           />
         </div>
       </CardContent>

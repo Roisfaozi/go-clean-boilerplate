@@ -51,12 +51,7 @@ interface UserDialogProps {
   onSuccess: () => void;
 }
 
-export function UserDialog({
-  open,
-  onOpenChange,
-  user,
-  onSuccess,
-}: UserDialogProps) {
+export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const isEdit = !!user;
 
@@ -104,10 +99,7 @@ export function UserDialog({
         // I will only allow Status update for edit mode then.
 
         if (user.status !== data.status && data.status) {
-          await usersApi.updateStatus(
-            user.id,
-            data.status as "active" | "suspended" | "banned"
-          );
+          await usersApi.updateStatus(user.id, data.status as "active" | "suspended" | "banned");
         }
 
         toast.success("User updated successfully");
@@ -157,11 +149,7 @@ export function UserDialog({
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="John Doe"
-                      {...field}
-                      disabled={isEdit}
-                    />
+                    <Input placeholder="John Doe" {...field} disabled={isEdit} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -207,11 +195,7 @@ export function UserDialog({
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="••••••••"
-                        type="password"
-                        {...field}
-                      />
+                      <Input placeholder="••••••••" type="password" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -226,10 +210,7 @@ export function UserDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
@@ -249,9 +230,7 @@ export function UserDialog({
 
             <DialogFooter>
               <Button type="submit" disabled={isLoading}>
-                {isLoading && (
-                  <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-                )}
+                {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
                 {isEdit ? "Save Changes" : "Create User"}
               </Button>
             </DialogFooter>

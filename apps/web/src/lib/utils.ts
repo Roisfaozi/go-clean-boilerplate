@@ -8,8 +8,6 @@ export class FreePlanLimitError extends Error {
   }
 }
 
-
-
 export function isRedirectError(error: unknown): boolean {
   return (
     error !== null &&
@@ -20,8 +18,7 @@ export function isRedirectError(error: unknown): boolean {
   );
 }
 
-const alphanumeric =
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const alphanumeric = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 export function generateId(length = 10): string {
   const random: RandomReader = {

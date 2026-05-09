@@ -27,7 +27,7 @@ export default function Marquee({
         {
           "[flex-direction:column]": vertical,
         },
-        className
+        className,
       )}
     >
       {Array(repeat)

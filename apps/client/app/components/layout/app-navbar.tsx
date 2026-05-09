@@ -1,14 +1,7 @@
 import { useUIStore } from "@/stores";
-import {  NexusButton  } from "@casbin/ui";
-import {
-  Search,
-  Sun,
-  Moon,
-  Menu,
-  Maximize2,
-  Minimize2,
-} from "lucide-react";
-import {  NexusInput  } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
+import { Search, Sun, Moon, Menu, Maximize2, Minimize2 } from "lucide-react";
+import { NexusInput } from "@casbin/ui";
 import { NotificationBell } from "@/components/realtime/notification-bell";
 import { RealtimeIndicator } from "@/components/realtime/realtime-indicator";
 import { PresenceAvatars } from "@/components/realtime/presence-avatars";
@@ -17,26 +10,23 @@ export function AppNavbar() {
   const { theme, setTheme, density, setDensity, toggleSidebarCollapse } = useUIStore();
 
   return (
-    <header className="h-navbar border-b border-border bg-background flex items-center justify-between px-layout sticky top-0 z-10">
-      <div className="flex items-center gap-3 flex-1">
+    <header className="h-navbar border-border bg-background px-layout sticky top-0 z-10 flex items-center justify-between border-b">
+      <div className="flex flex-1 items-center gap-3">
         <button
           onClick={toggleSidebarCollapse}
-          className="lg:hidden p-2 rounded-md hover:bg-surface-hover text-muted-foreground"
+          className="hover:bg-surface-hover text-muted-foreground rounded-md p-2 lg:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>
-        <div className="relative max-w-md w-full hidden sm:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <NexusInput
-            placeholder="Search..."
-            className="pl-10 h-9"
-          />
+        <div className="relative hidden w-full max-w-md sm:block">
+          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+          <NexusInput placeholder="Search..." className="h-9 pl-10" />
         </div>
       </div>
 
       <div className="flex items-center gap-2">
         {/* Presence avatars (hidden on small screens) */}
-        <div className="hidden lg:block mr-2">
+        <div className="mr-2 hidden lg:block">
           <PresenceAvatars max={3} size="sm" showCount={false} />
         </div>
 
@@ -48,7 +38,11 @@ export function AppNavbar() {
           onClick={() => setDensity(density === "comfort" ? "compact" : "comfort")}
           title={density === "comfort" ? "Switch to compact" : "Switch to comfort"}
         >
-          {density === "comfort" ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          {density === "comfort" ? (
+            <Minimize2 className="h-4 w-4" />
+          ) : (
+            <Maximize2 className="h-4 w-4" />
+          )}
         </NexusButton>
         <NexusButton
           variant="ghost"
@@ -60,7 +54,7 @@ export function AppNavbar() {
 
         <NotificationBell />
 
-        <div className="ml-2 h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-small font-semibold text-primary">
+        <div className="bg-primary/20 text-small text-primary ml-2 flex h-8 w-8 items-center justify-center rounded-full font-semibold">
           A
         </div>
       </div>

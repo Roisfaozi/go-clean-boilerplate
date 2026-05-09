@@ -1,18 +1,30 @@
 import { cn } from "@casbin/ui";
 import {
-  LineChart as ReLineChart, Line, AreaChart as ReAreaChart, Area,
-  BarChart as ReBarChart, Bar, PieChart as RePieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  LineChart as ReLineChart,
+  Line,
+  AreaChart as ReAreaChart,
+  Area,
+  BarChart as ReBarChart,
+  Bar,
+  PieChart as RePieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
 } from "recharts";
 
 const CHART_COLORS = [
-  "hsl(239, 84%, 67%)",  // primary
-  "hsl(168, 76%, 42%)",  // secondary
-  "hsl(258, 90%, 66%)",  // accent
-  "hsl(217, 91%, 60%)",  // info
-  "hsl(160, 84%, 39%)",  // success
-  "hsl(38, 92%, 50%)",   // warning
-  "hsl(0, 72%, 51%)",    // danger
+  "hsl(239, 84%, 67%)", // primary
+  "hsl(168, 76%, 42%)", // secondary
+  "hsl(258, 90%, 66%)", // accent
+  "hsl(217, 91%, 60%)", // info
+  "hsl(160, 84%, 39%)", // success
+  "hsl(38, 92%, 50%)", // warning
+  "hsl(0, 72%, 51%)", // danger
 ];
 
 interface ChartCardProps {
@@ -24,10 +36,10 @@ interface ChartCardProps {
 
 function ChartCard({ title, description, children, className }: ChartCardProps) {
   return (
-    <div className={cn("bg-card border border-border rounded-lg shadow-sm p-card-pad", className)}>
+    <div className={cn("bg-card border-border p-card-pad rounded-lg border shadow-sm", className)}>
       {(title || description) && (
         <div className="mb-4 space-y-1">
-          {title && <h3 className="text-h4 font-semibold text-foreground">{title}</h3>}
+          {title && <h3 className="text-h4 text-foreground font-semibold">{title}</h3>}
           {description && <p className="text-caption text-muted-foreground">{description}</p>}
         </div>
       )}
@@ -47,7 +59,15 @@ interface NexusLineChartProps {
   className?: string;
 }
 
-export function NexusLineChart({ data, xKey, lines, height = 300, title, description, className }: NexusLineChartProps) {
+export function NexusLineChart({
+  data,
+  xKey,
+  lines,
+  height = 300,
+  title,
+  description,
+  className,
+}: NexusLineChartProps) {
   return (
     <ChartCard title={title} description={description} className={className}>
       <ResponsiveContainer width="100%" height={height}>
@@ -55,7 +75,14 @@ export function NexusLineChart({ data, xKey, lines, height = 300, title, descrip
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis dataKey={xKey} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
           <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-          <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 13 }} />
+          <Tooltip
+            contentStyle={{
+              background: "hsl(var(--popover))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: 8,
+              fontSize: 13,
+            }}
+          />
           <Legend />
           {lines.map((line, i) => (
             <Line
@@ -86,7 +113,15 @@ interface NexusAreaChartProps {
   className?: string;
 }
 
-export function NexusAreaChart({ data, xKey, areas, height = 300, title, description, className }: NexusAreaChartProps) {
+export function NexusAreaChart({
+  data,
+  xKey,
+  areas,
+  height = 300,
+  title,
+  description,
+  className,
+}: NexusAreaChartProps) {
   return (
     <ChartCard title={title} description={description} className={className}>
       <ResponsiveContainer width="100%" height={height}>
@@ -94,7 +129,14 @@ export function NexusAreaChart({ data, xKey, areas, height = 300, title, descrip
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis dataKey={xKey} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
           <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-          <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 13 }} />
+          <Tooltip
+            contentStyle={{
+              background: "hsl(var(--popover))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: 8,
+              fontSize: 13,
+            }}
+          />
           <Legend />
           {areas.map((area, i) => {
             const color = area.color || CHART_COLORS[i % CHART_COLORS.length];
@@ -129,7 +171,16 @@ interface NexusBarChartProps {
   className?: string;
 }
 
-export function NexusBarChart({ data, xKey, bars, height = 300, title, description, stacked, className }: NexusBarChartProps) {
+export function NexusBarChart({
+  data,
+  xKey,
+  bars,
+  height = 300,
+  title,
+  description,
+  stacked,
+  className,
+}: NexusBarChartProps) {
   return (
     <ChartCard title={title} description={description} className={className}>
       <ResponsiveContainer width="100%" height={height}>
@@ -137,7 +188,14 @@ export function NexusBarChart({ data, xKey, bars, height = 300, title, descripti
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis dataKey={xKey} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
           <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-          <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 13 }} />
+          <Tooltip
+            contentStyle={{
+              background: "hsl(var(--popover))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: 8,
+              fontSize: 13,
+            }}
+          />
           <Legend />
           {bars.map((bar, i) => (
             <Bar
@@ -165,7 +223,14 @@ interface NexusPieChartProps {
   className?: string;
 }
 
-export function NexusPieChart({ data, height = 300, title, description, donut, className }: NexusPieChartProps) {
+export function NexusPieChart({
+  data,
+  height = 300,
+  title,
+  description,
+  donut,
+  className,
+}: NexusPieChartProps) {
   return (
     <ChartCard title={title} description={description} className={className}>
       <ResponsiveContainer width="100%" height={height}>
@@ -185,7 +250,14 @@ export function NexusPieChart({ data, height = 300, title, description, donut, c
               <Cell key={i} fill={entry.color || CHART_COLORS[i % CHART_COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 13 }} />
+          <Tooltip
+            contentStyle={{
+              background: "hsl(var(--popover))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: 8,
+              fontSize: 13,
+            }}
+          />
           <Legend />
         </RePieChart>
       </ResponsiveContainer>
@@ -213,7 +285,14 @@ interface NexusHeatmapProps {
   className?: string;
 }
 
-export function NexusHeatmap({ data, xLabels, yLabels, title, description, className }: NexusHeatmapProps) {
+export function NexusHeatmap({
+  data,
+  xLabels,
+  yLabels,
+  title,
+  description,
+  className,
+}: NexusHeatmapProps) {
   const maxVal = Math.max(...data.map((d) => d.value), 1);
 
   return (
@@ -224,7 +303,12 @@ export function NexusHeatmap({ data, xLabels, yLabels, title, description, class
             <tr>
               <th className="w-20" />
               {xLabels.map((x) => (
-                <th key={x} className="text-caption text-muted-foreground font-normal px-1 py-2 text-center">{x}</th>
+                <th
+                  key={x}
+                  className="text-caption text-muted-foreground px-1 py-2 text-center font-normal"
+                >
+                  {x}
+                </th>
               ))}
             </tr>
           </thead>
@@ -238,7 +322,7 @@ export function NexusHeatmap({ data, xLabels, yLabels, title, description, class
                   return (
                     <td key={x} className="p-0.5">
                       <div
-                        className="aspect-square rounded-sm flex items-center justify-center text-caption"
+                        className="text-caption flex aspect-square items-center justify-center rounded-sm"
                         style={{
                           backgroundColor: `hsl(239, 84%, 67%, ${intensity * 0.8 + 0.05})`,
                           color: intensity > 0.5 ? "white" : "hsl(var(--muted-foreground))",
@@ -268,12 +352,20 @@ interface SparklineProps {
   className?: string;
 }
 
-export function Sparkline({ data, color = "hsl(239, 84%, 67%)", width = 120, height = 32, className }: SparklineProps) {
+export function Sparkline({
+  data,
+  color = "hsl(239, 84%, 67%)",
+  width = 120,
+  height = 32,
+  className,
+}: SparklineProps) {
   if (data.length < 2) return null;
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = max - min || 1;
-  const points = data.map((v, i) => `${(i / (data.length - 1)) * width},${height - ((v - min) / range) * height}`).join(" ");
+  const points = data
+    .map((v, i) => `${(i / (data.length - 1)) * width},${height - ((v - min) / range) * height}`)
+    .join(" ");
 
   return (
     <svg width={width} height={height} className={cn("inline-block", className)}>

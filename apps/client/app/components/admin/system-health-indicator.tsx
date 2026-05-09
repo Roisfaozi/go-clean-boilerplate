@@ -1,9 +1,16 @@
 import { cn } from "@casbin/ui";
-import {  NexusCard  } from "@casbin/ui";
-import {  Badge  } from "@casbin/ui";
+import { NexusCard } from "@casbin/ui";
+import { Badge } from "@casbin/ui";
 import {
-  CheckCircle2, AlertTriangle, XCircle, Activity,
-  Database, Globe, Cpu, HardDrive, Clock,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Activity,
+  Database,
+  Globe,
+  Cpu,
+  HardDrive,
+  Clock,
 } from "lucide-react";
 
 export interface ServiceHealth {
@@ -43,11 +50,13 @@ const statusConfig = {
 };
 
 function HealthBar({ value }: { value: number }) {
-  const color =
-    value >= 99.9 ? "bg-success" : value >= 99 ? "bg-warning" : "bg-destructive";
+  const color = value >= 99.9 ? "bg-success" : value >= 99 ? "bg-warning" : "bg-destructive";
   return (
-    <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
-      <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${value}%` }} />
+    <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+      <div
+        className={cn("h-full rounded-full transition-all", color)}
+        style={{ width: `${value}%` }}
+      />
     </div>
   );
 }
@@ -81,15 +90,15 @@ export function SystemHealthIndicator({ services, overallStatus }: SystemHealthI
     <div className="space-y-4">
       {/* Overall status banner */}
       <NexusCard className={cn("flex items-center gap-4", cfg.bg, "border-0")}>
-        <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center", cfg.bg)}>
+        <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", cfg.bg)}>
           <OverallIcon className={cn("h-6 w-6", cfg.color)} />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-medium text-muted-foreground">System Status</p>
+          <p className="text-muted-foreground text-sm font-medium">System Status</p>
           <p className={cn("text-lg font-bold", cfg.color)}>{cfg.label}</p>
         </div>
         <Badge variant={cfg.badge} className="gap-1.5">
-          <span className={cn("h-2 w-2 rounded-full animate-pulse", cfg.dot)} />
+          <span className={cn("h-2 w-2 animate-pulse rounded-full", cfg.dot)} />
           {cfg.label}
         </Badge>
       </NexusCard>
@@ -101,19 +110,24 @@ export function SystemHealthIndicator({ services, overallStatus }: SystemHealthI
           const ServiceIcon = service.icon ?? defaultIcons[service.name] ?? Activity;
           return (
             <NexusCard key={service.name} className="flex items-center gap-4 py-3">
-              <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center shrink-0", sc.bg)}>
+              <div
+                className={cn(
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                  sc.bg,
+                )}
+              >
                 <ServiceIcon className={cn("h-4 w-4", sc.color)} />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-foreground">{service.name}</span>
-                  <Badge variant={sc.badge} className="text-[10px] gap-1 px-1.5 py-0">
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-foreground text-sm font-medium">{service.name}</span>
+                  <Badge variant={sc.badge} className="gap-1 px-1.5 py-0 text-[10px]">
                     <span className={cn("h-1.5 w-1.5 rounded-full", sc.dot)} />
                     {sc.label}
                   </Badge>
                 </div>
                 <HealthBar value={service.uptime} />
-                <div className="flex items-center gap-4 mt-1.5 text-xs text-muted-foreground">
+                <div className="text-muted-foreground mt-1.5 flex items-center gap-4 text-xs">
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {service.latency_ms}ms

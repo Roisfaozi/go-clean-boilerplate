@@ -1,21 +1,11 @@
-import {
-  Shield,
-  Zap,
-  Layout,
-  Lock,
-  Database,
-  BarChart,
-  Server,
-  Globe,
-} from "lucide-react";
+import { Shield, Zap, Layout, Lock, Database, BarChart, Server, Globe } from "lucide-react";
 import { BentoCard, BentoGrid } from "~/components/magicui/bento-grid";
 import { cn } from "~/lib/utils";
 
 const features = [
   {
     name: "Adaptive Density Engine",
-    description:
-      "Switch between Comfort (SaaS) and Compact (Enterprise) modes instantly.",
+    description: "Switch between Comfort (SaaS) and Compact (Enterprise) modes instantly.",
     icon: Layout,
     href: "/dashboard",
     cta: "Try it out",
@@ -26,8 +16,7 @@ const features = [
   },
   {
     name: "Casbin RBAC",
-    description:
-      "Enterprise-grade authorization with role inheritance and matrix management.",
+    description: "Enterprise-grade authorization with role inheritance and matrix management.",
     icon: Shield,
     href: "/dashboard/access",
     cta: "Manage access",
@@ -38,8 +27,7 @@ const features = [
   },
   {
     name: "Multi-tenant Ready",
-    description:
-      "Built-in organization switching and strict data isolation for every tenant.",
+    description: "Built-in organization switching and strict data isolation for every tenant.",
     icon: Globe,
     href: "/dashboard/organization/settings",
     cta: "Configure org",
@@ -50,8 +38,7 @@ const features = [
   },
   {
     name: "Real-time Distributed WS",
-    description:
-      "WebSocket scaling with Redis Pub/Sub and presence tracking out of the box.",
+    description: "WebSocket scaling with Redis Pub/Sub and presence tracking out of the box.",
     icon: Zap,
     href: "/dashboard",
     cta: "See live activity",
@@ -74,8 +61,8 @@ export default function Features() {
             Enterprise foundation, SaaS speed.
           </h2>
           <p className="text-muted-foreground text-lg">
-            NexusOS provides the heavy lifting so you can focus on building your
-            core features. All powered by Go and Next.js.
+            NexusOS provides the heavy lifting so you can focus on building your core features. All
+            powered by Go and Next.js.
           </p>
         </div>
 

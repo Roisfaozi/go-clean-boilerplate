@@ -53,9 +53,7 @@ export function RecentActivity() {
   return (
     <div className="flex flex-col gap-4 md:col-span-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold tracking-tight">
-          Recent Activity
-        </h2>
+        <h2 className="text-lg font-semibold tracking-tight">Recent Activity</h2>
 
         <Link href="/dashboard/audit">
           <Button variant="ghost" size="sm" className="gap-1">
@@ -85,17 +83,12 @@ export function RecentActivity() {
               <ActivitySkeleton />
             ) : recentLogs.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="text-muted-foreground py-8 text-center"
-                >
+                <TableCell colSpan={5} className="text-muted-foreground py-8 text-center">
                   No recent activity found.
                 </TableCell>
               </TableRow>
             ) : (
-              recentLogs.map((log) => (
-                <MemoizedActivityRow key={log.id} log={log} now={now} />
-              ))
+              recentLogs.map((log) => <MemoizedActivityRow key={log.id} log={log} now={now} />)
             )}
           </TableBody>
         </Table>
@@ -136,21 +129,14 @@ const MemoizedActivityRow = memo(function ActivityRow({
       <TableCell className="text-xs font-medium">{log.user_id}</TableCell>
 
       <TableCell>
-        <Badge
-          variant="outline"
-          className="bg-muted/50 font-mono text-[10px] uppercase"
-        >
+        <Badge variant="outline" className="bg-muted/50 font-mono text-[10px] uppercase">
           {log.action}
         </Badge>
       </TableCell>
 
-      <TableCell className="text-muted-foreground text-xs">
-        {log.entity}
-      </TableCell>
+      <TableCell className="text-muted-foreground text-xs">{log.entity}</TableCell>
 
-      <TableCell className="text-muted-foreground text-xs">
-        {log.ip_address}
-      </TableCell>
+      <TableCell className="text-muted-foreground text-xs">{log.ip_address}</TableCell>
 
       <TableCell className="text-muted-foreground text-right text-xs">
         {formatTimeAgo(log.created_at, now)}

@@ -27,20 +27,14 @@ export function DangerZoneCard() {
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground text-sm">
-          Once you delete an organization, there is no going back. Please be
-          certain.
+          Once you delete an organization, there is no going back. Please be certain.
         </p>
       </CardContent>
       <CardFooter className="border-destructive/10 flex items-center justify-between border-t px-6 py-4">
         <div className="text-muted-foreground text-xs italic">
-          Owned by{" "}
-          {currentOrganization.owner_id === "me" ? "you" : "another admin"}
+          Owned by {currentOrganization.owner_id === "me" ? "you" : "another admin"}
         </div>
-        <Button
-          variant="destructive"
-          onClick={handleDelete}
-          disabled={isDeleting}
-        >
+        <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
           {isDeleting ? (
             <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
           ) : (

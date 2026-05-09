@@ -178,8 +178,6 @@ toast.success = (title: string, props?: Toast) => toast({ ...props, title, varia
 toast.error = (title: string, props?: Toast) => toast({ ...props, title, variant: "destructive" });
 toast.warning = (title: string, props?: Toast) => toast({ ...props, title, variant: "default" });
 
-
-
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
 

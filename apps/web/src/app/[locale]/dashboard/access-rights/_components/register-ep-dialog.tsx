@@ -45,9 +45,7 @@ export function RegisterEpDialog() {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Register API Endpoint</DialogTitle>
-          <DialogDescription>
-            Add a new endpoint to the system catalog.
-          </DialogDescription>
+          <DialogDescription>Add a new endpoint to the system catalog.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
@@ -75,17 +73,11 @@ export function RegisterEpDialog() {
           </div>
         </div>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setIsOpen(false)}
-            disabled={isCreating}
-          >
+          <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isCreating}>
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isCreating || !path}>
-            {isCreating && (
-              <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-            )}
+            {isCreating && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
             Register
           </Button>
         </DialogFooter>

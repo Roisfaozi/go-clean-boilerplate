@@ -2,17 +2,35 @@ import { Link, useLocation } from "react-router";
 import { cn } from "@casbin/ui";
 import { useUIStore } from "@/stores";
 import {
-  LayoutDashboard, Users, Shield, Building2, FolderKanban, Settings,
-  ChevronLeft, ChevronRight, Hexagon, Palette, Component, KeyRound, Lock,
-  ChevronDown, FileText, UserCheck, ShieldCheck, Upload, HeartPulse, BarChart3,
-  Box, Globe, LogIn, UserPlus, KeySquare, AlertTriangle,
+  LayoutDashboard,
+  Users,
+  Shield,
+  Building2,
+  FolderKanban,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  Hexagon,
+  Palette,
+  Component,
+  KeyRound,
+  Lock,
+  ChevronDown,
+  FileText,
+  UserCheck,
+  ShieldCheck,
+  Upload,
+  HeartPulse,
+  BarChart3,
+  Box,
+  Globe,
+  LogIn,
+  UserPlus,
+  KeySquare,
+  AlertTriangle,
 } from "lucide-react";
 import { OrganizationSwitcher } from "@/features/organizations/organization-switcher";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@casbin/ui";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@casbin/ui";
 
 interface NavItem {
   label: string;
@@ -37,9 +55,7 @@ const navSections: NavSection[] = [
   {
     label: "Dashboard",
     defaultOpen: true,
-    items: [
-      { label: "Overview", path: "/dashboard", icon: LayoutDashboard },
-    ],
+    items: [{ label: "Overview", path: "/dashboard", icon: LayoutDashboard }],
   },
   {
     label: "Users",
@@ -148,7 +164,7 @@ function SidebarSection({
   const sectionKey = `section:${section.label}`;
   const { sidebarSectionOpen, setSidebarSectionOpen } = useUIStore();
   const stored = sidebarSectionOpen[sectionKey];
-  const open = stored ?? (section.defaultOpen ?? hasActiveChild);
+  const open = stored ?? section.defaultOpen ?? hasActiveChild;
   const setOpen = (value: boolean) => setSidebarSectionOpen(sectionKey, value);
 
   if (collapsed) {
@@ -162,10 +178,10 @@ function SidebarSection({
                 <Link
                   to={item.path}
                   className={cn(
-                    "flex items-center justify-center h-10 w-10 mx-auto rounded-md transition-colors duration-150",
+                    "mx-auto flex h-10 w-10 items-center justify-center rounded-md transition-colors duration-150",
                     isActive
                       ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
                   )}
                 >
                   <item.icon className="h-5 w-5" />
@@ -185,14 +201,11 @@ function SidebarSection({
     <div>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+        className="text-muted-foreground/70 hover:text-muted-foreground flex w-full items-center justify-between px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase transition-colors"
       >
         <span>{section.label}</span>
         <ChevronDown
-          className={cn(
-            "h-3.5 w-3.5 transition-transform duration-200",
-            open && "rotate-180"
-          )}
+          className={cn("h-3.5 w-3.5 transition-transform duration-200", open && "rotate-180")}
         />
       </button>
       {open && (
@@ -204,10 +217,10 @@ function SidebarSection({
                 key={item.path + item.label}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150",
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150",
                   isActive
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
                 )}
               >
                 <item.icon className="h-4.5 w-4.5 shrink-0" />
@@ -251,23 +264,23 @@ function SidebarSubSection({
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          "flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150",
+          "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150",
           hasActiveChild
             ? "text-sidebar-foreground"
-            : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
         )}
       >
         <Icon className="h-4.5 w-4.5 shrink-0" />
-        <span className="flex-1 text-left truncate">{subSection.label}</span>
+        <span className="flex-1 truncate text-left">{subSection.label}</span>
         <ChevronDown
           className={cn(
-            "h-3.5 w-3.5 transition-transform duration-200 shrink-0",
-            open && "rotate-180"
+            "h-3.5 w-3.5 shrink-0 transition-transform duration-200",
+            open && "rotate-180",
           )}
         />
       </button>
       {open && (
-        <div className="mt-0.5 ml-3 pl-3 border-l border-sidebar-border space-y-0.5">
+        <div className="border-sidebar-border mt-0.5 ml-3 space-y-0.5 border-l pl-3">
           {subSection.items.map((item) => {
             const isActive = currentPath === item.path;
             return (
@@ -275,10 +288,10 @@ function SidebarSubSection({
                 key={item.path + item.label}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150",
+                  "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150",
                   isActive
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
                 )}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
@@ -299,25 +312,27 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col bg-sidebar border-r border-sidebar-border h-screen sticky top-0 transition-all duration-300 z-20",
-        sidebarCollapsed ? "w-[68px]" : "w-[240px]"
+        "bg-sidebar border-sidebar-border sticky top-0 z-20 flex h-screen flex-col border-r transition-all duration-300",
+        sidebarCollapsed ? "w-[68px]" : "w-[240px]",
       )}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-14 border-b border-sidebar-border shrink-0">
-        <Hexagon className="h-7 w-7 text-primary shrink-0" />
+      <div className="border-sidebar-border flex h-14 shrink-0 items-center gap-3 border-b px-4">
+        <Hexagon className="text-primary h-7 w-7 shrink-0" />
         {!sidebarCollapsed && (
-          <span className="text-lg font-bold text-sidebar-foreground whitespace-nowrap">NexusOS</span>
+          <span className="text-sidebar-foreground text-lg font-bold whitespace-nowrap">
+            NexusOS
+          </span>
         )}
       </div>
 
       {/* Org Switcher */}
-      <div className="px-2 py-2 border-b border-sidebar-border">
+      <div className="border-sidebar-border border-b px-2 py-2">
         <OrganizationSwitcher collapsed={sidebarCollapsed} />
       </div>
 
       {/* Nav sections */}
-      <nav className="flex-1 py-3 px-2 space-y-4 overflow-y-auto">
+      <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
         {navSections.map((section) => (
           <SidebarSection
             key={section.label}
@@ -329,12 +344,16 @@ export function AppSidebar() {
       </nav>
 
       {/* Collapse toggle */}
-      <div className="p-2 border-t border-sidebar-border shrink-0">
+      <div className="border-sidebar-border shrink-0 border-t p-2">
         <button
           onClick={toggleSidebarCollapse}
-          className="flex items-center justify-center w-full py-2 rounded-md hover:bg-sidebar-accent text-muted-foreground transition-colors"
+          className="hover:bg-sidebar-accent text-muted-foreground flex w-full items-center justify-center rounded-md py-2 transition-colors"
         >
-          {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {sidebarCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
         </button>
       </div>
     </aside>

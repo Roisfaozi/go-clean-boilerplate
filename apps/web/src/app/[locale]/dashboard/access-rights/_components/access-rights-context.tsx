@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-  ReactNode,
-} from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
 import { accessApi, AccessRight, Endpoint } from "~/lib/api/access";
 
@@ -22,16 +15,10 @@ interface AccessRightsContextType {
   createEndpoint: (method: string, path: string) => Promise<void>;
   deleteAccessRight: (id: string) => Promise<void>;
   deleteEndpoint: (id: string) => Promise<void>;
-  toggleLink: (
-    accessRightId: string,
-    endpointId: string,
-    isLinked: boolean
-  ) => Promise<void>;
+  toggleLink: (accessRightId: string, endpointId: string, isLinked: boolean) => Promise<void>;
 }
 
-const AccessRightsContext = createContext<AccessRightsContextType | undefined>(
-  undefined
-);
+const AccessRightsContext = createContext<AccessRightsContextType | undefined>(undefined);
 
 export function AccessRightsProvider({ children }: { children: ReactNode }) {
   const [accessRights, setAccessRights] = useState<AccessRight[]>([]);
@@ -74,7 +61,7 @@ export function AccessRightsProvider({ children }: { children: ReactNode }) {
         setIsCreating(false);
       }
     },
-    [fetchData]
+    [fetchData],
   );
 
   const createEndpoint = useCallback(
@@ -91,7 +78,7 @@ export function AccessRightsProvider({ children }: { children: ReactNode }) {
         setIsCreating(false);
       }
     },
-    [fetchData]
+    [fetchData],
   );
 
   const deleteAccessRight = useCallback(
@@ -107,7 +94,7 @@ export function AccessRightsProvider({ children }: { children: ReactNode }) {
         setIsProcessing(null);
       }
     },
-    [fetchData]
+    [fetchData],
   );
 
   const deleteEndpoint = useCallback(
@@ -123,7 +110,7 @@ export function AccessRightsProvider({ children }: { children: ReactNode }) {
         setIsProcessing(null);
       }
     },
-    [fetchData]
+    [fetchData],
   );
 
   const toggleLink = useCallback(
@@ -145,7 +132,7 @@ export function AccessRightsProvider({ children }: { children: ReactNode }) {
         setIsProcessing(null);
       }
     },
-    [fetchData]
+    [fetchData],
   );
 
   return (
@@ -172,9 +159,7 @@ export function AccessRightsProvider({ children }: { children: ReactNode }) {
 export function useAccessRights() {
   const context = useContext(AccessRightsContext);
   if (context === undefined) {
-    throw new Error(
-      "useAccessRights must be used within an AccessRightsProvider"
-    );
+    throw new Error("useAccessRights must be used within an AccessRightsProvider");
   }
   return context;
 }

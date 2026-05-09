@@ -1,13 +1,24 @@
 import { useState, useMemo } from "react";
 import { z } from "zod";
 import { PageHeader } from "@/components/layout/page-header";
-import {  NexusButton  } from "@casbin/ui";
-import {  NexusBadge  } from "@casbin/ui";
-import { CrudTable, CrudFormDialog, DeleteDialog, type CrudColumnDef, type FieldDef } from "@/features/shared";
+import { NexusButton } from "@casbin/ui";
+import { NexusBadge } from "@casbin/ui";
+import {
+  CrudTable,
+  CrudFormDialog,
+  DeleteDialog,
+  type CrudColumnDef,
+  type FieldDef,
+} from "@/features/shared";
 import { Plus } from "lucide-react";
-import { useOrganizations, useCreateOrganization, useUpdateOrganization, useDeleteOrganization } from "./organizationHooks";
+import {
+  useOrganizations,
+  useCreateOrganization,
+  useUpdateOrganization,
+  useDeleteOrganization,
+} from "./organizationHooks";
 import type { Organization } from "@/lib/api/schemas";
-import {  Skeleton  } from "@casbin/ui";
+import { Skeleton } from "@casbin/ui";
 
 interface OrgRow extends Organization {
   id: string;
@@ -15,11 +26,51 @@ interface OrgRow extends Organization {
 }
 
 const mockOrgs: OrgRow[] = [
-  { id: "1", name: "Acme Corp", slug: "acme", status: "active", owner_id: "u1", members: 45, created_at: 1700000000 },
-  { id: "2", name: "Globex Inc", slug: "globex", status: "active", owner_id: "u2", members: 23, created_at: 1700100000 },
-  { id: "3", name: "Initech", slug: "initech", status: "suspended", owner_id: "u3", members: 12, created_at: 1700200000 },
-  { id: "4", name: "Umbrella Corp", slug: "umbrella", status: "active", owner_id: "u4", members: 67, created_at: 1700300000 },
-  { id: "5", name: "Stark Industries", slug: "stark", status: "active", owner_id: "u5", members: 150, created_at: 1700400000 },
+  {
+    id: "1",
+    name: "Acme Corp",
+    slug: "acme",
+    status: "active",
+    owner_id: "u1",
+    members: 45,
+    created_at: 1700000000,
+  },
+  {
+    id: "2",
+    name: "Globex Inc",
+    slug: "globex",
+    status: "active",
+    owner_id: "u2",
+    members: 23,
+    created_at: 1700100000,
+  },
+  {
+    id: "3",
+    name: "Initech",
+    slug: "initech",
+    status: "suspended",
+    owner_id: "u3",
+    members: 12,
+    created_at: 1700200000,
+  },
+  {
+    id: "4",
+    name: "Umbrella Corp",
+    slug: "umbrella",
+    status: "active",
+    owner_id: "u4",
+    members: 67,
+    created_at: 1700300000,
+  },
+  {
+    id: "5",
+    name: "Stark Industries",
+    slug: "stark",
+    status: "active",
+    owner_id: "u5",
+    members: 150,
+    created_at: 1700400000,
+  },
 ];
 
 const columns: CrudColumnDef<OrgRow>[] = [
@@ -27,32 +78,65 @@ const columns: CrudColumnDef<OrgRow>[] = [
   { id: "slug", header: "Slug", accessorKey: "slug" },
   { id: "members", header: "Members", accessorKey: "members", sortable: true },
   {
-    id: "status", header: "Status", accessorKey: "status",
+    id: "status",
+    header: "Status",
+    accessorKey: "status",
     filterable: true,
-    filterOptions: [{ label: "Active", value: "active" }, { label: "Suspended", value: "suspended" }],
-    cell: (row) => <NexusBadge variant={row.status === "active" ? "success" : "danger"}>{row.status}</NexusBadge>,
+    filterOptions: [
+      { label: "Active", value: "active" },
+      { label: "Suspended", value: "suspended" },
+    ],
+    cell: (row) => (
+      <NexusBadge variant={row.status === "active" ? "success" : "danger"}>{row.status}</NexusBadge>
+    ),
   },
 ];
 
 const createSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
-  slug: z.string().trim().min(1, "Slug is required").max(50).regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, hyphens only"),
+  slug: z
+    .string()
+    .trim()
+    .min(1, "Slug is required")
+    .max(50)
+    .regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, hyphens only"),
 });
 
 const editSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
-  slug: z.string().trim().min(1, "Slug is required").max(50).regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, hyphens only"),
+  slug: z
+    .string()
+    .trim()
+    .min(1, "Slug is required")
+    .max(50)
+    .regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, hyphens only"),
   status: z.string().min(1, "Status is required"),
 });
 
 const createFields: FieldDef[] = [
   { name: "name", label: "Name", type: "text", required: true, placeholder: "e.g. Acme Corp" },
-  { name: "slug", label: "Slug", type: "text", required: true, placeholder: "e.g. acme-corp", description: "URL-friendly identifier" },
+  {
+    name: "slug",
+    label: "Slug",
+    type: "text",
+    required: true,
+    placeholder: "e.g. acme-corp",
+    description: "URL-friendly identifier",
+  },
 ];
 
 const editFields: FieldDef[] = [
   ...createFields,
-  { name: "status", label: "Status", type: "select", required: true, options: [{ label: "Active", value: "active" }, { label: "Suspended", value: "suspended" }] },
+  {
+    name: "status",
+    label: "Status",
+    type: "select",
+    required: true,
+    options: [
+      { label: "Active", value: "active" },
+      { label: "Suspended", value: "suspended" },
+    ],
+  },
 ];
 
 export default function OrganizationsPage() {
@@ -96,12 +180,14 @@ export default function OrganizationsPage() {
           selectable
           onEdit={setEditItem}
           onDelete={setDeleteItem}
-          bulkActions={[{
-            label: "Delete Selected",
-            onClick: (ids) => {
-              ids.forEach(id => deleteOrg.mutate(String(id)));
+          bulkActions={[
+            {
+              label: "Delete Selected",
+              onClick: (ids) => {
+                ids.forEach((id) => deleteOrg.mutate(String(id)));
+              },
             },
-          }]}
+          ]}
         />
       )}
 

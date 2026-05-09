@@ -10,30 +10,18 @@ import {
   AlertTriangle,
   AlertCircle,
 } from "lucide-react";
-import {
-  useNotificationStore,
-  Notification,
-} from "~/stores/use-notification-store";
+import { useNotificationStore, Notification } from "~/stores/use-notification-store";
 import { useAuditStream } from "~/hooks/use-audit-stream";
 import { Button } from "~/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Badge } from "~/components/ui/badge";
 import { cn } from "~/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
 export function NotificationCenter() {
-  const {
-    notifications,
-    addNotification,
-    markAllAsRead,
-    clearAll,
-    markAsRead,
-  } = useNotificationStore();
+  const { notifications, addNotification, markAllAsRead, clearAll, markAsRead } =
+    useNotificationStore();
 
   const newLog = useAuditStream();
   const [open, setOpen] = React.useState(false);
@@ -79,11 +67,7 @@ export function NotificationCenter() {
           ) : (
             <div className="flex flex-col">
               {notifications.map((n) => (
-                <NotificationItem
-                  key={n.id}
-                  notification={n}
-                  onRead={() => markAsRead(n.id)}
-                />
+                <NotificationItem key={n.id} notification={n} onRead={() => markAsRead(n.id)} />
               ))}
             </div>
           )}
@@ -170,17 +154,14 @@ const NotificationItem = React.memo(function NotificationItem({
     <div
       className={cn(
         "hover:bg-muted/50 relative flex cursor-default gap-3 border-b p-4 transition-colors last:border-0",
-        !notification.read && "bg-primary/5"
+        !notification.read && "bg-primary/5",
       )}
       onClick={onRead}
     >
       <div className="mt-0.5">{getIcon(notification.type)}</div>
       <div className="flex-1 space-y-1">
         <p
-          className={cn(
-            "text-xs leading-none font-semibold",
-            !notification.read && "text-primary"
-          )}
+          className={cn("text-xs leading-none font-semibold", !notification.read && "text-primary")}
         >
           {notification.title}
         </p>

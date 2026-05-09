@@ -30,23 +30,22 @@ const MESSAGES: Record<UploadErrorCode, string> = {
 const RETRYABLE: UploadErrorCode[] = ["network_error", "unknown"];
 
 export function mapUploadError(error: unknown): MappedUploadError {
-  const raw =
-    typeof error === "string"
-      ? error
-      : error instanceof Error
-        ? error.message
-        : "";
+  const raw = typeof error === "string" ? error : error instanceof Error ? error.message : "";
   const lower = raw.toLowerCase();
 
   // Try to read a status code if it's an axios/ApiError-like object
   const status =
-    (error as { status?: number; response?: { status?: number } } | null)
-      ?.status ??
+    (error as { status?: number; response?: { status?: number } } | null)?.status ??
     (error as { response?: { status?: number } } | null)?.response?.status;
 
   let code: UploadErrorCode = "unknown";
 
-  if (status === 401 || status === 403 || lower.includes("forbidden") || lower.includes("permission")) {
+  if (
+    status === 401 ||
+    status === 403 ||
+    lower.includes("forbidden") ||
+    lower.includes("permission")
+  ) {
     code = "permission_denied";
   } else if (status === 413 || lower.includes("too large") || lower.includes("payload")) {
     code = "file_too_large";

@@ -58,7 +58,7 @@ export default [
     route("settings", "pages/SettingsPage.tsx"),
     route("design-system", "pages/DesignSystemPage.tsx"),
     route("components", "pages/ComponentShowcasePage.tsx"),
-    
+
     ...prefix("components", [
       route("buttons", "pages/showcase/ShowcaseButtons.tsx"),
       route("badges", "pages/showcase/ShowcaseBadges.tsx"),

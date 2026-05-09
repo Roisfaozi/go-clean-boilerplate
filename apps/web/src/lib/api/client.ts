@@ -19,10 +19,7 @@ let refreshPromise: Promise<boolean> | null = null;
 let isLoggingOut = false;
 
 class ApiClient {
-  public async request<T>(
-    endpoint: string,
-    options: FetchOptions = {}
-  ): Promise<T> {
+  public async request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
     const url = `${getBaseUrl()}${endpoint}`;
 
     const isFormData = options.body instanceof FormData;
@@ -54,9 +51,7 @@ class ApiClient {
         const cookieStore = await cookies();
 
         // Pass all cookies
-        const cookieStrings = cookieStore
-          .getAll()
-          .map((c) => `${c.name}=${c.value}`);
+        const cookieStrings = cookieStore.getAll().map((c) => `${c.name}=${c.value}`);
         if (cookieStrings.length > 0) {
           headers["Cookie"] = cookieStrings.join("; ");
         }
@@ -121,8 +116,7 @@ class ApiClient {
     } catch (error) {
       if (
         error instanceof Error &&
-        (error.message === "Session expired" ||
-          error.message === "Unauthenticated")
+        (error.message === "Session expired" || error.message === "Unauthenticated")
       ) {
         throw error;
       }
@@ -175,9 +169,7 @@ class ApiClient {
       const isDashboardPage = path.includes("/dashboard");
 
       if (!isAuthPage && isDashboardPage) {
-        const returnTo = encodeURIComponent(
-          window.location.pathname + window.location.search
-        );
+        const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
 
         // Clear HttpOnly cookies via server-side API route, then redirect
         fetch("/api/auth/logout", {
@@ -206,8 +198,7 @@ class ApiClient {
     if (!response.ok) {
       if (response.status === 502 || data?.code === "BACKEND_OFFLINE") {
         const message =
-          data?.message ||
-          "Gagal terhubung ke API Server. Pastikan backend sudah menyala.";
+          data?.message || "Gagal terhubung ke API Server. Pastikan backend sudah menyala.";
 
         if (typeof window !== "undefined") {
           import("sonner").then(({ toast }) => {
@@ -221,9 +212,7 @@ class ApiClient {
       }
 
       const errorMessage =
-        data?.error ||
-        data?.message ||
-        `Error ${response.status}: ${response.statusText}`;
+        data?.error || data?.message || `Error ${response.status}: ${response.statusText}`;
       throw new Error(errorMessage);
     }
 

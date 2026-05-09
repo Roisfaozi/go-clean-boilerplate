@@ -120,13 +120,7 @@ export default async function RootLayout({
   const { locale } = await params;
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body
-        className={cn(
-          "font-sans antialiased",
-          fontSans.variable,
-          fontMono.variable
-        )}
-      >
+      <body className={cn("font-sans antialiased", fontSans.variable, fontMono.variable)}>
         <GlobalProviders>
           {/* <AnnouncementBanner /> */}
           <main>

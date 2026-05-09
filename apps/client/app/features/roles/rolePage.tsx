@@ -1,12 +1,18 @@
 import { useState, useMemo } from "react";
 import { z } from "zod";
 import { PageHeader } from "@/components/layout/page-header";
-import {  NexusButton  } from "@casbin/ui";
-import { CrudTable, CrudFormDialog, DeleteDialog, type CrudColumnDef, type FieldDef } from "@/features/shared";
+import { NexusButton } from "@casbin/ui";
+import {
+  CrudTable,
+  CrudFormDialog,
+  DeleteDialog,
+  type CrudColumnDef,
+  type FieldDef,
+} from "@/features/shared";
 import { Plus } from "lucide-react";
 import { useRoles, useCreateRole, useUpdateRole, useDeleteRole } from "./roleHooks";
 import type { Role } from "@/lib/api/schemas";
-import {  Skeleton  } from "@casbin/ui";
+import { Skeleton } from "@casbin/ui";
 
 const mockRoles: (Role & { id: string })[] = [
   { id: "1", name: "Admin", description: "Full access to all resources", created_at: 1700000000 },
@@ -30,7 +36,12 @@ const schema = z.object({
 
 const fields: FieldDef[] = [
   { name: "name", label: "Role Name", type: "text", required: true, placeholder: "e.g. Manager" },
-  { name: "description", label: "Description", type: "textarea", placeholder: "Describe the role's permissions…" },
+  {
+    name: "description",
+    label: "Description",
+    type: "textarea",
+    placeholder: "Describe the role's permissions…",
+  },
 ];
 
 export default function RolesPage() {
@@ -68,12 +79,7 @@ export default function RolesPage() {
           ))}
         </div>
       ) : (
-        <CrudTable
-          columns={columns}
-          data={roles}
-          onEdit={setEditItem}
-          onDelete={setDeleteItem}
-        />
+        <CrudTable columns={columns} data={roles} onEdit={setEditItem} onDelete={setDeleteItem} />
       )}
 
       <CrudFormDialog

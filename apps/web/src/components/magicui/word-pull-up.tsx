@@ -35,7 +35,7 @@ export default function WordPullUp({
       animate="show"
       className={cn(
         "font-display text-center text-4xl leading-[5rem] font-bold tracking-[-0.02em] drop-shadow-sm",
-        className
+        className,
       )}
     >
       {words.split(" ").map((word, i) => (

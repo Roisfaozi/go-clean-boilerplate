@@ -24,13 +24,13 @@ export const usePermissionStore = create<PermissionState>()(
           (p) =>
             p.length >= 4 &&
             (p[2] === resource || p[2] === "*") &&
-            (p[3] === action || p[3] === "*")
+            (p[3] === action || p[3] === "*"),
         );
       },
       clearPermissions: () => set({ permissions: [] }),
     }),
     {
       name: "nexus-permission-storage",
-    }
-  )
+    },
+  ),
 );

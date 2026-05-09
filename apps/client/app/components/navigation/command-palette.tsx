@@ -27,7 +27,12 @@ interface CommandPaletteProps {
   placeholder?: string;
 }
 
-export function CommandPalette({ items, open: controlledOpen, onOpenChange, placeholder = "Type a command or search…" }: CommandPaletteProps) {
+export function CommandPalette({
+  items,
+  open: controlledOpen,
+  onOpenChange,
+  placeholder = "Type a command or search…",
+}: CommandPaletteProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isOpen = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;

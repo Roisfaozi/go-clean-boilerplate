@@ -33,12 +33,14 @@ export function FileUploader({
   const handleFiles = useCallback(
     (fileList: FileList | null) => {
       if (!fileList) return;
-      const files = Array.from(fileList).slice(0, maxFiles).filter((f) => f.size <= maxSize);
+      const files = Array.from(fileList)
+        .slice(0, maxFiles)
+        .filter((f) => f.size <= maxSize);
       if (files.length > 0) {
         addFiles(files, { targetFolderId, targetFolderName });
       }
     },
-    [addFiles, maxFiles, maxSize, targetFolderId, targetFolderName]
+    [addFiles, maxFiles, maxSize, targetFolderId, targetFolderName],
   );
 
   const onDragOver = (e: React.DragEvent) => {
@@ -67,17 +69,17 @@ export function FileUploader({
       onDrop={onDrop}
       onClick={() => inputRef.current?.click()}
       className={cn(
-        "relative flex flex-col items-center justify-center gap-3 p-8 rounded-lg border-2 border-dashed cursor-pointer transition-all duration-200",
+        "relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-8 transition-all duration-200",
         dragActive
           ? "border-primary bg-primary/5 scale-[1.01]"
           : "border-border hover:border-primary/50 hover:bg-muted/30",
-        className
+        className,
       )}
     >
       <div
         className={cn(
-          "h-12 w-12 rounded-full flex items-center justify-center transition-colors",
-          dragActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+          "flex h-12 w-12 items-center justify-center rounded-full transition-colors",
+          dragActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
         )}
       >
         {dragActive ? (
@@ -87,11 +89,14 @@ export function FileUploader({
         )}
       </div>
       <div className="text-center">
-        <p className="text-sm font-medium text-foreground">
-          {dragActive ? "Drop here" : title ?? (directory ? "Upload folder" : "Drag & drop files here")}
+        <p className="text-foreground text-sm font-medium">
+          {dragActive
+            ? "Drop here"
+            : (title ?? (directory ? "Upload folder" : "Drag & drop files here"))}
         </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          {description ?? `or click to browse · Max ${Math.round(maxSize / 1024 / 1024)}MB per file`}
+        <p className="text-muted-foreground mt-1 text-xs">
+          {description ??
+            `or click to browse · Max ${Math.round(maxSize / 1024 / 1024)}MB per file`}
         </p>
       </div>
       <input

@@ -7,7 +7,7 @@ export function useAiChat() {
   const sendMessage = async (content: string) => {
     setIsTyping(true);
     setMessages((prev) => [...prev, { role: "user", content }]);
-    
+
     // Simulate AI response
     setTimeout(() => {
       setMessages((prev) => [...prev, { role: "ai", content: "This is a placeholder response." }]);

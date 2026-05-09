@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { Organization, OrgMember } from '@/lib/api/schemas';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { Organization, OrgMember } from "@/lib/api/schemas";
 
 interface OrganizationState {
   activeOrganization: Organization | null;
@@ -17,6 +17,6 @@ export const useOrganizationStore = create<OrganizationState>()(
       setActiveOrganization: (org) => set({ activeOrganization: org }),
       setMembers: (members) => set({ members }),
     }),
-    { name: 'nexus-org' }
-  )
+    { name: "nexus-org" },
+  ),
 );

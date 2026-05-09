@@ -55,7 +55,7 @@ function CRUDLabels({ permissions }: { permissions: string[][] }) {
             "flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold transition-colors",
             c.active
               ? cn("bg-muted-foreground/10", c.color)
-              : "bg-muted/30 text-muted-foreground/20"
+              : "bg-muted/30 text-muted-foreground/20",
           )}
         >
           {c.label}
@@ -65,9 +65,7 @@ function CRUDLabels({ permissions }: { permissions: string[][] }) {
   );
 }
 
-function groupPermissionsByResource(
-  permissions: string[][]
-): Map<string, string[][]> {
+function groupPermissionsByResource(permissions: string[][]): Map<string, string[][]> {
   const map = new Map<string, string[][]>();
   for (const perm of permissions) {
     if (perm.length < 4) continue;
@@ -105,11 +103,9 @@ function RoleTreeNode({
   const hasChildren = (node.children?.length ?? 0) > 0;
 
   const ownResources = groupPermissionsByResource(node.own_permissions);
-  const inheritedResources = groupPermissionsByResource(
-    node.inherited_permissions
-  );
+  const inheritedResources = groupPermissionsByResource(node.inherited_permissions);
   const allResourceKeys = Array.from(
-    new Set([...ownResources.keys(), ...inheritedResources.keys()])
+    new Set([...ownResources.keys(), ...inheritedResources.keys()]),
   );
 
   const cleanName = node.name.replace("role:", "");
@@ -127,7 +123,7 @@ function RoleTreeNode({
       <div
         className={cn(
           "group hover:bg-accent/50 relative flex items-center gap-2 rounded-lg transition-all duration-200",
-          isCompact ? "mb-0.5 px-2 py-1 text-xs" : "mb-1 px-3 py-2"
+          isCompact ? "mb-0.5 px-2 py-1 text-xs" : "mb-1 px-3 py-2",
         )}
       >
         <button
@@ -140,13 +136,10 @@ function RoleTreeNode({
               "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
               isExpanded
                 ? "bg-primary/10 text-primary"
-                : "text-muted-foreground group-hover:text-foreground"
+                : "text-muted-foreground group-hover:text-foreground",
             )}
           >
-            <Icon
-              name={isExpanded ? "FolderOpen" : "Folder"}
-              size={isCompact ? "sm" : "md"}
-            />
+            <Icon name={isExpanded ? "FolderOpen" : "Folder"} size={isCompact ? "sm" : "md"} />
           </div>
           <span className="font-semibold tracking-tight">{cleanName}</span>
           {hasChildren && (
@@ -154,7 +147,7 @@ function RoleTreeNode({
               name="ChevronRight"
               className={cn(
                 "text-muted-foreground/50 h-3 w-3 transition-transform duration-200",
-                isExpanded && "rotate-90"
+                isExpanded && "rotate-90",
               )}
             />
           )}
@@ -323,8 +316,7 @@ export function PolicyEditorView({ onRoleClick }: PolicyEditorViewProps) {
         </div>
         <h3 className="text-lg font-semibold">No Role Hierarchy</h3>
         <p className="text-muted-foreground mt-1 max-w-xs text-sm">
-          Start by creating roles and defining parent-child relationships to see
-          the tree.
+          Start by creating roles and defining parent-child relationships to see the tree.
         </p>
       </div>
     );
@@ -353,12 +345,7 @@ export function PolicyEditorView({ onRoleClick }: PolicyEditorViewProps) {
           >
             Expand All
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-xs"
-            onClick={collapseAll}
-          >
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={collapseAll}>
             Collapse All
           </Button>
         </div>

@@ -8,23 +8,18 @@ export async function GET(request: NextRequest) {
   const returnTo = searchParams.get("returnTo") || "/dashboard";
 
   if (!token) {
-    return NextResponse.redirect(
-      new URL("/login?error=unauthorized", request.url)
-    );
+    return NextResponse.redirect(new URL("/login?error=unauthorized", request.url));
   }
 
   const cookieStore = await cookies();
 
   const isSecure =
     process.env.NEXT_PUBLIC_COOKIE_SECURE === "true" ||
-    (process.env.NODE_ENV === "production" &&
-      process.env.NEXT_PUBLIC_COOKIE_SECURE !== "false");
+    (process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_COOKIE_SECURE !== "false");
 
-  const ACCESS_TOKEN_MAX_AGE = Number(
-    process.env.NEXT_PUBLIC_ACCESS_TOKEN_MAX_AGE || 60 * 15
-  );
+  const ACCESS_TOKEN_MAX_AGE = Number(process.env.NEXT_PUBLIC_ACCESS_TOKEN_MAX_AGE || 60 * 15);
   const REFRESH_TOKEN_MAX_AGE = Number(
-    process.env.NEXT_PUBLIC_REFRESH_TOKEN_MAX_AGE || 60 * 60 * 24
+    process.env.NEXT_PUBLIC_REFRESH_TOKEN_MAX_AGE || 60 * 60 * 24,
   );
 
   cookieStore.set("access_token", token, {
@@ -45,7 +40,5 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  return NextResponse.redirect(
-    new URL(decodeURIComponent(returnTo), request.url)
-  );
+  return NextResponse.redirect(new URL(decodeURIComponent(returnTo), request.url));
 }

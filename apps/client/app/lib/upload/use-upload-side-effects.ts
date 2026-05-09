@@ -40,7 +40,11 @@ export function useUploadSideEffects() {
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
       if (el.isContentEditable) return true;
       // Walk up: catches contentEditable wrappers (rich text editors, code editors).
-      if (el.closest?.('[contenteditable="true"], input, textarea, select, [role="textbox"], [role="combobox"], [role="searchbox"]')) {
+      if (
+        el.closest?.(
+          '[contenteditable="true"], input, textarea, select, [role="textbox"], [role="combobox"], [role="searchbox"]',
+        )
+      ) {
         return true;
       }
       return false;
@@ -99,7 +103,9 @@ export function useUploadSideEffects() {
 
   // Batch completion notifications: fire when the queue drains.
   useEffect(() => {
-    const active = items.filter((i) => i.status === "uploading" || i.status === "preparing" || i.status === "queued").length;
+    const active = items.filter(
+      (i) => i.status === "uploading" || i.status === "preparing" || i.status === "queued",
+    ).length;
     const failed = items.filter((i) => i.status === "error").length;
     const done = items.filter((i) => i.status === "success").length;
     const prev = lastBatchRef.current;

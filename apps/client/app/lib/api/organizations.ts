@@ -1,27 +1,33 @@
-import { apiClient } from './client';
+import { apiClient } from "./client";
 import {
-  organizationSchema, orgMemberSchema, paginatedSchema,
-  type Organization, type OrgMember, type PaginatedResponse,
-} from './schemas';
+  organizationSchema,
+  orgMemberSchema,
+  paginatedSchema,
+  type Organization,
+  type OrgMember,
+  type PaginatedResponse,
+} from "./schemas";
 
 const paginatedOrgs = paginatedSchema(organizationSchema);
 const paginatedMembers = paginatedSchema(orgMemberSchema);
 
 export const organizationsApi = {
   list: (params?: { page?: number; limit?: number }) =>
-    apiClient.get<PaginatedResponse<Organization>>('/organizations', paginatedOrgs, { params }),
+    apiClient.get<PaginatedResponse<Organization>>("/organizations", paginatedOrgs, { params }),
 
   create: (data: { name: string; slug?: string }) =>
-    apiClient.post<Organization>('/organizations', data, organizationSchema),
+    apiClient.post<Organization>("/organizations", data, organizationSchema),
 
   update: (id: string, data: Partial<Organization>) =>
     apiClient.put<Organization>(`/organizations/${id}`, data, organizationSchema),
 
-  delete: (id: string) =>
-    apiClient.delete(`/organizations/${id}`),
+  delete: (id: string) => apiClient.delete(`/organizations/${id}`),
 
   getMembers: (orgId: string) =>
-    apiClient.get<PaginatedResponse<OrgMember>>(`/organizations/${orgId}/members`, paginatedMembers),
+    apiClient.get<PaginatedResponse<OrgMember>>(
+      `/organizations/${orgId}/members`,
+      paginatedMembers,
+    ),
 
   inviteMember: (orgId: string, data: { email: string; role_id: string }) =>
     apiClient.post(`/organizations/${orgId}/members/invite`, data),

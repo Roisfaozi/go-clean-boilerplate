@@ -1,31 +1,65 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
-import {  NexusCard, NexusCardHeader, NexusCardTitle, NexusCardDescription, NexusCardContent  } from "@casbin/ui";
-import {  Badge  } from "@casbin/ui";
-import {  Tabs, TabsContent, TabsList, TabsTrigger  } from "@casbin/ui";
 import {
-  Palette, Type, Maximize, Layers, Square, Droplets, Moon, Sun,
-} from "lucide-react";
+  NexusCard,
+  NexusCardHeader,
+  NexusCardTitle,
+  NexusCardDescription,
+  NexusCardContent,
+} from "@casbin/ui";
+import { Badge } from "@casbin/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@casbin/ui";
+import { Palette, Type, Maximize, Layers, Square, Droplets, Moon, Sun } from "lucide-react";
 
-const ColorSwatch = ({ name, variable, className }: { name: string; variable: string; className: string }) => (
-  <div className="flex flex-col items-center gap-2 group">
-    <div className={`w-16 h-16 rounded-lg border border-border shadow-sm transition-transform group-hover:scale-110 ${className}`} />
-    <span className="text-caption font-medium text-foreground">{name}</span>
-    <code className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{variable}</code>
+const ColorSwatch = ({
+  name,
+  variable,
+  className,
+}: {
+  name: string;
+  variable: string;
+  className: string;
+}) => (
+  <div className="group flex flex-col items-center gap-2">
+    <div
+      className={`border-border h-16 w-16 rounded-lg border shadow-sm transition-transform group-hover:scale-110 ${className}`}
+    />
+    <span className="text-caption text-foreground font-medium">{name}</span>
+    <code className="text-muted-foreground bg-muted rounded px-1.5 py-0.5 font-mono text-[10px]">
+      {variable}
+    </code>
   </div>
 );
 
-const TokenRow = ({ label, value, preview }: { label: string; value: string; preview?: React.ReactNode }) => (
-  <div className="flex items-center justify-between py-3 px-4 rounded-md hover:bg-muted/50 transition-colors">
+const TokenRow = ({
+  label,
+  value,
+  preview,
+}: {
+  label: string;
+  value: string;
+  preview?: React.ReactNode;
+}) => (
+  <div className="hover:bg-muted/50 flex items-center justify-between rounded-md px-4 py-3 transition-colors">
     <div className="flex items-center gap-3">
       {preview}
-      <span className="text-sm font-medium text-foreground">{label}</span>
+      <span className="text-foreground text-sm font-medium">{label}</span>
     </div>
-    <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">{value}</code>
+    <code className="text-muted-foreground bg-muted rounded px-2 py-1 font-mono text-xs">
+      {value}
+    </code>
   </div>
 );
 
-const DocSection = ({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) => (
+const DocSection = ({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) => (
   <NexusCard>
     <NexusCardHeader>
       <NexusCardTitle>{title}</NexusCardTitle>
@@ -37,7 +71,7 @@ const DocSection = ({ title, description, children }: { title: string; descripti
 
 export default function DesignSystemPage() {
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="max-w-6xl space-y-6">
       <PageHeader
         title="Design System"
         description="NexusOS design tokens, color palette, typography scale, spacing, and component guidelines."
@@ -45,16 +79,34 @@ export default function DesignSystemPage() {
 
       <Tabs defaultValue="colors" className="space-y-6">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="colors"><Palette className="h-4 w-4 mr-2" />Colors</TabsTrigger>
-          <TabsTrigger value="typography"><Type className="h-4 w-4 mr-2" />Typography</TabsTrigger>
-          <TabsTrigger value="spacing"><Maximize className="h-4 w-4 mr-2" />Spacing</TabsTrigger>
-          <TabsTrigger value="radii"><Square className="h-4 w-4 mr-2" />Radii & Shadows</TabsTrigger>
-          <TabsTrigger value="guidelines"><Layers className="h-4 w-4 mr-2" />Guidelines</TabsTrigger>
+          <TabsTrigger value="colors">
+            <Palette className="mr-2 h-4 w-4" />
+            Colors
+          </TabsTrigger>
+          <TabsTrigger value="typography">
+            <Type className="mr-2 h-4 w-4" />
+            Typography
+          </TabsTrigger>
+          <TabsTrigger value="spacing">
+            <Maximize className="mr-2 h-4 w-4" />
+            Spacing
+          </TabsTrigger>
+          <TabsTrigger value="radii">
+            <Square className="mr-2 h-4 w-4" />
+            Radii & Shadows
+          </TabsTrigger>
+          <TabsTrigger value="guidelines">
+            <Layers className="mr-2 h-4 w-4" />
+            Guidelines
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Colors ── */}
         <TabsContent value="colors" className="space-y-6">
-          <DocSection title="Core Palette" description="Foundation colors used across all components.">
+          <DocSection
+            title="Core Palette"
+            description="Foundation colors used across all components."
+          >
             <div className="flex flex-wrap gap-5">
               <ColorSwatch name="Background" variable="--background" className="bg-background" />
               <ColorSwatch name="Foreground" variable="--foreground" className="bg-foreground" />
@@ -84,19 +136,25 @@ export default function DesignSystemPage() {
           </DocSection>
 
           <DocSection title="Usage Guidelines">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+              <div className="bg-muted/50 space-y-2 rounded-lg p-4">
                 <Badge variant="secondary">Do</Badge>
-                <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                  <li>Use semantic tokens: <code className="text-xs bg-muted px-1 rounded">text-foreground</code></li>
+                <ul className="text-muted-foreground list-inside list-disc space-y-1">
+                  <li>
+                    Use semantic tokens:{" "}
+                    <code className="bg-muted rounded px-1 text-xs">text-foreground</code>
+                  </li>
                   <li>Reference CSS variables for consistency</li>
                   <li>Test both light and dark modes</li>
                 </ul>
               </div>
-              <div className="bg-destructive/5 rounded-lg p-4 space-y-2">
+              <div className="bg-destructive/5 space-y-2 rounded-lg p-4">
                 <Badge variant="destructive">Don't</Badge>
-                <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                  <li>Hardcode colors: <code className="text-xs bg-muted px-1 rounded line-through">text-white</code></li>
+                <ul className="text-muted-foreground list-inside list-disc space-y-1">
+                  <li>
+                    Hardcode colors:{" "}
+                    <code className="bg-muted rounded px-1 text-xs line-through">text-white</code>
+                  </li>
                   <li>Use hex/rgb values directly in components</li>
                   <li>Create one-off color values</li>
                 </ul>
@@ -107,8 +165,11 @@ export default function DesignSystemPage() {
 
         {/* ── Typography ── */}
         <TabsContent value="typography" className="space-y-6">
-          <DocSection title="Type Scale" description="Consistent typographic hierarchy across the application.">
-            <div className="space-y-4 divide-y divide-border">
+          <DocSection
+            title="Type Scale"
+            description="Consistent typographic hierarchy across the application."
+          >
+            <div className="divide-border space-y-4 divide-y">
               {[
                 { cls: "text-display", label: "Display", spec: "36px / Bold" },
                 { cls: "text-h1", label: "Heading 1", spec: "24px / Bold" },
@@ -124,8 +185,10 @@ export default function DesignSystemPage() {
                 <div key={t.cls} className="flex items-baseline justify-between py-3">
                   <p className={`${t.cls} text-foreground`}>The quick brown fox</p>
                   <div className="flex items-center gap-3">
-                    <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">{t.cls}</code>
-                    <span className="text-xs text-muted-foreground w-28 text-right">{t.spec}</span>
+                    <code className="text-muted-foreground bg-muted rounded px-2 py-0.5 font-mono text-xs">
+                      {t.cls}
+                    </code>
+                    <span className="text-muted-foreground w-28 text-right text-xs">{t.spec}</span>
                   </div>
                 </div>
               ))}
@@ -135,19 +198,46 @@ export default function DesignSystemPage() {
 
         {/* ── Spacing ── */}
         <TabsContent value="spacing" className="space-y-6">
-          <DocSection title="Spacing Scale" description="Consistent spacing using CSS custom properties.">
-            <div className="divide-y divide-border">
-              <TokenRow label="Layout Padding" value="--layout-padding: 32px" preview={<div className="h-4 bg-primary/20 rounded" style={{ width: 32 }} />} />
-              <TokenRow label="Card Padding" value="--card-padding: 24px" preview={<div className="h-4 bg-primary/20 rounded" style={{ width: 24 }} />} />
-              <TokenRow label="Component Gap" value="--component-gap: 16px" preview={<div className="h-4 bg-primary/20 rounded" style={{ width: 16 }} />} />
-              <TokenRow label="Button Padding X" value="--button-padding-x: 20px" preview={<div className="h-4 bg-primary/20 rounded" style={{ width: 20 }} />} />
-              <TokenRow label="Input Padding X" value="--input-padding-x: 16px" preview={<div className="h-4 bg-primary/20 rounded" style={{ width: 16 }} />} />
-              <TokenRow label="Table Cell Padding" value="--table-cell-padding: 16px" preview={<div className="h-4 bg-primary/20 rounded" style={{ width: 16 }} />} />
+          <DocSection
+            title="Spacing Scale"
+            description="Consistent spacing using CSS custom properties."
+          >
+            <div className="divide-border divide-y">
+              <TokenRow
+                label="Layout Padding"
+                value="--layout-padding: 32px"
+                preview={<div className="bg-primary/20 h-4 rounded" style={{ width: 32 }} />}
+              />
+              <TokenRow
+                label="Card Padding"
+                value="--card-padding: 24px"
+                preview={<div className="bg-primary/20 h-4 rounded" style={{ width: 24 }} />}
+              />
+              <TokenRow
+                label="Component Gap"
+                value="--component-gap: 16px"
+                preview={<div className="bg-primary/20 h-4 rounded" style={{ width: 16 }} />}
+              />
+              <TokenRow
+                label="Button Padding X"
+                value="--button-padding-x: 20px"
+                preview={<div className="bg-primary/20 h-4 rounded" style={{ width: 20 }} />}
+              />
+              <TokenRow
+                label="Input Padding X"
+                value="--input-padding-x: 16px"
+                preview={<div className="bg-primary/20 h-4 rounded" style={{ width: 16 }} />}
+              />
+              <TokenRow
+                label="Table Cell Padding"
+                value="--table-cell-padding: 16px"
+                preview={<div className="bg-primary/20 h-4 rounded" style={{ width: 16 }} />}
+              />
             </div>
           </DocSection>
 
           <DocSection title="Sizing Tokens" description="Consistent component heights and widths.">
-            <div className="divide-y divide-border">
+            <div className="divide-border divide-y">
               <TokenRow label="Button Height" value="--button-height: 44px" />
               <TokenRow label="Input Height" value="--input-height: 44px" />
               <TokenRow label="Table Row Height" value="--table-row-height: 64px" />
@@ -161,7 +251,7 @@ export default function DesignSystemPage() {
         {/* ── Radii & Shadows ── */}
         <TabsContent value="radii" className="space-y-6">
           <DocSection title="Border Radius" description="Consistent roundness for UI elements.">
-            <div className="flex flex-wrap gap-8 items-end">
+            <div className="flex flex-wrap items-end gap-8">
               {[
                 { label: "sm", cls: "rounded-sm", size: "2px" },
                 { label: "md", cls: "rounded-md", size: "6px" },
@@ -170,20 +260,20 @@ export default function DesignSystemPage() {
                 { label: "full", cls: "rounded-full", size: "9999px" },
               ].map((r) => (
                 <div key={r.label} className="flex flex-col items-center gap-2">
-                  <div className={`w-16 h-16 bg-primary ${r.cls}`} />
-                  <span className="text-sm font-medium text-foreground">{r.label}</span>
-                  <span className="text-xs text-muted-foreground">{r.size}</span>
+                  <div className={`bg-primary h-16 w-16 ${r.cls}`} />
+                  <span className="text-foreground text-sm font-medium">{r.label}</span>
+                  <span className="text-muted-foreground text-xs">{r.size}</span>
                 </div>
               ))}
             </div>
           </DocSection>
 
           <DocSection title="Shadows" description="Elevation layers for depth.">
-            <div className="flex flex-wrap gap-8 items-end">
+            <div className="flex flex-wrap items-end gap-8">
               {["shadow-xs", "shadow-sm", "shadow-md", "shadow-lg", "shadow-xl"].map((s) => (
                 <div key={s} className="flex flex-col items-center gap-2">
-                  <div className={`w-20 h-20 bg-card border border-border rounded-lg ${s}`} />
-                  <code className="text-xs text-muted-foreground">{s}</code>
+                  <div className={`bg-card border-border h-20 w-20 rounded-lg border ${s}`} />
+                  <code className="text-muted-foreground text-xs">{s}</code>
                 </div>
               ))}
             </div>
@@ -192,11 +282,14 @@ export default function DesignSystemPage() {
 
         {/* ── Guidelines ── */}
         <TabsContent value="guidelines" className="space-y-6">
-          <DocSection title="Component Architecture" description="How to build components using the design system.">
+          <DocSection
+            title="Component Architecture"
+            description="How to build components using the design system."
+          >
             <div className="space-y-4">
               <div className="bg-muted/50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-foreground mb-2">File Structure</h4>
-                <pre className="text-xs font-mono text-muted-foreground whitespace-pre">{`src/components/
+                <h4 className="text-foreground mb-2 text-sm font-semibold">File Structure</h4>
+                <pre className="text-muted-foreground font-mono text-xs whitespace-pre">{`src/components/
 ├── ui/          # Base primitives (Button, Input, Card)
 ├── layout/      # Layout components (Sidebar, Navbar, Grid)
 ├── forms/       # Form-specific (DatePicker, FileUpload)
@@ -206,18 +299,29 @@ export default function DesignSystemPage() {
               </div>
 
               <div className="bg-muted/50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-foreground mb-2">Naming Conventions</h4>
-                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Components: <code className="text-xs bg-muted px-1 rounded">PascalCase.tsx</code></li>
-                  <li>Hooks: <code className="text-xs bg-muted px-1 rounded">use-kebab-case.ts</code></li>
-                  <li>Services: <code className="text-xs bg-muted px-1 rounded">camelCaseService.ts</code></li>
-                  <li>Stores: <code className="text-xs bg-muted px-1 rounded">kebab-case-store.ts</code></li>
+                <h4 className="text-foreground mb-2 text-sm font-semibold">Naming Conventions</h4>
+                <ul className="text-muted-foreground list-inside list-disc space-y-1 text-sm">
+                  <li>
+                    Components:{" "}
+                    <code className="bg-muted rounded px-1 text-xs">PascalCase.tsx</code>
+                  </li>
+                  <li>
+                    Hooks: <code className="bg-muted rounded px-1 text-xs">use-kebab-case.ts</code>
+                  </li>
+                  <li>
+                    Services:{" "}
+                    <code className="bg-muted rounded px-1 text-xs">camelCaseService.ts</code>
+                  </li>
+                  <li>
+                    Stores:{" "}
+                    <code className="bg-muted rounded px-1 text-xs">kebab-case-store.ts</code>
+                  </li>
                 </ul>
               </div>
 
               <div className="bg-muted/50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-foreground mb-2">API Layer</h4>
-                <pre className="text-xs font-mono text-muted-foreground whitespace-pre">{`// All API calls use typed client with Zod validation
+                <h4 className="text-foreground mb-2 text-sm font-semibold">API Layer</h4>
+                <pre className="text-muted-foreground font-mono text-xs whitespace-pre">{`// All API calls use typed client with Zod validation
 import { apiClient } from '@/lib/api/client';
 import { userSchema } from '@/lib/api/schemas';
 
@@ -230,8 +334,8 @@ loginRequestSchema.parse({ username, password });`}</pre>
               </div>
 
               <div className="bg-muted/50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-foreground mb-2">Error Handling</h4>
-                <pre className="text-xs font-mono text-muted-foreground whitespace-pre">{`import {  ErrorBoundary  } from '/ui';
+                <h4 className="text-foreground mb-2 text-sm font-semibold">Error Handling</h4>
+                <pre className="text-muted-foreground font-mono text-xs whitespace-pre">{`import {  ErrorBoundary  } from '/ui';
 import {  LoadingBoundary  } from '/ui';
 
 <ErrorBoundary>

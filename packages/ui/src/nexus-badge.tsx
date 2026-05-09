@@ -14,7 +14,7 @@ const nexusBadgeVariants = cva(
       },
     },
     defaultVariants: { variant: "neutral" },
-  }
+  },
 );
 
 interface NexusBadgeProps

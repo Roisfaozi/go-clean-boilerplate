@@ -17,8 +17,7 @@ import { ResourceCRUD } from "~/lib/api/access";
 import { Icon } from "~/components/shared/icon";
 
 export function MatrixDialog() {
-  const { dialog, closeDialog, updatePermissions, isProcessing } =
-    usePermissionMatrix();
+  const { dialog, closeDialog, updatePermissions, isProcessing } = usePermissionMatrix();
 
   // Use a key to force re-mounting/resetting state when dialog target changes
   // instead of using useEffect which triggers cascading renders
@@ -47,12 +46,7 @@ function MatrixDialogContent({
   const [localCRUD, setLocalCRUD] = useState<ResourceCRUD>(dialog.crud);
 
   const handleApply = async () => {
-    await updatePermissions(
-      dialog.role,
-      dialog.resource,
-      localCRUD,
-      dialog.crud
-    );
+    await updatePermissions(dialog.role, dialog.resource, localCRUD, dialog.crud);
     closeDialog();
   };
 
@@ -70,10 +64,7 @@ function MatrixDialogContent({
           </DialogTitle>
           <DialogDescription>
             Modify CRUD access for{" "}
-            <span className="text-foreground font-bold">
-              {dialog.role.replace("role:", "")}
-            </span>{" "}
-            on
+            <span className="text-foreground font-bold">{dialog.role.replace("role:", "")}</span> on
             <span className="bg-muted ml-1 rounded px-1 font-mono">
               /{dialog.resource.toLowerCase()}
             </span>
@@ -87,15 +78,10 @@ function MatrixDialogContent({
               className="hover:bg-muted/50 flex items-center justify-between space-x-2 rounded-lg border p-3 transition-colors"
             >
               <div className="flex flex-col gap-0.5">
-                <Label
-                  htmlFor={action}
-                  className="text-sm font-semibold capitalize"
-                >
+                <Label htmlFor={action} className="text-sm font-semibold capitalize">
                   {action}
                 </Label>
-                <p className="text-muted-foreground text-xs">
-                  {getActionDescription(action)}
-                </p>
+                <p className="text-muted-foreground text-xs">{getActionDescription(action)}</p>
               </div>
               <Checkbox
                 id={action}
@@ -108,17 +94,11 @@ function MatrixDialogContent({
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={closeDialog}
-            disabled={isProcessing}
-          >
+          <Button variant="outline" onClick={closeDialog} disabled={isProcessing}>
             Cancel
           </Button>
           <Button onClick={handleApply} disabled={isProcessing}>
-            {isProcessing && (
-              <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-            )}
+            {isProcessing && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
             Apply Changes
           </Button>
         </DialogFooter>

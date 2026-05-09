@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/layout/page-header";
-import {  NexusCard, NexusCardHeader, NexusCardTitle, NexusCardContent  } from "@casbin/ui";
-import {  NexusButton  } from "@casbin/ui";
-import {  NexusInput  } from "@casbin/ui";
+import { NexusCard, NexusCardHeader, NexusCardTitle, NexusCardContent } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
+import { NexusInput } from "@casbin/ui";
 import { FormGroup } from "@/components/patterns/form-group";
 import { useUIStore } from "@/stores";
 import { Sun, Moon, Maximize2, Minimize2 } from "lucide-react";
@@ -13,7 +13,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <PageHeader title="Settings" description="Manage your workspace preferences." />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-gap">
+      <div className="gap-gap grid grid-cols-1 lg:grid-cols-2">
         <NexusCard>
           <NexusCardHeader>
             <NexusCardTitle>Appearance</NexusCardTitle>
@@ -22,14 +22,20 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-body font-medium">Theme</p>
-                <p className="text-caption text-muted-foreground">Toggle between light and dark mode</p>
+                <p className="text-caption text-muted-foreground">
+                  Toggle between light and dark mode
+                </p>
               </div>
               <NexusButton
                 variant="outline"
                 size="sm"
                 onClick={() => setTheme(theme === "light" ? "dark" : "light")}
               >
-                {theme === "light" ? <Moon className="h-4 w-4 mr-2" /> : <Sun className="h-4 w-4 mr-2" />}
+                {theme === "light" ? (
+                  <Moon className="mr-2 h-4 w-4" />
+                ) : (
+                  <Sun className="mr-2 h-4 w-4" />
+                )}
                 {theme === "light" ? "Dark" : "Light"}
               </NexusButton>
             </div>
@@ -43,7 +49,11 @@ export default function SettingsPage() {
                 size="sm"
                 onClick={() => setDensity(density === "comfort" ? "compact" : "comfort")}
               >
-                {density === "comfort" ? <Minimize2 className="h-4 w-4 mr-2" /> : <Maximize2 className="h-4 w-4 mr-2" />}
+                {density === "comfort" ? (
+                  <Minimize2 className="mr-2 h-4 w-4" />
+                ) : (
+                  <Maximize2 className="mr-2 h-4 w-4" />
+                )}
                 {density === "comfort" ? "Compact" : "Comfort"}
               </NexusButton>
             </div>

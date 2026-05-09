@@ -4,11 +4,29 @@ import { MetricsPanel, MetricSummary, TimeSeriesPoint } from "@/components/admin
 import { Cpu, HardDrive, Wifi, Clock } from "lucide-react";
 
 const services: ServiceHealth[] = [
-  { name: "API Gateway", status: "operational", latency_ms: 32, uptime: 99.99, last_check: "12s ago" },
+  {
+    name: "API Gateway",
+    status: "operational",
+    latency_ms: 32,
+    uptime: 99.99,
+    last_check: "12s ago",
+  },
   { name: "Database", status: "operational", latency_ms: 8, uptime: 99.98, last_check: "12s ago" },
-  { name: "Auth Service", status: "degraded", latency_ms: 145, uptime: 99.82, last_check: "30s ago" },
+  {
+    name: "Auth Service",
+    status: "degraded",
+    latency_ms: 145,
+    uptime: 99.82,
+    last_check: "30s ago",
+  },
   { name: "Storage", status: "operational", latency_ms: 52, uptime: 99.95, last_check: "1m ago" },
-  { name: "Background Jobs", status: "operational", latency_ms: 15, uptime: 99.97, last_check: "45s ago" },
+  {
+    name: "Background Jobs",
+    status: "operational",
+    latency_ms: 15,
+    uptime: 99.97,
+    last_check: "45s ago",
+  },
 ];
 
 const resourceSummaries: MetricSummary[] = [
@@ -35,7 +53,7 @@ export default function SystemHealthPage() {
         title="System Health"
         description="Real-time service status and infrastructure monitoring"
       />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <SystemHealthIndicator services={services} />
         <MetricsPanel
           title="Resource Usage"

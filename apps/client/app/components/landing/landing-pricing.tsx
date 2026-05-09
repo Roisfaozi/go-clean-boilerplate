@@ -9,12 +9,7 @@ const plans = [
     cadence: "/ month",
     description: "For small teams getting started with internal tooling.",
     cta: { label: "Start Free", to: "/register" },
-    features: [
-      "Core workspace",
-      "Basic roles",
-      "Project management",
-      "Standard support",
-    ],
+    features: ["Core workspace", "Basic roles", "Project management", "Standard support"],
     highlight: false,
   },
   {
@@ -51,44 +46,44 @@ const plans = [
 
 export function LandingPricing() {
   return (
-    <section id="pricing" className="border-b border-border bg-background py-20 md:py-24">
-      <div className="mx-auto max-w-7xl px-layout">
+    <section id="pricing" className="border-border bg-background border-b py-20 md:py-24">
+      <div className="px-layout mx-auto max-w-7xl">
         <div className="mx-auto mb-14 max-w-2xl text-center">
-          <span className="text-caption font-semibold uppercase tracking-wider text-primary">
+          <span className="text-caption text-primary font-semibold tracking-wider uppercase">
             Pricing
           </span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+          <h2 className="text-foreground mt-3 text-3xl font-bold tracking-tight md:text-4xl">
             Simple pricing for teams at every stage
           </h2>
-          <p className="mt-4 text-body-lg text-muted-foreground">
+          <p className="text-body-lg text-muted-foreground mt-4">
             Mulai gratis, upgrade saat siap scale. Tidak ada biaya tersembunyi.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-gap md:grid-cols-3">
+        <div className="gap-gap grid grid-cols-1 md:grid-cols-3">
           {plans.map((plan) => (
             <div
               key={plan.name}
               className={cn(
-                "relative flex flex-col rounded-xl border p-card-pad transition-all",
+                "p-card-pad relative flex flex-col rounded-xl border transition-all",
                 plan.highlight
-                  ? "border-primary bg-card shadow-xl ring-1 ring-primary/20"
-                  : "border-border bg-card hover:shadow-md"
+                  ? "border-primary bg-card ring-primary/20 shadow-xl ring-1"
+                  : "border-border bg-card hover:shadow-md",
               )}
             >
               {plan.highlight && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-caption font-semibold text-primary-foreground shadow-sm">
+                <span className="bg-primary text-caption text-primary-foreground absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 font-semibold shadow-sm">
                   Most popular
                 </span>
               )}
 
               <div className="mb-5">
-                <h3 className="text-h3 font-semibold text-foreground">{plan.name}</h3>
-                <p className="mt-1.5 text-body text-muted-foreground">{plan.description}</p>
+                <h3 className="text-h3 text-foreground font-semibold">{plan.name}</h3>
+                <p className="text-body text-muted-foreground mt-1.5">{plan.description}</p>
               </div>
 
               <div className="mb-6 flex items-baseline gap-1">
-                <span className="text-4xl font-bold tracking-tight text-foreground">
+                <span className="text-foreground text-4xl font-bold tracking-tight">
                   {plan.price}
                 </span>
                 {plan.cadence && (
@@ -99,24 +94,24 @@ export function LandingPricing() {
               <Link
                 to={plan.cta.to}
                 className={cn(
-                  "inline-flex h-btn w-full items-center justify-center rounded-md px-5 text-body font-medium shadow-sm transition-colors",
+                  "h-btn text-body inline-flex w-full items-center justify-center rounded-md px-5 font-medium shadow-sm transition-colors",
                   plan.highlight
                     ? "bg-primary text-primary-foreground hover:bg-primary-hover"
-                    : "border border-border bg-background text-foreground hover:bg-surface-hover"
+                    : "border-border bg-background text-foreground hover:bg-surface-hover border",
                 )}
               >
                 {plan.cta.label}
               </Link>
 
-              <div className="my-6 h-px w-full bg-border" />
+              <div className="bg-border my-6 h-px w-full" />
 
               <ul className="space-y-3">
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-body">
+                  <li key={f} className="text-body flex items-start gap-2.5">
                     <Check
                       className={cn(
                         "mt-0.5 h-4 w-4 shrink-0",
-                        plan.highlight ? "text-primary" : "text-secondary"
+                        plan.highlight ? "text-primary" : "text-secondary",
                       )}
                     />
                     <span className="text-foreground">{f}</span>

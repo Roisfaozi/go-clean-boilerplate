@@ -21,9 +21,29 @@ interface NotificationState {
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
   notifications: [
-    { id: "demo-1", title: "User alice@nexus.dev signed up", type: "info", time: "2m ago", read: false },
-    { id: "demo-2", title: "Deployment v2.1.0 complete", description: "All services healthy", type: "success", time: "15m ago", read: false },
-    { id: "demo-3", title: "High error rate detected", description: "Error rate > 1% on /api/users", type: "danger", time: "1h ago", read: true },
+    {
+      id: "demo-1",
+      title: "User alice@nexus.dev signed up",
+      type: "info",
+      time: "2m ago",
+      read: false,
+    },
+    {
+      id: "demo-2",
+      title: "Deployment v2.1.0 complete",
+      description: "All services healthy",
+      type: "success",
+      time: "15m ago",
+      read: false,
+    },
+    {
+      id: "demo-3",
+      title: "High error rate detected",
+      description: "Error rate > 1% on /api/users",
+      type: "danger",
+      time: "1h ago",
+      read: true,
+    },
   ],
   unreadCount: 2,
   addNotification: (n) => {
@@ -116,11 +136,46 @@ interface ActivityState {
 
 export const useActivityStore = create<ActivityState>((set) => ({
   activities: [
-    { id: "a1", user: "Alice", action: "deployed", target: "v2.1.0 to production", time: "2m ago", type: "success" },
-    { id: "a2", user: "Bob", action: "updated role", target: "Editor permissions", time: "5m ago", type: "info" },
-    { id: "a3", user: "System", action: "auto-scaled", target: "API servers to 4 instances", time: "12m ago", type: "warning" },
-    { id: "a4", user: "Carol", action: "invited", target: "dave@nexus.dev", time: "18m ago", type: "info" },
-    { id: "a5", user: "Eve", action: "deleted", target: "staging-old project", time: "25m ago", type: "danger" },
+    {
+      id: "a1",
+      user: "Alice",
+      action: "deployed",
+      target: "v2.1.0 to production",
+      time: "2m ago",
+      type: "success",
+    },
+    {
+      id: "a2",
+      user: "Bob",
+      action: "updated role",
+      target: "Editor permissions",
+      time: "5m ago",
+      type: "info",
+    },
+    {
+      id: "a3",
+      user: "System",
+      action: "auto-scaled",
+      target: "API servers to 4 instances",
+      time: "12m ago",
+      type: "warning",
+    },
+    {
+      id: "a4",
+      user: "Carol",
+      action: "invited",
+      target: "dave@nexus.dev",
+      time: "18m ago",
+      type: "info",
+    },
+    {
+      id: "a5",
+      user: "Eve",
+      action: "deleted",
+      target: "staging-old project",
+      time: "25m ago",
+      type: "danger",
+    },
   ],
   addActivity: (a) => {
     const activity: LiveActivity = {

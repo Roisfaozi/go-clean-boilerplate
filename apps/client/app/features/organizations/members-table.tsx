@@ -1,9 +1,9 @@
 import { useState } from "react";
-import {  NexusCard  } from "@casbin/ui";
-import {  NexusInput  } from "@casbin/ui";
-import {  NexusButton  } from "@casbin/ui";
-import {  Avatar, AvatarFallback, AvatarImage  } from "@casbin/ui";
-import {  Badge  } from "@casbin/ui";
+import { NexusCard } from "@casbin/ui";
+import { NexusInput } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
+import { Avatar, AvatarFallback, AvatarImage } from "@casbin/ui";
+import { Badge } from "@casbin/ui";
 import { MemberRoleSelector, MemberRoleBadge } from "./member-role-selector";
 import {
   DropdownMenu,
@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@casbin/ui";
-import {  useToast  } from "@casbin/ui";
+import { useToast } from "@casbin/ui";
 import { Search, MoreHorizontal, UserMinus, Mail } from "lucide-react";
 import { cn } from "@casbin/ui";
 
@@ -26,12 +26,54 @@ interface Member {
 }
 
 const mockMembers: Member[] = [
-  { id: "1", name: "Alice Johnson", email: "alice@acme.com", role: "owner", status: "online", joinedAt: "2024-01-15" },
-  { id: "2", name: "Bob Smith", email: "bob@acme.com", role: "admin", status: "online", joinedAt: "2024-02-20" },
-  { id: "3", name: "Carol Williams", email: "carol@acme.com", role: "editor", status: "away", joinedAt: "2024-03-01" },
-  { id: "4", name: "David Brown", email: "david@acme.com", role: "editor", status: "offline", joinedAt: "2024-03-05" },
-  { id: "5", name: "Eva Martinez", email: "eva@acme.com", role: "viewer", status: "online", joinedAt: "2024-03-08" },
-  { id: "6", name: "Frank Lee", email: "frank@acme.com", role: "viewer", status: "offline", joinedAt: "2024-03-10" },
+  {
+    id: "1",
+    name: "Alice Johnson",
+    email: "alice@acme.com",
+    role: "owner",
+    status: "online",
+    joinedAt: "2024-01-15",
+  },
+  {
+    id: "2",
+    name: "Bob Smith",
+    email: "bob@acme.com",
+    role: "admin",
+    status: "online",
+    joinedAt: "2024-02-20",
+  },
+  {
+    id: "3",
+    name: "Carol Williams",
+    email: "carol@acme.com",
+    role: "editor",
+    status: "away",
+    joinedAt: "2024-03-01",
+  },
+  {
+    id: "4",
+    name: "David Brown",
+    email: "david@acme.com",
+    role: "editor",
+    status: "offline",
+    joinedAt: "2024-03-05",
+  },
+  {
+    id: "5",
+    name: "Eva Martinez",
+    email: "eva@acme.com",
+    role: "viewer",
+    status: "online",
+    joinedAt: "2024-03-08",
+  },
+  {
+    id: "6",
+    name: "Frank Lee",
+    email: "frank@acme.com",
+    role: "viewer",
+    status: "offline",
+    joinedAt: "2024-03-10",
+  },
 ];
 
 const statusColors: Record<string, string> = {
@@ -48,13 +90,11 @@ export function MembersTable() {
   const filtered = members.filter(
     (m) =>
       m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.email.toLowerCase().includes(search.toLowerCase())
+      m.email.toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleRoleChange = (memberId: string, newRole: string) => {
-    setMembers((prev) =>
-      prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m))
-    );
+    setMembers((prev) => prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)));
     toast({ title: "Role Updated", description: `Changed to ${newRole}` });
   };
 
@@ -83,50 +123,56 @@ export function MembersTableUI() {
 
   return (
     <NexusCard className="overflow-hidden">
-      <div className="p-4 border-b border-border">
+      <div className="border-border border-b p-4">
         <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <NexusInput
             placeholder="Search members..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9"
+            className="h-9 pl-9"
           />
         </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Member</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Role</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Joined</th>
-              <th className="text-right px-4 py-3 font-medium text-muted-foreground w-12"></th>
+            <tr className="border-border bg-muted/50 border-b">
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Member</th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Status</th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Role</th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Joined</th>
+              <th className="text-muted-foreground w-12 px-4 py-3 text-right font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((member) => (
-              <tr key={member.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
+              <tr
+                key={member.id}
+                className="border-border hover:bg-muted/20 border-b transition-colors last:border-0"
+              >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={member.avatar} />
-                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                          {member.name.split(" ").map((n) => n[0]).join("")}
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                          {member.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
                         </AvatarFallback>
                       </Avatar>
                       <span
                         className={cn(
-                          "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background",
-                          statusColors[member.status]
+                          "border-background absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2",
+                          statusColors[member.status],
                         )}
                       />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">{member.name}</p>
-                      <p className="text-xs text-muted-foreground">{member.email}</p>
+                      <p className="text-foreground font-medium">{member.name}</p>
+                      <p className="text-muted-foreground text-xs">{member.email}</p>
                     </div>
                   </div>
                 </td>
@@ -136,7 +182,7 @@ export function MembersTableUI() {
                     className={cn(
                       "text-[10px] capitalize",
                       member.status === "online" && "bg-success/10 text-success border-success/20",
-                      member.status === "away" && "bg-warning/10 text-warning border-warning/20"
+                      member.status === "away" && "bg-warning/10 text-warning border-warning/20",
                     )}
                   >
                     {member.status}
@@ -149,7 +195,7 @@ export function MembersTableUI() {
                     disabled={member.role === "owner"}
                   />
                 </td>
-                <td className="px-4 py-3 text-muted-foreground text-xs">{member.joinedAt}</td>
+                <td className="text-muted-foreground px-4 py-3 text-xs">{member.joinedAt}</td>
                 <td className="px-4 py-3 text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -159,7 +205,7 @@ export function MembersTableUI() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem>
-                        <Mail className="h-4 w-4 mr-2" />
+                        <Mail className="mr-2 h-4 w-4" />
                         Resend Invite
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -167,7 +213,7 @@ export function MembersTableUI() {
                         onClick={() => handleRemove(member)}
                         disabled={member.role === "owner"}
                       >
-                        <UserMinus className="h-4 w-4 mr-2" />
+                        <UserMinus className="mr-2 h-4 w-4" />
                         Remove Member
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -177,7 +223,7 @@ export function MembersTableUI() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={5} className="text-muted-foreground px-4 py-8 text-center">
                   No members found
                 </td>
               </tr>

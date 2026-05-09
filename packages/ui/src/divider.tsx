@@ -10,8 +10,8 @@ export function Divider({ className, orientation = "horizontal" }: DividerProps)
     <div
       className={cn(
         "bg-border shrink-0",
-        orientation === "horizontal" ? "h-px w-full" : "w-px h-full",
-        className
+        orientation === "horizontal" ? "h-px w-full" : "h-full w-px",
+        className,
       )}
     />
   );

@@ -1,9 +1,17 @@
 import { cn } from "@casbin/ui";
-import {  Progress  } from "@casbin/ui";
-import {  NexusButton  } from "@casbin/ui";
+import { Progress } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
 import type { UploadItem } from "@/lib/upload/tus-client";
 import {
-  Pause, Play, X, RotateCcw, CheckCircle2, AlertCircle, Clock, Loader2, Ban,
+  Pause,
+  Play,
+  X,
+  RotateCcw,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Loader2,
+  Ban,
 } from "lucide-react";
 
 interface UploadProgressProps {
@@ -47,51 +55,63 @@ const statusConfig = {
   canceled: { icon: Ban, label: "Canceled", color: "text-muted-foreground" },
 };
 
-export function UploadProgress({ item, onPause, onResume, onCancel, onRetry }: UploadProgressProps) {
+export function UploadProgress({
+  item,
+  onPause,
+  onResume,
+  onCancel,
+  onRetry,
+}: UploadProgressProps) {
   const config = statusConfig[item.status];
   const StatusIcon = config.icon;
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 rounded-md bg-muted/30 group hover:bg-muted/50 transition-colors">
+    <div className="bg-muted/30 group hover:bg-muted/50 flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors">
       {/* File icon / status */}
       <StatusIcon
         className={cn(
           "h-4.5 w-4.5 shrink-0",
           config.color,
-          (item.status === "preparing" || item.status === "uploading") && "animate-spin"
+          (item.status === "preparing" || item.status === "uploading") && "animate-spin",
         )}
       />
 
       {/* Info */}
-      <div className="flex-1 min-w-0 space-y-1">
+      <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium text-foreground truncate">{item.relativePath || item.fileName}</p>
-          <span className="text-[11px] text-muted-foreground shrink-0">
+          <p className="text-foreground truncate text-sm font-medium">
+            {item.relativePath || item.fileName}
+          </p>
+          <span className="text-muted-foreground shrink-0 text-[11px]">
             {formatFileSize(item.fileSize)}
           </span>
         </div>
 
         {item.targetFolderName && (
-          <p className="text-[11px] text-muted-foreground truncate">Target: {item.targetFolderName}</p>
+          <p className="text-muted-foreground truncate text-[11px]">
+            Target: {item.targetFolderName}
+          </p>
         )}
 
-        {(item.status === "preparing" || item.status === "uploading" || item.status === "paused") && (
+        {(item.status === "preparing" ||
+          item.status === "uploading" ||
+          item.status === "paused") && (
           <div className="flex items-center gap-2">
             <Progress value={item.progress} className="h-1.5 flex-1" />
-            <span className="text-[11px] font-medium text-muted-foreground w-8 text-right">
+            <span className="text-muted-foreground w-8 text-right text-[11px] font-medium">
               {item.progress}%
             </span>
           </div>
         )}
 
         {item.status === "uploading" && (item.speedBps || item.etaSeconds != null) && (
-          <p className="text-[10px] text-muted-foreground truncate">
+          <p className="text-muted-foreground truncate text-[10px]">
             {[formatSpeed(item.speedBps), formatEta(item.etaSeconds)].filter(Boolean).join(" · ")}
           </p>
         )}
 
         {item.status === "error" && (item.errorMessage || item.error) && (
-          <p className="text-[11px] text-destructive truncate">
+          <p className="text-destructive truncate text-[11px]">
             {item.errorMessage || item.error}
             {item.retryCount && item.retryCount > 0 ? ` · attempt ${item.retryCount + 1}` : ""}
           </p>
@@ -99,25 +119,49 @@ export function UploadProgress({ item, onPause, onResume, onCancel, onRetry }: U
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
         {item.status === "uploading" && onPause && (
-          <NexusButton variant="ghost" size="icon" className="h-7 w-7" onClick={onPause} aria-label={`Pause ${item.fileName}`}>
+          <NexusButton
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={onPause}
+            aria-label={`Pause ${item.fileName}`}
+          >
             <Pause className="h-3.5 w-3.5" />
           </NexusButton>
         )}
         {item.status === "paused" && onResume && (
-          <NexusButton variant="ghost" size="icon" className="h-7 w-7" onClick={onResume} aria-label={`Resume ${item.fileName}`}>
+          <NexusButton
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={onResume}
+            aria-label={`Resume ${item.fileName}`}
+          >
             <Play className="h-3.5 w-3.5" />
           </NexusButton>
         )}
         {item.status === "error" && onRetry && (
-          <NexusButton variant="ghost" size="icon" className="h-7 w-7" onClick={onRetry} aria-label={`Retry ${item.fileName}`}>
+          <NexusButton
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={onRetry}
+            aria-label={`Retry ${item.fileName}`}
+          >
             <RotateCcw className="h-3.5 w-3.5" />
           </NexusButton>
         )}
         {item.status !== "success" && item.status !== "canceled" && onCancel && (
-          <NexusButton variant="ghost" size="icon" className="h-7 w-7" onClick={onCancel} aria-label={`Cancel ${item.fileName}`}>
-            <X className="h-3.5 w-3.5 text-destructive" />
+          <NexusButton
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={onCancel}
+            aria-label={`Cancel ${item.fileName}`}
+          >
+            <X className="text-destructive h-3.5 w-3.5" />
           </NexusButton>
         )}
       </div>

@@ -2,7 +2,12 @@ import { useState } from "react";
 import { cn } from "./lib/utils";
 import { NexusButton } from "./nexus-button";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "./dialog";
 import { AlertTriangle } from "lucide-react";
 
@@ -35,14 +40,16 @@ export function ConfirmationDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           {variant === "danger" && (
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-danger/10">
-              <AlertTriangle className="h-6 w-6 text-danger" />
+            <div className="bg-danger/10 mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full">
+              <AlertTriangle className="text-danger h-6 w-6" />
             </div>
           )}
           <DialogTitle className="text-center">{title}</DialogTitle>
-          {description && <DialogDescription className="text-center">{description}</DialogDescription>}
+          {description && (
+            <DialogDescription className="text-center">{description}</DialogDescription>
+          )}
         </DialogHeader>
-        <DialogFooter className="sm:justify-center gap-2">
+        <DialogFooter className="gap-2 sm:justify-center">
           <NexusButton variant="outline" onClick={() => onOpenChange(false)}>
             {cancelLabel}
           </NexusButton>
@@ -61,7 +68,12 @@ export function ConfirmationDialog({
 
 /* ── CommandSearch (overlay search bar) ── */
 import {
-  CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
 } from "./command";
 import { useEffect } from "react";
 
@@ -80,7 +92,12 @@ interface CommandSearchProps {
   placeholder?: string;
 }
 
-export function CommandSearch({ items, open, onOpenChange, placeholder = "Search…" }: CommandSearchProps) {
+export function CommandSearch({
+  items,
+  open,
+  onOpenChange,
+  placeholder = "Search…",
+}: CommandSearchProps) {
   const groups = items.reduce<Record<string, CommandSearchItem[]>>((acc, item) => {
     const cat = item.category || "Results";
     if (!acc[cat]) acc[cat] = [];

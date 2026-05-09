@@ -33,10 +33,7 @@ const formSchema = z.object({
   slug: z
     .string()
     .min(2, "Slug must be at least 2 characters")
-    .regex(
-      /^[a-z0-9-]+$/,
-      "Slug must only contain lowercase letters, numbers, and hyphens"
-    ),
+    .regex(/^[a-z0-9-]+$/, "Slug must only contain lowercase letters, numbers, and hyphens"),
 });
 
 interface CreateOrganizationModalProps {
@@ -134,9 +131,7 @@ export function CreateOrganizationModal({
             />
             <DialogFooter>
               <Button type="submit" disabled={isLoading}>
-                {isLoading && (
-                  <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-                )}
+                {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
                 Create Organization
               </Button>
             </DialogFooter>

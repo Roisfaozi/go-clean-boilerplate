@@ -21,6 +21,6 @@ export const useDensityStore = create<DensityState>()(
     }),
     {
       name: "nexus-density-storage",
-    }
-  )
+    },
+  ),
 );

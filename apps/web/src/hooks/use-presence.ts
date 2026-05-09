@@ -21,7 +21,7 @@ export function usePresence() {
         removeUser(user.user_id);
       }
     },
-    [addUser, removeUser]
+    [addUser, removeUser],
   );
 
   useEffect(() => {

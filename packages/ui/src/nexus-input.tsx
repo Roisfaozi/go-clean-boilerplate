@@ -7,14 +7,14 @@ const NexusInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<
       <input
         type={type}
         className={cn(
-          "flex h-input w-full rounded-md border border-border bg-background px-[var(--input-padding-x)] py-[var(--input-padding-y)] text-body ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-normal",
-          className
+          "h-input border-border bg-background text-body ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring duration-normal flex w-full rounded-md border px-[var(--input-padding-x)] py-[var(--input-padding-y)] transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          className,
         )}
         ref={ref}
         {...props}
       />
     );
-  }
+  },
 );
 NexusInput.displayName = "NexusInput";
 

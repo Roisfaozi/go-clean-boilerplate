@@ -13,9 +13,5 @@ export function DashboardGrid({ children, columns = 4, className }: DashboardGri
     3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
     4: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
   };
-  return (
-    <div className={cn("grid gap-gap", colsMap[columns], className)}>
-      {children}
-    </div>
-  );
+  return <div className={cn("gap-gap grid", colsMap[columns], className)}>{children}</div>;
 }

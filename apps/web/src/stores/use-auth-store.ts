@@ -25,6 +25,6 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "nexus-auth-storage",
-    }
-  )
+    },
+  ),
 );

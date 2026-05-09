@@ -37,7 +37,7 @@ export const Icon = ({ name, size = "md", className, ...props }: IconProps) => {
         // Stroke width adapts: 2px (comfort) vs 1.5px (compact)
         "[stroke-width:var(--icon-stroke,2px)] [data-density=compact]:[stroke-width:1.5px]",
         sizeClasses[size],
-        className
+        className,
       )}
       {...props}
     />

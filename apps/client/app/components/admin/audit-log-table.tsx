@@ -1,22 +1,9 @@
 import { useState } from "react";
-import {  Badge  } from "@casbin/ui";
-import {  NexusInput  } from "@casbin/ui";
-import {  NexusButton  } from "@casbin/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@casbin/ui";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@casbin/ui";
+import { Badge } from "@casbin/ui";
+import { NexusInput } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@casbin/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@casbin/ui";
 import { Search, Download, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface AuditLogEntry {
@@ -68,20 +55,29 @@ export function AuditLogTable({ logs }: AuditLogTableProps) {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex items-center gap-2 flex-1">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-1 items-center gap-2">
+          <div className="relative max-w-sm flex-1">
+            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
             <NexusInput
               placeholder="Search logs..."
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               className="pl-9"
             />
           </div>
-          <Select value={severityFilter} onValueChange={(v) => { setSeverityFilter(v); setPage(1); }}>
+          <Select
+            value={severityFilter}
+            onValueChange={(v) => {
+              setSeverityFilter(v);
+              setPage(1);
+            }}
+          >
             <SelectTrigger className="w-[140px]">
-              <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+              <Filter className="text-muted-foreground mr-2 h-3.5 w-3.5" />
               <SelectValue placeholder="Severity" />
             </SelectTrigger>
             <SelectContent>
@@ -93,13 +89,13 @@ export function AuditLogTable({ logs }: AuditLogTableProps) {
           </Select>
         </div>
         <NexusButton variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
+          <Download className="mr-2 h-4 w-4" />
           Export
         </NexusButton>
       </div>
 
       {/* Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
+      <div className="border-border overflow-hidden rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -114,7 +110,7 @@ export function AuditLogTable({ logs }: AuditLogTableProps) {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-muted-foreground py-8 text-center">
                   No logs found
                 </TableCell>
               </TableRow>
@@ -130,8 +126,12 @@ export function AuditLogTable({ logs }: AuditLogTableProps) {
                       {log.severity}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{log.ip_address}</TableCell>
-                  <TableCell className="text-muted-foreground whitespace-nowrap">{log.timestamp}</TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-xs">
+                    {log.ip_address}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">
+                    {log.timestamp}
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -141,12 +141,18 @@ export function AuditLogTable({ logs }: AuditLogTableProps) {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div className="text-muted-foreground flex items-center justify-between text-sm">
           <span>
-            Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, filtered.length)} of {filtered.length}
+            Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, filtered.length)} of{" "}
+            {filtered.length}
           </span>
           <div className="flex items-center gap-1">
-            <NexusButton variant="ghost" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+            <NexusButton
+              variant="ghost"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage(page - 1)}
+            >
               <ChevronLeft className="h-4 w-4" />
             </NexusButton>
             {Array.from({ length: totalPages }, (_, i) => (
@@ -155,12 +161,17 @@ export function AuditLogTable({ logs }: AuditLogTableProps) {
                 variant={page === i + 1 ? "primary" : "ghost"}
                 size="sm"
                 onClick={() => setPage(i + 1)}
-                className="w-8 h-8 p-0"
+                className="h-8 w-8 p-0"
               >
                 {i + 1}
               </NexusButton>
             ))}
-            <NexusButton variant="ghost" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+            <NexusButton
+              variant="ghost"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage(page + 1)}
+            >
               <ChevronRight className="h-4 w-4" />
             </NexusButton>
           </div>

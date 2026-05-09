@@ -16,13 +16,19 @@ interface MultiSelectProps {
   className?: string;
 }
 
-export function MultiSelect({ options, value = [], onChange, placeholder = "Select...", className }: MultiSelectProps) {
+export function MultiSelect({
+  options,
+  value = [],
+  onChange,
+  placeholder = "Select...",
+  className,
+}: MultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
   const filtered = options.filter(
-    (o) => o.label.toLowerCase().includes(search.toLowerCase()) && !value.includes(o.value)
+    (o) => o.label.toLowerCase().includes(search.toLowerCase()) && !value.includes(o.value),
   );
   const selected = options.filter((o) => value.includes(o.value));
 
@@ -35,55 +41,60 @@ export function MultiSelect({ options, value = [], onChange, placeholder = "Sele
     <div ref={ref} className={cn("relative", className)}>
       <div
         onClick={() => setOpen(!open)}
-        className="flex flex-wrap items-center gap-1.5 min-h-input rounded-md border border-border bg-background px-3 py-2 cursor-pointer"
+        className="min-h-input border-border bg-background flex cursor-pointer flex-wrap items-center gap-1.5 rounded-md border px-3 py-2"
       >
         {selected.map((s) => (
           <span
             key={s.value}
-            className="inline-flex items-center gap-1 bg-primary/10 text-primary text-caption rounded-full px-2 py-0.5"
+            className="bg-primary/10 text-primary text-caption inline-flex items-center gap-1 rounded-full px-2 py-0.5"
           >
             {s.label}
             <X
-              className="h-3 w-3 cursor-pointer hover:text-danger"
-              onClick={(e) => { e.stopPropagation(); toggle(s.value); }}
+              className="hover:text-danger h-3 w-3 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggle(s.value);
+              }}
             />
           </span>
         ))}
-        {selected.length === 0 && <span className="text-muted-foreground text-body">{placeholder}</span>}
-        <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground shrink-0" />
+        {selected.length === 0 && (
+          <span className="text-muted-foreground text-body">{placeholder}</span>
+        )}
+        <ChevronDown className="text-muted-foreground ml-auto h-4 w-4 shrink-0" />
       </div>
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md animate-fade-in max-h-60 overflow-auto">
+        <div className="bg-popover border-border animate-fade-in absolute top-full right-0 left-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border shadow-md">
           <div className="p-2">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search..."
-              className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-body focus:outline-none focus:ring-1 focus:ring-ring"
+              className="border-border bg-background text-body focus:ring-ring w-full rounded-md border px-3 py-1.5 focus:ring-1 focus:outline-none"
               autoFocus
             />
           </div>
           {filtered.length === 0 && (
-            <p className="px-3 py-2 text-caption text-muted-foreground">No options</p>
+            <p className="text-caption text-muted-foreground px-3 py-2">No options</p>
           )}
           {filtered.map((o) => (
             <button
               key={o.value}
               onClick={() => toggle(o.value)}
-              className="flex items-center gap-2 w-full px-3 py-2 text-body hover:bg-surface-hover transition-colors text-left"
+              className="text-body hover:bg-surface-hover flex w-full items-center gap-2 px-3 py-2 text-left transition-colors"
             >
               {o.label}
             </button>
           ))}
           {value.length > 0 && (
             <>
-              <div className="border-t border-border my-1" />
-              <p className="px-3 py-1 text-caption text-muted-foreground">Selected</p>
+              <div className="border-border my-1 border-t" />
+              <p className="text-caption text-muted-foreground px-3 py-1">Selected</p>
               {selected.map((o) => (
                 <button
                   key={o.value}
                   onClick={() => toggle(o.value)}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-body hover:bg-surface-hover transition-colors text-left text-primary"
+                  className="text-body hover:bg-surface-hover text-primary flex w-full items-center gap-2 px-3 py-2 text-left transition-colors"
                 >
                   <Check className="h-3.5 w-3.5" />
                   {o.label}
@@ -105,7 +116,12 @@ interface TagInputProps {
   className?: string;
 }
 
-export function TagInput({ value = [], onChange, placeholder = "Add tag…", className }: TagInputProps) {
+export function TagInput({
+  value = [],
+  onChange,
+  placeholder = "Add tag…",
+  className,
+}: TagInputProps) {
   const [input, setInput] = useState("");
 
   const addTag = () => {
@@ -128,18 +144,18 @@ export function TagInput({ value = [], onChange, placeholder = "Add tag…", cla
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-1.5 min-h-input rounded-md border border-border bg-background px-3 py-2",
-        className
+        "min-h-input border-border bg-background flex flex-wrap items-center gap-1.5 rounded-md border px-3 py-2",
+        className,
       )}
     >
       {value.map((tag) => (
         <span
           key={tag}
-          className="inline-flex items-center gap-1 bg-primary/10 text-primary text-caption rounded-full px-2 py-0.5"
+          className="bg-primary/10 text-primary text-caption inline-flex items-center gap-1 rounded-full px-2 py-0.5"
         >
           {tag}
           <X
-            className="h-3 w-3 cursor-pointer hover:text-danger"
+            className="hover:text-danger h-3 w-3 cursor-pointer"
             onClick={() => onChange?.(value.filter((t) => t !== tag))}
           />
         </span>
@@ -150,7 +166,7 @@ export function TagInput({ value = [], onChange, placeholder = "Add tag…", cla
         onKeyDown={handleKeyDown}
         onBlur={addTag}
         placeholder={value.length === 0 ? placeholder : ""}
-        className="flex-1 min-w-[80px] bg-transparent text-body outline-none placeholder:text-muted-foreground"
+        className="text-body placeholder:text-muted-foreground min-w-[80px] flex-1 bg-transparent outline-none"
       />
     </div>
   );

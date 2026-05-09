@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@casbin/ui";
-import {  Spinner  } from "@casbin/ui";
+import { Spinner } from "@casbin/ui";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 
 // ─── DataTable ───
@@ -40,29 +40,32 @@ export function DataTable<T extends Record<string, unknown>>({
   };
 
   return (
-    <div className={cn("overflow-auto rounded-lg border border-border", className)}>
-      <table className="w-full text-body">
+    <div className={cn("border-border overflow-auto rounded-lg border", className)}>
+      <table className="text-body w-full">
         <thead>
-          <tr className="border-b border-border bg-surface">
+          <tr className="border-border bg-surface border-b">
             {columns.map((col) => (
               <th
                 key={col.key}
                 className={cn(
-                  "h-table-row px-[var(--table-cell-padding)] text-left font-medium text-muted-foreground",
-                  col.sortable && "cursor-pointer select-none hover:text-foreground",
-                  col.className
+                  "h-table-row text-muted-foreground px-[var(--table-cell-padding)] text-left font-medium",
+                  col.sortable && "hover:text-foreground cursor-pointer select-none",
+                  col.className,
                 )}
                 onClick={() => col.sortable && handleSort(col.key)}
               >
                 <div className="flex items-center gap-1">
                   {col.header}
-                  {col.sortable && (
-                    sortKey === col.key ? (
-                      sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  {col.sortable &&
+                    (sortKey === col.key ? (
+                      sortDirection === "asc" ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )
                     ) : (
                       <ChevronsUpDown className="h-3.5 w-3.5 opacity-40" />
-                    )
-                  )}
+                    ))}
                 </div>
               </th>
             ))}
@@ -77,15 +80,21 @@ export function DataTable<T extends Record<string, unknown>>({
             </tr>
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+              <td colSpan={columns.length} className="text-muted-foreground h-32 text-center">
                 {emptyMessage}
               </td>
             </tr>
           ) : (
             data.map((item, idx) => (
-              <tr key={idx} className="border-b border-border last:border-0 hover:bg-surface-hover transition-colors">
+              <tr
+                key={idx}
+                className="border-border hover:bg-surface-hover border-b transition-colors last:border-0"
+              >
                 {columns.map((col) => (
-                  <td key={col.key} className={cn("h-table-row px-[var(--table-cell-padding)]", col.className)}>
+                  <td
+                    key={col.key}
+                    className={cn("h-table-row px-[var(--table-cell-padding)]", col.className)}
+                  >
                     {col.render ? col.render(item) : String(item[col.key] ?? "")}
                   </td>
                 ))}

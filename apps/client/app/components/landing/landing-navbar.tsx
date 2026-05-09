@@ -16,10 +16,10 @@ export function LandingNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-lg">
+    <header className="border-border/60 bg-background/80 sticky top-0 z-50 w-full border-b backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2">
-          <Hexagon className="h-7 w-7 text-primary" />
+          <Hexagon className="text-primary h-7 w-7" />
           <span className="text-lg font-bold tracking-tight">NexusOS</span>
         </Link>
 
@@ -28,7 +28,7 @@ export function LandingNavbar() {
             <a
               key={item.href}
               href={item.href}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
             >
               {item.label}
             </a>
@@ -38,26 +38,26 @@ export function LandingNavbar() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-9 w-9 items-center justify-center rounded-md transition-colors"
             aria-label="Toggle theme"
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
           <Link
             to="/login"
-            className="hidden h-9 items-center rounded-md px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground md:inline-flex"
+            className="text-muted-foreground hover:text-foreground hidden h-9 items-center rounded-md px-4 text-sm font-medium transition-colors md:inline-flex"
           >
             Sign in
           </Link>
           <Link
             to="/register"
-            className="hidden h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover md:inline-flex"
+            className="bg-primary text-primary-foreground hover:bg-primary-hover hidden h-9 items-center rounded-md px-4 text-sm font-medium shadow-sm transition-colors md:inline-flex"
           >
             Get started
           </Link>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground md:hidden"
+            className="text-muted-foreground flex h-9 w-9 items-center justify-center rounded-md md:hidden"
             aria-label="Toggle menu"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -66,29 +66,29 @@ export function LandingNavbar() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-border bg-background md:hidden">
+        <div className="border-border bg-background border-t md:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-1 px-6 py-4">
             {navItems.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium"
               >
                 {item.label}
               </a>
             ))}
-            <div className="mt-2 flex gap-2 border-t border-border pt-3">
+            <div className="border-border mt-2 flex gap-2 border-t pt-3">
               <Link
                 to="/login"
-                className="flex-1 rounded-md border border-border px-3 py-2 text-center text-sm font-medium"
+                className="border-border flex-1 rounded-md border px-3 py-2 text-center text-sm font-medium"
               >
                 Sign in
               </Link>
               <Link
                 to="/register"
                 className={cn(
-                  "flex-1 rounded-md bg-primary px-3 py-2 text-center text-sm font-medium text-primary-foreground"
+                  "bg-primary text-primary-foreground flex-1 rounded-md px-3 py-2 text-center text-sm font-medium",
                 )}
               >
                 Get started

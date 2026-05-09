@@ -50,26 +50,26 @@ export function LandingNewsletter() {
   // Success state — full panel takeover with "Check your inbox" message
   if (isSuccess) {
     return (
-      <section className="border-y border-border bg-surface/50">
+      <section className="border-border bg-surface/50 border-y">
         <div className="mx-auto max-w-7xl px-6 py-16 md:py-20">
-          <div className="relative overflow-hidden rounded-2xl border border-success/30 bg-card p-8 md:p-12">
-            <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-success/10 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+          <div className="border-success/30 bg-card relative overflow-hidden rounded-2xl border p-8 md:p-12">
+            <div className="bg-success/10 pointer-events-none absolute -top-16 -right-16 h-64 w-64 rounded-full blur-3xl" />
+            <div className="bg-primary/10 pointer-events-none absolute -bottom-16 -left-16 h-64 w-64 rounded-full blur-3xl" />
 
             <div className="relative mx-auto max-w-xl text-center">
-              <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-success/10 text-success">
+              <div className="bg-success/10 text-success mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full">
                 <MailCheck className="h-7 w-7" />
               </div>
-              <h3 className="mb-3 text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+              <h3 className="text-foreground mb-3 text-2xl font-bold tracking-tight md:text-3xl">
                 Check your inbox
               </h3>
-              <p className="mb-2 text-sm text-muted-foreground md:text-base">
+              <p className="text-muted-foreground mb-2 text-sm md:text-base">
                 We sent a confirmation link to{" "}
-                <span className="font-medium text-foreground">{submittedEmail}</span>.
+                <span className="text-foreground font-medium">{submittedEmail}</span>.
               </p>
-              <p className="text-sm text-muted-foreground">
-                Click the link in the email to activate your subscription. The link
-                expires in 24 hours.
+              <p className="text-muted-foreground text-sm">
+                Click the link in the email to activate your subscription. The link expires in 24
+                hours.
               </p>
 
               <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
@@ -79,13 +79,13 @@ export function LandingNewsletter() {
                     setSubmittedEmail("");
                     setMessage("");
                   }}
-                  className="text-sm font-medium text-primary hover:underline"
+                  className="text-primary text-sm font-medium hover:underline"
                 >
                   Use a different email
                 </button>
               </div>
 
-              <p className="mt-6 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-6 text-xs">
                 Didn't get it? Check your spam folder, or wait a minute and try again.
               </p>
             </div>
@@ -96,23 +96,23 @@ export function LandingNewsletter() {
   }
 
   return (
-    <section className="border-y border-border bg-surface/50">
+    <section className="border-border bg-surface/50 border-y">
       <div className="mx-auto max-w-7xl px-6 py-16 md:py-20">
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8 md:p-12">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-accent/10 blur-3xl" />
+        <div className="border-border bg-card relative overflow-hidden rounded-2xl border p-8 md:p-12">
+          <div className="bg-primary/10 pointer-events-none absolute -top-16 -right-16 h-64 w-64 rounded-full blur-3xl" />
+          <div className="bg-accent/10 pointer-events-none absolute -bottom-16 -left-16 h-64 w-64 rounded-full blur-3xl" />
 
           <div className="relative grid grid-cols-1 items-center gap-8 md:grid-cols-2">
             <div>
-              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <div className="bg-primary/10 text-primary mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg">
                 <Mail className="h-5 w-5" />
               </div>
-              <h3 className="mb-3 text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+              <h3 className="text-foreground mb-3 text-2xl font-bold tracking-tight md:text-3xl">
                 Stay in the loop
               </h3>
-              <p className="text-sm text-muted-foreground md:text-base">
-                Get product updates, tips, and engineering deep-dives delivered straight
-                to your inbox. No spam, unsubscribe anytime.
+              <p className="text-muted-foreground text-sm md:text-base">
+                Get product updates, tips, and engineering deep-dives delivered straight to your
+                inbox. No spam, unsubscribe anytime.
               </p>
             </div>
 
@@ -120,7 +120,7 @@ export function LandingNewsletter() {
               <form onSubmit={handleSubmit} noValidate className="space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <div className="relative flex-1">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <input
                       type="email"
                       value={email}
@@ -137,10 +137,10 @@ export function LandingNewsletter() {
                       aria-invalid={isError}
                       aria-describedby="newsletter-status"
                       className={cn(
-                        "h-11 w-full rounded-md border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/70",
-                        "transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
+                        "bg-background text-foreground placeholder:text-muted-foreground/70 h-11 w-full rounded-md border pr-3 pl-9 text-sm",
+                        "focus:ring-ring transition-colors focus:border-transparent focus:ring-2 focus:outline-none",
                         "disabled:cursor-not-allowed disabled:opacity-60",
-                        isError ? "border-danger" : "border-border"
+                        isError ? "border-danger" : "border-border",
                       )}
                     />
                   </div>
@@ -150,7 +150,7 @@ export function LandingNewsletter() {
                     className={cn(
                       "inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 text-sm font-medium shadow-sm transition-all",
                       "bg-primary text-primary-foreground hover:bg-primary-hover",
-                      "disabled:cursor-not-allowed disabled:opacity-70"
+                      "disabled:cursor-not-allowed disabled:opacity-70",
                     )}
                   >
                     {isLoading ? (
@@ -179,7 +179,7 @@ export function LandingNewsletter() {
                   className="min-h-[20px] text-xs"
                 >
                   {isError && (
-                    <span className="inline-flex items-center gap-1.5 text-danger">
+                    <span className="text-danger inline-flex items-center gap-1.5">
                       <AlertCircle className="h-3.5 w-3.5" />
                       {message}
                     </span>

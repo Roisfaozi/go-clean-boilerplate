@@ -1,8 +1,8 @@
 import { useUploadStore } from "@/lib/upload/upload-store";
 import { UploadProgress } from "./upload-progress";
-import {  NexusButton  } from "@casbin/ui";
-import {  NexusCard  } from "@casbin/ui";
-import {  Badge  } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
+import { NexusCard } from "@casbin/ui";
+import { Badge } from "@casbin/ui";
 import { Trash2, Play } from "lucide-react";
 
 export function UploadQueue() {
@@ -14,7 +14,9 @@ export function UploadQueue() {
   const cancelUpload = useUploadStore((s) => s.cancelUpload);
   const retryUpload = useUploadStore((s) => s.retryUpload);
 
-  const uploading = items.filter((i) => i.status === "preparing" || i.status === "uploading").length;
+  const uploading = items.filter(
+    (i) => i.status === "preparing" || i.status === "uploading",
+  ).length;
   const queued = items.filter((i) => i.status === "queued").length;
   const completed = items.filter((i) => i.status === "success").length;
   const errors = items.filter((i) => i.status === "error").length;
@@ -25,34 +27,30 @@ export function UploadQueue() {
   return (
     <NexusCard>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+      <div className="border-border flex items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-foreground">Upload Queue</h3>
-          <Badge variant="secondary" className="text-[10px]">{items.length}</Badge>
+          <h3 className="text-foreground text-sm font-semibold">Upload Queue</h3>
+          <Badge variant="secondary" className="text-[10px]">
+            {items.length}
+          </Badge>
         </div>
         <div className="flex items-center gap-2 text-[11px]">
           {uploading > 0 && (
-            <Badge className="bg-primary/10 text-primary border-primary/20">{uploading} uploading</Badge>
-          )}
-          {queued > 0 && (
-            <Badge variant="outline">{queued} queued</Badge>
-          )}
-          {completed > 0 && (
-            <Badge className="bg-success/10 text-success border-success/20">
-              {completed} done
+            <Badge className="bg-primary/10 text-primary border-primary/20">
+              {uploading} uploading
             </Badge>
           )}
-          {errors > 0 && (
-            <Badge variant="destructive">{errors} failed</Badge>
+          {queued > 0 && <Badge variant="outline">{queued} queued</Badge>}
+          {completed > 0 && (
+            <Badge className="bg-success/10 text-success border-success/20">{completed} done</Badge>
           )}
-          {canceled > 0 && (
-            <Badge variant="outline">{canceled} canceled</Badge>
-          )}
+          {errors > 0 && <Badge variant="destructive">{errors} failed</Badge>}
+          {canceled > 0 && <Badge variant="outline">{canceled} canceled</Badge>}
         </div>
       </div>
 
       {/* Items */}
-      <div className="p-2 space-y-1 max-h-[360px] overflow-y-auto">
+      <div className="max-h-[360px] space-y-1 overflow-y-auto p-2">
         {items.map((item) => (
           <UploadProgress
             key={item.id}
@@ -66,16 +64,16 @@ export function UploadQueue() {
       </div>
 
       {/* Footer actions */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-t border-border">
+      <div className="border-border flex items-center justify-between border-t px-4 py-2.5">
         {queued > 0 && (
           <NexusButton size="sm" variant="outline" onClick={startAll}>
-            <Play className="h-3.5 w-3.5 mr-1.5" />
+            <Play className="mr-1.5 h-3.5 w-3.5" />
             Start All
           </NexusButton>
         )}
         {completed > 0 && (
           <NexusButton size="sm" variant="ghost" onClick={clearCompleted} className="ml-auto">
-            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
             Clear Completed
           </NexusButton>
         )}

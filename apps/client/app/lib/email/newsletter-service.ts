@@ -34,8 +34,7 @@ export interface ConfirmResult {
 
 type Provider = "mock" | "resend" | "custom";
 
-const PROVIDER: Provider =
-  (import.meta.env.VITE_NEWSLETTER_PROVIDER as Provider) || "mock";
+const PROVIDER: Provider = (import.meta.env.VITE_NEWSLETTER_PROVIDER as Provider) || "mock";
 const ENDPOINT: string | undefined = import.meta.env.VITE_NEWSLETTER_ENDPOINT;
 
 const MOCK_STORE_KEY = "newsletter:mock-subscribers";
@@ -104,17 +103,13 @@ export async function subscribeNewsletter(email: string): Promise<SubscribeResul
     }
     // Useful for local dev: surface the would-be confirm link
     // eslint-disable-next-line no-console
-    console.info(
-      `[newsletter:mock] confirm link → ${buildConfirmUrl()}?token=${token}`
-    );
+    console.info(`[newsletter:mock] confirm link → ${buildConfirmUrl()}?token=${token}`);
     return { ok: true, devToken: token };
   }
 
   // Real provider — POST to the configured endpoint
   if (!ENDPOINT) {
-    throw new Error(
-      "Newsletter endpoint is not configured. Set VITE_NEWSLETTER_ENDPOINT."
-    );
+    throw new Error("Newsletter endpoint is not configured. Set VITE_NEWSLETTER_ENDPOINT.");
   }
 
   const res = await fetch(ENDPOINT, {

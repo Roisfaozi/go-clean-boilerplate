@@ -15,9 +15,7 @@ interface ProjectsContextType {
   deleteProject: (id: string) => Promise<void>;
 }
 
-const ProjectsContext = createContext<ProjectsContextType | undefined>(
-  undefined
-);
+const ProjectsContext = createContext<ProjectsContextType | undefined>(undefined);
 
 export function ProjectsProvider({
   children,
@@ -38,7 +36,7 @@ export function ProjectsProvider({
     {
       fallbackData: initialData,
       keepPreviousData: true,
-    }
+    },
   );
 
   const fetchProjects = useCallback(async () => {
@@ -57,7 +55,7 @@ export function ProjectsProvider({
         throw error;
       }
     },
-    [currentOrganization, mutate]
+    [currentOrganization, mutate],
   );
 
   const updateProject = useCallback(
@@ -71,7 +69,7 @@ export function ProjectsProvider({
         toast.error("Failed to update project");
       }
     },
-    [currentOrganization, mutate]
+    [currentOrganization, mutate],
   );
 
   const deleteProject = useCallback(
@@ -85,7 +83,7 @@ export function ProjectsProvider({
         toast.error("Failed to delete project");
       }
     },
-    [currentOrganization, mutate]
+    [currentOrganization, mutate],
   );
 
   return (

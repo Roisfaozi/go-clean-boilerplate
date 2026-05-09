@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronRight,
-  Search,
-  Shield,
-} from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, Search, Shield } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Badge } from "~/components/ui/badge";
@@ -80,10 +74,8 @@ export function RolePermissionSheet({
       // Optimistically update state
       setAccessRights((prev) =>
         prev.map((item) =>
-          item.id === ar.id
-            ? { ...item, is_assigned: newValue, is_partial: false }
-            : item
-        )
+          item.id === ar.id ? { ...item, is_assigned: newValue, is_partial: false } : item,
+        ),
       );
     } catch {
       toast.error(`Failed to ${newValue ? "assign" : "revoke"} "${ar.name}"`);
@@ -97,7 +89,7 @@ export function RolePermissionSheet({
   };
 
   const filtered = accessRights.filter((ar) =>
-    ar.name.toLowerCase().includes(search.toLowerCase())
+    ar.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const assignedCount = accessRights.filter((ar) => ar.is_assigned).length;
@@ -112,13 +104,9 @@ export function RolePermissionSheet({
               <Shield className="text-primary h-5 w-5" />
             </div>
             <div>
-              <SheetTitle className="text-lg font-semibold">
-                Manage Permissions
-              </SheetTitle>
+              <SheetTitle className="text-lg font-semibold">Manage Permissions</SheetTitle>
               <SheetDescription className="text-muted-foreground mt-0.5 text-sm">
-                <span className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">
-                  {roleName}
-                </span>
+                <span className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">{roleName}</span>
               </SheetDescription>
             </div>
           </div>
@@ -142,10 +130,7 @@ export function RolePermissionSheet({
           <div className="space-y-1 py-2">
             {loading ? (
               Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between px-4 py-3"
-                >
+                <div key={i} className="flex items-center justify-between px-4 py-3">
                   <div className="flex-1 space-y-1.5">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-3 w-20" />
@@ -181,9 +166,7 @@ export function RolePermissionSheet({
                     {/* Name + badges */}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="truncate text-sm font-medium">
-                          {ar.name}
-                        </span>
+                        <span className="truncate text-sm font-medium">{ar.name}</span>
                         <Badge variant="secondary" className="shrink-0 text-xs">
                           {ar.endpoints.length} endpoint
                           {ar.endpoints.length !== 1 ? "s" : ""}
@@ -205,10 +188,7 @@ export function RolePermissionSheet({
                       checked={ar.is_assigned}
                       onCheckedChange={(val) => handleToggle(ar, val)}
                       disabled={toggling[ar.id] || isPending}
-                      className={cn(
-                        "shrink-0 transition-colors",
-                        toggling[ar.id] && "opacity-50"
-                      )}
+                      className={cn("shrink-0 transition-colors", toggling[ar.id] && "opacity-50")}
                     />
                   </div>
 
@@ -219,30 +199,20 @@ export function RolePermissionSheet({
                         const [method, ...pathParts] = ep.split(" ");
                         const path = pathParts.join(" ");
                         return (
-                          <div
-                            key={i}
-                            className="flex items-center gap-2 text-xs"
-                          >
+                          <div key={i} className="flex items-center gap-2 text-xs">
                             <span
                               className={cn(
                                 "w-14 rounded px-1 py-0.5 text-center font-mono font-semibold",
-                                method === "GET" &&
-                                  "bg-emerald-400/10 text-emerald-400",
-                                method === "POST" &&
-                                  "bg-blue-400/10 text-blue-400",
-                                method === "PUT" &&
-                                  "bg-amber-400/10 text-amber-400",
-                                method === "PATCH" &&
-                                  "bg-orange-400/10 text-orange-400",
-                                method === "DELETE" &&
-                                  "bg-red-400/10 text-red-400"
+                                method === "GET" && "bg-emerald-400/10 text-emerald-400",
+                                method === "POST" && "bg-blue-400/10 text-blue-400",
+                                method === "PUT" && "bg-amber-400/10 text-amber-400",
+                                method === "PATCH" && "bg-orange-400/10 text-orange-400",
+                                method === "DELETE" && "bg-red-400/10 text-red-400",
                               )}
                             >
                               {method}
                             </span>
-                            <span className="text-muted-foreground truncate font-mono">
-                              {path}
-                            </span>
+                            <span className="text-muted-foreground truncate font-mono">{path}</span>
                           </div>
                         );
                       })}
@@ -258,14 +228,9 @@ export function RolePermissionSheet({
         {!loading && accessRights.length > 0 && (
           <div className="border-border/50 border-t px-6 py-3">
             <p className="text-muted-foreground text-center text-xs">
-              <span className="text-foreground font-semibold">
-                {assignedCount}
-              </span>{" "}
-              of{" "}
-              <span className="text-foreground font-semibold">
-                {accessRights.length}
-              </span>{" "}
-              access rights assigned
+              <span className="text-foreground font-semibold">{assignedCount}</span> of{" "}
+              <span className="text-foreground font-semibold">{accessRights.length}</span> access
+              rights assigned
             </p>
           </div>
         )}

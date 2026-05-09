@@ -1,12 +1,20 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
-import {  Tabs, TabsContent, TabsList, TabsTrigger  } from "@casbin/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@casbin/ui";
 import { PermissionMatrix } from "@/features/permissions/permission-matrix";
 import { RoleInheritanceTree, RoleNode } from "@/features/permissions/role-inheritance-tree";
 import { AccessRightManager } from "@/features/permissions/access-right-manager";
 
 const roles = ["Super Admin", "Admin", "Editor", "Viewer"];
-const resources = ["Users", "Roles", "Organizations", "Projects", "Permissions", "Audit Logs", "Settings"];
+const resources = [
+  "Users",
+  "Roles",
+  "Organizations",
+  "Projects",
+  "Permissions",
+  "Audit Logs",
+  "Settings",
+];
 const actions = ["Create", "Read", "Update", "Delete"];
 
 const initialPermissions: Record<string, Record<string, string[]>> = {

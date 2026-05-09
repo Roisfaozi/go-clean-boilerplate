@@ -23,12 +23,15 @@ flowchart TD
 ## 2. Runtime Composition
 
 Entry point:
+
 - `cmd/api/main.go`
 
 Composition root:
+
 - `internal/config/app.go`
 
 Komponen runtime yang diinisialisasi:
+
 - Logger
 - MySQL/GORM
 - Redis
@@ -44,6 +47,7 @@ Komponen runtime yang diinisialisasi:
 ## 3. Clean Architecture Layout
 
 Setiap module di `internal/modules/<name>/` umumnya dibagi menjadi:
+
 - `entity/`: representasi domain inti
 - `model/`: request/response DTO
 - `repository/`: akses data
@@ -51,6 +55,7 @@ Setiap module di `internal/modules/<name>/` umumnya dibagi menjadi:
 - `delivery/http/`: controller dan route registration
 
 Module utama:
+
 - `auth`
 - `user`
 - `organization`
@@ -120,6 +125,7 @@ flowchart LR
 Router utama ada di `internal/router/router.go`.
 
 ### Public
+
 - `/api/v1/auth/login`
 - `/api/v1/auth/register`
 - `/api/v1/auth/refresh`
@@ -132,12 +138,15 @@ Router utama ada di `internal/router/router.go`.
 - `/api/v1/organizations/invitations/accept`
 
 ### Authenticated
+
 Middleware:
+
 - optional API key auth
 - JWT validation
 - user status validation
 
 Contoh endpoint:
+
 - `/api/v1/auth/logout`
 - `/api/v1/auth/ticket`
 - `/api/v1/auth/me`
@@ -148,24 +157,30 @@ Contoh endpoint:
 - `/api/v1/permissions/check-batch`
 
 ### Tenant
+
 Middleware:
+
 - optional API key auth
 - JWT validation
 - `TenantMiddleware.RequireOrganization()`
 
 Contoh endpoint:
+
 - `/api/v1/organizations/:id/members/*`
 - `/api/v1/organizations/:id/presence`
 - `/api/v1/projects/*`
 
 ### Authorized
+
 Middleware:
+
 - optional API key auth
 - JWT validation
 - user status validation
 - Casbin authorization
 
 Contoh endpoint:
+
 - `/api/v1/permissions/*`
 - `/api/v1/access-rights/*`
 - `/api/v1/endpoints/*`
@@ -196,6 +211,7 @@ flowchart LR
 ```
 
 Catatan:
+
 - Tidak semua request melewati semua middleware.
 - Tenant dan Casbin hanya aktif pada route group tertentu.
 
@@ -227,6 +243,7 @@ sequenceDiagram
 ```
 
 ### Login
+
 - Validasi body
 - Cek account lock di Redis
 - Ambil user dari DB
@@ -320,6 +337,7 @@ sequenceDiagram
 ## 11. E2E Flow: Organization Membership Lifecycle
 
 ### Invite Member
+
 - Caller harus masuk tenant route dan lolos membership check.
 - Use case cek organization.
 - Cari user by email.
@@ -330,6 +348,7 @@ sequenceDiagram
 - Queue email invitation via Asynq.
 
 ### Accept Invitation
+
 - Cari token invitation.
 - Validasi expiry.
 - Ambil user dari email invitation.
@@ -341,6 +360,7 @@ sequenceDiagram
 ## 12. E2E Flow: API Key
 
 ### Create
+
 - Route butuh auth dan tenant context.
 - Generate secure random key.
 - Hash dengan SHA-256.
@@ -348,6 +368,7 @@ sequenceDiagram
 - Return raw key sekali saja ke client.
 
 ### Use
+
 - Client kirim `X-API-Key`.
 - Middleware resolve identity via Redis cache atau DB.
 - Inject `user_id`, `organization_id`, `username`.
@@ -379,6 +400,7 @@ sequenceDiagram
 ```
 
 ### SSE
+
 - Client connect ke `/events` dengan token valid.
 - SSE manager register client.
 - Event internal dapat di-broadcast ke semua subscriber SSE.
@@ -386,11 +408,13 @@ sequenceDiagram
 ## 14. E2E Flow: Audit Logging
 
 ### Non-transactional event
+
 - Use case memanggil `AuditUC.LogActivity()`
 - Audit langsung ditulis ke `audit_logs`
 - Event dikirim ke channel `audit` via WS
 
 ### Transactional event
+
 - Jika ada transaction context, audit masuk ke `audit_outbox`
 - Scheduler enqueue task sync audit outbox tiap 5 detik
 - Worker membaca outbox dan memindahkan ke audit log final
@@ -417,6 +441,7 @@ sequenceDiagram
 ## 16. E2E Flow: Background Worker
 
 Task yang terlihat di code:
+
 - send email
 - create audit log
 - export audit log
@@ -427,6 +452,7 @@ Task yang terlihat di code:
 - prune old audit logs
 
 Jadwal default:
+
 - cleanup expired tokens: tiap 6 jam
 - hard delete soft-deleted users: tiap hari jam 03:00
 - prune audit logs: mingguan
@@ -435,6 +461,7 @@ Jadwal default:
 ## 17. Data and Infra Boundaries
 
 MySQL dipakai untuk:
+
 - users
 - roles
 - casbin_rule
@@ -449,6 +476,7 @@ MySQL dipakai untuk:
 - webhooks
 
 Redis dipakai untuk:
+
 - JWT session storage
 - login attempts dan account lock
 - API key cache
@@ -471,27 +499,33 @@ Redis dipakai untuk:
 ## 19. Important Gaps and Risks
 
 ### SSO flow mismatch
+
 - Flow SSO tampak tidak konsisten antara token yang dihasilkan, session yang disimpan, dan nilai return ke controller.
 - Risiko: cookie atau session SSO invalid.
 
 ### Organization route protection masih longgar
+
 - Beberapa route organization berada di group `authenticated`, bukan `tenant` atau role-checked route.
 - Risiko: akses org detail/update tanpa membership/role enforcement yang cukup ketat.
 
 ### Member management belum enforce org-role
+
 - Invite/update/remove member saat ini hanya ditahan oleh membership tenant, bukan owner/admin role.
 - Risiko: member biasa bisa melakukan operasi administrasi.
 
 ### Stats route tidak tenant-aware secara efektif
+
 - Use case stats mendukung org scope, tetapi route stats tidak memaksa tenant context.
 - Hasil aktual cenderung global.
 
 ### Membership cache invalidation belum terlihat dipanggil
+
 - Setelah update member/remove member, cache membership bisa stale sampai TTL habis.
 
 ## 20. Suggested Mental Model
 
 Cara paling tepat memahami project ini:
+
 - Anggap ini sebagai modular monolith.
 - `auth` adalah pintu masuk identitas dan session.
 - `organization` adalah boundary multi-tenant.
@@ -502,6 +536,7 @@ Cara paling tepat memahami project ini:
 ## 21. Quick File Map
 
 File paling penting untuk dibaca berurutan:
+
 - `README.md`
 - `documentation/ARCHITECTURE.md`
 - `cmd/api/main.go`
@@ -521,6 +556,7 @@ File paling penting untuk dibaca berurutan:
 ## 22. Summary
 
 Secara keseluruhan, project ini adalah backend monolith modular dengan fondasi yang cukup kuat:
+
 - arsitektur bersih
 - dependency injection manual
 - multi-tenancy
@@ -532,6 +568,7 @@ Secara keseluruhan, project ini adalah backend monolith modular dengan fondasi y
 - storage abstraction
 
 Yang paling penting untuk dijaga ke depan adalah konsistensi boundary authorization:
+
 - bedakan dengan tegas antara `authenticated`, `tenant`, dan `authorized`
 - pastikan org-role benar-benar dipakai untuk operasi administrasi tenant
 - rapikan flow SSO dan invalidation cache membership

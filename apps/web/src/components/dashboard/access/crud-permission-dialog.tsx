@@ -59,8 +59,7 @@ export function CRUDPermissionDialog({
   currentPermissions,
   onApply,
 }: CRUDPermissionDialogProps) {
-  const [permissions, setPermissions] =
-    useState<ResourceCRUD>(currentPermissions);
+  const [permissions, setPermissions] = useState<ResourceCRUD>(currentPermissions);
   const [isApplying, setIsApplying] = useState(false);
 
   const handleToggle = (key: keyof ResourceCRUD) => {
@@ -90,13 +89,10 @@ export function CRUDPermissionDialog({
       <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <code className="bg-muted rounded px-2 py-0.5 font-mono text-sm">
-              {resourceName}
-            </code>
+            <code className="bg-muted rounded px-2 py-0.5 font-mono text-sm">{resourceName}</code>
           </DialogTitle>
           <DialogDescription>
-            Permissions for{" "}
-            <span className="text-foreground font-medium">{roleName}</span>
+            Permissions for <span className="text-foreground font-medium">{roleName}</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -113,15 +109,10 @@ export function CRUDPermissionDialog({
               />
               <div className="flex-1 space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <Icon
-                    name={item.icon as any}
-                    className="text-muted-foreground h-3.5 w-3.5"
-                  />
+                  <Icon name={item.icon as any} className="text-muted-foreground h-3.5 w-3.5" />
                   <span className="text-sm font-medium">{item.label}</span>
                 </div>
-                <p className="text-muted-foreground text-xs">
-                  {item.description}
-                </p>
+                <p className="text-muted-foreground text-xs">{item.description}</p>
               </div>
             </label>
           ))}
@@ -132,9 +123,7 @@ export function CRUDPermissionDialog({
             Cancel
           </Button>
           <Button onClick={handleApply} disabled={isApplying || !hasChanges}>
-            {isApplying && (
-              <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-            )}
+            {isApplying && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
             Apply
           </Button>
         </DialogFooter>

@@ -8,11 +8,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@casbin/ui";
-import {  NexusButton  } from "@casbin/ui";
-import {  NexusInput  } from "@casbin/ui";
-import {  Label  } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
+import { NexusInput } from "@casbin/ui";
+import { Label } from "@casbin/ui";
 import { MemberRoleSelector } from "./member-role-selector";
-import {  useToast  } from "@casbin/ui";
+import { useToast } from "@casbin/ui";
 import { Plus, Mail } from "lucide-react";
 
 interface InviteMemberModalProps {
@@ -46,22 +46,20 @@ export function InviteMemberModal({ onInvite }: InviteMemberModalProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <NexusButton size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />
+          <Plus className="mr-1.5 h-4 w-4" />
           Invite Member
         </NexusButton>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Invite Member</DialogTitle>
-          <DialogDescription>
-            Send an invitation to join the organization
-          </DialogDescription>
+          <DialogDescription>Send an invitation to join the organization</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="invite-email">Email Address</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Mail className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <NexusInput
                 id="invite-email"
                 type="email"

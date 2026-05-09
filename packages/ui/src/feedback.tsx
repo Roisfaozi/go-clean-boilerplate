@@ -4,20 +4,17 @@ import { AlertCircle, CheckCircle2, Info, AlertTriangle, X } from "lucide-react"
 import { useState } from "react";
 
 /* ── InlineAlert ── */
-const alertVariants = cva(
-  "flex items-start gap-3 rounded-lg border p-4 text-body",
-  {
-    variants: {
-      variant: {
-        info: "bg-info/5 border-info/20 text-info",
-        success: "bg-success/5 border-success/20 text-success",
-        warning: "bg-warning/5 border-warning/20 text-warning",
-        danger: "bg-danger/5 border-danger/20 text-danger",
-      },
+const alertVariants = cva("flex items-start gap-3 rounded-lg border p-4 text-body", {
+  variants: {
+    variant: {
+      info: "bg-info/5 border-info/20 text-info",
+      success: "bg-success/5 border-success/20 text-success",
+      warning: "bg-warning/5 border-warning/20 text-warning",
+      danger: "bg-danger/5 border-danger/20 text-danger",
     },
-    defaultVariants: { variant: "info" },
-  }
-);
+  },
+  defaultVariants: { variant: "info" },
+});
 
 const iconMap = { info: Info, success: CheckCircle2, warning: AlertTriangle, danger: AlertCircle };
 
@@ -28,14 +25,20 @@ interface InlineAlertProps extends VariantProps<typeof alertVariants> {
   className?: string;
 }
 
-export function InlineAlert({ variant = "info", title, children, dismissible, className }: InlineAlertProps) {
+export function InlineAlert({
+  variant = "info",
+  title,
+  children,
+  dismissible,
+  className,
+}: InlineAlertProps) {
   const [visible, setVisible] = useState(true);
   if (!visible) return null;
   const Icon = iconMap[variant || "info"];
 
   return (
     <div className={cn(alertVariants({ variant }), className)}>
-      <Icon className="h-5 w-5 shrink-0 mt-0.5" />
+      <Icon className="mt-0.5 h-5 w-5 shrink-0" />
       <div className="flex-1 space-y-1">
         {title && <p className="font-semibold">{title}</p>}
         <div className="text-foreground">{children}</div>
@@ -69,9 +72,16 @@ export function StatusIndicator({ status, label, pulse = true, className }: Stat
     <span className={cn("inline-flex items-center gap-2", className)}>
       <span className="relative flex h-2.5 w-2.5">
         {pulse && status === "online" && (
-          <span className={cn("absolute inset-0 rounded-full animate-ping opacity-75", statusColors[status])} />
+          <span
+            className={cn(
+              "absolute inset-0 animate-ping rounded-full opacity-75",
+              statusColors[status],
+            )}
+          />
         )}
-        <span className={cn("relative inline-flex rounded-full h-2.5 w-2.5", statusColors[status])} />
+        <span
+          className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", statusColors[status])}
+        />
       </span>
       {label && <span className="text-small text-foreground capitalize">{label || status}</span>}
     </span>
@@ -101,19 +111,27 @@ interface ProgressBarProps extends VariantProps<typeof progressBarVariants> {
   className?: string;
 }
 
-export function ProgressBar({ value, max = 100, label, showValue, variant, size = "md", className }: ProgressBarProps) {
+export function ProgressBar({
+  value,
+  max = 100,
+  label,
+  showValue,
+  variant,
+  size = "md",
+  className,
+}: ProgressBarProps) {
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
   const h = size === "sm" ? "h-1.5" : size === "lg" ? "h-4" : "h-2.5";
 
   return (
     <div className={cn("space-y-1.5", className)}>
       {(label || showValue) && (
-        <div className="flex items-center justify-between text-small">
+        <div className="text-small flex items-center justify-between">
           {label && <span className="text-foreground font-medium">{label}</span>}
           {showValue && <span className="text-muted-foreground">{Math.round(pct)}%</span>}
         </div>
       )}
-      <div className={cn("w-full overflow-hidden rounded-full bg-muted", h)}>
+      <div className={cn("bg-muted w-full overflow-hidden rounded-full", h)}>
         <div className={cn(progressBarVariants({ variant }), h)} style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -136,7 +154,7 @@ export function SkeletonLoader({ variant = "text", rows = 3, className }: Skelet
 
   if (variant === "card") {
     return (
-      <div className={cn("border border-border rounded-lg p-card-pad space-y-3", className)}>
+      <div className={cn("border-border p-card-pad space-y-3 rounded-lg border", className)}>
         <div className={cn(base, "h-4 w-1/3")} />
         <div className={cn(base, "h-8 w-2/3")} />
         <div className={cn(base, "h-3 w-full")} />
@@ -183,16 +201,26 @@ interface NotificationCenterProps {
   className?: string;
 }
 
-export function NotificationCenter({ notifications, onRead, onClear, className }: NotificationCenterProps) {
+export function NotificationCenter({
+  notifications,
+  onRead,
+  onClear,
+  className,
+}: NotificationCenterProps) {
   const unread = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className={cn("w-full max-w-sm bg-popover border border-border rounded-lg shadow-lg overflow-hidden", className)}>
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+    <div
+      className={cn(
+        "bg-popover border-border w-full max-w-sm overflow-hidden rounded-lg border shadow-lg",
+        className,
+      )}
+    >
+      <div className="border-border flex items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-2">
           <h3 className="text-h4 text-foreground">Notifications</h3>
           {unread > 0 && (
-            <span className="inline-flex items-center justify-center h-5 min-w-5 rounded-full bg-danger text-danger-foreground text-caption px-1.5">
+            <span className="bg-danger text-danger-foreground text-caption inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5">
               {unread}
             </span>
           )}
@@ -203,22 +231,27 @@ export function NotificationCenter({ notifications, onRead, onClear, className }
           </button>
         )}
       </div>
-      <div className="max-h-80 overflow-y-auto divide-y divide-border">
+      <div className="divide-border max-h-80 divide-y overflow-y-auto">
         {notifications.length === 0 ? (
-          <p className="p-6 text-center text-body text-muted-foreground">No notifications</p>
+          <p className="text-body text-muted-foreground p-6 text-center">No notifications</p>
         ) : (
           notifications.map((n) => (
             <button
               key={n.id}
               onClick={() => onRead?.(n.id)}
               className={cn(
-                "flex items-start gap-3 w-full px-4 py-3 text-left hover:bg-surface-hover transition-colors",
-                !n.read && "bg-primary/5"
+                "hover:bg-surface-hover flex w-full items-start gap-3 px-4 py-3 text-left transition-colors",
+                !n.read && "bg-primary/5",
               )}
             >
               {n.icon && <span className="mt-0.5 shrink-0">{n.icon}</span>}
-              <div className="flex-1 min-w-0">
-                <p className={cn("text-body truncate", !n.read ? "font-semibold text-foreground" : "text-foreground")}>
+              <div className="min-w-0 flex-1">
+                <p
+                  className={cn(
+                    "text-body truncate",
+                    !n.read ? "text-foreground font-semibold" : "text-foreground",
+                  )}
+                >
                   {n.title}
                 </p>
                 {n.description && (

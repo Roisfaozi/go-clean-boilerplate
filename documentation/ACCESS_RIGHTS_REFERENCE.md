@@ -13,8 +13,8 @@ This document provides a detailed reference for the **Access Rights** (grouped p
 | **`dashboard:view`**    | View dashboard statistics               | `GET /api/v1/stats/summary`<br>`GET /api/v1/stats/activity`<br>`GET /api/v1/stats/insights`                                                                                                                                                                                      |
 | **`user:view`**         | View user list and details              | `GET /api/v1/users/`<br>`POST /api/v1/users/search`<br>`GET /api/v1/users/:id`                                                                                                                                                                                                   |
 | **`user:manage`**       | Manage user status/deletion             | `PATCH /api/v1/users/:id/status`<br>`DELETE /api/v1/users/:id`                                                                                                                                                                                                                   |
-| **`org:view`**          | View active organization context        | `GET /api/v1/organizations/:id`<br>`GET /api/v1/organizations/slug/:slug`                                                                                                                                                                                                          |
-| **`org:manage`**        | Update/Delete organizations             | `PUT /api/v1/organizations/:id`<br>`DELETE /api/v1/organizations/:id`                                                                                                                                                                                                               |
+| **`org:view`**          | View active organization context        | `GET /api/v1/organizations/:id`<br>`GET /api/v1/organizations/slug/:slug`                                                                                                                                                                                                        |
+| **`org:manage`**        | Update/Delete organizations             | `PUT /api/v1/organizations/:id`<br>`DELETE /api/v1/organizations/:id`                                                                                                                                                                                                            |
 | **`member:manage`**     | Manage organization members             | `POST /api/v1/organizations/:id/members/invite`<br>`GET /api/v1/organizations/:id/members`<br>`PATCH /api/v1/organizations/:id/members/:userId`<br>`DELETE /api/v1/organizations/:id/members/:userId`                                                                            |
 | **`presence:view`**     | View member presence                    | `GET /api/v1/organizations/:id/presence`                                                                                                                                                                                                                                         |
 | **`project:view`**      | View projects                           | `GET /api/v1/projects`<br>`GET /api/v1/projects/:id`                                                                                                                                                                                                                             |
@@ -25,18 +25,18 @@ This document provides a detailed reference for the **Access Rights** (grouped p
 | **`permission:manage`** | Manage permissions and role assignments | `POST /api/v1/permissions/assign-role`<br>`DELETE /api/v1/permissions/revoke-role`<br>`POST /api/v1/permissions/grant`<br>`PUT /api/v1/permissions`<br>`DELETE /api/v1/permissions/revoke`<br>`POST /api/v1/permissions/inheritance`<br>`DELETE /api/v1/permissions/inheritance` |
 | **`access:view`**       | View access rights definitions          | `GET /api/v1/access-rights`<br>`POST /api/v1/access-rights/search`<br>`POST /api/v1/endpoints/search`                                                                                                                                                                            |
 | **`access:manage`**     | Manage access rights definitions        | `POST /api/v1/access-rights`<br>`DELETE /api/v1/access-rights/:id`<br>`POST /api/v1/access-rights/link`<br>`POST /api/v1/access-rights/unlink`<br>`POST /api/v1/endpoints`<br>`DELETE /api/v1/endpoints/:id`                                                                     |
-| **`audit:view`**        | View and export audit logs              | `POST /api/v1/audit-logs/search`<br>`GET /api/v1/audit-logs/export`<br>`GET /api/v1/audit-logs/export-async`                                                                                                                                                                      |
-| **`webhook:manage`**    | Manage outbound webhooks                | `POST /api/v1/webhooks`<br>`GET /api/v1/webhooks`<br>`GET /api/v1/webhooks/:id`<br>`PUT /api/v1/webhooks/:id`<br>`DELETE /api/v1/webhooks/:id`<br>`GET /api/v1/webhooks/:id/logs`                                                                                                  |
+| **`audit:view`**        | View and export audit logs              | `POST /api/v1/audit-logs/search`<br>`GET /api/v1/audit-logs/export`<br>`GET /api/v1/audit-logs/export-async`                                                                                                                                                                     |
+| **`webhook:manage`**    | Manage outbound webhooks                | `POST /api/v1/webhooks`<br>`GET /api/v1/webhooks`<br>`GET /api/v1/webhooks/:id`<br>`PUT /api/v1/webhooks/:id`<br>`DELETE /api/v1/webhooks/:id`<br>`GET /api/v1/webhooks/:id/logs`                                                                                                |
 
 ## 2. Default Role Assignments
 
 These are the default Access Rights assigned to the standard roles.
 
-| Role                  | Assigned Access Rights                                                                                                                                                              |
-| :-------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`role:superadmin`** | _All Permissions_ (via wildcard policy `*`, `*`)                                                                                                                                    |
+| Role                  | Assigned Access Rights                                                                                                                                                                                  |
+| :-------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`role:superadmin`** | _All Permissions_ (via wildcard policy `*`, `*`)                                                                                                                                                        |
 | **`role:admin`**      | `dashboard:view`<br>`user:view`<br>`role:view`, `role:manage`<br>`project:view`, `project:manage`<br>`org:view`, `org:manage`<br>`member:manage`<br>`presence:view`<br>`audit:view`<br>`webhook:manage` |
-| **`role:user`**       | `dashboard:view`<br>`project:view`<br>`org:view`<br>`presence:view`                                                                                                                 |
+| **`role:user`**       | `dashboard:view`<br>`project:view`<br>`org:view`<br>`presence:view`                                                                                                                                     |
 
 ## 3. Excluded Endpoints
 
@@ -75,15 +75,15 @@ The following endpoints are **NOT** managed via Access Rights because they are e
 
 Tenant-scoped API keys are allowed only on endpoints that explicitly support machine-to-machine access. The current scope mapping is:
 
-| Scope | Allowed Endpoints |
-| :---- | :---------------- |
-| `org:view` | `GET /api/v1/organizations/:id`<br>`GET /api/v1/organizations/slug/:slug` |
-| `org:manage` | `PUT /api/v1/organizations/:id` |
-| `member:manage` | `POST /api/v1/organizations/:id/members/invite`<br>`GET /api/v1/organizations/:id/members`<br>`PATCH /api/v1/organizations/:id/members/:userId`<br>`DELETE /api/v1/organizations/:id/members/:userId` |
-| `presence:view` | `GET /api/v1/organizations/:id/presence` |
-| `project:view` | `GET /api/v1/projects`<br>`GET /api/v1/projects/:id` |
-| `project:manage` | `POST /api/v1/projects`<br>`PUT /api/v1/projects/:id`<br>`DELETE /api/v1/projects/:id` |
-| `webhook:manage` | `POST /api/v1/webhooks`<br>`GET /api/v1/webhooks`<br>`GET /api/v1/webhooks/:id`<br>`PUT /api/v1/webhooks/:id`<br>`DELETE /api/v1/webhooks/:id`<br>`GET /api/v1/webhooks/:id/logs` |
+| Scope            | Allowed Endpoints                                                                                                                                                                                     |
+| :--------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `org:view`       | `GET /api/v1/organizations/:id`<br>`GET /api/v1/organizations/slug/:slug`                                                                                                                             |
+| `org:manage`     | `PUT /api/v1/organizations/:id`                                                                                                                                                                       |
+| `member:manage`  | `POST /api/v1/organizations/:id/members/invite`<br>`GET /api/v1/organizations/:id/members`<br>`PATCH /api/v1/organizations/:id/members/:userId`<br>`DELETE /api/v1/organizations/:id/members/:userId` |
+| `presence:view`  | `GET /api/v1/organizations/:id/presence`                                                                                                                                                              |
+| `project:view`   | `GET /api/v1/projects`<br>`GET /api/v1/projects/:id`                                                                                                                                                  |
+| `project:manage` | `POST /api/v1/projects`<br>`PUT /api/v1/projects/:id`<br>`DELETE /api/v1/projects/:id`                                                                                                                |
+| `webhook:manage` | `POST /api/v1/webhooks`<br>`GET /api/v1/webhooks`<br>`GET /api/v1/webhooks/:id`<br>`PUT /api/v1/webhooks/:id`<br>`DELETE /api/v1/webhooks/:id`<br>`GET /api/v1/webhooks/:id/logs`                     |
 
 Additional rules:
 

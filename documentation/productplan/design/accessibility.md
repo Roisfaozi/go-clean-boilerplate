@@ -97,44 +97,38 @@ Modals and dialogs must trap focus:
 
 ```tsx
 // React Hook for Focus Trap
-const useFocusTrap = (
-  isOpen: boolean,
-  containerRef: RefObject<HTMLElement>,
-) => {
+const useFocusTrap = (isOpen: boolean, containerRef: RefObject<HTMLElement>) => {
   useEffect(() => {
-    if (!isOpen || !containerRef.current) return
+    if (!isOpen || !containerRef.current) return;
 
     const focusableElements = containerRef.current.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    )
+    );
 
-    const firstElement = focusableElements[0] as HTMLElement
-    const lastElement = focusableElements[
-      focusableElements.length - 1
-    ] as HTMLElement
+    const firstElement = focusableElements[0] as HTMLElement;
+    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Tab') {
+      if (e.key === "Tab") {
         if (e.shiftKey && document.activeElement === firstElement) {
-          e.preventDefault()
-          lastElement.focus()
+          e.preventDefault();
+          lastElement.focus();
         } else if (!e.shiftKey && document.activeElement === lastElement) {
-          e.preventDefault()
-          firstElement.focus()
+          e.preventDefault();
+          firstElement.focus();
         }
       }
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         // Close modal
       }
-    }
+    };
 
-    containerRef.current.addEventListener('keydown', handleKeyDown)
-    firstElement?.focus()
+    containerRef.current.addEventListener("keydown", handleKeyDown);
+    firstElement?.focus();
 
-    return () =>
-      containerRef.current?.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen])
-}
+    return () => containerRef.current?.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+};
 ```
 
 ---
@@ -222,20 +216,14 @@ const useFocusTrap = (
 ### 5.2 Data Table ARIA
 
 ```html
-<table
-  role="grid"
-  aria-label="User list"
-  aria-rowcount="1234"
-  aria-colcount="7">
+<table role="grid" aria-label="User list" aria-rowcount="1234" aria-colcount="7">
   <thead>
     <tr>
       <th scope="col" aria-sort="none">
         <button aria-label="Sort by name">Name</button>
       </th>
       <th scope="col" aria-sort="ascending">
-        <button aria-label="Sort by email, currently sorted ascending">
-          Email
-        </button>
+        <button aria-label="Sort by email, currently sorted ascending">Email</button>
       </th>
       <!-- More headers -->
     </tr>
@@ -250,9 +238,7 @@ const useFocusTrap = (
 </table>
 
 <!-- Live region for announcements -->
-<div aria-live="polite" aria-atomic="true" class="sr-only">
-  Showing 1 to 20 of 1234 users
-</div>
+<div aria-live="polite" aria-atomic="true" class="sr-only">Showing 1 to 20 of 1234 users</div>
 ```
 
 ### 5.3 Modal Dialog ARIA
@@ -262,11 +248,10 @@ const useFocusTrap = (
   role="dialog"
   aria-modal="true"
   aria-labelledby="dialog-title"
-  aria-describedby="dialog-description">
+  aria-describedby="dialog-description"
+>
   <h2 id="dialog-title">Add New User</h2>
-  <p id="dialog-description">
-    Fill out the form below to create a new user account.
-  </p>
+  <p id="dialog-description">Fill out the form below to create a new user account.</p>
 
   <form>
     <!-- Form content -->
@@ -294,7 +279,8 @@ const useFocusTrap = (
         <button
           role="checkbox"
           aria-checked="true"
-          aria-label="Read permission for admin on /users is enabled. Click to toggle.">
+          aria-label="Read permission for admin on /users is enabled. Click to toggle."
+        >
           ☑
         </button>
       </td>
@@ -432,7 +418,7 @@ const useFocusTrap = (
   --touch-padding: 10px;
 }
 
-[data-density='compact'] {
+[data-density="compact"] {
   --touch-target-size: 32px;
   --touch-padding: 4px;
 }
@@ -467,15 +453,12 @@ const useFocusTrap = (
     aria-required="true"
     aria-invalid="false"
     aria-describedby="email-hint email-error"
-    autocomplete="email" />
+    autocomplete="email"
+  />
 
-  <p id="email-hint" class="hint-text">
-    We'll never share your email with anyone.
-  </p>
+  <p id="email-hint" class="hint-text">We'll never share your email with anyone.</p>
 
-  <p id="email-error" class="error-text" role="alert" hidden>
-    Please enter a valid email address.
-  </p>
+  <p id="email-error" class="error-text" role="alert" hidden>Please enter a valid email address.</p>
 </div>
 ```
 

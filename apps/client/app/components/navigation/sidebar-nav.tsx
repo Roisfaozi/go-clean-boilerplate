@@ -14,7 +14,7 @@ export function SidebarGroup({ label, children, className }: SidebarGroupProps) 
   return (
     <div className={cn("space-y-1", className)}>
       {label && (
-        <p className="text-caption font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2">
+        <p className="text-caption text-muted-foreground px-3 py-2 font-semibold tracking-wider uppercase">
           {label}
         </p>
       )}
@@ -41,11 +41,11 @@ export function SidebarItem({ label, href, icon, badge, collapsed, className }: 
     <Link
       to={href}
       className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-md text-body font-medium transition-colors duration-normal",
+        "text-body duration-normal flex items-center gap-3 rounded-md px-3 py-2.5 font-medium transition-colors",
         isActive
           ? "bg-primary/10 text-primary"
           : "text-muted-foreground hover:bg-surface-hover hover:text-foreground",
-        className
+        className,
       )}
     >
       {icon && <span className="shrink-0">{icon}</span>}
@@ -64,7 +64,13 @@ interface SidebarCollapsibleProps {
   collapsed?: boolean;
 }
 
-export function SidebarCollapsible({ label, icon, children, defaultOpen = false, collapsed }: SidebarCollapsibleProps) {
+export function SidebarCollapsible({
+  label,
+  icon,
+  children,
+  defaultOpen = false,
+  collapsed,
+}: SidebarCollapsibleProps) {
   const [open, setOpen] = useState(defaultOpen);
 
   if (collapsed) {
@@ -75,15 +81,18 @@ export function SidebarCollapsible({ label, icon, children, defaultOpen = false,
     <div>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-body font-medium text-muted-foreground hover:bg-surface-hover hover:text-foreground transition-colors duration-normal"
+        className="text-body text-muted-foreground hover:bg-surface-hover hover:text-foreground duration-normal flex w-full items-center gap-3 rounded-md px-3 py-2.5 font-medium transition-colors"
       >
         {icon && <span className="shrink-0">{icon}</span>}
-        <span className="flex-1 text-left truncate">{label}</span>
+        <span className="flex-1 truncate text-left">{label}</span>
         <ChevronDown
-          className={cn("h-4 w-4 shrink-0 transition-transform duration-normal", open && "rotate-180")}
+          className={cn(
+            "duration-normal h-4 w-4 shrink-0 transition-transform",
+            open && "rotate-180",
+          )}
         />
       </button>
-      {open && <div className="ml-6 mt-1 space-y-0.5">{children}</div>}
+      {open && <div className="mt-1 ml-6 space-y-0.5">{children}</div>}
     </div>
   );
 }

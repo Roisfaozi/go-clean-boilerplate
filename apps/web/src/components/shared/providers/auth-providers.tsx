@@ -7,12 +7,7 @@ import { authApi } from "~/lib/api/auth";
 import { useAuthStore } from "~/stores/use-auth-store";
 import { usePermissionStore } from "~/stores/use-permission-store";
 
-const AUTH_PATHS = [
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
-];
+const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { user, setUser, logout } = useAuthStore();
@@ -30,9 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (userResp.user) {
           setUser(userResp.user);
 
-          const permsResp = await accessApi.getPermissionsForRole(
-            userResp.user.role
-          );
+          const permsResp = await accessApi.getPermissionsForRole(userResp.user.role);
           if (permsResp.data) {
             setPermissions(permsResp.data);
           }

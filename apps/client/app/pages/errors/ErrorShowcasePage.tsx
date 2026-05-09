@@ -1,7 +1,13 @@
 import { useNavigate } from "react-router";
 import { PageHeader } from "@/components/layout/page-header";
-import {  NexusCard, NexusCardHeader, NexusCardTitle, NexusCardDescription, NexusCardContent  } from "@casbin/ui";
-import {  NexusButton  } from "@casbin/ui";
+import {
+  NexusCard,
+  NexusCardHeader,
+  NexusCardTitle,
+  NexusCardDescription,
+  NexusCardContent,
+} from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
 import { Lock, ShieldOff, Search, ServerCrash, ExternalLink } from "lucide-react";
 
 const sections = [
@@ -51,18 +57,18 @@ export default function ErrorShowcasePage() {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="max-w-5xl space-y-8">
       <PageHeader
         title="Error & Empty States"
         description="Showcase of error state pages with 3 visual variations each."
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {sections.map((section) => (
           <NexusCard key={section.title}>
             <NexusCardHeader>
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-lg">
                   <section.icon className={`h-5 w-5 ${section.color}`} />
                 </div>
                 <div>
@@ -81,7 +87,7 @@ export default function ErrorShowcasePage() {
                     onClick={() => navigate(v.path)}
                   >
                     {v.label}
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                    <ExternalLink className="text-muted-foreground h-3.5 w-3.5" />
                   </NexusButton>
                 ))}
               </div>

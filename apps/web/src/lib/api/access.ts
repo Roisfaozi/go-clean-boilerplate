@@ -98,29 +98,18 @@ export const accessApi = {
     });
   },
 
-  grantPermission: (
-    role: string,
-    path: string,
-    method: string,
-    domain?: string
-  ) => {
+  grantPermission: (role: string, path: string, method: string, domain?: string) => {
     return api.post("/permissions/grant", { role, path, method, domain });
   },
 
-  revokePermission: (
-    role: string,
-    path: string,
-    method: string,
-    domain?: string
-  ) => {
+  revokePermission: (role: string, path: string, method: string, domain?: string) => {
     return api.post("/permissions/revoke", { role, path, method, domain });
   },
 
   checkBatch: (items: { resource: string; action: string }[]) => {
-    return api.post<{ data: { results: Record<string, boolean> } }>(
-      "/permissions/check-batch",
-      { items }
-    );
+    return api.post<{ data: { results: Record<string, boolean> } }>("/permissions/check-batch", {
+      items,
+    });
   },
 
   getPermissionsForRole: (role: string) => {
@@ -143,11 +132,7 @@ export const accessApi = {
     });
   },
 
-  removeInheritance: (
-    childRole: string,
-    parentRole: string,
-    domain?: string
-  ) => {
+  removeInheritance: (childRole: string, parentRole: string, domain?: string) => {
     return api.delete("/permissions/inheritance", {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -159,15 +144,11 @@ export const accessApi = {
   },
 
   getResourceAggregation: () => {
-    return api.get<{ data: ResourceAggregationResponse }>(
-      "/permissions/resources"
-    );
+    return api.get<{ data: ResourceAggregationResponse }>("/permissions/resources");
   },
 
   getInheritanceTree: () => {
-    return api.get<{ data: InheritanceTreeResponse }>(
-      "/permissions/inheritance-tree"
-    );
+    return api.get<{ data: InheritanceTreeResponse }>("/permissions/inheritance-tree");
   },
 
   getAllAccessRights: () => {
@@ -212,15 +193,11 @@ export const accessApi = {
 
   getRoleAccessRights: (role: string, domain = "global") => {
     return api.get<{ data: RoleAccessRightStatus[] }>(
-      `/permissions/roles/${encodeURIComponent(role)}/access-rights?domain=${domain}`
+      `/permissions/roles/${encodeURIComponent(role)}/access-rights?domain=${domain}`,
     );
   },
 
-  assignAccessRight: (
-    role: string,
-    accessRightId: string,
-    domain = "global"
-  ) => {
+  assignAccessRight: (role: string, accessRightId: string, domain = "global") => {
     return api.post("/permissions/assign-access-right", {
       role,
       access_right_id: accessRightId,
@@ -228,11 +205,7 @@ export const accessApi = {
     });
   },
 
-  revokeAccessRight: (
-    role: string,
-    accessRightId: string,
-    domain = "global"
-  ) => {
+  revokeAccessRight: (role: string, accessRightId: string, domain = "global") => {
     return api.delete("/permissions/revoke-access-right", {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

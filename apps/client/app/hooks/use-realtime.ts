@@ -7,7 +7,7 @@ import {
   useActivityStore,
   useConnectionStore,
 } from "@/stores/realtime-store";
-import {  toast  } from "@casbin/ui";
+import { toast } from "@casbin/ui";
 
 /**
  * Hook that initializes realtime connections (SSE + WebSocket)
@@ -69,7 +69,10 @@ export function useRealtimeInit() {
       } else if (msg.data.status === "disconnected") {
         setWsConnected(false);
       } else if (msg.data.id) {
-        updateUser(msg.data.id as string, msg.data as Partial<{ status: "online" | "away" | "busy" }>);
+        updateUser(
+          msg.data.id as string,
+          msg.data as Partial<{ status: "online" | "away" | "busy" }>,
+        );
       }
     });
 

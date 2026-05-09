@@ -15,10 +15,7 @@ interface CancelConfirmModalProps {
   isDisabled: boolean;
 }
 
-export default function CancelConfirmModal({
-  reset,
-  isDisabled,
-}: CancelConfirmModalProps) {
+export default function CancelConfirmModal({ reset, isDisabled }: CancelConfirmModalProps) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -28,9 +25,7 @@ export default function CancelConfirmModal({
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>
-            Are you sure to discard the changes?
-          </AlertDialogTitle>
+          <AlertDialogTitle>Are you sure to discard the changes?</AlertDialogTitle>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={reset}>Yes</AlertDialogCancel>

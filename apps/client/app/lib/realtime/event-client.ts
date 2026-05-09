@@ -50,7 +50,11 @@ export class EventClient {
       this.eventSource.onopen = () => {
         this._connected = true;
         this.reconnectAttempts = 0;
-        this.emit({ type: "system", data: { status: "connected" }, timestamp: new Date().toISOString() });
+        this.emit({
+          type: "system",
+          data: { status: "connected" },
+          timestamp: new Date().toISOString(),
+        });
       };
 
       this.eventSource.onmessage = (e) => {
@@ -66,7 +70,11 @@ export class EventClient {
         this._connected = false;
         this.eventSource?.close();
         this.eventSource = null;
-        this.emit({ type: "system", data: { status: "disconnected" }, timestamp: new Date().toISOString() });
+        this.emit({
+          type: "system",
+          data: { status: "disconnected" },
+          timestamp: new Date().toISOString(),
+        });
         this.scheduleReconnect();
       };
     } catch {

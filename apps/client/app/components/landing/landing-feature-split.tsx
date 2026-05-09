@@ -72,23 +72,27 @@ function VisualMock({ kind, tone }: { kind: string; tone: string }) {
   const accent = toneText[tone];
   if (kind === "access") {
     return (
-      <div className="rounded-xl border border-border bg-card p-card-pad shadow-lg">
+      <div className="border-border bg-card p-card-pad rounded-xl border shadow-lg">
         <div className="mb-3 flex items-center justify-between">
-          <span className="text-caption font-medium text-foreground">Role Matrix</span>
+          <span className="text-caption text-foreground font-medium">Role Matrix</span>
           <span className="text-caption text-muted-foreground">3 roles</span>
         </div>
-        <div className="overflow-hidden rounded-md border border-border">
-          <div className="grid grid-cols-4 bg-surface text-caption font-medium text-muted-foreground">
+        <div className="border-border overflow-hidden rounded-md border">
+          <div className="bg-surface text-caption text-muted-foreground grid grid-cols-4 font-medium">
             {["Resource", "Admin", "Editor", "Viewer"].map((h) => (
-              <div key={h} className="px-3 py-2">{h}</div>
+              <div key={h} className="px-3 py-2">
+                {h}
+              </div>
             ))}
           </div>
           {["Users", "Projects", "Billing", "Audit"].map((r) => (
-            <div key={r} className="grid grid-cols-4 border-t border-border text-caption">
-              <div className="px-3 py-2 font-medium text-foreground">{r}</div>
+            <div key={r} className="border-border text-caption grid grid-cols-4 border-t">
+              <div className="text-foreground px-3 py-2 font-medium">{r}</div>
               {[true, r !== "Billing", r === "Users" || r === "Projects"].map((on, i) => (
                 <div key={i} className="px-3 py-2">
-                  <span className={`inline-block h-2 w-2 rounded-full ${on ? "bg-success" : "bg-border-strong"}`} />
+                  <span
+                    className={`inline-block h-2 w-2 rounded-full ${on ? "bg-success" : "bg-border-strong"}`}
+                  />
                 </div>
               ))}
             </div>
@@ -99,21 +103,21 @@ function VisualMock({ kind, tone }: { kind: string; tone: string }) {
   }
   if (kind === "projects") {
     return (
-      <div className="rounded-xl border border-border bg-card p-card-pad shadow-lg">
-        <div className="mb-3 text-caption font-medium text-foreground">Active projects</div>
+      <div className="border-border bg-card p-card-pad rounded-xl border shadow-lg">
+        <div className="text-caption text-foreground mb-3 font-medium">Active projects</div>
         <div className="space-y-2">
           {[
             { n: "Atlas Migration", p: 78, m: 12 },
             { n: "Helio Onboarding", p: 45, m: 7 },
             { n: "Orion Insights v2", p: 92, m: 4 },
           ].map((p) => (
-            <div key={p.n} className="rounded-md border border-border bg-background p-3">
-              <div className="mb-1.5 flex items-center justify-between text-caption">
-                <span className="font-medium text-foreground">{p.n}</span>
+            <div key={p.n} className="border-border bg-background rounded-md border p-3">
+              <div className="text-caption mb-1.5 flex items-center justify-between">
+                <span className="text-foreground font-medium">{p.n}</span>
                 <span className="text-muted-foreground">{p.m} members</span>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface">
-                <div className={`h-full bg-secondary`} style={{ width: `${p.p}%` }} />
+              <div className="bg-surface h-1.5 w-full overflow-hidden rounded-full">
+                <div className={`bg-secondary h-full`} style={{ width: `${p.p}%` }} />
               </div>
             </div>
           ))}
@@ -123,9 +127,9 @@ function VisualMock({ kind, tone }: { kind: string; tone: string }) {
   }
   if (kind === "audit") {
     return (
-      <div className="rounded-xl border border-border bg-card p-card-pad shadow-lg">
-        <div className="mb-3 flex items-center justify-between text-caption">
-          <span className="font-medium text-foreground">Audit timeline</span>
+      <div className="border-border bg-card p-card-pad rounded-xl border shadow-lg">
+        <div className="text-caption mb-3 flex items-center justify-between">
+          <span className="text-foreground font-medium">Audit timeline</span>
           <span className="text-muted-foreground">Today</span>
         </div>
         <ol className="space-y-3">
@@ -135,11 +139,11 @@ function VisualMock({ kind, tone }: { kind: string; tone: string }) {
             { t: "09:55", who: "system", what: "health check passed" },
             { t: "09:30", who: "aisha@", what: "invited 2 members" },
           ].map((e) => (
-            <li key={e.t} className="flex items-start gap-3 text-caption">
+            <li key={e.t} className="text-caption flex items-start gap-3">
               <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${toneBg[tone]} ${accent}`} />
               <div className="flex-1">
                 <span className="text-muted-foreground">{e.t}</span>{" "}
-                <span className="font-medium text-foreground">{e.who}</span>{" "}
+                <span className="text-foreground font-medium">{e.who}</span>{" "}
                 <span className="text-muted-foreground">{e.what}</span>
               </div>
             </li>
@@ -150,8 +154,8 @@ function VisualMock({ kind, tone }: { kind: string; tone: string }) {
   }
   // integrations
   return (
-    <div className="rounded-xl border border-border bg-card p-card-pad shadow-lg">
-      <div className="mb-3 text-caption font-medium text-foreground">Connected services</div>
+    <div className="border-border bg-card p-card-pad rounded-xl border shadow-lg">
+      <div className="text-caption text-foreground mb-3 font-medium">Connected services</div>
       <div className="grid grid-cols-2 gap-2">
         {[
           { n: "Webhooks", s: "12 active" },
@@ -159,11 +163,11 @@ function VisualMock({ kind, tone }: { kind: string; tone: string }) {
           { n: "API Keys", s: "4 keys" },
           { n: "Realtime", s: "WS + SSE" },
         ].map((i) => (
-          <div key={i.n} className="rounded-md border border-border bg-background p-3">
-            <div className="text-caption font-medium text-foreground">{i.n}</div>
+          <div key={i.n} className="border-border bg-background rounded-md border p-3">
+            <div className="text-caption text-foreground font-medium">{i.n}</div>
             <div className="text-caption text-muted-foreground">{i.s}</div>
-            <div className="mt-2 inline-flex items-center gap-1 text-[11px] text-success">
-              <span className="h-1.5 w-1.5 rounded-full bg-success" /> Healthy
+            <div className="text-success mt-2 inline-flex items-center gap-1 text-[11px]">
+              <span className="bg-success h-1.5 w-1.5 rounded-full" /> Healthy
             </div>
           </div>
         ))}
@@ -174,16 +178,16 @@ function VisualMock({ kind, tone }: { kind: string; tone: string }) {
 
 export function LandingFeatureSplit() {
   return (
-    <section id="modules" className="border-b border-border bg-background py-20 md:py-24">
-      <div className="mx-auto max-w-7xl px-layout">
+    <section id="modules" className="border-border bg-background border-b py-20 md:py-24">
+      <div className="px-layout mx-auto max-w-7xl">
         <div className="mx-auto mb-16 max-w-2xl text-center">
-          <span className="text-caption font-semibold uppercase tracking-wider text-primary">
+          <span className="text-caption text-primary font-semibold tracking-wider uppercase">
             Modules
           </span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+          <h2 className="text-foreground mt-3 text-3xl font-bold tracking-tight md:text-4xl">
             Purpose-built modules for modern internal platforms
           </h2>
-          <p className="mt-4 text-body-lg text-muted-foreground">
+          <p className="text-body-lg text-muted-foreground mt-4">
             Setiap modul dirancang untuk kebutuhan operasional yang nyata.
           </p>
         </div>
@@ -198,18 +202,22 @@ export function LandingFeatureSplit() {
                 className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16"
               >
                 <div className={reverse ? "lg:order-2" : ""}>
-                  <div className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg ${toneBg[b.tone]} ${toneText[b.tone]}`}>
+                  <div
+                    className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg ${toneBg[b.tone]} ${toneText[b.tone]}`}
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
-                  <span className={`text-caption font-semibold uppercase tracking-wider ${toneText[b.tone]}`}>
+                  <span
+                    className={`text-caption font-semibold tracking-wider uppercase ${toneText[b.tone]}`}
+                  >
                     {b.eyebrow}
                   </span>
-                  <h3 className="mt-2 text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+                  <h3 className="text-foreground mt-2 text-2xl font-bold tracking-tight md:text-3xl">
                     {b.title}
                   </h3>
                   <ul className="mt-6 space-y-3">
                     {b.points.map((p) => (
-                      <li key={p} className="flex items-start gap-2.5 text-body text-foreground">
+                      <li key={p} className="text-body text-foreground flex items-start gap-2.5">
                         <CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${toneText[b.tone]}`} />
                         <span className="text-muted-foreground">{p}</span>
                       </li>

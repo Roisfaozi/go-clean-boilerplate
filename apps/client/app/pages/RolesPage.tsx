@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTable } from "@/components/patterns/data-table";
-import {  NexusButton  } from "@casbin/ui";
-import {  NexusInput  } from "@casbin/ui";
-import {  NexusCard, NexusCardHeader, NexusCardTitle, NexusCardContent  } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
+import { NexusInput } from "@casbin/ui";
+import { NexusCard, NexusCardHeader, NexusCardTitle, NexusCardContent } from "@casbin/ui";
 import { FormGroup } from "@/components/patterns/form-group";
-import {  NexusTextarea  } from "@casbin/ui";
+import { NexusTextarea } from "@casbin/ui";
 import { Plus, MoreHorizontal, X } from "lucide-react";
 
 const mockRoles = [

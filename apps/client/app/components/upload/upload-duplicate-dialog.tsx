@@ -1,5 +1,14 @@
-import {  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle  } from "@casbin/ui";
-import {  NexusButton  } from "@casbin/ui";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
 import { useUploadStore } from "@/lib/upload/upload-store";
 
 /**
@@ -20,10 +29,10 @@ export function UploadDuplicateDialog() {
         <AlertDialogHeader>
           <AlertDialogTitle>File already exists</AlertDialogTitle>
           <AlertDialogDescription>
-            <span className="font-medium text-foreground">{current?.file.name}</span> already
-            exists in this folder. Choose how to handle this upload.
+            <span className="text-foreground font-medium">{current?.file.name}</span> already exists
+            in this folder. Choose how to handle this upload.
             {pending.length > 1 && (
-              <span className="block mt-2 text-xs text-muted-foreground">
+              <span className="text-muted-foreground mt-2 block text-xs">
                 {pending.length - 1} more conflict{pending.length - 1 > 1 ? "s" : ""} after this.
               </span>
             )}
@@ -31,11 +40,17 @@ export function UploadDuplicateDialog() {
         </AlertDialogHeader>
         <AlertDialogFooter className="gap-2 sm:gap-2">
           <AlertDialogCancel asChild>
-            <NexusButton variant="ghost" onClick={() => current && resolve(current.existingId, "skip")}>
+            <NexusButton
+              variant="ghost"
+              onClick={() => current && resolve(current.existingId, "skip")}
+            >
               Skip
             </NexusButton>
           </AlertDialogCancel>
-          <NexusButton variant="outline" onClick={() => current && resolve(current.existingId, "keep-both")}>
+          <NexusButton
+            variant="outline"
+            onClick={() => current && resolve(current.existingId, "keep-both")}
+          >
             Keep both
           </NexusButton>
           <AlertDialogAction asChild>

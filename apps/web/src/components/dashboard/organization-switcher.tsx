@@ -13,23 +13,15 @@ import {
   CommandList,
   CommandSeparator,
 } from "~/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { useDashboardShell } from "~/app/[locale]/dashboard/_components/dashboard-shell-context";
 import { CreateOrganizationModal } from "./create-organization-modal";
 
 export function OrganizationSwitcher() {
   const [open, setOpen] = React.useState(false);
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
-  const {
-    organizations,
-    currentOrganization,
-    setOrganization,
-    refreshOrganizations,
-  } = useDashboardShell();
+  const { organizations, currentOrganization, setOrganization, refreshOrganizations } =
+    useDashboardShell();
 
   return (
     <>
@@ -42,7 +34,7 @@ export function OrganizationSwitcher() {
             aria-label="Select an organization"
             className={cn(
               "bg-background/50 border-muted-foreground/20 w-[200px] justify-between backdrop-blur-sm",
-              "[data-density=compact]:w-[40px] [data-density=compact]:justify-center [data-density=compact]:px-0"
+              "[data-density=compact]:w-[40px] [data-density=compact]:justify-center [data-density=compact]:px-0",
             )}
           >
             <div className="flex items-center gap-2 overflow-hidden">
@@ -76,9 +68,7 @@ export function OrganizationSwitcher() {
                     <Check
                       className={cn(
                         "ml-auto h-4 w-4",
-                        currentOrganization?.id === org.id
-                          ? "opacity-100"
-                          : "opacity-0"
+                        currentOrganization?.id === org.id ? "opacity-100" : "opacity-0",
                       )}
                     />
                   </CommandItem>

@@ -10,9 +10,7 @@ interface PermissionMatrixViewProps {
   onRoleClick?: (role: Role) => void;
 }
 
-export function PermissionMatrixView({
-  onRoleClick,
-}: PermissionMatrixViewProps) {
+export function PermissionMatrixView({ onRoleClick }: PermissionMatrixViewProps) {
   return (
     <PermissionMatrixProvider>
       <div className="space-y-4">
@@ -21,9 +19,9 @@ export function PermissionMatrixView({
             <Icon name="Info" className="text-primary h-4 w-4" />
           </div>
           <p className="text-muted-foreground text-xs leading-relaxed">
-            The Permission Matrix provides a high-level overview of CRUD access
-            across all system resources. Click a cell to modify granular
-            permissions for a specific role and resource pair.
+            The Permission Matrix provides a high-level overview of CRUD access across all system
+            resources. Click a cell to modify granular permissions for a specific role and resource
+            pair.
           </p>
         </div>
 

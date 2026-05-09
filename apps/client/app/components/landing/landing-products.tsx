@@ -57,16 +57,16 @@ const accentMap: Record<string, string> = {
 
 export function LandingProducts() {
   return (
-    <section id="products" className="border-b border-border bg-surface/50 py-20 md:py-28">
+    <section id="products" className="border-border bg-surface/50 border-b py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto mb-14 max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-wider text-primary">
+          <span className="text-primary text-sm font-semibold tracking-wider uppercase">
             Products
           </span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+          <h2 className="text-foreground mt-3 text-3xl font-bold tracking-tight md:text-4xl">
             Everything you need, nothing you don't
           </h2>
-          <p className="mt-4 text-muted-foreground">
+          <p className="text-muted-foreground mt-4">
             A modular suite of tools designed to grow with your team.
           </p>
         </div>
@@ -78,16 +78,16 @@ export function LandingProducts() {
               <Link
                 key={product.title}
                 to={product.href}
-                className="group relative flex flex-col rounded-xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
+                className="group border-border bg-card hover:border-primary/30 relative flex flex-col rounded-xl border p-6 transition-all hover:-translate-y-0.5 hover:shadow-lg"
               >
-                <div className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg ${accentMap[product.accent]}`}>
+                <div
+                  className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg ${accentMap[product.accent]}`}
+                >
                   <Icon className="h-5 w-5" />
                 </div>
-                <h3 className="mb-2 text-lg font-semibold text-card-foreground">
-                  {product.title}
-                </h3>
-                <p className="flex-1 text-sm text-muted-foreground">{product.description}</p>
-                <div className="mt-5 flex items-center gap-1.5 text-sm font-medium text-primary">
+                <h3 className="text-card-foreground mb-2 text-lg font-semibold">{product.title}</h3>
+                <p className="text-muted-foreground flex-1 text-sm">{product.description}</p>
+                <div className="text-primary mt-5 flex items-center gap-1.5 text-sm font-medium">
                   Explore
                   <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </div>

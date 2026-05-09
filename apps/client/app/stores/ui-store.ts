@@ -1,8 +1,8 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-type ThemeMode = 'light' | 'dark';
-type DensityMode = 'comfort' | 'compact';
+type ThemeMode = "light" | "dark";
+type DensityMode = "comfort" | "compact";
 
 interface UIState {
   sidebarOpen: boolean;
@@ -22,22 +22,22 @@ export const useUIStore = create<UIState>()(
     (set, get) => ({
       sidebarOpen: true,
       sidebarCollapsed: false,
-      theme: 'light',
-      density: 'comfort',
+      theme: "light",
+      density: "comfort",
       sidebarSectionOpen: {},
       toggleSidebar: () => set({ sidebarOpen: !get().sidebarOpen }),
       toggleSidebarCollapse: () => set({ sidebarCollapsed: !get().sidebarCollapsed }),
       setTheme: (theme) => {
-        document.documentElement.classList.toggle('dark', theme === 'dark');
+        document.documentElement.classList.toggle("dark", theme === "dark");
         set({ theme });
       },
       setDensity: (density) => {
-        document.documentElement.classList.toggle('density-compact', density === 'compact');
+        document.documentElement.classList.toggle("density-compact", density === "compact");
         set({ density });
       },
       setSidebarSectionOpen: (key, open) =>
         set({ sidebarSectionOpen: { ...get().sidebarSectionOpen, [key]: open } }),
     }),
-    { name: 'nexus-ui' }
-  )
+    { name: "nexus-ui" },
+  ),
 );

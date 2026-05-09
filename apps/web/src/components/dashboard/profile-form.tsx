@@ -95,13 +95,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
               disabled={isUploading}
             />
             <label htmlFor="avatar-upload">
-              <Button
-                variant="outline"
-                type="button"
-                size="sm"
-                className="cursor-pointer"
-                asChild
-              >
+              <Button variant="outline" type="button" size="sm" className="cursor-pointer" asChild>
                 <span>
                   {isUploading ? (
                     <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
@@ -125,8 +119,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 <Input {...field} disabled />
               </FormControl>
               <FormDescription>
-                This is your public display name. It can be your real name or a
-                pseudonym.
+                This is your public display name. It can be your real name or a pseudonym.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -165,9 +158,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
         />
 
         <Button type="submit" disabled={isLoading}>
-          {isLoading && (
-            <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-          )}
+          {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
           Update Profile
         </Button>
       </form>

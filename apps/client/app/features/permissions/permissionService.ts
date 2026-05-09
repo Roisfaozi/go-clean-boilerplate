@@ -1,13 +1,12 @@
-import { apiClient } from '@/lib/api/client';
-import type { Permission, PaginatedResponse } from '@/lib/api/schemas';
+import { apiClient } from "@/lib/api/client";
+import type { Permission, PaginatedResponse } from "@/lib/api/schemas";
 
 export const permissionService = {
   list: (params?: { page?: number; limit?: number; role_id?: string }) =>
-    apiClient.get<PaginatedResponse<Permission>>('/permissions', undefined, { params }),
+    apiClient.get<PaginatedResponse<Permission>>("/permissions", undefined, { params }),
   create: (data: { role_id: string; access_right_id: string; granted: boolean }) =>
-    apiClient.post<Permission>('/permissions', data),
+    apiClient.post<Permission>("/permissions", data),
   update: (id: string, data: Partial<Permission>) =>
     apiClient.put<Permission>(`/permissions/${id}`, data),
-  delete: (id: string) =>
-    apiClient.delete(`/permissions/${id}`),
+  delete: (id: string) => apiClient.delete(`/permissions/${id}`),
 };

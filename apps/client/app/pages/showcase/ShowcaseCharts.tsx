@@ -1,5 +1,13 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { NexusLineChart, NexusAreaChart, NexusBarChart, NexusPieChart, NexusDonutChart, NexusHeatmap, Sparkline } from "@/components/charts/charts";
+import {
+  NexusLineChart,
+  NexusAreaChart,
+  NexusBarChart,
+  NexusPieChart,
+  NexusDonutChart,
+  NexusHeatmap,
+  Sparkline,
+} from "@/components/charts/charts";
 
 const chartData = [
   { month: "Jan", users: 120, revenue: 4200, sessions: 800 },
@@ -24,16 +32,46 @@ const heatmapData = (() => {
 
 export default function ShowcaseCharts() {
   return (
-    <div className="space-y-10 max-w-6xl">
-      <PageHeader title="Charts" description="Line, Area, Bar, Pie, Donut, Heatmap, and Sparkline charts." />
+    <div className="max-w-6xl space-y-10">
+      <PageHeader
+        title="Charts"
+        description="Line, Area, Bar, Pie, Donut, Heatmap, and Sparkline charts."
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <NexusLineChart title="User Growth" description="Monthly active users" data={chartData} xKey="month" lines={[{ dataKey: "users", name: "Users" }]} />
-        <NexusAreaChart title="Revenue" description="Monthly revenue trend" data={chartData} xKey="month" areas={[{ dataKey: "revenue", name: "Revenue" }]} />
-        <NexusBarChart title="Sessions vs Users" description="Monthly comparison" data={chartData} xKey="month" bars={[{ dataKey: "sessions", name: "Sessions" }, { dataKey: "users", name: "Users" }]} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <NexusLineChart
+          title="User Growth"
+          description="Monthly active users"
+          data={chartData}
+          xKey="month"
+          lines={[{ dataKey: "users", name: "Users" }]}
+        />
+        <NexusAreaChart
+          title="Revenue"
+          description="Monthly revenue trend"
+          data={chartData}
+          xKey="month"
+          areas={[{ dataKey: "revenue", name: "Revenue" }]}
+        />
+        <NexusBarChart
+          title="Sessions vs Users"
+          description="Monthly comparison"
+          data={chartData}
+          xKey="month"
+          bars={[
+            { dataKey: "sessions", name: "Sessions" },
+            { dataKey: "users", name: "Users" },
+          ]}
+        />
         <NexusPieChart title="Role Distribution" data={pieData} />
         <NexusDonutChart title="Role Distribution (Donut)" data={pieData} />
-        <NexusHeatmap title="Activity Heatmap" description="Commits by day and hour" data={heatmapData} xLabels={["9am", "10am", "11am", "12pm", "1pm", "2pm", "3pm", "4pm"]} yLabels={["Mon", "Tue", "Wed", "Thu", "Fri"]} />
+        <NexusHeatmap
+          title="Activity Heatmap"
+          description="Commits by day and hour"
+          data={heatmapData}
+          xLabels={["9am", "10am", "11am", "12pm", "1pm", "2pm", "3pm", "4pm"]}
+          yLabels={["Mon", "Tue", "Wed", "Thu", "Fri"]}
+        />
       </div>
 
       <section className="space-y-4">

@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
 import { cn } from "@casbin/ui";
-import {  NexusButton  } from "@casbin/ui";
-import {  NexusInput  } from "@casbin/ui";
-import {  NexusTextarea  } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
+import { NexusInput } from "@casbin/ui";
+import { NexusTextarea } from "@casbin/ui";
 import { FormGroup } from "@/components/patterns/form-group";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@casbin/ui";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@casbin/ui";
-import {  Switch  } from "@casbin/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@casbin/ui";
+import { Switch } from "@casbin/ui";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
 
@@ -69,7 +72,11 @@ export function CrudFormDialog({
 
   const setValue = (name: string, value: any) => {
     setValues((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
+    setErrors((prev) => {
+      const n = { ...prev };
+      delete n[name];
+      return n;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,59 +112,75 @@ export function CrudFormDialog({
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          {fields.filter((f) => !f.hidden).map((field) => (
-            <FormGroup
-              key={field.name}
-              label={field.label}
-              required={field.required}
-              error={errors[field.name]}
-              description={field.description}
-            >
-              {field.type === "textarea" ? (
-                <NexusTextarea
-                  value={values[field.name] || ""}
-                  onChange={(e) => setValue(field.name, e.target.value)}
-                  placeholder={field.placeholder}
-                  disabled={isLoading || field.disabled}
-                />
-              ) : field.type === "select" ? (
-                <Select
-                  value={values[field.name] || ""}
-                  onValueChange={(val) => setValue(field.name, val)}
-                  disabled={isLoading || field.disabled}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={field.placeholder || `Select ${field.label.toLowerCase()}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {field.options?.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : field.type === "switch" ? (
-                <Switch
-                  checked={!!values[field.name]}
-                  onCheckedChange={(val) => setValue(field.name, val)}
-                  disabled={isLoading || field.disabled}
-                />
-              ) : (
-                <NexusInput
-                  type={field.type === "number" ? "number" : field.type}
-                  value={values[field.name] || ""}
-                  onChange={(e) => setValue(field.name, field.type === "number" ? Number(e.target.value) : e.target.value)}
-                  placeholder={field.placeholder}
-                  disabled={isLoading || field.disabled}
-                />
-              )}
-            </FormGroup>
-          ))}
+          {fields
+            .filter((f) => !f.hidden)
+            .map((field) => (
+              <FormGroup
+                key={field.name}
+                label={field.label}
+                required={field.required}
+                error={errors[field.name]}
+                description={field.description}
+              >
+                {field.type === "textarea" ? (
+                  <NexusTextarea
+                    value={values[field.name] || ""}
+                    onChange={(e) => setValue(field.name, e.target.value)}
+                    placeholder={field.placeholder}
+                    disabled={isLoading || field.disabled}
+                  />
+                ) : field.type === "select" ? (
+                  <Select
+                    value={values[field.name] || ""}
+                    onValueChange={(val) => setValue(field.name, val)}
+                    disabled={isLoading || field.disabled}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={field.placeholder || `Select ${field.label.toLowerCase()}`}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {field.options?.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : field.type === "switch" ? (
+                  <Switch
+                    checked={!!values[field.name]}
+                    onCheckedChange={(val) => setValue(field.name, val)}
+                    disabled={isLoading || field.disabled}
+                  />
+                ) : (
+                  <NexusInput
+                    type={field.type === "number" ? "number" : field.type}
+                    value={values[field.name] || ""}
+                    onChange={(e) =>
+                      setValue(
+                        field.name,
+                        field.type === "number" ? Number(e.target.value) : e.target.value,
+                      )
+                    }
+                    placeholder={field.placeholder}
+                    disabled={isLoading || field.disabled}
+                  />
+                )}
+              </FormGroup>
+            ))}
           <DialogFooter className="pt-2">
-            <NexusButton type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+            <NexusButton
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+            >
               Cancel
             </NexusButton>
             <NexusButton type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {submitLabel}
             </NexusButton>
           </DialogFooter>

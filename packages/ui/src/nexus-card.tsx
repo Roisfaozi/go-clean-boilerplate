@@ -6,8 +6,8 @@ export function NexusCard({ className, ...props }: NexusCardProps) {
   return (
     <div
       className={cn(
-        "bg-card text-card-foreground border border-border rounded-lg shadow-sm p-card-pad",
-        className
+        "bg-card text-card-foreground border-border p-card-pad rounded-lg border shadow-sm",
+        className,
       )}
       {...props}
     />
@@ -19,10 +19,15 @@ export function NexusCardHeader({ className, ...props }: React.HTMLAttributes<HT
 }
 
 export function NexusCardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-h3 font-semibold leading-none tracking-tight", className)} {...props} />;
+  return (
+    <h3 className={cn("text-h3 leading-none font-semibold tracking-tight", className)} {...props} />
+  );
 }
 
-export function NexusCardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+export function NexusCardDescription({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLParagraphElement>) {
   return <p className={cn("text-small text-muted-foreground", className)} {...props} />;
 }
 

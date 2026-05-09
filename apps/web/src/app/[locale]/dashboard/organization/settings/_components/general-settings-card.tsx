@@ -1,13 +1,7 @@
 "use client";
 
 import { useSettings } from "./settings-context";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 
@@ -20,9 +14,7 @@ export function GeneralSettingsCard() {
     <Card>
       <CardHeader>
         <CardTitle>General Information</CardTitle>
-        <CardDescription>
-          The display name and identity of your organization.
-        </CardDescription>
+        <CardDescription>The display name and identity of your organization.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-2">

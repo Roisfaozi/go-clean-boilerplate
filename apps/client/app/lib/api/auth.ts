@@ -1,4 +1,4 @@
-import { apiClient } from './client'
+import { apiClient } from "./client";
 import {
   loginRequestSchema,
   loginResponseSchema,
@@ -10,44 +10,31 @@ import {
   type RegisterRequest,
   type TokenResponse,
   type User,
-} from './schemas'
+} from "./schemas";
 
 export const authApi = {
   login: (data: LoginRequest) => {
-    loginRequestSchema.parse(data)
-    return apiClient.post<LoginResponse>(
-      '/auth/login',
-      data,
-      loginResponseSchema,
-    )
+    loginRequestSchema.parse(data);
+    return apiClient.post<LoginResponse>("/auth/login", data, loginResponseSchema);
   },
 
   register: (data: RegisterRequest) => {
-    registerRequestSchema.parse(data)
-    return apiClient.post<LoginResponse>(
-      '/auth/register',
-      data,
-      loginResponseSchema,
-    )
+    registerRequestSchema.parse(data);
+    return apiClient.post<LoginResponse>("/auth/register", data, loginResponseSchema);
   },
 
-  logout: () => apiClient.post('/auth/logout'),
+  logout: () => apiClient.post("/auth/logout"),
 
   refreshToken: () =>
-    apiClient.post<TokenResponse>(
-      '/auth/refresh',
-      undefined,
-      tokenResponseSchema,
-    ),
+    apiClient.post<TokenResponse>("/auth/refresh", undefined, tokenResponseSchema),
 
-  getCurrentUser: () => apiClient.get<User>('/auth/me', userSchema),
+  getCurrentUser: () => apiClient.get<User>("/auth/me", userSchema),
 
-  forgotPassword: (email: string) =>
-    apiClient.post('/auth/forgot-password', { email }),
+  forgotPassword: (email: string) => apiClient.post("/auth/forgot-password", { email }),
 
   resetPassword: (token: string, newPassword: string) =>
-    apiClient.post('/auth/reset-password', {
+    apiClient.post("/auth/reset-password", {
       token,
       new_password: newPassword,
     }),
-}
+};

@@ -1,6 +1,6 @@
 import { cn } from "@casbin/ui";
 import { usePresenceStore, type PresenceUser } from "@/stores/realtime-store";
-import {  Tooltip, TooltipContent, TooltipTrigger  } from "@casbin/ui";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@casbin/ui";
 
 const statusColors: Record<PresenceUser["status"], string> = {
   online: "bg-success",
@@ -27,7 +27,12 @@ const dotSize = {
   lg: "h-3 w-3",
 };
 
-export function PresenceAvatars({ max = 5, size = "md", showCount = true, className }: PresenceAvatarsProps) {
+export function PresenceAvatars({
+  max = 5,
+  size = "md",
+  showCount = true,
+  className,
+}: PresenceAvatarsProps) {
   const users = usePresenceStore((s) => s.users);
   const onlineCount = usePresenceStore((s) => s.onlineCount);
   const displayed = users.slice(0, max);
@@ -44,13 +49,16 @@ export function PresenceAvatars({ max = 5, size = "md", showCount = true, classN
                   <img
                     src={user.avatar}
                     alt={user.name}
-                    className={cn("rounded-full border-2 border-background object-cover", sizeMap[size])}
+                    className={cn(
+                      "border-background rounded-full border-2 object-cover",
+                      sizeMap[size],
+                    )}
                   />
                 ) : (
                   <div
                     className={cn(
-                      "rounded-full border-2 border-background bg-primary/10 text-primary font-semibold flex items-center justify-center",
-                      sizeMap[size]
+                      "border-background bg-primary/10 text-primary flex items-center justify-center rounded-full border-2 font-semibold",
+                      sizeMap[size],
                     )}
                   >
                     {user.name.charAt(0).toUpperCase()}
@@ -58,9 +66,9 @@ export function PresenceAvatars({ max = 5, size = "md", showCount = true, classN
                 )}
                 <span
                   className={cn(
-                    "absolute bottom-0 right-0 rounded-full border-2 border-background",
+                    "border-background absolute right-0 bottom-0 rounded-full border-2",
                     dotSize[size],
-                    statusColors[user.status]
+                    statusColors[user.status],
                   )}
                 />
               </div>
@@ -73,8 +81,8 @@ export function PresenceAvatars({ max = 5, size = "md", showCount = true, classN
         {overflow > 0 && (
           <div
             className={cn(
-              "rounded-full border-2 border-background bg-muted text-muted-foreground font-semibold flex items-center justify-center",
-              sizeMap[size]
+              "border-background bg-muted text-muted-foreground flex items-center justify-center rounded-full border-2 font-semibold",
+              sizeMap[size],
             )}
           >
             +{overflow}
@@ -82,8 +90,8 @@ export function PresenceAvatars({ max = 5, size = "md", showCount = true, classN
         )}
       </div>
       {showCount && (
-        <span className="ml-3 text-small text-muted-foreground">
-          <span className="font-semibold text-foreground">{onlineCount}</span> online
+        <span className="text-small text-muted-foreground ml-3">
+          <span className="text-foreground font-semibold">{onlineCount}</span> online
         </span>
       )}
     </div>
