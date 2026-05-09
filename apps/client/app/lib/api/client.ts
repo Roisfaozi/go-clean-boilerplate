@@ -3,7 +3,7 @@ import { useOrganizationStore } from "@/stores/organization-store";
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { z } from "zod";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8080/api/v1";
+const API_BASE_URL = "/api/v1";
 
 // ── API Error ──
 export class ApiError extends Error {
@@ -54,11 +54,6 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
   const activeOrganization = useOrganizationStore.getState().activeOrganization;
   if (activeOrganization && config.headers) {
     if (!config.headers["X-Organization-ID"]) {
@@ -94,11 +89,7 @@ axiosInstance.interceptors.response.use(
         isRefreshing = true;
         refreshPromise = (async () => {
           try {
-            const refreshResponse = await axiosInstance.post("/auth/refresh");
-            const accessToken = refreshResponse.data?.access_token;
-            if (accessToken) {
-              useAuthStore.getState().setToken(accessToken);
-            }
+            await axiosInstance.post("/auth/refresh");
             return true;
           } catch {
             return false;

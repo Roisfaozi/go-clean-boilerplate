@@ -62,14 +62,16 @@ export default function LoginPage() {
     try {
       const res = await authApi.login(result.data as { username: string; password: string });
       console.log("response login:", res);
-      login(res.user, res.access_token);
+      login(res.user);
       toast.success("Login berhasil!");
       navigate("/dashboard");
     } catch {
-      login(
-        { id: "1", name: "Admin User", email: "admin@nexus.dev", username: result.data.username },
-        "mock-token-xyz",
-      );
+      login({
+        id: "1",
+        name: "Admin User",
+        email: "admin@nexus.dev",
+        username: result.data.username,
+      });
       toast.success("Login berhasil (mock)");
       navigate("/");
     } finally {
@@ -80,10 +82,7 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     setGoogleLoading(true);
     setTimeout(() => {
-      login(
-        { id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" },
-        "mock-google-token",
-      );
+      login({ id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" });
       toast.success("Login dengan Google berhasil (mock)");
       navigate("/");
     }, 1500);

@@ -60,11 +60,7 @@ export default function LoginV2() {
     }
     setLoading(true);
     try {
-      login(
-        { id: "1", name: "Admin User", email: "admin@nexus.dev", username: result.data.username },
-        "mock-token-xyz",
-      );
-      toast.success("Login berhasil (mock)");
+      login({ id: "1", name: "Admin User", email: "admin@nexus.dev", username: result.data.username });
       navigate("/");
     } finally {
       setLoading(false);
@@ -74,11 +70,7 @@ export default function LoginV2() {
   const handleGoogleLogin = () => {
     setGoogleLoading(true);
     setTimeout(() => {
-      login(
-        { id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" },
-        "mock-google-token",
-      );
-      toast.success("Login dengan Google berhasil (mock)");
+      login({ id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" });
       navigate("/");
     }, 1500);
   };

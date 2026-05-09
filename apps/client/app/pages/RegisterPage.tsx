@@ -87,20 +87,16 @@ export default function RegisterPage() {
       const res = await authApi.register(
         data as { name: string; email: string; username: string; password: string },
       );
-      login(res.user, res.access_token);
+      login(res.user);
       toast.success("Registrasi berhasil!");
       navigate("/");
     } catch {
-      login(
-        {
+      login({
           id: "new1",
           name: result.data.name,
           email: result.data.email,
           username: result.data.username,
-        },
-        "mock-token-new",
-      );
-      toast.success("Registrasi berhasil (mock)");
+        });
       navigate("/");
     } finally {
       setLoading(false);
@@ -108,11 +104,7 @@ export default function RegisterPage() {
   };
 
   const handleGoogleSignup = () => {
-    login(
-      { id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" },
-      "mock-google-token",
-    );
-    toast.success("Sign up dengan Google berhasil (mock)");
+    login({ id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" });
     navigate("/");
   };
 

@@ -44,7 +44,6 @@ function ThemeInitializer({ children }: { children: React.ReactNode }) {
 
 function SessionInitializer({ children }: { children: React.ReactNode }) {
   const initialized = useAuthStore((s) => s.initialized);
-  const token = useAuthStore((s) => s.token);
   const setUser = useAuthStore((s) => s.setUser);
   const setInitialized = useAuthStore((s) => s.setInitialized);
   const hasBootstrapped = useRef(false);
@@ -55,11 +54,6 @@ function SessionInitializer({ children }: { children: React.ReactNode }) {
     }
 
     hasBootstrapped.current = true;
-
-    if (!token) {
-      setInitialized(true);
-      return;
-    }
 
     let mounted = true;
 
@@ -83,7 +77,7 @@ function SessionInitializer({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, [setInitialized, setUser, token]);
+  }, [setInitialized, setUser]);
 
   if (!initialized) {
     return (

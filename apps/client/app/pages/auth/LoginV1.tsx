@@ -62,15 +62,11 @@ export default function LoginV1() {
     setLoading(true);
     try {
       const res = await authApi.login(result.data as { username: string; password: string });
-      login(res.user, res.access_token);
+      login(res.user);
       toast.success("Login berhasil!");
       navigate("/");
     } catch {
-      login(
-        { id: "1", name: "Admin User", email: "admin@nexus.dev", username: result.data.username },
-        "mock-token-xyz",
-      );
-      toast.success("Login berhasil (mock)");
+      login({ id: "1", name: "Admin User", email: "admin@nexus.dev", username: result.data.username });
       navigate("/");
     } finally {
       setLoading(false);
@@ -80,11 +76,7 @@ export default function LoginV1() {
   const handleGoogleLogin = () => {
     setGoogleLoading(true);
     setTimeout(() => {
-      login(
-        { id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" },
-        "mock-google-token",
-      );
-      toast.success("Login dengan Google berhasil (mock)");
+      login({ id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" });
       navigate("/");
     }, 1500);
   };

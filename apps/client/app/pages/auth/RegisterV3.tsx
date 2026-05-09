@@ -72,16 +72,12 @@ export default function RegisterV3() {
     }
     setLoading(true);
     try {
-      login(
-        {
+      login({
           id: "new1",
           name: result.data.name,
           email: result.data.email,
           username: result.data.username,
-        },
-        "mock-token-new",
-      );
-      toast.success("Registration successful (mock)");
+        });
       navigate("/");
     } finally {
       setLoading(false);
@@ -89,11 +85,7 @@ export default function RegisterV3() {
   };
 
   const handleGoogleSignup = () => {
-    login(
-      { id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" },
-      "mock-google-token",
-    );
-    toast.success("Google sign up successful (mock)");
+    login({ id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" });
     navigate("/");
   };
 
