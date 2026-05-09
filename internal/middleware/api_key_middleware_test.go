@@ -59,6 +59,10 @@ func TestAPIKeyMiddleware_Authenticate(t *testing.T) {
 		r := gin.New()
 		r.Use(mw.Authenticate())
 		r.GET("/test", func(c *gin.Context) {
+			if _, exists := c.Get("user_id"); exists {
+				c.String(http.StatusInternalServerError, "context should not be set")
+				return
+			}
 			c.String(http.StatusOK, "passed")
 		})
 
