@@ -13,7 +13,7 @@ This document points an AI coding agent to the precise conventions, workflows an
 - `pkg/` — infrastructural helpers (jwt, sse, ws, storage, tus, telemetry). Prefer using these providers instead of reimplementing infra.
 - `db/migrations`, `db/seeds` — database schema and seeders.
 - `tests/` — unit/integration/e2e test suites; follow the repo's testing tags (`-tags=integration`, `-tags=e2e`).
-- `web/` — Next.js frontend (separate repo-like directory).
+- `web/` — Next.js frontend (moved to `apps/web`).
 
 3) Important patterns and project-specific conventions (do not violate)
 - No passing full AppConfig into UseCases. Constructors should receive only the primitive values they need (see `documentation/ARCHITECTURE.md` under "Avoiding Circular Dependencies").

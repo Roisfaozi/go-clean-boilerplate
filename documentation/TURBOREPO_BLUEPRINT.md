@@ -319,7 +319,7 @@ Contoh tambahan yang perlu ada jika belum ada:
 }
 ```
 
-### Fase 3: Pindahkan Frontend ke `apps/`
+### Fase 3: Pindahkan Frontend ke `apps/` (Selesai)
 
 Setelah workspace root stabil:
 
