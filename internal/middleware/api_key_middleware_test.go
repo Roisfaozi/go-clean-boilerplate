@@ -66,7 +66,8 @@ func TestAPIKeyMiddleware_Authenticate(t *testing.T) {
 			c.String(http.StatusOK, "passed")
 		})
 
-		req, _ := http.NewRequest("GET", "/test", nil)
+		req, err := http.NewRequest(http.MethodGet, "/test", nil)
+		assert.NoError(t, err)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
