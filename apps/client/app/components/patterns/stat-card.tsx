@@ -1,0 +1,42 @@
+import { cn } from "@casbin/ui";
+import { TrendingUp, TrendingDown, LucideIcon } from "lucide-react";
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  trend?: { value: number; label?: string };
+  icon?: LucideIcon;
+  className?: string;
+}
+
+export function StatCard({ title, value, trend, icon: Icon, className }: StatCardProps) {
+  const isPositive = trend && trend.value >= 0;
+  return (
+    <div className={cn("bg-card border border-border rounded-lg shadow-sm p-card-pad", className)}>
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className="text-small text-muted-foreground">{title}</p>
+          <p className="text-h1 font-bold">{value}</p>
+        </div>
+        {Icon && (
+          <div className="rounded-md bg-primary/10 p-2.5">
+            <Icon className="h-5 w-5 text-primary" />
+          </div>
+        )}
+      </div>
+      {trend && (
+        <div className="flex items-center gap-1 mt-3">
+          {isPositive ? (
+            <TrendingUp className="h-4 w-4 text-success" />
+          ) : (
+            <TrendingDown className="h-4 w-4 text-danger" />
+          )}
+          <span className={cn("text-caption font-medium", isPositive ? "text-success" : "text-danger")}>
+            {isPositive ? "+" : ""}{trend.value}%
+          </span>
+          {trend.label && <span className="text-caption text-muted-foreground">{trend.label}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
