@@ -93,7 +93,6 @@ func SetupRouter(
 		router.Use(middleware.PrometheusMiddleware())
 	}
 
-
 	router.Use(middleware.RequestLogger(logger))
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.SecurityMiddleware())
@@ -133,8 +132,6 @@ func SetupRouter(
 	apiV1 := router.Group("/api/v1")
 	apiV1.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-
-
 	if cfg.MetricsEnabled {
 
 		metricsGroup := router.Group("/metrics")
@@ -145,7 +142,6 @@ func SetupRouter(
 		}
 		metricsGroup.GET("", gin.WrapH(promhttp.Handler()))
 	}
-
 
 	apiV1.GET("/events", authMiddleware.ValidateToken(), sseManager.ServeHTTP())
 	apiV1.GET("/ws", authMiddleware.ValidateWebSocketToken(), wsController.HandleWebSocket)
@@ -235,7 +231,7 @@ func SetupRouter(
 	authorized := apiV1.Group("")
 	authorized.Use(apiKeyMiddleware.Authenticate())
 	authorized.Use(authMiddleware.ValidateToken())
-	authorized.Use(apiKeyMiddleware.RequireUserSession())
+	authorized.Use(apiKeyMiddleware.RequireScopes("admin:manage"))
 	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	authorized.Use(casbinMiddleware)
 	if authLimiter != nil {

@@ -3,29 +3,39 @@ import { SystemHealthIndicator, ServiceHealth } from "@/components/admin/system-
 import { MetricsPanel, MetricSummary, TimeSeriesPoint } from "@/components/admin/metrics-panel";
 import { Cpu, HardDrive, Wifi, Clock } from "lucide-react";
 
-const services: ServiceHealth[] = [
+import { useQuery } from "@tanstack/react-query";
+import { getSystemHealth } from "@/lib/api/system";
+
+// Keep some dummy services for visuals, but override with real data if available
+const baseServices: ServiceHealth[] = [
   {
     name: "API Gateway",
     status: "operational",
     latency_ms: 32,
     uptime: 99.99,
-    last_check: "12s ago",
+    last_check: "just now",
   },
-  { name: "Database", status: "operational", latency_ms: 8, uptime: 99.98, last_check: "12s ago" },
   {
-    name: "Auth Service",
-    status: "degraded",
-    latency_ms: 145,
-    uptime: 99.82,
-    last_check: "30s ago",
+    name: "MySQL Database",
+    status: "operational",
+    latency_ms: 8,
+    uptime: 99.98,
+    last_check: "just now",
   },
-  { name: "Storage", status: "operational", latency_ms: 52, uptime: 99.95, last_check: "1m ago" },
+  {
+    name: "Redis Cache",
+    status: "operational",
+    latency_ms: 2,
+    uptime: 99.99,
+    last_check: "just now",
+  },
+  { name: "Storage", status: "operational", latency_ms: 52, uptime: 99.95, last_check: "just now" },
   {
     name: "Background Jobs",
     status: "operational",
     latency_ms: 15,
     uptime: 99.97,
-    last_check: "45s ago",
+    last_check: "just now",
   },
 ];
 
@@ -47,6 +57,30 @@ const resourceTimeline: TimeSeriesPoint[] = [
 ];
 
 export default function SystemHealthPage() {
+  const { data: healthData, isLoading } = useQuery({
+    queryKey: ["systemHealth"],
+    queryFn: getSystemHealth,
+    refetchInterval: 10000, // Poll every 10s
+  });
+
+  // Map real data to our UI model
+  const activeServices = [...baseServices];
+
+  if (healthData) {
+    // Update API Gateway (representing the overall backend)
+    activeServices[0].status = healthData.status === "OK" ? "operational" : "degraded";
+
+    // Update MySQL
+    if (healthData.details?.mysql) {
+      activeServices[1].status = healthData.details.mysql === "UP" ? "operational" : "down";
+    }
+
+    // Update Redis
+    if (healthData.details?.redis) {
+      activeServices[2].status = healthData.details.redis === "UP" ? "operational" : "down";
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -54,7 +88,7 @@ export default function SystemHealthPage() {
         description="Real-time service status and infrastructure monitoring"
       />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SystemHealthIndicator services={services} />
+        <SystemHealthIndicator services={activeServices} />
         <MetricsPanel
           title="Resource Usage"
           description="CPU and memory over the last 24 hours"

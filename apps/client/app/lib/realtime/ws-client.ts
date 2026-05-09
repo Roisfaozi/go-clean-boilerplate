@@ -2,6 +2,7 @@
  * WebSocket Client
  * Connects to /api/v1/ws with auto-reconnect, ping/pong, and typed messaging
  */
+import { authApi } from "../api/auth";
 
 export type WSMessageType =
   | "presence_update"
@@ -46,12 +47,21 @@ export class WebSocketClient {
     return this._connected;
   }
 
-  connect(): void {
+  async connect(): Promise<void> {
     if (typeof window === "undefined") return;
     if (this.ws) this.disconnect();
 
-    const token = localStorage.getItem("nexus_token");
-    const url = token ? `${this.url}?token=${encodeURIComponent(token)}` : this.url;
+    let ticket = "";
+    try {
+      const response = await authApi.getWsTicket();
+      ticket = response.ticket;
+    } catch (error) {
+      console.error("Failed to fetch WS ticket:", error);
+      this.scheduleReconnect();
+      return;
+    }
+
+    const url = ticket ? `${this.url}?ticket=${encodeURIComponent(ticket)}` : this.url;
 
     try {
       this.ws = new WebSocket(url);

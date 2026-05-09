@@ -12,6 +12,11 @@ import {
   type User,
 } from "./schemas";
 
+export interface WsTicketResponse {
+  ticket: string;
+  expires_in: number;
+}
+
 export const authApi = {
   login: (data: LoginRequest) => {
     loginRequestSchema.parse(data);
@@ -27,6 +32,8 @@ export const authApi = {
 
   refreshToken: () =>
     apiClient.post<TokenResponse>("/auth/refresh", undefined, tokenResponseSchema),
+
+  getWsTicket: () => apiClient.post<WsTicketResponse>("/auth/ticket"),
 
   getCurrentUser: () => apiClient.get<User>("/auth/me", userSchema),
 

@@ -160,4 +160,85 @@ func TestAPIKeyMiddleware_Authenticate(t *testing.T) {
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
+
+	t.Run("Require All Scopes passes when all present", func(t *testing.T) {
+		r := gin.New()
+		r.Use(func(c *gin.Context) {
+			c.Set("auth_method", "api_key")
+			c.Set("api_key_scopes", []string{"project:view", "project:manage"})
+			c.Next()
+		})
+		r.Use(mw.RequireAllScopes("project:view", "project:manage"))
+		r.GET("/test", func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
+
+		req, _ := http.NewRequest("GET", "/test", nil)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("Require All Scopes denies when one is missing", func(t *testing.T) {
+		r := gin.New()
+		r.Use(func(c *gin.Context) {
+			c.Set("auth_method", "api_key")
+			c.Set("api_key_scopes", []string{"project:view"})
+			c.Next()
+		})
+		r.Use(mw.RequireAllScopes("project:view", "project:manage"))
+		r.GET("/test", func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
+
+		req, _ := http.NewRequest("GET", "/test", nil)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("Global wildcard scope grants access to everything", func(t *testing.T) {
+		r := gin.New()
+		r.Use(func(c *gin.Context) {
+			c.Set("auth_method", "api_key")
+			c.Set("api_key_scopes", []string{"*"})
+			c.Next()
+		})
+		r.Use(mw.RequireScopes("anything:here"))
+		r.GET("/test", func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
+
+		req, _ := http.NewRequest("GET", "/test", nil)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+}
+
+func TestScopeFromMethod(t *testing.T) {
+	tests := []struct {
+		method   string
+		expected string
+	}{
+		{"GET", "view"},
+		{"HEAD", "view"},
+		{"POST", "create"},
+		{"PUT", "update"},
+		{"PATCH", "update"},
+		{"DELETE", "delete"},
+		{"OPTIONS", "view"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.method, func(t *testing.T) {
+			assert.Equal(t, tt.expected, ScopeFromMethod(tt.method))
+		})
+	}
 }

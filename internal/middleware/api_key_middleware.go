@@ -91,6 +91,52 @@ func (m *APIKeyMiddleware) RequireScopes(requiredScopes ...string) gin.HandlerFu
 	}
 }
 
+// RequireAllScopes enforces that an API key has ALL specified scopes (AND logic).
+// Use this for sensitive endpoints that require multiple permissions.
+func (m *APIKeyMiddleware) RequireAllScopes(requiredScopes ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !IsAPIKeyAuth(c) {
+			c.Next()
+			return
+		}
+
+		scopes, ok := GetAPIKeyScopesFromContext(c)
+		if !ok {
+			response.Forbidden(c, errors.New("api key scopes not found"), "forbidden")
+			c.Abort()
+			return
+		}
+
+		for _, required := range requiredScopes {
+			if !hasRequiredScope(scopes, required) {
+				response.Forbidden(c, errors.New("api key missing required scope: "+required), "forbidden")
+				c.Abort()
+				return
+			}
+		}
+
+		c.Next()
+	}
+}
+
+// ScopeFromMethod returns a standard scope action suffix based on the HTTP method.
+// GET/HEAD → "view", POST → "create", PUT/PATCH → "update", DELETE → "delete".
+// Usage: apiKeyMiddleware.RequireScopes("project:" + middleware.ScopeFromMethod(c))
+func ScopeFromMethod(method string) string {
+	switch strings.ToUpper(method) {
+	case "GET", "HEAD":
+		return "view"
+	case "POST":
+		return "create"
+	case "PUT", "PATCH":
+		return "update"
+	case "DELETE":
+		return "delete"
+	default:
+		return "view"
+	}
+}
+
 func IsAPIKeyAuth(c *gin.Context) bool {
 	authMethod, exists := c.Get(authMethodContextKey)
 	if !exists {

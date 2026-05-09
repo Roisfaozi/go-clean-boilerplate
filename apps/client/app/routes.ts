@@ -3,7 +3,6 @@ import { type RouteConfig, index, route, layout, prefix } from "@react-router/de
 export default [
   index("pages/LandingPage.tsx"),
   route("api/v1/*", "routes/api-proxy.ts"),
-  route("api/v1/docs/*", "routes/api-proxy.ts"),
   route("newsletter/confirm", "pages/NewsletterConfirmPage.tsx"),
 
   route("login", "pages/LoginPage.tsx"),
