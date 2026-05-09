@@ -423,7 +423,8 @@ func (uc *organizationMemberUseCase) authorizeMemberManagement(ctx context.Conte
 
 	actorUserID, ok := actorUserIDFromContext(ctx)
 	if !ok {
-		return org, "", false, nil
+		// Fail closed: if we don't know who the actor is, we cannot authorize the action.
+		return nil, "", false, exception.ErrForbidden
 	}
 
 	if org.OwnerID == actorUserID {
