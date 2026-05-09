@@ -8,6 +8,8 @@ async function handleRequest(request: Request, params: any) {
   const path = params["*"];
   const targetUrl = `${BACKEND_URL}/${path}${url.search}`;
 
+  console.log(`[Proxy] ${request.method} ${url.pathname} -> ${targetUrl}`);
+
   const headers = new Headers(request.headers);
 
   // Forward cookies from the request to the backend
@@ -26,18 +28,29 @@ async function handleRequest(request: Request, params: any) {
 
     // Create response headers
     const responseHeaders = new Headers();
+
+    // Explicitly handle Set-Cookie to avoid concatenation issues
+    if (response.headers.getSetCookie) {
+      const setCookies = response.headers.getSetCookie();
+      setCookies.forEach((cookie) => {
+        responseHeaders.append("Set-Cookie", cookie);
+      });
+    }
+
     response.headers.forEach((value, key) => {
-      // Forward Set-Cookie and other safe headers
+      // Forward other safe headers (excluding Set-Cookie which we handled above)
       if (
-        key.toLowerCase() === "set-cookie" ||
-        key.toLowerCase() === "content-type" ||
-        key.toLowerCase() === "cache-control"
+        key.toLowerCase() !== "set-cookie" &&
+        (key.toLowerCase() === "content-type" ||
+          key.toLowerCase() === "cache-control" ||
+          key.toLowerCase() === "x-request-id")
       ) {
         responseHeaders.append(key, value);
       }
     });
 
-    return new Response(await response.blob(), {
+    const body = await response.blob();
+    return new Response(body, {
       status: response.status,
       headers: responseHeaders,
     });

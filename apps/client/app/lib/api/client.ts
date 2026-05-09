@@ -107,8 +107,11 @@ axiosInstance.interceptors.response.use(
       }
 
       if (typeof window !== "undefined") {
-        useAuthStore.getState().logout();
-        window.location.href = "/login";
+        const isLoginPage = window.location.pathname === "/login";
+        if (!isLoginPage) {
+          useAuthStore.getState().logout();
+          window.location.href = "/login";
+        }
       }
     }
 
