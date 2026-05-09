@@ -6,6 +6,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export class FreePlanLimitError extends Error {
+  constructor(message?: string) {
+    super(message || "Free plan limit reached. Please upgrade your plan.");
+    this.name = "FreePlanLimitError";
+  }
+}
+
 export function nFormatter(num: number, digits?: number) {
   if (!num) return "0";
   const lookup = [

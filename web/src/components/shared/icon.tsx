@@ -28,8 +28,10 @@ export const Icon = ({ name, size = "md", className, ...props }: IconProps) => {
     xl: "size-[calc(var(--icon-size)*1.6)]", // 32px / 24px
   };
 
+  const Component = LucideIcon as any;
+
   return (
-    <LucideIcon
+    <Component
       className={cn(
         "shrink-0 transition-all",
         // Stroke width adapts: 2px (comfort) vs 1.5px (compact)
