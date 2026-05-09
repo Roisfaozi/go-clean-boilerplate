@@ -144,7 +144,7 @@ func TestCrossTenantIsolation_ProjectAccess(t *testing.T) {
 	server.DB.Create(&projectEntity.Project{
 		ID:             projectAlphaID,
 		Name:           "Alpha Secret Project",
-		Slug:           "alpha-secret",
+		Domain:         "alpha-secret",
 		OrganizationID: orgAID,
 		Status:         "active",
 	})
@@ -154,7 +154,7 @@ func TestCrossTenantIsolation_ProjectAccess(t *testing.T) {
 	server.DB.Create(&projectEntity.Project{
 		ID:             projectBetaID,
 		Name:           "Beta Secret Project",
-		Slug:           "beta-secret",
+		Domain:         "beta-secret",
 		OrganizationID: orgBID,
 		Status:         "active",
 	})
@@ -433,5 +433,106 @@ func TestCrossTenantIsolation_OrgDetails(t *testing.T) {
 			setup.WithOrg(orgA.Data.ID),
 		)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+}
+
+// TestCrossTenantIsolation_PermissionManagement tests that a user from Org A
+// cannot assign permissions or roles outside their organization's domain.
+func TestCrossTenantIsolation_PermissionManagement(t *testing.T) {
+	server := setup.SetupTestServer(t)
+	defer server.Cleanup()
+	client := server.Client
+
+	f := fixtures.NewUserFactory(server.DB)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("TestPass123!"), bcrypt.DefaultCost)
+
+	userA := f.Create(func(u *userEntity.User) {
+		u.Username = "perm_user_a"
+		u.Email = "perm_a@test.com"
+		u.Password = string(hash)
+	})
+
+	resp := client.POST("/api/v1/auth/login", map[string]any{
+		"username": userA.Username,
+		"password": "TestPass123!",
+	})
+	require.Equal(t, 200, resp.StatusCode)
+	var la struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+		} `json:"data"`
+	}
+	resp.JSON(&la)
+	tokenA := la.Data.AccessToken
+
+	// Create Org A
+	resp = client.POST("/api/v1/organizations", map[string]any{
+		"name": "Perm Org A",
+		"slug": "perm-org-a",
+	}, setup.WithAuth(tokenA))
+	require.Equal(t, 201, resp.StatusCode)
+	var orgA struct {
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	resp.JSON(&orgA)
+
+	// Create Org B (simulating another org)
+	orgBID := uuid.New().String()
+
+	// Grant Casbin policies for User A to manage permissions
+	roleA := uuid.New().String()
+	server.DB.Create(&roleEntity.Role{
+		ID: roleA, Name: "PermAdmin", OrganizationID: &orgA.Data.ID,
+	})
+	_, _ = server.Enforcer.AddGroupingPolicy(userA.ID, roleA, orgA.Data.ID)
+	// Give permission to grant permissions (POST /api/v1/permissions/grant)
+	_, _ = server.Enforcer.AddPolicy(roleA, orgA.Data.ID, "/api/v1/permissions/grant", "POST")
+	_ = server.Enforcer.SavePolicy()
+
+	t.Run("User A tries to grant permission to global domain", func(t *testing.T) {
+		resp := client.POST("/api/v1/permissions/grant", map[string]any{
+			"role":   "PermAdmin",
+			"path":   "/api/v1/hacked",
+			"method": "POST",
+			"domain": "global", // Malicious attempt to override domain
+		},
+			setup.WithAuth(tokenA),
+			setup.WithOrg(orgA.Data.ID),
+		)
+
+		// The request itself will succeed because User A has access to POST /permissions/grant
+		// BUT the domain should be forced to orgA.Data.ID internally.
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		// Verify in enforcer that "global" was NOT affected
+		hasGlobal, _ := server.Enforcer.HasPolicy("PermAdmin", "global", "/api/v1/hacked", "POST")
+		assert.False(t, hasGlobal, "Malicious user successfully injected a global policy!")
+
+		// Verify in enforcer that "Org A" WAS affected (override worked)
+		hasOrgA, _ := server.Enforcer.HasPolicy("PermAdmin", orgA.Data.ID, "/api/v1/hacked", "POST")
+		assert.True(t, hasOrgA, "Domain was not correctly scoped to the tenant's organization ID")
+	})
+
+	t.Run("User A tries to grant permission to Org B domain", func(t *testing.T) {
+		resp := client.POST("/api/v1/permissions/grant", map[string]any{
+			"role":   "PermAdmin",
+			"path":   "/api/v1/hacked-again",
+			"method": "GET",
+			"domain": orgBID, // Malicious attempt to override domain
+		},
+			setup.WithAuth(tokenA),
+			setup.WithOrg(orgA.Data.ID),
+		)
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		// Verify in enforcer that Org B was NOT affected
+		hasOrgB, _ := server.Enforcer.HasPolicy("PermAdmin", orgBID, "/api/v1/hacked-again", "GET")
+		assert.False(t, hasOrgB, "Malicious user successfully injected a policy into another organization!")
+
+		// Verify in enforcer that "Org A" WAS affected
+		hasOrgA, _ := server.Enforcer.HasPolicy("PermAdmin", orgA.Data.ID, "/api/v1/hacked-again", "GET")
+		assert.True(t, hasOrgA, "Domain was not correctly scoped to the tenant's organization ID")
 	})
 }

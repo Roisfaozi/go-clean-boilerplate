@@ -73,6 +73,49 @@ func (m *APIKeyMiddleware) RequireUserSession() gin.HandlerFunc {
 	}
 }
 
+// RequireScopeAuto derives the required scope from the URL path and HTTP method.
+// Example: GET /api/v1/projects -> "project:view"
+// Example: POST /api/v1/users -> "user:create"
+func (m *APIKeyMiddleware) RequireScopeAuto() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !IsAPIKeyAuth(c) {
+			c.Next()
+			return
+		}
+
+		// Extract resource name from path (e.g., /api/v1/projects -> projects)
+		pathParts := strings.Split(strings.Trim(c.Request.URL.Path, "/"), "/")
+		if len(pathParts) < 3 { // Expected /api/v1/:resource
+			c.Next()
+			return
+		}
+
+		resource := pathParts[2]
+		// Singularize if ends with 's' (very basic singularization)
+		if strings.HasSuffix(resource, "s") && !strings.HasSuffix(resource, "ss") {
+			resource = resource[:len(resource)-1]
+		}
+
+		action := ScopeFromMethod(c.Request.Method)
+		requiredScope := resource + ":" + action
+
+		scopes, ok := GetAPIKeyScopesFromContext(c)
+		if !ok || !hasRequiredScope(scopes, requiredScope) {
+			m.Log.WithFields(logrus.Fields{
+				"required_scope": requiredScope,
+				"granted_scopes": scopes,
+				"path":           c.Request.URL.Path,
+			}).Warn("API Key scope enforcement failed (Auto)")
+
+			response.Forbidden(c, errors.New("api key scope is not sufficient: "+requiredScope), "forbidden")
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
 func (m *APIKeyMiddleware) RequireScopes(requiredScopes ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !IsAPIKeyAuth(c) {
@@ -171,14 +214,33 @@ func hasRequiredScope(grantedScopes []string, requiredScopes ...string) bool {
 			return true
 		}
 
+		grantedParts := strings.Split(granted, ":")
+		if len(grantedParts) != 2 {
+			continue
+		}
+		grantedResource := grantedParts[0]
+		grantedAction := grantedParts[1]
+
 		for _, required := range requiredScopes {
 			if granted == required {
 				return true
 			}
 
-			if strings.HasSuffix(granted, ":*") {
-				prefix := strings.TrimSuffix(granted, "*")
-				if strings.HasPrefix(required, prefix) {
+			requiredParts := strings.Split(required, ":")
+			if len(requiredParts) != 2 {
+				continue
+			}
+			requiredResource := requiredParts[0]
+			requiredAction := requiredParts[1]
+
+			if grantedResource == requiredResource || grantedResource == "*" {
+				// Manage covers everything
+				if grantedAction == "manage" || grantedAction == "*" {
+					return true
+				}
+				// View covers read/view
+				if (grantedAction == "view" || grantedAction == "read") &&
+					(requiredAction == "view" || requiredAction == "read") {
 					return true
 				}
 			}

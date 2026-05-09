@@ -176,6 +176,7 @@ func SetupRouter(
 	authenticated := apiV1.Group("")
 	authenticated.Use(apiKeyMiddleware.Authenticate())
 	authenticated.Use(authMiddleware.ValidateToken())
+	authenticated.Use(apiKeyMiddleware.RequireScopeAuto())
 	authenticated.Use(apiKeyMiddleware.RequireUserSession())
 	authenticated.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	if authLimiter != nil {
@@ -206,6 +207,7 @@ func SetupRouter(
 	tenantAuthorized := apiV1.Group("")
 	tenantAuthorized.Use(apiKeyMiddleware.Authenticate())
 	tenantAuthorized.Use(authMiddleware.ValidateToken())
+	tenantAuthorized.Use(apiKeyMiddleware.RequireScopeAuto())
 	tenantAuthorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	tenantAuthorized.Use(tenantMiddleware.RequireOrganization())
 	tenantAuthorized.Use(casbinMiddleware)
@@ -233,6 +235,7 @@ func SetupRouter(
 	authorized.Use(authMiddleware.ValidateToken())
 	authorized.Use(apiKeyMiddleware.RequireScopes("admin:manage"))
 	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
+	authorized.Use(tenantMiddleware.OptionalOrganization())
 	authorized.Use(casbinMiddleware)
 	if authLimiter != nil {
 		authorized.Use(authLimiter)
