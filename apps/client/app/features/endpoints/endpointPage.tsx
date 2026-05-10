@@ -194,7 +194,7 @@ export default function EndpointsPage() {
   const [editItem, setEditItem] = useState<Endpoint | null>(null);
   const [deleteItem, setDeleteItem] = useState<Endpoint | null>(null);
 
-  const { data: response, isLoading, isError } = useEndpoints();
+  const { data: response, isLoading, refetch } = useEndpoints();
   const { data: resourcesResponse } = useResources();
   const createEndpoint = useCreateEndpoint();
   const updateEndpoint = useUpdateEndpoint();
@@ -202,20 +202,12 @@ export default function EndpointsPage() {
 
   const endpoints: Endpoint[] = useMemo(() => {
     if (response?.data) return response.data as Endpoint[];
-    if (isError) return mockData;
-    return mockData;
-  }, [response, isError]);
+    return [];
+  }, [response]);
 
   const resources: Resource[] = useMemo(() => {
     if (resourcesResponse?.data) return resourcesResponse.data as Resource[];
-    return [
-      { id: "1", name: "Users", slug: "users" },
-      { id: "2", name: "Projects", slug: "projects" },
-      { id: "3", name: "Roles", slug: "roles" },
-      { id: "4", name: "Organizations", slug: "organizations" },
-      { id: "5", name: "Audit Logs", slug: "audit-logs" },
-      { id: "6", name: "System", slug: "system" },
-    ] as Resource[];
+    return [];
   }, [resourcesResponse]);
 
   const fields: FieldDef[] = useMemo(() => {
@@ -238,26 +230,24 @@ export default function EndpointsPage() {
         title="Endpoints"
         description="Register and manage API endpoints."
         actions={
-          <NexusButton onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" /> New Endpoint
-          </NexusButton>
+          <div className="flex gap-2">
+            <NexusButton variant="outline" onClick={() => refetch()}>
+              Refresh
+            </NexusButton>
+            <NexusButton onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> New Endpoint
+            </NexusButton>
+          </div>
         }
       />
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : (
-        <CrudTable
-          columns={columns}
-          data={endpoints}
-          onEdit={setEditItem}
-          onDelete={setDeleteItem}
-        />
-      )}
+      <CrudTable
+        columns={columns}
+        data={endpoints}
+        loading={isLoading}
+        onEdit={setEditItem}
+        onDelete={setDeleteItem}
+      />
 
       <CrudFormDialog
         open={createOpen}
@@ -266,6 +256,7 @@ export default function EndpointsPage() {
         description="Add a new API endpoint."
         fields={fields}
         schema={schema}
+        loading={createEndpoint.isPending}
         onSubmit={async (v) => {
           await createEndpoint.mutateAsync(v as any);
           setCreateOpen(false);
@@ -279,6 +270,7 @@ export default function EndpointsPage() {
         description="Update endpoint details."
         fields={fields}
         schema={schema}
+        loading={updateEndpoint.isPending}
         initialValues={editItem || undefined}
         onSubmit={async (v) => {
           if (editItem) {
@@ -293,6 +285,7 @@ export default function EndpointsPage() {
         onOpenChange={(o) => !o && setDeleteItem(null)}
         resourceName="Endpoint"
         itemName={deleteItem?.name}
+        loading={deleteEndpoint.isPending}
         onConfirm={async () => {
           if (deleteItem) {
             await deleteEndpoint.mutateAsync(String(deleteItem.id));

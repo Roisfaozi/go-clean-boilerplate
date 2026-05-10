@@ -1,24 +1,22 @@
-import { useState, useMemo } from "react";
-import { z } from "zod";
 import { PageHeader } from "@/components/layout/page-header";
-import { NexusButton } from "@casbin/ui";
-import { NexusBadge } from "@casbin/ui";
 import {
-  CrudTable,
   CrudFormDialog,
+  CrudTable,
   DeleteDialog,
   type CrudColumnDef,
   type FieldDef,
 } from "@/features/shared";
-import { Plus } from "lucide-react";
-import {
-  useResources,
-  useCreateResource,
-  useUpdateResource,
-  useDeleteResource,
-} from "./resourceHooks";
 import type { Resource } from "@/lib/api/types";
-import { Skeleton } from "@casbin/ui";
+import { NexusBadge, NexusButton } from "@casbin/ui";
+import { Plus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { z } from "zod";
+import {
+  useCreateResource,
+  useDeleteResource,
+  useResources,
+  useUpdateResource,
+} from "./resourceHooks";
 
 const mockData: Resource[] = [
   {
@@ -73,8 +71,7 @@ const mockData: Resource[] = [
 
 const columns: CrudColumnDef<Resource>[] = [
   { id: "name", header: "Name", accessorKey: "name", sortable: true, minWidth: 160 },
-  { id: "slug", header: "Slug", accessorKey: "slug", minWidth: 140 },
-  { id: "description", header: "Description", accessorKey: "description", minWidth: 200 },
+  { id: "description", header: "Description", accessorKey: "description", minWidth: 300 },
   {
     id: "status",
     header: "Status",
@@ -85,7 +82,7 @@ const columns: CrudColumnDef<Resource>[] = [
       { label: "Inactive", value: "inactive" },
     ],
     cell: (row) => (
-      <NexusBadge variant={row.status === "active" ? "success" : "neutral"}>
+      <NexusBadge variant={row.status === "inactive" ? "neutral" : "success"}>
         {row.status ?? "active"}
       </NexusBadge>
     ),
@@ -94,37 +91,17 @@ const columns: CrudColumnDef<Resource>[] = [
 
 const createSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
-  slug: z
-    .string()
-    .trim()
-    .min(1, "Slug is required")
-    .max(100)
-    .regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, hyphens only"),
   description: z.string().max(500).optional(),
 });
 
 const editSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
-  slug: z
-    .string()
-    .trim()
-    .min(1, "Slug is required")
-    .max(100)
-    .regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, hyphens only"),
   description: z.string().max(500).optional(),
   status: z.string().min(1, "Status is required"),
 });
 
 const createFields: FieldDef[] = [
   { name: "name", label: "Resource Name", type: "text", required: true, placeholder: "e.g. Users" },
-  {
-    name: "slug",
-    label: "Slug",
-    type: "text",
-    required: true,
-    placeholder: "e.g. users",
-    description: "URL-friendly identifier",
-  },
   {
     name: "description",
     label: "Description",
@@ -152,43 +129,40 @@ export default function ResourcesPage() {
   const [editItem, setEditItem] = useState<Resource | null>(null);
   const [deleteItem, setDeleteItem] = useState<Resource | null>(null);
 
-  const { data: response, isLoading, isError } = useResources();
+  const { data: response, isLoading, refetch } = useResources();
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();
   const deleteResource = useDeleteResource();
 
   const resources: Resource[] = useMemo(() => {
     if (response?.data) return response.data as Resource[];
-    if (isError) return mockData;
-    return mockData;
-  }, [response, isError]);
+    return [];
+  }, [response]);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Resources"
-        description="Register and manage API resources."
+        description="Register and manage API resources (Access Rights)."
         actions={
-          <NexusButton onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" /> New Resource
-          </NexusButton>
+          <div className="flex gap-2">
+            <NexusButton variant="outline" onClick={() => refetch()}>
+              Refresh
+            </NexusButton>
+            <NexusButton onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> New Resource
+            </NexusButton>
+          </div>
         }
       />
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : (
-        <CrudTable
-          columns={columns}
-          data={resources}
-          onEdit={setEditItem}
-          onDelete={setDeleteItem}
-        />
-      )}
+      <CrudTable
+        columns={columns}
+        data={resources}
+        loading={isLoading}
+        onEdit={setEditItem}
+        onDelete={setDeleteItem}
+      />
 
       <CrudFormDialog
         open={createOpen}
@@ -197,6 +171,7 @@ export default function ResourcesPage() {
         description="Add a new API resource."
         fields={createFields}
         schema={createSchema}
+        loading={createResource.isPending}
         onSubmit={async (v) => {
           await createResource.mutateAsync(v as any);
           setCreateOpen(false);
@@ -210,6 +185,7 @@ export default function ResourcesPage() {
         description="Update resource details."
         fields={editFields}
         schema={editSchema}
+        loading={updateResource.isPending}
         initialValues={editItem || undefined}
         onSubmit={async (v) => {
           if (editItem) {
@@ -224,6 +200,7 @@ export default function ResourcesPage() {
         onOpenChange={(o) => !o && setDeleteItem(null)}
         resourceName="Resource"
         itemName={deleteItem?.name}
+        loading={deleteResource.isPending}
         onConfirm={async () => {
           if (deleteItem) {
             await deleteResource.mutateAsync(String(deleteItem.id));
