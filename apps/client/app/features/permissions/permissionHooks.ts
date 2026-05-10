@@ -80,11 +80,37 @@ export function useToggleAccessRight() {
         return permissionService.revokeAccessRight({ role, access_right_id, domain });
       }
     },
-    onSuccess: (_, variables) => {
-      qc.invalidateQueries({ queryKey: ["permissions", "role-access", variables.role] });
-      qc.invalidateQueries({ queryKey: KEY });
-      toast.success(`Permission ${variables.granted ? "granted" : "revoked"}`);
-    },
     onError: () => toast.error("Failed to update permission"),
+  });
+}
+
+export function useInheritanceTree() {
+  return useQuery({
+    queryKey: ["permissions", "inheritance-tree"],
+    queryFn: () => permissionService.getInheritanceTree(),
+  });
+}
+
+export function useAddInheritance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: permissionService.addInheritance,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["permissions", "inheritance-tree"] });
+      toast.success("Role inheritance added");
+    },
+    onError: () => toast.error("Failed to add role inheritance"),
+  });
+}
+
+export function useRemoveInheritance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: permissionService.removeInheritance,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["permissions", "inheritance-tree"] });
+      toast.success("Role inheritance removed");
+    },
+    onError: () => toast.error("Failed to remove role inheritance"),
   });
 }

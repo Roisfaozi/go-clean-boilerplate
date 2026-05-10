@@ -11,12 +11,21 @@ export const permissionService = {
   delete: (id: string) => apiClient.delete(`/permissions/${id}`),
 
   // Matrix View Endpoints
-  getResources: () =>
-    apiClient.get<{ data: { resources: any[] } }>("/permissions/resources"),
+  getResources: () => apiClient.get<{ data: { resources: any[] } }>("/permissions/resources"),
   getRoleAccessRights: (role: string, domain?: string) =>
-    apiClient.get<any>(`/permissions/roles/${role}/access-rights`, undefined, { params: { domain } }),
+    apiClient.get<any>(`/permissions/roles/${role}/access-rights`, undefined, {
+      params: { domain },
+    }),
   assignAccessRight: (data: { role: string; access_right_id: string; domain?: string }) =>
     apiClient.post("/permissions/assign-access-right", data),
   revokeAccessRight: (data: { role: string; access_right_id: string; domain?: string }) =>
     apiClient.delete("/permissions/revoke-access-right", { data }),
+
+  // Inheritance Endpoints
+  getInheritanceTree: () =>
+    apiClient.get<{ data: { roles: any[] } }>("/permissions/inheritance-tree"),
+  addInheritance: (data: { child_role: string; parent_role: string; domain?: string }) =>
+    apiClient.post("/permissions/inheritance", data),
+  removeInheritance: (data: { child_role: string; parent_role: string; domain?: string }) =>
+    apiClient.delete("/permissions/inheritance", { data }),
 };
