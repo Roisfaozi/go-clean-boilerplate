@@ -44,3 +44,47 @@ export function useDeletePermission() {
     onError: () => toast.error("Failed to delete permission"),
   });
 }
+
+export function useResourceAggregation() {
+  return useQuery({
+    queryKey: ["permissions", "aggregation"],
+    queryFn: () => permissionService.getResources(),
+  });
+}
+
+export function useRoleAccessRights(role: string, domain?: string) {
+  return useQuery({
+    queryKey: ["permissions", "role-access", role, domain],
+    queryFn: () => permissionService.getRoleAccessRights(role, domain),
+    enabled: !!role,
+  });
+}
+
+export function useToggleAccessRight() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      role,
+      access_right_id,
+      granted,
+      domain,
+    }: {
+      role: string;
+      access_right_id: string;
+      granted: boolean;
+      domain?: string;
+    }) => {
+      if (granted) {
+        return permissionService.assignAccessRight({ role, access_right_id, domain });
+      } else {
+        return permissionService.revokeAccessRight({ role, access_right_id, domain });
+      }
+    },
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ["permissions", "role-access", variables.role] });
+      qc.invalidateQueries({ queryKey: KEY });
+      toast.success(`Permission ${variables.granted ? "granted" : "revoked"}`);
+    },
+    onError: () => toast.error("Failed to update permission"),
+  });
+}

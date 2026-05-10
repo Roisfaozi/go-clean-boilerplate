@@ -9,4 +9,14 @@ export const permissionService = {
   update: (id: string, data: Partial<Permission>) =>
     apiClient.put<Permission>(`/permissions/${id}`, data),
   delete: (id: string) => apiClient.delete(`/permissions/${id}`),
+
+  // Matrix View Endpoints
+  getResources: () =>
+    apiClient.get<{ data: { resources: any[] } }>("/permissions/resources"),
+  getRoleAccessRights: (role: string, domain?: string) =>
+    apiClient.get<any>(`/permissions/roles/${role}/access-rights`, undefined, { params: { domain } }),
+  assignAccessRight: (data: { role: string; access_right_id: string; domain?: string }) =>
+    apiClient.post("/permissions/assign-access-right", data),
+  revokeAccessRight: (data: { role: string; access_right_id: string; domain?: string }) =>
+    apiClient.delete("/permissions/revoke-access-right", { data }),
 };
