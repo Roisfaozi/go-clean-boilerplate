@@ -242,7 +242,7 @@ func SetupRouter(
 	}
 	{
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
-		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)
+		accessHttp.RegisterAccessRoutes(authorized.Group("", tenantMiddleware.OptionalOrganization()), accessModule.AccessController)
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
 		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
 		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
