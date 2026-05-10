@@ -17,6 +17,7 @@ interface DeleteDialogProps {
   resourceName: string;
   itemName?: string;
   onConfirm: () => Promise<void> | void;
+  loading?: boolean;
 }
 
 export function DeleteDialog({
@@ -25,8 +26,10 @@ export function DeleteDialog({
   resourceName,
   itemName,
   onConfirm,
+  loading,
 }: DeleteDialogProps) {
   const [deleting, setDeleting] = useState(false);
+  const isLoading = deleting || !!loading;
 
   const handleConfirm = async () => {
     setDeleting(true);
@@ -59,9 +62,9 @@ export function DeleteDialog({
           </div>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-          <NexusButton variant="danger" onClick={handleConfirm} disabled={deleting}>
-            {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+          <NexusButton variant="danger" onClick={handleConfirm} disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Delete
           </NexusButton>
         </AlertDialogFooter>
