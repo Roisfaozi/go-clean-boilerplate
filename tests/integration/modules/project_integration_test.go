@@ -202,3 +202,58 @@ func TestProjectIntegration_OrganizationScopeIsolation(t *testing.T) {
 	_, err = repo.GetByID(ctxOrgB, projA.ID)
 	assert.Error(t, err, "Org B should not be able to access Org A's project")
 }
+
+
+func TestProjectIsolation_UseCase(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	repo := repository.NewProjectRepository(env.DB)
+	uc := usecase.NewProjectUseCase(repo)
+	ctx := context.Background()
+
+	orgA := "org-iso-a-" + uuid.NewString()[:8]
+	orgB := "org-iso-b-" + uuid.NewString()[:8]
+
+	// 1. Create project in Org A context
+	ctxOrgA := database.SetOrganizationContext(ctx, orgA)
+	created, err := uc.CreateProject(ctxOrgA, "user-a", orgA, model.CreateProjectRequest{
+		Name:   "Org A Private Project",
+		Domain: "a.example.com",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, created)
+
+	t.Run("Cross-tenant GET should fail", func(t *testing.T) {
+		ctxOrgB := database.SetOrganizationContext(ctx, orgB)
+		_, err := uc.GetProjectByID(ctxOrgB, created.ID)
+		assert.Error(t, err, "Should not be able to fetch project from another organization")
+	})
+
+	t.Run("Cross-tenant UPDATE should fail", func(t *testing.T) {
+		ctxOrgB := database.SetOrganizationContext(ctx, orgB)
+		newName := "Hacked Name"
+		_, err := uc.UpdateProject(ctxOrgB, created.ID, model.UpdateProjectRequest{
+			Name: &newName,
+		})
+		assert.Error(t, err, "Should not be able to update project from another organization")
+		
+		// Verify name was not changed
+		refetched, _ := uc.GetProjectByID(ctxOrgA, created.ID)
+		assert.Equal(t, "Org A Private Project", refetched.Name)
+	})
+
+	t.Run("Cross-tenant DELETE should fail", func(t *testing.T) {
+		ctxOrgB := database.SetOrganizationContext(ctx, orgB)
+		err := uc.DeleteProject(ctxOrgB, created.ID)
+		// Note: Delete in GORM might not return error if 0 rows affected unless checked,
+		// but since we use Scopes, it will just do 'DELETE ... WHERE id = X AND org_id = B'
+		// which affects 0 rows.
+		assert.NoError(t, err) // It doesn't error, but it shouldn't delete the record
+		
+		// Verify project still exists in Org A
+		refetched, err := uc.GetProjectByID(ctxOrgA, created.ID)
+		assert.NoError(t, err)
+		assert.NotNil(t, refetched)
+	})
+}
