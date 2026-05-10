@@ -203,7 +203,6 @@ func TestProjectIntegration_OrganizationScopeIsolation(t *testing.T) {
 	assert.Error(t, err, "Org B should not be able to access Org A's project")
 }
 
-
 func TestProjectIsolation_UseCase(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
@@ -237,7 +236,7 @@ func TestProjectIsolation_UseCase(t *testing.T) {
 			Name: &newName,
 		})
 		assert.Error(t, err, "Should not be able to update project from another organization")
-		
+
 		// Verify name was not changed
 		refetched, _ := uc.GetProjectByID(ctxOrgA, created.ID)
 		assert.Equal(t, "Org A Private Project", refetched.Name)
@@ -250,7 +249,7 @@ func TestProjectIsolation_UseCase(t *testing.T) {
 		// but since we use Scopes, it will just do 'DELETE ... WHERE id = X AND org_id = B'
 		// which affects 0 rows.
 		assert.NoError(t, err) // It doesn't error, but it shouldn't delete the record
-		
+
 		// Verify project still exists in Org A
 		refetched, err := uc.GetProjectByID(ctxOrgA, created.ID)
 		assert.NoError(t, err)
