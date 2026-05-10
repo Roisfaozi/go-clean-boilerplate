@@ -1,489 +1,393 @@
 {
-	"info": {
-		"_postman_id": "c093a178-0023-45b6-8e38-067c0da735ed",
-		"name": "Casbin Project API - Dynamic Search",
-		"description": "Dedicated collection for testing Dynamic Search endpoints with various filter and sort capabilities.",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "19056005"
-	},
-	"item": [
-		{
-			"name": "User Search",
-			"item": [
-				{
-					"name": "Name Contains 'Admin'",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"Admin\" }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"users",
-								"search"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Username Equals 'johndoe'",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"username\": { \"type\": \"equals\", \"from\": \"johndoe\" }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"users",
-								"search"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Email EndsWith '@gmail.com'",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"email\": { \"type\": \"ends_with\", \"from\": \"@gmail.com\" }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"users",
-								"search"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Username IN List",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"username\": { \"type\": \"in\", \"from\": [\"alice\", \"bob\", \"charlie\"] }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"users",
-								"search"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "CreatedAt InRange",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"created_at\": { \"type\": \"in_range\", \"from\": 1700000000000, \"to\": 1733000000000 }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"users",
-								"search"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "DeletedAt IsNull (Active Users)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"deleted_at\": { \"type\": \"is_null\" }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"users",
-								"search"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Complex: Name Contains AND Email EndsWith",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"User\" },\n        \"email\": { \"type\": \"ends_with\", \"from\": \"@example.com\" }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"users",
-								"search"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Sort: CreatedAt Descending",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"sort\": [\n        { \"colId\": \"created_at\", \"sort\": \"desc\" }\n    ]\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"users",
-								"search"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Sort: Multi-Column",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"sort\": [\n        { \"colId\": \"role\", \"sort\": \"asc\" },\n        { \"colId\": \"name\", \"sort\": \"desc\" }\n    ]\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/users/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"users",
-								"search"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Role Search",
-			"item": [
-				{
-					"name": "Name Contains 'admin'",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"admin\" }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/roles/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"roles",
-								"search"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Name IN List (admin, editor)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"in\", \"from\": [\"admin\", \"editor\"] }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/roles/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"roles",
-								"search"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Complex: Name & Description",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"starts_with\", \"from\": \"super\" },\n        \"description\": { \"type\": \"contains\", \"from\": \"admin\" }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/roles/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"roles",
-								"search"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Endpoint Search",
-			"item": [
-				{
-					"name": "Method Equals 'GET'",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"method\": { \"type\": \"equals\", \"from\": \"GET\" }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/endpoints/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"endpoints",
-								"search"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Path StartsWith '/api/v1/users'",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"path\": { \"type\": \"starts_with\", \"from\": \"/api/v1/users\" }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/endpoints/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"endpoints",
-								"search"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Access Right Search",
-			"item": [
-				{
-					"name": "Name Contains 'User'",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"User\" }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/access-rights/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"access-rights",
-								"search"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Complex: Name & Description",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"Manage\" },\n        \"description\": { \"type\": \"starts_with\", \"from\": \"Allows\" }\n    }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseURL}}/{{apiVersion}}/access-rights/search",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"{{apiVersion}}",
-								"access-rights",
-								"search"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"auth": {
-		"type": "bearer",
-		"bearer": [
-			{
-				"key": "token",
-				"value": "{{authToken}}",
-				"type": "string"
-			}
-		]
-	}
+  "info": {
+    "_postman_id": "c093a178-0023-45b6-8e38-067c0da735ed",
+    "name": "Casbin Project API - Dynamic Search",
+    "description": "Dedicated collection for testing Dynamic Search endpoints with various filter and sort capabilities.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "19056005"
+  },
+  "item": [
+    {
+      "name": "User Search",
+      "item": [
+        {
+          "name": "Name Contains 'Admin'",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"Admin\" }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/users/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "users", "search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Username Equals 'johndoe'",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"username\": { \"type\": \"equals\", \"from\": \"johndoe\" }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/users/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "users", "search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Email EndsWith '@gmail.com'",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"email\": { \"type\": \"ends_with\", \"from\": \"@gmail.com\" }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/users/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "users", "search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Username IN List",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"username\": { \"type\": \"in\", \"from\": [\"alice\", \"bob\", \"charlie\"] }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/users/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "users", "search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "CreatedAt InRange",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"created_at\": { \"type\": \"in_range\", \"from\": 1700000000000, \"to\": 1733000000000 }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/users/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "users", "search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DeletedAt IsNull (Active Users)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"deleted_at\": { \"type\": \"is_null\" }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/users/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "users", "search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Complex: Name Contains AND Email EndsWith",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"User\" },\n        \"email\": { \"type\": \"ends_with\", \"from\": \"@example.com\" }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/users/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "users", "search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sort: CreatedAt Descending",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sort\": [\n        { \"colId\": \"created_at\", \"sort\": \"desc\" }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/users/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "users", "search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sort: Multi-Column",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sort\": [\n        { \"colId\": \"role\", \"sort\": \"asc\" },\n        { \"colId\": \"name\", \"sort\": \"desc\" }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/users/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "users", "search"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Role Search",
+      "item": [
+        {
+          "name": "Name Contains 'admin'",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"admin\" }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/roles/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "roles", "search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Name IN List (admin, editor)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"in\", \"from\": [\"admin\", \"editor\"] }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/roles/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "roles", "search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Complex: Name & Description",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"starts_with\", \"from\": \"super\" },\n        \"description\": { \"type\": \"contains\", \"from\": \"admin\" }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/roles/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "roles", "search"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Endpoint Search",
+      "item": [
+        {
+          "name": "Method Equals 'GET'",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"method\": { \"type\": \"equals\", \"from\": \"GET\" }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/endpoints/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "endpoints", "search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Path StartsWith '/api/v1/users'",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"path\": { \"type\": \"starts_with\", \"from\": \"/api/v1/users\" }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/endpoints/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "endpoints", "search"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Access Right Search",
+      "item": [
+        {
+          "name": "Name Contains 'User'",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"User\" }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/access-rights/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "access-rights", "search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Complex: Name & Description",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"filter\": {\n        \"name\": { \"type\": \"contains\", \"from\": \"Manage\" },\n        \"description\": { \"type\": \"starts_with\", \"from\": \"Allows\" }\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/{{apiVersion}}/access-rights/search",
+              "host": ["{{baseURL}}"],
+              "path": ["{{apiVersion}}", "access-rights", "search"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  }
 }

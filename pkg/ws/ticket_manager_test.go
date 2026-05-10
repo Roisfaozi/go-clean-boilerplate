@@ -17,7 +17,8 @@ func setupTicketManager(t *testing.T) (*ws.RedisTicketManager, *miniredis.Minire
 	require.NoError(t, err)
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr: mr.Addr(),
+		Addr:            mr.Addr(),
+		DisableIdentity: true,
 	})
 
 	tm := ws.NewRedisTicketManager(rdb, 1*time.Second) // Short TTL for testing
@@ -53,6 +54,29 @@ func TestRedisTicketManager_CreateAndValidate(t *testing.T) {
 	_, err = tm.ValidateTicket(ctx, ticket)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid or expired ticket")
+}
+
+func TestRedisTicketManager_BadData(t *testing.T) {
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr:            mr.Addr(),
+		DisableIdentity: true,
+		MaxRetries:      -1, // Don't retry/log when we close the server
+	})
+
+	tm := ws.NewRedisTicketManager(rdb, 0) // Should default to 30s
+
+	rdb.Set(context.Background(), "ws:ticket:bad-json", "{bad-json}", 0)
+	_, err = tm.ValidateTicket(context.Background(), "bad-json")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to unmarshal")
+
+	mr.Close()
+	// Error on get
+	_, err = tm.ValidateTicket(context.Background(), "anything")
+	require.Error(t, err)
 }
 
 func TestRedisTicketManager_Expiration(t *testing.T) {

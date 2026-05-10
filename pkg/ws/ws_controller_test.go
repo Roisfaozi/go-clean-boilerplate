@@ -131,6 +131,12 @@ func TestWebSocketOrigin(t *testing.T) {
 			requestOrigin:  "http://anywhere.com",
 			shouldConnect:  true,
 		},
+		{
+			name:           "Empty Allowed Origins",
+			allowedOrigins: []string{},
+			requestOrigin:  "http://anywhere.com",
+			shouldConnect:  false,
+		},
 	}
 
 	for _, tt := range tests {

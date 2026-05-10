@@ -17,6 +17,7 @@ import (
 	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -34,12 +35,12 @@ func TestScenario_PasswordRecovery_Lifecycle(t *testing.T) {
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
 
-	_ = auditUC.NewAuditUseCase(aucRepo, env.Logger, nil)
+	_ = auditUC.NewAuditUseCase(aucRepo, env.Logger, nil, nil)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)
 
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
 
 	oldPassword := "OldPass123!"
 	newPassword := "NewPass456!"

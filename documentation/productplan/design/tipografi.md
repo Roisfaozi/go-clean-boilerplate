@@ -89,8 +89,8 @@ Berikut adalah konfigurasi CSS Variables yang bisa Anda copy-paste untuk mengakt
 ```css
 @theme {
   /* Definisikan Font Family */
-  --font-sans: 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
 
   /* Definisikan Ukuran Font (Base values) */
   --text-display: 2.25rem;
@@ -108,7 +108,7 @@ Berikut adalah konfigurasi CSS Variables yang bisa Anda copy-paste untuk mengakt
 }
 
 /* Compact Mode (Enterprise / Data Dense) */
-[data-density='compact'] {
+[data-density="compact"] {
   --text-body: 0.8125rem; /* Turun ke 13px */
   --text-small: 0.75rem; /* Turun ke 12px */
   --leading-body: 1.3; /* Rapat */

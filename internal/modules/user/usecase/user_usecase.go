@@ -15,6 +15,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model/converter"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	webhookModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/model"
+	webhookUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
@@ -27,13 +29,14 @@ import (
 )
 
 type userUseCaseImpl struct {
-	DB       tx.WithTransactionManager
-	Log      *logrus.Logger
-	Repo     repository.UserRepository
-	Enforcer permissionUseCase.IEnforcer
-	AuditUC  auditUseCase.AuditUseCase
-	AuthUC   authUseCase.AuthUseCase
-	Storage  storage.Provider
+	DB        tx.WithTransactionManager
+	Log       *logrus.Logger
+	Repo      repository.UserRepository
+	Enforcer  permissionUseCase.IEnforcer
+	AuditUC   auditUseCase.AuditUseCase
+	AuthUC    authUseCase.AuthUseCase
+	WebhookUC webhookUseCase.WebhookUseCase
+	Storage   storage.Provider
 }
 
 func NewUserUseCase(
@@ -43,16 +46,18 @@ func NewUserUseCase(
 	enforcer permissionUseCase.IEnforcer,
 	auditUC auditUseCase.AuditUseCase,
 	authUC authUseCase.AuthUseCase,
+	webhookUC webhookUseCase.WebhookUseCase,
 	storage storage.Provider,
 ) UserUseCase {
 	return &userUseCaseImpl{
-		DB:       db,
-		Log:      log,
-		Repo:     repo,
-		Enforcer: enforcer,
-		AuditUC:  auditUC,
-		AuthUC:   authUC,
-		Storage:  storage,
+		DB:        db,
+		Log:       log,
+		Repo:      repo,
+		Enforcer:  enforcer,
+		AuditUC:   auditUC,
+		AuthUC:    authUC,
+		WebhookUC: webhookUC,
+		Storage:   storage,
 	}
 }
 
@@ -133,6 +138,25 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 
 	if err != nil {
 		return nil, err
+	}
+
+	// Trigger Webhook Event (Out-of-transaction for reliability)
+	if u.WebhookUC != nil {
+		go func() {
+			err := u.WebhookUC.Trigger(context.Background(), webhookModel.TriggerWebhookRequest{
+				OrganizationID: "global", // Standard user registration is global
+				EventType:      "user.created",
+				Payload: map[string]interface{}{
+					"id":       user.ID,
+					"username": user.Username,
+					"email":    user.Email,
+					"name":     user.Name,
+				},
+			})
+			if err != nil {
+				u.Log.Errorf("Failed to trigger webhook user.created: %v", err)
+			}
+		}()
 	}
 
 	telemetry.UserRegistrationsTotal.Inc()
@@ -359,7 +383,7 @@ func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file 
 
 	// 5. Audit Log
 	if u.AuditUC != nil {
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   userID,
 			Action:   "UPDATE_AVATAR",
 			Entity:   "User",
@@ -367,7 +391,10 @@ func (u *userUseCaseImpl) UpdateAvatar(ctx context.Context, userID string, file 
 			NewValues: map[string]string{
 				"avatar_url": url,
 			},
-		})
+		}); err != nil {
+			u.Log.Errorf("Failed to log activity for avatar update: %v", err)
+			return nil, exception.ErrInternalServer
+		}
 	}
 
 	return converter.UserToResponse(user), nil
@@ -386,7 +413,7 @@ func (u *userUseCaseImpl) SetAvatarURL(ctx context.Context, userID string, url s
 	}
 
 	if u.AuditUC != nil {
-		_ = u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
+		if err := u.AuditUC.LogActivity(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   userID,
 			Action:   "UPDATE_AVATAR_TUS",
 			Entity:   "User",
@@ -394,7 +421,10 @@ func (u *userUseCaseImpl) SetAvatarURL(ctx context.Context, userID string, url s
 			NewValues: map[string]interface{}{
 				"avatar_url": url,
 			},
-		})
+		}); err != nil {
+			u.Log.Errorf("Failed to log activity for avatar update (TUS): %v", err)
+			return exception.ErrInternalServer
+		}
 	}
 
 	return nil
@@ -410,7 +440,13 @@ func (u *userUseCaseImpl) GetAvatarUrl(ctx context.Context, userID string) (stri
 		return "", exception.ErrNotFound
 	}
 
-	return u.Storage.GetFileUrl(ctx, user.AvatarURL)
+	url, err := u.Storage.GetFileUrl(ctx, user.AvatarURL)
+	if err != nil {
+		u.Log.Errorf("Failed to get avatar URL from storage: %v", err)
+		return "", exception.ErrInternalServer
+	}
+
+	return url, nil
 }
 
 func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error {

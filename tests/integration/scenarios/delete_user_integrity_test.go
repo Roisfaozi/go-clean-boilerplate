@@ -19,6 +19,7 @@ import (
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	userUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -36,15 +37,15 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 
 	realAuditRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
-	realAuditUC := auditUC.NewAuditUseCase(realAuditRepo, env.Logger, nil)
+	realAuditUC := auditUC.NewAuditUseCase(realAuditRepo, env.Logger, nil, nil)
 
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
 
-	setupService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, realAuditUC, authService, nil)
+	setupService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, realAuditUC, authService, nil, nil)
 	regReq := &userModel.RegisterUserRequest{
 		Username: "todelete", Email: "delete@test.com", Password: "Pass123!", Name: "To Delete",
 	}
@@ -66,7 +67,7 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	mockAuditUC := new(mocks.MockAuditUseCase)
 	mockAuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("intentional audit failure"))
 
-	targetService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, mockAuditUC, authService, nil)
+	targetService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, mockAuditUC, authService, nil, nil)
 
 	delReq := &userModel.DeleteUserRequest{ID: user.ID}
 	err = targetService.DeleteUser(context.Background(), "admin-id", delReq)

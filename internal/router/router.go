@@ -6,6 +6,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
 	accessHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/delivery/http"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key"
+	api_keyHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	auditHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
@@ -19,7 +21,10 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	userHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse" // Import local tus pkg
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook"
+	webhookHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/delivery/http"
+	_ "github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -27,7 +32,7 @@ import (
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"github.com/tus/tusd/v2/pkg/handler" // Import tusd handler
+	"github.com/tus/tusd/v2/pkg/handler"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"gorm.io/gorm"
 )
@@ -60,7 +65,10 @@ func SetupRouter(
 	auditModule *audit.AuditModule,
 	statsModule *stats.StatsModule,
 	projectModule *project.ProjectModule,
+	apiKeyModule *api_key.ApiKeyModule,
+	webhookModule *webhook.WebhookModule,
 	authMiddleware *middleware.AuthMiddleware,
+	apiKeyMiddleware *middleware.APIKeyMiddleware,
 	casbinMiddleware gin.HandlerFunc,
 	tenantMiddleware *middleware.TenantMiddleware,
 	wsController *ws.WebSocketController,
@@ -84,8 +92,6 @@ func SetupRouter(
 	if cfg.MetricsEnabled {
 		router.Use(middleware.PrometheusMiddleware())
 	}
-	router.GET("/ws", authMiddleware.ValidateWebSocketToken(), wsController.HandleWebSocket)
-	router.GET("/events", authMiddleware.ValidateToken(), sseManager.ServeHTTP())
 
 	router.Use(middleware.RequestLogger(logger))
 	router.Use(middleware.RecoveryMiddleware(logger))
@@ -123,9 +129,138 @@ func SetupRouter(
 		}
 	}
 
-	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	apiV1 := router.Group("/api/v1")
+	apiV1.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	router.GET("/api/health", func(c *gin.Context) {
+	if cfg.MetricsEnabled {
+
+		metricsGroup := router.Group("/metrics")
+		if cfg.MetricsAuth {
+			metricsGroup.Use(gin.BasicAuth(gin.Accounts{
+				cfg.MetricsUser: cfg.MetricsPass,
+			}))
+		}
+		metricsGroup.GET("", gin.WrapH(promhttp.Handler()))
+	}
+
+	apiV1.GET("/events", authMiddleware.ValidateToken(), sseManager.ServeHTTP())
+	apiV1.GET("/ws", authMiddleware.ValidateWebSocketToken(), wsController.HandleWebSocket)
+	apiV1.GET("/health", GetHealth(db, redisClient))
+
+	public := apiV1.Group("")
+	if publicLimiter != nil {
+		public.Use(publicLimiter)
+	}
+	{
+		// Special handling for Login to use Critical Limiter
+		authGroup := public.Group("/auth")
+		if criticalLimiter != nil {
+			authGroup.POST("/login", criticalLimiter, authModule.AuthController.Login)
+		} else {
+			authGroup.POST("/login", authModule.AuthController.Login)
+		}
+
+		// Other Auth Routes (Standard Public Limit)
+		authGroup.POST("/refresh", authModule.AuthController.RefreshToken)
+		authGroup.POST("/forgot-password", authModule.AuthController.ForgotPassword)
+		authGroup.POST("/reset-password", authModule.AuthController.ResetPassword)
+		authGroup.POST("/verify-email", authModule.AuthController.VerifyEmail)
+		authGroup.POST("/register", authModule.AuthController.Register)
+		authGroup.GET("/sso/:provider", authModule.AuthController.SSOLogin)
+		authGroup.GET("/sso/:provider/callback", authModule.AuthController.SSOCallback)
+
+		userHttp.RegisterPublicRoutes(public, userModule.UserController)
+		organizationHttp.RegisterPublicRoutes(public, organizationModule.OrganizationController)
+	}
+
+	authenticated := apiV1.Group("")
+	authenticated.Use(apiKeyMiddleware.Authenticate())
+	authenticated.Use(authMiddleware.ValidateToken())
+	authenticated.Use(apiKeyMiddleware.RequireScopeAuto())
+	authenticated.Use(apiKeyMiddleware.RequireUserSession())
+	authenticated.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
+	if authLimiter != nil {
+		authenticated.Use(authLimiter)
+	}
+	{
+		// Manually register auth routes that need authentication
+		authGroup := authenticated.Group("/auth")
+		authGroup.POST("/logout", authModule.AuthController.Logout)
+		authGroup.POST("/ticket", authModule.AuthController.GetTicket)
+		authGroup.POST("/resend-verification", authModule.AuthController.ResendVerification)
+		authGroup.GET("/me", authModule.AuthController.Me)
+
+		// Stats Routes
+		statsGroup := authenticated.Group("/stats")
+		{
+			statsGroup.GET("/summary", statsModule.StatsController.GetSummary)
+			statsGroup.GET("/activity", statsModule.StatsController.GetActivity)
+			statsGroup.GET("/insights", statsModule.StatsController.GetInsights)
+		}
+
+		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
+		organizationHttp.RegisterAuthenticatedRoutes(authenticated, organizationModule.OrganizationController)
+		permissionHttp.RegisterBatchCheckRoute(authenticated, permissionModule.PermissionController)
+		api_keyHttp.RegisterApiKeyRoutes(authenticated, apiKeyModule.Controller, authMiddleware, tenantMiddleware)
+	}
+
+	tenantAuthorized := apiV1.Group("")
+	tenantAuthorized.Use(apiKeyMiddleware.Authenticate())
+	tenantAuthorized.Use(authMiddleware.ValidateToken())
+	tenantAuthorized.Use(apiKeyMiddleware.RequireScopeAuto())
+	tenantAuthorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
+	tenantAuthorized.Use(tenantMiddleware.RequireOrganization())
+	tenantAuthorized.Use(casbinMiddleware)
+	if authLimiter != nil {
+		tenantAuthorized.Use(authLimiter)
+	}
+	{
+		organizationHttp.RegisterTenantRoutes(tenantAuthorized, organizationModule.OrganizationController, apiKeyMiddleware)
+
+		// Project Routes
+		projectGroup := tenantAuthorized.Group("/projects")
+		{
+			projectGroup.POST("", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Create)
+			projectGroup.GET("", apiKeyMiddleware.RequireScopes("project:view", "project:manage"), projectModule.ProjectController.GetAll)
+			projectGroup.GET("/:id", apiKeyMiddleware.RequireScopes("project:view", "project:manage"), projectModule.ProjectController.GetByID)
+			projectGroup.PUT("/:id", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Update)
+			projectGroup.DELETE("/:id", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Delete)
+		}
+
+		webhookHttp.RegisterWebhookRoutes(tenantAuthorized, webhookModule.Controller, apiKeyMiddleware)
+	}
+
+	authorized := apiV1.Group("")
+	authorized.Use(apiKeyMiddleware.Authenticate())
+	authorized.Use(authMiddleware.ValidateToken())
+	authorized.Use(apiKeyMiddleware.RequireScopes("admin:manage"))
+	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
+	authorized.Use(tenantMiddleware.OptionalOrganization())
+	authorized.Use(casbinMiddleware)
+	if authLimiter != nil {
+		authorized.Use(authLimiter)
+	}
+	{
+		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
+		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)
+		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
+		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
+		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
+	}
+
+	// TUS Upload Handler
+	uploadGroup := router.Group("/api/v1/upload")
+	uploadGroup.Use(authMiddleware.ValidateToken())
+	{
+		uploadGroup.Any("/files/*any", gin.WrapH(http.StripPrefix("/api/v1/upload/files/", tusHandler)))
+	}
+
+	return router
+}
+
+// GetHealth returns the health status of the application and its core dependencies.
+func GetHealth(db *gorm.DB, redisClient *redis.Client) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		status := "OK"
 		details := make(map[string]string)
 
@@ -155,114 +290,5 @@ func SetupRouter(
 			"status":  status,
 			"details": details,
 		})
-	})
-
-	if cfg.MetricsEnabled {
-		metricsGroup := router.Group("/metrics")
-		if cfg.MetricsAuth {
-			metricsGroup.Use(gin.BasicAuth(gin.Accounts{
-				cfg.MetricsUser: cfg.MetricsPass,
-			}))
-		}
-		metricsGroup.GET("", gin.WrapH(promhttp.Handler()))
 	}
-
-	apiV1 := router.Group("/api/v1")
-
-	public := apiV1.Group("")
-	if publicLimiter != nil {
-		public.Use(publicLimiter)
-	}
-	{
-		// Special handling for Login to use Critical Limiter
-		authGroup := public.Group("/auth")
-		if criticalLimiter != nil {
-			authGroup.POST("/login", criticalLimiter, authModule.AuthController.Login)
-		} else {
-			authGroup.POST("/login", authModule.AuthController.Login)
-		}
-
-		// Other Auth Routes (Standard Public Limit)
-		authGroup.POST("/refresh", authModule.AuthController.RefreshToken)
-		authGroup.POST("/forgot-password", authModule.AuthController.ForgotPassword)
-		authGroup.POST("/reset-password", authModule.AuthController.ResetPassword)
-		authGroup.POST("/verify-email", authModule.AuthController.VerifyEmail)
-		authGroup.POST("/register", authModule.AuthController.Register)
-
-		userHttp.RegisterPublicRoutes(public, userModule.UserController)
-		organizationHttp.RegisterPublicRoutes(public, organizationModule.OrganizationController)
-	}
-
-	authenticated := apiV1.Group("")
-	authenticated.Use(authMiddleware.ValidateToken())
-	authenticated.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
-	if authLimiter != nil {
-		authenticated.Use(authLimiter)
-	}
-	{
-		// Manually register auth routes that need authentication
-		authGroup := authenticated.Group("/auth")
-		authGroup.POST("/logout", authModule.AuthController.Logout)
-		authGroup.POST("/ticket", authModule.AuthController.GetTicket)
-		authGroup.POST("/resend-verification", authModule.AuthController.ResendVerification)
-		authGroup.GET("/me", authModule.AuthController.Me)
-
-		// Stats Routes
-		statsGroup := authenticated.Group("/stats")
-		{
-			statsGroup.GET("/summary", statsModule.StatsController.GetSummary)
-			statsGroup.GET("/activity", statsModule.StatsController.GetActivity)
-			statsGroup.GET("/insights", statsModule.StatsController.GetInsights)
-		}
-
-		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
-		organizationHttp.RegisterAuthenticatedRoutes(authenticated, organizationModule.OrganizationController)
-		permissionHttp.RegisterBatchCheckRoute(authenticated, permissionModule.PermissionController)
-	}
-
-	tenant := apiV1.Group("")
-	tenant.Use(authMiddleware.ValidateToken())
-	tenant.Use(tenantMiddleware.RequireOrganization())
-	if authLimiter != nil {
-		tenant.Use(authLimiter)
-	}
-	{
-		organizationHttp.RegisterTenantRoutes(tenant, organizationModule.OrganizationController)
-
-		// Project Routes
-		projectGroup := tenant.Group("/projects")
-		{
-			projectGroup.POST("", projectModule.ProjectController.Create)
-			projectGroup.GET("", projectModule.ProjectController.GetAll)
-			projectGroup.GET("/:id", projectModule.ProjectController.GetByID)
-			projectGroup.PUT("/:id", projectModule.ProjectController.Update)
-			projectGroup.DELETE("/:id", projectModule.ProjectController.Delete)
-		}
-	}
-
-	authorized := apiV1.Group("")
-	authorized.Use(authMiddleware.ValidateToken())
-	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
-	authorized.Use(casbinMiddleware)
-	if authLimiter != nil {
-		authorized.Use(authLimiter)
-	}
-	{
-		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
-		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)
-		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
-		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
-		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
-	}
-
-	// TUS Upload Handler
-	uploadGroup := router.Group("/api/v1/upload")
-	uploadGroup.Use(authMiddleware.ValidateToken())
-	{
-		// StripPrefix is required for tusd to handle relative paths correctly
-		// TUS_BASE_PATH should match what is stripped.
-		uploadGroup.Any("/files/*any", gin.WrapH(http.StripPrefix("/api/v1/upload/files/", tusHandler)))
-	}
-
-	return router
 }

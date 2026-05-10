@@ -39,6 +39,7 @@ type IPermissionUseCase interface {
 	GetRoleAccessRights(ctx context.Context, role, domain string) ([]model.RoleAccessRightStatus, error)
 	AssignAccessRight(ctx context.Context, req model.AssignAccessRightRequest) error
 	RevokeAccessRight(ctx context.Context, req model.AssignAccessRightRequest) error
+	DeleteRole(ctx context.Context, roleName string) error
 }
 
 type PermissionUseCase struct {
@@ -346,4 +347,23 @@ func (uc *PermissionUseCase) UpdatePermission(ctx context.Context, oldPermission
 	}
 
 	return true, nil
+}
+
+func (uc *PermissionUseCase) DeleteRole(ctx context.Context, roleName string) error {
+	uc.log.WithContext(ctx).Infof("Cleaning up Casbin policies for role '%s'", roleName)
+	enf := uc.enforcer.WithContext(ctx)
+	_, err := enf.DeleteRole(roleName)
+	if err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to delete role from Casbin: %v", err)
+		return err
+	}
+
+	// Force reload to ensure all enforcer instances (especially the global one used by middleware)
+	// reflect the changes made in DB.
+	if err := uc.enforcer.LoadPolicy(); err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to reload Casbin policy after role deletion: %v", err)
+		// We don't return error here because the DB change was successful
+	}
+
+	return nil
 }

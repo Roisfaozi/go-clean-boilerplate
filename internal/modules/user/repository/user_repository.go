@@ -233,3 +233,24 @@ func (r *userRepositoryData) GetByOrganization(ctx context.Context, orgID string
 	}
 	return users, nil
 }
+
+func (r *userRepositoryData) FindBySSOIdentity(ctx context.Context, provider, providerID string) (*entity.UserSSOIdentity, error) {
+	var identity entity.UserSSOIdentity
+	err := r.getDB(ctx).Where("provider = ? AND provider_id = ?", provider, providerID).First(&identity).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, gorm.ErrRecordNotFound
+		}
+		r.log.WithContext(ctx).WithError(err).Error("failed to find sso identity")
+		return nil, err
+	}
+	return &identity, nil
+}
+
+func (r *userRepositoryData) CreateSSOIdentity(ctx context.Context, identity *entity.UserSSOIdentity) error {
+	if err := r.getDB(ctx).Create(identity).Error; err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("failed to create sso identity")
+		return err
+	}
+	return nil
+}

@@ -2,10 +2,12 @@ package response
 
 import (
 	accessModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
+	apiKeyModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
 	authModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	orgModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
 	roleModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	userModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
+	webhookModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/model"
 )
 
 // SwaggerSuccessResponseWrapper is a generic success response wrapper for Swagger documentation
@@ -96,4 +98,38 @@ type SwaggerOrganizationListResponseWrapper struct {
 type SwaggerAuditLogListResponseWrapper struct {
 	Data   []map[string]interface{} `json:"data"`
 	Paging *PageMetadata            `json:"paging,omitempty"`
+}
+
+// Webhook Swagger Types
+
+type SwaggerWebhookResponseWrapper struct {
+	Data   webhookModel.WebhookResponse `json:"data"`
+	Paging *PageMetadata                `json:"paging,omitempty"`
+}
+
+type SwaggerWebhookListResponseWrapper struct {
+	Data   []webhookModel.WebhookResponse `json:"data"`
+	Paging *PageMetadata                  `json:"paging,omitempty"`
+}
+
+type SwaggerWebhookLogListResponseWrapper struct {
+	Data   []map[string]interface{} `json:"data"`
+	Paging *PageMetadata            `json:"paging,omitempty"`
+}
+
+// API Key Swagger Types
+
+type SwaggerApiKeyResponseWrapper struct {
+	Data   apiKeyModel.ApiKeyResponse `json:"data"`
+	Paging *PageMetadata              `json:"paging,omitempty"`
+}
+
+type SwaggerApiKeyListResponseWrapper struct {
+	Data   []apiKeyModel.ApiKeyResponse `json:"data"`
+	Paging *PageMetadata                `json:"paging,omitempty"`
+}
+
+type SwaggerCreateApiKeyResponseWrapper struct {
+	Data   apiKeyModel.CreateApiKeyResponse `json:"data"`
+	Paging *PageMetadata                    `json:"paging,omitempty"`
 }

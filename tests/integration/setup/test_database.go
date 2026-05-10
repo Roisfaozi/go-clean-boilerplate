@@ -1,15 +1,19 @@
 package setup
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
+	apiKeyEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/entity"
 	auditEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	authEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	projectEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/entity"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	webhookEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/entity"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
@@ -30,6 +34,9 @@ func RunMigrations(t *testing.T, db *gorm.DB) {
 		&orgEntity.OrganizationMember{},
 		&orgEntity.InvitationToken{},
 		&projectEntity.Project{},
+		&apiKeyEntity.ApiKey{},
+		&webhookEntity.Webhook{},
+		&webhookEntity.WebhookLog{},
 	)
 	if t != nil {
 		require.NoError(t, err, "Failed to run migrations")
@@ -57,6 +64,7 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 		{ID: "role:superadmin", Name: "role:superadmin", OrganizationID: &globalOrg, Description: "Super Administrator role"},
 		{ID: "role:admin", Name: "role:admin", OrganizationID: &globalOrg, Description: "Administrator role"},
 		{ID: "role:user", Name: "role:user", OrganizationID: &globalOrg, Description: "Regular user role"},
+		{ID: "role:org-owner", Name: "role:org-owner", OrganizationID: &globalOrg, Description: "Organization owner role"},
 		{ID: "role:moderator", Name: "role:moderator", OrganizationID: &globalOrg, Description: "Moderator role"},
 	}
 
@@ -68,6 +76,37 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 		{"role:user", "global", "/api/v1/users/me", "GET"},
 		{"role:user", "global", "/api/v1/users/me", "PUT"},
 		{"role:user", "global", "/api/v1/auth/logout", "POST"},
+		{"role:user", "global", "/api/v1/organizations/:id", "GET"},
+		{"role:user", "global", "/api/v1/organizations/slug/:slug", "GET"},
+		{"role:user", "global", "/api/v1/organizations/:id/presence", "GET"},
+		{"role:user", "global", "/api/v1/projects", "GET"},
+		{"role:user", "global", "/api/v1/projects/:id", "GET"},
+		{"role:admin", "global", "/api/v1/organizations/:id", "GET"},
+		{"role:admin", "global", "/api/v1/organizations/slug/:slug", "GET"},
+		{"role:admin", "global", "/api/v1/organizations/:id", "PUT"},
+		{"role:admin", "global", "/api/v1/organizations/:id", "DELETE"},
+		{"role:admin", "global", "/api/v1/organizations/:id/members/invite", "POST"},
+		{"role:admin", "global", "/api/v1/organizations/:id/members", "GET"},
+		{"role:admin", "global", "/api/v1/organizations/:id/members/:userId", "PATCH"},
+		{"role:admin", "global", "/api/v1/organizations/:id/members/:userId", "DELETE"},
+		{"role:admin", "global", "/api/v1/organizations/:id/presence", "GET"},
+		{"role:admin", "global", "/api/v1/projects", "GET"},
+		{"role:admin", "global", "/api/v1/projects/:id", "GET"},
+		{"role:admin", "global", "/api/v1/projects", "POST"},
+		{"role:admin", "global", "/api/v1/projects/:id", "PUT"},
+		{"role:admin", "global", "/api/v1/projects/:id", "DELETE"},
+		// Superadmin permissions for E2E
+		{"role:superadmin", "global", "*", "*"},
+		{"role:superadmin", "global", "/api/v1/webhooks", "POST"},
+		{"role:superadmin", "global", "/api/v1/webhooks", "GET"},
+		{"role:superadmin", "global", "/api/v1/webhooks/:id", "GET"},
+		{"role:superadmin", "global", "/api/v1/webhooks/:id", "PUT"},
+		{"role:superadmin", "global", "/api/v1/webhooks/:id", "DELETE"},
+		{"role:superadmin", "global", "/api/v1/webhooks/:id/logs", "GET"},
+		// API Keys permissions
+		{"role:superadmin", "global", "/api/v1/api-keys", "POST"},
+		{"role:superadmin", "global", "/api/v1/api-keys", "GET"},
+		{"role:superadmin", "global", "/api/v1/api-keys/:id", "DELETE"},
 	}
 
 	for _, p := range policies {
@@ -90,6 +129,9 @@ func CleanupDatabase(t *testing.T, db *gorm.DB) {
 		"password_reset_tokens",
 		"email_verification_tokens",
 		"invitation_tokens",
+		"api_keys",
+		"webhooks",
+		"webhook_logs",
 	}
 
 	db.Exec("SET FOREIGN_KEY_CHECKS = 0")
@@ -145,4 +187,9 @@ func CreateTestRole(t *testing.T, db *gorm.DB, name string) *roleEntity.Role {
 	}
 
 	return role
+}
+
+func HashSHA256(data string) string {
+	hash := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(hash[:])
 }

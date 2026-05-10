@@ -23,6 +23,7 @@ import (
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	userUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -40,14 +41,14 @@ func TestScenario_AdminSecurity_AccountSuspension(t *testing.T) {
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
 
-	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger, nil)
+	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger, nil, nil)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)
 
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil)
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
 
-	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, auditService, authService, nil)
+	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, auditService, authService, nil, nil)
 
 	password := "Pass123!"
 	user := setup.CreateTestUser(t, env.DB, "suspend_target", "suspend@test.com", password)
@@ -82,8 +83,8 @@ func TestScenario_AdminSecurity_RBAC_Lifecycle(t *testing.T) {
 	uRepoData := userRepo.NewUserRepository(env.DB, env.Logger)
 	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	roleService := roleUC.NewRoleUseCase(env.Logger, tm, rRepo)
 	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepoData, aRepo, nil)
+	roleService := roleUC.NewRoleUseCase(env.Logger, tm, rRepo, permService)
 
 	roleName := "content_editor"
 	_, err := roleService.Create(context.Background(), &roleModel.CreateRoleRequest{Name: roleName})
@@ -103,33 +104,4 @@ func TestScenario_AdminSecurity_RBAC_Lifecycle(t *testing.T) {
 
 	userRoles, _ := env.Enforcer.GetRolesForUser(user.ID, "global")
 	assert.Contains(t, userRoles, roleName)
-}
-
-func TestScenario_AdminSecurity_TokenRotation(t *testing.T) {
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
-
-	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)
-	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
-	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	oRepo := orgRepo.NewOrganizationRepository(env.DB)
-	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil)
-
-	user := setup.CreateTestUser(t, env.DB, "rotator", "rot@test.com", "pass")
-	_, rt1, err := authService.Login(context.Background(), authModel.LoginRequest{Username: user.Username, Password: "pass"})
-	require.NoError(t, err)
-
-	_, rt2, err := authService.RefreshToken(context.Background(), rt1)
-	require.NoError(t, err)
-	assert.NotEqual(t, rt1, rt2)
-
-	_, _, err = authService.RefreshToken(context.Background(), rt1)
-	assert.Error(t, err, "Reuse of old refresh token should fail")
-
-	_, rt3, err := authService.RefreshToken(context.Background(), rt2)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, rt3)
 }

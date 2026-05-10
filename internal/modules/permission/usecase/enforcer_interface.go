@@ -14,6 +14,8 @@ type IEnforcer interface {
 	UpdatePolicy(oldRule []string, newRule []string) (bool, error)
 	GetRolesForUser(name string, domain ...string) ([]string, error)
 	RemoveFilteredGroupingPolicy(fieldIndex int, fieldValues ...string) (bool, error)
+	RemoveFilteredPolicy(fieldIndex int, fieldValues ...string) (bool, error)
+	DeleteRole(role string) (bool, error)
 	Enforce(params ...interface{}) (bool, error)
 	GetUsersForRole(name string, domain ...string) ([]string, error)
 	SavePolicy() error

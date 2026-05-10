@@ -18,7 +18,7 @@ import (
 
 func setupAuditIntegration(env *setup.TestEnvironment) auditUseCase.AuditUseCase {
 	repo := auditRepo.NewAuditRepository(env.DB, env.Logger)
-	return auditUseCase.NewAuditUseCase(repo, env.Logger, nil)
+	return auditUseCase.NewAuditUseCase(repo, env.Logger, nil, nil)
 }
 
 func TestAuditIntegration_LogActivity_And_Query(t *testing.T) {

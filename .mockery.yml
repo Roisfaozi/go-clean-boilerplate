@@ -1,16 +1,16 @@
 all: true
-dir: '{{.InterfaceDir}}'
+dir: "{{.InterfaceDir}}"
 force-file-write: true
 formatter: goimports
 generate: true
 include-auto-generated: false
 log-level: info
-structname: 'Mock{{.InterfaceName}}'
+structname: "Mock{{.InterfaceName}}"
 pkgname: mocks
 recursive: false
 require-template-schema-exists: true
 template: testify
-template-schema: '{{.Template}}.schema.json'
+template-schema: "{{.Template}}.schema.json"
 packages:
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository:
     config:
@@ -64,6 +64,22 @@ packages:
     config:
       dir: internal/modules/audit/test/mocks
       filename: mock_audit_usecase.go
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/repository:
+    config:
+      dir: internal/modules/api_key/test/mocks
+      filename: mock_api_key_repository.go
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/usecase:
+    config:
+      dir: internal/modules/api_key/test/mocks
+      filename: mock_api_key_usecase.go
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/repository:
+    config:
+      dir: internal/modules/webhook/test/mocks
+      filename: mock_webhook_repository.go
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/usecase:
+    config:
+      dir: internal/modules/webhook/test/mocks
+      filename: mock_webhook_usecase.go
   github.com/Roisfaozi/go-clean-boilerplate/pkg/storage:
     config:
       dir: pkg/storage/mocks
@@ -78,7 +94,6 @@ packages:
       dir: internal/mocking
       filename: mock_transaction_manager.go
       pkgname: mocking
-
   github.com/Roisfaozi/go-clean-boilerplate/pkg/ws:
     config:
       dir: internal/mocking

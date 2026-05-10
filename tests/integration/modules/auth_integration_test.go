@@ -21,6 +21,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
@@ -40,7 +41,7 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
-	_ = auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil)
+	_ = auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil, nil)
 
 	wsConfig := &ws.WebSocketConfig{}
 	presenceManager := ws.NewPresenceManager(env.Redis, env.Logger, 5*time.Minute)
@@ -78,6 +79,7 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 		authz,
 		taskDistributor,
 		ticketManager,
+		make(map[string]sso.Provider),
 	)
 }
 

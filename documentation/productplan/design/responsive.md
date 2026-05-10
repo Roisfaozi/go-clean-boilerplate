@@ -114,8 +114,8 @@
 .layout-container {
   display: grid;
   grid-template-areas:
-    'navbar navbar'
-    'sidebar main';
+    "navbar navbar"
+    "sidebar main";
   grid-template-columns: var(--sidebar-width) 1fr;
   grid-template-rows: var(--navbar-height) 1fr;
   height: 100vh;
@@ -125,8 +125,8 @@
 @media (max-width: 1023px) {
   .layout-container {
     grid-template-areas:
-      'navbar'
-      'main';
+      "navbar"
+      "main";
     grid-template-columns: 1fr;
     grid-template-rows: var(--navbar-height) 1fr;
   }
@@ -156,9 +156,9 @@
 @media (max-width: 767px) {
   .layout-container {
     grid-template-areas:
-      'navbar'
-      'main'
-      'bottomnav';
+      "navbar"
+      "main"
+      "bottomnav";
     grid-template-rows: 56px 1fr 64px;
   }
 
@@ -444,9 +444,9 @@ Define which columns show at each breakpoint:
 
 ```javascript
 // Detect slow connections
-const connection = navigator.connection || navigator.mozConnection
+const connection = navigator.connection || navigator.mozConnection;
 
-if (connection.effectiveType === '2g' || connection.saveData) {
+if (connection.effectiveType === "2g" || connection.saveData) {
   // Load minimal data
   // Disable animations
   // Use lower quality images

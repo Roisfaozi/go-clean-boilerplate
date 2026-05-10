@@ -15,6 +15,7 @@ type IEnforcer = usecase.IEnforcer
 
 type PermissionModule struct {
 	PermissionController *http.PermissionController
+	PermissionUseCase    usecase.IPermissionUseCase
 }
 
 func NewPermissionModule(
@@ -33,6 +34,7 @@ func NewPermissionModule(
 
 	return &PermissionModule{
 		PermissionController: permissionController,
+		PermissionUseCase:    permissionUseCase,
 	}
 }
 

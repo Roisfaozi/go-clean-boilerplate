@@ -37,11 +37,31 @@ type AppConfig struct {
 		ServiceName  string `env:"OTEL_SERVICE_NAME" envDefault:"go-clean-api"`
 		CollectorURL string `env:"OTEL_COLLECTOR_URL" envDefault:"localhost:4317"`
 	}
-	Tus TusConfig `mapstructure:"tus"`
+	Tus   TusConfig   `mapstructure:"tus"`
+	Pprof PprofConfig `mapstructure:"pprof"`
+	SSO   SSOConfig   `mapstructure:"sso"`
+}
+
+type SSOConfig struct {
+	Google    OAuthProviderConfig `mapstructure:"google"`
+	Microsoft OAuthProviderConfig `mapstructure:"microsoft"`
+	GitHub    OAuthProviderConfig `mapstructure:"github"`
+}
+
+type OAuthProviderConfig struct {
+	ClientID     string   `mapstructure:"client_id"`
+	ClientSecret string   `mapstructure:"client_secret"`
+	RedirectURL  string   `mapstructure:"redirect_url"`
+	Scopes       []string `mapstructure:"scopes"`
 }
 
 type TusConfig struct {
 	BasePath string `mapstructure:"base_path"`
+}
+
+type PprofConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+	Port    int  `mapstructure:"port"`
 }
 
 type StorageConfig struct {
@@ -207,6 +227,8 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("storage.local.base_url", "http://localhost:8080/uploads")
 	v.SetDefault("storage.s3.use_ssl", true)
 	v.SetDefault("tus.base_path", "/api/v1/upload/files/")
+	v.SetDefault("pprof.enabled", false)
+	v.SetDefault("pprof.port", 6060)
 
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
@@ -231,8 +253,23 @@ func NewConfig() (*AppConfig, error) {
 
 	cfg.Tus.BasePath = v.GetString("tus.base_path")
 
+	cfg.Pprof.Enabled = v.GetBool("pprof.enabled")
+	cfg.Pprof.Port = v.GetInt("pprof.port")
+
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")
+
+	cfg.SSO.Google.ClientID = v.GetString("sso.google.client_id")
+	cfg.SSO.Google.ClientSecret = v.GetString("sso.google.client_secret")
+	cfg.SSO.Google.RedirectURL = v.GetString("sso.google.redirect_url")
+
+	cfg.SSO.Microsoft.ClientID = v.GetString("sso.microsoft.client_id")
+	cfg.SSO.Microsoft.ClientSecret = v.GetString("sso.microsoft.client_secret")
+	cfg.SSO.Microsoft.RedirectURL = v.GetString("sso.microsoft.redirect_url")
+
+	cfg.SSO.GitHub.ClientID = v.GetString("sso.github.client_id")
+	cfg.SSO.GitHub.ClientSecret = v.GetString("sso.github.client_secret")
+	cfg.SSO.GitHub.RedirectURL = v.GetString("sso.github.redirect_url")
 
 	cfg.Security.MaxLoginAttempts = v.GetInt("security.max_login_attempts")
 	cfg.Security.LockoutDuration = v.GetDuration("security.lockout_duration")

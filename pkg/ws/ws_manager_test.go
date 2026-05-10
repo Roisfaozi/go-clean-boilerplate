@@ -103,14 +103,61 @@ func TestNewWebSocketManager(t *testing.T) {
 	defer server.Close()
 	defer manager.Stop()
 	assert.NotNil(t, manager)
+	assert.NotNil(t, manager.GetPresenceManager())
+	assert.NotNil(t, manager.Channels())
 }
 
 func TestWebSocketManager_Integration(t *testing.T) {
 	manager, server := setupTestServer()
 	defer server.Close()
-	defer manager.Stop()
 
 	conn, err := connectClient(server.URL)
+	require.NoError(t, err)
+	defer func() { _ = conn.Close() }() // Ignore close error
+
+	// Wait for registration
+	for i := 0; i < 10; i++ {
+		if manager.ClientCount() == 1 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	assert.Equal(t, 1, manager.ClientCount())
+
+	// Test Unregister and Timeouts by calling them on stopped manager
+	manager.Stop()
+	manager.Stop() // Should not panic
+
+	c := &ws.Client{}
+	manager.RegisterClient(c)
+	manager.UnregisterClient(c)
+	manager.BroadcastToChannel("test", []byte("msg"))
+	manager.SubscribeToChannel(c, "test")
+	manager.UnsubscribeFromChannel(c, "test")
+
+	// Trigger channel block timeouts
+	manager3 := ws.NewWebSocketManager(&ws.WebSocketConfig{}, logrus.New(), nil, nil)
+	// Do NOT run manager3.Run(), so channels will block when full
+	for i := 0; i < 256; i++ {
+		manager3.RegisterClient(c)
+		manager3.UnregisterClient(c)
+		manager3.BroadcastToChannel("test", []byte("msg"))
+		manager3.SubscribeToChannel(c, "test")
+		manager3.UnsubscribeFromChannel(c, "test")
+	}
+	// The 257th should hit the timeout
+	manager3.RegisterClient(c)
+	manager3.UnregisterClient(c)
+	manager3.BroadcastToChannel("test", []byte("msg"))
+	manager3.SubscribeToChannel(c, "test")
+	manager3.UnsubscribeFromChannel(c, "test")
+
+	// Start a new one for the rest of the test
+	manager, server = setupTestServer()
+	defer server.Close()
+	defer manager.Stop()
+
+	conn, err = connectClient(server.URL)
 	require.NoError(t, err)
 	defer func() { _ = conn.Close() }() // Ignore close error
 

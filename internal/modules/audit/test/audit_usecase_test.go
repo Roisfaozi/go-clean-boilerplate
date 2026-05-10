@@ -23,14 +23,16 @@ import (
 )
 
 type auditTestDeps struct {
-	Repo   *mocks.MockAuditRepository
-	MockWS *mocks.MockWebSocketManager
+	Repo        *mocks.MockAuditRepository
+	MockWS      *mocks.MockWebSocketManager
+	Distributor *mocks.MockTaskDistributor
 }
 
 func setupAuditTest() (*auditTestDeps, usecase.AuditUseCase) {
 	deps := &auditTestDeps{
-		Repo:   new(mocks.MockAuditRepository),
-		MockWS: new(mocks.MockWebSocketManager),
+		Repo:        new(mocks.MockAuditRepository),
+		MockWS:      new(mocks.MockWebSocketManager),
+		Distributor: new(mocks.MockTaskDistributor),
 	}
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
@@ -38,7 +40,7 @@ func setupAuditTest() (*auditTestDeps, usecase.AuditUseCase) {
 	// Default mock behavior
 	deps.MockWS.On("BroadcastToChannel", mock.Anything, mock.Anything).Return()
 
-	uc := usecase.NewAuditUseCase(deps.Repo, logger, deps.MockWS)
+	uc := usecase.NewAuditUseCase(deps.Repo, logger, deps.MockWS, deps.Distributor)
 	return deps, uc
 }
 
