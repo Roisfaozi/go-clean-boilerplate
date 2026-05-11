@@ -1,46 +1,40 @@
-import { useState, useMemo } from "react";
-import { z } from "zod";
 import { PageHeader } from "@/components/layout/page-header";
+import { CrudFormDialog, CrudTable, DeleteDialog, type CrudColumnDef } from "@/features/shared";
+import type { Permission, Role } from "@/lib/api/types";
 import {
-  NexusButton,
   NexusBadge,
+  NexusButton,
   NexusCard,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-  Switch,
   Skeleton,
+  Switch,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 } from "@casbin/ui";
+import { ArrowRight, Box, GitBranch, Key, Plus, RefreshCw, Shield, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { z } from "zod";
+import { useRoles } from "../roles/roleHooks";
 import {
-  CrudTable,
-  CrudFormDialog,
-  DeleteDialog,
-  type CrudColumnDef,
-  type FieldDef,
-} from "@/features/shared";
-import { Shield, Box, RefreshCw, GitBranch, Key } from "lucide-react";
-import {
-  usePermissions,
+  useAddInheritance,
   useCreatePermission,
-  useUpdatePermission,
   useDeletePermission,
+  useInheritanceTree,
+  usePermissions,
+  useRemoveInheritance,
   useResourceAggregation,
   useRoleAccessRights,
   useToggleAccessRight,
-  useInheritanceTree,
-  useAddInheritance,
-  useRemoveInheritance,
+  useUpdatePermission,
 } from "./permissionHooks";
-import { useRoles } from "../roles/roleHooks";
-import { RoleInheritanceTree } from "./role-inheritance-tree";
-import type { Permission, Role, Resource } from "@/lib/api/types";
+import { RoleInheritanceTree, type RoleNode } from "./role-inheritance-tree";
 
 // --- Matrix Components ---
 
@@ -133,6 +127,162 @@ function PermissionMatrix({ roles, resources }: { roles: Role[]; resources: any[
   );
 }
 
+function RoleInheritanceDetail({
+  role,
+  allRoles,
+  onInheritanceChange,
+}: {
+  role: RoleNode;
+  allRoles: Role[];
+  onInheritanceChange: () => void;
+}) {
+  const addInheritance = useAddInheritance();
+  const removeInheritance = useRemoveInheritance();
+
+  const handleAddParent = async (parentRole: string) => {
+    await addInheritance.mutateAsync({ child_role: role.name, parent_role: parentRole });
+    onInheritanceChange();
+  };
+
+  const handleRemoveParent = async (parentRole: string) => {
+    await removeInheritance.mutateAsync({ child_role: role.name, parent_role: parentRole });
+    onInheritanceChange();
+  };
+
+  // Filter out self and current parents from available roles to add
+  const availableRoles = allRoles.filter(
+    (r) => r.name !== role.name && !(role.parents || []).includes(r.name),
+  );
+
+  return (
+    <div className="space-y-6">
+      <NexusCard className="shadow-premium overflow-hidden border-none">
+        <div className="bg-primary/5 border-primary/10 border-b p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 rounded-lg p-2">
+                <Shield className="text-primary h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-foreground text-lg font-bold">{role.name}</h3>
+                <p className="text-muted-foreground text-sm">Role Management & Inheritance</p>
+              </div>
+            </div>
+            <NexusBadge variant="neutral" className="px-3 py-1">
+              ID: {role.id.substring(0, 8)}
+            </NexusBadge>
+          </div>
+          {role.description && (
+            <p className="text-muted-foreground rounded-md border border-white/20 bg-white/50 p-3 text-sm">
+              {role.description}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-8 p-6">
+          {/* Parents Management */}
+          <section>
+            <h4 className="text-foreground mb-4 flex items-center gap-2 font-semibold">
+              <GitBranch className="text-primary h-4 w-4" />
+              Inherits From (Parents)
+            </h4>
+            <div className="mb-4 flex flex-wrap gap-2">
+              {(role.parents || []).length === 0 ? (
+                <p className="text-muted-foreground text-xs italic">No parent roles assigned.</p>
+              ) : (
+                role.parents?.map((parent) => (
+                  <NexusBadge
+                    key={parent}
+                    variant="info"
+                    className="flex items-center gap-1 px-2 py-1 pl-3"
+                  >
+                    {parent}
+                    <NexusButton
+                      variant="ghost"
+                      size="icon"
+                      className="ml-1 h-4 w-4 rounded-full p-0 hover:bg-white/20"
+                      onClick={() => handleRemoveParent(parent)}
+                      disabled={removeInheritance.isPending}
+                    >
+                      <Trash2 className="h-2.5 w-2.5" />
+                    </NexusButton>
+                  </NexusBadge>
+                ))
+              )}
+            </div>
+
+            {availableRoles.length > 0 && (
+              <div className="flex items-center gap-2 border-t border-dashed pt-2">
+                <span className="text-muted-foreground text-xs font-medium">Add Parent:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableRoles.slice(0, 5).map((r) => (
+                    <NexusButton
+                      key={r.id}
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 text-[10px]"
+                      onClick={() => handleAddParent(r.name)}
+                      disabled={addInheritance.isPending}
+                    >
+                      <Plus className="mr-1 h-3 w-3" /> {r.name}
+                    </NexusButton>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Permissions Breakdown */}
+          <section>
+            <h4 className="text-foreground mb-4 flex items-center gap-2 font-semibold">
+              <Key className="text-primary h-4 w-4" />
+              Effective Permissions
+            </h4>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {(role.effective_permissions || []).map((perm, idx) => {
+                const isOwn = (role.own_permissions || []).some(
+                  (p) => p[0] === perm[0] && p[1] === perm[1],
+                );
+                return (
+                  <div
+                    key={idx}
+                    className="bg-muted/5 group hover:border-primary/30 flex items-center justify-between rounded-lg border p-3 transition-colors"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-foreground text-sm font-medium">{perm[0]}</span>
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <span className="text-muted-foreground font-mono text-[10px]">
+                          {perm[1]}
+                        </span>
+                        <ArrowRight className="text-muted-foreground/30 h-2 w-2" />
+                        <span className="text-primary text-[10px] font-bold tracking-wider uppercase">
+                          {perm[2]}
+                        </span>
+                      </div>
+                    </div>
+                    <NexusBadge
+                      variant={isOwn ? "success" : "info"}
+                      className="px-1.5 py-0 text-[9px]"
+                    >
+                      {isOwn ? "Direct" : "Inherited"}
+                    </NexusBadge>
+                  </div>
+                );
+              })}
+              {(role.effective_permissions || []).length === 0 && (
+                <div className="bg-muted/5 col-span-2 rounded-xl border border-dashed py-8 text-center">
+                  <Shield className="text-muted/20 mx-auto mb-2 h-8 w-8" />
+                  <p className="text-muted-foreground text-xs italic">No permissions granted.</p>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      </NexusCard>
+    </div>
+  );
+}
+
 // --- Main Page ---
 
 const columns: CrudColumnDef<Permission>[] = [
@@ -163,6 +313,7 @@ const columns: CrudColumnDef<Permission>[] = [
 
 export default function PermissionsPage() {
   const [activeTab, setActiveTab] = useState("matrix");
+  const [selectedItem, setSelectedItem] = useState<RoleNode | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<Permission | null>(null);
   const [deleteItem, setDeleteItem] = useState<Permission | null>(null);
@@ -251,27 +402,40 @@ export default function PermissionsPage() {
         </TabsContent>
 
         <TabsContent value="inheritance" className="mt-0 outline-none focus-visible:ring-0">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="md:col-span-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+            <div className="lg:col-span-5">
               {isLoading ? (
-                <Skeleton className="h-[400px] w-full rounded-xl" />
+                <Skeleton className="h-[500px] w-full rounded-xl" />
               ) : (
-                <RoleInheritanceTree tree={inheritanceTree} />
+                <RoleInheritanceTree
+                  tree={inheritanceTree}
+                  onSelect={setSelectedItem}
+                  activeId={selectedItem?.id}
+                />
               )}
             </div>
-            <div className="space-y-4">
-              <NexusCard className="bg-primary/5 border-primary/10 p-6">
-                <h4 className="text-primary mb-2 flex items-center gap-2 font-bold">
-                  <Shield className="h-4 w-4" /> About Inheritance
-                </h4>
-                <p className="text-muted-foreground text-xs leading-relaxed">
-                  Roles can inherit permissions from other roles. For example, an <b>Editor</b> role
-                  might inherit from <b>Viewer</b>, gaining all its permissions automatically.
-                  <br />
-                  <br />
-                  Effective permissions shown in the tree include both direct and inherited rights.
-                </p>
-              </NexusCard>
+            <div className="lg:col-span-7">
+              {selectedItem ? (
+                <RoleInheritanceDetail
+                  role={selectedItem}
+                  allRoles={roles}
+                  onInheritanceChange={() => {
+                    // Refetch inheritance tree
+                    inheritanceResponse && refetchPermissions();
+                  }}
+                />
+              ) : (
+                <NexusCard className="bg-muted/10 flex h-full min-h-[400px] flex-col items-center justify-center border-dashed p-12 text-center">
+                  <div className="bg-primary/10 mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                    <GitBranch className="text-primary h-8 w-8" />
+                  </div>
+                  <h4 className="text-foreground font-semibold">Select a Role</h4>
+                  <p className="text-muted-foreground mt-2 max-w-xs text-sm">
+                    Select a role from the tree to view its inheritance details, effective
+                    permissions, and manage its parent roles.
+                  </p>
+                </NexusCard>
+              )}
             </div>
           </div>
         </TabsContent>
