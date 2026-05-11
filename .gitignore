@@ -189,3 +189,6 @@ web-lovable/node_modules/
 e2e-test
 web-lovable-backup/
 *.log
+e2e-test-report/
+playwright-report
+test-results
