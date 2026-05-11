@@ -204,3 +204,35 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
   setSseConnected: (v) => set({ sseConnected: v }),
   setWsConnected: (v) => set({ wsConnected: v }),
 }));
+
+/* ═══════ Metrics Store ═══════ */
+export interface SystemMetrics {
+  rps: number;
+  active_users: number;
+  total_users: number;
+  avg_latency: number;
+  error_rate: number;
+  uptime: number;
+  cpu_usage: number;
+  memory_usage: number;
+  active_threads: number;
+}
+
+interface MetricsState {
+  metrics: SystemMetrics | null;
+  history: { time: string; rps: number; latency: number }[];
+  updateMetrics: (m: SystemMetrics) => void;
+}
+
+export const useMetricsStore = create<MetricsState>((set) => ({
+  metrics: null,
+  history: [],
+  updateMetrics: (m) =>
+    set((s) => {
+      const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const newHistory = [...s.history, { time: now, rps: m.rps, latency: m.avg_latency }].slice(
+        -20,
+      );
+      return { metrics: m, history: newHistory };
+    }),
+}));

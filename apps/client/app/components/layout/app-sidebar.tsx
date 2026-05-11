@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { OrganizationSwitcher } from "@/features/organizations/organization-switcher";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@casbin/ui";
+import { PresenceAvatars } from "@/components/realtime/presence-avatars";
 
 interface NavItem {
   label: string;
@@ -342,6 +343,19 @@ export function AppSidebar() {
           />
         ))}
       </nav>
+
+      {/* Real-time Presence */}
+      {!sidebarCollapsed && (
+        <div className="border-sidebar-border bg-sidebar-accent/30 mx-2 mb-4 rounded-lg border p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
+              Who's Online
+            </span>
+            <div className="bg-success h-1.5 w-1.5 animate-pulse rounded-full" />
+          </div>
+          <PresenceAvatars max={4} size="sm" showCount />
+        </div>
+      )}
 
       {/* Collapse toggle */}
       <div className="border-sidebar-border shrink-0 border-t p-2">

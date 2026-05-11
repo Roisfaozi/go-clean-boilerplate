@@ -6,6 +6,7 @@ import {
   usePresenceStore,
   useActivityStore,
   useConnectionStore,
+  useMetricsStore,
 } from "@/stores/realtime-store";
 import { toast } from "@casbin/ui";
 
@@ -18,6 +19,7 @@ export function useRealtimeInit() {
   const addActivity = useActivityStore((s) => s.addActivity);
   const { addUser, removeUser, updateUser } = usePresenceStore();
   const { setSseConnected, setWsConnected } = useConnectionStore();
+  const updateMetrics = useMetricsStore((s) => s.updateMetrics);
 
   useEffect(() => {
     // ── SSE subscriptions ──
@@ -76,6 +78,10 @@ export function useRealtimeInit() {
       }
     });
 
+    const unsubMetrics = wsClient.subscribe("metrics_update", (msg) => {
+      updateMetrics(msg.data as any);
+    });
+
     wsClient.connect();
 
     return () => {
@@ -85,6 +91,7 @@ export function useRealtimeInit() {
       unsubPresenceJoin();
       unsubPresenceLeave();
       unsubPresenceUpdate();
+      unsubMetrics();
       eventClient.disconnect();
       wsClient.disconnect();
     };

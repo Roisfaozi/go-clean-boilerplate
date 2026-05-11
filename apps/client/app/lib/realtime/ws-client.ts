@@ -11,7 +11,8 @@ export type WSMessageType =
   | "chat"
   | "typing"
   | "ping"
-  | "pong";
+  | "pong"
+  | "metrics_update";
 
 export interface WSMessage {
   type: WSMessageType;

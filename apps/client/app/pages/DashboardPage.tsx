@@ -11,6 +11,7 @@ import {
   TrendIndicator,
 } from "@/components/data/analytics-cards";
 import { Sparkline } from "@/components/charts/charts";
+import { useMetricsStore } from "@/stores/realtime-store";
 import {
   Users,
   Shield,
@@ -124,8 +125,13 @@ type Range = "7d" | "14d" | "30d";
 
 export default function DashboardPage() {
   const [range, setRange] = useState<Range>("14d");
+  const { metrics, history } = useMetricsStore();
 
   const displayedActivity = range === "7d" ? activityData.slice(7) : activityData;
+
+  // Real-time RPS history for sparklines
+  const rpsHistory = history.map((h) => h.rps);
+  const latencyHistory = history.map((h) => h.latency);
 
   return (
     <div className="space-y-6">
@@ -152,19 +158,29 @@ export default function DashboardPage() {
       <DashboardGrid columns={4}>
         <MetricCard
           title="Total Users"
-          value={summaryData.total_users.toLocaleString()}
+          value={metrics?.total_users.toLocaleString() || summaryData.total_users.toLocaleString()}
           trend={summaryTrends.total_users}
           icon={Users}
           iconColor="bg-primary/10"
-          sparkline={<Sparkline data={[18, 22, 25, 23, 28, 30, 28]} color="hsl(239, 84%, 67%)" />}
+          sparkline={
+            <Sparkline
+              data={rpsHistory.length > 0 ? rpsHistory : [18, 22, 25, 23, 28, 30, 28]}
+              color="hsl(239, 84%, 67%)"
+            />
+          }
         />
         <MetricCard
-          title="Total Roles"
-          value={summaryData.total_roles.toString()}
-          trend={summaryTrends.total_roles}
-          icon={Shield}
-          iconColor="bg-info/10"
-          sparkline={<Sparkline data={[14, 14, 15, 16, 16, 17, 18]} color="hsl(217, 91%, 60%)" />}
+          title="Active Users"
+          value={metrics?.active_users.toString() || "0"}
+          trend={{ value: 5.2, label: "Live now" }}
+          icon={Activity}
+          iconColor="bg-success/10"
+          sparkline={
+            <Sparkline
+              data={rpsHistory.length > 0 ? rpsHistory : [14, 14, 15, 16, 16, 17, 18]}
+              color="hsl(168, 76%, 42%)"
+            />
+          }
         />
         <MetricCard
           title="Org Members"
@@ -241,31 +257,39 @@ export default function DashboardPage() {
         </ChartCard>
 
         {/* System Insights (sidebar) */}
-        <AnalyticsCard title="System Performance" description="Real-time health metrics">
+        <AnalyticsCard
+          title="System Performance"
+          description="Real-time health metrics"
+          actions={
+            <NexusBadge variant="success" className="animate-pulse">
+              LIVE
+            </NexusBadge>
+          }
+        >
           <div className="space-y-0">
             <InsightMetric
+              label="Real-time RPS"
+              value={`${metrics?.rps.toFixed(1) || "0.0"}`}
+              status={(metrics?.rps || 0) < 50 ? "good" : "warning"}
+              description="Requests per second"
+            />
+            <InsightMetric
               label="Avg Latency"
-              value={`${insightsData.avg_latency_ms}ms`}
-              status={insightsData.avg_latency_ms < 100 ? "good" : "warning"}
+              value={`${metrics?.avg_latency.toFixed(0) || insightsData.avg_latency_ms}ms`}
+              status={(metrics?.avg_latency || 0) < 100 ? "good" : "warning"}
               description="Response time p95"
             />
             <InsightMetric
               label="Error Rate"
-              value={`${insightsData.error_rate}%`}
-              status={insightsData.error_rate < 0.5 ? "good" : "critical"}
+              value={`${metrics?.error_rate || insightsData.error_rate}%`}
+              status={(metrics?.error_rate || 0) < 0.5 ? "good" : "critical"}
               description="Last 24 hours"
             />
             <InsightMetric
               label="Uptime"
-              value={`${insightsData.uptime_percent}%`}
-              status={insightsData.uptime_percent > 99.9 ? "good" : "warning"}
+              value={`${metrics?.uptime || insightsData.uptime_percent}%`}
+              status={(metrics?.uptime || 0) > 99.9 ? "good" : "warning"}
               description="30-day rolling"
-            />
-            <InsightMetric
-              label="Most Active Role"
-              value={insightsData.most_active_role}
-              status="neutral"
-              description="By login frequency"
             />
           </div>
 
