@@ -24,3 +24,12 @@ type CreateApiKeyResponse struct {
 	ApiKeyResponse
 	Key string `json:"api_key"` // Only returned once upon creation
 }
+
+type ApiKeyIdentity struct {
+	ApiKeyID       string     `json:"api_key_id"`
+	UserID         string     `json:"user_id"`
+	OrganizationID string     `json:"organization_id"`
+	Username       string     `json:"username"`
+	Scopes         []string   `json:"scopes"`
+	ExpiresAt      *time.Time `json:"expires_at"`
+}

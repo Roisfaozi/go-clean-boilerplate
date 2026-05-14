@@ -2186,12 +2186,7 @@
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions/role:editor/parents",
               "host": ["{{baseURL}}"],
-              "path": [
-                "{{apiVersion}}",
-                "permissions",
-                "role:editor",
-                "parents"
-              ]
+              "path": ["{{apiVersion}}", "permissions", "role:editor", "parents"]
             }
           },
           "response": []
