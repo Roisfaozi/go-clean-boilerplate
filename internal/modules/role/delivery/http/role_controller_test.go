@@ -287,7 +287,7 @@ func TestRoleHandler_Update_BindingError(t *testing.T) {
 	mockUseCase.AssertNotCalled(t, "Update", mock.Anything, mock.Anything, mock.Anything)
 }
 
-func TestRoleHandler_Update_ValidationError(t *testing.T) {
+func TestRoleHandler_Update_XSS_Sanitization(t *testing.T) {
 
 	mockUseCase := new(mocks.MockRoleUseCase)
 	router := setupRoleTestRouter(mockUseCase)
@@ -368,13 +368,14 @@ func TestRoleHandler_HandleError_Variants(t *testing.T) {
 	tests := []struct {
 		err          error
 		expectedCode int
+		expectedBodyContains string
 	}{
-		{exception.ErrBadRequest, http.StatusBadRequest},
-		{exception.ErrUnauthorized, http.StatusUnauthorized},
-		{exception.ErrForbidden, http.StatusForbidden},
-		{exception.ErrNotFound, http.StatusNotFound},
-		{exception.ErrConflict, http.StatusConflict},
-		{errors.New("unknown error"), http.StatusInternalServerError},
+		{exception.ErrBadRequest, http.StatusBadRequest,"failed to delete role"},
+		{exception.ErrUnauthorized, http.StatusUnauthorized,"failed to delete role"},
+		{exception.ErrForbidden, http.StatusForbidden,"failed to delete role"},
+		{exception.ErrNotFound, http.StatusNotFound,"failed to delete role"},
+		{exception.ErrConflict, http.StatusConflict,"failed to delete role"},
+		{errors.New("unknown error"), http.StatusInternalServerError, "something went wrong"},
 	}
 
 	for _, tt := range tests {
@@ -386,5 +387,6 @@ func TestRoleHandler_HandleError_Variants(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, tt.expectedCode, w.Code, "Expected code %d for error %v", tt.expectedCode, tt.err)
+		assert.Contains(t, w.Body.String(), tt.expectedBodyContains)  
 	}
 }
