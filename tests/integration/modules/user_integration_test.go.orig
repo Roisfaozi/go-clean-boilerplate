@@ -540,6 +540,9 @@ func TestUserRepository_Integration(t *testing.T) {
 	t.Run("SSOIdentity", func(t *testing.T) {
 		setup.CleanupDatabase(t, env.DB)
 
+		env.DB.AutoMigrate(&entity.UserSSOIdentity{})
+		defer env.DB.Exec("DROP TABLE user_sso_identities")
+
 		user := &entity.User{
 			ID:       "user-sso-1",
 			Username: "ssouser",
