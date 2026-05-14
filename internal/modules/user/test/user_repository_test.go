@@ -139,7 +139,7 @@ func TestUserRepository_CreateSSOIdentity(t *testing.T) {
 			ProviderID: "12345",
 		}
 
-		mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO "user_sso_identities"`)).
+mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO "user_sso_identities" ("id","user_id","provider","provider_id","created_at","updated_at") VALUES ($1,$2,$3,$4,$5,$6)`)).
 			WithArgs(identity.ID, identity.UserID, identity.Provider, identity.ProviderID, sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnError(gorm.ErrInvalidDB)
 
