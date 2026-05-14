@@ -1,16 +1,16 @@
 all: true
-dir: '{{.InterfaceDir}}'
+dir: "{{.InterfaceDir}}"
 force-file-write: true
 formatter: goimports
 generate: true
 include-auto-generated: false
 log-level: info
-structname: 'Mock{{.InterfaceName}}'
+structname: "Mock{{.InterfaceName}}"
 pkgname: mocks
 recursive: false
 require-template-schema-exists: true
 template: testify
-template-schema: '{{.Template}}.schema.json'
+template-schema: "{{.Template}}.schema.json"
 packages:
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository:
     config:

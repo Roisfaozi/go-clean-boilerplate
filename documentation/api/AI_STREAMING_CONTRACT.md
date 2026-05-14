@@ -36,12 +36,12 @@ The frontend sends the full conversation history and the current application con
 
 ### Field Definitions
 
-| Field | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `messages` | `Array` | Yes | List of previous messages. Role must be `user` or `assistant`. |
-| `context` | `Object` | No | Data to help the AI understand what the user is looking at. |
-| `context.current_page` | `String` | No | The current route/URL path. |
-| `context.data` | `Any` | No | Raw JSON data from the current view (e.g., table rows). |
+| Field                  | Type     | Required | Description                                                    |
+| :--------------------- | :------- | :------- | :------------------------------------------------------------- |
+| `messages`             | `Array`  | Yes      | List of previous messages. Role must be `user` or `assistant`. |
+| `context`              | `Object` | No       | Data to help the AI understand what the user is looking at.    |
+| `context.current_page` | `String` | No       | The current route/URL path.                                    |
+| `context.data`         | `Any`    | No       | Raw JSON data from the current view (e.g., table rows).        |
 
 ---
 
@@ -50,6 +50,7 @@ The frontend sends the full conversation history and the current application con
 The response must be streamed using the `text/event-stream` MIME type. Each data chunk must be prefixed with `data: `.
 
 ### Data Chunk Format (JSON)
+
 ```json
 data: {"text": "Based"}
 data: {"text": " on"}
@@ -58,7 +59,9 @@ data: {"text": " logs,"}
 ```
 
 ### Finish Event (Optional)
+
 Used to signify the end of transmission and send metadata like token usage.
+
 ```text
 event: finish
 data: {"message_id": "msg_999", "usage": {"prompt_tokens": 50, "completion_tokens": 100}}
@@ -106,7 +109,7 @@ func HandleAIChat(c *gin.Context) {
 data: {}
 
 ")
-        return false 
+        return false
     })
 }
 ```
@@ -121,5 +124,6 @@ data: {}
 4. **Token Limits**: Truncate conversation history if it exceeds the LLM's context window.
 
 ---
-*Created: February 12, 2026*  
-*Project: NexusOS Enterprise*
+
+_Created: February 12, 2026_  
+_Project: NexusOS Enterprise_
