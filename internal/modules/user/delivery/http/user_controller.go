@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
