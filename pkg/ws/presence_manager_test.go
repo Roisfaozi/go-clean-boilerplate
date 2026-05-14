@@ -21,7 +21,8 @@ func TestRedisPresenceManager(t *testing.T) {
 	defer mr.Close()
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: mr.Addr(),
+		Addr:            mr.Addr(),
+		DisableIdentity: true,
 	})
 	logger := logrus.New()
 

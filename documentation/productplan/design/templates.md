@@ -95,7 +95,7 @@ Berikan instruksi ini kepada developer untuk mengatur layout global:
 }
 
 /* Override saat mode Compact aktif */
-[data-density='compact'] {
+[data-density="compact"] {
   --sidebar-width: 72px;
   --navbar-height: 56px;
   --main-padding: 1rem;
