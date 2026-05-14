@@ -77,12 +77,12 @@ Clients should use standard Tus libraries like `tus-js-client` or `uppy`. The ke
 ### Example using `tus-js-client`:
 
 ```javascript
-import * as tus from 'tus-js-client'
+import * as tus from "tus-js-client";
 
-const file = document.getElementById('file-input').files[0]
+const file = document.getElementById("file-input").files[0];
 
 const upload = new tus.Upload(file, {
-  endpoint: 'http://localhost:8080/api/v1/upload/files/',
+  endpoint: "http://localhost:8080/api/v1/upload/files/",
   retryDelays: [0, 1000, 3000, 5000],
   headers: {
     Authorization: `Bearer ${jwtToken}`,
@@ -90,20 +90,20 @@ const upload = new tus.Upload(file, {
   metadata: {
     filename: file.name,
     filetype: file.type,
-    type: 'project_doc', // MANDATORY: Must match backend registration
-    project_id: '12345', // Custom metadata for your Hook
+    type: "project_doc", // MANDATORY: Must match backend registration
+    project_id: "12345", // Custom metadata for your Hook
   },
-  onError: (error) => console.log('Failed:', error),
+  onError: (error) => console.log("Failed:", error),
   onProgress: (bytesUploaded, bytesTotal) => {
-    const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2)
-    console.log(percentage + '%')
+    const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+    console.log(percentage + "%");
   },
   onSuccess: () => {
-    console.log('Download %s from %s', upload.file.name, upload.url)
+    console.log("Download %s from %s", upload.file.name, upload.url);
   },
-})
+});
 
-upload.start()
+upload.start();
 ```
 
 ---

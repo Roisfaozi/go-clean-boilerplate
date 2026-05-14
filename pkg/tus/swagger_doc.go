@@ -52,3 +52,16 @@ func (ctrl *TusController) TusPatch(c *gin.Context) {}
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Upload not found"
 // @Router       /upload/files/{id} [head]
 func (ctrl *TusController) TusHead(c *gin.Context) {}
+
+// TusDelete godoc
+// @Summary      Cancel Upload
+// @Description  Terminates an ongoing TUS upload and removes its partial data.
+// @Tags         storage
+// @Security     BearerAuth
+// @Param        id   path      string  true  "Upload ID"
+// @Param        Tus-Resumable header string true "TUS protocol version (e.g., 1.0.0)"
+// @Success      204  {string}  string "No Content"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Upload not found"
+// @Router       /upload/files/{id} [delete]
+func (ctrl *TusController) TusDelete(c *gin.Context) {}
