@@ -82,7 +82,9 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 		return fmt.Errorf("webhook request failed: %w", err)
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			h.log.WithError(closeErr).Warn("failed to close response body")
+		}
 	}()
 
 	body, _ := io.ReadAll(resp.Body)
