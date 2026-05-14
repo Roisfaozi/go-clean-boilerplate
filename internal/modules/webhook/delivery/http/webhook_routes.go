@@ -1,13 +1,14 @@
 package http
 
 import (
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterWebhookRoutes(r *gin.RouterGroup, controller *WebhookController, authMiddleware gin.HandlerFunc, casbinMiddleware gin.HandlerFunc) {
+func RegisterWebhookRoutes(r *gin.RouterGroup, controller *WebhookController, apiKeyMiddleware *middleware.APIKeyMiddleware) {
 	webhooks := r.Group("/webhooks")
-	webhooks.Use(authMiddleware, casbinMiddleware)
 	{
+		webhooks.Use(apiKeyMiddleware.RequireScopes("webhook:manage"))
 		webhooks.POST("", controller.Create)
 		webhooks.GET("", controller.FindByOrganization)
 		webhooks.GET("/:id", controller.FindByID)

@@ -5,12 +5,14 @@ This document defines the official testing standards for this project, covering 
 ---
 
 ## 🏗️ 1. Unit Testing (Isolated Logic)
+
 **Goal:** Verify business logic in isolation with zero external dependencies.
 
-*   **Libraries**: `testify`, `mockery`.
-*   **Pattern**: **Dependency Struct Pattern** for UseCases.
+- **Libraries**: `testify`, `mockery`.
+- **Pattern**: **Dependency Struct Pattern** for UseCases.
 
 ### Standard Setup
+
 ```go
 type userTestDeps struct {
     Repo     *mocks.MockUserRepository
@@ -30,12 +32,14 @@ func setupUserTest() (*userTestDeps, usecase.UserUseCase) {
 ---
 
 ## 🔗 2. Integration Testing (Real Infrastructure)
+
 **Goal:** Verify interaction with real MySQL and Redis instances using **Singleton Containers**.
 
-*   **Optimization**: We use the **Singleton Container Pattern** to start Docker only once per test suite.
-*   **Cleanup**: Use `TRUNCATE` between tests instead of restarting containers.
+- **Optimization**: We use the **Singleton Container Pattern** to start Docker only once per test suite.
+- **Cleanup**: Use `TRUNCATE` between tests instead of restarting containers.
 
 ### Execution
+
 ```bash
 make test-integration
 ```
@@ -43,13 +47,15 @@ make test-integration
 ---
 
 ## 🌍 3. End-to-End (E2E) Testing (Full Flow)
+
 **Goal:** Verify the complete HTTP request-response cycle from the client's perspective.
 
-*   **Setup**: Uses `httptest.Server` connected to the singleton integration containers.
-*   **Client**: Uses a custom `TestClient` wrapper for easy JSON assertions.
-*   **Worker Management**: The `TestServer` explicitly manages `Scheduler` and `TaskProcessor` lifetimes. This ensures that asynchronous side-effects (like Audit Log syncing or Email delivery) actually execute during the test window.
+- **Setup**: Uses `httptest.Server` connected to the singleton integration containers.
+- **Client**: Uses a custom `TestClient` wrapper for easy JSON assertions.
+- **Worker Management**: The `TestServer` explicitly manages `Scheduler` and `TaskProcessor` lifetimes. This ensures that asynchronous side-effects (like Audit Log syncing or Email delivery) actually execute during the test window.
 
 ### Execution
+
 ```bash
 make test-e2e
 ```
@@ -57,7 +63,9 @@ make test-e2e
 ---
 
 ## 🛡️ 4. Security Testing
+
 Every module must include:
+
 - **SQL Injection Tests**: Ensuring inputs are parameterized.
 - **RBAC Tests**: Verifying Casbin policies correctly block unauthorized roles.
 - **Validation Tests**: Checking for invalid formats and required fields.
@@ -65,7 +73,9 @@ Every module must include:
 ---
 
 ## ⚡ 5. Generating Mocks
+
 When you modify an interface, you MUST regenerate mocks:
+
 ```bash
 make mocks
 ```
