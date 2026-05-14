@@ -1,0 +1,41 @@
+# Build outputs
+dist
+build
+.next
+.turbo
+out
+
+# Dependencies
+node_modules
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Public assets
+public
+
+# Environment files
+.env
+.env.*
+
+# Git
+.git
+.gitignore
+
+# Go specific
+vendor/
+bin/
+*.exe
+*.test
+
+# Database
+*.db
+*.sqlite
+
+# Lockfiles (usually handled by pnpm)
+pnpm-lock.yaml
+package-lock.json
+yarn.lock

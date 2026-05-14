@@ -42,7 +42,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 	akRepo := apiKeyRepo.NewApiKeyRepository(env.DB)
 
 	// UseCases
-	akUC := apiKeyUC.NewApiKeyUseCase(akRepo, logger)
+	akUC := apiKeyUC.NewApiKeyUseCase(akRepo, uRepo, env.Redis, logger)
 
 	// Middlewares
 	akMiddleware := middleware.NewAPIKeyMiddleware(akUC, uRepo, logger)
@@ -73,7 +73,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 	// 3. Generate an API Key via UseCase
 	createReq := &apiKeyModel.CreateApiKeyRequest{
 		Name:   "My App Key",
-		Scopes: []string{"all"},
+		Scopes: []string{"project:view"},
 	}
 	createRes, err := akUC.Create(ctx, user.ID, org.ID, createReq)
 	require.NoError(t, err)
@@ -91,6 +91,15 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 		}
 		c.JSON(http.StatusOK, gin.H{"user_id": uid})
 	})
+	r.GET("/scoped/projects", akMiddleware.RequireScopes("project:view"), func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+	r.POST("/scoped/projects", akMiddleware.RequireScopes("project:manage"), func(c *gin.Context) {
+		c.Status(http.StatusCreated)
+	})
+	r.GET("/session-only", akMiddleware.RequireUserSession(), func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
 
 	// 5. Test Successful Access
 	t.Run("Access with Valid API Key", func(t *testing.T) {
@@ -105,6 +114,33 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 		assert.Equal(t, user.ID, resp["user_id"])
+	})
+
+	t.Run("Read scoped API key passes scoped read route", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/scoped/projects", nil)
+		req.Header.Set("X-API-Key", apiKey)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("Read scoped API key is blocked from scoped write route", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", "/scoped/projects", nil)
+		req.Header.Set("X-API-Key", apiKey)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("API key is blocked from session-only route", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/session-only", nil)
+		req.Header.Set("X-API-Key", apiKey)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
 
 	// 6. Test Invalid Key

@@ -24,7 +24,9 @@ func TestWebhookE2E_UserRegistrationTrigger(t *testing.T) {
 	defer server.Server.Close()
 
 	// 2. Create Superadmin for Auth
-	admin := integrationSetup.CreateTestUser(t, server.DB, "superadmin_e2e", "superadmin_e2e@test.com", "Password123!")
+	server.DB.Exec("INSERT INTO organizations (id, name, slug, owner_id, status) VALUES (?, ?, ?, ?, ?)", "global", "Global", "global", "system", "active")
+	admin := integrationSetup.CreateTestUser(t, server.DB, "superadmin_e2e", "superadmin_e2e@test.com", "Password123!", "global")
+	server.DB.Exec("UPDATE organization_members SET role_id = ? WHERE organization_id = ? AND user_id = ?", "owner", "global", admin.ID)
 	// Assign superadmin role in global domain via Enforcer to ensure it's loaded
 	_, err := server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
 	require.NoError(t, err)
@@ -71,7 +73,9 @@ func TestWebhookE2E_UserRegistrationTrigger(t *testing.T) {
 	}
 
 	t.Log("Creating webhook via API...")
-	createResp := server.Client.POST("/api/v1/webhooks?organization_id=global", webhookReq)
+	createResp := server.Client.POST("/api/v1/webhooks", webhookReq, func(r *http.Request) {
+		r.Header.Set("X-Organization-ID", "global")
+	})
 	if createResp.StatusCode != http.StatusCreated {
 		t.Fatalf("Create webhook failed: %d %s", createResp.StatusCode, createResp.String())
 	}

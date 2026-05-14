@@ -876,6 +876,15 @@ definitions:
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerApiKeyListResponseWrapper:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.ApiKeyResponse'
+        type: array
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
+    type: object
   github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAuditLogListResponseWrapper:
     properties:
       data:
@@ -883,6 +892,13 @@ definitions:
           additionalProperties: true
           type: object
         type: array
+      paging:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
+    type: object
+  github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerCreateApiKeyResponseWrapper:
+    properties:
+      data:
+        $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.CreateApiKeyResponse'
       paging:
         $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata'
     type: object
@@ -1228,14 +1244,7 @@ paths:
         "200":
           description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.ApiKeyResponse'
-                  type: array
-              type: object
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerApiKeyListResponseWrapper'
         "401":
           description: Unauthorized
           schema:
@@ -1263,12 +1272,7 @@ paths:
         "201":
           description: Created
           schema:
-            allOf:
-            - $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper'
-            - properties:
-                data:
-                  $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.CreateApiKeyResponse'
-              type: object
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerCreateApiKeyResponseWrapper'
         "400":
           description: Bad Request
           schema:
@@ -1905,24 +1909,6 @@ paths:
       summary: SSE connection
       tags:
       - realtime
-  /health:
-    get:
-      description: Returns the health status of the application and its core dependencies
-        (MySQL, Redis).
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: System is healthy
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
-        "503":
-          description: System is degraded
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-      summary: System Health Check
-      tags:
-      - system
   /organizations:
     post:
       consumes:
@@ -2492,6 +2478,77 @@ paths:
       summary: Update permission
       tags:
       - permissions
+  /permissions/{role}:
+    get:
+      description: Retrieves all permissions assigned to a specific role.
+      parameters:
+      - description: Role name
+        in: path
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerPermissionListResponseWrapper'
+        "400":
+          description: Role is required
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get permissions for role
+      tags:
+      - permissions
+  /permissions/{role}/parents:
+    get:
+      description: Retrieves all parent roles for a given role. Defaults to 'global'
+        domain.
+      parameters:
+      - description: Role name
+        in: path
+        name: role
+        required: true
+        type: string
+      - description: Domain/Organization ID (defaults to 'global')
+        in: query
+        name: domain
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of parent roles
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
+        "400":
+          description: Role is required
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Get parent roles
+      tags:
+      - permissions
   /permissions/assign-access-right:
     post:
       consumes:
@@ -2773,44 +2830,6 @@ paths:
       summary: Get role inheritance tree
       tags:
       - permissions
-  /permissions/parents/{role}:
-    get:
-      description: Retrieves all parent roles for a given role. Defaults to 'global'
-        domain.
-      parameters:
-      - description: Role name
-        in: path
-        name: role
-        required: true
-        type: string
-      - description: Domain/Organization ID (defaults to 'global')
-        in: query
-        name: domain
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of parent roles
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper'
-        "400":
-          description: Role is required
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-      security:
-      - BearerAuth: []
-      summary: Get parent roles
-      tags:
-      - permissions
   /permissions/resources:
     get:
       description: Retrieves permissions aggregated by resource with CRUD mapping
@@ -2840,7 +2859,7 @@ paths:
       tags:
       - permissions
   /permissions/revoke:
-    post:
+    delete:
       consumes:
       - application/json
       description: Revokes a permission (path + method) from a role (Casbin). Defaults
@@ -2918,7 +2937,7 @@ paths:
       tags:
       - permissions
   /permissions/revoke-role:
-    post:
+    delete:
       consumes:
       - application/json
       description: Revokes a role from a specified user (Casbin). Defaults to 'global'
@@ -2956,39 +2975,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Revoke role from user
-      tags:
-      - permissions
-  /permissions/roles/{role}:
-    get:
-      description: Retrieves all permissions assigned to a specific role.
-      parameters:
-      - description: Role name
-        in: path
-        name: role
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerPermissionListResponseWrapper'
-        "400":
-          description: Role is required
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-      security:
-      - BearerAuth: []
-      summary: Get permissions for role
       tags:
       - permissions
   /permissions/roles/{role}/access-rights:
@@ -3599,15 +3585,14 @@ paths:
       - storage
   /upload/files/{id}:
     delete:
-      description: Terminates an ongoing resumable upload and removes its partial
-        data.
+      description: Terminates an ongoing TUS upload and removes its partial data.
       parameters:
       - description: Upload ID
         in: path
         name: id
         required: true
         type: string
-      - description: TUS protocol version (must be 1.0.0)
+      - description: TUS protocol version (e.g., 1.0.0)
         in: header
         name: Tus-Resumable
         required: true
@@ -3615,6 +3600,8 @@ paths:
       responses:
         "204":
           description: No Content
+          schema:
+            type: string
         "401":
           description: Unauthorized
           schema:
@@ -3625,9 +3612,9 @@ paths:
             $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
       security:
       - BearerAuth: []
-      summary: Cancel resumable upload
+      summary: Cancel Upload
       tags:
-      - upload
+      - storage
     head:
       description: Retrieves the current offset and status of a TUS upload.
       parameters:
@@ -4265,10 +4252,12 @@ paths:
   /ws:
     get:
       description: Establishes a WebSocket connection for real-time updates and presence.
+        Requires a one-time ticket obtained from `/auth/ticket`.
       parameters:
-      - description: One-time WebSocket ticket (if not using Bearer header)
+      - description: One-time WebSocket ticket from /auth/ticket
         in: query
         name: ticket
+        required: true
         type: string
       responses:
         "101":
@@ -4279,8 +4268,6 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
-      security:
-      - BearerAuth: []
       summary: WebSocket connection
       tags:
       - realtime

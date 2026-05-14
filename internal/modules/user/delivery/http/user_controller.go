@@ -47,7 +47,7 @@ func (h *UserController) RegisterUser(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body")
-		response.BadRequest(c, errors.New("bad request"), "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
