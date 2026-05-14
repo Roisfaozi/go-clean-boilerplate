@@ -182,6 +182,7 @@ func (h *UserController) UpdateAvatar(c *gin.Context) {
 	// 1. Get file from form
 	file, header, err := c.Request.FormFile("avatar")
 	if err != nil {
+		h.Log.WithError(err).Error("failed to get avatar file from request")
 		response.BadRequest(c, exception.ErrBadRequest, "failed to get avatar file from request")
 		return
 	}
