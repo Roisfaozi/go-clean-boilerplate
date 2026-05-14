@@ -60,8 +60,14 @@ func TestWebSocketManager_RedisIntegration(t *testing.T) {
 	prefix := "test_ws:"
 
 	// Use separate clients for each manager to avoid connection closing issues
-	rdb1 := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	rdb2 := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	rdb1 := redis.NewClient(&redis.Options{
+		Addr:            mr.Addr(),
+		DisableIdentity: true,
+	})
+	rdb2 := redis.NewClient(&redis.Options{
+		Addr:            mr.Addr(),
+		DisableIdentity: true,
+	})
 	defer func() { _ = rdb1.Close() }()
 	defer func() { _ = rdb2.Close() }()
 
@@ -146,7 +152,8 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 	defer mr.Close()
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr: mr.Addr(),
+		Addr:            mr.Addr(),
+		DisableIdentity: true,
 	})
 
 	prefix := "test_ws:"
@@ -170,7 +177,10 @@ func TestWebSocketManager_Redis_ExternalPublish(t *testing.T) {
 
 	// Wait for Redis subscription to be active
 	// Use a separate client to check and publish
-	pubRdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	pubRdb := redis.NewClient(&redis.Options{
+		Addr:            mr.Addr(),
+		DisableIdentity: true,
+	})
 	defer func() { _ = pubRdb.Close() }()
 
 	require.Eventually(t, func() bool {

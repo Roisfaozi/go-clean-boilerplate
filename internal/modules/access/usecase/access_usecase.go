@@ -8,6 +8,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/sirupsen/logrus"
@@ -30,9 +31,15 @@ func (uc *AccessUseCase) CreateAccessRight(ctx context.Context, req model.Create
 	req.Name = pkg.SanitizeString(req.Name)
 	req.Description = pkg.SanitizeString(req.Description)
 
+	orgID := database.GetOrganizationID(ctx)
 	accessRightEntity := &entity.AccessRight{
-		Name:        req.Name,
-		Description: req.Description,
+		Name:           req.Name,
+		Description:    req.Description,
+		OrganizationID: &orgID,
+	}
+
+	if orgID == "" {
+		accessRightEntity.OrganizationID = nil
 	}
 
 	if err := uc.repo.CreateAccessRight(ctx, accessRightEntity); err != nil {

@@ -9,12 +9,14 @@ The architecture distinguishes between a user's identity (who they are) and thei
 ### Entities
 
 1.  **User (Global)**:
+
     - Represents the human identity (Email, Password, Name).
     - Existing in the `users` table.
     - Can belong to multiple organizations.
     - **Authentication** validates the _User_.
 
 2.  **Organization (Tenant)**:
+
     - Represents the tenant/workspace.
     - Has a unique `slug` for URL-friendly identification (e.g., `/orgs/acme-corp`).
     - Owned by a specific User (Owner).
@@ -78,8 +80,8 @@ The `TenantMiddleware` runs on every request to a tenant-specific route (e.g., `
 
 To streamline development, the Frontend `ApiClient` (`web/src/lib/api/client.ts`) automatically handles organization context:
 
-*   **Client-Side**: Retrieves the active organization from `useOrganizationStore` and injects `X-Organization-ID` and `X-Organization-Slug` into every outgoing request.
-*   **Server-Side (Next.js)**: Reads organization context from cookies (`organization_id`, `organization_slug`) during Server Component rendering or Server Actions to ensure consistent headers are sent to the Backend.
+- **Client-Side**: Retrieves the active organization from `useOrganizationStore` and injects `X-Organization-ID` and `X-Organization-Slug` into every outgoing request.
+- **Server-Side (Next.js)**: Reads organization context from cookies (`organization_id`, `organization_slug`) during Server Component rendering or Server Actions to ensure consistent headers are sent to the Backend.
 
 ### 2.3. GORM Scopes (Row-Level Security)
 
@@ -100,23 +102,28 @@ func ScopeOrganization(orgID string) func(db *gorm.DB) *gorm.DB {
 
 We utilize Casbin's **Domain** feature to scope permissions to specific Organizations.
 
--   **Grouping Policy**: `g, {user_id}, {role_id}, {organization_id}`
--   **Policy**: `p, {role_id}, {organization_id}, {resource}, {action}`
+- **Grouping Policy**: `g, {user_id}, {role_id}, {organization_id}`
+- **Policy**: `p, {role_id}, {organization_id}, {resource}, {action}`
 
 **Enhancements:**
-*   **Batch Pengecekan**: `BatchCheckPermission` now supports an optional `domain` field per item. This allows checking permissions across different organizations in a single request.
-*   **Dynamic Domain Fallback**: If a domain is not provided in permission requests, the system defaults to `"global"` to maintain backward compatibility while allowing granular tenant-scoped overrides.
+
+- **Batch Pengecekan**: `BatchCheckPermission` now supports an optional `domain` field per item. This allows checking permissions across different organizations in a single request.
+- **Dynamic Domain Fallback**: If a domain is not provided in permission requests, the system defaults to `"global"` to maintain backward compatibility while allowing granular tenant-scoped overrides.
 
 ## 3. Implementation Standards
 
 ### 🛡️ Transactional Integrity
+
 When modifying permissions within a business transaction (e.g., creating an org and assigning the owner role), use the `TransactionalEnforcer`. It ensures that Casbin policy changes are committed or rolled back atomically with your database changes.
 
 ### 🔄 Tenant RBAC Synchronization
+
 Because Casbin might use an in-memory cache, after performing "out-of-transaction" policy updates (like accepting an invitation), the system should call `Enforcer.LoadPolicy()` to ensure the latest rules are visible to the authorization middleware.
 
 ### 📁 Dynamic Role Retrieval
+
 Member roles are retrieved dynamically from the database/cache rather than being hardcoded.
+
 - **Cache Key**: `org:role:{org_id}:{user_id}`
 - **TTL**: 5 Minutes (Invalidated on role update).
 

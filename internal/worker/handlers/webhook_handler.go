@@ -83,7 +83,7 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			h.log.WithError(err).Warn("failed to close response body")
+			h.log.WithError(err).Warn("Failed to close webhook response body")
 		}
 	}()
 

@@ -193,6 +193,13 @@ The project follows a standard Go project layout suitable for scalable microserv
 ├── docker-compose.yml  # Docker services definition (MySQL, Redis)
 ├── go.mod              # Go dependency definitions
 │
+├── apps/
+│   ├── web/            # Next.js Frontend (Legacy)
+│   └── client/         # React Router 7 Frontend (New)
+│
+├── packages/
+│   └── ui/             # Shared React UI components (@casbin/ui)
+│
 ├── cmd/
 │   └── api/            # Application entry point (main.go)
 │

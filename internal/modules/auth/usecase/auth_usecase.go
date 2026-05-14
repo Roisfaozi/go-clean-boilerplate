@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"time"
 
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
@@ -823,10 +822,12 @@ func (s *Service) HandleSSOCallback(ctx context.Context, providerName string, co
 
 				// Create Default Workspace
 				defaultOrgName := fmt.Sprintf("%s's Workspace", usr.Name)
+				// Append part of the User ID to ensure slug uniqueness across the system.
+				slug := pkg.Slugify(fmt.Sprintf("%s-%s", defaultOrgName, usr.ID[:8]))
 				defaultOrg := &orgEntity.Organization{
 					ID:      uuid.New().String(),
 					Name:    defaultOrgName,
-					Slug:    pkg.Slugify(defaultOrgName + "-" + strings.Split(usr.Email, "@")[0]),
+					Slug:    slug,
 					OwnerID: usr.ID,
 					Status:  "active",
 				}

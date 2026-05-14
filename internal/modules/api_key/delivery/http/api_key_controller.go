@@ -33,7 +33,7 @@ func NewApiKeyController(useCase usecase.ApiKeyUseCase, log *logrus.Logger, vali
 // @Accept       json
 // @Produce      json
 // @Param        request  body      model.CreateApiKeyRequest  true  "Create API Key Request"
-// @Success      201      {object}  response.SwaggerSuccessResponseWrapper{data=model.CreateApiKeyResponse}
+// @Success      201      {object}  response.SwaggerCreateApiKeyResponseWrapper
 // @Failure      400      {object}  response.SwaggerErrorResponseWrapper
 // @Failure      401      {object}  response.SwaggerErrorResponseWrapper
 // @Security     BearerAuth
@@ -71,7 +71,7 @@ func (h *ApiKeyController) Create(c *gin.Context) {
 // @Description  Returns all active API Keys associated with the current organization.
 // @Tags         api-keys
 // @Produce      json
-// @Success      200      {object}  response.SwaggerSuccessResponseWrapper{data=[]model.ApiKeyResponse}
+// @Success      200      {object}  response.SwaggerApiKeyListResponseWrapper
 // @Failure      401      {object}  response.SwaggerErrorResponseWrapper
 // @Security     BearerAuth
 // @Router       /api-keys [get]
