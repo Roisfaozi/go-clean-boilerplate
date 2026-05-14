@@ -526,7 +526,12 @@ func TestUserRepository_FindAll_WithOrganizationContext(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(2), total)
-	assert.Len(t, users, 2)
+	require.Len(t, users, 2)
+	var usernames []string
+	for _, u := range users {
+		usernames = append(usernames, u.Username)
+	}
+	assert.ElementsMatch(t, []string{"user1", "user2"}, usernames)
 }
 
 func TestUserRepository_FindAllDynamic_DBError(t *testing.T) {
