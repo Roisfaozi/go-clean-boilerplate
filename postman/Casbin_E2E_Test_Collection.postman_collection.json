@@ -68,7 +68,9 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n    \"username\": \"{{e2eUsername}}\",\n    \"email\": \"{{e2eEmail}}\",\n    \"password\": \"StrongPass123!\",\n    \"fullname\": \"E2E Test User\"\n}"
@@ -121,7 +123,9 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n    \"username\": \"{{e2eUsername}}\",\n    \"password\": \"StrongPass123!\"\n}"
@@ -168,7 +172,9 @@
               ],
               "request": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{userToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/users/me",
                   "host": ["{{baseURL}}"],
@@ -196,7 +202,9 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{userToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/auth/logout",
                   "host": ["{{baseURL}}"],
@@ -245,7 +253,9 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n    \"username\": \"nonexistent_user\",\n    \"password\": \"wrongpassword\"\n}"
@@ -290,7 +300,9 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n    \"username\": \"{{recoveryUsername}}\",\n    \"email\": \"{{recoveryEmail}}\",\n    \"password\": \"OldPass123!\",\n    \"fullname\": \"Recovery User\"\n}"
@@ -325,7 +337,9 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n    \"email\": \"{{recoveryEmail}}\"\n}"
@@ -364,7 +378,9 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n    \"username\": \"{{e2eUsername}}\",\n    \"password\": \"StrongPass123!\"\n}"
@@ -443,7 +459,9 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n    \"username\": \"{{adminUsername}}\",\n    \"password\": \"{{adminPassword}}\"\n}"
@@ -500,7 +518,9 @@
               ],
               "request": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/users",
                   "host": ["{{baseURL}}"],
@@ -578,7 +598,9 @@
               ],
               "request": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/users/{{e2eUserId}}",
                   "host": ["{{baseURL}}"],
@@ -615,7 +637,9 @@
               ],
               "request": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/users/nonexistent-id-12345",
                   "host": ["{{baseURL}}"],
@@ -661,7 +685,9 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n    \"username\": \"{{deleteUsername}}\",\n    \"email\": \"{{deleteEmail}}\",\n    \"password\": \"Pass123!\",\n    \"fullname\": \"Delete Me\"\n}"
@@ -690,7 +716,9 @@
               ],
               "request": {
                 "method": "DELETE",
-                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/users/{{deleteUserId}}",
                   "host": ["{{baseURL}}"],
@@ -715,7 +743,9 @@
               ],
               "request": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/users/{{deleteUserId}}",
                   "host": ["{{baseURL}}"],
@@ -761,7 +791,9 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n    \"username\": \"{{banUsername}}\",\n    \"email\": \"{{banEmail}}\",\n    \"password\": \"Pass123!\",\n    \"fullname\": \"Ban Target\"\n}"
@@ -795,7 +827,9 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n    \"username\": \"{{banUsername}}\",\n    \"password\": \"Pass123!\"\n}"
@@ -861,7 +895,9 @@
               ],
               "request": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{banUserToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{banUserToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/users/me",
                   "host": ["{{baseURL}}"],
@@ -1093,7 +1129,9 @@
               ],
               "request": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/roles",
                   "host": ["{{baseURL}}"],
@@ -1167,7 +1205,9 @@
               ],
               "request": {
                 "method": "DELETE",
-                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/roles/{{e2eRoleId}}",
                   "host": ["{{baseURL}}"],
@@ -1261,7 +1301,9 @@
               ],
               "request": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/access-rights",
                   "host": ["{{baseURL}}"],
@@ -1286,11 +1328,17 @@
               ],
               "request": {
                 "method": "DELETE",
-                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/access-rights/{{accessRightId}}",
                   "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "access-rights", "{{accessRightId}}"]
+                  "path": [
+                    "{{apiVersion}}",
+                    "access-rights",
+                    "{{accessRightId}}"
+                  ]
                 }
               }
             }
@@ -1353,7 +1401,9 @@
               ],
               "request": {
                 "method": "DELETE",
-                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/endpoints/{{endpointId}}",
                   "host": ["{{baseURL}}"],

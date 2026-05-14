@@ -90,8 +90,6 @@ func (c *TestClient) DELETE(path string, bodyOrOpts ...interface{}) *Response {
 		switch v := arg.(type) {
 		case RequestOption:
 			opts = append(opts, v)
-		case func(*http.Request):
-			opts = append(opts, RequestOption(v))
 		default:
 			body = v
 		}

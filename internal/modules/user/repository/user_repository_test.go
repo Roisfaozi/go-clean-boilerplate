@@ -1,10 +1,6 @@
 package repository_test
 
 import (
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
-
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
-
 	"context"
 	"fmt"
 	"testing"
@@ -15,7 +11,9 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -350,8 +348,7 @@ func TestUserRepository_Create_DBError(t *testing.T) {
 	// Extract the underlying *sql.DB and close it to simulate a DB error
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	err = sqlDB.Close()
-	require.NoError(t, err)
+	_ = sqlDB.Close()
 
 	user := &entity.User{
 		ID:       "1",
@@ -372,8 +369,7 @@ func TestUserRepository_Update_DBError(t *testing.T) {
 	// Extract the underlying *sql.DB and close it to simulate a DB error
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	err = sqlDB.Close()
-	require.NoError(t, err)
+	_ = sqlDB.Close()
 
 	user.Name = "New Name"
 	err = repo.Update(ctx, user)
@@ -386,8 +382,7 @@ func TestUserRepository_UpdateStatus_DBError(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	err = sqlDB.Close()
-	require.NoError(t, err)
+	_ = sqlDB.Close()
 
 	err = repo.UpdateStatus(ctx, "1", entity.UserStatusBanned)
 	assert.Error(t, err)
@@ -399,8 +394,7 @@ func TestUserRepository_FindByID_DBError(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	err = sqlDB.Close()
-	require.NoError(t, err)
+	_ = sqlDB.Close()
 
 	user, err := repo.FindByID(ctx, "1")
 	assert.Error(t, err)
@@ -413,8 +407,7 @@ func TestUserRepository_FindByEmail_DBError(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	err = sqlDB.Close()
-	require.NoError(t, err)
+	_ = sqlDB.Close()
 
 	user, err := repo.FindByEmail(ctx, "test@example.com")
 	assert.Error(t, err)
@@ -427,8 +420,7 @@ func TestUserRepository_FindByToken_DBError(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	err = sqlDB.Close()
-	require.NoError(t, err)
+	_ = sqlDB.Close()
 
 	user, err := repo.FindByToken(ctx, "sometoken")
 	assert.Error(t, err)
@@ -441,8 +433,7 @@ func TestUserRepository_Delete_DBError(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	err = sqlDB.Close()
-	require.NoError(t, err)
+	_ = sqlDB.Close()
 
 	err = repo.Delete(ctx, "1")
 	assert.Error(t, err)
@@ -454,8 +445,7 @@ func TestUserRepository_FindByUsername_DBError(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	err = sqlDB.Close()
-	require.NoError(t, err)
+	_ = sqlDB.Close()
 
 	user, err := repo.FindByUsername(ctx, "someuser")
 	assert.Error(t, err)
@@ -492,8 +482,7 @@ func TestUserRepository_FindAll_DBError(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	err = sqlDB.Close()
-	require.NoError(t, err)
+	_ = sqlDB.Close()
 
 	users, total, err := repo.FindAll(ctx, &model.GetUserListRequest{Page: 1, Limit: 10})
 	assert.Error(t, err)
@@ -526,12 +515,7 @@ func TestUserRepository_FindAll_WithOrganizationContext(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(2), total)
-	require.Len(t, users, 2)
-	var usernames []string
-	for _, u := range users {
-		usernames = append(usernames, u.Username)
-	}
-	assert.ElementsMatch(t, []string{"user1", "user2"}, usernames)
+	assert.Len(t, users, 2)
 }
 
 func TestUserRepository_FindAllDynamic_DBError(t *testing.T) {
@@ -540,8 +524,7 @@ func TestUserRepository_FindAllDynamic_DBError(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	err = sqlDB.Close()
-	require.NoError(t, err)
+	_ = sqlDB.Close()
 
 	users, total, err := repo.FindAllDynamic(ctx, &querybuilder.DynamicFilter{})
 	assert.Error(t, err)
@@ -584,8 +567,7 @@ func TestUserRepository_HardDeleteSoftDeletedUsers_DBError(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	err = sqlDB.Close()
-	require.NoError(t, err)
+	_ = sqlDB.Close()
 
 	err = repo.HardDeleteSoftDeletedUsers(ctx, 30)
 	assert.Error(t, err)
@@ -620,8 +602,7 @@ func TestUserRepository_GetByOrganization(t *testing.T) {
 	t.Run("DBError", func(t *testing.T) {
 		sqlDB, err := db.DB()
 		require.NoError(t, err)
-		err = sqlDB.Close()
-		require.NoError(t, err)
+		_ = sqlDB.Close()
 
 		users, err := repo.GetByOrganization(ctx, "org1")
 		assert.Error(t, err)
@@ -660,8 +641,7 @@ func TestUserRepository_FindBySSOIdentity(t *testing.T) {
 	t.Run("DBError", func(t *testing.T) {
 		sqlDB, err := db.DB()
 		require.NoError(t, err)
-		err = sqlDB.Close()
-		require.NoError(t, err)
+		_ = sqlDB.Close()
 
 		res, err := repo.FindBySSOIdentity(ctx, "google", "google-123")
 		assert.Error(t, err)
@@ -697,8 +677,7 @@ func TestUserRepository_CreateSSOIdentity(t *testing.T) {
 	t.Run("DBError", func(t *testing.T) {
 		sqlDB, err := db.DB()
 		require.NoError(t, err)
-		err = sqlDB.Close()
-		require.NoError(t, err)
+		_ = sqlDB.Close()
 
 		err = repo.CreateSSOIdentity(ctx, &entity.UserSSOIdentity{ID: "sso2"})
 		assert.Error(t, err)

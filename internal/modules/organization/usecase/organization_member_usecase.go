@@ -73,12 +73,13 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 	var result *model.MemberResponse
 
 	err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
-		org, _, actorIsOwner, err := uc.authorizeMemberManagement(txCtx, orgID)
+		// 1. Check if organization exists
+		org, err := uc.orgRepo.FindByID(txCtx, orgID)
 		if err != nil {
 			return err
 		}
-		if request.RoleID == DefaultOwnerRoleID && !actorIsOwner {
-			return exception.ErrForbidden
+		if org == nil {
+			return exception.ErrNotFound
 		}
 
 		// 2. Find user or create shadow user
@@ -187,10 +188,6 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 
 // GetMembers retrieves all members of an organization
 func (uc *organizationMemberUseCase) GetMembers(ctx context.Context, orgID string) ([]model.MemberResponse, error) {
-	if _, _, _, err := uc.authorizeMemberManagement(ctx, orgID); err != nil {
-		return nil, err
-	}
-
 	members, err := uc.memberRepo.FindMembers(ctx, orgID)
 	if err != nil {
 		return nil, err
@@ -209,11 +206,6 @@ func (uc *organizationMemberUseCase) UpdateMember(ctx context.Context, orgID, us
 	var result *model.MemberResponse
 
 	err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
-		org, _, actorIsOwner, err := uc.authorizeMemberManagement(txCtx, orgID)
-		if err != nil {
-			return err
-		}
-
 		// Check if member exists
 		isMember, err := uc.memberRepo.CheckMembership(txCtx, orgID, userID)
 		if err != nil {
@@ -221,13 +213,6 @@ func (uc *organizationMemberUseCase) UpdateMember(ctx context.Context, orgID, us
 		}
 		if !isMember {
 			return exception.ErrNotFound
-		}
-
-		if org.OwnerID == userID {
-			return exception.ErrForbidden
-		}
-		if request.RoleID == DefaultOwnerRoleID && !actorIsOwner {
-			return exception.ErrForbidden
 		}
 
 		// Update role if provided
@@ -382,11 +367,6 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 // RemoveMember removes a member from an organization
 func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, userID string) error {
 	return uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
-		org, _, _, err := uc.authorizeMemberManagement(txCtx, orgID)
-		if err != nil {
-			return err
-		}
-
 		// Check if member exists
 		isMember, err := uc.memberRepo.CheckMembership(txCtx, orgID, userID)
 		if err != nil {
@@ -397,6 +377,10 @@ func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, us
 		}
 
 		// Prevent removing owner
+		org, err := uc.orgRepo.FindByID(txCtx, orgID)
+		if err != nil {
+			return err
+		}
 		if org != nil && org.OwnerID == userID {
 			return exception.ErrForbidden
 		}
@@ -410,44 +394,6 @@ func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, us
 
 		return uc.memberRepo.RemoveMember(txCtx, orgID, userID)
 	})
-}
-
-func (uc *organizationMemberUseCase) authorizeMemberManagement(ctx context.Context, orgID string) (*entity.Organization, string, bool, error) {
-	org, err := uc.orgRepo.FindByID(ctx, orgID)
-	if err != nil {
-		return nil, "", false, exception.ErrInternalServer
-	}
-	if org == nil {
-		return nil, "", false, exception.ErrNotFound
-	}
-
-	actorUserID, ok := actorUserIDFromContext(ctx)
-	if !ok {
-		// Fail closed: if we don't know who the actor is, we cannot authorize the action.
-		return nil, "", false, exception.ErrForbidden
-	}
-
-	if org.OwnerID == actorUserID {
-		return org, actorUserID, true, nil
-	}
-
-	isMember, err := uc.memberRepo.CheckMembership(ctx, orgID, actorUserID)
-	if err != nil {
-		return nil, "", false, exception.ErrInternalServer
-	}
-	if !isMember {
-		return nil, "", false, exception.ErrForbidden
-	}
-
-	roleID, err := uc.memberRepo.GetMemberRole(ctx, orgID, actorUserID)
-	if err != nil {
-		return nil, "", false, exception.ErrInternalServer
-	}
-	if roleID != adminRoleID && roleID != DefaultOwnerRoleID {
-		return nil, "", false, exception.ErrForbidden
-	}
-
-	return org, actorUserID, false, nil
 }
 
 // GetPresence retrieves online members of an organization

@@ -38,11 +38,11 @@ Opsional namun direkomendasikan:
 
 - `func GenerateDynamicQuery[T any](filter *filter.DynamicFilter) (string, []interface{}, []string, error)`
 
-  - Returns: `query`, `args`, `warnings` (fields/ops ignored), `error`.
+    - Returns: `query`, `args`, `warnings` (fields/ops ignored), `error`.
 
 - `func GenerateDynamicSort[T any](filter *filter.DynamicFilter) (string, error)`
 
-  - Returns: `sort` string plus optional `error`.
+    - Returns: `sort` string plus optional `error`.
 
 - `func Preload(db *gorm.DB, preloads []PreloadEntity) *gorm.DB` — applies GORM `.Preload` calls.
 

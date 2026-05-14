@@ -203,7 +203,7 @@ Redux Toolkit + RTK Query
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   withCredentials: true, // untuk HttpOnly cookies
-});
+})
 
 // Interceptors untuk refresh token
 apiClient.interceptors.response.use(
@@ -212,9 +212,9 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       // Refresh token logic
     }
-    return Promise.reject(error);
-  },
-);
+    return Promise.reject(error)
+  }
+)
 ```
 
 ### 4. Authentication Flow

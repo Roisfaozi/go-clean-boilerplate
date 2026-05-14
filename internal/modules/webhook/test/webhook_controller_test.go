@@ -21,10 +21,6 @@ func TestWebhookController_Create(t *testing.T) {
 	controller := webhookHttp.NewWebhookController(uc)
 
 	r := gin.Default()
-	r.Use(func(c *gin.Context) {
-		c.Set("organization_id", "org-1")
-		c.Next()
-	})
 	r.POST("/webhooks", controller.Create)
 
 	reqPayload := model.CreateWebhookRequest{
@@ -55,10 +51,6 @@ func TestWebhookController_FindByID(t *testing.T) {
 	controller := webhookHttp.NewWebhookController(uc)
 
 	r := gin.Default()
-	r.Use(func(c *gin.Context) {
-		c.Set("organization_id", "org-1")
-		c.Next()
-	})
 	r.GET("/webhooks/:id", controller.FindByID)
 
 	webhookID := "wh-1"
@@ -69,7 +61,7 @@ func TestWebhookController_FindByID(t *testing.T) {
 		Name: "Test Webhook",
 	}, nil)
 
-	req, _ := http.NewRequest("GET", "/webhooks/"+webhookID, nil)
+	req, _ := http.NewRequest("GET", "/webhooks/"+webhookID+"?organization_id="+orgID, nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 

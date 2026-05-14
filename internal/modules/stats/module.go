@@ -8,7 +8,6 @@ import (
 )
 
 type StatsModule struct {
-	UseCase         usecase.StatsUseCase
 	StatsController *http.StatsController
 }
 
@@ -17,7 +16,6 @@ func NewStatsModule(db *gorm.DB, log *logrus.Logger) *StatsModule {
 	ctrl := http.NewStatsController(uc)
 
 	return &StatsModule{
-		UseCase:         uc,
 		StatsController: ctrl,
 	}
 }

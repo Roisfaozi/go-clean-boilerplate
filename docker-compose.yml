@@ -1,3 +1,4 @@
+
 services:
   mysql:
     image: mysql:lts
@@ -12,8 +13,7 @@ services:
       - casbin_db:/var/lib/mysql
       - ./db/initdb:/docker-entrypoint-initdb.d
     healthcheck:
-      test:
-        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
       timeout: 10s
       retries: 5
       interval: 30s

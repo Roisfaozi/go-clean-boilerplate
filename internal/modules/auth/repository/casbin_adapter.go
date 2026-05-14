@@ -12,19 +12,7 @@ type casbinAdapter struct {
 	defaultDomain string
 }
 
-const (
-	defaultCasbinRole   = "role:user"
-	defaultCasbinDomain = "global"
-)
-
 func NewCasbinAdapter(enforcer permissionUseCase.IEnforcer, defaultRole, defaultDomain string) AuthzManager {
-	if defaultRole == "" {
-		defaultRole = defaultCasbinRole
-	}
-	if defaultDomain == "" {
-		defaultDomain = defaultCasbinDomain
-	}
-
 	return &casbinAdapter{
 		enforcer:      enforcer,
 		defaultRole:   defaultRole,
@@ -36,7 +24,7 @@ func (a *casbinAdapter) AssignDefaultRole(ctx context.Context, userID string) er
 	if a.enforcer == nil {
 		return nil
 	}
-	_, err := a.enforcer.WithContext(ctx).AddGroupingPolicy(userID, a.defaultRole, a.defaultDomain)
+	_, err := a.enforcer.AddGroupingPolicy(userID, a.defaultRole, a.defaultDomain)
 	return err
 }
 

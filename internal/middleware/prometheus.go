@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"strconv"
-	"sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,14 +26,7 @@ var (
 		},
 		[]string{"method", "path"},
 	)
-
-	totalRequests uint64
 )
-
-// GetTotalRequests returns the total number of HTTP requests since startup
-func GetTotalRequests() uint64 {
-	return atomic.LoadUint64(&totalRequests)
-}
 
 // PrometheusMiddleware collects metrics for HTTP requests
 func PrometheusMiddleware() gin.HandlerFunc {
@@ -58,6 +50,5 @@ func PrometheusMiddleware() gin.HandlerFunc {
 		// Update metrics
 		httpRequestsTotal.WithLabelValues(method, path, status).Inc()
 		httpRequestDuration.WithLabelValues(method, path).Observe(duration)
-		atomic.AddUint64(&totalRequests, 1)
 	}
 }

@@ -20,21 +20,21 @@ func FormatValidationErrors(err error) string {
 
 			switch e.Tag() {
 			case "required":
-				_, _ = fmt.Fprintf(&sb, "%s is required", field)
+				sb.WriteString(fmt.Sprintf("%s is required", field))
 			case "email":
-				_, _ = fmt.Fprintf(&sb, "%s must be a valid email address", field)
+				sb.WriteString(fmt.Sprintf("%s must be a valid email address", field))
 			case "min":
-				_, _ = fmt.Fprintf(&sb, "%s must be at least %s characters long", field, e.Param())
+				sb.WriteString(fmt.Sprintf("%s must be at least %s characters long", field, e.Param()))
 			case "max":
-				_, _ = fmt.Fprintf(&sb, "%s must be at most %s characters long", field, e.Param())
+				sb.WriteString(fmt.Sprintf("%s must be at most %s characters long", field, e.Param()))
 			case "alphanum":
-				_, _ = fmt.Fprintf(&sb, "%s must contain only alphanumeric characters", field)
+				sb.WriteString(fmt.Sprintf("%s must contain only alphanumeric characters", field))
 			case "uuid":
-				_, _ = fmt.Fprintf(&sb, "%s must be a valid UUID", field)
+				sb.WriteString(fmt.Sprintf("%s must be a valid UUID", field))
 			case "boolean":
-				_, _ = fmt.Fprintf(&sb, "%s must be a boolean value", field)
+				sb.WriteString(fmt.Sprintf("%s must be a boolean value", field))
 			default:
-				_, _ = fmt.Fprintf(&sb, "%s failed on '%s' validation", field, e.Tag())
+				sb.WriteString(fmt.Sprintf("%s failed on '%s' validation", field, e.Tag()))
 			}
 		}
 		return sb.String()

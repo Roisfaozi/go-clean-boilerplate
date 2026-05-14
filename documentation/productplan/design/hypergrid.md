@@ -45,7 +45,7 @@ Tambahkan aturan ini ke dalam layer `components` atau langsung pada file CSS glo
   }
 
   /* Selected Row (Checkbox Active) */
-  .dark .hyper-grid-table tr[data-state="selected"] {
+  .dark .hyper-grid-table tr[data-state='selected'] {
     background-color: rgb(99 102 241 / 0.2);
     border-left: 2px solid rgb(99 102 241); /* Indikator visual tambahan */
   }
@@ -62,30 +62,31 @@ Komponen standar Shadcn menggunakan `hover:bg-muted/50`. Anda perlu mengubahnya 
 ```tsx
 // components/ui/table.tsx
 
-const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(
-  ({ className, ...props }, ref) => (
-    <tr
-      ref={ref}
-      className={cn(
-        "data-[state=selected]:bg-muted border-b transition-colors",
-        // HAPUS atau GANTI class default Shadcn: "hover:bg-muted/50"
+const TableRow = React.forwardRef<
+  HTMLTableRowElement,
+  React.HTMLAttributes<HTMLTableRowElement>
+>(({ className, ...props }, ref) => (
+  <tr
+    ref={ref}
+    className={cn(
+      'border-b transition-colors data-[state=selected]:bg-muted',
+      // HAPUS atau GANTI class default Shadcn: "hover:bg-muted/50"
 
-        // GUNAKAN class NexusOS:
-        // Light Mode: Hover abu-abu tipis
-        "hover:bg-slate-50",
+      // GUNAKAN class NexusOS:
+      // Light Mode: Hover abu-abu tipis
+      'hover:bg-slate-50',
 
-        // Dark Mode: Spesifikasi Hyper-Grid (Indigo Tint)
-        "dark:hover:bg-indigo-500/10",
+      // Dark Mode: Spesifikasi Hyper-Grid (Indigo Tint)
+      'dark:hover:bg-indigo-500/10',
 
-        // Striping Logic (Opsional bisa dipasang di sini atau via CSS global)
-        "dark:odd:bg-slate-900/50 dark:even:bg-transparent",
+      // Striping Logic (Opsional bisa dipasang di sini atau via CSS global)
+      'dark:even:bg-transparent dark:odd:bg-slate-900/50',
 
-        className,
-      )}
-      {...props}
-    />
-  ),
-);
+      className,
+    )}
+    {...props}
+  />
+))
 ```
 
 #### 4. Referensi Kompetitor (Why we do this?)

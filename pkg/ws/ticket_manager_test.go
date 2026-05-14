@@ -17,8 +17,7 @@ func setupTicketManager(t *testing.T) (*ws.RedisTicketManager, *miniredis.Minire
 	require.NoError(t, err)
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:            mr.Addr(),
-		DisableIdentity: true,
+		Addr: mr.Addr(),
 	})
 
 	tm := ws.NewRedisTicketManager(rdb, 1*time.Second) // Short TTL for testing
@@ -61,9 +60,7 @@ func TestRedisTicketManager_BadData(t *testing.T) {
 	require.NoError(t, err)
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:            mr.Addr(),
-		DisableIdentity: true,
-		MaxRetries:      -1, // Don't retry/log when we close the server
+		Addr: mr.Addr(),
 	})
 
 	tm := ws.NewRedisTicketManager(rdb, 0) // Should default to 30s

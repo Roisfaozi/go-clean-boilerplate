@@ -43,8 +43,10 @@ Kita menggunakan sistem "Soft-Diffused Shadows" yang mencampurkan warna abu-abu 
 
 ```css
 @theme {
-  --shadow-md: 0 4px 6px -1px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.08);
-  --shadow-lg: 0 10px 15px -3px rgb(15 23 42 / 0.08), 0 4px 6px -4px rgb(15 23 42 / 0.08);
+  --shadow-md:
+    0 4px 6px -1px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.08);
+  --shadow-lg:
+    0 10px 15px -3px rgb(15 23 42 / 0.08), 0 4px 6px -4px rgb(15 23 42 / 0.08);
 }
 ```
 
@@ -84,7 +86,7 @@ Untuk mencapai efek "Premium Dark" seperti yang diminta:
 .card-glass-dark {
   @apply border border-slate-800 bg-slate-900 shadow-none;
   /* Efek Inner Glow / Highlight Atas */
-  @apply ring-1 ring-white/10 ring-inset;
+  @apply ring-1 ring-inset ring-white/10;
 }
 ```
 
@@ -95,13 +97,11 @@ _Visual:_ Ini akan menciptakan garis putih super tipis (transparan) di _dalam_ b
 # 4. Rekomendasi Integrasi Desain (Figma & Code)
 
 1.  **Variable Collection di Figma:**
-
     - Buat collection bernama **"Elevation"**.
     - Isi dengan mode: _Light_ (berisi nilai shadow) dan _Dark_ (berisi nilai shadow `none` tapi nilai stroke/border aktif).
     - Ini memungkinkan desainer mengganti mode dan melihat kartu berubah dari "Shadowy" menjadi "Bordery" secara otomatis.
 
 2.  **Tailwind v4 Configuration:**
-
     - Gunakan fitur `@theme` baru di Tailwind v4 untuk menimpa default shadow yang terlalu hitam/kasar. Sesuaikan alpha channel (opacity) menjadi lebih rendah (`0.08` alih-alih default `0.1`) untuk tampilan SaaS modern ala **DashTail**.
 
 3.  **Komponen Shadcn UI:**

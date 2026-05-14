@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
-	txpkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -22,9 +21,9 @@ func NewOrganizationRepository(db *gorm.DB) OrganizationRepository {
 
 // Create creates a new organization with the owner as the first member atomically.
 func (r *organizationRepository) Create(ctx context.Context, org *entity.Organization, ownerRoleID string) error {
-	createWithDB := func(db *gorm.DB) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Create organization
-		if err := db.Create(org).Error; err != nil {
+		if err := tx.Create(org).Error; err != nil {
 			return err
 		}
 
@@ -36,19 +35,11 @@ func (r *organizationRepository) Create(ctx context.Context, org *entity.Organiz
 			RoleID:         ownerRoleID,
 			Status:         entity.MemberStatusActive,
 		}
-		if err := db.Create(member).Error; err != nil {
+		if err := tx.Create(member).Error; err != nil {
 			return err
 		}
 
 		return nil
-	}
-
-	if txDB, ok := txpkg.DBFromContext(ctx); ok {
-		return createWithDB(txDB.WithContext(ctx))
-	}
-
-	return r.db.WithContext(ctx).Transaction(func(db *gorm.DB) error {
-		return createWithDB(db)
 	})
 }
 

@@ -5,8 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	apiKeyModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
+	apiKeyEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/entity"
 	apiKeyMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/test/mocks"
+	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -28,27 +29,21 @@ func TestAPIKeyMiddleware_Authenticate(t *testing.T) {
 		r.Use(mw.Authenticate())
 		r.GET("/test", func(c *gin.Context) {
 			userID, _ := c.Get("user_id")
-			authMethod, _ := c.Get("auth_method")
-			apiKeyID, _ := c.Get("api_key_id")
-			scopes, _ := c.Get("api_key_scopes")
-			c.JSON(http.StatusOK, gin.H{
-				"user_id":     userID,
-				"auth_method": authMethod,
-				"api_key_id":  apiKeyID,
-				"scopes":      scopes,
-			})
+			c.String(http.StatusOK, userID.(string))
 		})
 
 		key := "sk_live_valid_key"
-		identity := &apiKeyModel.ApiKeyIdentity{
-			ApiKeyID:       "key-123",
+		keyEntity := &apiKeyEntity.ApiKey{
 			UserID:         "user-123",
 			OrganizationID: "org-456",
-			Username:       "api_user",
-			Scopes:         []string{"project:view"},
+		}
+		user := &userEntity.User{
+			ID:       "user-123",
+			Username: "api_user",
 		}
 
-		mockUseCase.On("Authenticate", mock.Anything, key).Return(identity, nil)
+		mockUseCase.On("Authenticate", mock.Anything, key).Return(keyEntity, nil)
+		mockUserRepo.On("FindByID", mock.Anything, "user-123").Return(user, nil)
 
 		req, _ := http.NewRequest("GET", "/test", nil)
 		req.Header.Set("X-API-Key", key)
@@ -57,10 +52,7 @@ func TestAPIKeyMiddleware_Authenticate(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Contains(t, w.Body.String(), "user-123")
-		assert.Contains(t, w.Body.String(), "api_key")
-		assert.Contains(t, w.Body.String(), "key-123")
-		assert.Contains(t, w.Body.String(), "project:view")
+		assert.Equal(t, "user-123", w.Body.String())
 	})
 
 	t.Run("Invalid API Key", func(t *testing.T) {
@@ -81,164 +73,4 @@ func TestAPIKeyMiddleware_Authenticate(t *testing.T) {
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
-
-	t.Run("Require Scopes allows JWT auth", func(t *testing.T) {
-		r := gin.New()
-		r.Use(func(c *gin.Context) {
-			c.Set("auth_method", "jwt")
-			c.Set("user_id", "user-123")
-			c.Next()
-		})
-		r.Use(mw.RequireScopes("project:view"))
-		r.GET("/test", func(c *gin.Context) {
-			c.Status(http.StatusOK)
-		})
-
-		req, _ := http.NewRequest("GET", "/test", nil)
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-
-	t.Run("Require Scopes denies API key without scope", func(t *testing.T) {
-		r := gin.New()
-		r.Use(func(c *gin.Context) {
-			c.Set("auth_method", "api_key")
-			c.Set("api_key_scopes", []string{"project:view"})
-			c.Next()
-		})
-		r.Use(mw.RequireScopes("project:manage"))
-		r.GET("/test", func(c *gin.Context) {
-			c.Status(http.StatusOK)
-		})
-
-		req, _ := http.NewRequest("GET", "/test", nil)
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusForbidden, w.Code)
-	})
-
-	t.Run("Require Scopes allows wildcard API key scope", func(t *testing.T) {
-		r := gin.New()
-		r.Use(func(c *gin.Context) {
-			c.Set("auth_method", "api_key")
-			c.Set("api_key_scopes", []string{"project:*"})
-			c.Next()
-		})
-		r.Use(mw.RequireScopes("project:manage"))
-		r.GET("/test", func(c *gin.Context) {
-			c.Status(http.StatusOK)
-		})
-
-		req, _ := http.NewRequest("GET", "/test", nil)
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-
-	t.Run("Require User Session denies API key auth", func(t *testing.T) {
-		r := gin.New()
-		r.Use(func(c *gin.Context) {
-			c.Set("auth_method", "api_key")
-			c.Next()
-		})
-		r.Use(mw.RequireUserSession())
-		r.GET("/test", func(c *gin.Context) {
-			c.Status(http.StatusOK)
-		})
-
-		req, _ := http.NewRequest("GET", "/test", nil)
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusForbidden, w.Code)
-	})
-
-	t.Run("Require All Scopes passes when all present", func(t *testing.T) {
-		r := gin.New()
-		r.Use(func(c *gin.Context) {
-			c.Set("auth_method", "api_key")
-			c.Set("api_key_scopes", []string{"project:view", "project:manage"})
-			c.Next()
-		})
-		r.Use(mw.RequireAllScopes("project:view", "project:manage"))
-		r.GET("/test", func(c *gin.Context) {
-			c.Status(http.StatusOK)
-		})
-
-		req, _ := http.NewRequest("GET", "/test", nil)
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-
-	t.Run("Require All Scopes denies when one is missing", func(t *testing.T) {
-		r := gin.New()
-		r.Use(func(c *gin.Context) {
-			c.Set("auth_method", "api_key")
-			c.Set("api_key_scopes", []string{"project:view"})
-			c.Next()
-		})
-		r.Use(mw.RequireAllScopes("project:view", "project:manage"))
-		r.GET("/test", func(c *gin.Context) {
-			c.Status(http.StatusOK)
-		})
-
-		req, _ := http.NewRequest("GET", "/test", nil)
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusForbidden, w.Code)
-	})
-
-	t.Run("Global wildcard scope grants access to everything", func(t *testing.T) {
-		r := gin.New()
-		r.Use(func(c *gin.Context) {
-			c.Set("auth_method", "api_key")
-			c.Set("api_key_scopes", []string{"*"})
-			c.Next()
-		})
-		r.Use(mw.RequireScopes("anything:here"))
-		r.GET("/test", func(c *gin.Context) {
-			c.Status(http.StatusOK)
-		})
-
-		req, _ := http.NewRequest("GET", "/test", nil)
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-}
-
-func TestScopeFromMethod(t *testing.T) {
-	tests := []struct {
-		method   string
-		expected string
-	}{
-		{"GET", "view"},
-		{"HEAD", "view"},
-		{"POST", "create"},
-		{"PUT", "update"},
-		{"PATCH", "update"},
-		{"DELETE", "delete"},
-		{"OPTIONS", "view"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.method, func(t *testing.T) {
-			assert.Equal(t, tt.expected, ScopeFromMethod(tt.method))
-		})
-	}
 }

@@ -25,7 +25,5 @@ func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *AuthContro
 	{
 		authGroup.POST("/logout", controller.Logout)
 		authGroup.POST("/resend-verification", controller.ResendVerification)
-		authGroup.GET("/me", controller.Me)
-		authGroup.POST("/ticket", controller.GetTicket)
 	}
 }

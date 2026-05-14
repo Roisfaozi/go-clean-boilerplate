@@ -21,7 +21,6 @@ _Komponen input cerdas yang sadar konteks, validasi, dan memiliki kemampuan AI._
 Variabel `--spacing-input-y` dan `--gap-form` mengontrol kepadatan.
 
 - **Mode A: Comfort (SaaS/Onboarding)**
-
   - **Layout:** **Vertical Stack** (Label di atas Input).
   - **Spacing:** `gap-2` (8px) antara label dan input.
   - **Visual:** Label menggunakan font `text-sm` weight `medium`. Input terlihat "chunky" dan mudah diketuk.

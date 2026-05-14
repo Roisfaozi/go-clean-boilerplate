@@ -143,7 +143,7 @@ Serahkan kode ini kepada developer Anda untuk dimasukkan ke `globals.css`. Ini m
 }
 
 /* Density Variables: Compact (Enterprise) */
-[data-density="compact"] {
+[data-density='compact'] {
   --radius: 0.25rem; /* 4px */
   --input-height: 2rem; /* 32px */
   --font-size-base: 0.8125rem; /* 13px */
@@ -152,11 +152,11 @@ Serahkan kode ini kepada developer Anda untuk dimasukkan ke `globals.css`. Ini m
 
 /* Component Classes */
 .btn-primary {
-  @apply bg-primary h-[var(--input-height)] rounded-[var(--radius)] px-4 text-[length:var(--font-size-base)] text-white;
+  @apply h-[var(--input-height)] rounded-[var(--radius)] bg-primary text-white px-4 text-[length:var(--font-size-base)];
 }
 
 .table-cell {
-  @apply border-border border-b p-[var(--table-cell-padding)] text-[length:var(--font-size-base)];
+  @apply p-[var(--table-cell-padding)] text-[length:var(--font-size-base)] border-b border-border;
 }
 ```
 

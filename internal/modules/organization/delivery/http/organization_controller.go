@@ -95,14 +95,8 @@ func (ctrl *OrganizationController) CreateOrganization(c *gin.Context) {
 // @Router       /organizations/{id} [get]
 func (ctrl *OrganizationController) GetOrganization(c *gin.Context) {
 	orgID := c.Param("id")
-	userID, exists := c.Get("user_id")
-	if !exists {
-		response.Unauthorized(c, nil, "user not authenticated")
-		return
-	}
 
-	ctx := usecase.WithActorUserID(c.Request.Context(), userID.(string))
-	result, err := ctrl.OrgUseCase.GetOrganization(ctx, orgID)
+	result, err := ctrl.OrgUseCase.GetOrganization(c.Request.Context(), orgID)
 	if err != nil {
 		if err == exception.ErrNotFound {
 			response.NotFound(c, err, "organization not found")
@@ -130,14 +124,8 @@ func (ctrl *OrganizationController) GetOrganization(c *gin.Context) {
 // @Router       /organizations/slug/{slug} [get]
 func (ctrl *OrganizationController) GetOrganizationBySlug(c *gin.Context) {
 	slug := c.Param("slug")
-	userID, exists := c.Get("user_id")
-	if !exists {
-		response.Unauthorized(c, nil, "user not authenticated")
-		return
-	}
 
-	ctx := usecase.WithActorUserID(c.Request.Context(), userID.(string))
-	result, err := ctrl.OrgUseCase.GetOrganizationBySlug(ctx, slug)
+	result, err := ctrl.OrgUseCase.GetOrganizationBySlug(c.Request.Context(), slug)
 	if err != nil {
 		if err == exception.ErrNotFound {
 			response.NotFound(c, err, "organization not found")
@@ -168,11 +156,6 @@ func (ctrl *OrganizationController) GetOrganizationBySlug(c *gin.Context) {
 // @Router       /organizations/{id} [put]
 func (ctrl *OrganizationController) UpdateOrganization(c *gin.Context) {
 	orgID := c.Param("id")
-	userID, exists := c.Get("user_id")
-	if !exists {
-		response.Unauthorized(c, nil, "user not authenticated")
-		return
-	}
 
 	var request model.UpdateOrganizationRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -188,15 +171,10 @@ func (ctrl *OrganizationController) UpdateOrganization(c *gin.Context) {
 		return
 	}
 
-	ctx := usecase.WithActorUserID(c.Request.Context(), userID.(string))
-	result, err := ctrl.OrgUseCase.UpdateOrganization(ctx, orgID, &request)
+	result, err := ctrl.OrgUseCase.UpdateOrganization(c.Request.Context(), orgID, &request)
 	if err != nil {
 		if err == exception.ErrNotFound {
 			response.NotFound(c, err, "organization not found")
-			return
-		}
-		if err == exception.ErrForbidden {
-			response.Forbidden(c, err, "you do not have permission to manage this organization")
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to update organization")
@@ -325,11 +303,6 @@ func (ctrl *OrganizationController) AcceptInvitation(c *gin.Context) {
 // @Router       /organizations/{id}/members/invite [post]
 func (ctrl *OrganizationController) InviteMember(c *gin.Context) {
 	orgID := c.Param("id")
-	userID, exists := c.Get("user_id")
-	if !exists {
-		response.Unauthorized(c, nil, "user not authenticated")
-		return
-	}
 
 	var request model.InviteMemberRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -343,15 +316,10 @@ func (ctrl *OrganizationController) InviteMember(c *gin.Context) {
 		return
 	}
 
-	ctx := usecase.WithActorUserID(c.Request.Context(), userID.(string))
-	result, err := ctrl.MemberUseCase.InviteMember(ctx, orgID, &request)
+	result, err := ctrl.MemberUseCase.InviteMember(c.Request.Context(), orgID, &request)
 	if err != nil {
 		if err == exception.ErrNotFound {
 			response.NotFound(c, err, "organization not found")
-			return
-		}
-		if err == exception.ErrForbidden {
-			response.Forbidden(c, err, "you do not have permission to manage organization members")
 			return
 		}
 		if err == exception.ErrConflict {
@@ -381,21 +349,11 @@ func (ctrl *OrganizationController) InviteMember(c *gin.Context) {
 // @Router       /organizations/{id}/members [get]
 func (ctrl *OrganizationController) GetMembers(c *gin.Context) {
 	orgID := c.Param("id")
-	userID, exists := c.Get("user_id")
-	if !exists {
-		response.Unauthorized(c, nil, "user not authenticated")
-		return
-	}
 
-	ctx := usecase.WithActorUserID(c.Request.Context(), userID.(string))
-	result, err := ctrl.MemberUseCase.GetMembers(ctx, orgID)
+	result, err := ctrl.MemberUseCase.GetMembers(c.Request.Context(), orgID)
 	if err != nil {
 		if err == exception.ErrNotFound {
 			response.NotFound(c, err, "organization not found")
-			return
-		}
-		if err == exception.ErrForbidden {
-			response.Forbidden(c, err, "you do not have permission to view organization members")
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to get members")
@@ -426,11 +384,6 @@ func (ctrl *OrganizationController) GetMembers(c *gin.Context) {
 func (ctrl *OrganizationController) UpdateMemberRole(c *gin.Context) {
 	orgID := c.Param("id")
 	userID := c.Param("userId")
-	actorUserID, exists := c.Get("user_id")
-	if !exists {
-		response.Unauthorized(c, nil, "user not authenticated")
-		return
-	}
 
 	var request model.UpdateMemberRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -444,15 +397,10 @@ func (ctrl *OrganizationController) UpdateMemberRole(c *gin.Context) {
 		return
 	}
 
-	ctx := usecase.WithActorUserID(c.Request.Context(), actorUserID.(string))
-	result, err := ctrl.MemberUseCase.UpdateMember(ctx, orgID, userID, &request)
+	result, err := ctrl.MemberUseCase.UpdateMember(c.Request.Context(), orgID, userID, &request)
 	if err != nil {
 		if err == exception.ErrNotFound {
 			response.NotFound(c, err, "member not found")
-			return
-		}
-		if err == exception.ErrForbidden {
-			response.Forbidden(c, err, "you do not have permission to update this member")
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to update member")
@@ -480,21 +428,15 @@ func (ctrl *OrganizationController) UpdateMemberRole(c *gin.Context) {
 func (ctrl *OrganizationController) RemoveMember(c *gin.Context) {
 	orgID := c.Param("id")
 	userID := c.Param("userId")
-	actorUserID, exists := c.Get("user_id")
-	if !exists {
-		response.Unauthorized(c, nil, "user not authenticated")
-		return
-	}
 
-	ctx := usecase.WithActorUserID(c.Request.Context(), actorUserID.(string))
-	err := ctrl.MemberUseCase.RemoveMember(ctx, orgID, userID)
+	err := ctrl.MemberUseCase.RemoveMember(c.Request.Context(), orgID, userID)
 	if err != nil {
 		if err == exception.ErrNotFound {
 			response.NotFound(c, err, "member not found")
 			return
 		}
 		if err == exception.ErrForbidden {
-			response.Forbidden(c, err, "you do not have permission to remove this member")
+			response.Forbidden(c, err, "cannot remove organization owner")
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to remove member")

@@ -71,16 +71,16 @@ func setupMemberTest() (*memberTestDeps, usecase.OrganizationMemberUseCase) {
 func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 	t.Run("Success - Existing User", func(t *testing.T) {
 		deps, uc := setupMemberTest()
-		actorID := "owner-1"
-		ctx := usecase.WithActorUserID(context.Background(), actorID)
+		ctx := context.Background()
 		orgID := "org-1"
 		req := &model.InviteMemberRequest{Email: "user@example.com", RoleID: "role:member"}
-		org := &entity.Organization{ID: orgID, Name: "Org 1", OwnerID: actorID}
+		org := &entity.Organization{ID: orgID, Name: "Org 1"}
 		user := &userEntity.User{ID: "user-1", Email: req.Email}
 
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
-			return fn(ctx)
-		})
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(ctx)
+		}).Return(nil)
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(user, nil)
@@ -104,15 +104,15 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 
 	t.Run("Success - Shadow User", func(t *testing.T) {
 		deps, uc := setupMemberTest()
-		actorID := "owner-1"
-		ctx := usecase.WithActorUserID(context.Background(), actorID)
+		ctx := context.Background()
 		orgID := "org-1"
 		req := &model.InviteMemberRequest{Email: "shadow@example.com", RoleID: "role:member"}
-		org := &entity.Organization{ID: orgID, OwnerID: actorID}
+		org := &entity.Organization{ID: orgID}
 
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
-			return fn(ctx)
-		})
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(ctx)
+		}).Return(nil)
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(nil, errors.New("user not found"))
@@ -134,16 +134,16 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 
 	t.Run("Already Member", func(t *testing.T) {
 		deps, uc := setupMemberTest()
-		actorID := "owner-1"
-		ctx := usecase.WithActorUserID(context.Background(), actorID)
+		ctx := context.Background()
 		orgID := "org-1"
 		req := &model.InviteMemberRequest{Email: "member@example.com"}
-		org := &entity.Organization{ID: orgID, OwnerID: actorID}
+		org := &entity.Organization{ID: orgID}
 		user := &userEntity.User{ID: "user-1", Email: req.Email}
 
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
-			return fn(ctx)
-		})
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(ctx)
+		}).Return(exception.ErrConflict)
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(user, nil)
@@ -155,14 +155,14 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 
 	t.Run("Org Not Found", func(t *testing.T) {
 		deps, uc := setupMemberTest()
-		actorID := "owner-1"
-		ctx := usecase.WithActorUserID(context.Background(), actorID)
+		ctx := context.Background()
 		orgID := "org-1"
 		req := &model.InviteMemberRequest{Email: "user@example.com"}
 
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
-			return fn(ctx)
-		})
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(ctx)
+		}).Return(exception.ErrNotFound)
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(nil, nil)
 
@@ -340,16 +340,13 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 func TestOrganizationMemberUseCase_GetMembers(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, uc := setupMemberTest()
-		actorID := "owner-1"
-		ctx := usecase.WithActorUserID(context.Background(), actorID)
+		ctx := context.Background()
 		orgID := "org-1"
-		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 		members := []*entity.OrganizationMember{
 			{UserID: "u1", RoleID: "r1"},
 			{UserID: "u2", RoleID: "r2"},
 		}
 
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("FindMembers", ctx, orgID).Return(members, nil)
 
 		res, err := uc.GetMembers(ctx, orgID)
@@ -361,18 +358,16 @@ func TestOrganizationMemberUseCase_GetMembers(t *testing.T) {
 func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 	t.Run("Success - Update Role", func(t *testing.T) {
 		deps, uc := setupMemberTest()
-		actorID := "owner-1"
-		ctx := usecase.WithActorUserID(context.Background(), actorID)
+		ctx := context.Background()
 		orgID := "org-1"
 		userID := "user-1"
 		req := &model.UpdateMemberRequest{RoleID: "new-role"}
-		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
-			return fn(ctx)
-		})
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(ctx)
+		}).Return(nil)
 
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
 		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, userID, "new-role").Return(nil)
 
@@ -392,14 +387,12 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		ctx := context.Background()
 		orgID := "org-1"
 		userID := "user-1"
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
 			_ = fn(ctx)
 		}).Return(exception.ErrNotFound)
 
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(false, nil)
 
 		_, err := uc.UpdateMember(ctx, orgID, userID, &model.UpdateMemberRequest{})
@@ -411,14 +404,12 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		ctx := context.Background()
 		orgID := "org-1"
 		userID := "user-1"
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
 			_ = fn(ctx)
 		}).Return(exception.ErrInternalServer)
 
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(false, errors.New("db error"))
 
 		_, err := uc.UpdateMember(ctx, orgID, userID, &model.UpdateMemberRequest{})
@@ -431,14 +422,12 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		orgID := "org-1"
 		userID := "user-1"
 		req := &model.UpdateMemberRequest{RoleID: "new-role"}
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
 			_ = fn(ctx)
 		}).Return(exception.ErrInternalServer)
 
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
 		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, userID, "new-role").Return(errors.New("db error"))
 
@@ -452,14 +441,12 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		orgID := "org-1"
 		userID := "user-1"
 		req := &model.UpdateMemberRequest{Status: "inactive"}
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
 			_ = fn(ctx)
 		}).Return(exception.ErrInternalServer)
 
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
 		deps.MemberRepo.On("UpdateMemberStatus", ctx, orgID, userID, "inactive").Return(errors.New("db error"))
 
@@ -473,14 +460,12 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		orgID := "org-1"
 		userID := "user-1"
 		req := &model.UpdateMemberRequest{RoleID: "new-role"}
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
 			_ = fn(ctx)
 		}).Return(exception.ErrInternalServer)
 
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
 		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, userID, "new-role").Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
@@ -497,14 +482,12 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		orgID := "org-1"
 		userID := "user-1"
 		req := &model.UpdateMemberRequest{RoleID: "new-role"}
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
 			_ = fn(ctx)
 		}).Return(exception.ErrInternalServer)
 
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
 		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, userID, "new-role").Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
@@ -515,43 +498,23 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		_, err := uc.UpdateMember(ctx, orgID, userID, req)
 		require.ErrorIs(t, err, exception.ErrInternalServer)
 	})
-
-	t.Run("Forbidden - Non admin actor cannot update owner via actor context", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := usecase.WithActorUserID(context.Background(), "member-1")
-		orgID := "org-1"
-		userID := "owner-1"
-		org := &entity.Organization{ID: orgID, OwnerID: userID}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrForbidden)
-
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, "member-1").Return(true, nil)
-		deps.MemberRepo.On("GetMemberRole", ctx, orgID, "member-1").Return("role:user", nil)
-
-		_, err := uc.UpdateMember(ctx, orgID, userID, &model.UpdateMemberRequest{Status: entity.MemberStatusSuspended})
-		require.ErrorIs(t, err, exception.ErrForbidden)
-	})
 }
 
 func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, uc := setupMemberTest()
-		actorID := "owner-1"
-		ctx := usecase.WithActorUserID(context.Background(), actorID)
+		ctx := context.Background()
 		orgID := "org-1"
 		userID := "user-1"
-		org := &entity.Organization{ID: orgID, OwnerID: actorID}
+		org := &entity.Organization{ID: orgID, OwnerID: "other-user"}
 
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
-			return fn(ctx)
-		})
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(ctx)
+		}).Return(nil)
 
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
+		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
 		deps.MemberRepo.On("RemoveMember", ctx, orgID, userID).Return(nil)
@@ -572,8 +535,8 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 			_ = fn(ctx)
 		}).Return(exception.ErrForbidden)
 
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
+		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 
 		err := uc.RemoveMember(ctx, orgID, userID)
 		require.ErrorIs(t, err, exception.ErrForbidden)
@@ -584,14 +547,12 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 		ctx := context.Background()
 		orgID := "org-1"
 		userID := "user-1"
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
 			_ = fn(ctx)
 		}).Return(exception.ErrInternalServer)
 
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(false, errors.New("db error"))
 
 		err := uc.RemoveMember(ctx, orgID, userID)
@@ -637,26 +598,6 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 		err := uc.RemoveMember(ctx, orgID, userID)
 		require.ErrorIs(t, err, exception.ErrInternalServer)
 	})
-
-	t.Run("Forbidden - actor context role is not manager", func(t *testing.T) {
-		deps, uc := setupMemberTest()
-		ctx := usecase.WithActorUserID(context.Background(), "member-1")
-		orgID := "org-1"
-		userID := "user-1"
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
-
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			fn := args.Get(1).(func(context.Context) error)
-			_ = fn(ctx)
-		}).Return(exception.ErrForbidden)
-
-		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, "member-1").Return(true, nil)
-		deps.MemberRepo.On("GetMemberRole", ctx, orgID, "member-1").Return("role:user", nil)
-
-		err := uc.RemoveMember(ctx, orgID, userID)
-		require.ErrorIs(t, err, exception.ErrForbidden)
-	})
 }
 
 func TestOrganizationMemberUseCase_GetPresence(t *testing.T) {
@@ -682,9 +623,10 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 		inv := &entity.InvitationToken{ID: "inv-1", Email: "new@example.com", OrganizationID: "org-1", Role: "role:member", ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli()}
 		user := &userEntity.User{ID: "user-1", Email: "new@example.com", Status: "invited"}
 
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
-			return fn(ctx)
-		})
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(ctx)
+		}).Return(nil)
 
 		deps.InvitationRepo.On("FindByToken", ctx, req.Token).Return(inv, nil)
 		deps.UserRepo.On("FindByEmail", ctx, inv.Email).Return(user, nil)
@@ -789,9 +731,10 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 		}
 		user := &userEntity.User{ID: "user-1", Status: "invited"}
 
-		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
-			return fn(ctx)
-		})
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(ctx)
+		}).Return(exception.ErrBadRequest)
 
 		deps.InvitationRepo.On("FindByToken", ctx, req.Token).Return(inv, nil)
 		deps.UserRepo.On("FindByEmail", ctx, inv.Email).Return(user, nil)

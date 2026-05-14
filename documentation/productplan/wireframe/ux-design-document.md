@@ -314,7 +314,7 @@ Legend: █ = Enabled  ░ = Disabled
 | :------ | :--------------- | :------- |
 | Success | `emerald-subtle` | ✓ OK     |
 | Failed  | `red-subtle`     | ✗ FAILED |
-| Warning | `amber-subtle`   | ⚠ WARN  |
+| Warning | `amber-subtle`   | ⚠ WARN   |
 
 ---
 
@@ -529,13 +529,13 @@ Negative space (white space) is intentionally left empty to improve visual hiera
 
 **Adaptive Negative Space (Density Modes):**
 
-| Zone               | Comfort Mode | Compact Mode | Notes                  |
-| :----------------- | :----------- | :----------- | :--------------------- |
-| Page Margin        | 32px         | 16px         | Outer breathing room   |
+| Zone              | Comfort Mode | Compact Mode | Notes                  |
+| :---------------- | :----------- | :----------- | :--------------------- |
+| Page Margin       | 32px         | 16px         | Outer breathing room   |
 | Header ↔ Content  | 32px         | 16px         | Separation after title |
 | Card ↔ Card       | 24px         | 12px         | Inter-card spacing     |
 | Section ↔ Section | 40px         | 24px         | Major content blocks   |
-| CTA Area Above     | 24px         | 16px         | Space before actions   |
+| CTA Area Above    | 24px         | 16px         | Space before actions   |
 
 **Empty State Negative Space:**
 

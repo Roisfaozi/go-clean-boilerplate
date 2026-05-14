@@ -79,7 +79,9 @@
       "datasource": "Prometheus",
       "gridPos": { "h": 8, "w": 6, "x": 0, "y": 10 },
       "id": 4,
-      "targets": [{ "expr": "app_user_registrations_total", "refId": "A" }],
+      "targets": [
+        { "expr": "app_user_registrations_total", "refId": "A" }
+      ],
       "title": "Total Users Registered",
       "type": "stat"
     },
@@ -87,7 +89,9 @@
       "datasource": "Prometheus",
       "gridPos": { "h": 8, "w": 6, "x": 6, "y": 10 },
       "id": 5,
-      "targets": [{ "expr": "app_websocket_active_connections", "refId": "A" }],
+      "targets": [
+        { "expr": "app_websocket_active_connections", "refId": "A" }
+      ],
       "title": "Active WebSocket Connections",
       "type": "stat"
     },
@@ -114,7 +118,9 @@
       "datasource": "Prometheus",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
       "id": 7,
-      "targets": [{ "expr": "go_goroutines", "legendFormat": "Goroutines", "refId": "A" }],
+      "targets": [
+        { "expr": "go_goroutines", "legendFormat": "Goroutines", "refId": "A" }
+      ],
       "title": "Active Goroutines",
       "type": "timeseries"
     },

@@ -353,7 +353,22 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerApiKeyListResponseWrapper"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.ApiKeyResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "401": {
@@ -396,7 +411,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerCreateApiKeyResponseWrapper"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerSuccessResponseWrapper"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.CreateApiKeyResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -1377,6 +1404,32 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Returns the health status of the application and its core dependencies (MySQL, Redis).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "system"
+                ],
+                "summary": "System Health Check",
+                "responses": {
+                    "200": {
+                        "description": "System is healthy",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
+                        }
+                    },
+                    "503": {
+                        "description": "System is degraded",
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
@@ -2751,6 +2804,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/permissions/parents/{role}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all parent roles for a given role. Defaults to 'global' domain.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Get parent roles",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role name",
+                        "name": "role",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Domain/Organization ID (defaults to 'global')",
+                        "name": "domain",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of parent roles",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Role is required",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
         "/permissions/resources": {
             "get": {
                 "security": [
@@ -2801,7 +2912,7 @@ const docTemplate = `{
             }
         },
         "/permissions/revoke": {
-            "delete": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -2921,7 +3032,7 @@ const docTemplate = `{
             }
         },
         "/permissions/revoke-role": {
-            "delete": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -2970,6 +3081,58 @@ const docTemplate = `{
                     },
                     "422": {
                         "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    }
+                }
+            }
+        },
+        "/permissions/roles/{role}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all permissions assigned to a specific role.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Get permissions for role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role name",
+                        "name": "role",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerPermissionListResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Role is required",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
                         }
@@ -3083,116 +3246,6 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "List of user IDs",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
-                        }
-                    },
-                    "400": {
-                        "description": "Role is required",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
-        },
-        "/permissions/{role}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves all permissions assigned to a specific role.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "permissions"
-                ],
-                "summary": "Get permissions for role",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Role name",
-                        "name": "role",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerPermissionListResponseWrapper"
-                        }
-                    },
-                    "400": {
-                        "description": "Role is required",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper"
-                        }
-                    }
-                }
-            }
-        },
-        "/permissions/{role}/parents": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves all parent roles for a given role. Defaults to 'global' domain.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "permissions"
-                ],
-                "summary": "Get parent roles",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Role name",
-                        "name": "role",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Domain/Organization ID (defaults to 'global')",
-                        "name": "domain",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of parent roles",
                         "schema": {
                             "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerGeneralResponseWrapper"
                         }
@@ -4071,11 +4124,11 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Terminates an ongoing TUS upload and removes its partial data.",
+                "description": "Terminates an ongoing resumable upload and removes its partial data.",
                 "tags": [
-                    "storage"
+                    "upload"
                 ],
-                "summary": "Cancel Upload",
+                "summary": "Cancel resumable upload",
                 "parameters": [
                     {
                         "type": "string",
@@ -4086,7 +4139,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "TUS protocol version (e.g., 1.0.0)",
+                        "description": "TUS protocol version (must be 1.0.0)",
                         "name": "Tus-Resumable",
                         "in": "header",
                         "required": true
@@ -4094,10 +4147,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "No Content"
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -5087,7 +5137,12 @@ const docTemplate = `{
         },
         "/ws": {
             "get": {
-                "description": "Establishes a WebSocket connection for real-time updates and presence. Requires a one-time ticket obtained from ` + "`" + `/auth/ticket` + "`" + `.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Establishes a WebSocket connection for real-time updates and presence.",
                 "tags": [
                     "realtime"
                 ],
@@ -5095,10 +5150,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "One-time WebSocket ticket from /auth/ticket",
+                        "description": "One-time WebSocket ticket (if not using Bearer header)",
                         "name": "ticket",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -6406,20 +6460,6 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerApiKeyListResponseWrapper": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.ApiKeyResponse"
-                    }
-                },
-                "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"
-                }
-            }
-        },
         "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerAuditLogListResponseWrapper": {
             "type": "object",
             "properties": {
@@ -6429,17 +6469,6 @@ const docTemplate = `{
                         "type": "object",
                         "additionalProperties": true
                     }
-                },
-                "paging": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"
-                }
-            }
-        },
-        "github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerCreateApiKeyResponseWrapper": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_api_key_model.CreateApiKeyResponse"
                 },
                 "paging": {
                     "$ref": "#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.PageMetadata"

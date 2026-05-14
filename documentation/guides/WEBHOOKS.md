@@ -16,11 +16,9 @@ The webhook system is designed for reliability and high performance:
 To ensure that webhook payloads are authentic and haven't been tampered with, NexusOS includes several security measures:
 
 ### HMAC-SHA256 Signature
-
 Every request includes an `X-Webhook-Signature` header. This is a hex-encoded HMAC-SHA256 hash of the request body, using the webhook's **Secret Key**.
 
 **Verification Example (Go):**
-
 ```go
 func VerifySignature(secret string, body []byte, signature string) bool {
     h := hmac.New(sha256.New, []byte(secret))
@@ -31,7 +29,6 @@ func VerifySignature(secret string, body []byte, signature string) bool {
 ```
 
 ### Replay Attack Prevention
-
 The `X-Webhook-Timestamp` header contains the Unix millisecond timestamp when the request was generated. Recipients should verify that this timestamp is within a reasonable window (e.g., 5 minutes) to prevent replay attacks.
 
 ## 3. Webhook Payloads
@@ -39,7 +36,6 @@ The `X-Webhook-Timestamp` header contains the Unix millisecond timestamp when th
 All webhooks are sent as `POST` requests with a `application/json` content type.
 
 ### Standard Headers
-
 - `Content-Type: application/json`
 - `X-Webhook-ID`: The unique ID of the webhook configuration.
 - `X-Webhook-Event`: The type of event (e.g., `user.created`).
@@ -48,27 +44,20 @@ All webhooks are sent as `POST` requests with a `application/json` content type.
 
 ## 4. Supported Events
 
-| Event Key      | Description                                | Payload Content                       |
-| :------------- | :----------------------------------------- | :------------------------------------ |
-| `user.created` | Triggered when a new user registers.       | `id`, `username`, `email`, `fullname` |
-| `org.created`  | Triggered when a new organization is made. | `id`, `name`, `slug`, `owner_id`      |
+| Event Key      | Description                                | Payload Content                          |
+| :------------- | :----------------------------------------- | :--------------------------------------- |
+| `user.created` | Triggered when a new user registers.       | `id`, `username`, `email`, `fullname`    |
+| `org.created`  | Triggered when a new organization is made. | `id`, `name`, `slug`, `owner_id`         |
 
 ## 5. Management API
 
-| Action           | Endpoint                        | Access Right     |
-| :--------------- | :------------------------------ | :--------------- |
-| Create Webhook   | `POST /api/v1/webhooks`         | `webhook:manage` |
-| List Webhooks    | `GET /api/v1/webhooks`          | `webhook:manage` |
-| Get Webhook      | `GET /api/v1/webhooks/:id`      | `webhook:manage` |
-| Get Webhook Logs | `GET /api/v1/webhooks/:id/logs` | `webhook:manage` |
-| Update Webhook   | `PUT /api/v1/webhooks/:id`      | `webhook:manage` |
-| Delete Webhook   | `DELETE /api/v1/webhooks/:id`   | `webhook:manage` |
-
-### Tenant Context Requirements
-
-- All webhook management endpoints require a valid tenant context via `X-Organization-ID` or `X-Organization-Slug`.
-- The server resolves the active organization from middleware context, not from `organization_id` fields in request bodies or query parameters.
-- API keys may access webhook management endpoints only if the key belongs to the active organization and includes the `webhook:manage` scope.
+| Action            | Endpoint                                | Access Right     |
+| :---------------- | :-------------------------------------- | :--------------- |
+| Create Webhook    | `POST /api/v1/webhooks`                 | `webhook:manage` |
+| List Webhooks     | `GET /api/v1/webhooks`                  | `webhook:manage` |
+| Get Webhook Logs  | `GET /api/v1/webhooks/:id/logs`         | `webhook:manage` |
+| Update Webhook    | `PUT /api/v1/webhooks/:id`              | `webhook:manage` |
+| Delete Webhook    | `DELETE /api/v1/webhooks/:id`           | `webhook:manage` |
 
 ## 6. Best Practices
 

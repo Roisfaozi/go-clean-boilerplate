@@ -24,11 +24,11 @@ We recommend using **Uppy** or **tus-js-client**.
 Perfect for custom UI or background uploads.
 
 ```javascript
-import * as tus from "tus-js-client";
+import * as tus from 'tus-js-client'
 
 function startUpload(file, token) {
   const upload = new tus.Upload(file, {
-    endpoint: "http://api.nexus-os.com/api/v1/upload/files/",
+    endpoint: 'http://api.nexus-os.com/api/v1/upload/files/',
     retryDelays: [0, 3000, 5000, 10000, 20000],
     headers: {
       Authorization: `Bearer ${token}`,
@@ -36,26 +36,26 @@ function startUpload(file, token) {
     metadata: {
       filename: file.name,
       filetype: file.type,
-      type: "avatar", // MUST match backend Register() key
-      user_id: "user_uuid", // Custom data for backend Hook
+      type: 'avatar', // MUST match backend Register() key
+      user_id: 'user_uuid', // Custom data for backend Hook
     },
-    onError: (err) => console.error("Upload failed:", err),
+    onError: (err) => console.error('Upload failed:', err),
     onProgress: (bytesUploaded, bytesTotal) => {
-      const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
-      console.log(`Progress: ${percentage}%`);
+      const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2)
+      console.log(`Progress: ${percentage}%`)
     },
     onSuccess: () => {
-      console.log("Upload finished:", upload.url);
+      console.log('Upload finished:', upload.url)
     },
-  });
+  })
 
   // Check if there are any previous uploads to continue.
   upload.findPreviousUploads().then((previousUploads) => {
     if (previousUploads.length) {
-      upload.resumeFromPreviousUpload(previousUploads[0]);
+      upload.resumeFromPreviousUpload(previousUploads[0])
     }
-    upload.start();
-  });
+    upload.start()
+  })
 }
 ```
 
@@ -64,21 +64,21 @@ function startUpload(file, token) {
 Best for complex UIs with drag-and-drop and progress dashboards.
 
 ```javascript
-import Uppy from "@uppy/core";
-import Tus from "@uppy/tus";
+import Uppy from '@uppy/core'
+import Tus from '@uppy/tus'
 
 const uppy = new Uppy().use(Tus, {
-  endpoint: "http://api.nexus-os.com/api/v1/upload/files/",
+  endpoint: 'http://api.nexus-os.com/api/v1/upload/files/',
   headers: {
     Authorization: `Bearer ${token}`,
   },
   removeFingerprintOnSuccess: true,
   limit: 5, // Max concurrent uploads
-});
+})
 
-uppy.on("upload-success", (file, response) => {
-  console.log("File URL:", response.uploadURL);
-});
+uppy.on('upload-success', (file, response) => {
+  console.log('File URL:', response.uploadURL)
+})
 ```
 
 ---
@@ -90,35 +90,35 @@ uppy.on("upload-success", (file, response) => {
 You can use `tus-js-client` in React Native combined with `react-native-fs` for local file access.
 
 ```javascript
-import { Upload } from "tus-js-client";
-import RNFS from "react-native-fs";
+import { Upload } from 'tus-js-client'
+import RNFS from 'react-native-fs'
 
 const uploadFile = async (uri, token) => {
   // 1. Get file stats
-  const fileStats = await RNFS.stat(uri);
+  const fileStats = await RNFS.stat(uri)
 
   // 2. Wrap the URI in a Blob-like object for tus-js-client
   const file = {
     uri: uri,
-    name: "video.mp4",
-    type: "video/mp4",
+    name: 'video.mp4',
+    type: 'video/mp4',
     size: fileStats.size,
-  };
+  }
 
   const upload = new Upload(file, {
-    endpoint: "http://api.nexus-os.com/api/v1/upload/files/",
+    endpoint: 'http://api.nexus-os.com/api/v1/upload/files/',
     headers: { Authorization: `Bearer ${token}` },
     metadata: {
-      type: "project_video",
-      filename: "video.mp4",
+      type: 'project_video',
+      filename: 'video.mp4',
     },
     // In RN, we usually want larger chunks for performance
     chunkSize: 5 * 1024 * 1024,
-    onSuccess: () => console.log("Upload complete!"),
-  });
+    onSuccess: () => console.log('Upload complete!'),
+  })
 
-  upload.start();
-};
+  upload.start()
+}
 ```
 
 ### Flutter / Swift / Kotlin

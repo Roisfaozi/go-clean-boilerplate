@@ -26,21 +26,6 @@ func NewPermissionController(useCase usecase.IPermissionUseCase, log *logrus.Log
 	}
 }
 
-// resolveDomain ensures that a tenant can only operate within their own organization.
-// If an organization_id is present in the context, it overrides the requested domain.
-func resolveDomain(c *gin.Context, requestedDomain string) string {
-	orgID, exists := c.Get("organization_id")
-	if exists && orgID != nil {
-		if idStr, ok := orgID.(string); ok && idStr != "" {
-			return idStr
-		}
-	}
-	if requestedDomain == "" {
-		return "global"
-	}
-	return requestedDomain
-}
-
 // AssignRole godoc
 // @Summary      Assign role to user
 // @Description  Assigns a role to a specified user (Casbin). Defaults to 'global' domain.
@@ -70,7 +55,7 @@ func (h *PermissionController) AssignRole(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.AssignRoleToUser(c.Request.Context(), req.UserID, req.Role, resolveDomain(c, req.Domain))
+	err := h.useCase.AssignRoleToUser(c.Request.Context(), req.UserID, req.Role, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to assign role")
 		return
@@ -92,7 +77,7 @@ func (h *PermissionController) AssignRole(c *gin.Context) {
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /permissions/revoke-role [delete]
+// @Router       /permissions/revoke-role [post]
 func (h *PermissionController) RevokeRole(c *gin.Context) {
 	var req model.AssignRoleRequest // Same request structure as Assign
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -106,7 +91,7 @@ func (h *PermissionController) RevokeRole(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.RevokeRoleFromUser(c.Request.Context(), req.UserID, req.Role, resolveDomain(c, req.Domain))
+	err := h.useCase.RevokeRoleFromUser(c.Request.Context(), req.UserID, req.Role, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to revoke role")
 		return
@@ -142,7 +127,7 @@ func (h *PermissionController) GrantPermission(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.GrantPermissionToRole(c.Request.Context(), req.Role, req.Path, req.Method, resolveDomain(c, req.Domain))
+	err := h.useCase.GrantPermissionToRole(c.Request.Context(), req.Role, req.Path, req.Method, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to grant permission")
 		return
@@ -182,7 +167,7 @@ func (h *PermissionController) GetAllPermissions(c *gin.Context) {
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Role is required"
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /permissions/{role} [get]
+// @Router       /permissions/roles/{role} [get]
 func (h *PermissionController) GetPermissionsForRole(c *gin.Context) {
 	role := c.Param("role")
 	if role == "" {
@@ -279,7 +264,7 @@ func (h *PermissionController) UpdatePermission(c *gin.Context) {
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /permissions/revoke [delete]
+// @Router       /permissions/revoke [post]
 func (h *PermissionController) RevokePermission(c *gin.Context) {
 	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -293,7 +278,7 @@ func (h *PermissionController) RevokePermission(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.RevokePermissionFromRole(c.Request.Context(), req.Role, req.Path, req.Method, resolveDomain(c, req.Domain))
+	err := h.useCase.RevokePermissionFromRole(c.Request.Context(), req.Role, req.Path, req.Method, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to revoke permission")
 		return
@@ -329,7 +314,7 @@ func (h *PermissionController) AddRoleInheritance(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.AddParentRole(c.Request.Context(), req.ChildRole, req.ParentRole, resolveDomain(c, req.Domain))
+	err := h.useCase.AddParentRole(c.Request.Context(), req.ChildRole, req.ParentRole, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to add role inheritance")
 		return
@@ -366,7 +351,7 @@ func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.RemoveParentRole(c.Request.Context(), req.ChildRole, req.ParentRole, resolveDomain(c, req.Domain))
+	err := h.useCase.RemoveParentRole(c.Request.Context(), req.ChildRole, req.ParentRole, req.Domain)
 	if err != nil {
 		response.HandleError(c, err, "failed to remove role inheritance")
 		return
@@ -387,7 +372,7 @@ func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 // @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Role is required"
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /permissions/{role}/parents [get]
+// @Router       /permissions/parents/{role} [get]
 func (h *PermissionController) GetParentRoles(c *gin.Context) {
 	role := c.Param("role")
 	if role == "" {
@@ -539,7 +524,6 @@ func (h *PermissionController) AssignAccessRight(c *gin.Context) {
 		return
 	}
 
-	req.Domain = resolveDomain(c, req.Domain)
 	if err := h.useCase.AssignAccessRight(c.Request.Context(), req); err != nil {
 		response.HandleError(c, err, "failed to assign access right")
 		return
@@ -574,7 +558,6 @@ func (h *PermissionController) RevokeAccessRight(c *gin.Context) {
 		return
 	}
 
-	req.Domain = resolveDomain(c, req.Domain)
 	if err := h.useCase.RevokeAccessRight(c.Request.Context(), req); err != nil {
 		response.HandleError(c, err, "failed to revoke access right")
 		return

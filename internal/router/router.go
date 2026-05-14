@@ -92,6 +92,8 @@ func SetupRouter(
 	if cfg.MetricsEnabled {
 		router.Use(middleware.PrometheusMiddleware())
 	}
+	router.GET("/ws", authMiddleware.ValidateWebSocketToken(), wsController.HandleWebSocket)
+	router.GET("/events", authMiddleware.ValidateToken(), sseManager.ServeHTTP())
 
 	router.Use(middleware.RequestLogger(logger))
 	router.Use(middleware.RecoveryMiddleware(logger))
@@ -129,8 +131,9 @@ func SetupRouter(
 		}
 	}
 
-	apiV1 := router.Group("/api/v1")
-	apiV1.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	router.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	router.GET("/api/health", GetHealth(db, redisClient))
 
 	if cfg.MetricsEnabled {
 
@@ -143,9 +146,7 @@ func SetupRouter(
 		metricsGroup.GET("", gin.WrapH(promhttp.Handler()))
 	}
 
-	apiV1.GET("/events", authMiddleware.ValidateToken(), sseManager.ServeHTTP())
-	apiV1.GET("/ws", authMiddleware.ValidateWebSocketToken(), wsController.HandleWebSocket)
-	apiV1.GET("/health", GetHealth(db, redisClient))
+	apiV1 := router.Group("/api/v1")
 
 	public := apiV1.Group("")
 	if publicLimiter != nil {
@@ -176,8 +177,6 @@ func SetupRouter(
 	authenticated := apiV1.Group("")
 	authenticated.Use(apiKeyMiddleware.Authenticate())
 	authenticated.Use(authMiddleware.ValidateToken())
-	authenticated.Use(apiKeyMiddleware.RequireScopeAuto())
-	authenticated.Use(apiKeyMiddleware.RequireUserSession())
 	authenticated.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	if authLimiter != nil {
 		authenticated.Use(authLimiter)
@@ -204,48 +203,42 @@ func SetupRouter(
 		api_keyHttp.RegisterApiKeyRoutes(authenticated, apiKeyModule.Controller, authMiddleware, tenantMiddleware)
 	}
 
-	tenantAuthorized := apiV1.Group("")
-	tenantAuthorized.Use(apiKeyMiddleware.Authenticate())
-	tenantAuthorized.Use(authMiddleware.ValidateToken())
-	tenantAuthorized.Use(apiKeyMiddleware.RequireScopeAuto())
-	tenantAuthorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
-	tenantAuthorized.Use(tenantMiddleware.RequireOrganization())
-	tenantAuthorized.Use(casbinMiddleware)
+	tenant := apiV1.Group("")
+	tenant.Use(apiKeyMiddleware.Authenticate())
+	tenant.Use(authMiddleware.ValidateToken())
+	tenant.Use(tenantMiddleware.RequireOrganization())
 	if authLimiter != nil {
-		tenantAuthorized.Use(authLimiter)
+		tenant.Use(authLimiter)
 	}
 	{
-		organizationHttp.RegisterTenantRoutes(tenantAuthorized, organizationModule.OrganizationController, apiKeyMiddleware)
+		organizationHttp.RegisterTenantRoutes(tenant, organizationModule.OrganizationController)
 
 		// Project Routes
-		projectGroup := tenantAuthorized.Group("/projects")
+		projectGroup := tenant.Group("/projects")
 		{
-			projectGroup.POST("", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Create)
-			projectGroup.GET("", apiKeyMiddleware.RequireScopes("project:view", "project:manage"), projectModule.ProjectController.GetAll)
-			projectGroup.GET("/:id", apiKeyMiddleware.RequireScopes("project:view", "project:manage"), projectModule.ProjectController.GetByID)
-			projectGroup.PUT("/:id", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Update)
-			projectGroup.DELETE("/:id", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Delete)
+			projectGroup.POST("", projectModule.ProjectController.Create)
+			projectGroup.GET("", projectModule.ProjectController.GetAll)
+			projectGroup.GET("/:id", projectModule.ProjectController.GetByID)
+			projectGroup.PUT("/:id", projectModule.ProjectController.Update)
+			projectGroup.DELETE("/:id", projectModule.ProjectController.Delete)
 		}
-
-		webhookHttp.RegisterWebhookRoutes(tenantAuthorized, webhookModule.Controller, apiKeyMiddleware)
 	}
 
 	authorized := apiV1.Group("")
 	authorized.Use(apiKeyMiddleware.Authenticate())
 	authorized.Use(authMiddleware.ValidateToken())
-	authorized.Use(apiKeyMiddleware.RequireScopes("admin:manage"))
 	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
-	authorized.Use(tenantMiddleware.OptionalOrganization())
 	authorized.Use(casbinMiddleware)
 	if authLimiter != nil {
 		authorized.Use(authLimiter)
 	}
 	{
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
-		accessHttp.RegisterAccessRoutes(authorized.Group("", tenantMiddleware.OptionalOrganization()), accessModule.AccessController)
+		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
 		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
 		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
+		webhookHttp.RegisterWebhookRoutes(authorized, webhookModule.Controller, authMiddleware.ValidateToken(), casbinMiddleware)
 	}
 
 	// TUS Upload Handler
@@ -258,7 +251,14 @@ func SetupRouter(
 	return router
 }
 
-// GetHealth returns the health status of the application and its core dependencies.
+// GetHealth godoc
+// @Summary      System Health Check
+// @Description  Returns the health status of the application and its core dependencies (MySQL, Redis).
+// @Tags         system
+// @Produce      json
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "System is healthy"
+// @Failure      503  {object}  response.SwaggerErrorResponseWrapper "System is degraded"
+// @Router       /health [get]
 func GetHealth(db *gorm.DB, redisClient *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		status := "OK"

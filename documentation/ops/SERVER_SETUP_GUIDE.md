@@ -4,8 +4,8 @@ Panduan ini akan membantu Anda menyiapkan server baru (misalnya, VPS atau Bare M
 
 ## Prasyarat
 
-- Akses SSH ke server sebagai user `root`.
-- (Opsional, tapi sangat disarankan) Domain Anda sudah diarahkan ke alamat IP public server.
+*   Akses SSH ke server sebagai user `root`.
+*   (Opsional, tapi sangat disarankan) Domain Anda sudah diarahkan ke alamat IP public server.
 
 ---
 
@@ -118,7 +118,7 @@ Buat Repository Secrets baru:
 5.  **`STAGING_USER`**: `deploy`.
 6.  **`STAGING_KEY`**: Paste **seluruh isi Private Key** dari output `cat ~/.ssh/id_ed25519` di atas (atau private key dari server staging jika terpisah).
 
-    _Catatan_: Jika Anda menggunakan server Production dan Staging yang sama, Anda bisa menggunakan `PROD_HOST` = `STAGING_HOST`, `PROD_USER` = `STAGING_USER`, dan `PROD_KEY` = `STAGING_KEY`. Namun, untuk lingkungan nyata, disarankan server yang terpisah.
+   *Catatan*: Jika Anda menggunakan server Production dan Staging yang sama, Anda bisa menggunakan `PROD_HOST` = `STAGING_HOST`, `PROD_USER` = `STAGING_USER`, dan `PROD_KEY` = `STAGING_KEY`. Namun, untuk lingkungan nyata, disarankan server yang terpisah.
 
 ---
 
@@ -249,8 +249,7 @@ PORT=8080
 JWT_ACCESS_SECRET=your_super_secret_access_key_for_staging
 JWT_REFRESH_SECRET=your_super_secret_refresh_key_for_staging
 ```
-
-_Catatan:_ Pastikan `MYSQL_HOST` dan `REDIS_HOST` sesuai dengan nama service di `docker-compose.prod.yml` jika Anda menggunakan Docker Compose untuk database dan Redis.
+*Catatan:* Pastikan `MYSQL_HOST` dan `REDIS_HOST` sesuai dengan nama service di `docker-compose.prod.yml` jika Anda menggunakan Docker Compose untuk database dan Redis.
 
 ---
 
@@ -268,8 +267,8 @@ Sebelum CI/CD dapat berjalan lancar, kita perlu menyalakan infrastruktur dasar d
     ```bash
     docker compose -f docker-compose.prod.yml up -d mysql_prod redis_prod nginx
     ```
-    - Perintah ini akan membuat container database, Redis, dan Nginx berjalan di background.
-    - Volume Docker juga akan terinisialisasi.
+    *   Perintah ini akan membuat container database, Redis, dan Nginx berjalan di background.
+    *   Volume Docker juga akan terinisialisasi.
 3.  **Inisialisasi `upstream.conf`:**
     Pastikan file `deploy/nginx/upstream.conf` menunjuk ke `app-blue` sebagai default awal.
     ```bash
@@ -283,11 +282,9 @@ Sebelum CI/CD dapat berjalan lancar, kita perlu menyalakan infrastruktur dasar d
 
 Verifikasi:
 Cek apakah semua container berjalan:
-
 ```bash
 docker ps
 ```
-
 Anda seharusnya melihat `nginx_gateway`, `app-blue`, `mysql_prod`, dan `redis_prod` dalam status `Up` dan `healthy`.
 
 ---
@@ -295,7 +292,5 @@ Anda seharusnya melihat `nginx_gateway`, `app-blue`, `mysql_prod`, dan `redis_pr
 ## Selesai!
 
 Server Anda sekarang sudah siap menerima deployment otomatis.
-
-```
 
 ```

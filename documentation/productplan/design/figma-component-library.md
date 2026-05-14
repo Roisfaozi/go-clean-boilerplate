@@ -332,7 +332,6 @@ To make components switch between Comfort/Compact modes:
 
 1. **Select the component frame**
 2. **Apply density variables to all number properties:**
-
    - Replace `44px` with `$sizing/button-height`
    - Replace `16px` padding with `$spacing/component-gap`
    - Replace `12px` radius with `$radius/radius-lg`
@@ -344,7 +343,6 @@ To make components switch between Comfort/Compact modes:
 For Light/Dark mode:
 
 1. **Apply color variables to all color properties:**
-
    - Replace `#FFFFFF` with `$background`
    - Replace `#0F172A` with `$foreground`
    - Replace border colors with `$border`

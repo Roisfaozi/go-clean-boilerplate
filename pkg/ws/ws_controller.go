@@ -56,9 +56,10 @@ func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins 
 
 // HandleWebSocket godoc
 // @Summary      WebSocket connection
-// @Description  Establishes a WebSocket connection for real-time updates and presence. Requires a one-time ticket obtained from `/auth/ticket`.
+// @Description  Establishes a WebSocket connection for real-time updates and presence.
 // @Tags         realtime
-// @Param        ticket query string true "One-time WebSocket ticket from /auth/ticket"
+// @Security     BearerAuth
+// @Param        ticket query string false "One-time WebSocket ticket (if not using Bearer header)"
 // @Success      101  {string}  string "Switching Protocols"
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Router       /ws [get]

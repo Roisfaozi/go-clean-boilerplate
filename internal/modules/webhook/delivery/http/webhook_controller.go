@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
@@ -41,13 +40,6 @@ func (c *WebhookController) Create(ctx *gin.Context) {
 		return
 	}
 
-	orgID, ok := middleware.GetOrganizationIDFromContext(ctx)
-	if !ok {
-		response.ErrorResponse(ctx, http.StatusBadRequest, errors.New("missing organization context"), "organization context is required")
-		return
-	}
-	req.OrganizationID = orgID
-
 	res, err := c.UseCase.Create(ctx.Request.Context(), req)
 	if err != nil {
 		response.HandleError(ctx, err, "Failed to create webhook")
@@ -73,9 +65,9 @@ func (c *WebhookController) Create(ctx *gin.Context) {
 // @Router       /webhooks/{id} [put]
 func (c *WebhookController) Update(ctx *gin.Context) {
 	id := ctx.Param("id")
-	orgID, ok := middleware.GetOrganizationIDFromContext(ctx)
-	if !ok {
-		response.ErrorResponse(ctx, http.StatusBadRequest, errors.New("missing organization context"), "organization context is required")
+	orgID := ctx.Query("organization_id")
+	if orgID == "" {
+		response.ErrorResponse(ctx, http.StatusBadRequest, errors.New("missing organization_id"), "organization_id is required")
 		return
 	}
 
@@ -107,9 +99,9 @@ func (c *WebhookController) Update(ctx *gin.Context) {
 // @Router       /webhooks/{id} [delete]
 func (c *WebhookController) Delete(ctx *gin.Context) {
 	id := ctx.Param("id")
-	orgID, ok := middleware.GetOrganizationIDFromContext(ctx)
-	if !ok {
-		response.ErrorResponse(ctx, http.StatusBadRequest, errors.New("missing organization context"), "organization context is required")
+	orgID := ctx.Query("organization_id")
+	if orgID == "" {
+		response.ErrorResponse(ctx, http.StatusBadRequest, errors.New("missing organization_id"), "organization_id is required")
 		return
 	}
 
@@ -135,9 +127,9 @@ func (c *WebhookController) Delete(ctx *gin.Context) {
 // @Router       /webhooks/{id} [get]
 func (c *WebhookController) FindByID(ctx *gin.Context) {
 	id := ctx.Param("id")
-	orgID, ok := middleware.GetOrganizationIDFromContext(ctx)
-	if !ok {
-		response.ErrorResponse(ctx, http.StatusBadRequest, errors.New("missing organization context"), "organization context is required")
+	orgID := ctx.Query("organization_id")
+	if orgID == "" {
+		response.ErrorResponse(ctx, http.StatusBadRequest, errors.New("missing organization_id"), "organization_id is required")
 		return
 	}
 
@@ -161,9 +153,9 @@ func (c *WebhookController) FindByID(ctx *gin.Context) {
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /webhooks [get]
 func (c *WebhookController) FindByOrganization(ctx *gin.Context) {
-	orgID, ok := middleware.GetOrganizationIDFromContext(ctx)
-	if !ok {
-		response.ErrorResponse(ctx, http.StatusBadRequest, errors.New("missing organization context"), "organization context is required")
+	orgID := ctx.Query("organization_id")
+	if orgID == "" {
+		response.ErrorResponse(ctx, http.StatusBadRequest, errors.New("missing organization_id"), "organization_id is required")
 		return
 	}
 
@@ -191,9 +183,9 @@ func (c *WebhookController) FindByOrganization(ctx *gin.Context) {
 // @Router       /webhooks/{id}/logs [get]
 func (c *WebhookController) GetLogs(ctx *gin.Context) {
 	id := ctx.Param("id")
-	orgID, ok := middleware.GetOrganizationIDFromContext(ctx)
-	if !ok {
-		response.ErrorResponse(ctx, http.StatusBadRequest, errors.New("missing organization context"), "organization context is required")
+	orgID := ctx.Query("organization_id")
+	if orgID == "" {
+		response.ErrorResponse(ctx, http.StatusBadRequest, errors.New("missing organization_id"), "organization_id is required")
 		return
 	}
 

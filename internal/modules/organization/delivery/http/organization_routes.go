@@ -1,7 +1,6 @@
 package http
 
 import (
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,6 +14,18 @@ func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *Organizati
 
 		// Get organizations the user is a member of
 		orgGroup.GET("/me", controller.GetMyOrganizations)
+
+		// Get organization by ID (requires membership - use middleware in future)
+		orgGroup.GET("/:id", controller.GetOrganization)
+
+		// Get organization by slug
+		orgGroup.GET("/slug/:slug", controller.GetOrganizationBySlug)
+
+		// Update organization (requires owner/admin role - use middleware)
+		orgGroup.PUT("/:id", controller.UpdateOrganization)
+
+		// Delete organization (owner only)
+		orgGroup.DELETE("/:id", controller.DeleteOrganization)
 	}
 }
 
@@ -28,31 +39,26 @@ func RegisterPublicRoutes(router *gin.RouterGroup, controller *OrganizationContr
 
 // RegisterTenantRoutes registers routes that require tenant context
 // These routes use TenantMiddleware to set organization context
-func RegisterTenantRoutes(router *gin.RouterGroup, controller *OrganizationController, apiKeyMiddleware *middleware.APIKeyMiddleware) {
+func RegisterTenantRoutes(router *gin.RouterGroup, controller *OrganizationController) {
 	orgGroup := router.Group("/organizations")
 	{
-		orgGroup.GET("/:id", apiKeyMiddleware.RequireScopes("org:view", "org:manage"), controller.GetOrganization)
-		orgGroup.GET("/slug/:slug", apiKeyMiddleware.RequireScopes("org:view", "org:manage"), controller.GetOrganizationBySlug)
-		orgGroup.PUT("/:id", apiKeyMiddleware.RequireScopes("org:manage"), controller.UpdateOrganization)
-		orgGroup.DELETE("/:id", apiKeyMiddleware.RequireUserSession(), controller.DeleteOrganization)
-
 		// Member Management
 		membersGroup := orgGroup.Group("/:id/members")
 		{
 			// Invite member
-			membersGroup.POST("/invite", apiKeyMiddleware.RequireScopes("member:manage"), controller.InviteMember)
+			membersGroup.POST("/invite", controller.InviteMember)
 
 			// Get all members
-			membersGroup.GET("", apiKeyMiddleware.RequireScopes("member:manage"), controller.GetMembers)
+			membersGroup.GET("", controller.GetMembers)
 
 			// Update member role
-			membersGroup.PATCH("/:userId", apiKeyMiddleware.RequireScopes("member:manage"), controller.UpdateMemberRole)
+			membersGroup.PATCH("/:userId", controller.UpdateMemberRole)
 
 			// Remove member
-			membersGroup.DELETE("/:userId", apiKeyMiddleware.RequireScopes("member:manage"), controller.RemoveMember)
+			membersGroup.DELETE("/:userId", controller.RemoveMember)
 
 			// Get online members (Presence)
-			orgGroup.GET("/:id/presence", apiKeyMiddleware.RequireScopes("presence:view"), controller.GetPresence)
+			orgGroup.GET("/:id/presence", controller.GetPresence)
 		}
 	}
 }

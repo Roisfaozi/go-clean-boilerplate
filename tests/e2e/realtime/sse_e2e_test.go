@@ -49,7 +49,7 @@ func TestSSE_EventSubscription(t *testing.T) {
 
 	t.Run("Success - Connect to SSE endpoint", func(t *testing.T) {
 		// Create SSE request
-		req, err := http.NewRequest("GET", server.BaseURL+"/api/v1/events", nil)
+		req, err := http.NewRequest("GET", server.BaseURL+"/events", nil)
 		require.NoError(t, err)
 		req.Header.Set("Authorization", "Bearer "+userToken)
 		req.Header.Set("Accept", "text/event-stream")
@@ -95,7 +95,7 @@ func TestSSE_EventSubscription(t *testing.T) {
 	})
 
 	t.Run("Negative - Unauthorized SSE", func(t *testing.T) {
-		req, err := http.NewRequest("GET", server.BaseURL+"/api/v1/events", nil)
+		req, err := http.NewRequest("GET", server.BaseURL+"/events", nil)
 		require.NoError(t, err)
 		// No auth header
 

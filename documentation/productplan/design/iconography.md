@@ -77,29 +77,33 @@ Jangan import ikon Lucide secara mentah berulang kali. Buat komponen atomik `Ico
 
 ```tsx
 // components/atoms/Icon.tsx
-import { icons } from "lucide-react";
+import { icons } from 'lucide-react'
 
 interface IconProps {
-  name: keyof typeof icons;
-  size?: "sm" | "md" | "lg";
-  className?: string;
+  name: keyof typeof icons
+  size?: 'sm' | 'md' | 'lg'
+  className?: string
 }
 
-const Icon = ({ name, size = "md", className }: IconProps) => {
-  const LucideIcon = icons[name];
+const Icon = ({ name, size = 'md', className }: IconProps) => {
+  const LucideIcon = icons[name]
 
   // Tailwind v4 classes mapping
   // Di Compact mode (data-density="compact"), ukuran & stroke mengecil otomatis
   const sizeClasses = {
-    sm: "w-4 h-4 desktop:w-3 desktop:h-3", // Responsive logic
-    md: "w-5 h-5 [data-density=compact]:w-4 [data-density=compact]:h-4",
-    lg: "w-6 h-6 [data-density=compact]:w-5 [data-density=compact]:h-5",
-  };
+    sm: 'w-4 h-4 desktop:w-3 desktop:h-3', // Responsive logic
+    md: 'w-5 h-5 [data-density=compact]:w-4 [data-density=compact]:h-4',
+    lg: 'w-6 h-6 [data-density=compact]:w-5 [data-density=compact]:h-5',
+  }
 
-  const strokeWidth = "stroke-[2px] [data-density=compact]:stroke-[1.5px]";
+  const strokeWidth = 'stroke-[2px] [data-density=compact]:stroke-[1.5px]'
 
-  return <LucideIcon className={`shrink-0 ${sizeClasses[size]} ${strokeWidth} ${className}`} />;
-};
+  return (
+    <LucideIcon
+      className={`shrink-0 ${sizeClasses[size]} ${strokeWidth} ${className}`}
+    />
+  )
+}
 ```
 
 ---

@@ -139,9 +139,6 @@ func TestMultiTenancyE2E_MemberFlow(t *testing.T) {
 	ok, _ := server.Enforcer.HasGroupingPolicy(newUser.ID, memberRoleID, orgID)
 	assert.True(t, ok, "Casbin grouping policy should exist for (user, role, org)")
 
-	_, err = server.Enforcer.AddPolicy(memberRoleID, orgID, "/api/v1/organizations/:id", "GET")
-	require.NoError(t, err)
-
 	// 9. Login as New Member
 	resp = client.POST("/api/v1/auth/login", map[string]any{
 		"username": inviteEmail, // Shadow users use email as username initially

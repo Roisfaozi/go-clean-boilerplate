@@ -74,21 +74,21 @@ func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybu
 
 ### 3. Supported Operators
 
-| Operator      | SQL Example             | Notes                |
-| :------------ | :---------------------- | :------------------- |
-| `contains`    | `col ILIKE ?`           | `%value%`            |
-| `notContains` | `col NOT ILIKE ?`       | `%value%`            |
-| `startsWith`  | `col ILIKE ?`           | `value%`             |
-| `endsWith`    | `col ILIKE ?`           | `%value`             |
-| `equals`      | `col = ?`               |                      |
-| `notEqual`    | `col <> ?`              |                      |
-| `in`          | `col IN (?)`            | Pass slice as `From` |
-| `notIn`       | `col NOT IN (?)`        | Pass slice as `From` |
-| `inRange`     | `col >= ? AND col <= ?` | Uses `From` and `To` |
-| `lessThan`    | `col < ?`               |                      |
-| `greaterThan` | `col > ?`               |                      |
-| `isNull`      | `col IS NULL`           |                      |
-| `notNull`     | `col IS NOT NULL`       |                      |
+| Operator | SQL Example | Notes |
+| :--- | :--- | :--- |
+| `contains` | `col ILIKE ?` | `%value%` |
+| `notContains` | `col NOT ILIKE ?` | `%value%` |
+| `startsWith` | `col ILIKE ?` | `value%` |
+| `endsWith` | `col ILIKE ?` | `%value` |
+| `equals` | `col = ?` | |
+| `notEqual` | `col <> ?` | |
+| `in` | `col IN (?)` | Pass slice as `From` |
+| `notIn` | `col NOT IN (?)` | Pass slice as `From` |
+| `inRange` | `col >= ? AND col <= ?` | Uses `From` and `To` |
+| `lessThan` | `col < ?` | |
+| `greaterThan` | `col > ?` | |
+| `isNull` | `col IS NULL` | |
+| `notNull` | `col IS NOT NULL` | |
 
 ## Testing
 

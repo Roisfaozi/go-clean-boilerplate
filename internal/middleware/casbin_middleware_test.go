@@ -135,11 +135,12 @@ func TestCasbinMiddleware_ReleaseModeNilEnforcer(t *testing.T) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	// Pass nil enforcer in release mode - should panic
-	assert.Panics(t, func() {
-		casbinMiddleware := middleware.CasbinMiddleware(nil, logger)
-		casbinMiddleware(c)
-	})
+	// Pass nil enforcer in release mode
+	casbinMiddleware := middleware.CasbinMiddleware(nil, logger)
+
+	casbinMiddleware(c)
+
+	assert.Equal(t, http.StatusOK, w.Code) // Expected to continue but log critical warning
 }
 
 func TestCasbinMiddleware_WithOrganizationContext(t *testing.T) {

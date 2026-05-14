@@ -75,7 +75,7 @@ func TestWebSocketE2E_NotificationFlow(t *testing.T) {
 	ticket := ticketResp.Data.Ticket
 
 	// 4. Connect to WebSocket
-	wsURL := strings.Replace(server.BaseURL, "http", "ws", 1) + "/api/v1/ws?ticket=" + ticket
+	wsURL := strings.Replace(server.BaseURL, "http", "ws", 1) + "/ws?ticket=" + ticket
 	u, _ := url.Parse(wsURL)
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	require.NoError(t, err)
@@ -210,7 +210,7 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 		err := json.Unmarshal(wTicket.BodyBytes, &ticketResp)
 		require.NoError(t, err)
 
-		wsURL := strings.Replace(server.BaseURL, "http", "ws", 1) + "/api/v1/ws?ticket=" + ticketResp.Data.Ticket
+		wsURL := strings.Replace(server.BaseURL, "http", "ws", 1) + "/ws?ticket=" + ticketResp.Data.Ticket
 		u, _ := url.Parse(wsURL)
 		conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 		require.NoError(t, err)

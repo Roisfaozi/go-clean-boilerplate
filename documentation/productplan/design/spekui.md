@@ -127,19 +127,16 @@ Ini adalah komponen paling penting.
 Desainer diminta menyerahkan file Figma dengan struktur berikut:
 
 1.  **Halaman "Design Tokens":**
-
     - Menampilkan palet warna lengkap.
     - Menampilkan tipografi scale.
     - **Wajib:** Tampilan tabel perbandingan _Variables_ (Comfort vs Compact).
 
 2.  **Halaman "Component Library":**
-
     - Button (Primary, Secondary, Ghost, Destructive).
     - Input Fields (Text, Select, Datepicker).
     - **Master Table Component:** Tabel yang bisa di-resize dengan Auto Layout sempurna.
 
 3.  **Halaman "Key Screens" (Mockup):**
-
     - **Screen A: Dashboard SaaS (Comfort Mode).** Tampilkan grafik besar, kartu statistik dengan banyak whitespace.
     - **Screen B: Logistics Data Grid (Compact Mode).** Tampilkan tabel dengan 20 kolom dan 50 baris data, terlihat padat tapi rapi.
     - **Screen C: AI Chat Page.** Tampilan percakapan dengan AI.

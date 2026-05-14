@@ -111,8 +111,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users/register",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users", "register"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users",
+                "register"
+              ]
             }
           },
           "response": []
@@ -350,8 +356,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users/register",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users", "register"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users",
+                "register"
+              ]
             }
           },
           "response": []
@@ -508,8 +520,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users/register",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users", "register"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users",
+                "register"
+              ]
             }
           },
           "response": []
@@ -576,8 +594,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users/register",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users", "register"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users",
+                "register"
+              ]
             }
           },
           "response": []
@@ -792,8 +816,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users/register",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users", "register"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users",
+                "register"
+              ]
             }
           },
           "response": []
@@ -863,8 +893,14 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users/me",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users", "me"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users",
+                "me"
+              ]
             }
           },
           "response": []
@@ -955,8 +991,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users/me",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users", "me"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users",
+                "me"
+              ]
             }
           },
           "response": []
@@ -1025,8 +1067,13 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users"
+              ]
             }
           },
           "response": []
@@ -1093,8 +1140,13 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users?page=1&limit=5&username=User",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users"],
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -1166,8 +1218,14 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users/{{userId}}",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users", "{{userId}}"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users",
+                "{{userId}}"
+              ]
             }
           },
           "response": []
@@ -1224,8 +1282,14 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users/{{userId}}",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users", "{{userId}}"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users",
+                "{{userId}}"
+              ]
             }
           },
           "response": []
@@ -1280,8 +1344,15 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users/{{userId}}/status",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users", "{{userId}}", "status"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users",
+                "{{userId}}",
+                "status"
+              ]
             }
           },
           "response": []
@@ -1325,8 +1396,14 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/auth/refresh",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "auth", "refresh"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "auth",
+                    "refresh"
+                  ]
                 }
               },
               "response": []
@@ -1351,8 +1428,14 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/auth/refresh",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "auth", "refresh"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "auth",
+                    "refresh"
+                  ]
                 }
               },
               "response": []
@@ -1391,8 +1474,14 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/auth/refresh",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "auth", "refresh"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "auth",
+                    "refresh"
+                  ]
                 }
               },
               "response": []
@@ -1449,8 +1538,14 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/auth/logout",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "auth", "logout"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "auth",
+                    "logout"
+                  ]
                 }
               },
               "response": []
@@ -1475,8 +1570,14 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/auth/logout",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "auth", "logout"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "auth",
+                    "logout"
+                  ]
                 }
               },
               "response": []
@@ -1525,8 +1626,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/auth/login",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "auth", "login"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "auth",
+                "login"
+              ]
             }
           },
           "response": []
@@ -1580,8 +1687,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/auth/login",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "auth", "login"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "auth",
+                "login"
+              ]
             }
           },
           "response": []
@@ -1634,8 +1747,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/auth/login",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "auth", "login"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "auth",
+                "login"
+              ]
             }
           },
           "response": []
@@ -1680,8 +1799,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/auth/forgot-password",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "auth", "forgot-password"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "auth",
+                "forgot-password"
+              ]
             }
           },
           "response": []
@@ -1725,8 +1850,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/auth/reset-password",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "auth", "reset-password"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "auth",
+                "reset-password"
+              ]
             }
           },
           "response": []
@@ -1781,8 +1912,13 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/roles",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "roles"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "roles"
+              ]
             }
           },
           "response": []
@@ -1821,8 +1957,13 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/roles",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "roles"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "roles"
+              ]
             }
           },
           "response": []
@@ -1870,8 +2011,14 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/roles/{{roleId}}",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "roles", "{{roleId}}"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "roles",
+                "{{roleId}}"
+              ]
             }
           },
           "response": []
@@ -1908,8 +2055,14 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/roles/non_existent_role_id",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "roles", "non_existent_role_id"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "roles",
+                "non_existent_role_id"
+              ]
             }
           },
           "response": []
@@ -1942,8 +2095,14 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/roles/{{roleId}}",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "roles", "{{roleId}}"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "roles",
+                "{{roleId}}"
+              ]
             }
           },
           "response": []
@@ -1997,8 +2156,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions/grant",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "permissions", "grant"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "permissions",
+                "grant"
+              ]
             }
           },
           "response": []
@@ -2035,8 +2200,13 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "permissions"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "permissions"
+              ]
             }
           },
           "response": []
@@ -2069,8 +2239,14 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions/{{roleName}}",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "permissions", "{{roleName}}"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "permissions",
+                "{{roleName}}"
+              ]
             }
           },
           "response": []
@@ -2118,8 +2294,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "permissions", "assign-role"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "permissions",
+                "assign-role"
+              ]
             }
           },
           "response": []
@@ -2163,8 +2345,13 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "permissions"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "permissions"
+              ]
             }
           },
           "response": []
@@ -2206,8 +2393,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions/revoke",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "permissions", "revoke"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "permissions",
+                "revoke"
+              ]
             }
           },
           "response": []
@@ -2251,8 +2444,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions/grant",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "permissions", "grant"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "permissions",
+                "grant"
+              ]
             }
           },
           "response": []
@@ -2301,8 +2500,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions/inheritance",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "permissions", "inheritance"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "permissions",
+                "inheritance"
+              ]
             }
           },
           "response": []
@@ -2351,8 +2556,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions/inheritance",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "permissions", "inheritance"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "permissions",
+                "inheritance"
+              ]
             }
           },
           "response": []
@@ -2393,8 +2604,15 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions/{{roleName}}/parents",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "permissions", "{{roleName}}", "parents"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "permissions",
+                "{{roleName}}",
+                "parents"
+              ]
             }
           },
           "response": []
@@ -2454,8 +2672,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions/check-batch",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "permissions", "check-batch"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "permissions",
+                "check-batch"
+              ]
             }
           },
           "response": []
@@ -2502,8 +2726,14 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/users/register",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "users", "register"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "users",
+                    "register"
+                  ]
                 }
               },
               "response": []
@@ -2539,8 +2769,14 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/auth/login",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "auth", "login"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "auth",
+                    "login"
+                  ]
                 }
               },
               "response": []
@@ -2578,8 +2814,14 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/users/register",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "users", "register"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "users",
+                    "register"
+                  ]
                 }
               },
               "response": []
@@ -2615,8 +2857,14 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/auth/login",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "auth", "login"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "auth",
+                    "login"
+                  ]
                 }
               },
               "response": []
@@ -2654,8 +2902,14 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/users/register",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "users", "register"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "users",
+                    "register"
+                  ]
                 }
               },
               "response": []
@@ -2691,8 +2945,14 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/auth/login",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "auth", "login"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "auth",
+                    "login"
+                  ]
                 }
               },
               "response": []
@@ -2734,8 +2994,14 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "permissions", "assign-role"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "permissions",
+                    "assign-role"
+                  ]
                 }
               },
               "response": []
@@ -2777,8 +3043,14 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "permissions", "assign-role"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "permissions",
+                    "assign-role"
+                  ]
                 }
               },
               "response": []
@@ -2820,8 +3092,14 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "permissions", "assign-role"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "permissions",
+                    "assign-role"
+                  ]
                 }
               },
               "response": []
@@ -2859,8 +3137,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/articles",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "articles"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "articles"
+                  ]
                 }
               },
               "response": []
@@ -2902,8 +3185,13 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/articles",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "articles"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "articles"
+                  ]
                 }
               },
               "response": []
@@ -2945,8 +3233,13 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/articles",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "articles"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "articles"
+                  ]
                 }
               },
               "response": []
@@ -3000,8 +3293,13 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/endpoints",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "endpoints"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "endpoints"
+              ]
             }
           },
           "response": []
@@ -3038,8 +3336,14 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/endpoints/{{endpointId}}",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "endpoints", "{{endpointId}}"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "endpoints",
+                "{{endpointId}}"
+              ]
             }
           },
           "response": []
@@ -3072,8 +3376,14 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/endpoints/999999",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "endpoints", "999999"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "endpoints",
+                "999999"
+              ]
             }
           },
           "response": []
@@ -3128,8 +3438,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/endpoints/search",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "endpoints", "search"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "endpoints",
+                "search"
+              ]
             }
           },
           "response": []
@@ -3181,8 +3497,13 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/access-rights",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "access-rights"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "access-rights"
+              ]
             }
           },
           "response": []
@@ -3217,8 +3538,13 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/access-rights",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "access-rights"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "access-rights"
+              ]
             }
           },
           "response": []
@@ -3262,8 +3588,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/access-rights/link",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "access-rights", "link"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "access-rights",
+                "link"
+              ]
             }
           },
           "response": []
@@ -3300,8 +3632,14 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/access-rights/{{accessRightId}}",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "access-rights", "{{accessRightId}}"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "access-rights",
+                "{{accessRightId}}"
+              ]
             }
           },
           "response": []
@@ -3334,8 +3672,14 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/access-rights/999999",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "access-rights", "999999"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "access-rights",
+                "999999"
+              ]
             }
           },
           "response": []
@@ -3390,8 +3734,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/access-rights/search",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "access-rights", "search"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "access-rights",
+                "search"
+              ]
             }
           },
           "response": []
@@ -3433,8 +3783,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/users/register",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "users", "register"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "users",
+                "register"
+              ]
             }
           },
           "response": []
@@ -3468,8 +3824,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/auth/login",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "auth", "login"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "auth",
+                "login"
+              ]
             }
           },
           "response": []
@@ -3480,7 +3842,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"],
+                "exec": [
+                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -3509,8 +3873,14 @@
             },
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/permissions/assign-role",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "permissions", "assign-role"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "permissions",
+                "assign-role"
+              ]
             }
           },
           "response": []
@@ -3543,8 +3913,13 @@
             "header": [],
             "url": {
               "raw": "{{baseURL}}/{{apiVersion}}/articles",
-              "host": ["{{baseURL}}"],
-              "path": ["{{apiVersion}}", "articles"]
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "{{apiVersion}}",
+                "articles"
+              ]
             }
           },
           "response": []
@@ -3585,8 +3960,14 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/audit-logs/search",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "audit-logs", "search"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "audit-logs",
+                    "search"
+                  ]
                 }
               },
               "response": []
@@ -3603,8 +3984,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseURL}}/api/health",
-                  "host": ["{{baseURL}}"],
-                  "path": ["api", "health"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "health"
+                  ]
                 }
               },
               "response": []
@@ -3640,8 +4026,14 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/users/search",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "users", "search"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "users",
+                    "search"
+                  ]
                 }
               },
               "response": []
@@ -3672,8 +4064,14 @@
                 },
                 "url": {
                   "raw": "{{baseURL}}/{{apiVersion}}/roles/search",
-                  "host": ["{{baseURL}}"],
-                  "path": ["{{apiVersion}}", "roles", "search"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "{{apiVersion}}",
+                    "roles",
+                    "search"
+                  ]
                 }
               },
               "response": []
@@ -3700,8 +4098,12 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseURL}}/ws",
-                  "host": ["{{baseURL}}"],
-                  "path": ["ws"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "ws"
+                  ]
                 }
               },
               "response": []
@@ -3729,8 +4131,12 @@
                 ],
                 "url": {
                   "raw": "{{baseURL}}/events",
-                  "host": ["{{baseURL}}"],
-                  "path": ["events"]
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "events"
+                  ]
                 }
               },
               "response": []
