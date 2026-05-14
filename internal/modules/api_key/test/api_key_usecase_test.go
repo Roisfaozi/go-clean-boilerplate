@@ -9,6 +9,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/usecase"
+	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	userMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +20,7 @@ import (
 func TestApiKeyUseCase_Create(t *testing.T) {
 	repo := new(mocks.MockApiKeyRepository)
 	log := logrus.New()
-	uc := usecase.NewApiKeyUseCase(repo, log)
+	uc := usecase.NewApiKeyUseCase(repo, nil, nil, log)
 
 	ctx := context.Background()
 	userID := "user-1"
@@ -41,16 +43,13 @@ func TestApiKeyUseCase_Create(t *testing.T) {
 
 func TestApiKeyUseCase_Authenticate(t *testing.T) {
 	repo := new(mocks.MockApiKeyRepository)
+	userRepo := new(userMocks.MockUserRepository)
 	log := logrus.New()
-	uc := usecase.NewApiKeyUseCase(repo, log)
+	uc := usecase.NewApiKeyUseCase(repo, userRepo, nil, log)
 
 	ctx := context.Background()
 	rawKey := "some-secure-key"
 	fullKey := "sk_live_" + rawKey
-
-	// We need to know the hash to mock FindByHash correctly
-	// But since hashKey is private, we can either make it public or
-	// just mock Anything if we trust the logic.
 
 	apiKey := &entity.ApiKey{
 		ID:             "key-1",
@@ -59,20 +58,31 @@ func TestApiKeyUseCase_Authenticate(t *testing.T) {
 		IsActive:       true,
 	}
 
+	user := &userEntity.User{
+		ID:       "user-1",
+		Username: "testuser",
+	}
+
 	repo.On("FindByHash", ctx, mock.Anything).Return(apiKey, nil)
+	userRepo.On("FindByID", ctx, "user-1").Return(user, nil)
 	repo.On("Update", ctx, mock.Anything).Return(nil)
 
 	res, err := uc.Authenticate(ctx, fullKey)
 
 	assert.NoError(t, err)
-	assert.Equal(t, apiKey.ID, res.ID)
+	assert.Equal(t, apiKey.ID, res.ApiKeyID)
+	assert.Equal(t, user.Username, res.Username)
+
+	// Wait for async update
+	time.Sleep(100 * time.Millisecond)
 	repo.AssertExpectations(t)
+	userRepo.AssertExpectations(t)
 }
 
 func TestApiKeyUseCase_Authenticate_Expired(t *testing.T) {
 	repo := new(mocks.MockApiKeyRepository)
 	log := logrus.New()
-	uc := usecase.NewApiKeyUseCase(repo, log)
+	uc := usecase.NewApiKeyUseCase(repo, nil, nil, log)
 
 	ctx := context.Background()
 	past := time.Now().Add(-1 * time.Hour)

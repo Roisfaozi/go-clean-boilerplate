@@ -1,6 +1,8 @@
 package setup
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
@@ -63,6 +65,7 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 		{ID: "role:superadmin", Name: "role:superadmin", OrganizationID: &globalOrg, Description: "Super Administrator role"},
 		{ID: "role:admin", Name: "role:admin", OrganizationID: &globalOrg, Description: "Administrator role"},
 		{ID: "role:user", Name: "role:user", OrganizationID: &globalOrg, Description: "Regular user role"},
+		{ID: "role:org-owner", Name: "role:org-owner", OrganizationID: &globalOrg, Description: "Organization owner role"},
 		{ID: "role:moderator", Name: "role:moderator", OrganizationID: &globalOrg, Description: "Moderator role"},
 	}
 
@@ -74,13 +77,37 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 		{"role:user", "global", "/api/v1/users/me", "GET"},
 		{"role:user", "global", "/api/v1/users/me", "PUT"},
 		{"role:user", "global", "/api/v1/auth/logout", "POST"},
+		{"role:user", "global", "/api/v1/organizations/:id", "GET"},
+		{"role:user", "global", "/api/v1/organizations/slug/:slug", "GET"},
+		{"role:user", "global", "/api/v1/organizations/:id/presence", "GET"},
+		{"role:user", "global", "/api/v1/projects", "GET"},
+		{"role:user", "global", "/api/v1/projects/:id", "GET"},
+		{"role:admin", "global", "/api/v1/organizations/:id", "GET"},
+		{"role:admin", "global", "/api/v1/organizations/slug/:slug", "GET"},
+		{"role:admin", "global", "/api/v1/organizations/:id", "PUT"},
+		{"role:admin", "global", "/api/v1/organizations/:id", "DELETE"},
+		{"role:admin", "global", "/api/v1/organizations/:id/members/invite", "POST"},
+		{"role:admin", "global", "/api/v1/organizations/:id/members", "GET"},
+		{"role:admin", "global", "/api/v1/organizations/:id/members/:userId", "PATCH"},
+		{"role:admin", "global", "/api/v1/organizations/:id/members/:userId", "DELETE"},
+		{"role:admin", "global", "/api/v1/organizations/:id/presence", "GET"},
+		{"role:admin", "global", "/api/v1/projects", "GET"},
+		{"role:admin", "global", "/api/v1/projects/:id", "GET"},
+		{"role:admin", "global", "/api/v1/projects", "POST"},
+		{"role:admin", "global", "/api/v1/projects/:id", "PUT"},
+		{"role:admin", "global", "/api/v1/projects/:id", "DELETE"},
 		// Superadmin permissions for E2E
+		{"role:superadmin", "global", "*", "*"},
 		{"role:superadmin", "global", "/api/v1/webhooks", "POST"},
 		{"role:superadmin", "global", "/api/v1/webhooks", "GET"},
 		{"role:superadmin", "global", "/api/v1/webhooks/:id", "GET"},
 		{"role:superadmin", "global", "/api/v1/webhooks/:id", "PUT"},
 		{"role:superadmin", "global", "/api/v1/webhooks/:id", "DELETE"},
 		{"role:superadmin", "global", "/api/v1/webhooks/:id/logs", "GET"},
+		// API Keys permissions
+		{"role:superadmin", "global", "/api/v1/api-keys", "POST"},
+		{"role:superadmin", "global", "/api/v1/api-keys", "GET"},
+		{"role:superadmin", "global", "/api/v1/api-keys/:id", "DELETE"},
 	}
 
 	for _, p := range policies {
@@ -162,4 +189,9 @@ func CreateTestRole(t *testing.T, db *gorm.DB, name string) *roleEntity.Role {
 	}
 
 	return role
+}
+
+func HashSHA256(data string) string {
+	hash := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(hash[:])
 }

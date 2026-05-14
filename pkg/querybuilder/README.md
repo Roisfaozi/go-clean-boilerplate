@@ -45,7 +45,7 @@ func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybu
 	if err != nil {
 		return nil, err
 	}
-	
+
     // Log warnings if any field was ignored
     if len(warnings) > 0 {
         r.log.Warnf("QueryBuilder warnings: %v", warnings)
@@ -74,21 +74,21 @@ func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybu
 
 ### 3. Supported Operators
 
-| Operator | SQL Example | Notes |
-| :--- | :--- | :--- |
-| `contains` | `col ILIKE ?` | `%value%` |
-| `notContains` | `col NOT ILIKE ?` | `%value%` |
-| `startsWith` | `col ILIKE ?` | `value%` |
-| `endsWith` | `col ILIKE ?` | `%value` |
-| `equals` | `col = ?` | |
-| `notEqual` | `col <> ?` | |
-| `in` | `col IN (?)` | Pass slice as `From` |
-| `notIn` | `col NOT IN (?)` | Pass slice as `From` |
-| `inRange` | `col >= ? AND col <= ?` | Uses `From` and `To` |
-| `lessThan` | `col < ?` | |
-| `greaterThan` | `col > ?` | |
-| `isNull` | `col IS NULL` | |
-| `notNull` | `col IS NOT NULL` | |
+| Operator      | SQL Example             | Notes                |
+| :------------ | :---------------------- | :------------------- |
+| `contains`    | `col ILIKE ?`           | `%value%`            |
+| `notContains` | `col NOT ILIKE ?`       | `%value%`            |
+| `startsWith`  | `col ILIKE ?`           | `value%`             |
+| `endsWith`    | `col ILIKE ?`           | `%value`             |
+| `equals`      | `col = ?`               |                      |
+| `notEqual`    | `col <> ?`              |                      |
+| `in`          | `col IN (?)`            | Pass slice as `From` |
+| `notIn`       | `col NOT IN (?)`        | Pass slice as `From` |
+| `inRange`     | `col >= ? AND col <= ?` | Uses `From` and `To` |
+| `lessThan`    | `col < ?`               |                      |
+| `greaterThan` | `col > ?`               |                      |
+| `isNull`      | `col IS NULL`           |                      |
+| `notNull`     | `col IS NOT NULL`       |                      |
 
 ## Testing
 

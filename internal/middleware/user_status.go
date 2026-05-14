@@ -11,12 +11,16 @@ import (
 )
 
 // UserStatusMiddleware checks if the user account is active.
-// It assumes the user_id has already been set in the context by AuthMiddleware.
+//
+// It assumes that the user_id has already been set in the context by AuthMiddleware.
+// If the user_id is not found in the context or the user status is inactive,
+// it will return a 403 Forbidden response.
+// If there is an error fetching the user status, it will return a 500 Internal Server Error response.
+// Otherwise, it will call the next handler in the chain.
 func UserStatusMiddleware(userRepo userRepository.UserRepository, log *logrus.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get("user_id")
 		if !exists {
-			// This should not happen if AuthMiddleware is called first
 			response.Unauthorized(c, errors.New("user context not found"), "unauthorized")
 			c.Abort()
 			return
