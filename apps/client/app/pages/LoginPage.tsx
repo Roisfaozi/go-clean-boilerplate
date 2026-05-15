@@ -201,6 +201,8 @@ export default function LoginPage() {
           <form className="space-y-5" onSubmit={handleSubmit}>
             <FormGroup label="Username" required error={errors.username}>
               <NexusInput
+                id="username"
+                name="username"
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -210,6 +212,8 @@ export default function LoginPage() {
             </FormGroup>
             <FormGroup label="Password" required error={errors.password}>
               <NexusInput
+                id="password"
+                name="password"
                 type="password"
                 placeholder="Enter your password"
                 value={password}
@@ -230,7 +234,12 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-            <NexusButton className="h-11 w-full gap-2" loading={loading} disabled={googleLoading}>
+            <NexusButton
+              type="submit"
+              className="h-11 w-full gap-2"
+              loading={loading}
+              disabled={googleLoading}
+            >
               Sign In <ArrowRight className="h-4 w-4" />
             </NexusButton>
           </form>

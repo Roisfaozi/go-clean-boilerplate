@@ -124,6 +124,8 @@ export function CrudFormDialog({
               >
                 {field.type === "textarea" ? (
                   <NexusTextarea
+                    id={field.name}
+                    name={field.name}
                     value={values[field.name] || ""}
                     onChange={(e) => setValue(field.name, e.target.value)}
                     placeholder={field.placeholder}
@@ -150,12 +152,15 @@ export function CrudFormDialog({
                   </Select>
                 ) : field.type === "switch" ? (
                   <Switch
+                    id={field.name}
                     checked={!!values[field.name]}
                     onCheckedChange={(val) => setValue(field.name, val)}
                     disabled={isLoading || field.disabled}
                   />
                 ) : (
                   <NexusInput
+                    id={field.name}
+                    name={field.name}
                     type={field.type === "number" ? "number" : field.type}
                     value={values[field.name] || ""}
                     onChange={(e) =>

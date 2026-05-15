@@ -51,8 +51,8 @@ function MatrixCell({
   const toggle = useToggleAccessRight();
 
   const status = useMemo(() => {
-    if (!roleData?.data) return { assigned: false, partial: false };
-    const item = roleData.data.find((r: any) => r.id === resourceId);
+    const data = Array.isArray(roleData) ? roleData : [];
+    const item = data.find((r: any) => r.id === resourceId);
     return { assigned: item?.is_assigned ?? false, partial: item?.is_partial ?? false };
   }, [roleData, resourceId]);
 
@@ -334,17 +334,19 @@ export default function PermissionsPage() {
   const deletePermission = useDeletePermission();
 
   const permissions: Permission[] = useMemo(() => {
-    if (response?.data) return response.data as Permission[];
-    return [];
+    return (Array.isArray(response) ? response : []) as Permission[];
   }, [response]);
 
-  const roles = useMemo(() => (rolesResponse?.data || []) as Role[], [rolesResponse]);
+  const roles = useMemo(
+    () => (Array.isArray(rolesResponse) ? rolesResponse : []) as Role[],
+    [rolesResponse],
+  );
   const resources = useMemo(
-    () => (resourcesResponse?.data?.resources || []) as any[],
+    () => (resourcesResponse?.resources || []) as any[],
     [resourcesResponse],
   );
   const inheritanceTree = useMemo(
-    () => (inheritanceResponse?.data?.roles || []) as any[],
+    () => (inheritanceResponse?.roles || []) as any[],
     [inheritanceResponse],
   );
 
