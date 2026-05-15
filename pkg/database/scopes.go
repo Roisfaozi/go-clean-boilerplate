@@ -4,6 +4,7 @@ package database
 import (
 	"context"
 
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -33,24 +34,24 @@ func OrganizationScope(ctx context.Context) func(db *gorm.DB) *gorm.DB {
 		// Extract organization_id from context
 		orgIDValue := ctx.Value(OrganizationIDKey)
 		if orgIDValue == nil {
-			// No org_id in context - Super Admin mode or global routes
 			return db
 		}
 
-		// Type assertion - must be string
 		orgID, ok := orgIDValue.(string)
 		if !ok {
-			// Wrong type in context - fail-safe, don't apply filter
 			return db
 		}
+
+		// DEBUG
+		logrus.Infof("DEBUG: OrganizationScope applying filter for orgID: %s", orgID)
 
 		// Empty string check - fail-safe to avoid WHERE id = ""
 		if orgID == "" {
 			return db
 		}
 
-		// Apply the organization filter
-		return db.Where("organization_id = ?", orgID)
+		// Apply the organization filter: organization-specific OR global (NULL)
+		return db.Where("organization_id = ? OR organization_id IS NULL", orgID)
 	}
 }
 
