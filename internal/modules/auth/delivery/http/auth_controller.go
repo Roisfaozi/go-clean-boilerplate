@@ -46,7 +46,7 @@ func (h *AuthController) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.log.WithContext(c.Request.Context()).WithError(err).Error("Login failed: could not bind request")
-		response.BadRequest(c, err, "could not bind request")
+		response.BadRequest(c, exception.ErrBadRequest, "could not bind request")
 		return
 	}
 
@@ -150,7 +150,7 @@ func (h *AuthController) Logout(c *gin.Context) {
 func (h *AuthController) ForgotPassword(c *gin.Context) {
 	var req model.ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -185,7 +185,7 @@ func (h *AuthController) ForgotPassword(c *gin.Context) {
 func (h *AuthController) ResetPassword(c *gin.Context) {
 	var req model.ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -219,7 +219,7 @@ func (h *AuthController) ResetPassword(c *gin.Context) {
 func (h *AuthController) VerifyEmail(c *gin.Context) {
 	var req model.VerifyEmailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -283,7 +283,7 @@ func (h *AuthController) Register(c *gin.Context) {
 	var req model.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.log.WithContext(c.Request.Context()).WithError(err).Error("Register failed: could not bind request")
-		response.BadRequest(c, err, "could not bind request")
+		response.BadRequest(c, exception.ErrBadRequest, "could not bind request")
 		return
 	}
 
@@ -466,8 +466,7 @@ func (ac *AuthController) SSOCallback(c *gin.Context) {
 	code := c.Query("code")
 
 	if code == "" {
-		err := errors.New("authorization code is required")
-		response.BadRequest(c, err, "authorization code is required")
+		response.BadRequest(c, exception.ErrBadRequest, "authorization code is required")
 		return
 	}
 

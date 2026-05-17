@@ -55,7 +55,7 @@ func (ctrl *OrganizationController) CreateOrganization(c *gin.Context) {
 
 	var request model.CreateOrganizationRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -176,7 +176,7 @@ func (ctrl *OrganizationController) UpdateOrganization(c *gin.Context) {
 
 	var request model.UpdateOrganizationRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -333,7 +333,7 @@ func (ctrl *OrganizationController) InviteMember(c *gin.Context) {
 
 	var request model.InviteMemberRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -434,7 +434,7 @@ func (ctrl *OrganizationController) UpdateMemberRole(c *gin.Context) {
 
 	var request model.UpdateMemberRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
