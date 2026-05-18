@@ -49,7 +49,7 @@ func (h *RoleController) Create(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body for create role")
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -112,7 +112,7 @@ func (h *RoleController) Update(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body for update role")
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -177,7 +177,7 @@ func (h *RoleController) GetRolesDynamic(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&filter); err != nil {
 		h.Log.WithError(err).Error("failed to bind dynamic filter request body for roles")
-		response.BadRequest(c, err, "invalid request body for dynamic filter")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body for dynamic filter")
 		return
 	}
 
@@ -203,7 +203,7 @@ func (h *RoleController) handleError(c *gin.Context, err error, message string) 
 
 	switch {
 	case errors.Is(err, exception.ErrBadRequest):
-		response.BadRequest(c, err, message)
+		response.BadRequest(c, exception.ErrBadRequest, message)
 	case errors.Is(err, exception.ErrUnauthorized):
 		response.Unauthorized(c, err, message)
 	case errors.Is(err, exception.ErrForbidden):

@@ -43,7 +43,7 @@ func NewAccessController(useCase usecase.IAccessUseCase, validate *validator.Val
 func (h *AccessController) CreateAccessRight(c *gin.Context) {
 	var req model.CreateAccessRightRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -277,7 +277,7 @@ func (h *AccessController) GetEndpointsDynamic(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&filter); err != nil {
 		h.log.WithError(err).Error("failed to bind dynamic filter request body for endpoints")
-		response.BadRequest(c, err, "invalid request body for dynamic filter")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body for dynamic filter")
 		return
 	}
 
@@ -315,7 +315,7 @@ func (h *AccessController) GetAccessRightsDynamic(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&filter); err != nil {
 		h.log.WithError(err).Error("failed to bind dynamic filter request body for access rights")
-		response.BadRequest(c, err, "invalid request body for dynamic filter")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body for dynamic filter")
 		return
 	}
 

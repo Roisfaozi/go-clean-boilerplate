@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"errors"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
@@ -60,7 +61,7 @@ func resolveDomain(c *gin.Context, requestedDomain string) string {
 func (h *PermissionController) AssignRole(c *gin.Context) {
 	var req model.AssignRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -96,7 +97,7 @@ func (h *PermissionController) AssignRole(c *gin.Context) {
 func (h *PermissionController) RevokeRole(c *gin.Context) {
 	var req model.AssignRoleRequest // Same request structure as Assign
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -132,7 +133,7 @@ func (h *PermissionController) RevokeRole(c *gin.Context) {
 func (h *PermissionController) GrantPermission(c *gin.Context) {
 	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -247,7 +248,7 @@ func (h *PermissionController) GetUsersForRole(c *gin.Context) {
 func (h *PermissionController) UpdatePermission(c *gin.Context) {
 	var req model.UpdatePermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -283,7 +284,7 @@ func (h *PermissionController) UpdatePermission(c *gin.Context) {
 func (h *PermissionController) RevokePermission(c *gin.Context) {
 	var req model.GrantPermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -319,7 +320,7 @@ func (h *PermissionController) RevokePermission(c *gin.Context) {
 func (h *PermissionController) AddRoleInheritance(c *gin.Context) {
 	var req model.RoleInheritanceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -356,7 +357,7 @@ func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 	var req model.RoleInheritanceRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -423,7 +424,7 @@ func (h *PermissionController) GetParentRoles(c *gin.Context) {
 func (h *PermissionController) BatchCheck(c *gin.Context) {
 	var req model.BatchPermissionCheckRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -529,7 +530,7 @@ func (h *PermissionController) GetRoleAccessRights(c *gin.Context) {
 func (h *PermissionController) AssignAccessRight(c *gin.Context) {
 	var req model.AssignAccessRightRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -564,7 +565,7 @@ func (h *PermissionController) AssignAccessRight(c *gin.Context) {
 func (h *PermissionController) RevokeAccessRight(c *gin.Context) {
 	var req model.AssignAccessRightRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -48,7 +49,7 @@ func NewAuditController(uc usecase.AuditUseCase, validate *validator.Validate, l
 func (h *AuditController) GetLogsDynamic(c *gin.Context) {
 	var filter querybuilder.DynamicFilter
 	if err := c.ShouldBindJSON(&filter); err != nil {
-		response.BadRequest(c, err, "Invalid filter format")
+		response.BadRequest(c, exception.ErrBadRequest, "Invalid filter format")
 		return
 	}
 
