@@ -66,7 +66,7 @@ func TestCORSMiddleware_Wildcard_NoCredentials(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
 	// Should NOT have credentials allowed when using wildcard
-	assert.NotEqual(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
+assert.Empty(t, w.Header().Get("Access-Control-Allow-Credentials"))
 }
 
 func TestCORSMiddleware_WithSpecificOrigins(t *testing.T) {
