@@ -186,7 +186,8 @@ func TestAccessIntegration_UnlinkEndpointFromAccessRight_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify it is unlinked
-	list, _ := uc.GetAllAccessRights(context.Background())
+	list, err := uc.GetAllAccessRights(context.Background())
+	require.NoError(t, err)
 	foundLinked := false
 	for _, item := range list.Data {
 		if item.ID == ar.ID {
