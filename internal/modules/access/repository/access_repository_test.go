@@ -363,3 +363,55 @@ func TestAccessRepository_LinkEndpointToAccessRight(t *testing.T) {
 		assert.Equal(t, "link-ep", result.Endpoints[0].ID)
 	})
 }
+
+func TestAccessRepository_UnlinkEndpointFromAccessRight(t *testing.T) {
+	repo, db := setupAccessRepo(t)
+	ctx := context.Background()
+
+	t.Run("Success", func(t *testing.T) {
+		// Create endpoint and access right
+		endpoint := entity.Endpoint{ID: "unlink-ep", Path: "/api/unlink", Method: "GET"}
+		db.Create(&endpoint)
+
+		ar := entity.AccessRight{ID: "unlink-ar", Name: "Unlink Test"}
+		db.Create(&ar)
+
+		// Link them
+		err := repo.LinkEndpointToAccessRight(ctx, "unlink-ar", "unlink-ep")
+		require.NoError(t, err)
+
+		// Verify they are linked
+		result, err := repo.GetAccessRightByID(ctx, "unlink-ar")
+		require.NoError(t, err)
+		assert.Len(t, result.Endpoints, 1)
+
+		// Unlink them
+		err = repo.UnlinkEndpointFromAccessRight(ctx, "unlink-ar", "unlink-ep")
+		require.NoError(t, err)
+
+		// Verify they are unlinked
+		result, err = repo.GetAccessRightByID(ctx, "unlink-ar")
+		require.NoError(t, err)
+		assert.Len(t, result.Endpoints, 0)
+	})
+
+	t.Run("Negative - Unlink Non-existent Access Right", func(t *testing.T) {
+		err := repo.UnlinkEndpointFromAccessRight(ctx, "non-existent-ar", "unlink-ep")
+		require.NoError(t, err) // GORM does not return an error when deleting non-existent associations if the model isn't found
+	})
+
+	t.Run("Negative - Unlink Non-existent Endpoint", func(t *testing.T) {
+		err := repo.UnlinkEndpointFromAccessRight(ctx, "unlink-ar", "non-existent-ep")
+		require.NoError(t, err)
+	})
+
+	t.Run("Edge - Unlink with Empty IDs", func(t *testing.T) {
+		err := repo.UnlinkEndpointFromAccessRight(ctx, "", "")
+		require.Error(t, err) // Expected to error due to primary key missing
+	})
+
+	t.Run("Vulnerability - SQL Injection attempt in ID", func(t *testing.T) {
+		err := repo.UnlinkEndpointFromAccessRight(ctx, "unlink-ar' OR '1'='1", "unlink-ep")
+		require.NoError(t, err)
+	})
+}

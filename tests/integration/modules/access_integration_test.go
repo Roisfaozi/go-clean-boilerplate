@@ -165,3 +165,45 @@ func TestAccessIntegration_LinkEndpoint_Negative_DuplicateLink(t *testing.T) {
 	err = uc.LinkEndpointToAccessRight(context.Background(), model.LinkEndpointRequest{AccessRightID: ar.ID, EndpointID: ep.ID})
 	t.Logf("Duplicate link error (expected idempotent or conflict): %v", err)
 }
+
+func TestAccessIntegration_UnlinkEndpointFromAccessRight_Success(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	uc := setupAccessIntegration(env)
+
+	ar, _ := uc.CreateAccessRight(context.Background(), model.CreateAccessRightRequest{Name: "Unlink", Description: "d"})
+	ep, _ := uc.CreateEndpoint(context.Background(), model.CreateEndpointRequest{Path: "/api/v1/unlink", Method: "GET"})
+
+	// Link first
+	err := uc.LinkEndpointToAccessRight(context.Background(), model.LinkEndpointRequest{AccessRightID: ar.ID, EndpointID: ep.ID})
+	require.NoError(t, err)
+
+	// Now unlink
+	err = uc.UnlinkEndpointFromAccessRight(context.Background(), model.LinkEndpointRequest{AccessRightID: ar.ID, EndpointID: ep.ID})
+	require.NoError(t, err)
+
+	// Verify it is unlinked
+	list, _ := uc.GetAllAccessRights(context.Background())
+	foundLinked := false
+	for _, item := range list.Data {
+		if item.ID == ar.ID {
+			for _, e := range item.Endpoints {
+				if e.ID == ep.ID {
+					foundLinked = true
+				}
+			}
+		}
+	}
+	assert.False(t, foundLinked)
+}
+
+func TestAccessIntegration_UnlinkEndpointFromAccessRight_Negative_NonExistent(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	uc := setupAccessIntegration(env)
+
+	err := uc.UnlinkEndpointFromAccessRight(context.Background(), model.LinkEndpointRequest{AccessRightID: "non-existent", EndpointID: "non-existent"})
+	require.NoError(t, err) // GORM handles non-existent gracefully when unlinking
+}
