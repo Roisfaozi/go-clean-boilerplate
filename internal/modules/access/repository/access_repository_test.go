@@ -371,10 +371,10 @@ func TestAccessRepository_UnlinkEndpointFromAccessRight(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		// Create endpoint and access right
 		endpoint := entity.Endpoint{ID: "unlink-ep", Path: "/api/unlink", Method: "GET"}
-		db.Create(&endpoint)
+		require.NoError(t, db.Create(&endpoint).Error)
 
 		ar := entity.AccessRight{ID: "unlink-ar", Name: "Unlink Test"}
-		db.Create(&ar)
+		require.NoError(t, db.Create(&ar).Error)
 
 		// Link them
 		err := repo.LinkEndpointToAccessRight(ctx, "unlink-ar", "unlink-ep")
