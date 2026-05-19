@@ -172,11 +172,13 @@ func TestAccessIntegration_UnlinkEndpointFromAccessRight_Success(t *testing.T) {
 
 	uc := setupAccessIntegration(env)
 
-	ar, _ := uc.CreateAccessRight(context.Background(), model.CreateAccessRightRequest{Name: "Unlink", Description: "d"})
-	ep, _ := uc.CreateEndpoint(context.Background(), model.CreateEndpointRequest{Path: "/api/v1/unlink", Method: "GET"})
+	ar, err := uc.CreateAccessRight(context.Background(), model.CreateAccessRightRequest{Name: "Unlink", Description: "d"})
+	require.NoError(t, err)
+	ep, err := uc.CreateEndpoint(context.Background(), model.CreateEndpointRequest{Path: "/api/v1/unlink", Method: "GET"})
+	require.NoError(t, err)
 
 	// Link first
-	err := uc.LinkEndpointToAccessRight(context.Background(), model.LinkEndpointRequest{AccessRightID: ar.ID, EndpointID: ep.ID})
+	err = uc.LinkEndpointToAccessRight(context.Background(), model.LinkEndpointRequest{AccessRightID: ar.ID, EndpointID: ep.ID})
 	require.NoError(t, err)
 
 	// Now unlink
