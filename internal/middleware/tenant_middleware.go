@@ -52,15 +52,9 @@ func (m *TenantMiddleware) RequireOrganization() gin.HandlerFunc {
 			return
 		}
 
-		// Get organization ID from header (preferred), URL parameter, or slug
+		// Get organization ID from header or slug
 		orgID := c.GetHeader(OrgIDHeader)
-		if orgID == "" {
-			orgID = c.Param("id")
-		}
 		orgSlug := c.GetHeader(OrgSlugHeader)
-		if orgSlug == "" {
-			orgSlug = c.Param("slug")
-		}
 
 		if orgID == "" && orgSlug == "" {
 			response.BadRequest(c, errors.New("organization ID or slug is required"), "missing organization identifier")
@@ -131,9 +125,6 @@ func (m *TenantMiddleware) OptionalOrganization() gin.HandlerFunc {
 
 		orgID := c.GetHeader(OrgIDHeader)
 		orgSlug := c.GetHeader(OrgSlugHeader)
-		if orgSlug == "" {
-			orgSlug = c.Param("slug")
-		}
 
 		if orgID == "" && orgSlug == "" {
 			// No org specified, proceed without org context
