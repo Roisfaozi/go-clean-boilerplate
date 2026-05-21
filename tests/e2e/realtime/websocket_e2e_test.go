@@ -62,7 +62,7 @@ func TestWebSocketE2E_NotificationFlow(t *testing.T) {
 	orgID := orgResp.Data.Organizations[0].ID
 
 	// 3. Request Ticket
-	wTicket := server.Client.POST("/api/v1/auth/ticket?org_id="+orgID, nil, setup.WithAuth(accessToken))
+	wTicket := server.Client.POST("/api/v1/auth/ticket?org_id="+orgID, nil, setup.WithAuth(accessToken), setup.WithOrg(orgID))
 	require.Equal(t, 200, wTicket.StatusCode)
 
 	var ticketResp struct {
@@ -199,7 +199,7 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 		if orgID != "" {
 			urlPath += "?org_id=" + orgID
 		}
-		wTicket := server.Client.POST(urlPath, nil, setup.WithAuth(token))
+		wTicket := server.Client.POST(urlPath, nil, setup.WithAuth(token), setup.WithOrg(orgID))
 		require.Equal(t, 200, wTicket.StatusCode)
 
 		var ticketResp struct {
