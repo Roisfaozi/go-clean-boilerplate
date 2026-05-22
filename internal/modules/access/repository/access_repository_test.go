@@ -452,7 +452,7 @@ func TestAccessRepository_FindEndpointsDynamic_PaginationAndCount(t *testing.T) 
 
 	t.Run("Find error", func(t *testing.T) {
 		filter := &querybuilder.DynamicFilter{}
-		db.Exec("DROP TABLE endpoints")
+		db.Migrator().DropTable(&entity.Endpoint{})
 		_, _, err := repo.FindEndpointsDynamic(ctx, filter)
 		require.Error(t, err)
 	})
