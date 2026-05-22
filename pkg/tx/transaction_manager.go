@@ -58,3 +58,7 @@ func DBFromContext(ctx context.Context) (*gorm.DB, bool) {
 	db, ok := ctx.Value(txKey{}).(*gorm.DB)
 	return db, ok
 }
+
+func NewContextWithDB(ctx context.Context, db *gorm.DB) context.Context {
+	return context.WithValue(ctx, txKey{}, db)
+}

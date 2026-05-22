@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/glebarez/sqlite"
@@ -414,4 +415,230 @@ func TestAccessRepository_UnlinkEndpointFromAccessRight(t *testing.T) {
 		err := repo.UnlinkEndpointFromAccessRight(ctx, "unlink-ar' OR '1'='1", "unlink-ep")
 		require.NoError(t, err)
 	})
+}
+
+func TestAccessRepository_FindEndpointsDynamic_PaginationAndCount(t *testing.T) {
+	repo, db := setupAccessRepo(t)
+	ctx := context.Background()
+
+	// Seed Endpoints
+	endpoints := []entity.Endpoint{
+		{ID: "pag-1", Path: "/api/users", Method: "GET"},
+		{ID: "pag-2", Path: "/api/users/1", Method: "GET"},
+		{ID: "pag-3", Path: "/api/users/2", Method: "GET"},
+	}
+	db.Create(&endpoints)
+
+	t.Run("Pagination", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{
+			Page:     1,
+			PageSize: 2,
+		}
+		res, total, err := repo.FindEndpointsDynamic(ctx, filter)
+		require.NoError(t, err)
+		assert.Len(t, res, 2)
+		assert.GreaterOrEqual(t, total, int64(3))
+	})
+
+	t.Run("SkipCount", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{
+			SkipCount: true,
+		}
+		res, total, err := repo.FindEndpointsDynamic(ctx, filter)
+		require.NoError(t, err)
+		assert.GreaterOrEqual(t, len(res), 3)
+		assert.Equal(t, int64(-1), total)
+	})
+
+	t.Run("Find error", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{}
+		_ = db.Exec("DROP TABLE endpoints")
+		_, _, err := repo.FindEndpointsDynamic(ctx, filter)
+		require.Error(t, err)
+	})
+}
+
+func TestAccessRepository_FindAccessRightsDynamic_PaginationAndCount(t *testing.T) {
+	repo, db := setupAccessRepo(t)
+	ctx := context.Background()
+
+	// Seed AccessRights
+	ars := []entity.AccessRight{
+		{ID: "pag-ar-1", Name: "Pag 1"},
+		{ID: "pag-ar-2", Name: "Pag 2"},
+		{ID: "pag-ar-3", Name: "Pag 3"},
+	}
+	db.Create(&ars)
+
+	t.Run("Pagination", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{
+			Page:     1,
+			PageSize: 2,
+		}
+		res, total, err := repo.FindAccessRightsDynamic(ctx, filter)
+		require.NoError(t, err)
+		assert.Len(t, res, 2)
+		assert.GreaterOrEqual(t, total, int64(3))
+	})
+
+	t.Run("SkipCount", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{
+			SkipCount: true,
+		}
+		res, total, err := repo.FindAccessRightsDynamic(ctx, filter)
+		require.NoError(t, err)
+		assert.GreaterOrEqual(t, len(res), 3)
+		assert.Equal(t, int64(-1), total)
+	})
+
+	t.Run("Find error", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{}
+		_ = db.Exec("DROP TABLE access_rights")
+		_, _, err := repo.FindAccessRightsDynamic(ctx, filter)
+		require.Error(t, err)
+	})
+}
+
+func TestAccessRepository_FindEndpointsDynamic_Errors(t *testing.T) {
+	repo, _ := setupAccessRepo(t)
+	ctx := context.Background()
+
+	t.Run("Querybuilder Error", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{
+			Filter: map[string]querybuilder.Filter{
+				"NonExistentField": {Type: "equals", From: "test"},
+			},
+		}
+		_, _, err := repo.FindEndpointsDynamic(ctx, filter)
+		require.Error(t, err)
+	})
+
+	t.Run("Sort Error", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{
+			Sort: &[]querybuilder.SortModel{
+				{ColId: "NonExistentField", Sort: "asc"},
+			},
+		}
+		_, _, err := repo.FindEndpointsDynamic(ctx, filter)
+		require.Error(t, err)
+	})
+}
+
+func TestAccessRepository_FindAccessRightsDynamic_Errors(t *testing.T) {
+	repo, _ := setupAccessRepo(t)
+	ctx := context.Background()
+
+	t.Run("Querybuilder Error", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{
+			Filter: map[string]querybuilder.Filter{
+				"NonExistentField": {Type: "equals", From: "test"},
+			},
+		}
+		_, _, err := repo.FindAccessRightsDynamic(ctx, filter)
+		require.Error(t, err)
+	})
+
+	t.Run("Sort Error", func(t *testing.T) {
+		filter := &querybuilder.DynamicFilter{
+			Sort: &[]querybuilder.SortModel{
+				{ColId: "NonExistentField", Sort: "asc"},
+			},
+		}
+		_, _, err := repo.FindAccessRightsDynamic(ctx, filter)
+		require.Error(t, err)
+	})
+}
+
+func TestAccessRepository_GetDB_WithTransaction(t *testing.T) {
+	repo, db := setupAccessRepo(t)
+	ctx := context.Background()
+
+	// Injecting transaction context
+	txDB := db.Session(&gorm.Session{})
+	ctxWithTx := tx.NewContextWithDB(ctx, txDB)
+
+	endpoint := &entity.Endpoint{
+		ID:     "ep-tx",
+		Path:   "/api/tx",
+		Method: "GET",
+	}
+	err := repo.CreateEndpoint(ctxWithTx, endpoint)
+	require.NoError(t, err)
+
+	found, err := repo.GetEndpointByID(ctxWithTx, "ep-tx")
+	require.NoError(t, err)
+	assert.Equal(t, "/api/tx", found.Path)
+}
+
+func TestAccessRepository_GetEndpoints_Error(t *testing.T) {
+	repo, db := setupAccessRepo(t)
+	ctx := context.Background()
+
+	// drop table to simulate error
+	_ = db.Exec("DROP TABLE endpoints")
+
+	_, err := repo.GetEndpoints(ctx)
+	require.Error(t, err)
+}
+
+func TestAccessRepository_GetAccessRights_Error(t *testing.T) {
+	repo, db := setupAccessRepo(t)
+	ctx := context.Background()
+
+	// drop table to simulate error
+	_ = db.Exec("DROP TABLE access_rights")
+
+	_, err := repo.GetAccessRights(ctx)
+	require.Error(t, err)
+}
+
+func TestAccessRepository_FindEndpointsDynamic_CountError(t *testing.T) {
+	repo, db := setupAccessRepo(t)
+	ctx := context.Background()
+
+	_ = db.Exec("DROP TABLE endpoints")
+
+	filter := &querybuilder.DynamicFilter{}
+	_, _, err := repo.FindEndpointsDynamic(ctx, filter)
+	require.Error(t, err)
+}
+
+func TestAccessRepository_FindAccessRightsDynamic_CountError(t *testing.T) {
+	repo, db := setupAccessRepo(t)
+	ctx := context.Background()
+
+	_ = db.Exec("DROP TABLE access_rights")
+
+	filter := &querybuilder.DynamicFilter{}
+	_, _, err := repo.FindAccessRightsDynamic(ctx, filter)
+	require.Error(t, err)
+}
+
+// Add dummy sql driver test to trigger query builder to return bad SQL so Count will fail without skipping Count
+
+
+func TestAccessRepository_FindEndpointsDynamic_FindError(t *testing.T) {
+	repo, db := setupAccessRepo(t)
+	ctx := context.Background()
+
+	// drop table, pass a valid filter but skip count so it hits Find()
+	_ = db.Exec("DROP TABLE endpoints")
+	filter := &querybuilder.DynamicFilter{
+		SkipCount: true,
+	}
+	_, _, err := repo.FindEndpointsDynamic(ctx, filter)
+	require.Error(t, err)
+}
+
+func TestAccessRepository_FindAccessRightsDynamic_FindError(t *testing.T) {
+	repo, db := setupAccessRepo(t)
+	ctx := context.Background()
+
+	// drop table, pass a valid filter but skip count so it hits Find()
+	_ = db.Exec("DROP TABLE access_rights")
+	filter := &querybuilder.DynamicFilter{
+		SkipCount: true,
+	}
+	_, _, err := repo.FindAccessRightsDynamic(ctx, filter)
+	require.Error(t, err)
 }
