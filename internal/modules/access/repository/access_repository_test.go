@@ -437,7 +437,7 @@ func TestAccessRepository_FindEndpointsDynamic_PaginationAndCount(t *testing.T) 
 		res, total, err := repo.FindEndpointsDynamic(ctx, filter)
 		require.NoError(t, err)
 		assert.Len(t, res, 2)
-		assert.GreaterOrEqual(t, total, int64(3))
+		assert.Equal(t, int64(3), total)
 	})
 
 	t.Run("SkipCount", func(t *testing.T) {
