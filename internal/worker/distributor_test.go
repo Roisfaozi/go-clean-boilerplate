@@ -207,8 +207,8 @@ func TestRedisTaskDistributor_DistributeTaskAuditLogExport(t *testing.T) {
 		defer cleanup()
 		payload := model.AuditLogExportPayload{
 			UserID:   "user_123",
-			FromDate: time.Now().Add(-24*time.Hour).Format(time.RFC3339),
-			ToDate:   time.Now().Format(time.RFC3339),
+			FromDate: time.Now().Add(-24*time.Hour).Format("2006-01-02"),
+			ToDate:   time.Now().Format("2006-01-02"),
 		}
 
 		err := deps.distributor.DistributeTaskAuditLogExport(context.Background(), payload)
