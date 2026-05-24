@@ -118,8 +118,8 @@ func TestRedisTaskProcessor_Lifecycle(t *testing.T) {
 	})
 
 	t.Run("Edge - Start multiple times concurrently", func(t *testing.T) {
-		go deps.processor.Start()
-		go deps.processor.Start()
+		go func() { _ = deps.processor.Start() }()
+		go func() { _ = deps.processor.Start() }()
 
 		time.Sleep(100 * time.Millisecond)
 		deps.processor.Shutdown()

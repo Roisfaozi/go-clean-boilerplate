@@ -75,7 +75,7 @@ func TestAuditTaskHandler_ProcessTaskAuditLog(t *testing.T) {
 
 func TestAuditTaskHandler_ProcessTaskAuditLogExport(t *testing.T) {
 	// Clean up exports directory after tests
-	defer os.RemoveAll("exports")
+	defer func() { _ = os.RemoveAll("exports") }()
 
 	t.Run("Success", func(t *testing.T) {
 		uc, handler := setupAuditHandlerTest()

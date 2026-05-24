@@ -31,7 +31,7 @@ func setupDistributorTest(t *testing.T) (*distributorTestDeps, func()) {
 
 	cleanup := func() {
 		if redisDist, ok := distributor.(*worker.RedisTaskDistributor); ok {
-			redisDist.Close()
+			_ = redisDist.Close()
 		}
 		mr.Close()
 	}
@@ -59,7 +59,7 @@ func TestRedisTaskDistributor_DistributeTaskWebhookTrigger(t *testing.T) {
 		deps, cleanup := setupDistributorTest(t)
 		defer cleanup()
 		if dist, ok := deps.distributor.(*worker.RedisTaskDistributor); ok {
-			dist.Close()
+			_ = dist.Close()
 		}
 
 		payload := tasks.WebhookTriggerPayload{
@@ -107,7 +107,7 @@ func TestRedisTaskDistributor_DistributeTaskSendEmail(t *testing.T) {
 		deps, cleanup := setupDistributorTest(t)
 		defer cleanup()
 		if dist, ok := deps.distributor.(*worker.RedisTaskDistributor); ok {
-			dist.Close()
+			_ = dist.Close()
 		}
 
 		err := deps.distributor.DistributeTaskSendEmail(context.Background(), &tasks.SendEmailPayload{})
@@ -159,7 +159,7 @@ func TestRedisTaskDistributor_DistributeTaskAuditLog(t *testing.T) {
 		deps, cleanup := setupDistributorTest(t)
 		defer cleanup()
 		if dist, ok := deps.distributor.(*worker.RedisTaskDistributor); ok {
-			dist.Close()
+			_ = dist.Close()
 		}
 
 		err := deps.distributor.DistributeTaskAuditLog(context.Background(), model.CreateAuditLogRequest{})
@@ -193,7 +193,7 @@ func TestRedisTaskDistributor_DistributeTaskAuditOutboxSync(t *testing.T) {
 		deps, cleanup := setupDistributorTest(t)
 		defer cleanup()
 		if dist, ok := deps.distributor.(*worker.RedisTaskDistributor); ok {
-			dist.Close()
+			_ = dist.Close()
 		}
 
 		err := deps.distributor.DistributeTaskAuditOutboxSync(context.Background())
@@ -219,7 +219,7 @@ func TestRedisTaskDistributor_DistributeTaskAuditLogExport(t *testing.T) {
 		deps, cleanup := setupDistributorTest(t)
 		defer cleanup()
 		if dist, ok := deps.distributor.(*worker.RedisTaskDistributor); ok {
-			dist.Close()
+			_ = dist.Close()
 		}
 
 		err := deps.distributor.DistributeTaskAuditLogExport(context.Background(), model.AuditLogExportPayload{})
