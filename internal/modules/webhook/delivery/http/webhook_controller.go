@@ -8,6 +8,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 )
@@ -37,7 +38,7 @@ func NewWebhookController(useCase usecase.WebhookUseCase) *WebhookController {
 func (c *WebhookController) Create(ctx *gin.Context) {
 	var req model.CreateWebhookRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.ErrorResponse(ctx, http.StatusBadRequest, err, "Invalid request body")
+		response.ErrorResponse(ctx, http.StatusBadRequest, exception.ErrBadRequest, "Invalid request body")
 		return
 	}
 
@@ -81,7 +82,7 @@ func (c *WebhookController) Update(ctx *gin.Context) {
 
 	var req model.UpdateWebhookRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.ErrorResponse(ctx, http.StatusBadRequest, err, "Invalid request body")
+		response.ErrorResponse(ctx, http.StatusBadRequest, exception.ErrBadRequest, "Invalid request body")
 		return
 	}
 
