@@ -114,7 +114,6 @@ func TestRedisTaskProcessor_Lifecycle(t *testing.T) {
 		   Wait, asynq Start doesn't immediately error on bad redis, it retries in background.
 		   We should assert NoError instead or check logs. */
 		assert.NoError(t, err)
-		assert.NoError(t, err)
 	})
 
 	t.Run("Edge - Start multiple times concurrently", func(t *testing.T) {
