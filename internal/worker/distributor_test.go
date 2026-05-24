@@ -103,7 +103,7 @@ func TestRedisTaskDistributor_DistributeTaskSendEmail(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("Negative - Nil Payload Error", func(t *testing.T) {
+	t.Run("Negative - Closed Connection Error", func(t *testing.T) {
 		deps, cleanup := setupDistributorTest(t)
 		defer cleanup()
 		if dist, ok := deps.distributor.(*worker.RedisTaskDistributor); ok {
