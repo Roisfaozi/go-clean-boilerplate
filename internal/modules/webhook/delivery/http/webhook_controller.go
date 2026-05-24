@@ -83,6 +83,7 @@ func (c *WebhookController) Update(ctx *gin.Context) {
 
 	var req model.UpdateWebhookRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.Error(err)
 		response.ErrorResponse(ctx, http.StatusBadRequest, exception.ErrBadRequest, "Invalid request body")
 		return
 	}
