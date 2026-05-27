@@ -485,7 +485,7 @@ func (w *NoOpWriter) Levels() []logrus.Level    { return logrus.AllLevels }
 
 func TestTokenRepository_DeleteExpiredResetTokens(t *testing.T) {
 	db := setupGormDB(t)
-	db.AutoMigrate(&entity.PasswordResetToken{}) // ensure table
+	_ = db.AutoMigrate(&entity.PasswordResetToken{}) // ensure table
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
@@ -548,7 +548,7 @@ func TestTokenRepository_DeleteExpiredResetTokens_ErrorMock(t *testing.T) {
 
 func TestTokenRepository_SaveVerificationToken(t *testing.T) {
 	db := setupGormDB(t)
-	db.AutoMigrate(&entity.EmailVerificationToken{})
+	_ = db.AutoMigrate(&entity.EmailVerificationToken{})
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
@@ -571,7 +571,7 @@ func TestTokenRepository_SaveVerificationToken(t *testing.T) {
 
 func TestTokenRepository_FindVerificationToken(t *testing.T) {
 	db := setupGormDB(t)
-	db.AutoMigrate(&entity.EmailVerificationToken{})
+	_ = db.AutoMigrate(&entity.EmailVerificationToken{})
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
@@ -597,7 +597,7 @@ func TestTokenRepository_FindVerificationToken(t *testing.T) {
 
 func TestTokenRepository_DeleteVerificationTokenByEmail(t *testing.T) {
 	db := setupGormDB(t)
-	db.AutoMigrate(&entity.EmailVerificationToken{})
+	_ = db.AutoMigrate(&entity.EmailVerificationToken{})
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
@@ -620,7 +620,7 @@ func TestTokenRepository_DeleteVerificationTokenByEmail(t *testing.T) {
 
 func TestTokenRepository_DeleteVerificationTokenByEmail_Error(t *testing.T) {
 	db := setupGormDB(t)
-	db.AutoMigrate(&entity.EmailVerificationToken{})
+	_ = db.AutoMigrate(&entity.EmailVerificationToken{})
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
