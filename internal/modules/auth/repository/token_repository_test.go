@@ -505,9 +505,11 @@ func TestTokenRepository_DeleteExpiredResetTokens(t *testing.T) {
 	db.Create(validToken)
 
 	err := repo.DeleteExpiredResetTokens(context.Background())
-	if err != nil && err.Error() == "SQL logic error: no such function: NOW (1)" {
-		t.Skip("NOW() function not available in SQLite in-memory, skipping test")
-	}
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no such function: NOW")
+	var count int64
+	db.Model(&entity.PasswordResetToken{}).Count(&count)
+	assert.Equal(t, int64(2), count)
 }
 
 func TestTokenRepository_DeleteExpiredResetTokens_Error(t *testing.T) {
@@ -531,6 +533,16 @@ func TestTokenRepository_DeleteByEmail_Error(t *testing.T) {
 
 	db.Exec("DROP TABLE IF EXISTS password_reset_tokens;")
 	err := repo.DeleteByEmail(context.Background(), "test@example.com")
+	assert.Error(t, err)
+}
+
+func TestTokenRepository_DeleteExpiredResetTokens_ErrorMock(t *testing.T) {
+	db := setupGormDB(t)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	repo := repository.NewTokenRepositoryRedis(nil, logger, db, &util.RealClock{})
+	err := repo.DeleteExpiredResetTokens(context.Background())
 	assert.Error(t, err)
 }
 
