@@ -586,9 +586,8 @@ func TestTokenRepository_FindVerificationToken(t *testing.T) {
 
 	result, err := repo.FindVerificationToken(context.Background(), "verify123")
 	assert.NoError(t, err)
-	if result != nil {
-		assert.Equal(t, "verify@example.com", result.Email)
-	}
+	assert.NotNil(t, result)
+	assert.Equal(t, "verify@example.com", result.Email)
 
 	result, err = repo.FindVerificationToken(context.Background(), "invalid")
 	assert.Error(t, err)
