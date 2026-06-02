@@ -33,6 +33,7 @@ type organizationMemberUseCase struct {
 	taskDistributor worker.TaskDistributor
 	enforcer        permissionUseCase.IEnforcer
 	presence        PresenceReader
+	orgReader       IOrganizationReader
 	frontendBaseURL string
 }
 
@@ -52,6 +53,7 @@ func NewOrganizationMemberUseCase(
 	taskDistributor worker.TaskDistributor,
 	enforcer permissionUseCase.IEnforcer,
 	presence PresenceReader,
+	orgReader IOrganizationReader,
 	frontendBaseURL string,
 ) OrganizationMemberUseCase {
 	return &organizationMemberUseCase{
@@ -64,6 +66,7 @@ func NewOrganizationMemberUseCase(
 		taskDistributor: taskDistributor,
 		enforcer:        enforcer,
 		presence:        presence,
+		orgReader:       orgReader,
 		frontendBaseURL: frontendBaseURL,
 	}
 }
@@ -71,6 +74,7 @@ func NewOrganizationMemberUseCase(
 // InviteMember invites a user to an organization
 func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID string, request *model.InviteMemberRequest) (*model.MemberResponse, error) {
 	var result *model.MemberResponse
+	var targetUserID string
 
 	err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
 		org, _, actorIsOwner, err := uc.authorizeMemberManagement(txCtx, orgID)
@@ -103,6 +107,7 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 			}
 			targetUser = shadowUser
 		}
+		targetUserID = targetUser.ID
 
 		// 3. Check if user is already a member
 		isMember, err := uc.memberRepo.CheckMembership(txCtx, orgID, targetUser.ID)
@@ -181,6 +186,8 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 	if err != nil {
 		return nil, err
 	}
+
+	uc.invalidateMembershipCache(ctx, orgID, targetUserID)
 
 	return result, nil
 }
@@ -277,12 +284,17 @@ func (uc *organizationMemberUseCase) UpdateMember(ctx context.Context, orgID, us
 		return nil, err
 	}
 
+	uc.invalidateMembershipCache(ctx, orgID, userID)
+
 	return result, nil
 }
 
 // AcceptInvitation accepts an invitation and activates the user if needed
 func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, request *model.AcceptInvitationRequest) error {
-	return uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+	var orgID string
+	var userID string
+
+	err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
 		// 1. Find Invitation
 		invitation, err := uc.invitationRepo.FindByToken(txCtx, request.Token)
 		if err != nil {
@@ -359,6 +371,8 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 			}
 		}
 		// If already active, do nothing (idempotent).
+		orgID = invitation.OrganizationID
+		userID = user.ID
 
 		// Add Casbin Grouping Policy for new active member
 		if uc.enforcer != nil {
@@ -377,11 +391,17 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	uc.invalidateMembershipCache(ctx, orgID, userID)
+	return nil
 }
 
 // RemoveMember removes a member from an organization
 func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, userID string) error {
-	return uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+	err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
 		org, _, _, err := uc.authorizeMemberManagement(txCtx, orgID)
 		if err != nil {
 			return err
@@ -410,6 +430,12 @@ func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, us
 
 		return uc.memberRepo.RemoveMember(txCtx, orgID, userID)
 	})
+	if err != nil {
+		return err
+	}
+
+	uc.invalidateMembershipCache(ctx, orgID, userID)
+	return nil
 }
 
 func (uc *organizationMemberUseCase) authorizeMemberManagement(ctx context.Context, orgID string) (*entity.Organization, string, bool, error) {
@@ -462,4 +488,13 @@ func (uc *organizationMemberUseCase) GetPresence(ctx context.Context, orgID stri
 		result[i] = u
 	}
 	return result, nil
+}
+
+func (uc *organizationMemberUseCase) invalidateMembershipCache(ctx context.Context, orgID, userID string) {
+	if uc.orgReader == nil || orgID == "" || userID == "" {
+		return
+	}
+	if err := uc.orgReader.InvalidateMembershipCache(ctx, orgID, userID); err != nil {
+		uc.log.WithContext(ctx).WithError(err).Warn("Failed to invalidate membership cache")
+	}
 }

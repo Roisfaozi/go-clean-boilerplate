@@ -47,7 +47,7 @@ func NewOrganizationModule(
 
 	// Create use cases
 	orgUseCase := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, orgReader, enforcer)
-	memberUseCase := usecase.NewOrganizationMemberUseCase(log, tm, memberRepo, orgRepo, invitationRepo, userRepo, taskDistributor, enforcer, presenceReader, frontendBaseURL)
+	memberUseCase := usecase.NewOrganizationMemberUseCase(log, tm, memberRepo, orgRepo, invitationRepo, userRepo, taskDistributor, enforcer, presenceReader, orgReader, frontendBaseURL)
 
 	// Create controller
 	orgController := http.NewOrganizationController(orgUseCase, memberUseCase, log, validate)

@@ -54,11 +54,18 @@ func (r *organizationRepository) Create(ctx context.Context, org *entity.Organiz
 }
 
 func (r *organizationRepository) query(ctx context.Context) *gorm.DB {
-	query := r.db.WithContext(ctx)
+	query := r.getDB(ctx).WithContext(ctx)
 	if database.CanAccessDeletedOrganizations(ctx) {
 		return query.Unscoped()
 	}
 	return query.Unscoped().Where("(organizations.deleted_at = 0 OR organizations.deleted_at IS NULL)")
+}
+
+func (r *organizationRepository) getDB(ctx context.Context) *gorm.DB {
+	if txDB, ok := txpkg.DBFromContext(ctx); ok {
+		return txDB
+	}
+	return r.db
 }
 
 // FindByID finds an organization by its ID.
@@ -120,13 +127,30 @@ func (r *organizationRepository) FindUserOrganizations(ctx context.Context, user
 
 // Update updates an organization's details.
 func (r *organizationRepository) Update(ctx context.Context, org *entity.Organization) error {
-	return r.db.WithContext(ctx).
+	return r.getDB(ctx).WithContext(ctx).
 		Save(org).Error
 }
 
 // Delete soft-deletes an organization.
 func (r *organizationRepository) Delete(ctx context.Context, id string) error {
-	return r.db.WithContext(ctx).
+	return r.getDB(ctx).WithContext(ctx).
+		Where("id = ?", id).
+		Delete(&entity.Organization{}).Error
+}
+
+// Restore clears the soft-delete marker for an organization.
+func (r *organizationRepository) Restore(ctx context.Context, id string) error {
+	return r.getDB(ctx).WithContext(ctx).
+		Unscoped().
+		Model(&entity.Organization{}).
+		Where("id = ?", id).
+		Update("deleted_at", 0).Error
+}
+
+// HardDelete permanently removes an organization.
+func (r *organizationRepository) HardDelete(ctx context.Context, id string) error {
+	return r.getDB(ctx).WithContext(ctx).
+		Unscoped().
 		Where("id = ?", id).
 		Delete(&entity.Organization{}).Error
 }

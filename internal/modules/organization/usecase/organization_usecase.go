@@ -8,6 +8,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model/converter"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
@@ -20,6 +21,7 @@ const (
 	adminRoleID        = "role:admin"
 	defaultUserRoleID  = "role:user"
 	globalDomain       = "global"
+	superAdminRoleID   = "role:superadmin"
 )
 
 type organizationUseCase struct {
@@ -213,7 +215,7 @@ func (uc *organizationUseCase) authorizeOrganizationManagement(ctx context.Conte
 
 	actorUserID, ok := actorUserIDFromContext(ctx)
 	if !ok {
-		return org, nil
+		return nil, exception.ErrForbidden
 	}
 
 	if org.OwnerID == actorUserID {
@@ -288,6 +290,93 @@ func (uc *organizationUseCase) DeleteOrganization(ctx context.Context, id string
 	if uc.OrgReader != nil {
 		if invalidateErr := uc.OrgReader.InvalidateOrganizationCache(ctx, id); invalidateErr != nil {
 			uc.Log.WithContext(ctx).WithError(invalidateErr).Warn("Failed to invalidate organization membership cache after soft delete")
+		}
+	}
+
+	return nil
+}
+
+// RestoreOrganization restores a soft-deleted organization.
+func (uc *organizationUseCase) RestoreOrganization(ctx context.Context, id string) (*model.OrganizationResponse, error) {
+	role, ok := actorRoleFromContext(ctx)
+	if !ok || role != superAdminRoleID {
+		return nil, exception.ErrForbidden
+	}
+
+	restoreCtx := database.SetAllowDeletedOrganizations(ctx, true)
+
+	var response *model.OrganizationResponse
+	err := uc.TM.WithinTransaction(restoreCtx, func(txCtx context.Context) error {
+		org, err := uc.OrgRepo.FindByID(txCtx, id)
+		if err != nil {
+			uc.Log.WithContext(txCtx).Errorf("Failed to find organization for restore: %v", err)
+			return exception.ErrInternalServer
+		}
+		if org == nil {
+			return exception.ErrNotFound
+		}
+
+		if org.DeletedAt == 0 {
+			response = converter.OrganizationToResponse(org)
+			return nil
+		}
+
+		if err := uc.OrgRepo.Restore(txCtx, id); err != nil {
+			uc.Log.WithContext(txCtx).Errorf("Failed to restore organization: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		org.DeletedAt = 0
+		response = converter.OrganizationToResponse(org)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if uc.OrgReader != nil {
+		if invalidateErr := uc.OrgReader.InvalidateOrganizationCache(ctx, id); invalidateErr != nil {
+			uc.Log.WithContext(ctx).WithError(invalidateErr).Warn("Failed to invalidate organization membership cache after restore")
+		}
+	}
+
+	return response, nil
+}
+
+// HardDeleteOrganization permanently deletes an already soft-deleted organization.
+func (uc *organizationUseCase) HardDeleteOrganization(ctx context.Context, id string) error {
+	role, ok := actorRoleFromContext(ctx)
+	if !ok || role != superAdminRoleID {
+		return exception.ErrForbidden
+	}
+
+	deleteCtx := database.SetAllowDeletedOrganizations(ctx, true)
+	err := uc.TM.WithinTransaction(deleteCtx, func(txCtx context.Context) error {
+		org, err := uc.OrgRepo.FindByID(txCtx, id)
+		if err != nil {
+			uc.Log.WithContext(txCtx).Errorf("Failed to find organization for hard delete: %v", err)
+			return exception.ErrInternalServer
+		}
+		if org == nil {
+			return exception.ErrNotFound
+		}
+		if org.DeletedAt == 0 {
+			return exception.ErrBadRequest
+		}
+
+		if err := uc.OrgRepo.HardDelete(txCtx, id); err != nil {
+			uc.Log.WithContext(txCtx).Errorf("Failed to hard delete organization: %v", err)
+			return exception.ErrInternalServer
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if uc.OrgReader != nil {
+		if invalidateErr := uc.OrgReader.InvalidateOrganizationCache(ctx, id); invalidateErr != nil {
+			uc.Log.WithContext(ctx).WithError(invalidateErr).Warn("Failed to invalidate organization membership cache after hard delete")
 		}
 	}
 
