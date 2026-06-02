@@ -155,6 +155,30 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
 
+	t.Run("Access after Organization soft delete is blocked", func(t *testing.T) {
+		err := organizationRepo.Delete(ctx, org.ID)
+		require.NoError(t, err)
+
+		req, _ := http.NewRequest("GET", "/protected", nil)
+		req.Header.Set("X-API-Key", apiKey)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("Access after Organization restore succeeds", func(t *testing.T) {
+		err := organizationRepo.Restore(ctx, org.ID)
+		require.NoError(t, err)
+
+		req, _ := http.NewRequest("GET", "/protected", nil)
+		req.Header.Set("X-API-Key", apiKey)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
 	// 7. Revoke Key
 	t.Run("Access after Revocation", func(t *testing.T) {
 		err := akUC.Revoke(ctx, org.ID, createRes.ID)
