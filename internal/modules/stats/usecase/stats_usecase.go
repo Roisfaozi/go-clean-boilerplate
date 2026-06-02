@@ -33,8 +33,17 @@ func (u *statsUseCase) GetDashboardSummary(ctx context.Context) (*model.Dashboar
 
 	// Apply organization scope if present
 	scope := database.OrganizationScope(ctx)
-
-	u.db.WithContext(ctx).Model(&struct{ Table string }{}).Table("users").Scopes(scope).Count(&summary.TotalUsers)
+	// For tenant user count, prefer counting active memberships so global users are
+	// not misattributed. If organization context exists, count distinct user IDs
+	// in organization_members. Otherwise fallback to users table for global count.
+	orgID := database.GetOrganizationID(ctx)
+	if orgID != "" {
+		var totalUsers int64
+		u.db.WithContext(ctx).Table("organization_members").Where("organization_id = ?", orgID).Distinct("user_id").Count(&totalUsers)
+		summary.TotalUsers = totalUsers
+	} else {
+		u.db.WithContext(ctx).Model(&struct{ Table string }{}).Table("users").Scopes(scope).Count(&summary.TotalUsers)
+	}
 	u.db.WithContext(ctx).Model(&struct{ Table string }{}).Table("roles").Scopes(scope).Count(&summary.TotalRoles)
 	u.db.WithContext(ctx).Model(&struct{ Table string }{}).Table("audit_logs").Scopes(scope).Count(&summary.TotalAuditLogs)
 	u.db.WithContext(ctx).Model(&struct{ Table string }{}).Table("organization_members").Scopes(scope).Count(&summary.TotalOrgMembers)
