@@ -26,10 +26,12 @@ CREATE TABLE organization_members (
     role_id VARCHAR(36) NOT NULL,
     status VARCHAR(20) DEFAULT 'active',
     joined_at BIGINT,
+    deleted_at BIGINT,
     FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY uk_org_user (organization_id, user_id),
     INDEX idx_member_org (organization_id),
     INDEX idx_member_user (user_id),
-    INDEX idx_member_status (status)
+    INDEX idx_member_status (status),
+    INDEX idx_member_deleted_at (deleted_at)
 );
