@@ -36,7 +36,7 @@ func (r *userRepositoryData) getDB(ctx context.Context) *gorm.DB {
 func (r *userRepositoryData) organizationMemberUserSubQuery(db *gorm.DB, ctx context.Context, orgID string) *gorm.DB {
 	subQuery := db.Table("organization_members").
 		Select("organization_members.user_id").
-		Where("organization_members.organization_id = ?", orgID)
+		Where("organization_members.organization_id = ? AND (organization_members.deleted_at = 0 OR organization_members.deleted_at IS NULL)", orgID)
 	return subQuery
 }
 
