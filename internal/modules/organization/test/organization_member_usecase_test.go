@@ -32,6 +32,7 @@ type memberTestDeps struct {
 	TaskDistributor *mocking.MockTaskDistributor
 	Enforcer        *permissionMocks.MockIEnforcer
 	Presence        *mocks.MockPresenceReader
+	OrgReader       *mocks.MockIOrganizationReader
 	TM              *mocking.MockWithTransactionManager
 }
 
@@ -45,6 +46,7 @@ func setupMemberTest() (*memberTestDeps, usecase.OrganizationMemberUseCase) {
 		TaskDistributor: new(mocking.MockTaskDistributor),
 		Enforcer:        mockEnforcer,
 		Presence:        new(mocks.MockPresenceReader),
+		OrgReader:       new(mocks.MockIOrganizationReader),
 		TM:              new(mocking.MockWithTransactionManager),
 	}
 
@@ -62,8 +64,11 @@ func setupMemberTest() (*memberTestDeps, usecase.OrganizationMemberUseCase) {
 		deps.TaskDistributor,
 		deps.Enforcer,
 		deps.Presence,
+		deps.OrgReader,
 		"http://localhost:3000",
 	)
+
+	deps.OrgReader.On("InvalidateMembershipCache", mock.Anything, mock.Anything, mock.Anything).Maybe().Return(nil)
 
 	return deps, uc
 }

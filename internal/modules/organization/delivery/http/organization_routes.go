@@ -56,3 +56,12 @@ func RegisterTenantRoutes(router *gin.RouterGroup, controller *OrganizationContr
 		}
 	}
 }
+
+// RegisterAdminRoutes registers privileged organization routes intended for superadmin flows.
+func RegisterAdminRoutes(router *gin.RouterGroup, controller *OrganizationController, apiKeyMiddleware *middleware.APIKeyMiddleware) {
+	orgGroup := router.Group("/organizations")
+	{
+		orgGroup.POST("/:id/restore", apiKeyMiddleware.RequireUserSession(), controller.RestoreOrganization)
+		orgGroup.DELETE("/:id/hard", apiKeyMiddleware.RequireUserSession(), controller.HardDeleteOrganization)
+	}
+}

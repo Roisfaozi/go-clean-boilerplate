@@ -3,6 +3,7 @@ package entity
 import (
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"gorm.io/gorm"
 )
 
 const (
@@ -16,12 +17,13 @@ const (
 // This implements the "Global User, Local Member" identity model.
 // A user can be a member of multiple organizations with different roles and statuses.
 type OrganizationMember struct {
-	ID             string `gorm:"column:id;primaryKey;type:varchar(36)"`
-	OrganizationID string `gorm:"column:organization_id;type:varchar(36);not null;index"`
-	UserID         string `gorm:"column:user_id;type:varchar(36);not null;index"`
-	RoleID         string `gorm:"column:role_id;type:varchar(36);not null"`
-	Status         string `gorm:"column:status;type:varchar(20);default:'active';index"`
-	JoinedAt       int64  `gorm:"column:joined_at;autoCreateTime:milli"`
+	ID             string         `gorm:"column:id;primaryKey;type:varchar(36)"`
+	OrganizationID string         `gorm:"column:organization_id;type:varchar(36);not null;index"`
+	UserID         string         `gorm:"column:user_id;type:varchar(36);not null;index"`
+	RoleID         string         `gorm:"column:role_id;type:varchar(36);not null"`
+	Status         string         `gorm:"column:status;type:varchar(20);default:'active';index"`
+	JoinedAt       int64          `gorm:"column:joined_at;autoCreateTime:milli"`
+	DeletedAt      gorm.DeletedAt `gorm:"column:deleted_at;index"`
 
 	// Relationships
 	User userEntity.User `gorm:"foreignKey:UserID"`

@@ -247,6 +247,70 @@ func (ctrl *OrganizationController) DeleteOrganization(c *gin.Context) {
 	response.Success(c, nil)
 }
 
+// RestoreOrganization restores a soft-deleted organization.
+func (ctrl *OrganizationController) RestoreOrganization(c *gin.Context) {
+	orgID := c.Param("id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, nil, "user not authenticated")
+		return
+	}
+
+	ctx := usecase.WithActorUserID(c.Request.Context(), userID.(string))
+	ctx = usecase.WithActorRole(ctx, c.GetString("user_role"))
+
+	result, err := ctrl.OrgUseCase.RestoreOrganization(ctx, orgID)
+	if err != nil {
+		if err == exception.ErrNotFound {
+			response.NotFound(c, err, "organization not found")
+			return
+		}
+		if err == exception.ErrForbidden {
+			response.Forbidden(c, err, "only superadmin can restore this organization")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to restore organization")
+		response.InternalServerError(c, err, "failed to restore organization")
+		return
+	}
+
+	response.Success(c, result)
+}
+
+// HardDeleteOrganization permanently deletes a previously soft-deleted organization.
+func (ctrl *OrganizationController) HardDeleteOrganization(c *gin.Context) {
+	orgID := c.Param("id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, nil, "user not authenticated")
+		return
+	}
+
+	ctx := usecase.WithActorUserID(c.Request.Context(), userID.(string))
+	ctx = usecase.WithActorRole(ctx, c.GetString("user_role"))
+
+	err := ctrl.OrgUseCase.HardDeleteOrganization(ctx, orgID)
+	if err != nil {
+		if err == exception.ErrNotFound {
+			response.NotFound(c, err, "organization not found")
+			return
+		}
+		if err == exception.ErrForbidden {
+			response.Forbidden(c, err, "only superadmin can hard delete this organization")
+			return
+		}
+		if err == exception.ErrBadRequest {
+			response.BadRequest(c, err, "organization must be soft-deleted before hard delete")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to hard delete organization")
+		response.InternalServerError(c, err, "failed to hard delete organization")
+		return
+	}
+
+	response.Success(c, nil)
+}
+
 // GetMyOrganizations retrieves organizations for the current user
 // @Summary      Get my organizations
 // @Description  Retrieves all organizations the current user is a member of

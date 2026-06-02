@@ -303,12 +303,14 @@ func TestCachedOrgReader_InvalidateOrganizationCache(t *testing.T) {
 	ctx := context.Background()
 	orgID := "org-123"
 	pattern := "org:*:org-123:*"
+	statusKey := "nexusos:org_status:org-123"
 
 	// Mock Redis SCAN - returns keys and cursor 0 (stop)
 	mock.ExpectScan(0, pattern, 100).SetVal([]string{"key1", "key2"}, 0)
 
-	// Mock Redis DEL for the found keys
+	// Mock Redis DEL for the found keys and status key
 	mock.ExpectDel("key1", "key2").SetVal(2)
+	mock.ExpectDel(statusKey).SetVal(1)
 
 	// Act
 	err := reader.InvalidateOrganizationCache(ctx, orgID)

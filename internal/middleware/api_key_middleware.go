@@ -6,6 +6,7 @@ import (
 
 	apiKeyUsecase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/usecase"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -56,6 +57,10 @@ func (m *APIKeyMiddleware) Authenticate() gin.HandlerFunc {
 		c.Set(authMethodContextKey, authMethodAPIKey)
 		c.Set(apiKeyIDContextKey, identity.ApiKeyID)
 		c.Set(apiKeyScopesContextKey, identity.Scopes)
+		if identity.OrganizationID != "" {
+			ctx := database.SetOrganizationContext(c.Request.Context(), identity.OrganizationID)
+			c.Request = c.Request.WithContext(ctx)
+		}
 
 		c.Next()
 	}

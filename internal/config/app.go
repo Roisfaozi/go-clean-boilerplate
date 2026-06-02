@@ -145,7 +145,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	logger.Infof("Storage provider initialized: %s", cfg.Storage.Driver)
 
 	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
-	organizationRepository := orgRepo.NewOrganizationRepository(dbConnection)
+	organizationRepository := orgRepo.NewOrganizationRepository(dbConnection, redisClient)
 
 	ssoProviders := make(map[string]sso.Provider)
 	ssoProviders["google"] = sso.NewGoogleProvider(sso.ProviderConfig{

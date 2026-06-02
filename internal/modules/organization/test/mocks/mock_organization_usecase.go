@@ -176,6 +176,115 @@ func (_c *MockOrganizationUseCase_DeleteOrganization_Call) RunAndReturn(run func
 	return _c
 }
 
+// RestoreOrganization provides a mock function for the type MockOrganizationUseCase
+func (_mock *MockOrganizationUseCase) RestoreOrganization(ctx context.Context, id string) (*model.OrganizationResponse, error) {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RestoreOrganization")
+	}
+
+	var r0 *model.OrganizationResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*model.OrganizationResponse, error)); ok {
+		return returnFunc(ctx, id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *model.OrganizationResponse); ok {
+		r0 = returnFunc(ctx, id)
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*model.OrganizationResponse)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+type MockOrganizationUseCase_RestoreOrganization_Call struct {
+	*mock.Call
+}
+
+func (_e *MockOrganizationUseCase_Expecter) RestoreOrganization(ctx interface{}, id interface{}) *MockOrganizationUseCase_RestoreOrganization_Call {
+	return &MockOrganizationUseCase_RestoreOrganization_Call{Call: _e.mock.On("RestoreOrganization", ctx, id)}
+}
+
+func (_c *MockOrganizationUseCase_RestoreOrganization_Call) Run(run func(ctx context.Context, id string)) *MockOrganizationUseCase_RestoreOrganization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(arg0, arg1)
+	})
+	return _c
+}
+
+func (_c *MockOrganizationUseCase_RestoreOrganization_Call) Return(organizationResponse *model.OrganizationResponse, err error) *MockOrganizationUseCase_RestoreOrganization_Call {
+	_c.Call.Return(organizationResponse, err)
+	return _c
+}
+
+func (_c *MockOrganizationUseCase_RestoreOrganization_Call) RunAndReturn(run func(ctx context.Context, id string) (*model.OrganizationResponse, error)) *MockOrganizationUseCase_RestoreOrganization_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// HardDeleteOrganization provides a mock function for the type MockOrganizationUseCase
+func (_mock *MockOrganizationUseCase) HardDeleteOrganization(ctx context.Context, id string) error {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HardDeleteOrganization")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+type MockOrganizationUseCase_HardDeleteOrganization_Call struct {
+	*mock.Call
+}
+
+func (_e *MockOrganizationUseCase_Expecter) HardDeleteOrganization(ctx interface{}, id interface{}) *MockOrganizationUseCase_HardDeleteOrganization_Call {
+	return &MockOrganizationUseCase_HardDeleteOrganization_Call{Call: _e.mock.On("HardDeleteOrganization", ctx, id)}
+}
+
+func (_c *MockOrganizationUseCase_HardDeleteOrganization_Call) Run(run func(ctx context.Context, id string)) *MockOrganizationUseCase_HardDeleteOrganization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(arg0, arg1)
+	})
+	return _c
+}
+
+func (_c *MockOrganizationUseCase_HardDeleteOrganization_Call) Return(err error) *MockOrganizationUseCase_HardDeleteOrganization_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockOrganizationUseCase_HardDeleteOrganization_Call) RunAndReturn(run func(ctx context.Context, id string) error) *MockOrganizationUseCase_HardDeleteOrganization_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetOrganization provides a mock function for the type MockOrganizationUseCase
 func (_mock *MockOrganizationUseCase) GetOrganization(ctx context.Context, id string) (*model.OrganizationResponse, error) {
 	ret := _mock.Called(ctx, id)

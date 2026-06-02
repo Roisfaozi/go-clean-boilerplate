@@ -25,6 +25,10 @@ func getSessionKey(userID, sessionID string) string {
 	return fmt.Sprintf("session:%s:%s", userID, sessionID)
 }
 
+func getSessionIndexKey(userID string) string {
+	return fmt.Sprintf("session_index:%s", userID)
+}
+
 func getAttemptsKey(username string) string {
 	return fmt.Sprintf("auth:attempts:%s", username)
 }
@@ -67,6 +71,7 @@ func TestTokenRepository_StoreToken(t *testing.T) {
 
 	// mockClock.Now() is 'now', authData.ExpiresAt is 'now + 1h'. Diff is exactly 1h.
 	mock.ExpectSet(key, val, time.Hour).SetVal("OK")
+	mock.ExpectSAdd(getSessionIndexKey(authData.UserID), key).SetVal(1)
 
 	err = repo.StoreToken(context.Background(), authData)
 	assert.NoError(t, err)
@@ -176,16 +181,16 @@ func TestTokenRepository_GetUserSessions(t *testing.T) {
 
 	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 	userID := "user123"
-	pattern := getSessionKey(userID, "*")
+	indexKey := getSessionIndexKey(userID)
 
-	mock.ExpectKeys(pattern).SetErr(errors.New("redis error"))
+	mock.ExpectSMembers(indexKey).SetErr(errors.New("redis error"))
 	sessions, err := repo.GetUserSessions(context.Background(), userID)
 	assert.Error(t, err)
 	assert.Nil(t, sessions)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
 	keys := []string{getSessionKey(userID, "s1"), getSessionKey(userID, "s2")}
-	mock.ExpectKeys(pattern).SetVal(keys)
+	mock.ExpectSMembers(indexKey).SetVal(keys)
 
 	s1 := model.Auth{ID: "s1", UserID: userID}
 	s2 := model.Auth{ID: "s2", UserID: userID}
@@ -202,7 +207,7 @@ func TestTokenRepository_GetUserSessions(t *testing.T) {
 	assert.Equal(t, "s2", sessions[1].ID)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	mock.ExpectKeys(pattern).SetVal(keys)
+	mock.ExpectSMembers(indexKey).SetVal(keys)
 	mock.ExpectGet(keys[0]).SetErr(errors.New("get error"))
 	mock.ExpectGet(keys[1]).SetVal(string(json2))
 
@@ -220,27 +225,28 @@ func TestTokenRepository_RevokeAllSessions(t *testing.T) {
 
 	repo := repository.NewTokenRepositoryRedis(db, logger, nil, &util.RealClock{})
 	userID := "user123"
-	pattern := getSessionKey(userID, "*")
+	indexKey := getSessionIndexKey(userID)
 
-	mock.ExpectKeys(pattern).SetErr(errors.New("redis error"))
+	mock.ExpectSMembers(indexKey).SetErr(errors.New("redis error"))
 	err := repo.RevokeAllSessions(context.Background(), userID)
 	assert.Error(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	mock.ExpectKeys(pattern).SetVal([]string{})
+	mock.ExpectSMembers(indexKey).SetVal([]string{})
+	mock.ExpectDel(indexKey).SetVal(1)
 	err = repo.RevokeAllSessions(context.Background(), userID)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
 	keys := []string{"k1", "k2"}
-	mock.ExpectKeys(pattern).SetVal(keys)
-	mock.ExpectDel(keys...).SetVal(2)
+	mock.ExpectSMembers(indexKey).SetVal(keys)
+	mock.ExpectDel(append(keys, indexKey)...).SetVal(3)
 	err = repo.RevokeAllSessions(context.Background(), userID)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	mock.ExpectKeys(pattern).SetVal(keys)
-	mock.ExpectDel(keys...).SetErr(errors.New("del error"))
+	mock.ExpectSMembers(indexKey).SetVal(keys)
+	mock.ExpectDel(append(keys, indexKey)...).SetErr(errors.New("del error"))
 	err = repo.RevokeAllSessions(context.Background(), userID)
 	assert.Error(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -322,8 +328,10 @@ func TestTokenRepository_DeleteToken(t *testing.T) {
 	userID := "user456"
 	sessionID := "session123"
 	key := getSessionKey(userID, sessionID)
+	indexKey := getSessionIndexKey(userID)
 
 	mock.ExpectDel(key).SetVal(1)
+	mock.ExpectSRem(indexKey, key).SetVal(1)
 
 	err := repo.DeleteToken(context.Background(), userID, sessionID)
 	assert.NoError(t, err)
@@ -340,7 +348,7 @@ func TestTokenRepository_DeleteToken_RedisError(t *testing.T) {
 	userID := "user456"
 	sessionID := "session123"
 	key := getSessionKey(userID, sessionID)
-	redisErr := errors.New("redis connection failed")
+	redisErr := errors.New("redis pipeline failed")
 
 	mock.ExpectDel(key).SetErr(redisErr)
 

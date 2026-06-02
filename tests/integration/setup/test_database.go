@@ -61,6 +61,15 @@ func RunMigrations(t *testing.T, db *gorm.DB) {
 
 func SeedTestData(t *testing.T, db *gorm.DB) {
 	globalOrg := "global"
+	globalOrgRecord := orgEntity.Organization{
+		ID:      globalOrg,
+		Name:    "Global Organization",
+		Slug:    "global",
+		OwnerID: "system",
+		Status:  orgEntity.OrgStatusActive,
+	}
+	db.FirstOrCreate(&globalOrgRecord, orgEntity.Organization{ID: globalOrg})
+
 	roles := []roleEntity.Role{
 		{ID: "role:superadmin", Name: "role:superadmin", OrganizationID: &globalOrg, Description: "Super Administrator role"},
 		{ID: "role:admin", Name: "role:admin", OrganizationID: &globalOrg, Description: "Administrator role"},
@@ -174,8 +183,31 @@ func CreateTestUser(t *testing.T, db *gorm.DB, username, email, password string,
 	return user
 }
 
+func CreateTestOrganization(t *testing.T, db *gorm.DB, ownerID, name, slug string) *orgEntity.Organization {
+	org := &orgEntity.Organization{
+		ID:      uuid.New().String(),
+		Name:    name,
+		Slug:    slug,
+		OwnerID: ownerID,
+		Status:  orgEntity.OrgStatusActive,
+	}
+
+	err := db.Create(org).Error
+	require.NoError(t, err, "Failed to create test organization")
+
+	return org
+}
+
 func CreateTestRole(t *testing.T, db *gorm.DB, name string) *roleEntity.Role {
 	globalOrg := "global"
+	db.FirstOrCreate(&orgEntity.Organization{}, orgEntity.Organization{
+		ID:      globalOrg,
+		Name:    "Global Organization",
+		Slug:    "global",
+		OwnerID: "system",
+		Status:  orgEntity.OrgStatusActive,
+	})
+
 	role := &roleEntity.Role{
 		ID:             uuid.New().String(),
 		Name:           name,

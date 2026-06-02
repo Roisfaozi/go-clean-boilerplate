@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -29,12 +30,18 @@ func (r *webhookRepository) Update(ctx context.Context, webhook *entity.Webhook)
 }
 
 func (r *webhookRepository) Delete(ctx context.Context, id string, organizationID string) error {
-	return r.db.WithContext(ctx).Where("id = ? AND organization_id = ?", id, organizationID).Delete(&entity.Webhook{}).Error
+	return r.db.WithContext(ctx).
+		Scopes(database.OrganizationVisibilityScope(ctx, "webhooks.organization_id")).
+		Where("id = ? AND organization_id = ?", id, organizationID).
+		Delete(&entity.Webhook{}).Error
 }
 
 func (r *webhookRepository) FindByID(ctx context.Context, id string, organizationID string) (*entity.Webhook, error) {
 	var webhook entity.Webhook
-	err := r.db.WithContext(ctx).Where("id = ? AND organization_id = ?", id, organizationID).First(&webhook).Error
+	err := r.db.WithContext(ctx).
+		Scopes(database.OrganizationVisibilityScope(ctx, "webhooks.organization_id")).
+		Where("id = ? AND organization_id = ?", id, organizationID).
+		First(&webhook).Error
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +50,10 @@ func (r *webhookRepository) FindByID(ctx context.Context, id string, organizatio
 
 func (r *webhookRepository) FindByOrganizationID(ctx context.Context, organizationID string) ([]entity.Webhook, error) {
 	var webhooks []entity.Webhook
-	err := r.db.WithContext(ctx).Where("organization_id = ?", organizationID).Find(&webhooks).Error
+	err := r.db.WithContext(ctx).
+		Scopes(database.OrganizationVisibilityScope(ctx, "webhooks.organization_id")).
+		Where("organization_id = ?", organizationID).
+		Find(&webhooks).Error
 	return webhooks, err
 }
 
@@ -53,6 +63,7 @@ func (r *webhookRepository) FindByEvent(ctx context.Context, organizationID stri
 	// Or simple LIKE if it's stored as a comma-separated string.
 	// In the migration I used TEXT, and the comment says JSON array.
 	err := r.db.WithContext(ctx).
+		Scopes(database.OrganizationVisibilityScope(ctx, "webhooks.organization_id")).
 		Where("organization_id = ? AND is_active = ? AND JSON_CONTAINS(events, JSON_QUOTE(?))", organizationID, true, event).
 		Find(&webhooks).Error
 	return webhooks, err

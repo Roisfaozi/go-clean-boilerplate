@@ -38,7 +38,9 @@ func (r *projectRepository) Create(ctx context.Context, project *entity.Project)
 
 func (r *projectRepository) GetByID(ctx context.Context, id string) (*entity.Project, error) {
 	var project entity.Project
-	if err := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).First(&project, "id = ?", id).Error; err != nil {
+	if err := r.getDB(ctx).
+		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "projects.organization_id")).
+		First(&project, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &project, nil
@@ -46,18 +48,32 @@ func (r *projectRepository) GetByID(ctx context.Context, id string) (*entity.Pro
 
 func (r *projectRepository) GetByOrgID(ctx context.Context, orgID string) ([]*entity.Project, error) {
 	var projects []*entity.Project
-	if err := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Where("organization_id = ?", orgID).Find(&projects).Error; err != nil {
+	if err := r.getDB(ctx).
+		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "projects.organization_id")).
+		Where("organization_id = ?", orgID).
+		Find(&projects).Error; err != nil {
 		return nil, err
 	}
 	return projects, nil
 }
 
 func (r *projectRepository) Update(ctx context.Context, project *entity.Project) error {
-	return r.getDB(ctx).Save(project).Error
+	return r.getDB(ctx).
+		Model(&entity.Project{}).
+		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "projects.organization_id")).
+		Where("id = ?", project.ID).
+		Updates(map[string]interface{}{
+			"name":       project.Name,
+			"domain":     project.Domain,
+			"status":     project.Status,
+			"updated_at": project.UpdatedAt,
+		}).Error
 }
 
 func (r *projectRepository) Delete(ctx context.Context, id string) error {
-	return r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Delete(&entity.Project{}, "id = ?", id).Error
+	return r.getDB(ctx).
+		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "projects.organization_id")).
+		Delete(&entity.Project{}, "id = ?", id).Error
 }
 
 func (r *projectRepository) CountByUserID(ctx context.Context, userID string) (int64, error) {

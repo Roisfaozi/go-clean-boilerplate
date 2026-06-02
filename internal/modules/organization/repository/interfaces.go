@@ -30,6 +30,12 @@ type OrganizationRepository interface {
 
 	// Delete soft-deletes an organization.
 	Delete(ctx context.Context, id string) error
+
+	// Restore clears the soft-delete marker for an organization.
+	Restore(ctx context.Context, id string) error
+
+	// HardDelete permanently removes an organization row.
+	HardDelete(ctx context.Context, id string) error
 }
 
 // OrganizationMemberRepository defines the interface for membership data access.

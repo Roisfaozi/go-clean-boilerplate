@@ -12,6 +12,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/usecase"
+	orgRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
@@ -24,14 +25,16 @@ func TestApiKeyIntegration_Lifecycle(t *testing.T) {
 
 	// Initialize dependencies
 	apiKeyRepo := repository.NewApiKeyRepository(env.DB)
+	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
 
-	uc := usecase.NewApiKeyUseCase(apiKeyRepo, userRepo, env.Redis, env.Logger)
+	uc := usecase.NewApiKeyUseCase(apiKeyRepo, orgRepo, userRepo, env.Redis, env.Logger)
 	ctx := context.Background()
 
 	// 1. Setup Test User
 	user := setup.CreateTestUser(t, env.DB, "api_tester", "api@test.com", "Password123!")
-	orgID := "org-123"
+	org := setup.CreateTestOrganization(t, env.DB, user.ID, "API Key Test Org", "api-key-test-org")
+	orgID := org.ID
 
 	t.Run("Create and Authenticate with Caching", func(t *testing.T) {
 		// Create Key

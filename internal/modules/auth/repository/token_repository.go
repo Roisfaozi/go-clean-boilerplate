@@ -84,6 +84,11 @@ func (r *tokenRepositoryRedis) StoreToken(ctx context.Context, session *model.Au
 		return fmt.Errorf("failed to store session: %w", err)
 	}
 
+	if err := r.client.SAdd(ctx, r.getUserSessionIndexKey(session.UserID), key).Err(); err != nil {
+		r.log.WithError(err).Error("Failed to index session in Redis")
+		return fmt.Errorf("failed to store session: %w", err)
+	}
+
 	return nil
 }
 
@@ -108,7 +113,12 @@ func (r *tokenRepositoryRedis) GetToken(ctx context.Context, userID, sessionID s
 
 func (r *tokenRepositoryRedis) DeleteToken(ctx context.Context, userID, sessionID string) error {
 	key := r.getSessionKey(userID, sessionID)
-	err := r.client.Del(ctx, key).Err()
+	indexKey := r.getUserSessionIndexKey(userID)
+
+	pipe := r.client.Pipeline()
+	pipe.Del(ctx, key)
+	pipe.SRem(ctx, indexKey, key)
+	_, err := pipe.Exec(ctx)
 	if err != nil {
 		r.log.WithError(err).Error("Failed to delete session from Redis")
 		return fmt.Errorf("failed to delete session: %w", err)
@@ -117,17 +127,21 @@ func (r *tokenRepositoryRedis) DeleteToken(ctx context.Context, userID, sessionI
 }
 
 func (r *tokenRepositoryRedis) GetUserSessions(ctx context.Context, userID string) ([]*model.Auth, error) {
-	pattern := r.getSessionKey(userID, "*")
-	keys, err := r.client.Keys(ctx, pattern).Result()
+	keys, err := r.client.SMembers(ctx, r.getUserSessionIndexKey(userID)).Result()
 	if err != nil {
 		r.log.WithError(err).Error("Failed to get user session keys")
 		return nil, fmt.Errorf("failed to get user sessions: %w", err)
 	}
 
 	var sessions []*model.Auth
+	var staleKeys []string
 	for _, key := range keys {
 		sessionJSON, err := r.client.Get(ctx, key).Result()
 		if err != nil {
+			if err == redis.Nil {
+				staleKeys = append(staleKeys, key)
+				continue
+			}
 			r.log.WithError(err).WithField("key", key).Warn("Failed to get session data for key")
 			continue
 		}
@@ -140,19 +154,29 @@ func (r *tokenRepositoryRedis) GetUserSessions(ctx context.Context, userID strin
 		sessions = append(sessions, &session)
 	}
 
+	if len(staleKeys) > 0 {
+		staleMembers := make([]interface{}, len(staleKeys))
+		for i, key := range staleKeys {
+			staleMembers[i] = key
+		}
+		_ = r.client.SRem(ctx, r.getUserSessionIndexKey(userID), staleMembers...).Err()
+	}
+
 	return sessions, nil
 }
 
 func (r *tokenRepositoryRedis) RevokeAllSessions(ctx context.Context, userID string) error {
-	pattern := r.getSessionKey(userID, "*")
-	keys, err := r.client.Keys(ctx, pattern).Result()
+	indexKey := r.getUserSessionIndexKey(userID)
+	keys, err := r.client.SMembers(ctx, indexKey).Result()
 	if err != nil {
 		r.log.WithError(err).Error("Failed to get user sessions for revocation")
 		return fmt.Errorf("failed to get user sessions for revocation: %w", err)
 	}
 
-	if len(keys) > 0 {
-		if err := r.client.Del(ctx, keys...).Err(); err != nil {
+	delTargets := append([]string{}, keys...)
+	delTargets = append(delTargets, indexKey)
+	if len(delTargets) > 0 {
+		if err := r.client.Del(ctx, delTargets...).Err(); err != nil {
 			r.log.WithError(err).Error("Failed to revoke user sessions")
 			return fmt.Errorf("failed to revoke user sessions: %w", err)
 		}
@@ -163,6 +187,10 @@ func (r *tokenRepositoryRedis) RevokeAllSessions(ctx context.Context, userID str
 
 func (r *tokenRepositoryRedis) getSessionKey(userID, sessionID string) string {
 	return fmt.Sprintf("session:%s:%s", userID, sessionID)
+}
+
+func (r *tokenRepositoryRedis) getUserSessionIndexKey(userID string) string {
+	return fmt.Sprintf("session_index:%s", userID)
 }
 
 // Email Verification Token Methods

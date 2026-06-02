@@ -241,6 +241,7 @@ func SetupRouter(
 		authorized.Use(authLimiter)
 	}
 	{
+		organizationHttp.RegisterAdminRoutes(authorized, organizationModule.OrganizationController, apiKeyMiddleware)
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
 		accessHttp.RegisterAccessRoutes(authorized.Group("", tenantMiddleware.OptionalOrganization()), accessModule.AccessController)
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)

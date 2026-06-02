@@ -506,8 +506,8 @@ func TestUserRepository_FindAll_WithOrganizationContext(t *testing.T) {
 
 	// Since we don't have the OrganizationMember entity readily available or a proper structure for testing it within
 	// this user repo test scope easily using pure sqlite schema auto migration for other domains,
-	// We can manually create the necessary tables for the query to execute successfully
-	err := db.Exec(`CREATE TABLE organization_members (organization_id TEXT, user_id TEXT)`).Error
+	// we can manually create the necessary tables for the query to execute successfully.
+	err := db.Exec(`CREATE TABLE organization_members (organization_id TEXT, user_id TEXT, deleted_at INTEGER DEFAULT 0)`).Error
 	require.NoError(t, err)
 
 	db.Create(&entity.User{ID: "user1", Username: "user1", Email: "u1@test.com"})
@@ -552,7 +552,7 @@ func TestUserRepository_FindAllDynamic_DBError(t *testing.T) {
 func TestUserRepository_FindAllDynamic_WithOrganizationContextAndSkipCount(t *testing.T) {
 	repo, db := setupUserRepo(t)
 
-	err := db.Exec(`CREATE TABLE organization_members (organization_id TEXT, user_id TEXT)`).Error
+	err := db.Exec(`CREATE TABLE organization_members (organization_id TEXT, user_id TEXT, deleted_at INTEGER DEFAULT 0)`).Error
 	require.NoError(t, err)
 
 	db.Create(&entity.User{ID: "user1", Username: "user1", Email: "u1@test.com"})
@@ -594,7 +594,7 @@ func TestUserRepository_HardDeleteSoftDeletedUsers_DBError(t *testing.T) {
 func TestUserRepository_GetByOrganization(t *testing.T) {
 	repo, db := setupUserRepo(t)
 
-	err := db.Exec(`CREATE TABLE organization_members (organization_id TEXT, user_id TEXT)`).Error
+	err := db.Exec(`CREATE TABLE organization_members (organization_id TEXT, user_id TEXT, deleted_at INTEGER DEFAULT 0)`).Error
 	require.NoError(t, err)
 
 	db.Create(&entity.User{ID: "user1", Username: "user1", Email: "u1@test.com"})

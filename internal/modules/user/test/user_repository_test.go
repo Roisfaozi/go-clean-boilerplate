@@ -2,8 +2,8 @@ package test
 
 import (
 	"context"
-	"testing"
 	"regexp"
+	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
@@ -40,7 +40,7 @@ func TestUserRepository_GetByOrganization(t *testing.T) {
 			AddRow("user-1", "user1@example.com", "user1").
 			AddRow("user-2", "user2@example.com", "user2")
 
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE users.id IN (SELECT user_id FROM "organization_members" WHERE organization_id = $1) AND "users"."deleted_at" = $2`)).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE users.id IN (SELECT organization_members.user_id FROM "organization_members" WHERE organization_members.organization_id = $1 AND (organization_members.deleted_at = 0 OR organization_members.deleted_at IS NULL)) AND "users"."deleted_at" = $2`)).
 			WithArgs(orgID, 0).
 			WillReturnRows(rows)
 
@@ -57,7 +57,7 @@ func TestUserRepository_GetByOrganization(t *testing.T) {
 	t.Run("DBError", func(t *testing.T) {
 		orgID := "org-1"
 
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE users.id IN (SELECT user_id FROM "organization_members" WHERE organization_id = $1) AND "users"."deleted_at" = $2`)).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE users.id IN (SELECT organization_members.user_id FROM "organization_members" WHERE organization_members.organization_id = $1 AND (organization_members.deleted_at = 0 OR organization_members.deleted_at IS NULL)) AND "users"."deleted_at" = $2`)).
 			WithArgs(orgID, 0).
 			WillReturnError(gorm.ErrInvalidDB)
 
@@ -139,7 +139,7 @@ func TestUserRepository_CreateSSOIdentity(t *testing.T) {
 			ProviderID: "12345",
 		}
 
-mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO "user_sso_identities" ("id","user_id","provider","provider_id","created_at","updated_at") VALUES ($1,$2,$3,$4,$5,$6)`)).
+		mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO "user_sso_identities" ("id","user_id","provider","provider_id","created_at","updated_at") VALUES ($1,$2,$3,$4,$5,$6)`)).
 			WithArgs(identity.ID, identity.UserID, identity.Provider, identity.ProviderID, sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnError(gorm.ErrInvalidDB)
 
