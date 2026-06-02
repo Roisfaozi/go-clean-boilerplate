@@ -58,6 +58,8 @@ func setupControllerTest() *controllerTestDeps {
 	deps.Router.GET("/organizations/slug/:slug", deps.Controller.GetOrganizationBySlug)
 	deps.Router.PUT("/organizations/:id", deps.Controller.UpdateOrganization)
 	deps.Router.DELETE("/organizations/:id", deps.Controller.DeleteOrganization)
+	deps.Router.POST("/organizations/:id/restore", deps.Controller.RestoreOrganization)
+	deps.Router.DELETE("/organizations/:id/hard", deps.Controller.HardDeleteOrganization)
 	deps.Router.GET("/organizations/me", deps.Controller.GetMyOrganizations)
 
 	deps.Router.POST("/organizations/invitations/accept", deps.Controller.AcceptInvitation)
@@ -218,6 +220,55 @@ func TestOrganizationController_DeleteOrganization(t *testing.T) {
 		deps.Router.ServeHTTP(w, reqHttp)
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+}
+
+func TestOrganizationController_RestoreOrganization(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		deps := setupControllerTest()
+		res := &model.OrganizationResponse{ID: "org-1", Name: "Org 1"}
+		deps.OrgUseCase.On("RestoreOrganization", mock.Anything, "org-1").Return(res, nil)
+
+		w := httptest.NewRecorder()
+		reqHttp, _ := http.NewRequest("POST", "/organizations/org-1/restore", nil)
+		deps.Router.ServeHTTP(w, reqHttp)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("Forbidden", func(t *testing.T) {
+		deps := setupControllerTest()
+		deps.OrgUseCase.On("RestoreOrganization", mock.Anything, "org-1").Return(nil, exception.ErrForbidden)
+
+		w := httptest.NewRecorder()
+		reqHttp, _ := http.NewRequest("POST", "/organizations/org-1/restore", nil)
+		deps.Router.ServeHTTP(w, reqHttp)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+}
+
+func TestOrganizationController_HardDeleteOrganization(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		deps := setupControllerTest()
+		deps.OrgUseCase.On("HardDeleteOrganization", mock.Anything, "org-1").Return(nil)
+
+		w := httptest.NewRecorder()
+		reqHttp, _ := http.NewRequest("DELETE", "/organizations/org-1/hard", nil)
+		deps.Router.ServeHTTP(w, reqHttp)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("Bad Request", func(t *testing.T) {
+		deps := setupControllerTest()
+		deps.OrgUseCase.On("HardDeleteOrganization", mock.Anything, "org-1").Return(exception.ErrBadRequest)
+
+		w := httptest.NewRecorder()
+		reqHttp, _ := http.NewRequest("DELETE", "/organizations/org-1/hard", nil)
+		deps.Router.ServeHTTP(w, reqHttp)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
 

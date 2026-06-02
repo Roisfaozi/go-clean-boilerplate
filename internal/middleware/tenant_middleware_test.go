@@ -74,6 +74,16 @@ func (m *MockOrganizationRepository) Delete(ctx context.Context, id string) erro
 	return args.Error(0)
 }
 
+func (m *MockOrganizationRepository) Restore(ctx context.Context, id string) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockOrganizationRepository) HardDelete(ctx context.Context, id string) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
 // MockOrganizationReader is a mock implementation of IOrganizationReader
 type MockOrganizationReader struct {
 	mock.Mock
