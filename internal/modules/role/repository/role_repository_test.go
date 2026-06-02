@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
@@ -27,7 +28,7 @@ func setupRoleRepo(t *testing.T) (repository.RoleRepository, *gorm.DB) {
 	})
 	require.NoError(t, err)
 
-	err = db.AutoMigrate(&entity.Role{})
+	err = db.AutoMigrate(&entity.Role{}, &orgEntity.Organization{})
 	require.NoError(t, err)
 
 	// Silent Logrus

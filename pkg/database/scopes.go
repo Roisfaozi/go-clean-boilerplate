@@ -67,9 +67,6 @@ func OrganizationVisibilityScope(ctx context.Context, orgColumn string) func(db 
 		if orgColumn == "" || CanAccessDeletedOrganizations(ctx) {
 			return db
 		}
-		if !db.Migrator().HasTable("organizations") {
-			return db
-		}
 
 		return db.Where(
 			fmt.Sprintf(

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/glebarez/sqlite"
 	"github.com/sirupsen/logrus"
@@ -23,7 +24,7 @@ func setupAccessRepo(t *testing.T) (repository.AccessRepository, *gorm.DB) {
 	})
 	require.NoError(t, err)
 
-	err = db.AutoMigrate(&entity.Endpoint{}, &entity.AccessRight{})
+	err = db.AutoMigrate(&entity.Endpoint{}, &entity.AccessRight{}, &orgEntity.Organization{})
 	require.NoError(t, err)
 
 	l := logrus.New()
