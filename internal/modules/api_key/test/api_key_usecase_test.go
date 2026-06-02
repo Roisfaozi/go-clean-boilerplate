@@ -20,7 +20,7 @@ import (
 func TestApiKeyUseCase_Create(t *testing.T) {
 	repo := new(mocks.MockApiKeyRepository)
 	log := logrus.New()
-	uc := usecase.NewApiKeyUseCase(repo, nil, nil, log)
+	uc := usecase.NewApiKeyUseCase(repo, nil, nil, nil, log)
 
 	ctx := context.Background()
 	userID := "user-1"
@@ -45,7 +45,7 @@ func TestApiKeyUseCase_Authenticate(t *testing.T) {
 	repo := new(mocks.MockApiKeyRepository)
 	userRepo := new(userMocks.MockUserRepository)
 	log := logrus.New()
-	uc := usecase.NewApiKeyUseCase(repo, userRepo, nil, log)
+	uc := usecase.NewApiKeyUseCase(repo, nil, userRepo, nil, log)
 
 	ctx := context.Background()
 	rawKey := "some-secure-key"
@@ -82,7 +82,7 @@ func TestApiKeyUseCase_Authenticate(t *testing.T) {
 func TestApiKeyUseCase_Authenticate_Expired(t *testing.T) {
 	repo := new(mocks.MockApiKeyRepository)
 	log := logrus.New()
-	uc := usecase.NewApiKeyUseCase(repo, nil, nil, log)
+	uc := usecase.NewApiKeyUseCase(repo, nil, nil, nil, log)
 
 	ctx := context.Background()
 	past := time.Now().Add(-1 * time.Hour)

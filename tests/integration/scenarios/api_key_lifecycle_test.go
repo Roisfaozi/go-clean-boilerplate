@@ -16,6 +16,7 @@ import (
 	apiKeyRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/repository"
 	apiKeyUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/usecase"
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -40,9 +41,10 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 	// Repositories
 	uRepo := userRepo.NewUserRepository(env.DB, logger)
 	akRepo := apiKeyRepo.NewApiKeyRepository(env.DB)
+	organizationRepo := orgRepo.NewOrganizationRepository(env.DB)
 
 	// UseCases
-	akUC := apiKeyUC.NewApiKeyUseCase(akRepo, uRepo, env.Redis, logger)
+	akUC := apiKeyUC.NewApiKeyUseCase(akRepo, organizationRepo, uRepo, env.Redis, logger)
 
 	// Middlewares
 	akMiddleware := middleware.NewAPIKeyMiddleware(akUC, uRepo, logger)

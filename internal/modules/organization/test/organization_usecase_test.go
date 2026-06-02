@@ -42,7 +42,7 @@ func setupOrganizationTest() (*organizationTestDeps, usecase.OrganizationUseCase
 	mockEnforcer.On("WithContext", mock.Anything).Maybe().Return(mockEnforcer)
 	mockEnforcer.On("LoadPolicy").Maybe().Return(nil)
 
-	uc := usecase.NewOrganizationUseCase(log, deps.TM, deps.OrgRepo, deps.MemberRepo, deps.Enforcer)
+	uc := usecase.NewOrganizationUseCase(log, deps.TM, deps.OrgRepo, deps.MemberRepo, nil, deps.Enforcer)
 
 	return deps, uc
 }
@@ -652,7 +652,7 @@ func setupOrganizationUseCase() (*mocks.MockOrganizationRepository, *mocks.MockO
 	enforcer.On("AddGroupingPolicy", mock.Anything).Maybe().Return(true, nil)
 	enforcer.On("LoadPolicy").Maybe().Return(nil)
 
-	uc := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, enforcer)
+	uc := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, nil, enforcer)
 	return orgRepo, memberRepo, tm, enforcer, uc
 }
 
