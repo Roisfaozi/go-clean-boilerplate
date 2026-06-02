@@ -109,7 +109,7 @@ func (c *WebhookController) Delete(ctx *gin.Context) {
 	id := ctx.Param("id")
 	orgID, ok := middleware.GetOrganizationIDFromContext(ctx)
 	if !ok {
-		response.BadRequest(ctx, exception.ErrBadRequest, "organization context is required")
+		response.HandleError(ctx, exception.ErrInternalServer, "Internal server error")
 		return
 	}
 
