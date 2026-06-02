@@ -46,7 +46,7 @@ func NewOrganizationModule(
 	orgReader := usecase.NewCachedOrgReader(memberRepo, redisClient, log)
 
 	// Create use cases
-	orgUseCase := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, enforcer)
+	orgUseCase := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, orgReader, enforcer)
 	memberUseCase := usecase.NewOrganizationMemberUseCase(log, tm, memberRepo, orgRepo, invitationRepo, userRepo, taskDistributor, enforcer, presenceReader, frontendBaseURL)
 
 	// Create controller

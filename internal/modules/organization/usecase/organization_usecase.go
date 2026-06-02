@@ -27,6 +27,7 @@ type organizationUseCase struct {
 	TM         tx.WithTransactionManager
 	OrgRepo    repository.OrganizationRepository
 	MemberRepo repository.OrganizationMemberRepository
+	OrgReader  IOrganizationReader
 	Enforcer   permissionUseCase.IEnforcer
 }
 
@@ -36,6 +37,7 @@ func NewOrganizationUseCase(
 	tm tx.WithTransactionManager,
 	orgRepo repository.OrganizationRepository,
 	memberRepo repository.OrganizationMemberRepository,
+	orgReader IOrganizationReader,
 	enforcer permissionUseCase.IEnforcer,
 ) OrganizationUseCase {
 	return &organizationUseCase{
@@ -43,6 +45,7 @@ func NewOrganizationUseCase(
 		TM:         tm,
 		OrgRepo:    orgRepo,
 		MemberRepo: memberRepo,
+		OrgReader:  orgReader,
 		Enforcer:   enforcer,
 	}
 }
@@ -255,7 +258,7 @@ func (uc *organizationUseCase) GetUserOrganizations(ctx context.Context, userID 
 
 // DeleteOrganization deletes an organization (owner only)
 func (uc *organizationUseCase) DeleteOrganization(ctx context.Context, id string, userID string) error {
-	return uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		org, err := uc.OrgRepo.FindByID(txCtx, id)
 		if err != nil {
 			uc.Log.WithContext(txCtx).Errorf("Failed to find organization: %v", err)
@@ -278,4 +281,15 @@ func (uc *organizationUseCase) DeleteOrganization(ctx context.Context, id string
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	if uc.OrgReader != nil {
+		if invalidateErr := uc.OrgReader.InvalidateOrganizationCache(ctx, id); invalidateErr != nil {
+			uc.Log.WithContext(ctx).WithError(invalidateErr).Warn("Failed to invalidate organization membership cache after soft delete")
+		}
+	}
+
+	return nil
 }

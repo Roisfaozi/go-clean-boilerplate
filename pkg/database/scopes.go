@@ -3,8 +3,8 @@ package database
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -15,6 +15,10 @@ const (
 	// OrganizationIDKey is the context key for organization ID.
 	// This is set by the TenantMiddleware after validating user membership.
 	OrganizationIDKey ContextKey = "organization_id"
+
+	// IncludeDeletedOrganizationKey allows privileged callers to opt into
+	// querying data that belongs to soft-deleted organizations.
+	IncludeDeletedOrganizationKey ContextKey = "include_deleted_organizations"
 )
 
 // OrganizationScope returns a GORM scope function that filters queries by organization_id.
@@ -42,16 +46,38 @@ func OrganizationScope(ctx context.Context) func(db *gorm.DB) *gorm.DB {
 			return db
 		}
 
-		// DEBUG
-		logrus.Infof("DEBUG: OrganizationScope applying filter for orgID: %s", orgID)
-
 		// Empty string check - fail-safe to avoid WHERE id = ""
 		if orgID == "" {
 			return db
 		}
 
-		// Apply the organization filter: organization-specific OR global (NULL)
+		// Apply the organization filter: organization-specific OR global (NULL).
+		// Parent organization soft-delete visibility is handled separately by
+		// OrganizationVisibilityScope so legacy rows without a backing
+		// organizations record remain queryable.
 		return db.Where("organization_id = ? OR organization_id IS NULL", orgID)
+	}
+}
+
+// OrganizationVisibilityScope ensures a child resource only remains visible when its
+// parent organization is still active, unless the caller is explicitly allowed to
+// inspect soft-deleted organizations.
+func OrganizationVisibilityScope(ctx context.Context, orgColumn string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		if orgColumn == "" || CanAccessDeletedOrganizations(ctx) {
+			return db
+		}
+		if !db.Migrator().HasTable("organizations") {
+			return db
+		}
+
+		return db.Where(
+			fmt.Sprintf(
+				"(%s IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = %s AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0))",
+				orgColumn,
+				orgColumn,
+			),
+		)
 	}
 }
 
@@ -59,6 +85,13 @@ func OrganizationScope(ctx context.Context) func(db *gorm.DB) *gorm.DB {
 // This is used by the TenantMiddleware to inject the org_id into request context.
 func SetOrganizationContext(ctx context.Context, orgID string) context.Context {
 	return context.WithValue(ctx, OrganizationIDKey, orgID)
+}
+
+// SetAllowDeletedOrganizations marks the context as allowed to inspect data that
+// belongs to soft-deleted organizations. This should be reserved for privileged
+// administrative flows such as superadmin investigation or restore.
+func SetAllowDeletedOrganizations(ctx context.Context, allow bool) context.Context {
+	return context.WithValue(ctx, IncludeDeletedOrganizationKey, allow)
 }
 
 // GetOrganizationID extracts the organization_id from context.
@@ -75,4 +108,12 @@ func GetOrganizationID(ctx context.Context) string {
 	}
 
 	return orgID
+}
+
+// CanAccessDeletedOrganizations reports whether the current request context is
+// allowed to include data belonging to soft-deleted organizations.
+func CanAccessDeletedOrganizations(ctx context.Context) bool {
+	value := ctx.Value(IncludeDeletedOrganizationKey)
+	allowed, ok := value.(bool)
+	return ok && allowed
 }

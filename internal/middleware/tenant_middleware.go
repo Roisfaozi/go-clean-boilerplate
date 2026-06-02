@@ -3,7 +3,9 @@ package middleware
 import (
 	"context"
 	"errors"
+	"strings"
 
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
@@ -16,7 +18,8 @@ const (
 	// OrgIDHeader is the header name for organization ID
 	OrgIDHeader = "X-Organization-ID"
 	// OrgSlugHeader is the header name for organization slug
-	OrgSlugHeader = "X-Organization-Slug"
+	OrgSlugHeader  = "X-Organization-Slug"
+	superAdminRole = "role:superadmin"
 )
 
 // TenantMiddleware validates organization membership and sets org context.
@@ -52,67 +55,48 @@ func (m *TenantMiddleware) RequireOrganization() gin.HandlerFunc {
 			return
 		}
 
-		// Get organization ID from header (preferred), URL parameter, or slug
-		orgID := c.GetHeader(OrgIDHeader)
-		if orgID == "" {
-			orgID = c.Param("id")
-		}
-		orgSlug := c.GetHeader(OrgSlugHeader)
-		if orgSlug == "" {
-			orgSlug = c.Param("slug")
-		}
-
-		if orgID == "" && orgSlug == "" {
+		allowDeleted := canAccessDeletedOrganizations(c)
+		orgID, requested := requestedOrganizationID(c)
+		orgSlug := requestedOrganizationSlug(c)
+		if !requested && orgSlug == "" {
 			response.BadRequest(c, errors.New("organization ID or slug is required"), "missing organization identifier")
 			c.Abort()
 			return
 		}
 
-		// Resolve org ID from slug if needed
-		if orgID == "" && orgSlug != "" {
-			org, err := m.OrgRepo.FindBySlug(c.Request.Context(), orgSlug)
+		org, orgID, err := m.resolveOrganization(c, orgID, orgSlug, allowDeleted)
+		if err != nil {
+			m.respondOrganizationLookupError(c, err)
+			return
+		}
+
+		role := ""
+		if allowDeleted {
+			role = superAdminRole
+		} else {
+			// Check membership using cached reader
+			isMember, err := m.Reader.ValidateMembership(c.Request.Context(), orgID, userID)
 			if err != nil {
-				m.Log.WithError(err).Error("Failed to lookup organization by slug")
+				m.Log.WithError(err).Error("Failed to validate membership")
 				response.InternalServerError(c, err, "internal server error")
 				c.Abort()
 				return
 			}
-			if org == nil {
-				response.NotFound(c, errors.New("organization not found"), "organization not found")
+
+			if !isMember {
+				response.Forbidden(c, errors.New("user is not a member of this organization"), "access denied")
 				c.Abort()
 				return
 			}
-			orgID = org.ID
+
+			// Get member role for context
+			role, err = m.Reader.GetMemberRole(c.Request.Context(), orgID, userID)
+			if err != nil {
+				m.Log.WithError(err).Warn("Failed to get member role, proceeding without role context")
+			}
 		}
 
-		// Check membership using cached reader
-		isMember, err := m.Reader.ValidateMembership(c.Request.Context(), orgID, userID)
-		if err != nil {
-			m.Log.WithError(err).Error("Failed to validate membership")
-			response.InternalServerError(c, err, "internal server error")
-			c.Abort()
-			return
-		}
-
-		if !isMember {
-			response.Forbidden(c, errors.New("user is not a member of this organization"), "access denied")
-			c.Abort()
-			return
-		}
-
-		// Get member role for context
-		role, err := m.Reader.GetMemberRole(c.Request.Context(), orgID, userID)
-		if err != nil {
-			m.Log.WithError(err).Warn("Failed to get member role, proceeding without role context")
-		}
-
-		// Set organization context for downstream handlers and repository scopes
-		ctx := database.SetOrganizationContext(c.Request.Context(), orgID)
-		c.Request = c.Request.WithContext(ctx)
-
-		// Set organization info in Gin context for easy access
-		c.Set("organization_id", orgID)
-		c.Set("member_role", role)
+		m.applyOrganizationContext(c, orgID, role, allowDeleted, org != nil && org.DeletedAt != 0)
 
 		c.Next()
 	}
@@ -129,45 +113,44 @@ func (m *TenantMiddleware) OptionalOrganization() gin.HandlerFunc {
 			return
 		}
 
-		orgID := c.GetHeader(OrgIDHeader)
-		orgSlug := c.GetHeader(OrgSlugHeader)
-		if orgSlug == "" {
-			orgSlug = c.Param("slug")
-		}
-
-		if orgID == "" && orgSlug == "" {
+		allowDeleted := canAccessDeletedOrganizations(c)
+		orgID, requested := requestedOrganizationID(c)
+		orgSlug := requestedOrganizationSlug(c)
+		if !requested && orgSlug == "" {
 			// No org specified, proceed without org context
 			c.Next()
 			return
 		}
 
-		// Resolve org ID from slug if needed
-		if orgID == "" && orgSlug != "" {
-			org, err := m.OrgRepo.FindBySlug(c.Request.Context(), orgSlug)
-			if err != nil || org == nil {
-				// Org not found, proceed without org context
-				c.Next()
-				return
-			}
-			orgID = org.ID
-		}
-
-		// Validate membership
-		isMember, err := m.Reader.ValidateMembership(c.Request.Context(), orgID, userID)
-		if err != nil || !isMember {
-			// Not a member, proceed without org context
-			c.Next()
+		org, orgID, err := m.resolveOrganization(c, orgID, orgSlug, allowDeleted)
+		if err != nil {
+			m.respondOrganizationLookupError(c, err)
 			return
 		}
 
-		// Get member role
-		role, _ := m.Reader.GetMemberRole(c.Request.Context(), orgID, userID)
+		role := ""
+		if allowDeleted {
+			role = superAdminRole
+		} else {
+			// Validate membership
+			isMember, err := m.Reader.ValidateMembership(c.Request.Context(), orgID, userID)
+			if err != nil {
+				m.Log.WithError(err).Error("Failed to validate membership")
+				response.InternalServerError(c, err, "internal server error")
+				c.Abort()
+				return
+			}
+			if !isMember {
+				response.Forbidden(c, errors.New("user is not a member of this organization"), "access denied")
+				c.Abort()
+				return
+			}
 
-		// Set organization context
-		ctx := database.SetOrganizationContext(c.Request.Context(), orgID)
-		c.Request = c.Request.WithContext(ctx)
-		c.Set("organization_id", orgID)
-		c.Set("member_role", role)
+			// Get member role
+			role, _ = m.Reader.GetMemberRole(c.Request.Context(), orgID, userID)
+		}
+
+		m.applyOrganizationContext(c, orgID, role, allowDeleted, org != nil && org.DeletedAt != 0)
 
 		c.Next()
 	}
@@ -232,4 +215,100 @@ func GetMemberRoleFromContext(c *gin.Context) (string, bool) {
 // InvalidateMembershipCache delegates cache invalidation to the reader
 func (m *TenantMiddleware) InvalidateMembershipCache(ctx context.Context, orgID, userID string) error {
 	return m.Reader.InvalidateMembershipCache(ctx, orgID, userID)
+}
+
+func requestedOrganizationID(c *gin.Context) (string, bool) {
+	if orgID := c.GetHeader(OrgIDHeader); orgID != "" {
+		return orgID, true
+	}
+	if orgID, exists := GetOrganizationIDFromContext(c); exists {
+		return orgID, true
+	}
+	if orgID := requestedOrganizationRouteID(c); orgID != "" {
+		return orgID, true
+	}
+	return "", false
+}
+
+func requestedOrganizationSlug(c *gin.Context) string {
+	if orgSlug := c.GetHeader(OrgSlugHeader); orgSlug != "" {
+		return orgSlug
+	}
+	return c.Param("slug")
+}
+
+func canAccessDeletedOrganizations(c *gin.Context) bool {
+	role, ok := GetRoleFromContext(c)
+	return ok && role == superAdminRole
+}
+
+func requestedOrganizationRouteID(c *gin.Context) string {
+	fullPath := c.FullPath()
+	if fullPath == "" {
+		fullPath = c.Request.URL.Path
+	}
+
+	if strings.HasPrefix(fullPath, "/api/v1/organizations/:id") {
+		return c.Param("id")
+	}
+
+	return ""
+}
+
+func (m *TenantMiddleware) resolveOrganization(c *gin.Context, orgID, orgSlug string, allowDeleted bool) (*orgEntity.Organization, string, error) {
+	ctx := c.Request.Context()
+	if allowDeleted {
+		ctx = database.SetAllowDeletedOrganizations(ctx, true)
+	}
+
+	if orgID != "" {
+		org, err := m.OrgRepo.FindByID(ctx, orgID)
+		if err != nil {
+			return nil, "", err
+		}
+		if org == nil {
+			return nil, "", errors.New("organization not found")
+		}
+		return org, org.ID, nil
+	}
+
+	org, err := m.OrgRepo.FindBySlug(ctx, orgSlug)
+	if err != nil {
+		return nil, "", err
+	}
+	if org == nil {
+		return nil, "", errors.New("organization not found")
+	}
+	return org, org.ID, nil
+}
+
+func (m *TenantMiddleware) respondOrganizationLookupError(c *gin.Context, err error) {
+	if err == nil {
+		return
+	}
+	if err.Error() == "organization not found" {
+		response.NotFound(c, err, "organization not found")
+		c.Abort()
+		return
+	}
+
+	m.Log.WithError(err).Error("Failed to resolve organization")
+	response.InternalServerError(c, err, "internal server error")
+	c.Abort()
+}
+
+func (m *TenantMiddleware) applyOrganizationContext(c *gin.Context, orgID, role string, allowDeleted, isDeleted bool) {
+	ctx := database.SetOrganizationContext(c.Request.Context(), orgID)
+	if allowDeleted {
+		ctx = database.SetAllowDeletedOrganizations(ctx, true)
+	}
+
+	c.Request = c.Request.WithContext(ctx)
+	c.Set("organization_id", orgID)
+	if role != "" {
+		c.Set("member_role", role)
+	}
+	if isDeleted {
+		c.Set("organization_deleted", true)
+	}
 }

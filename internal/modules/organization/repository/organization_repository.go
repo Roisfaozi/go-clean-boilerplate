@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	txpkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -52,10 +53,18 @@ func (r *organizationRepository) Create(ctx context.Context, org *entity.Organiz
 	})
 }
 
+func (r *organizationRepository) query(ctx context.Context) *gorm.DB {
+	query := r.db.WithContext(ctx)
+	if database.CanAccessDeletedOrganizations(ctx) {
+		return query.Unscoped()
+	}
+	return query.Unscoped().Where("(organizations.deleted_at = 0 OR organizations.deleted_at IS NULL)")
+}
+
 // FindByID finds an organization by its ID.
 func (r *organizationRepository) FindByID(ctx context.Context, id string) (*entity.Organization, error) {
 	var org entity.Organization
-	err := r.db.WithContext(ctx).
+	err := r.query(ctx).
 		Where("id = ?", id).
 		First(&org).Error
 	if err != nil {
@@ -70,7 +79,7 @@ func (r *organizationRepository) FindByID(ctx context.Context, id string) (*enti
 // FindBySlug finds an organization by its unique slug.
 func (r *organizationRepository) FindBySlug(ctx context.Context, slug string) (*entity.Organization, error) {
 	var org entity.Organization
-	err := r.db.WithContext(ctx).
+	err := r.query(ctx).
 		Where("slug = ?", slug).
 		First(&org).Error
 	if err != nil {

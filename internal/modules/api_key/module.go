@@ -4,6 +4,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/usecase"
+	orgRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
@@ -19,7 +20,8 @@ type ApiKeyModule struct {
 
 func NewApiKeyModule(db *gorm.DB, userRepo userRepository.UserRepository, redis *redis.Client, log *logrus.Logger, validator *validator.Validate) *ApiKeyModule {
 	repo := repository.NewApiKeyRepository(db)
-	useCase := usecase.NewApiKeyUseCase(repo, userRepo, redis, log)
+	orgRepo := orgRepository.NewOrganizationRepository(db)
+	useCase := usecase.NewApiKeyUseCase(repo, orgRepo, userRepo, redis, log)
 	controller := http.NewApiKeyController(useCase, log, validator)
 
 	return &ApiKeyModule{
