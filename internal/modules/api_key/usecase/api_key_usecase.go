@@ -30,6 +30,13 @@ type ApiKeyUseCase interface {
 	Authenticate(ctx context.Context, key string) (*model.ApiKeyIdentity, error)
 }
 
+const (
+	cacheKeyOrganizationStatus = "nexusos:org_status:%s"
+	organizationStatusActive   = "active"
+	organizationStatusDeleted  = "deleted"
+	organizationStatusCacheTTL = 30 * time.Second
+)
+
 type apiKeyUseCase struct {
 	repo     repository.ApiKeyRepository
 	orgRepo  orgRepository.OrganizationRepository
@@ -233,17 +240,48 @@ func (uc *apiKeyUseCase) ensureOrganizationAccessible(ctx context.Context, orgID
 		return nil
 	}
 
+	cacheKey := fmt.Sprintf(cacheKeyOrganizationStatus, orgID)
+	if uc.redis != nil {
+		status, err := uc.redis.Get(ctx, cacheKey).Result()
+		if err == nil {
+			switch status {
+			case organizationStatusActive:
+				return nil
+			case organizationStatusDeleted:
+				uc.log.WithField("organization_id", orgID).Warn("Organization is soft-deleted for API key authentication")
+				return exception.ErrUnauthorized
+			}
+		}
+
+		if !errors.Is(err, redis.Nil) {
+			uc.log.WithError(err).Warn("Redis error reading organization status cache")
+		}
+	}
+
 	org, err := uc.orgRepo.FindByID(ctx, orgID)
 	if err != nil {
 		uc.log.WithError(err).WithField("organization_id", orgID).Error("Failed to validate organization for API key")
 		return exception.ErrInternalServer
 	}
 	if org == nil {
+		uc.cacheOrganizationStatus(ctx, orgID, organizationStatusDeleted)
 		uc.log.WithField("organization_id", orgID).Warn("Organization not accessible for API key authentication")
 		return exception.ErrUnauthorized
 	}
 
+	uc.cacheOrganizationStatus(ctx, orgID, organizationStatusActive)
 	return nil
+}
+
+func (uc *apiKeyUseCase) cacheOrganizationStatus(ctx context.Context, orgID, status string) {
+	if uc.redis == nil {
+		return
+	}
+
+	cacheKey := fmt.Sprintf(cacheKeyOrganizationStatus, orgID)
+	if err := uc.redis.Set(ctx, cacheKey, status, organizationStatusCacheTTL).Err(); err != nil {
+		uc.log.WithError(err).WithField("organization_id", orgID).Warn("Failed to cache organization status")
+	}
 }
 
 func (uc *apiKeyUseCase) generateSecureKey() (string, error) {
