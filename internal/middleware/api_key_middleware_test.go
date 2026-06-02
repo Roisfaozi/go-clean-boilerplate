@@ -161,6 +161,26 @@ func TestAPIKeyMiddleware_Authenticate(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
 
+	t.Run("Require User Session allows JWT auth", func(t *testing.T) {
+		r := gin.New()
+		r.Use(func(c *gin.Context) {
+			c.Set("auth_method", "jwt")
+			c.Set("user_id", "user-123")
+			c.Next()
+		})
+		r.Use(mw.RequireUserSession())
+		r.GET("/test", func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
+
+		req, _ := http.NewRequest("GET", "/test", nil)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
 	t.Run("Require All Scopes passes when all present", func(t *testing.T) {
 		r := gin.New()
 		r.Use(func(c *gin.Context) {
