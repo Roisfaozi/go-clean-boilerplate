@@ -5,6 +5,7 @@ package modules
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -104,9 +105,9 @@ func TestAuthIntegration_Login(t *testing.T) {
 		assert.Equal(t, testUser.ID, resp.User.ID)
 		assert.Greater(t, int64(resp.ExpiresIn), int64(0))
 
-		keys, err := env.Redis.Keys(context.Background(), "session:*").Result()
+		sessionKeys, err := env.Redis.SMembers(context.Background(), fmt.Sprintf("session_index:%s", testUser.ID)).Result()
 		require.NoError(t, err)
-		assert.NotEmpty(t, keys)
+		assert.NotEmpty(t, sessionKeys)
 	})
 
 	t.Run("Fail with Invalid Password", func(t *testing.T) {
@@ -232,8 +233,15 @@ func TestAuthIntegration_TokenLifecycle(t *testing.T) {
 		err := authUC.RevokeToken(context.Background(), testUser.ID, claims.SessionID)
 		require.NoError(t, err)
 
-		keys, _ := env.Redis.Keys(context.Background(), "session:"+testUser.ID+":"+claims.SessionID).Result()
-		assert.Empty(t, keys, "Session should be deleted from Redis")
+		sessionKey := fmt.Sprintf("session:%s:%s", testUser.ID, claims.SessionID)
+		exists, err := env.Redis.Exists(context.Background(), sessionKey).Result()
+		require.NoError(t, err)
+		assert.Zero(t, exists, "Session key should be deleted from Redis")
+
+		indexKey := fmt.Sprintf("session_index:%s", testUser.ID)
+		member, err := env.Redis.SIsMember(context.Background(), indexKey, sessionKey).Result()
+		require.NoError(t, err)
+		assert.False(t, member, "Session index should not contain revoked session")
 	})
 }
 
