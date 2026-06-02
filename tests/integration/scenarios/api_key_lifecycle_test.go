@@ -41,7 +41,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 	// Repositories
 	uRepo := userRepo.NewUserRepository(env.DB, logger)
 	akRepo := apiKeyRepo.NewApiKeyRepository(env.DB)
-	organizationRepo := orgRepo.NewOrganizationRepository(env.DB)
+	organizationRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
 
 	// UseCases
 	akUC := apiKeyUC.NewApiKeyUseCase(akRepo, organizationRepo, uRepo, env.Redis, logger)

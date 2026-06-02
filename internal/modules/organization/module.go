@@ -38,7 +38,7 @@ func NewOrganizationModule(
 	frontendBaseURL string,
 ) *OrganizationModule {
 	// Create repositories
-	orgRepo := repository.NewOrganizationRepository(db)
+	orgRepo := repository.NewOrganizationRepository(db, redisClient)
 	memberRepo := repository.NewOrganizationMemberRepository(db)
 	invitationRepo := repository.NewInvitationRepository(db)
 

@@ -3,22 +3,30 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	txpkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 // organizationRepository implements OrganizationRepository interface.
 type organizationRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	redis *redis.Client
 }
 
 // NewOrganizationRepository creates a new instance of OrganizationRepository.
-func NewOrganizationRepository(db *gorm.DB) OrganizationRepository {
-	return &organizationRepository{db: db}
+// An optional Redis client can be passed to enable cache invalidation for organization status.
+func NewOrganizationRepository(db *gorm.DB, redisClients ...*redis.Client) OrganizationRepository {
+	var redisClient *redis.Client
+	if len(redisClients) > 0 {
+		redisClient = redisClients[0]
+	}
+	return &organizationRepository{db: db, redis: redisClient}
 }
 
 // Create creates a new organization with the owner as the first member atomically.
@@ -66,6 +74,15 @@ func (r *organizationRepository) getDB(ctx context.Context) *gorm.DB {
 		return txDB
 	}
 	return r.db
+}
+
+func (r *organizationRepository) invalidateOrganizationStatusCache(ctx context.Context, orgID string) {
+	if r.redis == nil {
+		return
+	}
+
+	cacheKey := fmt.Sprintf("nexusos:org_status:%s", orgID)
+	_ = r.redis.Del(ctx, cacheKey).Err()
 }
 
 // FindByID finds an organization by its ID.
@@ -133,24 +150,39 @@ func (r *organizationRepository) Update(ctx context.Context, org *entity.Organiz
 
 // Delete soft-deletes an organization.
 func (r *organizationRepository) Delete(ctx context.Context, id string) error {
-	return r.getDB(ctx).WithContext(ctx).
+	if err := r.getDB(ctx).WithContext(ctx).
 		Where("id = ?", id).
-		Delete(&entity.Organization{}).Error
+		Delete(&entity.Organization{}).Error; err != nil {
+		return err
+	}
+
+	r.invalidateOrganizationStatusCache(ctx, id)
+	return nil
 }
 
 // Restore clears the soft-delete marker for an organization.
 func (r *organizationRepository) Restore(ctx context.Context, id string) error {
-	return r.getDB(ctx).WithContext(ctx).
+	if err := r.getDB(ctx).WithContext(ctx).
 		Unscoped().
 		Model(&entity.Organization{}).
 		Where("id = ?", id).
-		Update("deleted_at", 0).Error
+		Update("deleted_at", 0).Error; err != nil {
+		return err
+	}
+
+	r.invalidateOrganizationStatusCache(ctx, id)
+	return nil
 }
 
 // HardDelete permanently removes an organization.
 func (r *organizationRepository) HardDelete(ctx context.Context, id string) error {
-	return r.getDB(ctx).WithContext(ctx).
+	if err := r.getDB(ctx).WithContext(ctx).
 		Unscoped().
 		Where("id = ?", id).
-		Delete(&entity.Organization{}).Error
+		Delete(&entity.Organization{}).Error; err != nil {
+		return err
+	}
+
+	r.invalidateOrganizationStatusCache(ctx, id)
+	return nil
 }
