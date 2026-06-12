@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"sync"
 
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
@@ -23,6 +24,8 @@ type RedisTaskProcessor struct {
 	auditUC        auditUseCase.AuditUseCase
 	auditRepo      auditUseCase.AuditRepository
 	cfg            WorkerConfig
+	mu             sync.Mutex
+	started        bool
 }
 
 func NewRedisTaskProcessor(
@@ -61,6 +64,20 @@ func NewRedisTaskProcessor(
 }
 
 func (processor *RedisTaskProcessor) Start() error {
+	processor.mu.Lock()
+	if processor.started {
+		processor.mu.Unlock()
+		return nil
+	}
+	processor.started = true
+	processor.mu.Unlock()
+
+	defer func() {
+		processor.mu.Lock()
+		processor.started = false
+		processor.mu.Unlock()
+	}()
+
 	mux := asynq.NewServeMux()
 
 	// Map WorkerConfig to Handler Config
@@ -98,6 +115,14 @@ func (processor *RedisTaskProcessor) Start() error {
 }
 
 func (processor *RedisTaskProcessor) Shutdown() {
+	processor.mu.Lock()
+	started := processor.started
+	processor.mu.Unlock()
+
+	if !started {
+		return
+	}
+
 	processor.server.Shutdown()
 }
 
