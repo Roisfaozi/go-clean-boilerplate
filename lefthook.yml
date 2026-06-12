@@ -7,7 +7,7 @@ pre-commit:
     # ─── GO BACKEND ───
     go-fmt:
       glob: "**/*.go"
-      run: go fmt {staged_files}
+      run: gofmt -w {staged_files} && git add {staged_files}
 
     go-vet:
       glob: "**/*.go"
