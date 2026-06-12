@@ -47,6 +47,6 @@ type AuthUseCase interface {
 	GetTicket(ctx context.Context, userContext model.UserSessionContext) (string, error)
 
 	// SSO
-	GetSSORedirectURL(ctx context.Context, provider string) (string, error)
+	GetSSORedirectURL(ctx context.Context, provider string, state string) (string, error)
 	HandleSSOCallback(ctx context.Context, provider string, code string) (*model.LoginResponse, string, error)
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	authUsecase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
@@ -83,6 +84,12 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 		c.Set("username", claims.Username)
 		c.Set(authMethodContextKey, authMethodJWT)
 
+		ctx := authcontext.WithUserID(c.Request.Context(), claims.UserID)
+		ctx = authcontext.WithSessionID(ctx, claims.SessionID)
+		ctx = authcontext.WithRole(ctx, claims.Role)
+		ctx = authcontext.WithUsername(ctx, claims.Username)
+		c.Request = c.Request.WithContext(ctx)
+
 		c.Next()
 	}
 }
@@ -109,10 +116,16 @@ func (m *AuthMiddleware) ValidateWebSocketToken() gin.HandlerFunc {
 		c.Set("user_role", userCtx.Role)
 		c.Set("username", userCtx.Username)
 
+		ctx := authcontext.WithUserID(c.Request.Context(), userCtx.UserID)
+		ctx = authcontext.WithSessionID(ctx, userCtx.SessionID)
+		ctx = authcontext.WithRole(ctx, userCtx.Role)
+		ctx = authcontext.WithUsername(ctx, userCtx.Username)
+
 		// Context from ticket takes precedence.
 		if userCtx.OrganizationID != "" {
 			c.Set("organization_id", userCtx.OrganizationID)
 		}
+		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()
 	}

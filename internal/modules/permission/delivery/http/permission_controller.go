@@ -1,8 +1,8 @@
 package http
 
 import (
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"errors"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
@@ -169,7 +169,7 @@ func (h *PermissionController) GetAllPermissions(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, permissions)
+	response.Success(c, filterPoliciesByDomain(permissions, resolveDomain(c, "")))
 }
 
 // GetPermissionsForRole godoc
@@ -197,7 +197,7 @@ func (h *PermissionController) GetPermissionsForRole(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, permissions)
+	response.Success(c, filterPoliciesByDomain(permissions, resolveDomain(c, "")))
 }
 
 // GetUsersForRole godoc
@@ -220,7 +220,7 @@ func (h *PermissionController) GetUsersForRole(c *gin.Context) {
 		return
 	}
 
-	domain := c.Query("domain")
+	domain := resolveDomain(c, c.Query("domain"))
 
 	users, err := h.useCase.GetUsersForRole(c.Request.Context(), role, domain)
 	if err != nil {
@@ -229,6 +229,21 @@ func (h *PermissionController) GetUsersForRole(c *gin.Context) {
 	}
 
 	response.Success(c, users)
+}
+
+func filterPoliciesByDomain(policies [][]string, domain string) [][]string {
+	if domain == "" || domain == "global" {
+		return policies
+	}
+
+	filtered := make([][]string, 0, len(policies))
+	for _, policy := range policies {
+		if len(policy) > 1 && policy[1] == domain {
+			filtered = append(filtered, policy)
+		}
+	}
+
+	return filtered
 }
 
 // UpdatePermission godoc

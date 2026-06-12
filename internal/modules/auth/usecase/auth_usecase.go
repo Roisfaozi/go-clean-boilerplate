@@ -752,13 +752,11 @@ func (s *Service) GetTicket(ctx context.Context, userContext model.UserSessionCo
 	return s.ticketManager.CreateTicket(ctx, userContext.UserID, userContext.OrgID, userContext.SessionID, userContext.Role, userContext.Username)
 }
 
-func (s *Service) GetSSORedirectURL(ctx context.Context, providerName string) (string, error) {
+func (s *Service) GetSSORedirectURL(ctx context.Context, providerName string, state string) (string, error) {
 	provider, exists := s.ssoProviders[providerName]
 	if !exists {
 		return "", exception.ErrBadRequest
 	}
-
-	state := "randomize_state_here"
 
 	url := provider.GetLoginURL(state)
 	return url, nil
@@ -860,35 +858,27 @@ func (s *Service) HandleSSOCallback(ctx context.Context, providerName string, co
 		return nil, "", ErrAccountSuspended
 	}
 
-	// 2. Generate Tokens
-	sessionID := uuid.New().String()
-	accessToken, err := s.GenerateAccessToken(usr)
+	// 2. Generate a consistent token pair using the same session record format as password login.
+	var userRole string
+	if s.authz != nil {
+		roles, err := s.authz.GetRolesForUser(ctx, usr.ID, "")
+		if err != nil {
+			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during SSO login")
+			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
+		}
+		if len(roles) > 0 {
+			userRole = roles[0]
+		}
+	}
+
+	accessToken, refreshToken, _, err := s.generateAndStoreTokenPair(ctx, model.UserSessionContext{
+		UserID:   usr.ID,
+		Role:     userRole,
+		Username: usr.Username,
+	})
 	if err != nil {
-		s.log.WithContext(ctx).WithError(err).Error("Failed to generate access token")
+		s.log.WithContext(ctx).WithError(err).Error("Failed to create SSO session")
 		return nil, "", err
-	}
-
-	refreshToken, err := s.GenerateRefreshToken(usr)
-	if err != nil {
-		s.log.WithContext(ctx).WithError(err).Error("Failed to generate refresh token")
-		return nil, "", err
-	}
-
-	now := time.Now()
-	session := &model.Auth{
-		ID:           sessionID,
-		UserID:       usr.ID,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		CreatedAt:    now,
-		UpdatedAt:    now,
-		ExpiresAt:    now.Add(s.jwtManager.GetRefreshTokenDuration()),
-	}
-
-	err = s.tokenRepo.StoreToken(ctx, session)
-	if err != nil {
-		s.log.WithContext(ctx).WithError(err).Error("Failed to store session in Redis")
-		return nil, "", fmt.Errorf("failed to store session: %w", err)
 	}
 
 	// 3. Clear failed login attempts after successful SSO login
@@ -908,10 +898,14 @@ func (s *Service) HandleSSOCallback(ctx context.Context, providerName string, co
 	return &model.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		TokenType:    "Bearer",
+		ExpiresIn:    int64(s.jwtManager.GetAccessTokenDuration().Seconds()),
+		ExpiresAt:    time.Now().Add(s.jwtManager.GetAccessTokenDuration()),
 		User: model.UserInfo{
 			ID:    usr.ID,
 			Name:  usr.Name,
 			Email: usr.Email,
+			Role:  userRole,
 		},
-	}, sessionID, nil
+	}, refreshToken, nil
 }
