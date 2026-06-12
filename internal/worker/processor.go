@@ -72,12 +72,6 @@ func (processor *RedisTaskProcessor) Start() error {
 	processor.started = true
 	processor.mu.Unlock()
 
-	defer func() {
-		processor.mu.Lock()
-		processor.started = false
-		processor.mu.Unlock()
-	}()
-
 	mux := asynq.NewServeMux()
 
 	// Map WorkerConfig to Handler Config
@@ -111,17 +105,24 @@ func (processor *RedisTaskProcessor) Start() error {
 		mux.HandleFunc(tasks.TypePruneAuditLogs, processor.cleanupHandler.ProcessPruneAuditLogs)
 	}
 
-	return processor.server.Start(mux)
+	if err := processor.server.Start(mux); err != nil {
+		processor.mu.Lock()
+		processor.started = false
+		processor.mu.Unlock()
+		return err
+	}
+
+	return nil
 }
 
 func (processor *RedisTaskProcessor) Shutdown() {
 	processor.mu.Lock()
-	started := processor.started
-	processor.mu.Unlock()
-
-	if !started {
+	if !processor.started {
+		processor.mu.Unlock()
 		return
 	}
+	processor.started = false
+	processor.mu.Unlock()
 
 	processor.server.Shutdown()
 }
