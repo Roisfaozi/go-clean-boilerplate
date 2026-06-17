@@ -223,3 +223,42 @@ func TestPermissionController_BatchCheck_Unauthorized(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
+
+func TestPermissionController_GetAllPermissions_FiltersTenantDomain(t *testing.T) {
+	mockUC, controller := setupPermissionControllerTest()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("GET", "/permissions", nil)
+	c.Set("organization_id", "org-123")
+
+	mockUC.On("GetAllPermissions", c.Request.Context()).Return([][]string{
+		{"role:admin", "global", "/api/v1/users", "GET"},
+		{"role:admin", "org-123", "/api/v1/projects", "GET"},
+	}, nil).Once()
+
+	controller.GetAllPermissions(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotContains(t, w.Body.String(), "\"global\"")
+	assert.Contains(t, w.Body.String(), "\"org-123\"")
+}
+
+func TestPermissionController_GetUsersForRole_UsesResolvedTenantDomain(t *testing.T) {
+	mockUC, controller := setupPermissionControllerTest()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("GET", "/permissions/roles/role:admin/users?domain=global", nil)
+	c.Params = gin.Params{{Key: "role", Value: "role:admin"}}
+	c.Set("organization_id", "org-123")
+
+	mockUC.On("GetUsersForRole", c.Request.Context(), "role:admin", "org-123").Return([]string{"u1"}, nil).Once()
+
+	controller.GetUsersForRole(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockUC.AssertExpectations(t)
+}

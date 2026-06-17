@@ -252,6 +252,7 @@ func SetupRouter(
 	// TUS Upload Handler
 	uploadGroup := router.Group("/api/v1/upload")
 	uploadGroup.Use(authMiddleware.ValidateToken())
+	uploadGroup.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	{
 		uploadGroup.Any("/files/*any", gin.WrapH(http.StripPrefix("/api/v1/upload/files/", tusHandler)))
 	}

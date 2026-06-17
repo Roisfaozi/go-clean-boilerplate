@@ -35,6 +35,8 @@ func setupWebhookRepoTest(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, repository.W
 	return gormDB, mock, repo
 }
 
+const webhookVisibilityClause = "((webhooks.organization_id IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = webhooks.organization_id AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0)))"
+
 func TestWebhookRepository_Create(t *testing.T) {
 	_, mock, repo := setupWebhookRepoTest(t)
 
@@ -127,7 +129,7 @@ func TestWebhookRepository_Delete(t *testing.T) {
 
 	t.Run("Positive - Successfully deletes webhook", func(t *testing.T) {
 		mock.ExpectBegin()
-		mock.ExpectExec(regexp.QuoteMeta("UPDATE `webhooks` SET `deleted_at`=? WHERE (id = ? AND organization_id = ?) AND ((webhooks.organization_id IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = webhooks.organization_id AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0))) AND `webhooks`.`deleted_at` IS NULL")).
+		mock.ExpectExec(regexp.QuoteMeta("UPDATE `webhooks` SET `deleted_at`=? WHERE (id = ? AND organization_id = ?) AND "+webhookVisibilityClause+" AND `webhooks`.`deleted_at` IS NULL")).
 			WithArgs(sqlmock.AnyArg(), "wh-123", "org-123").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectCommit()
@@ -138,7 +140,7 @@ func TestWebhookRepository_Delete(t *testing.T) {
 
 	t.Run("Negative - DB Error", func(t *testing.T) {
 		mock.ExpectBegin()
-		mock.ExpectExec(regexp.QuoteMeta("UPDATE `webhooks` SET `deleted_at`=? WHERE (id = ? AND organization_id = ?) AND `webhooks`.`deleted_at` IS NULL")).
+		mock.ExpectExec(regexp.QuoteMeta("UPDATE `webhooks` SET `deleted_at`=? WHERE (id = ? AND organization_id = ?) AND " + webhookVisibilityClause + " AND `webhooks`.`deleted_at` IS NULL")).
 			WillReturnError(fmt.Errorf("db error"))
 		mock.ExpectRollback()
 
@@ -154,7 +156,7 @@ func TestWebhookRepository_FindByID(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"id", "name", "organization_id", "url"}).
 			AddRow("wh-123", "Test Webhook", "org-123", "https://test.com/hook")
 
-		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE (id = ? AND organization_id = ?) AND ((webhooks.organization_id IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = webhooks.organization_id AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0))) AND `webhooks`.`deleted_at` IS NULL ORDER BY `webhooks`.`id` LIMIT ?")).
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE (id = ? AND organization_id = ?) AND "+webhookVisibilityClause+" AND `webhooks`.`deleted_at` IS NULL ORDER BY `webhooks`.`id` LIMIT ?")).
 			WithArgs("wh-123", "org-123", 1).
 			WillReturnRows(rows)
 
@@ -167,7 +169,7 @@ func TestWebhookRepository_FindByID(t *testing.T) {
 	})
 
 	t.Run("Negative - Not Found", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE (id = ? AND organization_id = ?) AND ((webhooks.organization_id IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = webhooks.organization_id AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0))) AND `webhooks`.`deleted_at` IS NULL ORDER BY `webhooks`.`id` LIMIT ?")).
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE (id = ? AND organization_id = ?) AND "+webhookVisibilityClause+" AND `webhooks`.`deleted_at` IS NULL ORDER BY `webhooks`.`id` LIMIT ?")).
 			WithArgs("wh-123", "org-123", 1).
 			WillReturnError(gorm.ErrRecordNotFound)
 
@@ -186,7 +188,7 @@ func TestWebhookRepository_FindByOrganizationID(t *testing.T) {
 			AddRow("wh-123", "Test 1", "org-123").
 			AddRow("wh-124", "Test 2", "org-123")
 
-		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE organization_id = ? AND ((webhooks.organization_id IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = webhooks.organization_id AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0))) AND `webhooks`.`deleted_at` IS NULL")).
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE organization_id = ? AND " + webhookVisibilityClause + " AND `webhooks`.`deleted_at` IS NULL")).
 			WithArgs("org-123").
 			WillReturnRows(rows)
 
@@ -196,7 +198,7 @@ func TestWebhookRepository_FindByOrganizationID(t *testing.T) {
 	})
 
 	t.Run("Negative - DB Error", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE organization_id = ? AND ((webhooks.organization_id IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = webhooks.organization_id AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0))) AND `webhooks`.`deleted_at` IS NULL")).
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE organization_id = ? AND " + webhookVisibilityClause + " AND `webhooks`.`deleted_at` IS NULL")).
 			WithArgs("org-123").
 			WillReturnError(fmt.Errorf("db error"))
 
@@ -213,7 +215,7 @@ func TestWebhookRepository_FindByEvent(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"id", "name", "organization_id"}).
 			AddRow("wh-123", "Test 1", "org-123")
 
-		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE (organization_id = ? AND is_active = ? AND JSON_CONTAINS(events, JSON_QUOTE(?))) AND ((webhooks.organization_id IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = webhooks.organization_id AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0))) AND `webhooks`.`deleted_at` IS NULL")).
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE (organization_id = ? AND is_active = ? AND JSON_CONTAINS(events, JSON_QUOTE(?))) AND "+webhookVisibilityClause+" AND `webhooks`.`deleted_at` IS NULL")).
 			WithArgs("org-123", true, "user.created").
 			WillReturnRows(rows)
 
@@ -223,19 +225,19 @@ func TestWebhookRepository_FindByEvent(t *testing.T) {
 	})
 
 	t.Run("Vulnerability - SQL Injection attempt via Event string", func(t *testing.T) {
-        // Test that dangerous input strings are handled properly by GORM parameterization
-        rows := sqlmock.NewRows([]string{"id"})
-        mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE (organization_id = ? AND is_active = ? AND JSON_CONTAINS(events, JSON_QUOTE(?))) AND ((webhooks.organization_id IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = webhooks.organization_id AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0))) AND `webhooks`.`deleted_at` IS NULL")).
-            WithArgs("org-123", true, "'); DROP TABLE webhooks;--").
-            WillReturnRows(rows)
+		// Test that dangerous input strings are handled properly by GORM parameterization
+		rows := sqlmock.NewRows([]string{"id"})
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE (organization_id = ? AND is_active = ? AND JSON_CONTAINS(events, JSON_QUOTE(?))) AND "+webhookVisibilityClause+" AND `webhooks`.`deleted_at` IS NULL")).
+			WithArgs("org-123", true, "'); DROP TABLE webhooks;--").
+			WillReturnRows(rows)
 
-        webhooks, err := repo.FindByEvent(context.Background(), "org-123", "'); DROP TABLE webhooks;--")
-        assert.NoError(t, err)
-        assert.Len(t, webhooks, 0)
-    })
+		webhooks, err := repo.FindByEvent(context.Background(), "org-123", "'); DROP TABLE webhooks;--")
+		assert.NoError(t, err)
+		assert.Len(t, webhooks, 0)
+	})
 
 	t.Run("Negative - DB Error", func(t *testing.T) {
-		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE (organization_id = ? AND is_active = ? AND JSON_CONTAINS(events, JSON_QUOTE(?))) AND ((webhooks.organization_id IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = webhooks.organization_id AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0))) AND `webhooks`.`deleted_at` IS NULL")).
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `webhooks` WHERE (organization_id = ? AND is_active = ? AND JSON_CONTAINS(events, JSON_QUOTE(?))) AND "+webhookVisibilityClause+" AND `webhooks`.`deleted_at` IS NULL")).
 			WithArgs("org-123", true, "user.created").
 			WillReturnError(fmt.Errorf("db error"))
 

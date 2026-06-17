@@ -143,4 +143,26 @@ func TestAvatarHook_HandleUpload(t *testing.T) {
 		assert.NoError(t, err)
 		mockUC.AssertExpectations(t)
 	})
+
+	t.Run("Security: authenticated_user_id takes precedence over client metadata", func(t *testing.T) {
+		mockUC := new(mocks.MockUserUseCase)
+		hook := &usecase.AvatarHook{
+			UserUseCase: mockUC,
+		}
+		ctx := context.Background()
+		event := tus.UploadEvent{
+			FileURL: "https://s3.example.com/avatars/secure.png",
+			Metadata: map[string]string{
+				"user_id":               "victim-user",
+				"authenticated_user_id": "user123",
+			},
+		}
+
+		mockUC.On("SetAvatarURL", ctx, "user123", event.FileURL).Return(nil).Once()
+
+		err := hook.HandleUpload(ctx, event)
+
+		assert.NoError(t, err)
+		mockUC.AssertExpectations(t)
+	})
 }
