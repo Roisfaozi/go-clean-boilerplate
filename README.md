@@ -210,10 +210,10 @@ The project follows a standard Go project layout suitable for scalable microserv
 ├── docs/               # Auto-generated Swagger/OpenAPI documentation files
 │
 ├── documentation/      # Project guides and additional documentation
-│   ├── USAGE.md                        # Detailed guide on how to use the API workflow
-│   ├── DYNAMIC_SEARCH_EXAMPLES.md      # Curl examples for dynamic search
-│   └── GET_VS_DYNAMIC_SEARCH.md        # Explains GET vs POST search approaches
-│   └── SSE_USAGE.md                    # Guide for Server-Sent Events (SSE)
+│   ├── architecture/   # System design and architecture blueprints
+│   ├── guides/         # Developer guides (API, Storage, Testing, SSE/WS, etc.)
+│   ├── ops/            # Operations runbooks and project roadmaps
+│   └── productplan/    # PRDs, wireframes, and UI specs
 │
 ├── postman/            # Postman collections for testing
 │   ├── Casbin Project API.postman_collection.json         # Main collection
@@ -237,11 +237,11 @@ The project follows a standard Go project layout suitable for scalable microserv
 
 ## 📜 Documentation Links
 
-- [System Architecture](./documentation/ARCHITECTURE.md)
-- [Getting Started](./documentation/GETTING_STARTED.md)
+- [System Architecture](./documentation/architecture/SYSTEM_ARCHITECTURE.md)
+- [Getting Started](./documentation/guides/GETTING_STARTED.md)
 - [API Usage Guide](./documentation/guides/API_USAGE.md)
-- [API Access & RBAC](./documentation/API_ACCESS_WORKFLOW.md)
-- [Multi-Tenancy Architecture](./documentation/MULTI_TENANCY.md)
+- [API Access & RBAC](./documentation/guides/API_ACCESS_WORKFLOW.md)
+- [Multi-Tenancy Architecture](./documentation/architecture/MULTI_TENANCY.md)
 - [Testing Strategy](./documentation/guides/TESTING.md)
 - [Real-time (WS & SSE)](./documentation/guides/REALTIME.md)
 - [Dynamic Search](./documentation/guides/SEARCH.md)
@@ -249,7 +249,7 @@ The project follows a standard Go project layout suitable for scalable microserv
 - [Observability (Tracing/Metrics)](./documentation/guides/OBSERVABILITY.md)
 - [Maintenance & Scheduler](./documentation/guides/MAINTENANCE.md)
 - [Frontend Guide](./web/README.md)
-- [Future Roadmap](./documentation/UI_ROADMAP.md)
+- [Future Roadmap](./documentation/ops/UI_ROADMAP.md)
 
 ---
 
