@@ -2683,7 +2683,7 @@ func TestAuthUseCase_HandleSSOCallback_NewUser_AutoProvision(t *testing.T) {
 
 	deps.tm.On("WithinTransaction", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		fn := args.Get(1).(func(context.Context) error)
-		fn(context.Background())
+		_ = fn(context.Background())
 	})
 
 	deps.userRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
