@@ -2,65 +2,175 @@
 
 ## Purpose
 
-Durable map for active frontend API proxy surfaces, shared client boundaries, and reusable form behavior patterns.
+Durable map for frontend request boundaries in this monorepo:
 
-## Active frontend surfaces
+- proxy surfaces in `apps/web` and `apps/client`
+- cookie and auth forwarding behavior
+- backend-offline behavior
+- shared frontend contract risk when backend API changes
+- common form submission patterns and their coupling to backend validation
 
-- `apps/web`: Next.js App Router, server actions, UI components, backend API proxy
-- `apps/client`: React Router 7, feature folders, route registry, backend API proxy
-- `packages/*`: shared types, hooks, UI, and utils
+Use this file before changing frontend API calls, auth cookies, proxy headers, form payload shape, or shared API contract assumptions.
 
-## API proxy surfaces
+## Primary source of truth
 
-### `apps/web`
+1. `llm/cache/frontend-map.md`
+2. `llm/cache/api-contracts.md`
+3. `apps/web/src/app/api/v1/[...path]/route.ts`
+4. `apps/client/app/routes/api-proxy.ts`
+5. target app API helper files
+6. target form implementation files
+7. `internal/router/router.go` if backend route/auth behavior changed
 
-- Proxy file: `apps/web/src/app/api/v1/[...path]/route.ts`
-- Builds backend URL from `NEXT_PUBLIC_API_URL`, falling back to local API URL
-- Reads `access_token` cookie and sets `Authorization: Bearer ...` when present
-- Forwards cookies and selected safe response headers
-- Returns `BACKEND_OFFLINE` JSON on backend fetch failure
-
-### `apps/client`
-
-- Proxy file: `apps/client/app/routes/api-proxy.ts`
-- Builds backend base URL from `NEXT_PUBLIC_API_URL`, falling back to local API URL
-- Forwards request headers and cookies plus safe response headers including `Set-Cookie`
-- Streams backend response body back to callers
-- Returns `BACKEND_OFFLINE` JSON response on backend fetch failure
-
-## Contract and auth implications
-
-- Both active apps can depend on backend contract changes through their own proxy boundary.
-- Cookie and auth forwarding behavior is part of runtime correctness, not a frontend implementation detail.
-- If backend contract changes, check producer and consumer, not backend alone.
-
-## Form patterns observed
+## Surface ownership
 
 ### `apps/web`
 
-- `apps/web/src/components/auth/login-form.tsx` uses React Hook Form plus `zodResolver`
-- auth form submits through `apps/web/src/app/actions/auth.ts`
-- flow handles loading state, field errors, toast errors, permission fetch, auth store, and redirect
+- framework: Next.js App Router
+- proxy owner: `apps/web/src/app/api/v1/[...path]/route.ts`
+- common auth/form owners also include `apps/web/src/lib/api/*`, server actions, and app-specific UI components
 
 ### `apps/client`
 
-- `apps/client/app/features/shared/crud-form-dialog.tsx` uses local values/errors state and `zod` schema `safeParse`
-- shared CRUD dialog supports text, textarea, select, switch, and number-style fields
-- submit passes parsed data to caller and caller handles result or error behavior
+- framework: React Router 7
+- proxy owner: `apps/client/app/routes/api-proxy.ts`
+- common feature owners live under `app/features/*`, `app/routes/*`, and app-local api helpers
+
+### Shared workspace
+
+- `packages/api-types` for shared response/request typing
+- `packages/hooks`, `packages/ui`, `packages/utils` for shared frontend behavior that may hide contract assumptions
+
+## Proxy behavior by app
+
+### `apps/web` proxy semantics
+
+Current durable behavior from `apps/web/src/app/api/v1/[...path]/route.ts`:
+
+- builds backend target from `NEXT_PUBLIC_API_URL` with local fallback
+- reads `access_token` cookie
+- sets `Authorization: Bearer ...` when cookie exists
+- forwards cookies downstream
+- returns structured `BACKEND_OFFLINE` JSON when backend fetch fails
+- forwards only selected safe response headers back to browser
+
+Implication:
+
+- web app auth can break if cookie name or bearer-header assumption changes
+- backend header and cookie behavior are part of contract, not transport detail only
+
+### `apps/client` proxy semantics
+
+Current durable behavior from `apps/client/app/routes/api-proxy.ts`:
+
+- builds backend base URL from `NEXT_PUBLIC_API_URL` with local fallback
+- forwards request headers and cookies
+- forwards safe response headers including `Set-Cookie`
+- streams backend response body back to caller
+- returns `BACKEND_OFFLINE` JSON on fetch failure
+
+Implication:
+
+- client app may preserve more raw backend response shape than web app in some flows
+- cookie propagation behavior can differ by app surface and needs audit before auth changes
+
+## Contract risk model
+
+Backend contract change is not done when controller compiles.
+
+For this repo, change may require updating all of:
+
+- backend controller/route
+- frontend proxy path expectations
+- app-local API helper
+- form serializer or field mapping
+- shared type package if used
+- loading/error state UI
+
+If route is consumed by both apps, both apps need audit even if only one currently exposes visible page.
+
+## Form patterns proven in repo
+
+### `apps/web` auth-style pattern
+
+Observed durable pattern:
+
+- `apps/web/src/components/auth/login-form.tsx` uses React Hook Form
+- `zodResolver` performs schema validation
+- submit path delegates to `apps/web/src/app/actions/auth.ts`
+- flow handles loading, field errors, toast errors, auth store updates, permission fetch, and redirect
+
+Meaning:
+
+- backend auth response changes can break more than one UI component
+- validation shape and redirect/permission initialization are part of runtime path
+
+### `apps/client` CRUD-dialog pattern
+
+Observed durable pattern:
+
+- `apps/client/app/features/shared/crud-form-dialog.tsx` uses local values/errors state
+- `zod` `safeParse` validates before submit
+- shared dialog supports multiple field kinds
+- caller owns actual submit and post-submit behavior
+
+Meaning:
+
+- server validation and form field schema can drift separately
+- feature-specific caller code may still need changes even if shared dialog stays same
+
+## Cross-stack coupling
+
+Frontend proxy/form changes can silently intersect:
+
+- auth cookie/session behavior
+- API-key usage if frontend surfaces expose API-key management
+- tenant-aware routes that depend on org context or route params
+- upload/formdata handling
+- backend validation and error envelope shape
+
+Read with:
+
+- `llm/cache/authentication-system.md`
+- `llm/cache/api-contracts.md`
+- `llm/cache/tenant-organization-system.md`
+- `llm/cache/frontend-map.md`
+
+## Known sharp edges
+
+- `apps/web` and `apps/client` are both active; do not patch one and assume repo done.
+- `apps/client` lint remains placeholder-grade; use typecheck/build/E2E instead.
+- proxy `BACKEND_OFFLINE` behavior is user-facing contract and should stay consistent unless intentionally redesigned.
+- cookie/header forwarding lists are security-sensitive and should not be widened casually.
+
+## Change checklist
+
+Before editing frontend proxy or forms, prove these answers:
+
+1. Which app owns route or UI: `apps/web`, `apps/client`, or both?
+2. Does backend contract change response body, error envelope, auth cookie, or header semantics?
+3. Is request JSON, form-data, server action, or proxied stream?
+4. Which form schema or caller mapping must change with it?
+5. Do shared packages encode old field names or types?
+6. Is verification using strong command surface for owning app?
+
+## Verification paths
+
+Narrow first:
+
+- owning app typecheck
+- owning app build if route/component wiring changed
+- target component or route tests if present
+
+Broader when auth/proxy semantics changed:
+
+- manual browser flow
+- relevant E2E flow
 
 ## Hard rules
 
-- Both `apps/web` and `apps/client` are active; check both when backend contract changes.
-- Do not duplicate API helpers or proxy behavior across apps without reason.
-- Do not treat frontend route hiding or UI state as authorization.
-- `apps/client` lint script is placeholder-only; use typecheck, build, or E2E as appropriate.
-- If form payload or response shape changes, audit both validation and proxy path.
-
-## Verification and evidence paths
-
-- `apps/web/src/app/api/v1/[...path]/route.ts`
-- `apps/client/app/routes/api-proxy.ts`
-- `apps/web/src/lib/api/*`
-- `apps/client/app/lib/api/*`
-- `apps/web/src/components/auth/login-form.tsx`
-- `apps/client/app/features/shared/crud-form-dialog.tsx`
+- Do not treat frontend route hiding as auth.
+- Do not change backend contract without auditing proxy and form callers.
+- Do not duplicate proxy helpers across apps without clear owner reason.
+- Do not rely on `apps/client` lint as strong verification.
+- Do not widen forwarded headers/cookies casually.
