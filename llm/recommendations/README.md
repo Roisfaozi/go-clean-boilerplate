@@ -4,35 +4,48 @@
 
 Folder ini untuk peluang perbaikan non-urgent yang sudah punya evidence, tetapi belum menjadi plan eksekusi aktif.
 
-## Simpan di Sini Bila
+Isi folder ini harus cukup konkret untuk dipromosikan ke `llm/plans/` saat prioritas naik.
 
-- ada debt teknis di luar scope patch sekarang
-- ada gap hardening, performance, doc, test, atau architecture yang layak ditindaklanjuti nanti
-- ada saran refactor bertahap yang belum mendapat approval atau slot implementasi
+## Kapan Simpan di Sini
 
-## Format Minimum
+Simpan recommendation bila:
+
+- ada debt teknis di luar scope patch saat ini
+- ada gap hardening, performance, docs, tests, atau architecture yang layak ditindaklanjuti nanti
+- ada refactor yang jelas manfaatnya tetapi belum ada approval/slot
+
+Contoh repo ini:
+
+- hardening tambahan untuk querybuilder deny-list
+- penyelarasan kontrak frontend-backend yang belum urgent
+- coverage gap pada webhook/audit integration paths
+- cleanup shared package ownership antar frontend apps
+
+## Struktur Minimal Dokumen
 
 Setiap recommendation sebaiknya punya:
 
 - masalah
 - dampak
-- evidence path atau command
+- evidence path / file / command
 - usulan perbaikan
-- prioritas, risiko, atau urutan tindak lanjut
+- prioritas atau urgency
+- risiko jika dibiarkan
 
-## Perbedaan Dengan Folder Lain
+## Bedakan Dari Folder Lain
 
 - `llm/cache/`
   - fakta stabil yang sudah tervalidasi
-- `llm/plans/`
-  - plan implementasi yang sudah punya sequence kerja
-- `llm/tasks/`
-  - state aktif sekarang
 - `llm/research/`
-  - investigasi dan evidence mapping yang mungkin belum berubah menjadi recommendation
+  - investigasi evidence-heavy yang mungkin belum menghasilkan recommendation final
+- `llm/plans/`
+  - jalur eksekusi yang sudah lebih matang
+- `llm/tasks/`
+  - state kerja aktif sekarang
 
 ## Jangan Simpan di Sini
 
 - fakta runtime stabil
-- plan eksekusi aktif
+- plan implementasi aktif
 - audit sementara tanpa rekomendasi jelas
+- opini tanpa evidence path

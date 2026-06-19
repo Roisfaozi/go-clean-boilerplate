@@ -2,36 +2,59 @@
 
 ## Purpose
 
-Folder ini untuk flow test manual, browser, API, integration, atau E2E yang reusable.
+Folder ini untuk flow verifikasi reusable: manual UI, API, browser, integration, atau E2E.
 
-Gunakan ketika langkah verifikasi sering diulang dan cukup spesifik ke repo ini sehingga layak dijadikan playbook.
+Gunakan ketika langkah test cukup spesifik ke repo ini dan layak dipakai ulang lintas task.
 
-## Simpan di Sini Bila
+## Kapan Simpan di Sini
 
-- flow perlu diulang lintas task atau lintas agent
-- login, seed, fixture, atau tenant setup penting untuk verifikasi
-- ada langkah verifikasi UI/API end-to-end yang spesifik ke route, proxy, auth, atau worker behavior repo ini
+Simpan playbook bila:
 
-## Format Minimum
+- login/setup actor perlu diulang berkali-kali
+- tenant/org context penting untuk hasil test
+- ada route/auth/proxy/worker behavior yang butuh langkah verifikasi stabil
+- verifikasi manual lebih bernilai daripada sekadar command dump
+
+Contoh kuat di repo ini:
+
+- login + pilih org + cek route tenant-protected
+- upload avatar via TUS lalu verifikasi profile update
+- buat webhook lalu trigger event dan cek delivery log
+- batch permission check vs admin permission CRUD
+- frontend proxy auth/cookie behavior di `apps/web` dan `apps/client`
+
+## Struktur Minimal Dokumen
 
 Setiap playbook sebaiknya punya:
 
 - scope flow
 - prerequisite
-- actor atau role yang dipakai
+- actor/role yang dipakai
+- seed/data awal bila perlu
 - langkah test
 - expected result
 - cleanup bila perlu
 - command terkait bila ada
 
-## Catatan Repo Ini
+## Repo-Specific Notes
 
 - backend integration dan E2E sering butuh Docker
 - `apps/client` lint bukan verifikasi kuat
-- route, auth, tenant, dan Casbin behavior harus tetap dicek terhadap `internal/router/router.go` dan middleware terkait
-- frontend proxy behavior bisa perlu pengecekan di `apps/web/src/app/api/v1/[...path]/route.ts` atau `apps/client/app/routes/api-proxy.ts`
+- auth/tenant/Casbin behavior harus dicek ke `internal/router/router.go` dan middleware terkait
+- proxy behavior bisa perlu dicek di `apps/web/src/app/api/v1/[...path]/route.ts` atau `apps/client/app/routes/api-proxy.ts`
+- worker/webhook/audit behavior kadang butuh eventual-consistency wait step
+
+## Bedakan Dari Folder Lain
+
+- `llm/tasks/`
+  - result sementara atau scratch notes
+- `llm/research/`
+  - analisis dan evidence, bukan langkah test operasional
+- `llm/cache/`
+  - fakta stabil, bukan prosedur test
 
 ## Jangan Simpan di Sini
 
-- test result sementara tanpa flow reusable
-- ad hoc command dump tanpa konteks actor dan expected result
+- hasil test ad hoc tanpa flow reusable
+- command list tanpa actor, context, dan expected result
+- checklist terlalu umum seperti “run app and click around”

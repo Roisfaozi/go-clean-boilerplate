@@ -4,25 +4,60 @@
 
 Folder ini untuk improvement plan bertahap pada area yang sudah ada di repo, bukan fitur baru dari nol.
 
-## Cocok Untuk
+Dokumen di sini harus cukup detail untuk dipakai ulang lintas sesi, lintas agent, atau lintas reviewer.
 
-- hardening auth, session, tenant, Casbin, atau API-key boundaries
-- peningkatan maintainability module tertentu
-- refactor proxy, shared types, atau workflow internal frontend
-- perbaikan test coverage atau verification strategy
-- cleanup struktur `llm/`, docs, atau agent workflows
+## Kapan Pakai Folder Ini
 
-## Format Minimum
+Simpan plan di `llm/plans/improve/` bila:
 
-Setiap improve plan sebaiknya menjelaskan:
+- ada area existing yang perlu diperbaiki bertahap
+- pekerjaan terlalu besar untuk sekali patch
+- urutan perbaikan penting agar blast radius terkendali
+- ada debt teknis yang sudah jelas jalur eksekusinya
 
-- pain saat ini
-- scope yang disentuh
-- urutan perbaikan bertahap
+Contoh repo ini:
+
+- hardening auth/session/tenant/Casbin
+- cleanup frontend proxy dan shared type drift
+- peningkatan querybuilder safety coverage
+- stabilisasi upload, webhook, atau worker side effects
+- perapihan `llm/` starter-pack agar parity makin dekat ke Carbon tetapi tetap repo-specific
+
+## Struktur Minimal Dokumen
+
+Setiap improve plan sebaiknya punya:
+
+- tujuan dan pain saat ini
+- scope dan non-goals
+- urutan fase kecil
+- ownership file/module per fase
 - risk atau blast radius
-- verification target per tahap
+- verification per fase
+- blocker, dependency, atau approval gate
 
-## Bukan Untuk
+## Bedakan Dari Folder Lain
 
-- roadmap lintas milestone yang sangat besar; pakai `llm/plans/roadmap/`
-- task aktif harian yang cepat berubah; pakai `llm/tasks/todo.md`
+- `llm/tasks/`
+  - state aktif cepat berubah
+- `llm/research/`
+  - investigasi dan evidence, belum tentu jadi eksekusi
+- `llm/recommendations/`
+  - usulan perbaikan non-urgent tanpa sequence implementasi matang
+- `llm/plans/roadmap/`
+  - plan lintas milestone atau lintas area yang lebih besar
+
+## Format Yang Disarankan
+
+Pola yang bagus:
+
+1. current state
+2. target state
+3. phase 1 / phase 2 / phase 3
+4. verification target
+5. deferred risk or follow-up
+
+## Jangan Simpan di Sini
+
+- satu patch kecil yang bisa selesai sekarang
+- checklist harian yang cepat basi
+- recommendation tanpa evidence atau tanpa urutan kerja
