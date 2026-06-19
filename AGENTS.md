@@ -38,10 +38,18 @@ Fast routing by task type:
 
 - backend feature: read `llm/workflows/go-service.md`, `llm/cache/backend-map.md`, `llm/cache/module-map.md`.
 - API route change: read `llm/workflows/api-endpoint.md`, `llm/cache/api-contracts.md`, `internal/router/router.go`.
-- frontend change: read `llm/cache/frontend-map.md`, `llm/conventions/typescript.md`, then the target app package.
-- cross-stack change: read `llm/workflows/cross-stack-change.md`, `llm/cache/api-contracts.md`, both frontend proxy files.
+- frontend change: read `llm/cache/frontend-map.md`, `llm/cache/frontend-proxy-system.md`, `llm/conventions/typescript.md`, then the target app package.
+- cross-stack change: read `llm/workflows/cross-stack-change.md`, `llm/cache/api-contracts.md`, `llm/cache/frontend-proxy-system.md`, both frontend proxy files.
 - DB/schema change: read `llm/workflows/database-migration.md`, `llm/conventions/database.md`, `db/migrations`.
-- security/auth/tenant/Casbin change: read `llm/cache/domain-rules.md`, `internal/middleware/*`, target usecase.
+- auth/session change: read `llm/cache/authentication-system.md`, `llm/cache/domain-rules.md`, `internal/middleware/auth_middleware.go`.
+- tenant/organization change: read `llm/cache/tenant-organization-system.md`, `internal/middleware/tenant_middleware.go`, target organization usecase.
+- Casbin/permission change: read `llm/cache/casbin-permission-system.md`, `internal/middleware/casbin_middleware.go`, `internal/modules/permission`.
+- API-key change: read `llm/cache/api-key-system.md`, `internal/middleware/api_key_middleware.go`, `internal/modules/api_key`.
+- upload/storage change: read `llm/cache/tus-upload-system.md`, `pkg/tus`, `pkg/storage`.
+- worker/audit/webhook change: read `llm/cache/worker-audit-webhook-system.md`, `internal/worker`, target audit/webhook module.
+- query/filter/sort change: read `llm/cache/querybuilder-security.md`, `pkg/querybuilder`.
+- realtime change: read `llm/cache/realtime-system.md`, `pkg/ws`, `pkg/sse`, `internal/router/router.go`.
+- security/auth/tenant/Casbin change: read `llm/cache/domain-rules.md`, the matching domain cache, `internal/middleware/*`, target usecase.
 
 ## 3. Core runtime truth
 
@@ -162,7 +170,23 @@ Use these workflow files instead of improvising:
 - `llm/workflows/cross-stack-change.md`
 - `llm/workflows/database-migration.md`
 
-## 9. Agent behavior for this repo
+## 9. Knowledge lifecycle folders
+
+Use each folder intentionally:
+
+- `llm/cache/` — verified stable repo facts only; do not put active plans or uncommitted assumptions here.
+- `llm/tasks/` — active work state, phase tracking, parity audits, lessons, and current task notes.
+- `llm/research/` — durable investigations with evidence and explicit separation between facts and recommendations.
+- `llm/recommendations/` — non-urgent improvement ideas backed by evidence.
+- `llm/test-playbooks/` — reusable manual/API/browser/E2E verification flows.
+- `llm/plans/` — large staged plans that should outlive one active task; use `improve/` and `roadmap/` for durable plan categories.
+
+Memory/update rule:
+
+- only move information into `llm/cache/` after it is verified against committed live code or committed docs generated from live code.
+- if a finding is useful but not yet stable, keep it in `llm/tasks/`, `llm/research/`, or `llm/recommendations/` instead.
+
+## 10. Agent behavior for this repo
 
 Before making claims in docs or patches:
 
@@ -183,6 +207,8 @@ When editing docs or AI context:
 - prefer `needs confirmation` only when the fact cannot be verified locally
 - update `llm/tasks/lessons.md` when a durable repo-specific lesson is discovered
 - update `llm/tasks/phase-compliance.md` if starter-pack coverage changes
+- write long-form evidence gathering into `llm/research/`, not `llm/cache/`, until findings are stable
+- write non-urgent future work into `llm/recommendations/` or `llm/plans/`, not `llm/tasks/todo.md`
 
 When editing frontend:
 
@@ -190,6 +216,6 @@ When editing frontend:
 - check which app owns the route/component before changing shared packages
 - do not treat `apps/client` lint as strong verification while its lint script is placeholder-only
 
-## 10. If you need more context
+## 11. If you need more context
 
 Use the concretized starter-pack files under `llm/`. They were filled from live repo evidence and are the preferred durable handoff layer for future agent work.
