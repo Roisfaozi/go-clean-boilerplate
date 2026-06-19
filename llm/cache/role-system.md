@@ -2,48 +2,99 @@
 
 ## Purpose
 
-Durable map for role CRUD, validation, model conversion, role-policy cleanup, and permission integration.
+Durable map for role-domain behavior:
 
-## Runtime truth
+- role CRUD
+- validation and model conversion
+- dynamic role search/list
+- role-policy cleanup
+- permission-usecase orchestration
+- admin route protection
 
-- Module root: `internal/modules/role/`
-- Wiring entry: `internal/modules/role/module.go`
-- Routes: `internal/modules/role/delivery/http/role_routes.go`
-- Controller: `internal/modules/role/delivery/http/role_controller.go`
-- Usecase: `internal/modules/role/usecase/role_usecase.go`
-- Repository: `internal/modules/role/repository/role_repository.go`
-- Converter and validation paths: `internal/modules/role/model/*`
+Use before changing `internal/modules/role`, role API contracts, role validation, role deletion, or permission cleanup tied to role records.
+
+## Primary source of truth
+
+1. `internal/modules/role/delivery/http/role_routes.go`
+2. `internal/modules/role/delivery/http/role_controller.go`
+3. `internal/modules/role/usecase/role_usecase.go`
+4. `internal/modules/role/repository/role_repository.go`
+5. `internal/modules/role/module.go`
+6. `internal/modules/permission/usecase/*`
+7. `internal/router/router.go`
+
+## Runtime ownership
+
 - `NewRoleModule` wires DB, logger, validator, transaction manager, role repository, and permission usecase.
+- role controller owns request bind/validate/response only.
+- role usecase owns business behavior and permission cleanup orchestration.
+- role repository owns DB reads/writes.
 
 ## Route ownership
 
-- `internal/router/router.go` registers role routes under `authorized` group via `roleHttp.RegisterAuthorizedRoutes(...)`.
-- Authorized route layering includes API-key auth, JWT/session, explicit `admin:manage` API-key scope for API-key actors, user status, optional organization, and Casbin middleware.
+Role routes are registered under `authorized` route group.
+
+That means role routes inherit:
+
+1. API-key authentication
+2. JWT/session validation
+3. explicit `admin:manage` API-key scope for API-key actors
+4. user status middleware
+5. optional organization context
+6. Casbin middleware
+
+Do not treat role endpoints as self-service or tenant CRUD by default.
 
 ## Behavior surfaces
 
-- role CRUD
-- role validation and normalization
-- role model conversion
-- role-policy cleanup or orchestration during deletes or updates
+- create role
+- get all roles
+- update role
+- delete role
+- dynamic filter/search path in controller tests
+- validation through role model and custom validation
+- deletion or update cleanup through permission usecase
 
-## Coupling to other systems
+## Coupling to permission and Casbin
 
-- role usecase depends on permission usecase for role-policy cleanup or orchestration
-- role changes can therefore affect Casbin policies and effective permission behavior
-- access-right semantics can indirectly affect role meaning when permissions are expanded from registry data
+Role changes can affect effective authorization without editing Casbin middleware.
 
-## Hard rules
+Important coupling:
 
-- Role writes that affect permissions must preserve permission-usecase integration.
-- Do not bypass transaction manager when role and policy state must remain consistent.
-- Preserve validation and model-conversion tests when changing role fields or normalization.
-- Do not treat role admin routes as self-service routes.
+- permission usecase can own policy cleanup for role deletion or role changes
+- access-right expansion can change what a role means
+- role naming/normalization can affect grouping policies
+- transaction manager matters when DB role state and permission state must stay consistent
 
-## Verification and evidence paths
+## Known sharp edges
+
+- role deletion is not just row delete when policies reference role.
+- role rename/update can invalidate expectations in permission assignments.
+- dynamic role search must obey querybuilder safety rules.
+- optional organization on authorized group can affect domain-sensitive behavior.
+
+## Change checklist
+
+Before editing role code, prove:
+
+1. Does change alter role name, slug, validation, or uniqueness semantics?
+2. Does change need permission cleanup or policy update?
+3. Does DB state and policy state need transaction consistency?
+4. Does route remain admin-only through authorized group?
+5. Does dynamic search expose new fields?
+
+## Verification paths
 
 - `internal/modules/role/usecase/*_test.go`
 - `internal/modules/role/repository/role_repository_test.go`
 - `internal/modules/role/delivery/http/role_controller_test.go`
 - `internal/modules/role/model/*_test.go`
+- `internal/modules/permission/test/*` when cleanup changes
 - `internal/router/router.go`
+
+## Hard rules
+
+- Do not bypass permission usecase integration for role-policy cleanup.
+- Do not move role business logic into controller.
+- Do not weaken authorized route assumptions.
+- Do not change role identity semantics without tracing policies and assignments.
