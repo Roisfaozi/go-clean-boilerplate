@@ -1,77 +1,88 @@
 ---
 name: database-transactions
-description: Use when changing GORM transactions, all-or-nothing writes, schema migrations, seed data, Casbin policy writes tied to DB state, or tenant-sensitive repository behavior.
+description: Use when changing GORM transactions, all-or-nothing writes, schema-sensitive persistence flows, seed-like data coupling, or Casbin policy writes tied to database state in this Casbin repo.
 ---
 
-# Database Transactions: GORM and Casbin Consistency
+# Database Transactions
 
-**Announce at start:** "I'm using the database-transactions skill to preserve DB, tenant, and Casbin consistency."
+## Overview
+
+Transaction work in this repo is boundary work.
+
+It often intersects tenant scoping, audit or webhook side effects, and permission or Casbin writes that must stay atomic with DB state.
 
 ## When To Use
 
-- multi-table writes
-- create/update/delete with audit/webhook side effects
-- membership/role/policy changes
-- migration or seed changes
-- querybuilder/list filter behavior
+Use this skill when:
+
+- multiple writes must succeed or fail together
+- usecase now spans repository plus side-effect or policy write
+- GORM transaction manager or context-carried DB is involved
+- schema-sensitive persistence logic changes behavior
 
 ## Read Order
 
-1. `llm/conventions/database.md`
-2. `llm/cache/domain-rules.md`
-3. `llm/workflows/database-migration.md`
-4. target model/repository/usecase
-5. `db/migrations` and `db/seeds/main.go` when schema/seed changes
+1. `AGENTS.md`
+2. `llm/workflows/database-migration.md` if schema shape or migration is involved
+3. `llm/cache/casbin-permission-system.md` when policy writes are coupled
+4. `llm/cache/worker-audit-webhook-system.md` when side effects depend on request transaction
+5. target module usecase and repository
+6. `pkg/tx/*` and context DB helpers when transaction manager is involved
+
+## Runtime Truth To Preserve
+
+- repositories may read transaction-scoped DB from context via `pkg/tx`
+- policy writes tied to DB state should use transactional enforcer patterns
+- async side effects must stay consistent with primary request transaction behavior
 
 ## Workflow
 
-### Phase 1 — Transaction Boundary
+### Step 1 — Identify Atomic Boundary
 
-Identify all writes that must commit/rollback together:
+State exactly what must commit together:
 
-- DB rows
-- Casbin policies
-- audit outbox
-- webhook task enqueue
-- Redis/cache invalidation
+- DB rows only
+- DB rows plus Casbin policy
+- DB rows plus audit or webhook enqueue behavior
 
-### Phase 2 — Implementation Rules
+### Step 2 — Trace Current Transaction Owner
 
-- Use repo transaction helper/pattern already present.
-- Do not split dependent writes into independent commits.
-- Use transactional enforcer patterns when policy and DB writes must align.
-- Keep tenant constraints inside transaction path when relevant.
+Find whether transaction starts in:
 
-### Phase 3 — Migration Rules
+- usecase
+- helper wrapper
+- repository context path
 
-- Add paired up/down SQL files only when schema change required.
-- No destructive migration without explicit approval.
-- Update models/repositories/tests consistently.
+Do not create nested or duplicate transaction ownership casually.
 
-### Phase 4 — Verification
+### Step 3 — Patch With Context Integrity
 
-- Unit tests for transaction rollback when pattern exists.
-- Integration tests for DB/Redis/Casbin interactions.
-- Migration up/down commands when environment supports it.
+- preserve context propagation into repository methods
+- keep side effects ordered relative to commit semantics
+- avoid doing external irreversible work before atomic DB state is safe
 
-## Review Checklist
+### Step 4 — Verify Failure Semantics
 
-- [ ] rollback path understood
-- [ ] policy state cannot diverge from DB state
-- [ ] tenant/org cache invalidation preserved
-- [ ] no sensitive querybuilder field exposure
+Test not only success path, but also rollback or partial-failure path when practical.
+
+## Common Mistakes
+
+- writing DB and Casbin policy outside shared transaction boundary
+- enqueueing async side effect before DB state is durable
+- bypassing transaction-aware DB retrieval from context
 
 ## Stop Conditions
 
-- Stop and ask before destructive DB/schema/data operations not explicitly requested.
-- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
-- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+- stop if atomic ownership is unclear
+- stop if change could leave DB state and policy or side effects inconsistent
+- stop before destructive schema or data operations not explicitly requested
 
 ## Completion Output
 
 Report:
 
+- atomic boundary changed
+- transaction owner path
 - files changed
-- commands run and exact result
-- verification skipped and exact blocker
-- risks or follow-up work
+- verification run and exact result
+- rollback-risk notes
