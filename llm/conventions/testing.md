@@ -1,75 +1,106 @@
 # Testing Conventions
 
-## Layers
+## Purpose
 
-- Unit: package-local tests under `internal` and `pkg`.
-- Integration: `tests/integration/...`.
-- E2E: `tests/e2e/...`.
-- Frontend E2E for client: `apps/client/tests/e2e`.
+Guide for choosing the right verification layer, understanding infra assumptions, and reporting validation honestly in this repo.
 
-Typical evidence by layer:
+## Test layers
 
-- unit: handler/usecase/repository package tests under `internal` and `pkg`
-- integration: real MySQL/Redis tests under `tests/integration`
-- E2E: route lifecycle and security scenarios under `tests/e2e`
-- frontend E2E: login/RBAC browser tests under `apps/client/tests/e2e`
+- unit
+  - package-local tests under `internal` and `pkg`
+- integration
+  - `tests/integration/...`
+- E2E
+  - `tests/e2e/...`
+- frontend client E2E
+  - `apps/client/tests/e2e`
 
-## Commands
+## Typical evidence by layer
 
-- Unit: `make test` or `make test-unit`.
-- Coverage: `make test-coverage`.
-- Integration: `make test-integration`.
-- E2E: `make test-e2e`.
-- All backend tests: `make test-all`.
-- Benchmarks: `make bench`.
-- Frontend client E2E: package script `test:e2e`.
-- Frontend web checks: app scripts `lint`, `typecheck`, `build`.
-- Frontend client checks: app scripts `typecheck`, `build`, `test:e2e`; `lint` is placeholder-only.
+- unit
+  - handler, usecase, repository, or package tests
+- integration
+  - real MySQL or Redis interactions under `tests/integration`
+- E2E
+  - route lifecycle and security scenarios under `tests/e2e`
+- frontend E2E
+  - login or RBAC browser tests under `apps/client/tests/e2e`
+
+## Core commands
+
+- unit: `make test` or `make test-unit`
+- coverage: `make test-coverage`
+- integration: `make test-integration`
+- E2E: `make test-e2e`
+- all backend tests: `make test-all`
+- bench: `make bench`
+- frontend client E2E: package script `test:e2e`
+- frontend web checks: app scripts `lint`, `typecheck`, `build`
+- frontend client checks: `typecheck`, `build`, `test:e2e`; lint is placeholder-only
 
 ## Infrastructure assumptions
 
-- Integration and E2E rely on Docker.
-- Project docs define singleton-container pattern for integration testing.
-- Worker lifecycle matters in E2E/integration when async side effects are part of behavior.
-- Redis and MySQL are not optional for broad integration behavior.
-- Snap-packaged Go may fail in restricted environments; if that happens, report exact blocker and run the narrowest available check.
+- integration and E2E rely on Docker
+- worker lifecycle matters in integration/E2E when async side effects are part of behavior
+- Redis and MySQL are not optional for broad integration behavior
+- restricted environments can block Snap Go or Docker; report exact blocker and run narrowest useful fallback
 
-Current repo testing signals:
+## Change-type routing
 
-- CI runs lint, unit, integration, E2E, benchmark, and build checks.
-- frontend client has Playwright E2E already wired.
-- backend has wide regression coverage around auth, tenant, rate limit, realtime, worker, and security scenarios.
+### Middleware, auth, session
 
-## What to run by change type
+- package tests near `internal/middleware`
+- auth integration or E2E if route behavior changed
 
-- Middleware/auth/session: `internal/middleware` tests plus auth integration/E2E if route behavior changes.
-- Tenant/org/Casbin: tenant middleware tests, permission/organization integration, tenant isolation E2E.
-- API key: API key middleware/usecase tests plus API key lifecycle integration/E2E.
-- Upload/TUS: `pkg/tus` tests plus TUS integration/E2E.
-- Worker/audit/webhook/email: `internal/worker` tests plus worker integration scenarios.
-- Query builder: `pkg/querybuilder` tests and dynamic search tests for affected modules.
-- Frontend proxy/API boundary: backend route tests plus `apps/web` or `apps/client` type/build/E2E as relevant.
+### Tenant, organization, Casbin
 
-Strategy note:
+- tenant middleware tests
+- permission or organization integration tests
+- tenant isolation E2E when route behavior is user-visible
 
-- prefer package-level tests when the change is internal logic
-- prefer integration tests when the change affects DB/Redis/Casbin/worker/stateful runtime
-- prefer E2E when route-group, cookie, or full lifecycle behavior is user-visible
+### API key
 
-## Mock and fixture conventions
+- API-key middleware or usecase tests
+- lifecycle integration or E2E when route behavior changed
 
-- Regenerate mocks with `make mocks` when interfaces change.
-- Keep unit tests isolated with mocks or local test doubles.
-- Use integration containers for DB/Redis behavior instead of over-mocking persistence semantics.
-- Clean test data between integration tests rather than restarting containers when following singleton-container pattern.
+### Upload or TUS
 
-Fixture tip:
+- `pkg/tus` tests
+- storage package tests
+- integration or E2E when upload completion affects domain behavior
 
-- keep route/auth fixtures close to scenario tests so tenant and session setup stays readable
-- avoid overusing shared fixtures that hide route-group differences
+### Worker, audit, webhook, email
 
-## Reporting validation
+- `internal/worker` tests
+- integration where request semantics depend on async side effects
 
-- Separate passed checks from skipped checks.
-- If Docker is unavailable, say integration/E2E were not run because Docker is required.
-- If frontend `apps/client` lint is run, note it is placeholder-only and not a quality signal.
+### Query builder
+
+- `pkg/querybuilder` tests
+- dynamic search tests for affected repositories or modules
+
+### Frontend proxy or API boundary
+
+- backend route verification
+- `apps/web` or `apps/client` typecheck, build, or E2E as relevant
+
+## Strategy rules
+
+- prefer package-level tests when change is internal logic
+- prefer integration tests when change affects DB, Redis, Casbin, worker, or stateful runtime
+- prefer E2E when route-group, cookie, tenant, or full lifecycle behavior is user-visible
+- prefer failing-first bug reproduction when seam is meaningful
+
+## Mock and fixture rules
+
+- regenerate mocks with `make mocks` when interfaces change
+- keep unit tests isolated with mocks or local test doubles
+- use integration containers for DB/Redis behavior instead of over-mocking persistence semantics
+- keep auth or tenant fixtures close to scenario tests so route-group differences stay readable
+
+## Reporting rules
+
+- separate passed checks from skipped checks
+- if Docker is unavailable, say integration/E2E were not run because Docker is required
+- if frontend client lint is run, say it is placeholder-only and not meaningful quality signal
+- do not imply success from unrun checks
