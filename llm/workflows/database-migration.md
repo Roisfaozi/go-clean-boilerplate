@@ -1,50 +1,67 @@
 # Database Migration Workflow
 
+## Purpose
+
+Workflow ini untuk perubahan schema dan migration yang aman, reversible, dan aligned dengan repo runtime behavior.
+
 ## Use when
 
 - adding or changing SQL schema under `db/migrations`
-- changing persistence contract that requires backfill or schema evolution
-- changing seed/bootstrap behavior tied to schema changes
+- changing persistence model that needs migration
+- introducing column/index/constraint changes that affect runtime code
 
 ## Read first
 
-- `llm/conventions/database.md`
-- `llm/cache/backend-map.md`
-- `llm/cache/domain-rules.md`
-- owning repository/model/usecase files
+1. `AGENTS.md`
+2. `llm/conventions/database.md`
+3. relevant domain cache files
+4. current migration files under `db/migrations`
+5. target repository/usecase code using affected tables
 
 ## Live code to inspect
 
 - `db/migrations`
-- `db/seeds/main.go`
-- affected GORM models under `internal/modules/*/model` or similar
-- affected repository queries and tests
-- Makefile migration targets
+- target repositories and entities/models
+- `internal/config/app.go` if startup or seed path depends on schema
+- `db/seeds` if seed flow relies on changed table shape
 
-## Steps
+## Workflow phases
 
-1. confirm schema change is required and cannot be solved in code only.
-2. add paired up/down migration files.
-3. update affected model/repository/query assumptions.
-4. update seed code only if bootstrap data truly depends on new schema.
-5. add or adjust tests for persistence behavior where feasible.
-6. verify migration command surface exists and document any local blockers.
+### Phase 1 — Define schema delta
 
-## Verification commands
+State exactly:
 
-- migration command surface: `make migrate-up`, `make migrate-down`
-- backend tests for affected repository/module
-- integration tests when schema affects request lifecycle: `pnpm go:test-integration`
+- table(s) affected
+- columns/indexes/constraints changed
+- whether data backfill or compatibility issue exists
+
+### Phase 2 — Preserve migration discipline
+
+- every migration must have matching up/down SQL file behavior
+- name migration clearly
+- keep runtime code and migration order aligned
+
+### Phase 3 — Patch runtime owner code
+
+Update only the model, repository, usecase, and seed logic that truly depend on new schema.
+
+### Phase 4 — Verify safety
+
+Check:
+
+- migration applies cleanly
+- rollback path still makes sense
+- affected repository or integration path still works
 
 ## Review checklist
 
-- up/down files both exist
-- column/index/default names match live query usage
-- tenant, audit, webhook, and worker side effects still compatible
-- no destructive migration done without explicit user intent
+- up/down pair exists
+- runtime code matches schema
+- no hidden destructive data change slipped in
+- seed or bootstrapping expectations checked when relevant
 
 ## Stop conditions / needs confirmation
 
-- requested migration is destructive or irreversible without approval
-- existing data backfill strategy is unclear
-- schema change spans modules with conflicting ownership
+- destructive data rewrite implied but not requested
+- compatibility/backfill path is unclear
+- migration affects production-sensitive auth, tenant, or permission tables without clear owner review

@@ -1,54 +1,84 @@
 # API Endpoint Workflow
 
+## Purpose
+
+Workflow ini untuk menambah atau mengubah backend HTTP endpoint dengan route stratum, scope, contract, and consumer sync yang benar.
+
 ## Use when
 
-- adding or changing backend HTTP endpoints
-- changing auth, tenant, API key, or Casbin behavior on routes
-- changing endpoint contract consumed by `apps/web`, `apps/client`, or `packages/api-types`
+- adding or changing endpoint Gin
+- moving endpoint between route groups
+- changing request/response contract consumed by frontend or external clients
+- changing API-key scope, tenant, or Casbin route semantics
 
 ## Read first
 
-- `llm/cache/architecture.md`
-- `llm/cache/backend-map.md`
-- `llm/cache/api-contracts.md`
-- `llm/cache/domain-rules.md`
-- `llm/conventions/golang.md`
-- `llm/conventions/testing.md`
+1. `AGENTS.md`
+2. `llm/cache/backend-map.md`
+3. `llm/cache/api-contracts.md`
+4. `llm/cache/domain-rules.md`
+5. `llm/conventions/golang.md`
+6. `llm/conventions/testing.md`
 
 ## Live code to inspect
 
 - `internal/router/router.go`
 - relevant module route file under `internal/modules/*/delivery/http/*routes.go`
 - target controller/usecase/repository/model files
-- `internal/middleware/*` if auth/tenant/casbin/api-key behavior changes
-- `docs/swagger.yaml` / `docs/swagger.json` / `docs/docs.go`
+- `internal/middleware/*` if auth, tenant, Casbin, or API-key behavior changes
+- `docs/swagger.yaml`, `docs/swagger.json`, `docs/docs.go`
 - frontend proxy/client files if consumed by frontend
 
 ## Route-group decision
 
 Choose one intentionally:
 
-- public: no auth; only safe public auth/invitation style flows.
-- authenticated: API-key/JWT/session/status checks, but no required tenant/Casbin route policy.
-- tenantAuthorized: auth + tenant org + Casbin policy.
-- authorized: admin-style scope + optional tenant + Casbin policy.
-- upload: TUS route with auth/status and upload-specific handler.
+- `public`
+- `authenticated`
+- `tenantAuthorized`
+- `authorized`
+- `upload`
 
-## Steps
+Do not pick route group by convenience.
 
-1. define method/path/request/response and owning module.
-2. select route group and required API-key scopes.
-3. add or update request/response models and validation tags.
-4. update controller and usecase behavior.
-5. update repository or schema if needed.
-6. update Swagger comments/docs generation if contract should appear in OpenAPI.
-7. update frontend API types/client/proxy use if affected.
-8. run targeted tests and broader route tests if authorization changed.
+## Workflow phases
 
-## Verification commands
+### Phase 1 — Define contract and owner
 
-- narrow backend package test for owning module
-- route/auth changes: `pnpm go:test-integration`
+State:
+
+- method and path
+- request shape
+- response and error shape
+- owning module
+- intended consumer(s)
+
+### Phase 2 — Choose route stratum and scope
+
+Confirm:
+
+- auth/session rules
+- API-key scope behavior
+- tenant or organization context
+- Casbin requirement or lack of it
+
+### Phase 3 — Patch by layer
+
+- route registration
+- request/response models and validation tags
+- controller parsing and response
+- usecase logic
+- repository or schema if needed
+
+### Phase 4 — Sync documentation and consumers
+
+- update Swagger generation path when public contract changes
+- update `packages/api-types`, proxies, and app consumers when relevant
+
+### Phase 5 — Verify narrow then broad
+
+- narrow backend package test first
+- route/auth changes: broader integration when needed
 - public contract/doc changes: `pnpm go:docs`
 - frontend consumers changed: app typecheck/build for touched app
 
@@ -58,10 +88,10 @@ Choose one intentionally:
 - route protection matches intended stratum
 - API-key scope and tenant/Casbin layering preserved
 - request/response model matches actual handler output
-- Swagger artifacts updated when contract is public and documented
+- swagger artifacts updated when contract is public and documented
 
 ## Stop conditions / needs confirmation
 
-- route belongs to more than one security stratum and product intent is unclear
+- route belongs to more than one plausible security stratum and intent is unclear
 - existing frontend consumers conflict with requested contract change
 - endpoint implies migration or background side effect not described in request

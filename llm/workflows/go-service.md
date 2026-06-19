@@ -1,52 +1,89 @@
 # Go Service Workflow
 
+## Purpose
+
+Workflow ini untuk perubahan backend business logic di Go modules, termasuk usecase, repository, constructor wiring, transaction-sensitive behavior, dan backend-owned side effects.
+
 ## Use when
 
-- implementing or changing backend business logic inside Go modules
-- changing service/usecase/repository wiring in `internal/modules/*`
-- changing worker-triggered domain behavior owned by backend modules
+- mengubah logic di `internal/modules/*`
+- mengubah dependency wiring service/usecase/repository
+- mengubah side effect backend-owned yang bukan sekadar route registration
+- mengubah business rules tanpa menjadikan route/API contract sebagai concern utama
 
 ## Read first
 
-- `llm/cache/backend-map.md`
-- `llm/cache/module-map.md`
-- `llm/cache/domain-rules.md`
-- `llm/conventions/golang.md`
-- `llm/conventions/testing.md`
+1. `AGENTS.md`
+2. `llm/cache/backend-map.md`
+3. `llm/cache/module-map.md`
+4. `llm/cache/domain-rules.md`
+5. relevant domain cache files
+6. `llm/conventions/golang.md`
+7. `llm/conventions/testing.md`
 
 ## Live code to inspect
 
-- `internal/config/app.go` for dependency wiring
+- `internal/config/app.go` untuk dependency wiring
 - target `internal/modules/*/module.go`
-- target controller/usecase/repository/model files
-- `pkg/transaction`, `pkg/querybuilder`, `pkg/storage`, `pkg/tus`, or other shared backend package if touched
+- target controller, usecase, repository, model files
+- `pkg/tx`, `pkg/querybuilder`, `pkg/storage`, `pkg/tus`, `pkg/ws`, `pkg/sse` jika disentuh
 - related tests near owning package
 
-## Steps
+## Workflow phases
 
-1. find owning usecase and dependency graph.
-2. confirm whether change is pure business logic, transaction flow, storage flow, or side effect orchestration.
-3. preserve context propagation and existing module boundaries.
-4. keep cross-module wiring changes in constructors/app config, not ad hoc globals.
-5. add or adjust tests near changed package when pattern exists.
-6. run narrow backend verification first.
+### Phase 1 — Find owning usecase
 
-## Verification commands
+Tentukan apakah perubahan utamanya ada di:
 
-- narrow package tests with `go test ./path/...` or repo equivalent
-- broader backend sweep when needed: `pnpm go:test`
-- side effects involving DB/Redis/worker/auth/tenant: `pnpm go:test-integration`
+- usecase business rules
+- repository behavior
+- transaction flow
+- async side effect orchestration
+- constructor wiring
+
+### Phase 2 — Preserve boundaries
+
+Pastikan:
+
+- controller hanya bind/validate/respond
+- usecase owns business rules
+- repository owns persistence details
+- constructor or app wiring owns dependency composition
+
+### Phase 3 — Trace side effects and shared packages
+
+Jika perubahan menyentuh:
+
+- transactions
+- storage
+- querybuilder
+- worker or webhook side effects
+- auth or tenant semantics
+
+maka trace package boundary itu dulu sebelum patch.
+
+### Phase 4 — Patch minimal owner layer
+
+- preserve context propagation
+- avoid ad hoc globals or bypassed dependency injection
+- keep cross-module calls explicit and justified
+
+### Phase 5 — Verification
+
+Start with narrow package tests.
+
+Escalate to broader backend or integration checks when DB, Redis, worker, auth, tenant, or upload semantics move.
 
 ## Review checklist
 
-- usecase owns business rules, not controller
-- repository owns persistence detail, not usecase call sites
-- transactions wrap all-or-nothing writes correctly
-- tenant/session/Casbin constraints not bypassed
+- usecase owns business rules
+- repository owns persistence details
+- transaction boundaries still all-or-nothing where required
+- tenant or session or Casbin constraints not bypassed
 - constructor changes do not pass full app config where not needed
 
 ## Stop conditions / needs confirmation
 
 - dependency ownership unclear between module and shared package
-- change needs cross-module contract decision not derivable from live code
+- change requires cross-module contract decision not derivable from live code
 - integration-only behavior cannot be validated due missing infra

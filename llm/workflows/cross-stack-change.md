@@ -1,58 +1,80 @@
 # Cross-Stack Change Workflow
 
+## Purpose
+
+Workflow ini untuk perubahan yang menyentuh backend Go plus frontend consumers, proxy layers, shared types, atau shared packages.
+
+Fokus utamanya adalah producer-consumer sync.
+
 ## Use when
 
-- changing both backend Go behavior and active frontend apps
-- changing API path, auth cookies/tokens, proxy behavior, or typed contract usage
-- changing shared packages used by frontend apps and backend contracts
+- backend API contract changes and either frontend app can consume it
+- shared types or proxy behavior changes
+- frontend and backend need coordinated rollout
+- route, cookie, auth, or tenant semantics affect app behavior
 
 ## Read first
 
-- `llm/cache/api-contracts.md`
-- `llm/cache/backend-map.md`
-- `llm/cache/frontend-map.md`
-- `llm/cache/module-map.md`
-- `llm/conventions/typescript.md`
-- relevant Go convention files
+1. `AGENTS.md`
+2. `llm/cache/api-contracts.md`
+3. `llm/cache/frontend-map.md`
+4. `llm/cache/frontend-proxy-system.md`
+5. `llm/workflows/api-endpoint.md`
+6. `llm/conventions/typescript.md`
 
 ## Live code to inspect
 
 - backend route/controller/usecase files
-- frontend proxy files:
-  - `apps/web/src/app/api/v1/[...path]/route.ts`
-  - `apps/client/app/routes/api-proxy.ts`
-- frontend API client/helpers:
-  - `apps/web/src/lib/api`
-  - `apps/client/app/lib/api`
-- shared type package: `packages/api-types`
-- affected feature screens/components
+- `apps/web/src/app/api/v1/[...path]/route.ts`
+- `apps/client/app/routes/api-proxy.ts`
+- `packages/api-types/*`
+- frontend consumer files under owning app
 
-## Steps
+## Workflow phases
 
-1. establish backend contract from route/model/usecase first.
-2. update generated/shared types if type contract changes.
-3. update frontend API client/proxy usage.
-4. update UI screens/components in each active app that consumes change.
-5. verify cookie/header/session behavior if auth is affected.
-6. run backend and frontend checks.
-7. update `llm/cache/api-contracts.md` only in a separate committed documentation task, not while behavior is still uncommitted.
+### Phase 1 — Identify producer and consumers
 
-## Verification commands
+State:
 
-- backend package tests or `pnpm go:test`
-- affected frontend app checks: `pnpm --filter casbin-web typecheck`, `pnpm --filter casbin-web build`, `pnpm --filter casbin-client typecheck`
-- integration/E2E when auth, proxy, cookies, or tenant routing changed: `pnpm go:test-integration`, `pnpm go:test-e2e`
+- backend producer endpoint or payload owner
+- `apps/web` consumer or proxy path
+- `apps/client` consumer or proxy path
+- shared type owner if any
+
+### Phase 2 — Define contract delta
+
+Write exact change in:
+
+- request params/body
+- response shape
+- error shape
+- auth/tenant expectations
+- proxy forwarding assumptions when relevant
+
+### Phase 3 — Patch in order
+
+Preferred order:
+
+1. backend contract owner
+2. shared types
+3. proxies
+4. frontend consumers
+
+### Phase 4 — Verify both sides
+
+- backend route or package tests
+- app typecheck or focused consumer checks
+- browser/E2E only when actual flow confidence is needed
 
 ## Review checklist
 
-- backend remains source of truth for contract semantics
-- both active apps audited for affected consumer paths
-- proxy/header/cookie forwarding preserved
-- shared types updated before downstream UI assumptions
-- no frontend-only auth bypass introduced
+- both active apps checked when relevant
+- proxy behavior still matches auth/cookie/header needs
+- shared types are not stale
+- backend docs or swagger updated when public contract changed
 
 ## Stop conditions / needs confirmation
 
-- backend and frontend expectations disagree on payload semantics
-- one active app has hidden consumer path that cannot be verified locally
-- requested change conflicts with current proxy architecture
+- one consumer path cannot be identified
+- producer and consumer verification pair is missing
+- backend and frontend disagree on source of truth for contract
