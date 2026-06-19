@@ -1,78 +1,114 @@
 ---
 name: execute
-description: Execute an approved Casbin implementation plan task-by-task with progress tracking and verification. Use after a plan exists.
+description: Use when an approved Casbin implementation plan already exists and must be executed slice by slice with repo-accurate skill routing, disciplined scope control, and truthful verification.
 ---
 
-# Execute: Plan Implementation
+# Execute
 
-**Announce at start:** "I'm using the execute skill to implement the approved plan task by task."
+## Overview
+
+This skill executes approved work without losing architecture boundaries.
+
+One slice at a time. No opportunistic cleanup. No claiming done without real verification.
 
 ## Prerequisites
 
-- Implementation plan exists in `llm/tasks/todo.md` or `llm/plans/*`.
-- Route/module ownership is clear.
-- High-risk skill selected if needed.
+- approved plan exists in `llm/tasks/todo.md` or `llm/plans/*`
+- target module or route ownership is clear
+- required domain skill can be selected from current scope
 
-## Workflow
+## Read Order
 
-### Step 1 — Load Plan
+1. active plan
+2. `AGENTS.md`
+3. relevant `llm/cache/*`
+4. relevant `llm/workflows/*`
+5. live code files for current slice only
 
-- Read active plan.
-- Check dependencies and blockers.
-- Confirm changed layers.
+## Skill Routing Matrix
 
-### Step 2 — Select Skills
+Use exact relevant skills during implementation:
 
-Use exactly relevant skills:
-
-- backend logic: `go-service`
-- route/API: `api-endpoint`
-- auth/tenant/Casbin: `auth-tenant-casbin`
+- backend module logic: `go-service`
+- route and contract: `api-endpoint`
+- auth, tenant, Casbin: `auth-tenant-casbin`
 - API key: `api-key-scope`
-- DB transaction/migration: `database-transactions`
-- upload: `tus-upload-storage`
-- worker/audit/webhook: `worker-audit-webhook`
-- querybuilder: `query-builder-security`
+- DB transaction or migration: `database-transactions`
+- upload and storage: `tus-upload-storage`
+- worker, audit, webhook: `worker-audit-webhook`
+- querybuilder security: `query-builder-security`
 - realtime: `realtime-sse-websocket`
-- frontend ownership: `frontend-surface`
-- user/role/project/access/stats module work: matching module-domain skill
+- frontend surface ownership: `frontend-surface`
+- user, role, project, access, stats, audit, webhook domain changes: matching domain skill
 
-### Step 3 — Implement Task
+## Execution Workflow
 
-- Do one coherent slice at a time.
-- Do not mix unrelated cleanup.
-- Update `llm/tasks/todo.md` for multi-step progress.
+### Step 1 — Load Current Slice
 
-### Step 4 — Verify Task
+Before editing, restate:
 
-- Run narrow verification for changed layer.
-- Record exact failures/blockers.
-- Stop and re-plan if root assumption is wrong.
+- current slice goal
+- exact files expected to change
+- exact risks for this slice
+- exact verification target for this slice
 
-### Step 5 — Complete
+### Step 2 — Reconfirm Live Truth
 
-- Run `self-review`.
-- Run `verification-before-completion`.
-- Report final file list and verification.
+For current slice, re-read only live paths that matter:
 
-## Output
+- route layer in `internal/router/router.go`
+- wiring in `internal/config/app.go`
+- target module constructor and boundaries
+- frontend proxies and shared types if contract is touched
 
-- file list
-- commands run
-- verification result
-- unresolved blockers
+### Step 3 — Patch Narrowly
+
+- change only files needed for current slice
+- keep handler, usecase, repository, middleware boundaries intact
+- avoid unrelated refactors and formatting churn
+- update docs or task notes only when current slice truly changes them
+
+### Step 4 — Verify Narrowly
+
+Run smallest real check that proves current slice:
+
+- package-specific Go tests
+- app or package typecheck
+- route contract or proxy checks
+- integration/E2E only if boundary changed enough to require it
+
+If blocked, record exact blocker and stop pretending coverage exists.
+
+### Step 5 — Advance Or Replan
+
+Advance when slice goal and verification are both satisfied.
+
+Re-plan if:
+
+- live code contradicts plan assumption
+- blast radius is larger than planned
+- module ownership changes
+- new approval gate appears
+
+## Common Mistakes
+
+- implementing multiple slices in one pass
+- skipping domain skill for risky boundary
+- claiming route behavior changed without checking router/proxy/type consumer paths
+- relying on cached assumptions after code contradicts them
 
 ## Stop Conditions
 
-- Stop and ask before destructive DB/schema/data operations not explicitly requested.
-- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
-- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+- stop before destructive DB/schema/data operations not explicitly requested
+- stop if auth stratum, tenant boundary, or Casbin/API-key enforcement path is unclear
+- stop if plan says one owner but live code proves another
 
 ## Completion Output
 
 Report:
 
+- slice completed
 - files changed
 - commands run and exact result
-- verification skipped and exact blocker
-- risks or follow-up work
+- skipped verification and blocker
+- next slice or re-plan need
