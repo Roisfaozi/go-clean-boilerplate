@@ -6,36 +6,27 @@ Durable map for API-key authentication, scope enforcement, organization-scoped A
 
 ## Runtime truth
 
-- `internal/middleware/api_key_middleware.go` authenticates `X-API-Key`, injects identity, sets organization context, and enforces scopes.
-- `internal/modules/api_key` owns API-key entity/model/repository/usecase/controller/routes/tests.
-- `internal/router/router.go` applies API-key middleware before JWT validation on protected groups.
+- `internal/modules/api_key/module.go` wires repository, organization repository, user repository, Redis, controller, and usecase.
+- `internal/modules/api_key/delivery/http/api_key_routes.go` registers `/api-keys` under authenticated + tenant-required routes.
+- `internal/modules/api_key/usecase/api_key_usecase.go` owns create/list/revoke/authenticate behavior.
+- `internal/middleware/api_key_middleware.go` handles request authentication and scope enforcement.
 
-## Middleware behavior
+## Behavior surfaces
 
-- `Authenticate()` reads `X-API-Key`; if absent, request continues for JWT path.
-- Authenticated API-key identity sets `user_id`, `organization_id`, `username`, API-key ID, and scopes.
-- API-key auth sets DB organization context when organization ID exists.
-- `RequireScopeAuto()` derives scope from route resource and method.
-- `RequireScopes()` enforces any of specified scopes.
-- `RequireAllScopes()` enforces all specified scopes.
-- `RequireUserSession()` rejects API-key auth for endpoints requiring a user session.
-
-## Scope mapping
-
-- GET/HEAD -> `view`
-- POST -> `create`
-- PUT/PATCH -> `update`
-- DELETE -> `delete`
-- `*` grants all scopes.
+- create/list/revoke API keys for an organization
+- authenticate API key from `X-API-Key`
+- inject user/org/username/scopes into request context
+- scope derivation from HTTP method/path
+- explicit scope checks for sensitive endpoints
 
 ## Hard rules
 
-- API-key identity is not enough; scope must allow action where route requires it.
-- Protected endpoint additions need an explicit API-key scope decision.
-- Organization-scoped behavior must remain aligned with tenant context.
+- API-key identity is not enough; route scope must allow action.
+- API-key routes remain organization-scoped.
+- Do not bypass auth/session/tenant layering when API key is present.
 
 ## Tests and evidence paths
 
 - `internal/modules/api_key/test/*`
-- `internal/middleware/api_key_middleware.go`
-- `internal/router/router.go`
+- `internal/modules/api_key/usecase/api_key_usecase.go`
+- `internal/modules/api_key/delivery/http/api_key_routes.go`

@@ -42,13 +42,17 @@ Fast routing by task type:
 - cross-stack change: read `llm/workflows/cross-stack-change.md`, `llm/cache/api-contracts.md`, `llm/cache/frontend-proxy-system.md`, both frontend proxy files.
 - DB/schema change: read `llm/workflows/database-migration.md`, `llm/conventions/database.md`, `db/migrations`.
 - auth/session change: read `llm/cache/authentication-system.md`, `llm/cache/domain-rules.md`, `internal/middleware/auth_middleware.go`.
-- tenant/organization change: read `llm/cache/tenant-organization-system.md`, `internal/middleware/tenant_middleware.go`, target organization usecase.
-- Casbin/permission change: read `llm/cache/casbin-permission-system.md`, `internal/middleware/casbin_middleware.go`, `internal/modules/permission`.
+- tenant/organization change: read `llm/cache/tenant-organization-system.md`, `llm/cache/user-system.md`, `internal/middleware/tenant_middleware.go`, target organization usecase.
+- Casbin/permission change: read `llm/cache/casbin-permission-system.md`, `llm/cache/permission-system.md`, `llm/cache/role-system.md`, `llm/cache/access-right-system.md`, `internal/middleware/casbin_middleware.go`, `internal/modules/permission`.
 - API-key change: read `llm/cache/api-key-system.md`, `internal/middleware/api_key_middleware.go`, `internal/modules/api_key`.
 - upload/storage change: read `llm/cache/tus-upload-system.md`, `pkg/tus`, `pkg/storage`.
-- worker/audit/webhook change: read `llm/cache/worker-audit-webhook-system.md`, `internal/worker`, target audit/webhook module.
-- query/filter/sort change: read `llm/cache/querybuilder-security.md`, `pkg/querybuilder`.
-- realtime change: read `llm/cache/realtime-system.md`, `pkg/ws`, `pkg/sse`, `internal/router/router.go`.
+- worker/audit/webhook change: read `llm/cache/worker-audit-webhook-system.md`, `llm/cache/audit-system.md`, `llm/cache/webhook-system.md`, `internal/worker`, target audit/webhook module.
+- query/filter/sort change: read `llm/cache/querybuilder-security.md`, `llm/cache/user-system.md`, `pkg/querybuilder`.
+- realtime change: read `llm/cache/realtime-system.md`, `llm/cache/stats-system.md`, `pkg/ws`, `pkg/sse`, `internal/router/router.go`.
+- user/profile/avatar/list change: read `llm/cache/user-system.md`, `llm/cache/querybuilder-security.md`, `pkg/tus`, `internal/modules/user`.
+- role/permission change: read `llm/cache/role-system.md`, `llm/cache/access-right-system.md`, `llm/cache/permission-system.md`, `llm/cache/casbin-permission-system.md`, `internal/modules/role`, `internal/modules/permission`.
+- project change: read `llm/cache/project-system.md`, `llm/cache/api-key-system.md`, `llm/cache/tenant-organization-system.md`, `internal/modules/project`, `internal/router/router.go`.
+- stats change: read `llm/cache/stats-system.md`, `internal/modules/stats`, `internal/config/app.go`.
 - security/auth/tenant/Casbin change: read `llm/cache/domain-rules.md`, the matching domain cache, `internal/middleware/*`, target usecase.
 
 ## 3. Core runtime truth
