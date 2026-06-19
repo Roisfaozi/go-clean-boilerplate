@@ -39,6 +39,9 @@ Fast routing by task type:
 - backend feature: read `llm/workflows/go-service.md`, `llm/cache/backend-map.md`, `llm/cache/module-map.md`.
 - API route change: read `llm/workflows/api-endpoint.md`, `llm/cache/api-contracts.md`, `internal/router/router.go`.
 - frontend change: read `llm/cache/frontend-map.md`, `llm/cache/frontend-proxy-system.md`, `llm/conventions/typescript.md`, then the target app package.
+- frontend design/new UI flow: read `llm/workflows/frontend-design.md`, `llm/references/frontend-skill-map.md`, then target app package.
+- frontend redesign flow: read `llm/workflows/frontend-redesign.md`, `llm/references/frontend-skill-map.md`, then target existing app surface.
+- image-led frontend implementation: read `llm/workflows/image-to-frontend.md`, `llm/references/frontend-skill-map.md`, then target app package.
 - cross-stack change: read `llm/workflows/cross-stack-change.md`, `llm/cache/api-contracts.md`, `llm/cache/frontend-proxy-system.md`, both frontend proxy files.
 - DB/schema change: read `llm/workflows/database-migration.md`, `llm/conventions/database.md`, `db/migrations`.
 - auth/session change: read `llm/cache/authentication-system.md`, `llm/cache/domain-rules.md`, `internal/middleware/auth_middleware.go`.
@@ -173,6 +176,13 @@ Use these workflow files instead of improvising:
 - `llm/workflows/go-service.md`
 - `llm/workflows/cross-stack-change.md`
 - `llm/workflows/database-migration.md`
+- `llm/workflows/frontend-design.md`
+- `llm/workflows/frontend-redesign.md`
+- `llm/workflows/image-to-frontend.md`
+
+Frontend skill routing note:
+
+- use `llm/references/frontend-skill-map.md` to avoid loading conflicting frontend taste/style/reference skills all at once.
 
 ## 9. Knowledge lifecycle folders
 
