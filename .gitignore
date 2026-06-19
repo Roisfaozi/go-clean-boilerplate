@@ -186,7 +186,6 @@ web-lovable/node_modules/
 .build.lob
 .turbo*.log
 .turbo
-e2e-test
 web-lovable-backup/
 *.log
 e2e-test-report/
