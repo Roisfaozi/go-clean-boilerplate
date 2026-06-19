@@ -94,6 +94,22 @@ Use when:
 - premium spacing, typography, and hierarchy need to be enforced
 - a workflow skill needs stronger visual guardrails
 
+## Image Generation Skills
+
+These skills are purely for generating high-end reference images. They DO NOT write code. Use them when exploring visual direction before coding.
+
+### `imagegen-frontend-web`
+
+Use for generating premium, conversion-aware website and landing page mockups. Output constraint: one horizontal image per section.
+
+### `imagegen-frontend-mobile`
+
+Use for generating elite, app-native mobile screens and flows (iOS/Android). Prioritizes UI legibility and realistic device mockups.
+
+### `brandkit`
+
+Use for high-end brand guidelines, logo systems, and visual-world presentations.
+
 ## Style Presets
 
 These are optional style directions, not default workflows.
@@ -148,6 +164,13 @@ Do not use as default if `design-taste-frontend` is acceptable.
 - optional `web-design-guidelines`
 - optional `high-end-visual-design`
 - optional one style preset
+
+### Visual Ideation & Image Generation
+
+- `brandkit` (for brand identity) OR
+- `imagegen-frontend-web` (for web design exploration) OR
+- `imagegen-frontend-mobile` (for mobile app exploration)
+- (Do not mix with coding workflow skills in the same pass if outputting images only)
 
 ### Image-led frontend implementation
 
