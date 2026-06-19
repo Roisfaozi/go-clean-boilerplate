@@ -1,62 +1,97 @@
 ---
 name: brainstorm
-description: Use when exploring approaches for a Casbin feature, refactor, bug strategy, or architectural decision before planning or implementation.
+description: Use when exploring approaches for a Casbin feature, refactor, bug strategy, or architectural decision before planning or implementation, especially when module ownership, route strata, contract impact, or risky boundaries need comparison first.
 ---
 
-# Brainstorm: Evidence-Based Design Options
+# Brainstorm
 
-**Announce at start:** "I'm using the brainstorm skill to compare options before choosing an implementation path."
+## Overview
 
-## Read First
+Brainstorm in this repo means compare implementation options against live architecture, not generic ideation.
 
-- relevant `llm/cache/*`
-- relevant `llm/conventions/*`
-- closest live code precedent
+Goal: pick smallest safe path that fits current router, middleware, module, and frontend ownership reality.
 
-## Workflow
+## When To Use
 
-### Phase 1 — Frame Problem
+Use this skill when:
 
-- State goal.
-- State constraints.
-- State known high-risk boundaries.
+- request can be solved in multiple valid ways
+- route owner or module owner is not obvious
+- auth, tenant, Casbin, API-key, worker, upload, or frontend proxy boundary may be involved
+- user wants options before planning or coding
 
-### Phase 2 — Options
+Do not use this skill when:
 
-Produce 2-3 options. For each:
+- owner and patch path are already obvious
+- direct bugfix only needs root-cause proof; use `systematic-debugging`
 
-- files touched
+## Read Order
+
+1. `AGENTS.md`
+2. relevant `llm/cache/*`
+3. relevant `llm/workflows/*`
+4. closest live code precedent
+5. `internal/router/router.go` if route or middleware is involved
+6. `internal/config/app.go` if wiring or worker dependencies matter
+
+## Brainstorm Workflow
+
+### Step 1 — Frame Problem
+
+State:
+
+- target outcome
+- owning surface candidates
+- risky boundaries
+- explicit constraints from user or repo rules
+
+### Step 2 — Build Option Set
+
+Produce 2-3 real options only.
+
+For each option include:
+
+- likely files or modules touched
+- route or app owner
 - benefits
 - risks
 - verification needed
-- impact on auth/tenant/Casbin/API-key/contracts if any
 
-### Phase 3 — Recommendation
+### Step 3 — Compare Against Repo Reality
 
-Pick one option based on:
+Check each option against:
+
+- existing route strata and middleware layering
+- module boundaries already used in repo
+- frontend proxy or shared type impact
+- transaction or side-effect risk
+
+### Step 4 — Recommend One Path
+
+Recommend option with:
 
 - smallest safe change
-- alignment with live wiring
-- testability
-- low blast radius
+- strongest fit to live wiring
+- lowest blast radius
+- clearest verification path
 
-## Output
+## Common Mistakes
 
-- recommended approach
-- rejected alternatives and why
-- questions/blockers if any
+- proposing abstract option with no file or module owner
+- ignoring frontend consumer sync on backend contract changes
+- treating access-control risk as implementation detail to decide later
 
 ## Stop Conditions
 
-- Stop and ask before destructive DB/schema/data operations not explicitly requested.
-- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
-- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+- stop if live code contradicts prior assumptions about owner boundary
+- stop if route ownership, tenant boundary, or auth stratum is unclear
+- stop if useful comparison would require unverified external assumptions
 
 ## Completion Output
 
 Report:
 
-- files changed
-- commands run and exact result
-- verification skipped and exact blocker
-- risks or follow-up work
+- options compared
+- recommended path and why
+- main risks rejected options carried
+- next skill to use

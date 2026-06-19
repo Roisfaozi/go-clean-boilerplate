@@ -1,63 +1,102 @@
 ---
 name: frontend-surface
-description: Use when deciding whether a frontend change belongs in `apps/web`, `apps/client`, or shared `packages/*`, or when auditing active frontend ownership.
+description: Use when deciding whether a frontend change belongs in `apps/web`, `apps/client`, or shared `packages/*`, or when auditing active frontend ownership in this Casbin monorepo.
 ---
 
-# Frontend Surface: App Ownership Decision
+# Frontend Surface
 
-**Announce at start:** "I'm using the frontend-surface skill to choose the correct active frontend surface."
+## Overview
+
+This repo has two active frontend apps plus shared packages.
+
+Wrong ownership choice causes duplicated logic, broken proxies, or types drifting between apps.
 
 ## Read Order
 
-1. `llm/cache/frontend-map.md`
-2. `llm/cache/api-contracts.md`
-3. `llm/conventions/typescript.md`
-4. target app route registry/component tree
+1. `AGENTS.md`
+2. `llm/cache/frontend-map.md`
+3. `llm/cache/frontend-proxy-system.md`
+4. `llm/cache/api-contracts.md`
+5. `llm/conventions/typescript.md`
+6. target app route registry, component tree, or feature folder
 
 ## Surface Map
 
-- `apps/web`: Next.js App Router, server components/actions, backend API proxy.
-- `apps/client`: React Router, feature folders, route registry, API proxy route.
-- `packages/api-types`: shared contract/types.
-- `packages/ui`: shared UI primitives.
-- `packages/hooks`: shared hooks.
-- `packages/utils`: shared utilities.
+- `apps/web`
+  - Next.js App Router
+  - server components and route handlers
+  - backend proxy: `apps/web/src/app/api/v1/[...path]/route.ts`
+- `apps/client`
+  - React Router app and feature folders
+  - backend proxy: `apps/client/app/routes/api-proxy.ts`
+- `packages/api-types`
+  - shared contract typing
+- `packages/ui`, `packages/hooks`, `packages/utils`
+  - shared primitives only when reuse is real
 
-## Workflow
+## Ownership Workflow
 
-### Phase 1 — Ownership
+### Step 1 — Find Real Owner
 
-- Identify URL/route/component owner.
-- Check if both apps expose same domain feature.
-- Check shared package candidates before duplicating code.
+Decide based on:
 
-### Phase 2 — API Boundary
+- actual route owner
+- actual page or feature owner
+- whether both apps expose same feature domain
 
-- If backend contract changes, load `cross-stack-change`.
-- If auth/tenant route behavior changes, load `auth-tenant-casbin`.
+### Step 2 — Decide Shared Vs Local
 
-### Phase 3 — UI Patch
+Promote to shared package only when:
 
-- Preserve loading, empty, error, success, auth-expired, and tenant-switch states.
-- Prefer existing UI components and variants.
-- Avoid new shared abstraction until reused by both apps or clearly stable.
+- both apps use same abstraction
+- abstraction is stable enough to reuse
+- transport or route ownership does not differ meaningfully
 
-### Phase 4 — Verify
+Otherwise keep local.
 
-- `apps/web`: lint/typecheck/build as relevant.
-- `apps/client`: typecheck/build/E2E as relevant; lint script is placeholder-only.
+### Step 3 — Audit Backend Boundary
+
+If backend contract changes, inspect:
+
+- `apps/web/src/app/api/v1/[...path]/route.ts`
+- `apps/client/app/routes/api-proxy.ts`
+- `packages/api-types/*`
+
+If auth or tenant semantics change, also load `auth-tenant-casbin`.
+
+### Step 4 — Preserve Frontend States
+
+For UI changes, preserve:
+
+- loading
+- empty
+- error
+- success
+- auth-expired
+- tenant-switch state when relevant
+
+### Step 5 — Verify
+
+- `apps/web`: typecheck/build/lint as relevant
+- `apps/client`: typecheck/build/E2E as relevant
+- remember `apps/client` lint is placeholder-only
+
+## Common Mistakes
+
+- editing wrong app because feature names look similar
+- creating shared abstraction before second real use
+- changing backend contract without updating proxy or shared types
 
 ## Stop Conditions
 
-- Stop and ask before destructive DB/schema/data operations not explicitly requested.
-- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
-- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+- stop if route or feature owner is unclear between two apps
+- stop if proposed shared package extraction would hide app-specific transport or auth behavior
 
 ## Completion Output
 
 Report:
 
+- chosen owner surface
+- why local vs shared decision was made
 - files changed
-- commands run and exact result
-- verification skipped and exact blocker
-- risks or follow-up work
+- verification run and exact result

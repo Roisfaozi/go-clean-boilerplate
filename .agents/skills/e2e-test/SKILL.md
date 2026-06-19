@@ -1,60 +1,87 @@
 ---
 name: e2e-test
-description: Use when testing a feature flow end-to-end through browser or full request lifecycle in the Casbin repo.
+description: Use when testing a feature flow end to end through browser or full request lifecycle in this Casbin repo, especially when auth, tenant, proxy, route protection, or multi-layer form behavior must be proven together.
 ---
 
-# E2E Test: Casbin Flow Verification
+# E2E Test
 
-**Announce at start:** "I'm using the e2e-test skill to verify the user flow end-to-end."
+## Overview
+
+E2E in this repo should prove one real flow across app, proxy, backend, and auth boundaries.
+
+Do not run broad browser motion without naming exact path, actor, and expected result.
 
 ## Read Order
 
-1. changed diff
-2. target workflow cache
+1. current diff or feature slice
+2. target workflow cache or domain cache
 3. `llm/cache/frontend-map.md`
-4. `llm/cache/api-contracts.md`
-5. `llm/cache/frontend-proxy-system.md`
-6. `llm/cache/authentication-system.md` if auth is involved
+4. `llm/cache/frontend-proxy-system.md`
+5. `llm/cache/api-contracts.md`
+6. `llm/cache/authentication-system.md` when auth is involved
+7. `login` skill when authenticated actor is needed
 
 ## Workflow
 
-### Phase 1 — Select Flow
+### Step 1 — Select Exact Flow
 
-Choose the exact user journey and owning app.
+State:
 
-### Phase 2 — Setup
+- owning app
+- actor type
+- start path
+- final expected outcome
 
-Use login/setup pattern if auth is required.
+### Step 2 — Prepare Preconditions
 
-### Phase 3 — Drive Flow
+Confirm:
 
-Exercise the actual browser/request lifecycle.
+- app and backend are running
+- required seed or fixture state exists
+- login or tenant context is available if needed
 
-### Phase 4 — Evidence
+### Step 3 — Drive Real Lifecycle
 
-Capture failure evidence, console/server errors, or screenshots when useful.
+Exercise actual flow through:
 
-### Phase 5 — Save
+- page or route entry
+- frontend proxy if used
+- backend endpoint
+- auth or tenant gate
+- success or failure rendering
 
-If stable and reusable, save the steps to `llm/test-playbooks/`.
+### Step 4 — Capture Evidence
+
+Capture useful evidence only:
+
+- failing step
+- visible error
+- console or server error when relevant
+- screenshot or artifact when it helps future replay
+
+### Step 5 — Save Reusable Playbook
+
+If flow is stable and reusable, save concise steps to `llm/test-playbooks/`.
+
+## Common Mistakes
+
+- treating smoke check as full E2E
+- not naming actor or tenant context
+- running browser flow without checking proxy or backend path ownership
+- ignoring failure-state assertions
 
 ## Stop Conditions
 
-- stop if backend/app is not running
-- stop if the flow needs a data seed or fixture you cannot verify
-- stop if auth/tenant boundary is ambiguous
-
-## Stop Conditions
-
-- Stop and ask before destructive DB/schema/data operations not explicitly requested.
-- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
-- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+- stop if backend or target app is not running
+- stop if flow depends on seed or fixture state that cannot be verified
+- stop if auth, tenant, or route ownership is ambiguous
 
 ## Completion Output
 
 Report:
 
-- files changed
+- exact flow tested
+- actor used
+- evidence captured
 - commands run and exact result
-- verification skipped and exact blocker
-- risks or follow-up work
+- skipped coverage and blocker
