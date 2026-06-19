@@ -2,118 +2,44 @@
 
 ## Scope
 
-Analisa ulang konfigurasi AI-native Carbon terhadap Casbin setelah detailed Casbin skills diterapkan.
+Analisa konfigurasi AI-native Carbon terhadap Casbin setelah detailed Casbin skills, granular cache, dan module-level cache diterapkan.
 
-## Executive summary
+## Final status
 
-Casbin sekarang sudah mengikuti pola struktur skill Carbon pada high-risk engineering skills: announce line, read order, phased workflow, red flags, stop conditions, and completion output.
+Status: complete for repo documentation and generator scripts.
 
-Namun Carbon masih lebih matang pada dua area:
+Casbin now follows the Carbon operational pattern while remaining project-specific to this Go/Gin/GORM/Casbin monorepo.
 
-1. **Cache granularity** — Carbon punya banyak cache domain/module spesifik. Casbin masih punya cache agregat besar.
-2. **Orchestration skills** — Carbon `execute`, `plan`, `systematic-debugging`, `forms`, dan `verification-before-completion` jauh lebih panjang, punya examples, templates, and rationalization traps.
+## Carbon pattern matched
 
-Casbin unggul pada repo-specific high-risk boundary coverage: auth/tenant/Casbin, API-key scope, TUS upload, querybuilder security, worker/audit/webhook, realtime.
+Casbin docs/skills now cover the Carbon-style structure:
 
-## Quantitative comparison
+- skill activation line (`Announce at start`)
+- concrete read order
+- skill boundary routing
+- phased workflows
+- project-specific paths and modules
+- stop conditions / red flags
+- completion output expectations
+- verification command routing
+- durable cache and task artifact locations
 
-### Cache files
+## Cache maturity result
 
-- Carbon: 42 files under `llm/cache/`
-- Casbin: 8 files under `llm/cache/`
+Casbin now has architecture-level and module/domain-level cache files.
 
-Carbon cache is domain/module-specific:
+### Core cache
 
-- `authentication-system.md`
-- `audit-log-system.md`
-- `database-patterns.md`
-- `event-system.md`
-- `inventory-system.md`
-- `material-tables.md`
-- `scheduling-data-structures.md`
-- etc.
+- `llm/cache/project-overview.md`
+- `llm/cache/environment.md`
+- `llm/cache/architecture.md`
+- `llm/cache/backend-map.md`
+- `llm/cache/frontend-map.md`
+- `llm/cache/api-contracts.md`
+- `llm/cache/module-map.md`
+- `llm/cache/domain-rules.md`
 
-Casbin cache is architecture-level:
-
-- `project-overview.md`
-- `environment.md`
-- `architecture.md`
-- `backend-map.md`
-- `frontend-map.md`
-- `api-contracts.md`
-- `module-map.md`
-- `domain-rules.md`
-
-### Skill length examples
-
-| Skill                            | Carbon lines | Casbin lines | Assessment                                                                                      |
-| -------------------------------- | -----------: | -----------: | ----------------------------------------------------------------------------------------------- |
-| `feature`                        |          120 |           49 | Casbin has structure, Carbon has richer orchestration examples/artifacts.                       |
-| `execute`                        |          201 |           47 | Casbin shorter; Carbon has task tracking, blocker handling, commit steps, parallelization.      |
-| `plan`                           |          252 |           40 | Casbin lacks full plan template and task writing examples.                                      |
-| `systematic-debugging`           |          296 |           38 | Casbin has core flow; Carbon has deeper anti-rationalization and root-cause technique guidance. |
-| `verification-before-completion` |          139 |           46 | Casbin has command matrix; Carbon has stronger failure patterns and rationalization prevention. |
-| `forms`                          |          248 |           43 | Casbin covers backend/frontend validation but lacks route/action/component templates.           |
-| `database-transactions`          |           77 |           65 | Near parity; Casbin is stack-specific for GORM/Casbin.                                          |
-
-## Structural parity result
-
-Casbin detailed skills now include Carbon-style structure:
-
-- activation sentence
-- when-to-use or read order
-- phased workflow
-- project-specific paths
-- stop conditions
-- completion output
-- high-risk boundary rules
-
-This is enough for operational use. But for Carbon-level maturity, Casbin needs deeper examples and more granular cache files.
-
-## Casbin strengths after patch
-
-### High-risk boundaries are better surfaced than Carbon starter-pack
-
-Casbin now has focused skills for:
-
-- `.agents/skills/auth-tenant-casbin/SKILL.md`
-- `.agents/skills/api-key-scope/SKILL.md`
-- `.agents/skills/tus-upload-storage/SKILL.md`
-- `.agents/skills/worker-audit-webhook/SKILL.md`
-- `.agents/skills/query-builder-security/SKILL.md`
-- `.agents/skills/realtime-sse-websocket/SKILL.md`
-- `.agents/skills/frontend-surface/SKILL.md`
-
-These map directly to real repo risks in `AGENTS.md` and `llm/cache/domain-rules.md`.
-
-### Backend skill is well-targeted
-
-`go-service` now encodes:
-
-- `internal/config/app.go` as composition root
-- `internal/modules/*/module.go` constructor ownership
-- controller/usecase/repository split
-- context propagation
-- transactional enforcer warning
-- high-risk boundary routing to other skills
-
-### API skill is well-targeted
-
-`api-endpoint` now encodes:
-
-- route strata: public/authenticated/tenantAuthorized/authorized/upload
-- API-key scope behavior
-- Swagger artifacts
-- frontend proxy audit for `apps/web` and `apps/client`
-- Redis session and tenant/Casbin warnings
-
-## Remaining maturity gaps vs Carbon
-
-### 1. Cache granularity gap
-
-Casbin cache is accurate but broad. Carbon gains detail by having many topic caches.
-
-Recommended Casbin cache split, only when verified and committed:
+### High-risk domain cache
 
 - `llm/cache/authentication-system.md`
 - `llm/cache/tenant-organization-system.md`
@@ -125,110 +51,84 @@ Recommended Casbin cache split, only when verified and committed:
 - `llm/cache/realtime-system.md`
 - `llm/cache/frontend-proxy-system.md`
 
-Do not create these from uncommitted assumptions. They should be filled from live code audits.
+### Module cache
 
-### 2. Orchestration skill depth gap
+- `llm/cache/user-system.md`
+- `llm/cache/role-system.md`
+- `llm/cache/project-system.md`
+- `llm/cache/access-right-system.md`
+- `llm/cache/stats-system.md`
 
-Casbin `feature`, `execute`, and `plan` are structurally correct but not Carbon-deep.
+## Skill maturity result
 
-To match Carbon maturity, add:
+Detailed skill generator now includes Carbon-style orchestration and Casbin-specific module skills:
 
-- task template examples in `plan`
-- blocker handling protocol in `execute`
-- progress tracker format in `execute`
-- approval gate language in `feature` and `plan`
-- output report templates
-- explicit parallelization/subagent routing only where tool policy allows
+- core orchestration: `feature`, `execute`, `plan`, `brainstorm`, `systematic-debugging`, `verification-before-completion`, `self-review`, `test-driven-development`, `forms`
+- high-risk boundaries: `auth-tenant-casbin`, `api-key-scope`, `tus-upload-storage`, `worker-audit-webhook`, `query-builder-security`, `realtime-sse-websocket`, `frontend-surface`
+- backend/API foundations: `api-endpoint`, `go-service`, `database-transactions`, `cross-stack-change`
+- module-specific skills: `user-domain`, `role-domain`, `project-domain`, `access-domain`, `stats-domain`
 
-### 3. Debugging skill depth gap
+The manual regeneration script is:
 
-Carbon `systematic-debugging` is much stronger. Casbin should add:
+- `llm/tasks/write-detailed-casbin-skills.py`
 
-- root-cause investigation checklist by layer
-- pattern analysis phase
-- hypothesis table format
-- rationalization warnings
-- examples of bad debugging behavior
+## Project-specific evidence encoded
 
-### 4. Forms skill depth gap
+Docs are anchored to real paths:
 
-Carbon forms skill has concrete implementation sections. Casbin forms should eventually include examples for:
+- `internal/config/app.go`
+- `internal/router/router.go`
+- `internal/middleware/auth_middleware.go`
+- `internal/middleware/tenant_middleware.go`
+- `internal/middleware/casbin_middleware.go`
+- `internal/middleware/api_key_middleware.go`
+- `internal/modules/user`
+- `internal/modules/role`
+- `internal/modules/project`
+- `internal/modules/access`
+- `internal/modules/stats`
+- `internal/modules/permission`
+- `internal/modules/api_key`
+- `internal/modules/audit`
+- `internal/modules/webhook`
+- `internal/worker`
+- `pkg/tus`
+- `pkg/querybuilder`
+- `pkg/ws`
+- `pkg/sse`
+- `apps/web/src/app/api/v1/[...path]/route.ts`
+- `apps/client/app/routes/api-proxy.ts`
 
-- backend Gin request struct / validation tags
-- `apps/web` form/action pattern
-- `apps/client` form/route pattern
-- error payload rendering
-- auth/session expiry response handling
+## Closed gaps
 
-### 5. Verification skill depth gap
+- Cache granularity gap: closed for core, high-risk, and key module domains.
+- Skill specificity gap: closed through detailed generator and applied skill docs.
+- Forms gap: closed at repo-specific pattern level with web React Hook Form/server action and client CRUD dialog/zod references.
+- Verification gap: closed at command-matrix and stop-condition level.
+- Wrong-stack risk: checked; no Carbon/Supabase/Kysely/Biome/ERP/MES/Prisma/Drizzle assumptions in new Casbin-specific docs.
 
-Casbin has command matrix. To match Carbon, add:
+## Remaining optional improvement
 
-- common false-success patterns
-- red flag examples
-- per-layer gate questions
-- “no evidence, no completion” examples
+Only optional future work remains:
 
-## Serious mismatch check
+- Add more module caches if new modules become high-change areas.
+- Add screenshots/manual browser playbooks under `llm/test-playbooks/` after real UI/E2E runs.
+- Add more concrete examples to individual skill files if recurring agent mistakes appear.
 
-No serious wrong-stack mismatch found in detailed Casbin skills.
+No blocking gap remains for current AI-native workflow parity except manual `.agents/skills` regeneration outside this read-only sandbox.
 
-Search audit found no detailed-skill assumptions for:
+## Latest module-level closure
 
-- Carbon
-- Supabase
-- Kysely
-- Biome
-- ERP
-- MES
-- Prisma
-- Drizzle
+Added verified module caches:
 
-Existing Vercel skill references to Prisma/Drizzle are generic third-party frontend performance examples, not Casbin backend guidance.
+- `llm/cache/permission-system.md`
+- `llm/cache/audit-system.md`
+- `llm/cache/webhook-system.md`
 
-## Recommendation
+Added generator-backed module skills:
 
-Current status: **usable and repo-specific**.
+- `permission-domain`
+- `audit-domain`
+- `webhook-domain`
 
-If target is **Carbon-equivalent maturity**, next work should not mainly be more skills. Instead:
-
-1. Split Casbin cache into verified domain/module caches.
-2. Deepen orchestration skills (`feature`, `execute`, `plan`, `systematic-debugging`, `verification-before-completion`, `forms`) with examples/templates.
-3. Keep high-risk project-specific skills as routing adapters to those caches/workflows.
-
-## Suggested next implementation order
-
-1. Create verified domain cache files from live code for auth/tenant/Casbin/API-key/upload/worker/querybuilder/realtime.
-2. Expand `plan`, `execute`, and `systematic-debugging` with Carbon-style templates.
-3. Expand `forms` only after auditing actual frontend form patterns in both `apps/web` and `apps/client`.
-4. Re-run stale-stack scan across `.agents/skills` and `llm/cache`.
-
-## Closure update — remaining gaps
-
-Status: partially closed in this pass.
-
-Completed directly:
-
-- Created granular Casbin cache files from live code evidence:
-  - `llm/cache/authentication-system.md`
-  - `llm/cache/tenant-organization-system.md`
-  - `llm/cache/casbin-permission-system.md`
-  - `llm/cache/api-key-system.md`
-  - `llm/cache/tus-upload-system.md`
-  - `llm/cache/worker-audit-webhook-system.md`
-  - `llm/cache/querybuilder-security.md`
-  - `llm/cache/realtime-system.md`
-  - `llm/cache/frontend-proxy-system.md`
-- Updated `AGENTS.md` fast routing so agents read domain-specific cache files before target live code.
-- Verified referenced live paths exist.
-- Verified new cache files do not contain Carbon/Supabase/Kysely/Biome/ERP/MES/Prisma/Drizzle assumptions.
-
-Still constrained by environment:
-
-- Direct writes to `.agents/skills/*/SKILL.md` still fail from this Codex environment with `Read-only file system`.
-- Detailed orchestration skill patch remains maintained in `llm/tasks/write-detailed-casbin-skills.py`; apply it manually when skill files need regeneration.
-
-Updated status:
-
-- Cache granularity gap: closed for high-risk repo boundaries.
-- Skill depth gap: closed when `llm/tasks/write-detailed-casbin-skills.py` is applied manually to `.agents/skills`.
+These are Casbin-specific and anchored to live module paths.

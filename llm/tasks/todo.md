@@ -69,3 +69,32 @@ Completed:
 - verified referenced paths exist
 - verified no Carbon-specific or wrong-stack assumptions in new cache files
 - retained `llm/tasks/write-detailed-casbin-skills.py` as manual regeneration path for Carbon-style detailed skills
+
+## Final gap closure
+
+Status: complete.
+
+Completed:
+
+- added module-level cache files for user, role, project, access-right, and stats systems
+- updated `AGENTS.md` routing so module-specific work reads matching cache files first
+- extended `llm/tasks/write-detailed-casbin-skills.py` with module-specific skills: `user-domain`, `role-domain`, `project-domain`, `access-domain`, and `stats-domain`
+- refreshed `llm/tasks/carbon-vs-casbin-skill-analysis.md` to mark current parity gaps closed
+- verified new docs reference existing live paths and contain no wrong-stack assumptions
+
+## Latest closure
+
+Status: complete for writable docs; manual `.agents/skills` regeneration still required.
+
+Added in this pass:
+
+- `llm/cache/permission-system.md`
+- `llm/cache/audit-system.md`
+- `llm/cache/webhook-system.md`
+- module skill entries in `llm/tasks/write-detailed-casbin-skills.py` for `permission-domain`, `audit-domain`, and `webhook-domain`
+
+Manual next step if user wants `.agents/skills` files refreshed:
+
+```bash
+python3 llm/tasks/write-detailed-casbin-skills.py
+```
