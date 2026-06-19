@@ -2,96 +2,115 @@
 
 ## Purpose
 
-Workflow ini untuk menambah atau mengubah backend HTTP endpoint dengan route stratum, scope, contract, and consumer sync yang benar.
+Primary workflow for adding or changing HTTP endpoints in this repo.
 
-## Use when
+This workflow exists to preserve route strata, auth layering, API-key scope behavior, tenant context, Casbin enforcement, Swagger-visible contracts, and frontend consumer sync.
 
-- adding or changing endpoint Gin
+## Use When
+
+- adding new backend HTTP route
+- changing request/response shape of existing endpoint
 - moving endpoint between route groups
-- changing request/response contract consumed by frontend or external clients
-- changing API-key scope, tenant, or Casbin route semantics
+- changing route protection or API-key scope behavior
+- changing frontend-consumed API surface
 
-## Read first
+## Do Not Use When
+
+- task is purely internal Go logic with no endpoint contract change
+- task is schema-only change with no route impact
+
+## Required Read Order
 
 1. `AGENTS.md`
-2. `llm/cache/backend-map.md`
-3. `llm/cache/api-contracts.md`
-4. `llm/cache/domain-rules.md`
-5. `llm/conventions/golang.md`
-6. `llm/conventions/testing.md`
+2. `llm/cache/api-contracts.md`
+3. relevant domain cache file
+4. `internal/router/router.go`
+5. target module route/controller/usecase files
+6. `llm/workflows/cross-stack-change.md` if frontend consumers exist
 
-## Live code to inspect
+## Live Code to Inspect
 
 - `internal/router/router.go`
-- relevant module route file under `internal/modules/*/delivery/http/*routes.go`
-- target controller/usecase/repository/model files
-- `internal/middleware/*` if auth, tenant, Casbin, or API-key behavior changes
-- `docs/swagger.yaml`, `docs/swagger.json`, `docs/docs.go`
-- frontend proxy/client files if consumed by frontend
+- target `*_routes.go`
+- target controller/usecase/model files
+- middleware files for auth, tenant, API key, Casbin
+- frontend proxies and consumer files if active contract consumer exists
 
-## Route-group decision
+## Workflow Steps
 
-Choose one intentionally:
+### Step 1 — Choose Correct Route Stratum
+
+Decide whether endpoint belongs in:
 
 - `public`
 - `authenticated`
 - `tenantAuthorized`
 - `authorized`
-- `upload`
+- upload or other special path
 
-Do not pick route group by convenience.
+Do not pick by convenience. Pick by runtime security semantics.
 
-## Workflow phases
+### Step 2 — Confirm Protection Stack
 
-### Phase 1 — Define contract and owner
+State explicit expectations for:
 
-State:
-
-- method and path
-- request shape
-- response and error shape
-- owning module
-- intended consumer(s)
-
-### Phase 2 — Choose route stratum and scope
-
-Confirm:
-
-- auth/session rules
-- API-key scope behavior
-- tenant or organization context
+- JWT/session validation
+- API-key auth behavior
+- required or forbidden API-key user-session semantics
+- tenant/org context
 - Casbin requirement or lack of it
+- explicit scope override if needed
 
-### Phase 3 — Patch by layer
+### Step 3 — Patch By Layer
+
+Preferred order:
 
 - route registration
 - request/response models and validation tags
 - controller parsing and response
 - usecase logic
-- repository or schema if needed
+- repository/schema if needed
 
-### Phase 4 — Sync documentation and consumers
+### Step 4 — Sync Consumers and Docs
 
-- update Swagger generation path when public contract changes
-- update `packages/api-types`, proxies, and app consumers when relevant
+If endpoint is frontend-consumed or public contract:
 
-### Phase 5 — Verify narrow then broad
+- update proxies or app consumers
+- update shared types if used
+- update Swagger path via `pnpm go:docs` when appropriate
 
-- narrow backend package test first
-- route/auth changes: broader integration when needed
-- public contract/doc changes: `pnpm go:docs`
-- frontend consumers changed: app typecheck/build for touched app
+## Common Mistakes
 
-## Review checklist
+- putting route in wrong security group
+- forgetting API-key scope override on sensitive resource
+- changing controller output but not response model/docs
+- assuming frontend does not consume route
 
-- route registered exactly once
-- route protection matches intended stratum
-- API-key scope and tenant/Casbin layering preserved
-- request/response model matches actual handler output
-- swagger artifacts updated when contract is public and documented
+## Verification
 
-## Stop conditions / needs confirmation
+### Minimum
 
-- route belongs to more than one plausible security stratum and intent is unclear
-- existing frontend consumers conflict with requested contract change
-- endpoint implies migration or background side effect not described in request
+- narrow backend package or route test
+
+### Add When Needed
+
+- auth/route integration check when middleware layering changed
+- `pnpm go:docs` when Swagger-visible contract changed
+- owner app typecheck/build if frontend consumer changed
+
+## Stop Conditions
+
+Stop and mark `needs confirmation` if:
+
+- route belongs to more than one plausible security stratum and intent unclear
+- existing consumers conflict with requested contract
+- endpoint implies migration or async side effect not mentioned in request
+
+## Completion Output
+
+Report:
+
+- route stratum chosen and why
+- auth/tenant/API-key/Casbin behavior
+- consumer/docs impact
+- verification run

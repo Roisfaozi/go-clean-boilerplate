@@ -2,88 +2,110 @@
 
 ## Purpose
 
-Workflow ini untuk perubahan backend business logic di Go modules, termasuk usecase, repository, constructor wiring, transaction-sensitive behavior, dan backend-owned side effects.
+Primary workflow for backend module logic changes in Go: usecases, repositories, module constructors, shared backend packages, and dependency wiring.
 
-## Use when
+## Use When
 
-- mengubah logic di `internal/modules/*`
-- mengubah dependency wiring service/usecase/repository
-- mengubah side effect backend-owned yang bukan sekadar route registration
-- mengubah business rules tanpa menjadikan route/API contract sebagai concern utama
+- changing module usecase logic
+- changing repository behavior
+- updating module constructor wiring
+- editing shared backend package that supports module behavior
+- changing worker-owned backend behavior without frontend ownership as primary concern
 
-## Read first
+## Do Not Use When
+
+- change is mostly route contract; pair or prefer `api-endpoint.md`
+- change is mostly schema delta; pair or prefer `database-migration.md`
+- change is cross-stack producer-consumer sync; pair or prefer `cross-stack-change.md`
+
+## Required Read Order
 
 1. `AGENTS.md`
 2. `llm/cache/backend-map.md`
 3. `llm/cache/module-map.md`
-4. `llm/cache/domain-rules.md`
-5. relevant domain cache files
-6. `llm/conventions/golang.md`
-7. `llm/conventions/testing.md`
+4. relevant domain cache files
+5. `internal/config/app.go`
+6. target module under `internal/modules/*`
 
-## Live code to inspect
+## Live Code to Inspect
 
-- `internal/config/app.go` untuk dependency wiring
-- target `internal/modules/*/module.go`
-- target controller, usecase, repository, model files
-- `pkg/tx`, `pkg/querybuilder`, `pkg/storage`, `pkg/tus`, `pkg/ws`, `pkg/sse` jika disentuh
-- related tests near owning package
+- target `module.go`
+- target controller/usecase/repository/entity/model
+- related middleware when auth/tenant/Casbin context involved
+- shared packages like `pkg/querybuilder`, `pkg/tx`, `pkg/storage`, `pkg/tus`, `pkg/ws`, `pkg/sse`
 
-## Workflow phases
+## Workflow Steps
 
-### Phase 1 — Find owning usecase
+### Step 1 — Find True Owner Layer
 
-Tentukan apakah perubahan utamanya ada di:
+Ask first:
 
-- usecase business rules
-- repository behavior
-- transaction flow
-- async side effect orchestration
-- constructor wiring
+- is logic in usecase, repository, or shared package?
+- is constructor wiring affected?
+- is there worker or middleware coupling?
 
-### Phase 2 — Preserve boundaries
+### Step 2 — Trace Context and Dependency Flow
 
-Pastikan:
+For nontrivial changes, trace:
 
-- controller hanya bind/validate/respond
-- usecase owns business rules
-- repository owns persistence details
-- constructor or app wiring owns dependency composition
+- request context propagation
+- transaction context propagation
+- organization context propagation
+- enforcer/task distributor/storage dependencies
 
-### Phase 3 — Trace side effects and shared packages
+### Step 3 — Patch Smallest Correct Owner
 
-Jika perubahan menyentuh:
+Preferred order:
 
-- transactions
-- storage
-- querybuilder
-- worker or webhook side effects
-- auth or tenant semantics
+- shared infra only if truly owner
+- repository for persistence-specific behavior
+- usecase for business behavior
+- constructor for wiring only if dependency graph changed
 
-maka trace package boundary itu dulu sebelum patch.
+### Step 4 — Check Boundary Coupling
 
-### Phase 4 — Patch minimal owner layer
+Re-check whether change also affects:
 
-- preserve context propagation
-- avoid ad hoc globals or bypassed dependency injection
-- keep cross-module calls explicit and justified
+- auth/session
+- tenant/org scope
+- Casbin/policy behavior
+- worker side effects
+- upload/realtime/shared packages
 
-### Phase 5 — Verification
+If yes, mention it explicitly in verification and final handoff.
 
-Start with narrow package tests.
+## Common Mistakes
 
-Escalate to broader backend or integration checks when DB, Redis, worker, auth, tenant, or upload semantics move.
+- patching controller when usecase is owner
+- bypassing tx/context propagation
+- editing global app config when module-local fix is enough
+- forgetting shared package owner under `pkg/*`
 
-## Review checklist
+## Verification
 
-- usecase owns business rules
-- repository owns persistence details
-- transaction boundaries still all-or-nothing where required
-- tenant or session or Casbin constraints not bypassed
-- constructor changes do not pass full app config where not needed
+### Minimum
 
-## Stop conditions / needs confirmation
+- narrow package tests for touched module/package
 
-- dependency ownership unclear between module and shared package
-- change requires cross-module contract decision not derivable from live code
-- integration-only behavior cannot be validated due missing infra
+### Add When Needed
+
+- integration tests when DB/Redis/Casbin/tenant/worker behavior changed
+- `pnpm go:test`
+- `make test-integration` for boundary-crossing logic
+
+## Stop Conditions
+
+Stop and mark `needs confirmation` if:
+
+- ownership unclear between module and shared package
+- context/transaction semantics cannot be proven
+- behavior is actually route-contract or cross-stack issue in disguise
+
+## Completion Output
+
+Report:
+
+- true owner layer
+- dependencies touched
+- context/transaction implications
+- verification run

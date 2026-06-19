@@ -2,79 +2,121 @@
 
 ## Purpose
 
-Workflow ini untuk perubahan yang menyentuh backend Go plus frontend consumers, proxy layers, shared types, atau shared packages.
+Primary workflow for changes that touch Go backend plus frontend consumers, proxy layers, shared types, or shared packages.
 
-Fokus utamanya adalah producer-consumer sync.
+Goal: keep producer and consumer in sync across this monorepo.
 
-## Use when
+## Use When
 
-- backend API contract changes and either frontend app can consume it
-- shared types or proxy behavior changes
-- frontend and backend need coordinated rollout
-- route, cookie, auth, or tenant semantics affect app behavior
+- backend API contract changes and `apps/web` or `apps/client` can consume it
+- proxy behavior changes
+- shared types in `packages/api-types` change
+- auth/cookie/tenant semantics affect frontend behavior
+- one logical fix spans backend plus frontend surface
 
-## Read first
+## Do Not Use When
+
+- task is strictly backend with no active frontend consumer
+- task is strictly frontend styling with no contract/runtime change
+- task is docs-only
+
+## Required Read Order
 
 1. `AGENTS.md`
 2. `llm/cache/api-contracts.md`
 3. `llm/cache/frontend-map.md`
 4. `llm/cache/frontend-proxy-system.md`
-5. `llm/workflows/api-endpoint.md`
-6. `llm/conventions/typescript.md`
+5. `llm/cache/domain-rules.md`
+6. `llm/workflows/api-endpoint.md` if route contract is changing
+7. `llm/conventions/typescript.md`
 
-## Live code to inspect
+## Live Code to Inspect
 
 - backend route/controller/usecase files
+- `internal/router/router.go`
 - `apps/web/src/app/api/v1/[...path]/route.ts`
 - `apps/client/app/routes/api-proxy.ts`
 - `packages/api-types/*`
 - frontend consumer files under owning app
 
-## Workflow phases
+## Workflow Steps
 
-### Phase 1 — Identify producer and consumers
+### Step 1 — Identify Producer and All Consumers
 
-State:
+State explicitly:
 
 - backend producer endpoint or payload owner
-- `apps/web` consumer or proxy path
-- `apps/client` consumer or proxy path
+- `apps/web` consumer or proxy owner
+- `apps/client` consumer or proxy owner
 - shared type owner if any
 
-### Phase 2 — Define contract delta
+Do not assume one app is inactive just because current page is not open.
+
+### Step 2 — Define Contract Delta
 
 Write exact change in:
 
-- request params/body
+- request params/body/query
 - response shape
-- error shape
+- error envelope
 - auth/tenant expectations
-- proxy forwarding assumptions when relevant
+- proxy forwarding semantics if relevant
 
-### Phase 3 — Patch in order
+### Step 3 — Patch In Stable Order
 
-Preferred order:
+Default order:
 
 1. backend contract owner
 2. shared types
 3. proxies
 4. frontend consumers
+5. UI state handling
 
-### Phase 4 — Verify both sides
+### Step 4 — Re-check Boundary States
 
-- backend route or package tests
-- app typecheck or focused consumer checks
-- browser/E2E only when actual flow confidence is needed
+For contract changes, verify:
 
-## Review checklist
+- loading
+- empty
+- error
+- unauthorized/forbidden
+- tenant mismatch if relevant
+- offline/backend unavailable handling through proxy behavior
 
-- both active apps checked when relevant
-- proxy behavior still matches auth/cookie/header needs
-- shared types are not stale
-- backend docs or swagger updated when public contract changed
+## Common Mistakes
 
-## Stop conditions / needs confirmation
+- patching backend and only one app
+- updating consumer code but forgetting proxy or shared type
+- assuming generated types are source of truth over route wiring
+- forgetting cookie/header/auth implications
+
+## Verification
+
+### Minimum
+
+- narrow backend package test or route verification
+- owner app typecheck
+
+### Add When Needed
+
+- second app typecheck if shared consumer contract changed
+- browser/manual flow
+- E2E when auth, tenant, cookie, or route lifecycle changed
+- `pnpm go:docs` if public Swagger contract changed
+
+## Stop Conditions
+
+Stop and mark `needs confirmation` if:
 
 - one consumer path cannot be identified
-- producer and consumer verification pair is missing
-- backend and frontend disagree on source of truth for contract
+- producer and consumer disagree on source of truth
+- contract delta affects both apps but one owner path is unverified
+
+## Completion Output
+
+Report:
+
+- producer changed
+- consumers changed
+- proxy/shared-type impact
+- verification run per side

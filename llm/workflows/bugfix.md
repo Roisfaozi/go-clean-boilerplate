@@ -2,84 +2,111 @@
 
 ## Purpose
 
-Workflow ini untuk memperbaiki incorrect behavior, regression, security drift, atau docs/runtime mismatch tanpa berubah menjadi feature creep.
+Primary workflow for fixing incorrect behavior, regressions, security drift, or docs/runtime mismatch without turning the work into feature creep.
 
-## Use when
+## Use When
 
 - fixing incorrect behavior in existing code
-- closing regressions found by tests, runtime audit, or security review
+- closing regression found by tests, runtime audit, or user report
+- tightening broken security path
 - correcting docs or cache drift against live code
-- tightening a specific broken path without redesigning whole feature
 
-## Read first
+## Do Not Use When
+
+- request is new capability, not repair
+- requested change implies redesign or re-architecture unless bug root cause demands it
+
+## Required Read Order
 
 1. relevant cache files for affected layer
-2. failing tests or runtime evidence near affected behavior
+2. failing tests or exact runtime evidence
 3. `llm/conventions/testing.md`
-4. `AGENTS.md` high-risk rules if bug touches auth, tenant, Casbin, API key, upload, realtime, or worker paths
+4. `AGENTS.md` high-risk rules if auth, tenant, Casbin, API-key, upload, realtime, or worker involved
 
-## Live code to inspect
+## Live Code to Inspect
 
-- failing test or exact route path
-- `internal/config/app.go` when dependency lifecycle is involved
+- exact failing route, module, test, or error path
+- `internal/config/app.go` when lifecycle/dependency involved
 - `internal/router/router.go` if behavior is HTTP-visible
-- target module controller/usecase/repository
-- frontend proxy or client code if bug crosses browser/backend boundary
+- target controller/usecase/repository
+- frontend proxy/client if bug crosses browser/backend boundary
 
-## Workflow phases
+## Workflow Steps
 
-### Phase 1 — State observed bug
+### Step 1 — Reproduce or Prove Symptom
 
-Document:
-
-- observed behavior
-- expected behavior
-- exact path, actor, or layer affected
-- whether bug is reproducible now
-
-### Phase 2 — Reproduce or trace
-
-Prefer:
+Collect one of:
 
 - failing test
-- focused request path
-- minimal browser path
-- exact worker or async path
+- exact route behavior
+- log/error text
+- source-backed docs/runtime contradiction
 
-Do not patch from memory or assumption.
+No bugfix should start from vague hunch alone.
 
-### Phase 3 — Localize owner layer
+### Step 2 — Find Root Layer
 
-Decide whether bug owner is:
+Classify bug location:
 
-- route or middleware
-- controller parsing/validation
-- usecase business rule
-- repository/persistence
-- frontend proxy or consumer
-- worker or realtime side effect
+- route registration / middleware order
+- request validation / parsing
+- usecase logic
+- repository / query / transaction
+- worker async timing
+- proxy/frontend consumer mismatch
 
-### Phase 4 — Patch minimal root cause
+### Step 3 — Fix Root Cause, Not Only Output Symptom
 
-- fix smallest owner layer that actually caused bug
-- add or adjust regression test when meaningful seam exists
-- avoid unrelated cleanup
+Patch smallest root owner that explains failure.
 
-### Phase 5 — Verify fix and adjacent risk
+Avoid:
 
-- rerun exact reproduction first
-- then run adjacent narrow verification
-- widen to integration/E2E only when bug crosses boundary
+- redundant controller guards when middleware truth is broken
+- frontend-only masking for backend auth bug
+- test-only patch that leaves runtime wrong
 
-## Review checklist
+### Step 4 — Contain Scope
 
-- root cause actually addressed
-- no broader behavior silently changed
-- regression coverage added where practical
-- docs/cache updated only if stable truth was clarified
+Before finalizing, ask:
 
-## Stop conditions / needs confirmation
+- did patch accidentally broaden to refactor?
+- are unrelated style/cleanup edits creeping in?
+- does bug reveal adjacent risk that should only be documented, not fixed now?
 
-- cannot reproduce or trace enough to isolate likely owner
-- multiple root causes remain plausible with no evidence to choose one
-- fix would require product decision, not technical correction only
+## Common Mistakes
+
+- fixing output but not root cause
+- changing route stratum because one endpoint failed
+- adding duplicate auth/tenant checks in handlers
+- masking bug in frontend while backend remains wrong
+- “while here” edits unrelated to reported symptom
+
+## Verification
+
+### Minimum
+
+- narrowest failing test or package check
+
+### Add When Needed
+
+- integration check if bug crosses DB/Redis/Casbin/tenant boundary
+- E2E/manual route check if browser-visible behavior changed
+- docs/cache refresh if fix resolves live-code drift
+
+## Stop Conditions
+
+Stop and mark `needs confirmation` if:
+
+- bug symptom not reproducible and code evidence weak
+- fix would require destructive migration or broad redesign not requested
+- root cause sits in ambiguous business-rule area without stable source of truth
+
+## Completion Output
+
+Report:
+
+- symptom proved
+- root cause layer
+- exact fix surface
+- verification run
+- residual risk if not fully reproducible locally

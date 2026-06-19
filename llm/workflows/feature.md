@@ -2,111 +2,123 @@
 
 ## Purpose
 
-Workflow ini untuk membangun capability baru di repo Casbin tanpa kehilangan owner boundary, auth and tenant rules, atau consumer sync.
+Primary workflow for building new capability in this Casbin repo without losing owner boundaries, auth/tenant rules, consumer sync, or verification honesty.
 
-Ini bukan checklist generik. Workflow harus memandu agent dari owner discovery sampai verification dan handoff.
+This is top-level orchestration workflow. Use narrower workflows underneath it when scope becomes more specific.
 
-## Use when
+## Use When
 
-- menambah feature backend baru
-- menambah feature frontend baru di `apps/web` atau `apps/client`
-- memperluas module yang sudah ada dengan behavior baru yang user-visible
-- ada kemungkinan backend, frontend, worker, auth, tenant, API-key, upload, atau contract berubah bersama
+- adding new backend feature
+- adding new frontend feature in `apps/web` or `apps/client`
+- extending existing module with new user-visible behavior
+- feature may touch backend, frontend, worker, auth, tenant, API-key, upload, realtime, or shared contract
 
-## Read first
+## Do Not Use When
+
+- task is clearly only bugfix, route patch, schema patch, or redesign and already fits narrower workflow exactly
+
+## Required Read Order
 
 1. `AGENTS.md`
 2. `llm/cache/project-overview.md`
 3. `llm/cache/architecture.md`
 4. `llm/cache/domain-rules.md`
 5. `llm/cache/module-map.md`
-6. `llm/cache/frontend-map.md` jika frontend relevan
-7. `llm/cache/api-contracts.md` jika API boundary relevan
+6. `llm/cache/frontend-map.md` if frontend relevant
+7. `llm/cache/api-contracts.md` if API boundary relevant
 8. relevant `llm/conventions/*.md`
-9. workflow lebih spesifik jika task ternyata API-only, DB-only, frontend-redesign, atau cross-stack
+9. narrower workflow once feature shape known
 
-## Live code to inspect
+## Workflow Steps
 
-- `internal/config/app.go`
-- `internal/router/router.go`
-- target module under `internal/modules/*`
-- target frontend app under `apps/web` or `apps/client`
-- shared packages under `packages/*` if reused by feature
+### Step 1 — Find Owners and Boundaries
 
-## Workflow phases
+State:
 
-### Phase 1 — Find owner
+- owner backend module
+- owner frontend app if any
+- whether feature is backend-only, frontend-only, or cross-stack
+- whether async side effect, upload, realtime, auth, tenant, or API-key boundary is involved
 
-Tentukan:
+If owner unclear, stop and design/brainstorm first.
 
-- owner module backend
-- owner app frontend
-- apakah feature ini pure backend, pure frontend, atau cross-stack
-- apakah ada async side effect, upload, realtime, atau auth-sensitive behavior
+### Step 2 — Define Smallest Coherent Slice
 
-Jika owner belum jelas, berhenti dan gunakan `brainstorm` atau `design` dulu.
+Before implementation, define:
 
-### Phase 2 — Define smallest coherent slice
+- user or operator flow
+- persisted behavior that changes
+- route/API contract that changes
+- boundary risks touched
 
-Sebelum implementasi, state:
+First slice must be as small as possible while still end-to-end meaningful.
 
-- user flow atau operator flow
-- persisted behavior yang berubah
-- request/response contract yang berubah
-- boundary yang disentuh: auth, tenant, Casbin, API-key, worker, upload, realtime
+### Step 3 — Choose Narrower Workflow
 
-Slice pertama harus sekecil mungkin tapi tetap end-to-end masuk akal.
-
-### Phase 3 — Decide implementation order
-
-Urutan default:
-
-1. backend contract and domain behavior
-2. shared types or proxy updates
-3. frontend consumption
-4. broader verification and review
-
-Jangan mulai dari UI dulu kalau persisted behavior atau API contract belum jelas.
-
-### Phase 4 — Use narrower workflows when needed
-
-Load workflow atau skill yang lebih spesifik bila applicable:
+Use the more specific workflow when feature shape is known:
 
 - API route: `llm/workflows/api-endpoint.md`
 - backend module logic: `llm/workflows/go-service.md`
 - cross-stack: `llm/workflows/cross-stack-change.md`
 - DB/schema: `llm/workflows/database-migration.md`
-- frontend design or redesign: `llm/workflows/frontend-design.md`, `llm/workflows/frontend-redesign.md`, `llm/workflows/image-to-frontend.md`
+- frontend code/design: `frontend-design.md`, `frontend-redesign.md`, `image-to-frontend.md`, `image-generation.md`
 
-### Phase 5 — Verification
+### Step 4 — Implement In Stable Order
 
-Start narrow:
+Default order:
 
-- package or module tests
-- app typecheck or build for touched frontend
-- route-level or consumer-level checks when contract moved
+1. backend/domain behavior
+2. shared types / proxies / contracts
+3. frontend consumption
+4. async or secondary integrations
+5. verification and handoff
 
-Escalate to integration or E2E when route, auth, tenant, worker, upload, or cookie behavior changed.
+Do not start from UI if persisted behavior and route contract are still unclear.
 
-### Phase 6 — Record active state
+### Step 5 — Record Active State Correctly
 
-Untuk pekerjaan multi-step:
+For multi-step work:
 
-- use `llm/tasks/todo.md` for active execution state
-- use `llm/plans/` for durable phased plan
-- use `llm/research/` for evidence-heavy design or comparison
+- `llm/tasks/` for active scratch/task state
+- `llm/plans/` for durable phased implementation plan
+- `llm/research/` for evidence-heavy design and comparison notes
+- `llm/recommendations/` for deferred follow-up not in current scope
 
-## Review checklist
+## Common Mistakes
 
-- owner layer benar
-- auth, tenant, API-key, and Casbin boundaries preserved
-- request and response contract still match consumers
-- shared package reuse preferred over duplication
-- no unrelated files changed
+- starting implementation before owner discovery
+- letting feature creep swallow unrelated cleanup
+- ignoring auth/tenant/API-key implications because feature feels “small”
+- changing one consumer while another active app remains stale
+- writing cache facts before feature behavior is stable/committed
 
-## Stop conditions / needs confirmation
+## Verification
+
+### Minimum
+
+- narrowest package/app checks covering changed slice
+
+### Add When Needed
+
+- integration when route, DB, Redis, Casbin, tenant, worker, upload, or cookie behavior changed
+- E2E/manual browser validation for protected or multi-step user flows
+- docs generation when public contract changed
+
+## Stop Conditions
+
+Stop and mark `needs confirmation` if:
 
 - route ownership unclear between modules
 - contract source of truth conflicts between backend and frontend
-- feature implies migration or destructive data change without explicit user request
-- env or runtime dependency is critical but not verifiable locally
+- feature implies migration or destructive data change not requested
+- critical env/runtime dependency cannot be verified locally and assumption would be risky
+
+## Completion Output
+
+Report:
+
+- feature slice delivered
+- owners touched
+- narrower workflows used
+- verification run
+- deferred next slice if feature is intentionally staged
