@@ -1,61 +1,53 @@
 # Module Map
 
-## Backend modules
+## Purpose
 
-| Module       | Location                        | Main responsibility                                   | Key dependencies                                                   |
-| ------------ | ------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------ |
-| access       | `internal/modules/access`       | access-right and endpoint registry                    | GORM, validator, logger                                            |
-| api_key      | `internal/modules/api_key`      | API key create/list/revoke/authenticate               | user repo, org repo, Redis                                         |
-| audit        | `internal/modules/audit`        | audit log, outbox, broadcast                          | GORM, WebSocket, worker                                            |
-| auth         | `internal/modules/auth`         | register/login/session/reset/SSO/ticket               | JWT, Redis token repo, user repo, org repo, Casbin adapter, worker |
-| organization | `internal/modules/organization` | org lifecycle, membership, invitations, tenant reader | Redis, worker, user repo, enforcer, presence reader                |
-| permission   | `internal/modules/permission`   | Casbin policy operations and access-right expansion   | enforcer, role/user/access repos, audit                            |
-| project      | `internal/modules/project`      | tenant-scoped project CRUD                            | project repository                                                 |
-| role         | `internal/modules/role`         | role CRUD and cleanup                                 | role repo, permission usecase, transaction manager                 |
-| stats        | `internal/modules/stats`        | dashboard summary/activity/insights                   | GORM                                                               |
-| user         | `internal/modules/user`         | user CRUD/profile/status/avatar                       | tx, enforcer, audit, auth, webhook, storage                        |
-| webhook      | `internal/modules/webhook`      | webhook configs/logs/dispatch                         | repository, worker, validator                                      |
+Durable map of backend modules, primary responsibilities, and high-signal dependencies so agents can route work to the correct owner layer quickly.
 
-## Module composition patterns
+## Core runtime modules
 
-- `auth` is the heaviest composition point: it bridges token storage, JWT, SSO, org bootstrap, worker queueing, and event publishing.
-- `organization` owns tenant context and member lifecycle; it is the main boundary for org/invitation/membership logic.
-- `permission` is the policy transformation layer between roles/access-rights and Casbin enforcement.
-- `user` is the shared domain center for profile, avatar, status, and admin/user-management flows.
-- `audit` and `webhook` are side-effect modules that often follow writes in other modules.
-- `api_key` is both auth-adjacent and tenant-adjacent; it should be checked when changing protected routes.
+| Module       | Location                        | Main responsibility                                           | High-signal dependencies                                         |
+| ------------ | ------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------- |
+| auth         | `internal/modules/auth`         | login, register, session/token flows, SSO, ticket flow        | JWT manager, Redis/session, audit, worker, WS/SSE                |
+| organization | `internal/modules/organization` | tenant lifecycle, members, invitations, cached org behavior   | user repo, Redis, enforcer, task distributor                     |
+| user         | `internal/modules/user`         | registration, profile, avatar, user management                | auth, audit, webhook, storage, tx, Casbin interface              |
+| permission   | `internal/modules/permission`   | policy CRUD, assignment, batch checks, access-right expansion | role repo, user repo, access repo, audit, transactional enforcer |
+| access       | `internal/modules/access`       | access-right registry and endpoint/resource-action contract   | permission expansion consumers                                   |
+| role         | `internal/modules/role`         | role CRUD, validation, cleanup orchestration                  | permission usecase, tx manager                                   |
+| project      | `internal/modules/project`      | tenant-scoped project CRUD                                    | tenant routing, API-key scope, Casbin                            |
+| api_key      | `internal/modules/api_key`      | API-key create/list/revoke/authenticate                       | organization repo, user repo, Redis, middleware                  |
+| audit        | `internal/modules/audit`        | audit logs and outbox behavior                                | worker sync, organization visibility                             |
+| webhook      | `internal/modules/webhook`      | webhook config, logs, async dispatch                          | worker distributor, tenant scope                                 |
+| stats        | `internal/modules/stats`        | dashboard stats and metrics data                              | realtime broadcaster in app wiring                               |
 
-## Frontend modules
+## Routing rules
 
-`apps/web` module surfaces:
+- If task is mostly route and contract: inspect route file plus `internal/router/router.go`
+- If task is mostly business behavior: inspect target module `usecase` first
+- If task is mostly persistence: inspect target module `repository` and `llm/conventions/database.md`
+- If task crosses multiple modules, decide whether one module owns orchestration or whether it is truly cross-stack/cross-domain work
 
-- auth pages/actions
-- dashboard pages
-- API proxy route handlers
-- shared UI/components/hooks/stores
+## Shared package hotspots
 
-`apps/web` quality notes:
+- `pkg/querybuilder`
+- `pkg/tx`
+- `pkg/storage`
+- `pkg/tus`
+- `pkg/ws`
+- `pkg/sse`
 
-- App Router route groups split auth, dashboard, and API handler concerns.
-- It is the most integration-heavy frontend because it mixes server components, server actions, and backend proxying.
+These shared packages are often the true owner when changes look module-local but actually alter common infrastructure.
 
-`apps/client` module surfaces:
+## Hard rules
 
-- feature folders for users/roles/organizations/projects/permissions/resources/endpoints/audit logs
-- route registry in `app/routes.ts`
-- shared components/lib/stores/hooks
+- prefer module owner over scattered helper edits
+- do not move business logic into controller layer
+- if change crosses backend and frontend, update API contracts and proxy boundaries together
+- if permission or tenant semantics move, trace router and middleware before patching module internals
 
-`apps/client` quality notes:
+## Evidence paths
 
-- Route registry is the main navigation contract.
-- Feature folders are domain-first, which makes them easy to map to backend modules.
-- API proxy route is a transport layer, not a business layer.
-
-## Cross-module rules
-
-- Backend module constructors should receive only required primitive/config/dependency values, not full app config.
-- Cross-module dependencies are wired in `internal/config/app.go`, not inside controllers.
-- Casbin policy writes should go through permission/Casbin abstractions, especially if transaction-bound.
-- Tenant-aware behavior should resolve organization context through middleware/usecase/repository paths, not ad hoc query params only.
-- Shared workspace packages should be preferred over duplicating UI/api helper code across apps.
-- If a change crosses backend and frontend, update module map and API contracts together so routing and transport stay aligned.
+- `internal/config/app.go`
+- `internal/router/router.go`
+- `internal/modules/*/module.go`
+- relevant `llm/cache/*` domain files
