@@ -1,81 +1,125 @@
 ---
 name: auth-tenant-casbin
-description: Use when changing authentication, Redis-backed sessions, organization tenant resolution, membership cache, Casbin policy/enforcement, protected route middleware, or role/permission behavior.
+description: Use when changing authentication, Redis-backed sessions, organization tenant resolution, membership cache, Casbin enforcement or policy behavior, or protected-route middleware layering in this Casbin repo.
 ---
 
-# Auth Tenant Casbin: High-Risk Boundary
+# Auth Tenant Casbin
 
-**Announce at start:** "I'm using the auth-tenant-casbin skill because this touches the repo's highest-risk access boundary."
+## Overview
+
+This is highest-risk boundary skill in repo.
+
+These changes can silently weaken access control if router group, middleware order, session checks, tenant resolution, or Casbin enforcement drift even slightly.
 
 ## Iron Rule
 
-Do not assume JWT validity is enough. Protected routes need the repo's middleware/session/tenant/Casbin layering as implemented in live code.
+Do not treat parsed JWT as full authentication proof.
+
+Protected behavior in this repo depends on live middleware layering, Redis-backed session checks, user status checks, tenant resolution, and sometimes Casbin plus API-key scope.
+
+## When To Use
+
+Use this skill when:
+
+- changing auth middleware or auth usecase behavior
+- changing session validation, ticket, logout, refresh, or SSO behavior
+- changing tenant resolution or organization membership checks
+- changing Casbin middleware, permission enforcement, or policy-related protected flow
+- moving routes between `public`, `authenticated`, `tenantAuthorized`, or `authorized`
 
 ## Read Order
 
 1. `AGENTS.md`
 2. `llm/cache/domain-rules.md`
-3. `llm/cache/backend-map.md`
-4. `internal/router/router.go`
-5. `internal/middleware/auth_middleware.go`
-6. `internal/middleware/tenant_middleware.go`
-7. `internal/middleware/casbin_middleware.go`
-8. target auth/organization/permission/role usecases
+3. `llm/cache/authentication-system.md`
+4. `llm/cache/tenant-organization-system.md`
+5. `llm/cache/casbin-permission-system.md`
+6. `llm/cache/role-system.md`
+7. `internal/router/router.go`
+8. `internal/middleware/auth_middleware.go`
+9. `internal/middleware/tenant_middleware.go`
+10. `internal/middleware/casbin_middleware.go`
+11. `internal/middleware/api_key_middleware.go` when protected route also accepts API-key actor
+12. target auth, organization, permission, or role usecase paths
+
+## Runtime Truth To Preserve
+
+- `authenticated` routes use API-key authenticate, token validation, auto scope, user-session requirement, and user-status middleware
+- `tenantAuthorized` adds required organization context and Casbin enforcement
+- `authorized` uses explicit `admin:manage`, optional organization context, and Casbin enforcement
+- route protection belongs in router plus middleware layering, not frontend checks and not ad hoc handler logic
 
 ## Boundary Checklist
 
-- bearer/cookie token parsing
-- Redis-backed session validation
+Always classify whether current path depends on:
+
+- bearer token or cookie parsing
+- Redis session index / active session validation
 - user status middleware
-- organization tenant context
-- membership/cache invalidation
-- Casbin subject/domain/object/method enforcement
-- API-key scope layering if route is protected
+- required vs optional organization context
+- membership cache invalidation or refresh
+- Casbin subject, domain, object, method enforcement
+- API-key identity and scope layering
 
 ## Workflow
 
-### Phase 1 — Trace Request
+### Step 1 — Trace Exact Request Path
 
-Trace exact request path:
-`router group -> API-key middleware -> auth/session -> user status -> tenant -> Casbin -> controller -> usecase`.
+Trace:
 
-### Phase 2 — Determine Authority
+`router group -> API-key middleware -> auth/session -> user status -> tenant -> Casbin -> controller -> usecase`
 
-- Auth/session belongs in middleware/usecase boundaries.
-- Tenant org belongs in tenant middleware and organization usecase/cache paths.
-- Policy writes belong in permission/Casbin abstractions.
-- Route protection belongs in router/middleware, not frontend UI.
+If actual path differs from expected design, follow live code.
 
-### Phase 3 — Patch
+### Step 2 — Classify Authority Owner
 
-- Preserve Redis session checks.
-- Preserve tenant context requirements before Casbin on tenant routes.
-- Preserve owner/admin/member constraints in organization flows.
-- Use transactional enforcer patterns for policy writes tied to DB transactions.
+Decide where rule belongs:
 
-### Phase 4 — Verify
+- token and session validity: auth middleware/usecase
+- organization resolution: tenant middleware plus organization/member paths
+- authorization decision: Casbin and permission abstractions
+- route exposure: router group and middleware
 
-- Narrow middleware/usecase tests first.
-- Integration/E2E for route lifecycle, cookies/tokens, tenant isolation, role/permission decisions.
+### Step 3 — Patch Without Weakening Boundary
 
-## Red Flags
+- preserve Redis session checks
+- preserve tenant context before Casbin on tenant-scoped routes
+- preserve owner/admin/member distinctions in organization-sensitive flows
+- preserve explicit admin scope on admin-style routes
+- use permission abstractions or transactional enforcer patterns for policy writes tied to DB state
 
-- "JWT parsed successfully" used as full auth proof.
-- org ID accepted from request without membership/tenant boundary.
-- Casbin policy changed outside permission abstractions.
-- route moved to public/authenticated group for convenience.
+### Step 4 — Verify Narrow Then Broad
+
+Start with closest middleware/usecase tests.
+
+Escalate to integration or E2E when change affects:
+
+- cookie or token lifecycle
+- tenant isolation
+- route group movement
+- role or permission decision outcomes
+
+## Common Mistakes
+
+- using successful JWT parse as full auth proof
+- reading org ID from request input without middleware-backed membership resolution
+- writing Casbin policy outside permission/Casbin abstractions
+- moving protected route to weaker group for convenience
+- forgetting API-key actor path on protected endpoints
 
 ## Stop Conditions
 
-- Stop and ask before destructive DB/schema/data operations not explicitly requested.
-- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
-- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+- stop if route ownership, tenant boundary, or auth stratum is unclear
+- stop if live code contradicts cache/docs in way that changes protection decision
+- stop before destructive DB/schema/data operations not explicitly requested
 
 ## Completion Output
 
 Report:
 
+- boundary touched
+- route strata and middleware implications
 - files changed
 - commands run and exact result
-- verification skipped and exact blocker
-- risks or follow-up work
+- skipped verification and blocker
+- residual risk

@@ -1,21 +1,33 @@
 ---
 name: api-endpoint
-description: Use when adding or changing backend HTTP endpoints, route protection, API-key scope behavior, Swagger-visible contracts, or frontend-consumed API shape in the Casbin monorepo.
+description: Use when adding or changing backend HTTP endpoints, route protection, API-key scope behavior, Swagger-visible contracts, or frontend-consumed API shapes in this Casbin monorepo.
 ---
 
-# API Endpoint: Route Contract and Protection
+# API Endpoint
 
-**Announce at start:** "I'm using the api-endpoint skill to preserve route, auth, tenant, and contract boundaries."
+## Overview
+
+Endpoint work in this repo is never only controller code.
+
+Every endpoint decision can affect route strata, middleware layering, API-key scope, Swagger output, frontend proxies, and shared types.
 
 ## When To Use
 
-| Use this skill when...                         | Use another skill when...                            |
-| ---------------------------------------------- | ---------------------------------------------------- |
-| adding/changing Gin routes                     | pure usecase logic only -> `go-service`              |
-| changing route group/auth/Casbin/API-key scope | persistence-only change -> `database-transactions`   |
-| changing contract consumed by frontend         | frontend-only UI change -> `frontend-surface` / `ui` |
+Use this skill when:
 
-## Read Order
+- adding or changing Gin routes
+- moving route between protection strata
+- changing request or response contract used by frontend
+- changing endpoint scope behavior, tenant semantics, or Swagger-visible API
+
+Use another skill when:
+
+- pure backend usecase logic changes with no route or contract impact; use `go-service`
+- transaction-heavy persistence change dominates; use `database-transactions`
+- auth, tenant, or Casbin boundary dominates; also load `auth-tenant-casbin`
+- API-key decision dominates; also load `api-key-scope`
+
+## Required Read Order
 
 1. `AGENTS.md`
 2. `llm/cache/api-contracts.md`
@@ -24,77 +36,128 @@ description: Use when adding or changing backend HTTP endpoints, route protectio
 5. `llm/workflows/api-endpoint.md`
 6. `internal/router/router.go`
 7. target `internal/modules/*/delivery/http/*routes.go`
-8. target controller, usecase, repository, request/response structs
+8. target controller, request/response structs, usecase, repository
+9. `apps/web/src/app/api/v1/[...path]/route.ts` if `apps/web` can consume endpoint
+10. `apps/client/app/routes/api-proxy.ts` if `apps/client` can consume endpoint
+11. `packages/api-types/*` when shared contract exists
 
-## Route Strata Decision
+## Route Strata Matrix
 
-Choose one intentionally:
+Choose intentionally:
 
-- `public`: no auth; safe public auth/invitation style flows only.
-- `authenticated`: API-key/JWT/session/status checks, no required tenant/Casbin policy.
-- `tenantAuthorized`: auth + tenant org + Casbin policy.
-- `authorized`: admin-style scope + optional tenant + Casbin policy.
-- `upload`: TUS route with upload-specific handler and auth/status middleware.
+- `public`
+  - no auth middleware
+  - public auth, invitation, or health-style surfaces only
+- `authenticated`
+  - API-key authenticate
+  - token validation
+  - auto scope
+  - user session requirement
+  - user status middleware
+- `tenantAuthorized`
+  - authenticated base
+  - required organization context
+  - Casbin enforcement
+- `authorized`
+  - admin-style explicit `admin:manage`
+  - optional organization context
+  - Casbin enforcement
+- `upload`
+  - upload-specific middleware and TUS path behavior
 
-## Workflow
+## Runtime Truth To Preserve
 
-### Phase 1 — Recon
+- route strata and middleware layering are defined centrally in `internal/router/router.go`
+- some module routes are registered via module route helpers, while some protected groups like project routes are declared directly in router
+- frontend consumers may depend on backend endpoints through `apps/web` proxy, `apps/client` proxy, and `packages/api-types`
+- Swagger-visible public API changes can require docs regeneration through `pnpm go:docs`
 
-- Find existing similar endpoint in same module.
-- Trace route registration from `internal/router/router.go` to module routes.
-- Identify consumers in `apps/web`, `apps/client`, and `packages/api-types`.
+## Endpoint Workflow
 
-### Phase 2 — Contract
+### Step 1 — Recon
 
-Define:
+Find nearest precedent in same module.
+
+Trace route registration from `internal/router/router.go` to module routes or direct route group.
+
+Identify consumers in:
+
+- `apps/web`
+- `apps/client`
+- `packages/api-types`
+
+### Step 2 — Define Contract
+
+Before patching, write down:
 
 - method and path
 - path/query/body params
 - response shape and error shape
 - route stratum
-- API-key scope behavior (auto or explicit)
-- tenant/Casbin domain semantics
+- API-key scope behavior
+- tenant or organization semantics
+- whether Swagger artifacts should change
 
-### Phase 3 — Implementation
+### Step 3 — Patch By Layer
 
-- Add/update request/response structs and validation tags.
-- Keep parsing/validation in controller.
-- Keep business rules in usecase.
-- Keep GORM/query details in repository.
-- Update Swagger comments/artifacts when public API contract changes.
+- request parsing and validation in controller
+- business rules in usecase
+- GORM/query details in repository
+- router owns route exposure and protection
+- shared type or proxy updates when consumers depend on contract
 
-### Phase 4 — Consumer Sync
+### Step 4 — Consumer Sync
 
-- Audit `apps/web/src/app/api/v1/[...path]/route.ts` if `apps/web` can call it.
-- Audit `apps/client/app/routes/api-proxy.ts` if `apps/client` can call it.
-- Update shared types/client helpers when payload shape changes.
+If contract changes, audit and update:
 
-### Phase 5 — Verification
+- `apps/web/src/app/api/v1/[...path]/route.ts`
+- `apps/client/app/routes/api-proxy.ts`
+- `packages/api-types/*`
+- any frontend loader, action, or hook consuming payload
 
-- Narrow module/controller/usecase tests first.
-- Integration/E2E when route stratum, cookie/session, tenant, API-key, or Casbin behavior changed.
-- `pnpm go:docs` when Swagger artifacts should change.
+### Step 5 — Verification
+
+Start narrow:
+
+- module controller tests
+- usecase tests
+- route-specific tests if present
+
+Escalate when needed:
+
+- integration/E2E for route strata, cookies, tenant, API-key, or Casbin behavior
+- `pnpm go:docs` when Swagger-visible contract changes
 
 ## Review Checklist
 
 - [ ] route registered exactly once
 - [ ] route group matches product intent
-- [ ] API-key scope cannot be bypassed
-- [ ] JWT parsing is not treated as enough without Redis session validation
-- [ ] tenant context comes from middleware/usecase boundary, not ad hoc query params
-- [ ] frontend consumers are updated or confirmed unaffected
+- [ ] API-key decision is explicit
+- [ ] JWT is not treated as enough without session rules when route needs them
+- [ ] tenant context comes from middleware/usecase boundary, not ad hoc request fields
+- [ ] frontend consumers updated or proven unaffected
+- [ ] Swagger artifacts updated or proven unnecessary
+
+## Common Mistakes
+
+- adding handler and forgetting router registration path
+- choosing weaker route group for convenience
+- changing payload shape without proxy or shared type review
+- putting scope or tenant checks in controller body that middleware should own
 
 ## Stop Conditions
 
-- Stop and ask before destructive DB/schema/data operations not explicitly requested.
-- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
-- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+- stop if route ownership or stratum is unclear
+- stop if cache/docs contradict live router layering in a way that changes endpoint design
+- stop before destructive DB/schema/data operations not explicitly requested
 
 ## Completion Output
 
 Report:
 
+- endpoint contract changed
+- route stratum and scope decision
+- consumer sync performed
 - files changed
 - commands run and exact result
-- verification skipped and exact blocker
-- risks or follow-up work
+- skipped verification and blocker
