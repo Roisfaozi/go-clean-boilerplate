@@ -1,60 +1,81 @@
 ---
 name: query-builder-security
-description: Use when changing filtering, sorting, dynamic query fields, repository list endpoints, or `pkg/querybuilder` behavior.
+description: Use when changing filtering, sorting, dynamic query fields, repository list endpoints, or `pkg/querybuilder` behavior in this Casbin repo, especially when field allowlists and sensitive-field protections must remain intact.
 ---
 
-# Query Builder Security: Dynamic Field Safety
+# Query Builder Security
 
-**Announce at start:** "I'm using the query-builder-security skill because filtering/sorting is part of this repo's security model."
+## Overview
+
+Dynamic filtering and sorting is security boundary here, not convenience helper only.
+
+Any change can accidentally expose sensitive fields or unsafe query behavior.
 
 ## Read Order
 
-1. `llm/cache/domain-rules.md`
-2. `llm/conventions/database.md`
-3. `pkg/querybuilder`
-4. affected repository/list endpoint
-5. existing querybuilder tests
+1. `AGENTS.md`
+2. `llm/cache/querybuilder-security.md`
+3. `llm/conventions/database.md`
+4. `pkg/querybuilder/query_builder.go`
+5. `pkg/querybuilder/query_builder_test.go`
+6. affected repository or list endpoint
 
 ## Iron Rules
 
-- Field names must come from whitelisted struct metadata, not raw user input.
-- Sensitive fields stay denied: password, token, secret, key, salt, and equivalent secrets.
-- Values use GORM placeholders.
-- Sorting/filtering convenience must not weaken security.
+- field names come from whitelisted struct metadata, never raw user input
+- sensitive fields stay denied: password, token, secret, key, salt, and equivalents
+- values use placeholders, not unsafe interpolation
+- sort and filter convenience must not weaken security
 
 ## Workflow
 
-### Phase 1 — Identify Input Surface
+### Step 1 — Identify Input Surface
+
+State whether change affects:
 
 - query params
 - filter object
-- sort field/order
+- sort field or direction
 - repository list method
 
-### Phase 2 — Validate Field Semantics
+### Step 2 — Validate Metadata Semantics
 
-- Confirm allowlist/denylist behavior.
-- Confirm struct tags/field metadata are intended.
-- Confirm sensitive fields remain unqueryable.
+Confirm:
 
-### Phase 3 — Patch and Test
+- allowlist and denylist behavior still correct
+- struct tags or field metadata are intentional
+- sensitive fields remain unqueryable and unsortable
 
-- Add tests for allowed field.
-- Add tests for denied sensitive field.
-- Add tests for invalid/unknown field.
-- Add affected repository/list endpoint tests when possible.
+### Step 3 — Patch Narrowly
+
+- keep security logic centralized in querybuilder package or clear repository boundary
+- avoid one-off repository exceptions unless explicitly justified
+
+### Step 4 — Test Positive And Negative Paths
+
+Add or update tests for:
+
+- allowed field
+- denied sensitive field
+- invalid or unknown field
+- sort direction edge cases when relevant
+
+## Common Mistakes
+
+- adding repository shortcut that bypasses querybuilder allowlist logic
+- exposing field because model tag looked harmless
+- validating allowed field but not denied-field regression
 
 ## Stop Conditions
 
-- Stop and ask before destructive DB/schema/data operations not explicitly requested.
-- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
-- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+- stop if field exposure decision cannot be justified from business need and security model
+- stop if repository path starts bypassing central querybuilder rules
 
 ## Completion Output
 
 Report:
 
+- input surface changed
+- allow/deny implications
 - files changed
-- commands run and exact result
-- verification skipped and exact blocker
-- risks or follow-up work
+- verification run and exact result

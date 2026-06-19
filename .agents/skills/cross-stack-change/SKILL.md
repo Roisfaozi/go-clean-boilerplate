@@ -1,70 +1,79 @@
 ---
 name: cross-stack-change
-description: Use when a change spans Go backend plus `apps/web`, `apps/client`, frontend proxies, shared API types, or shared packages.
+description: Use when a change spans Go backend plus `apps/web`, `apps/client`, frontend proxies, shared API types, or shared packages in this Casbin monorepo.
 ---
 
-# Cross Stack Change: Backend Contract to Frontend Surfaces
+# Cross Stack Change
 
-**Announce at start:** "I'm using the cross-stack-change skill to keep backend contracts and both frontend apps aligned."
+## Overview
+
+Cross-stack changes fail most often at consumer sync points.
+
+This skill keeps backend contract, proxies, shared types, and frontend behavior aligned.
 
 ## Read Order
 
 1. `AGENTS.md`
 2. `llm/cache/api-contracts.md`
 3. `llm/cache/frontend-map.md`
-4. `llm/cache/backend-map.md`
+4. `llm/cache/frontend-proxy-system.md`
 5. `llm/workflows/cross-stack-change.md`
-6. backend route/controller/usecase
+6. backend route/controller/usecase files
 7. `apps/web/src/app/api/v1/[...path]/route.ts`
 8. `apps/client/app/routes/api-proxy.ts`
-9. `packages/api-types` if shape changes
+9. `packages/api-types/*`
 
 ## Workflow
 
-### Phase 1 — Backend Truth
+### Step 1 — Name Producer And Consumers
 
-- Establish contract from live route/controller/usecase.
-- Identify auth, cookie, token, tenant header, and error response behavior.
+State:
 
-### Phase 2 — Consumer Inventory
+- backend producer endpoint or payload owner
+- `apps/web` consumer or proxy path
+- `apps/client` consumer or proxy path
+- shared type owner if any
 
-Check both active apps:
+### Step 2 — Define Contract Delta
 
-- `apps/web` Next.js App Router/server actions/proxy
-- `apps/client` React Router/proxy/client helpers
-- shared `packages/*`
+Write exact change in:
 
-### Phase 3 — Patch Order
+- request params or body
+- response shape
+- error shape
+- auth or tenant expectations
 
-1. backend contract
-2. shared types/helpers
-3. frontend proxy/client
-4. feature UI state/error handling
+### Step 3 — Patch In Correct Order
 
-### Phase 4 — Verify
+Prefer order:
 
-- backend targeted tests
-- frontend typecheck/build for touched app
-- integration/E2E for auth/cookie/proxy/request lifecycle changes
+1. backend contract owner
+2. shared types
+3. proxies
+4. frontend consumers
 
-## Red Flags
+### Step 4 — Verify Producer And Consumer
 
-- updating only one active frontend app when both consume route
-- frontend-only auth/tenant enforcement
-- changing payload shape without shared types/proxy update
-- treating `apps/client` lint as strong verification
+- backend tests or route checks
+- app typecheck or focused consumer checks
+- browser/E2E only when needed for flow confidence
+
+## Common Mistakes
+
+- changing backend payload and forgetting one active app
+- updating proxy but not shared type
+- claiming frontend unaffected without checking both active surfaces
 
 ## Stop Conditions
 
-- Stop and ask before destructive DB/schema/data operations not explicitly requested.
-- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
-- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+- stop if one consumer path cannot be identified
+- stop if contract changed but producer/consumer verification pair is missing
 
 ## Completion Output
 
 Report:
 
+- producer and consumers touched
+- contract delta
 - files changed
-- commands run and exact result
-- verification skipped and exact blocker
-- risks or follow-up work
+- verification run and exact result

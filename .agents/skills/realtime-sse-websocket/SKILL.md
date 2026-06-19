@@ -1,63 +1,76 @@
 ---
 name: realtime-sse-websocket
-description: Use when changing SSE, WebSocket ticket flow, origin checks, Redis presence, distributed realtime behavior, or frontend realtime consumers.
+description: Use when changing SSE, WebSocket ticket flow, origin checks, Redis presence, distributed realtime behavior, or frontend realtime consumers in this Casbin repo.
 ---
 
-# Realtime SSE WebSocket: Ticket and Presence Boundary
+# Realtime SSE WebSocket
 
-**Announce at start:** "I'm using the realtime-sse-websocket skill because realtime auth and origin checks are security-sensitive."
+## Overview
+
+Realtime paths here involve auth ticket flow, WebSocket or SSE serving, presence/distribution, and frontend consumers.
+
+Small changes can break auth, origin checks, or distributed presence behavior.
 
 ## Read Order
 
-1. `llm/cache/domain-rules.md`
-2. `llm/cache/backend-map.md`
-3. `internal/router/router.go`
-4. `pkg/sse`
-5. `pkg/ws`
-6. relevant frontend consumers
-7. realtime tests
-
-## Boundary Map
-
-- SSE route requires auth token.
-- WebSocket route uses short-lived Redis ticket flow.
-- Presence/distributed behavior uses Redis-backed managers.
-- Origin validation is security-sensitive.
+1. `AGENTS.md`
+2. `llm/cache/realtime-system.md`
+3. `llm/cache/stats-system.md` when metrics broadcasting is involved
+4. `internal/router/router.go`
+5. `internal/config/app.go`
+6. `pkg/ws/*`
+7. `pkg/sse/*`
+8. relevant frontend consumer paths in `apps/web` or `apps/client`
 
 ## Workflow
 
-### Phase 1 — Trace Connection
+### Step 1 — Classify Realtime Surface
 
-- ticket issuance
-- ticket storage/expiry
-- WS upgrade route
-- origin check
-- presence registration
-- message lifecycle
+State whether change affects:
 
-### Phase 2 — Patch Rules
+- SSE auth path
+- WebSocket ticket flow
+- origin or presence checks
+- distributed broadcast behavior
+- frontend consumer handling
 
-- Do not accept raw access token at WS route unless live code intentionally supports it.
-- Preserve ticket one-time/expiry semantics if present.
-- Preserve distributed Redis behavior.
+### Step 2 — Trace Auth And Distribution
 
-### Phase 3 — Verify
+Confirm:
 
-- unit tests for ticket validation/origin behavior if present
-- integration/realtime tests where available
-- frontend smoke flow if UI depends on realtime updates
+- how ticket or token is issued and validated
+- where origin checks happen
+- whether Redis/distributed presence path is involved
+- which frontend surface consumes events
+
+### Step 3 — Patch Without Breaking Semantics
+
+- preserve auth boundary on `/events` and `/ws`
+- preserve distributed behavior assumptions when enabled
+- keep frontend event contract in sync if payload changes
+
+### Step 4 — Verify
+
+- narrow package tests if present
+- focused request or ticket lifecycle verification
+- frontend consumer check when event payload or connection behavior changes
+
+## Common Mistakes
+
+- treating realtime endpoint like ordinary REST route
+- changing event payload without checking consumer handling
+- weakening auth or origin validation during debugging
 
 ## Stop Conditions
 
-- Stop and ask before destructive DB/schema/data operations not explicitly requested.
-- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
-- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+- stop if ticket or token validation owner path is unclear
+- stop if distributed presence behavior changes but Redis/distribution path is unreviewed
 
 ## Completion Output
 
 Report:
 
+- realtime surface changed
+- auth/distribution implications
 - files changed
-- commands run and exact result
-- verification skipped and exact blocker
-- risks or follow-up work
+- verification run and exact result

@@ -1,59 +1,75 @@
 ---
 name: tus-upload-storage
-description: Use when changing TUS upload handling, upload metadata, storage provider behavior, hook dispatch, avatar updates, or upload completion flows.
+description: Use when changing TUS upload handling, upload metadata, storage provider behavior, hook dispatch, avatar updates, or upload completion flows in this Casbin repo.
 ---
 
-# TUS Upload Storage: Upload Lifecycle Boundary
+# TUS Upload Storage
 
-**Announce at start:** "I'm using the tus-upload-storage skill because upload metadata and hooks are high-risk boundaries."
+## Overview
+
+Upload path here is separate trust boundary, not standard JSON CRUD.
+
+It spans route middleware, TUS handler, storage provider abstraction, metadata, and completion hooks that can update domain state like avatars.
 
 ## Read Order
 
-1. `llm/cache/domain-rules.md`
-2. `llm/cache/backend-map.md`
-3. `internal/config/app.go`
-4. `pkg/tus`
-5. `pkg/storage`
-6. upload route in `internal/router/router.go`
-7. upload/storage tests
+1. `AGENTS.md`
+2. `llm/cache/tus-upload-system.md`
+3. `llm/cache/user-system.md` when avatar flow is involved
+4. `internal/router/router.go`
+5. `internal/config/app.go`
+6. `pkg/tus/*`
+7. `pkg/storage/*`
+8. affected hook or usecase paths
 
 ## Workflow
 
-### Phase 1 — Trace Upload Route
+### Step 1 — Classify Upload Concern
 
-- TUS route is separate from normal JSON CRUD.
-- Confirm auth/status middleware and upload handler wiring.
-- Confirm storage provider: local/S3-compatible config.
+State whether change affects:
 
-### Phase 2 — Metadata Boundary
+- upload route behavior
+- metadata parsing
+- storage provider behavior
+- completion hook dispatch
+- avatar or domain update after upload
 
-- Identify upload type metadata.
-- Validate completion hook routing.
-- Confirm avatar/user profile update path if relevant.
+### Step 2 — Preserve Trust Boundary
 
-### Phase 3 — Patch Rules
+Confirm:
 
-- Preserve context propagation into storage operations.
-- Do not trust upload metadata without existing validation pattern.
-- Keep hook side effects intentional and idempotent where possible.
+- upload route keeps auth and user-status middleware
+- metadata is treated as trust-sensitive input
+- storage behavior still uses configured provider abstraction
 
-### Phase 4 — Verify
+### Step 3 — Patch With Context Integrity
 
-- storage provider tests
-- TUS upload tests
-- integration checks when route lifecycle or hooks changed
+- preserve context propagation into storage and request-scoped operations
+- keep TUS path separate from normal JSON controller assumptions
+- if avatar flow changes, trace user-side hook and storage completion logic together
+
+### Step 4 — Verify
+
+- `pkg/tus/*_test.go` where relevant
+- storage package tests if provider logic changed
+- avatar or downstream hook tests when upload completion updates domain state
+
+## Common Mistakes
+
+- treating upload route as ordinary API endpoint
+- weakening metadata validation or trust boundary
+- changing provider behavior without checking completion hook effects
 
 ## Stop Conditions
 
-- Stop and ask before destructive DB/schema/data operations not explicitly requested.
-- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
-- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+- stop if upload auth/status boundary would change implicitly
+- stop if storage provider and completion hook implications are not both traced
 
 ## Completion Output
 
 Report:
 
+- upload surface changed
+- trust-boundary implications
 - files changed
-- commands run and exact result
-- verification skipped and exact blocker
-- risks or follow-up work
+- verification run and exact result
