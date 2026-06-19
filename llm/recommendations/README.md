@@ -1,22 +1,38 @@
 # Recommendations
 
-Gunakan folder ini untuk peluang perbaikan non-urgent.
+## Purpose
 
-## Simpan di sini bila
+Folder ini untuk peluang perbaikan non-urgent yang sudah punya evidence, tetapi belum menjadi plan eksekusi aktif.
 
-- ada debt teknis yang bukan scope patch sekarang
-- ada hardening/performance/doc/test gap hasil audit
-- ada saran refactor bertahap
+## Simpan di Sini Bila
 
-## Isi minimum
+- ada debt teknis di luar scope patch sekarang
+- ada gap hardening, performance, doc, test, atau architecture yang layak ditindaklanjuti nanti
+- ada saran refactor bertahap yang belum mendapat approval atau slot implementasi
+
+## Format Minimum
+
+Setiap recommendation sebaiknya punya:
 
 - masalah
 - dampak
-- evidence path
+- evidence path atau command
 - usulan perbaikan
-- prioritas / risiko
+- prioritas, risiko, atau urutan tindak lanjut
 
-## Jangan simpan di sini
+## Perbedaan Dengan Folder Lain
 
-- fakta stabil repo; pakai `llm/cache/`
-- rencana implementasi aktif; pakai `llm/plans/` atau `llm/tasks/`
+- `llm/cache/`
+  - fakta stabil yang sudah tervalidasi
+- `llm/plans/`
+  - plan implementasi yang sudah punya sequence kerja
+- `llm/tasks/`
+  - state aktif sekarang
+- `llm/research/`
+  - investigasi dan evidence mapping yang mungkin belum berubah menjadi recommendation
+
+## Jangan Simpan di Sini
+
+- fakta runtime stabil
+- plan eksekusi aktif
+- audit sementara tanpa rekomendasi jelas

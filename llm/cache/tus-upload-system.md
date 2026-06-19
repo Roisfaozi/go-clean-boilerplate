@@ -8,25 +8,41 @@ Durable map for TUS upload route, storage providers, metadata hooks, and upload 
 
 - Upload route is separate from normal CRUD groups in `internal/router/router.go`.
 - `/api/v1/upload/files/*any` uses `authMiddleware.ValidateToken()` plus `UserStatusMiddleware`, then wraps `tusHandler`.
-- `pkg/tus` owns auth helper, handler setup, registry, and Swagger docs.
-- `pkg/storage` provides storage abstraction used by app/module wiring.
+- `pkg/tus` owns auth helper, handler setup, registry, and upload-related docs.
+- `pkg/storage` provides storage abstraction used by app and module wiring.
 - `internal/config/app.go` wires storage provider and TUS handler.
 
-## Storage support
+## Route and trust boundary
 
-- `pkg/tus/handler.go` supports local file store and S3-compatible store through tusd.
-- Storage config is environment-driven through app config and `.env.example` categories.
+- Upload route is not standard JSON CRUD route.
+- Auth and user-status middleware still protect upload path.
+- Upload metadata and completion hook behavior are trust-sensitive.
+
+## Behavior surfaces
+
+- TUS upload route handling
+- metadata parsing and validation
+- local or S3-compatible storage provider behavior
+- completion hooks that may trigger downstream updates such as avatar behavior
+- request-scoped context propagation into storage and hook logic
+
+## Coupling to other systems
+
+- user avatar flows can depend on upload completion
+- storage provider configuration is environment-driven
+- auth and status middleware still gate upload access
 
 ## Hard rules
 
 - Do not treat TUS route as normal JSON CRUD.
-- Preserve auth/status middleware on upload route.
-- Upload metadata and completion hook routing are trust-boundary sensitive.
-- Preserve context propagation into storage/request-scoped operations.
+- Preserve auth and user-status middleware on upload route.
+- Preserve context propagation into storage and request-scoped operations.
+- Treat metadata and completion-hook routing as trust-boundary sensitive.
 
-## Tests and evidence paths
+## Verification and evidence paths
 
 - `pkg/tus/*_test.go`
-- `pkg/storage`
+- `pkg/storage/*`
 - `internal/router/router.go`
 - `internal/config/app.go`
+- `internal/modules/user/test/avatar_hook_test.go`

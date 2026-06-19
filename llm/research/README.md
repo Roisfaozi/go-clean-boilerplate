@@ -1,23 +1,41 @@
 # Research
 
-Gunakan folder ini untuk investigasi durable berbasis evidence.
+## Purpose
 
-## Simpan di sini bila
+Folder ini untuk investigasi durable berbasis evidence.
 
-- butuh membandingkan beberapa pendekatan teknis
-- butuh catatan riset lintas file/module yang masih relevan setelah task selesai
-- butuh rangkuman audit yang tidak cocok dimasukkan ke `llm/cache/`
+Gunakan ketika perlu memahami behavior lintas file atau lintas module, membandingkan beberapa pendekatan, atau menyimpan audit teknis yang masih berguna setelah task sekarang selesai.
 
-## Jangan simpan di sini
+## Simpan di Sini Bila
 
-- task state aktif; pakai `llm/tasks/`
-- fakta stabil repo yang sudah tervalidasi; pakai `llm/cache/`
-- rekomendasi non-urgent; pakai `llm/recommendations/`
+- perlu membandingkan beberapa pendekatan teknis atau produk
+- perlu catatan evidence lintas file/module yang tidak cocok dimasukkan ke `llm/cache/`
+- perlu memisahkan fakta, inference, dan recommendation dalam audit besar
 
-## Format isi
+## Format Minimum
+
+Setiap research note sebaiknya berisi:
 
 - pertanyaan riset
-- evidence file path / command
+- file path, command, atau evidence source
 - temuan fakta
-- batasan / `needs confirmation`
-- rekomendasi terpisah jelas dari fakta
+- inference yang jelas dipisah dari fakta
+- batasan atau `needs confirmation`
+- recommendation terpisah dari fakta
+
+## Perbedaan Dengan Folder Lain
+
+- `llm/cache/`
+  - hanya untuk fakta yang sudah cukup stabil dan tervalidasi
+- `llm/tasks/`
+  - state aktif sekarang
+- `llm/recommendations/`
+  - follow-up non-urgent
+- `llm/plans/`
+  - sequence implementasi
+
+## Jangan Simpan di Sini
+
+- checklist kerja aktif
+- fakta stabil yang sudah layak dipromosikan ke `llm/cache/`
+- rekomendasi tanpa evidence

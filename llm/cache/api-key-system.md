@@ -6,27 +6,43 @@ Durable map for API-key authentication, scope enforcement, organization-scoped A
 
 ## Runtime truth
 
-- `internal/modules/api_key/module.go` wires repository, organization repository, user repository, Redis, controller, and usecase.
-- `internal/modules/api_key/delivery/http/api_key_routes.go` registers `/api-keys` under authenticated + tenant-required routes.
-- `internal/modules/api_key/usecase/api_key_usecase.go` owns create/list/revoke/authenticate behavior.
-- `internal/middleware/api_key_middleware.go` handles request authentication and scope enforcement.
+- Module root: `internal/modules/api_key/`
+- Wiring entry: `internal/modules/api_key/module.go`
+- Routes: `internal/modules/api_key/delivery/http/api_key_routes.go`
+- Usecase: `internal/modules/api_key/usecase/api_key_usecase.go`
+- Middleware boundary: `internal/middleware/api_key_middleware.go`
+
+## Route ownership
+
+- API-key management routes are registered through `api_keyHttp.RegisterApiKeyRoutes(authenticated, ...)` under the `authenticated` group in `internal/router/router.go`.
+- The authenticated group still includes token validation, auto scope behavior, user-session requirement, and user-status middleware.
+- Some other protected routes add explicit scope strings on top of auto-scope behavior, for example project routes.
 
 ## Behavior surfaces
 
-- create/list/revoke API keys for an organization
+- create, list, and revoke organization API keys
 - authenticate API key from `X-API-Key`
-- inject user/org/username/scopes into request context
-- scope derivation from HTTP method/path
-- explicit scope checks for sensitive endpoints
+- inject user, organization, username, and scopes into request context
+- derive or enforce route scopes
+- combine API-key actor with protected route semantics
+
+## Scope semantics
+
+- API-key identity alone is not enough.
+- Route scope must explicitly allow the action.
+- Tenant-aware routes can still require organization semantics beyond raw key presence.
+- Admin-style routes can require explicit scope such as `admin:manage`.
 
 ## Hard rules
 
-- API-key identity is not enough; route scope must allow action.
-- API-key routes remain organization-scoped.
-- Do not bypass auth/session/tenant layering when API key is present.
+- Do not bypass auth, session, tenant, or scope layering just because API key is present.
+- API-key management remains organization-scoped.
+- Treat route scope changes as security changes, not convenience-only refactors.
 
-## Tests and evidence paths
+## Verification and evidence paths
 
 - `internal/modules/api_key/test/*`
 - `internal/modules/api_key/usecase/api_key_usecase.go`
 - `internal/modules/api_key/delivery/http/api_key_routes.go`
+- `internal/middleware/api_key_middleware.go`
+- `internal/router/router.go`

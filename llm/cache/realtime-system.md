@@ -2,42 +2,46 @@
 
 ## Purpose
 
-Durable map for SSE, WebSocket ticket auth, presence, and distributed realtime behavior.
+Durable map for SSE, WebSocket ticket flow, presence, distributed realtime behavior, and frontend-facing realtime consumers.
 
 ## Runtime truth
 
-- `/api/v1/events` uses `authMiddleware.ValidateToken()` and `sseManager.ServeHTTP()`.
-- `/api/v1/ws` uses `authMiddleware.ValidateWebSocketToken()` and `wsController.HandleWebSocket`.
-- `pkg/sse` owns server-sent event manager and event stream handling.
-- `pkg/ws` owns ticket manager, WebSocket controller/client/manager, and presence manager.
-- `internal/config/app.go` wires realtime managers and a metrics broadcaster.
+- `internal/router/router.go` registers `/api/v1/events` and `/api/v1/ws`.
+- `/events` uses token validation; `/ws` uses WebSocket ticket validation path.
+- `pkg/ws` owns ticket manager, websocket serving helpers, and presence-related logic.
+- `pkg/sse` owns SSE serving helpers.
+- `internal/config/app.go` wires realtime managers, ticket manager, and distributed/runtime behavior.
 
-## SSE behavior
+## Behavior surfaces
 
-- SSE route requires auth token.
-- SSE manager registers/unregisters clients and broadcasts named events as JSON data.
+- SSE authenticated event stream
+- WebSocket ticket issuance and validation
+- presence tracking and pruning
+- distributed broadcast behavior when enabled
+- frontend consumer event handling in active apps
 
-## WebSocket ticket behavior
+## Auth and ticket semantics
 
-- Ticket creation stores user context in Redis under `ws:ticket:<ticket>` with TTL.
-- Ticket validation uses Redis `GetDel` to consume ticket one time.
-- WebSocket auth sets user/session/role/username context and organization ID when ticket contains it.
+- WebSocket route does not use raw access token directly by default.
+- Ticket flow is part of auth plus realtime contract.
+- Event and socket consumers depend on payload and connection semantics staying stable.
 
-## Presence/distributed behavior
+## Coupling to other systems
 
-- Presence and distributed WebSocket behavior use Redis-backed managers where configured.
-- `internal/config/app.go` also prunes stale presence in metrics broadcaster loop.
+- auth module issues ticket path for realtime use
+- stats broadcaster can publish metrics over websocket channels
+- Redis or distributed presence behavior may affect runtime semantics
 
 ## Hard rules
 
-- Do not accept raw access token at WS route unless intentionally redesigning auth boundary.
-- Preserve one-time ticket and expiry semantics.
-- WebSocket origin validation is security-sensitive.
-- Realtime changes need tests or focused integration/manual evidence.
+- Do not weaken auth or ticket validation during realtime changes.
+- Do not change event payload or channel semantics without checking frontend consumers.
+- Treat distributed presence or broadcast changes as infrastructure-sensitive behavior.
 
-## Tests and evidence paths
+## Verification and evidence paths
 
-- `pkg/ws/*_test.go`
-- `pkg/sse/manager_test.go`
 - `internal/router/router.go`
 - `internal/config/app.go`
+- `pkg/ws/*`
+- `pkg/sse/*`
+- frontend consumer paths under `apps/web` and `apps/client`

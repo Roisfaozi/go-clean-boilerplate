@@ -2,30 +2,53 @@
 
 ## Purpose
 
-Durable map for permission module behavior, access-right expansion, role/user permission orchestration, and transactional Casbin enforcement.
+Durable map for permission policy behavior, role and user assignment, access-right expansion, batch permission checks, and transactional Casbin enforcement.
 
 ## Runtime truth
 
-- `internal/modules/permission/module.go` wires enforcer, validator, logger, role repo, user repo, access-right repo, and audit module.
-- `internal/modules/permission/delivery/http/permission_routes.go` registers permission routes under authorized/admin-style access.
-- `internal/modules/permission/usecase/permission_usecase.go` owns permissions, role assignment, batch checks, and policy operations.
-- `internal/modules/permission/usecase/transactional_enforcer.go` handles transactional Casbin access.
+- Module root: `internal/modules/permission/`
+- Wiring entry: `internal/modules/permission/module.go`
+- Routes: `internal/modules/permission/delivery/http/permission_routes.go`
+- Controller: `internal/modules/permission/delivery/http/permission_controller.go`
+- Usecase: `internal/modules/permission/usecase/permission_usecase.go`
+- Transaction boundary helper: `internal/modules/permission/usecase/transactional_enforcer.go`
+- Access-right expansion logic: `internal/modules/permission/usecase/access_right_assignment.go`
+- Inheritance logic: `internal/modules/permission/usecase/inheritance_tree.go`
+
+## Route ownership
+
+- Batch permission check route is registered under `authenticated` routes through `permissionHttp.RegisterBatchCheckRoute(...)`.
+- Admin-style permission CRUD and assignment routes are registered under `authorized` routes through `permissionHttp.RegisterPermissionRoutes(...)`.
+- This split is important: self-service or app-facing checks are not the same as admin policy management.
 
 ## Behavior surfaces
 
-- permission policy CRUD/assignment
-- role inheritance and access-right expansion
+- permission policy CRUD
+- role assignment and cleanup
+- user assignment and cleanup
+- access-right expansion
+- inheritance-based effective permission calculation
 - batch permission checks
-- transactional policy update/cleanup behavior
+- transactional Casbin write behavior
+
+## Coupling to other systems
+
+- depends on access-right registry semantics from `internal/modules/access`
+- interacts with role and user repositories
+- interacts with Casbin policy state and startup enforcement guarantees
+- can emit audit side effects via module wiring
 
 ## Hard rules
 
-- Policy writes sharing DB semantics should use transactional enforcer.
-- Access-right changes must align with permission expansion behavior.
-- Do not weaken security tests around Casbin failures.
+- Policy writes sharing DB semantics should go through transactional enforcer patterns.
+- Access-right changes must stay aligned with permission expansion behavior.
+- Do not weaken negative-path security tests around Casbin failures or invalid inputs.
+- Do not merge batch-check semantics and admin policy semantics by accident.
 
-## Tests and evidence paths
+## Verification and evidence paths
 
 - `internal/modules/permission/test/*`
-- `internal/modules/permission/usecase/*_test.go`
+- `internal/modules/permission/usecase/permission_usecase.go`
 - `internal/modules/permission/usecase/transactional_enforcer.go`
+- `internal/modules/permission/usecase/access_right_assignment.go`
+- `internal/router/router.go`
