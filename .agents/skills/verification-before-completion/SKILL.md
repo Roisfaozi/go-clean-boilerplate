@@ -1,6 +1,6 @@
 ---
 name: verification-before-completion
-description: Use before claiming any Casbin repo task is complete, fixed, verified, or safe.
+description: Use when about to claim work is complete, fixed, or passing in the Casbin repo.
 ---
 
 # Verification Before Completion
@@ -9,7 +9,7 @@ description: Use before claiming any Casbin repo task is complete, fixed, verifi
 
 ## Iron Law
 
-No final success claim without exact verification evidence or exact blocker.
+Do not claim success without exact verification evidence or exact blocker.
 
 ## Gate Function
 
@@ -30,7 +30,7 @@ Before final response, answer:
 - Frontend client: `pnpm --filter casbin-client typecheck`, build/E2E as relevant; lint placeholder is not strong verification.
 - Docs/API: `pnpm go:docs` when Swagger changes.
 
-## Red Flags — Stop
+## Red Flags
 
 - claiming pass after only reading code
 - hiding Docker/Snap/network blockers

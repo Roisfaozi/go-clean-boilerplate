@@ -55,3 +55,18 @@ description: End-to-end feature development orchestrator for the Casbin Go plus 
 - research: `llm/research/`
 - non-urgent recommendations: `llm/recommendations/`
 - durable staged plan: `llm/plans/`
+
+## Stop Conditions
+
+- Stop and ask before destructive DB/schema/data operations not explicitly requested.
+- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
+- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+
+## Completion Output
+
+Report:
+
+- files changed
+- commands run and exact result
+- verification skipped and exact blocker
+- risks or follow-up work

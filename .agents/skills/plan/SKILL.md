@@ -14,34 +14,50 @@ description: Use when work needs a staged implementation plan, scoped checklist,
 3. relevant `llm/workflows/*`
 4. live code owner paths
 
-## Plan Format
+## Plan Shape
 
 Every plan must include:
 
 - scope and non-scope
-- files likely touched
-- high-risk boundaries
-- task order
-- verification per task
+- file list
+- route/module owner
+- risk boundaries
+- stage order
+- verification per stage
 - stop conditions
 
 ## Task Granularity
 
-Good task:
+Each task should be:
 
-- 1 coherent behavior change
-- clear files
-- clear verification
-- can be reviewed independently
+- one coherent behavior change
+- independently verifiable
+- small enough to review
 
-Bad task:
+## Writing Rules
 
-- "fix backend"
-- "update UI"
-- "clean up things"
+- Do not write vague steps like "fix backend".
+- Prefer exact file paths and exact commands.
+- Add review notes or blocker notes when uncertain.
+- Save active state to `llm/tasks/todo.md`.
 
 ## Where To Save
 
 - active work: `llm/tasks/todo.md`
 - durable staged plan: `llm/plans/`
 - future improvement: `llm/recommendations/`
+
+## Stop Conditions
+
+- Stop and ask before destructive DB/schema/data operations not explicitly requested.
+- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
+- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+
+## Completion Output
+
+Report:
+
+- files changed
+- commands run and exact result
+- verification skipped and exact blocker
+- risks or follow-up work

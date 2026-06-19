@@ -11,7 +11,7 @@ description: Use when building or changing forms, validation, payload mapping, e
 
 1. `llm/cache/frontend-map.md`
 2. `llm/cache/api-contracts.md`
-3. `llm/conventions/typescript.md`
+3. `llm/cache/frontend-proxy-system.md`
 4. target backend request struct/validation tags
 5. closest frontend form precedent
 
@@ -49,3 +49,24 @@ Cover:
 - backend response/error shape
 - affected app typecheck/build
 - browser/E2E flow when user-critical
+
+## Project examples
+
+- `apps/web/src/components/auth/login-form.tsx`
+- `apps/web/src/app/actions/auth.ts`
+- `apps/client/app/features/shared/crud-form-dialog.tsx`
+
+## Stop Conditions
+
+- Stop and ask before destructive DB/schema/data operations not explicitly requested.
+- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
+- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+
+## Completion Output
+
+Report:
+
+- files changed
+- commands run and exact result
+- verification skipped and exact blocker
+- risks or follow-up work

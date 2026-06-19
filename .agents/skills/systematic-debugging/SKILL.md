@@ -44,3 +44,18 @@ Write 1-3 hypotheses and expected evidence.
 - multiple possible root causes remain
 - environment blocker hides result
 - fix requires product/security decision
+
+## Stop Conditions
+
+- Stop and ask before destructive DB/schema/data operations not explicitly requested.
+- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
+- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+
+## Completion Output
+
+Report:
+
+- files changed
+- commands run and exact result
+- verification skipped and exact blocker
+- risks or follow-up work

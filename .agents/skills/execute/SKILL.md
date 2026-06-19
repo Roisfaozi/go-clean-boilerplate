@@ -35,6 +35,7 @@ Use exactly relevant skills:
 - querybuilder: `query-builder-security`
 - realtime: `realtime-sse-websocket`
 - frontend ownership: `frontend-surface`
+- user/role/project/access/stats module work: matching module-domain skill
 
 ### Step 3 — Implement Task
 
@@ -53,3 +54,25 @@ Use exactly relevant skills:
 - Run `self-review`.
 - Run `verification-before-completion`.
 - Report final file list and verification.
+
+## Output
+
+- file list
+- commands run
+- verification result
+- unresolved blockers
+
+## Stop Conditions
+
+- Stop and ask before destructive DB/schema/data operations not explicitly requested.
+- Stop if live code contradicts `llm/cache/*`; live code wins, then document drift in `llm/tasks/`.
+- Stop if route ownership, tenant boundary, or auth stratum is unclear.
+
+## Completion Output
+
+Report:
+
+- files changed
+- commands run and exact result
+- verification skipped and exact blocker
+- risks or follow-up work
