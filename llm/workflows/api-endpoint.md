@@ -38,17 +38,30 @@ Choose one intentionally:
 
 1. define method/path/request/response and owning module.
 2. select route group and required API-key scopes.
-3. add/update request/response models and validation tags.
+3. add or update request/response models and validation tags.
 4. update controller and usecase behavior.
-5. update repository/schema if needed.
+5. update repository or schema if needed.
 6. update Swagger comments/docs generation if contract should appear in OpenAPI.
 7. update frontend API types/client/proxy use if affected.
 8. run targeted tests and broader route tests if authorization changed.
 
-## Verification
+## Verification commands
 
-- route compiles and is registered exactly once.
-- route protection matches intended security stratum.
-- Swagger/generated contract updated when public API contract changes.
-- frontend proxy behavior unchanged unless intentionally changed.
-- E2E/integration coverage added or adjusted for security-sensitive endpoints.
+- narrow backend package test for owning module
+- route/auth changes: `pnpm go:test-integration`
+- public contract/doc changes: `pnpm go:docs`
+- frontend consumers changed: app typecheck/build for touched app
+
+## Review checklist
+
+- route registered exactly once
+- route protection matches intended stratum
+- API-key scope and tenant/Casbin layering preserved
+- request/response model matches actual handler output
+- Swagger artifacts updated when contract is public and documented
+
+## Stop conditions / needs confirmation
+
+- route belongs to more than one security stratum and product intent is unclear
+- existing frontend consumers conflict with requested contract change
+- endpoint implies migration or background side effect not described in request

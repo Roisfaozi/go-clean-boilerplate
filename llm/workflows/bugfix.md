@@ -25,16 +25,28 @@
 
 1. state observed bug and expected behavior.
 2. reproduce with existing test, route path, or code trace.
-3. locate the lowest layer that owns the behavior.
+3. locate lowest layer that owns behavior.
 4. patch root cause, not only response formatting or UI symptom.
-5. add/adjust regression test if adjacent test pattern exists.
+5. add or adjust regression test if adjacent test pattern exists.
 6. run narrow check first, then broader check if boundary changed.
 7. document unrelated failures separately.
 
-## Verification matrix
+## Verification commands
 
-- middleware bug: `internal/middleware` tests.
-- tenant/security bug: tenant/permission integration and E2E scenarios.
-- query/filter bug: `pkg/querybuilder` and affected repository dynamic tests.
-- frontend proxy bug: affected frontend build/typecheck plus backend route check.
-- worker bug: `internal/worker` package tests plus integration where async side effects matter.
+- middleware bug: targeted `go test` on `internal/middleware/...`
+- module bug: targeted `go test` on owning package under `internal/modules/...`
+- workspace surface touched: `pnpm typecheck`, `pnpm build`, or app-specific checks as relevant
+- integration/E2E when request lifecycle or persistence semantics changed: `pnpm go:test-integration`, `pnpm go:test-e2e`
+
+## Review checklist
+
+- root cause proven before fix
+- regression path covered by test or explicit code trace
+- no unrelated workaround hidden in outer layer
+- docs/task notes updated only if durable and verified
+
+## Stop conditions / needs confirmation
+
+- cannot reproduce and no code-path evidence narrows failure
+- issue likely depends on external service or infra unavailable locally
+- multiple plausible root causes remain after targeted tracing

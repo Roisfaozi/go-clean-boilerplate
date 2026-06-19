@@ -2,45 +2,49 @@
 
 ## Use when
 
-- changing schema, indexes, seed assumptions, or repository behavior tied to schema
-- adding/removing columns, tables, constraints, FK relationships, or unique indexes
-- changing Casbin/API-key/webhook/audit/project persistence behavior
+- adding or changing SQL schema under `db/migrations`
+- changing persistence contract that requires backfill or schema evolution
+- changing seed/bootstrap behavior tied to schema changes
 
 ## Read first
 
-- `llm/cache/backend-map.md`
 - `llm/conventions/database.md`
-- `AGENTS.md` migration and database guidance
-- target repository/model/usecase files
+- `llm/cache/backend-map.md`
+- `llm/cache/domain-rules.md`
+- owning repository/model/usecase files
 
 ## Live code to inspect
 
 - `db/migrations`
 - `db/seeds/main.go`
-- affected repositories and entities/models
-- integration/E2E tests touching affected tables
-- `Makefile` migration and seed targets
+- affected GORM models under `internal/modules/*/model` or similar
+- affected repository queries and tests
+- Makefile migration targets
 
 ## Steps
 
-1. inspect existing migration numbering and naming pattern.
-2. create paired `.up.sql` and `.down.sql` files.
-3. update entities/models/repositories/usecases that depend on schema change.
-4. update seeds if initial data assumptions change.
-5. check API response/request model impact.
-6. run `make migrate-up` / `make migrate-down` in the proper environment when applicable.
-7. verify with narrow package tests, then integration tests for affected modules.
+1. confirm schema change is required and cannot be solved in code only.
+2. add paired up/down migration files.
+3. update affected model/repository/query assumptions.
+4. update seed code only if bootstrap data truly depends on new schema.
+5. add or adjust tests for persistence behavior where feasible.
+6. verify migration command surface exists and document any local blockers.
 
-## Guardrails
+## Verification commands
 
-- never add only an up migration.
-- keep down migration safe and honest; if destructive rollback is impossible, document why in migration comments and final report.
-- do not change DB schema without updating runtime code that reads/writes the schema.
-- verify tenant isolation when organization-scoped tables change.
+- migration command surface: `make migrate-up`, `make migrate-down`
+- backend tests for affected repository/module
+- integration tests when schema affects request lifecycle: `pnpm go:test-integration`
 
-## Verification
+## Review checklist
 
-- migration command in a configured local DB environment.
-- repository/unit tests for affected module.
-- integration tests for schema and isolation behavior.
-- E2E tests if route behavior changes.
+- up/down files both exist
+- column/index/default names match live query usage
+- tenant, audit, webhook, and worker side effects still compatible
+- no destructive migration done without explicit user intent
+
+## Stop conditions / needs confirmation
+
+- requested migration is destructive or irreversible without approval
+- existing data backfill strategy is unclear
+- schema change spans modules with conflicting ownership
