@@ -2621,9 +2621,8 @@ func TestAuthUseCase_HandleSSOCallback_ExistingSSOIdentity_Success(t *testing.T)
 
 	deps.authz.On("GetRolesForUser", mock.Anything, TestUserID, "").Return([]string{"user"}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	deps.tokenRepo.On("StoreSession", mock.Anything, TestUserID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, usr.Email).Return(nil)
-	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything).Return(nil)
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	res, refresh, err := uc.HandleSSOCallback(context.Background(), "github", "test-code")
 
