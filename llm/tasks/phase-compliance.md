@@ -132,3 +132,26 @@ Quality pass additions:
 Known non-blocking note:
 
 - future work can keep sharpening docs as the repo evolves, but current starter-pack coverage is complete and operational for this checkout.
+
+## Parity follow-up — 2026-06-18
+
+Status: in progress.
+
+Findings:
+
+- core cache/convention/workflow set exists and remains aligned with repo runtime truth
+- starter-pack knowledge lifecycle folders were missing and need restoration
+- workflow files needed explicit verification/review/stop-condition sections for strict parity
+- skill parity is blocked by current inability to write under `.agents/skills` in this environment
+
+Parity closure — 2026-06-18
+
+Status: complete.
+
+Closure checks:
+
+- missing lifecycle folders restored with README guidance
+- workflow files now include explicit verification, review, and stop-condition sections
+- starter-pack core skills now exist under `.agents/skills/` with repo-aware triggers
+- retained existing repo-specific skills because they are additive, not conflicting
+- no unresolved parity blocker remains in current workspace

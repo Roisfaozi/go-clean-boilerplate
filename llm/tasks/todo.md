@@ -2,30 +2,70 @@
 
 Status:
 
-- Phase 1 complete
-- Phase 2 complete
-- Phase 3 complete
-- Phase 4 complete
-- Phase 5 complete
-- Phase 6 complete
-- Finalization complete
+- Parity audit complete
+- Gap implementation complete
+- Skills parity complete
+- Final self-audit complete
 
-Completed work:
+Current plan:
 
-- audited structure and toolchain
-- audited architecture, route strata, module boundaries, frontend entrypoints, and database migration surface
-- audited domain rules from auth, tenant, permission, API key, TUS, realtime, query-builder, and sentinel learnings
-- audited conventions for Go, database, testing, and TypeScript surfaces
-- concretized repo workflows for feature, bugfix, API endpoint, Go service, cross-stack change, and database migration
-- finalized `AGENTS.md` so it now points agents to the `llm/` starter-pack as the main durable repo context
-- completed deep quality pass across cache, convention, workflow, and task files
-- expanded remaining thin files into actionable repo-specific guidance
+1. audit template-vs-repo gaps file-by-file
+2. patch repo-owned workflow/lifecycle gaps inside writable workspace
+3. restore starter-pack parity for skills
+4. run final self-audit for paths, commands, workflow sections, and trigger clarity
 
-Phase 6 self-audit result:
+Completed in this pass:
 
-- core llm cache, convention, workflow, and task files are present
-- required commands referenced in workflows map to package scripts, Makefile targets, or CI commands found in repo
-- required core paths referenced in cache/workflow files exist in repo
-- no unresolved `needs confirmation` markers remain in current phase files
-- final AGENTS entrypoint is aligned with the concretized starter-pack
-- detailed pass covers frontend/backend boundaries, domain pitfalls, module dependencies, env ownership, testing strategy, and workflow guardrails
+- audited starter-pack `codex-ready/typescript-go` against current repo structure
+- confirmed `llm/cache/*` and `llm/conventions/*` already exceed template depth
+- added missing lifecycle folders and README files
+- completed workflow section parity for verification/review/stop conditions
+- added starter-pack core skills adapted to this repo under `.agents/skills/`
+- preserved existing repo-specific skills (`vercel-*`, `web-design-guidelines`, `workflows/bmad`) because they are additive, not conflicting
+- completed final parity self-audit across AGENTS, workflows, lifecycle folders, and skills
+
+## Skill quality audit follow-up
+
+Status: complete.
+
+Completed:
+
+- verified project-specific skills now exist under `.agents/skills/`
+- verified core skills were tightened for Casbin repo boundaries
+- documented final audit result in `llm/tasks/skill-quality-audit.md`
+- noted Vercel skill Prisma/Drizzle mentions are generic frontend guidance only, not backend stack guidance
+
+## Carbon-style skill detail follow-up
+
+Status: complete.
+
+Completed:
+
+- analyzed Carbon skill structure and detail pattern
+- generated and manually applied detailed Casbin skills
+- verified detailed skills contain announce line, read order, phased workflow, stop conditions, and completion output where applicable
+- verified no Carbon/Supabase/Kysely/Biome/ERP/MES assumptions were introduced
+- documented result in `llm/tasks/carbon-skill-pattern-audit.md`
+
+## Carbon vs Casbin re-analysis
+
+Status: complete.
+
+Completed:
+
+- compared Carbon `.claude/skills` detail level against current Casbin `.agents/skills`
+- compared cache granularity: Carbon 42 cache files vs Casbin 8 cache files
+- identified remaining maturity gaps: cache split, orchestration depth, debugging depth, forms examples, verification anti-rationalization
+- documented result in `llm/tasks/carbon-vs-casbin-skill-analysis.md`
+
+## Remaining maturity gap closure
+
+Status: complete for writable repo files; `.agents/skills` regeneration remains manual due read-only mount for Codex.
+
+Completed:
+
+- created verified granular cache files for auth, tenant/org, Casbin permission, API-key, TUS upload, worker/audit/webhook, querybuilder security, realtime, and frontend proxy/forms
+- updated `AGENTS.md` routing to reference new granular cache files
+- verified referenced paths exist
+- verified no Carbon-specific or wrong-stack assumptions in new cache files
+- retained `llm/tasks/write-detailed-casbin-skills.py` as manual regeneration path for Carbon-style detailed skills
