@@ -2,9 +2,12 @@ package usecase
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tus"
 )
+
+var ErrAuthenticatedUploadUserRequired = errors.New("authenticated upload user metadata is required")
 
 type AvatarHook struct {
 	UserUseCase UserUseCase
@@ -13,10 +16,7 @@ type AvatarHook struct {
 func (h *AvatarHook) HandleUpload(ctx context.Context, event tus.UploadEvent) error {
 	userID := event.Metadata["authenticated_user_id"]
 	if userID == "" {
-		userID = event.Metadata["user_id"]
-	}
-	if userID == "" {
-		return nil
+		return ErrAuthenticatedUploadUserRequired
 	}
 
 	return h.UserUseCase.SetAvatarURL(ctx, userID, event.FileURL)

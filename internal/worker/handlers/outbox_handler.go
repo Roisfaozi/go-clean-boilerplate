@@ -56,6 +56,7 @@ func (h *OutboxTaskHandler) ProcessAuditOutbox(ctx context.Context, t *asynq.Tas
 func (h *OutboxTaskHandler) processEntry(ctx context.Context, entry *auditEntity.AuditOutbox) error {
 	// Map Outbox to AuditLog
 	auditLog := &auditEntity.AuditLog{
+		ID:             entry.ID,
 		OrganizationID: entry.OrganizationID,
 		UserID:         entry.UserID,
 		Action:         entry.Action,

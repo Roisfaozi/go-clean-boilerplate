@@ -26,7 +26,12 @@ Phase 5 audit untuk worker, audit, webhook, dan retry/idempotency.
 - audit sync path does not double-write on worker retry
 - email cleanup and webhook cleanup jobs cannot delete new data by stale selector
 
-## Needs Confirmation
+## Confirmed Implementation Notes
 
-- exact outbox vs direct enqueue split in current code
-- which worker handlers already dedupe by event id
+- Audit `LogActivity` writes transactional request-side audit data into `audit_outbox`; non-transactional audit logs write directly to `audit_logs` and broadcast realtime events.
+- Audit outbox sync now maps `AuditOutbox.ID` to `AuditLog.ID`, giving retries a stable primary key and preventing duplicate audit rows when a moved entry is replayed.
+- Webhook trigger handling remains async through Asynq and does not dedupe outbound HTTP calls; retryable delivery failures now return webhook-log persistence failure too, so Asynq can retry instead of hiding observability failure.
+
+## Remaining Verification Gate
+
+- Root worker Redis/miniredis tests require localhost sockets; sandbox run is blocked with `listen tcp 127.0.0.1:0: socket: operation not permitted` and must be verified from a host/socket-capable shell.

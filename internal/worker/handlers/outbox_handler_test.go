@@ -35,7 +35,9 @@ func TestOutboxTaskHandler_ProcessAuditOutbox_Robustness(t *testing.T) {
 		}
 
 		mockRepo.On("FindPendingOutbox", ctx, 50).Return(entries, nil)
-		mockRepo.On("Create", ctx, mock.AnythingOfType("*entity.AuditLog")).Return(nil)
+		mockRepo.On("Create", ctx, mock.MatchedBy(func(log *auditEntity.AuditLog) bool {
+			return log.ID == "outbox-1" && log.UserID == "user-1" && log.EntityID == "user-1"
+		})).Return(nil)
 		mockRepo.On("DeleteOutbox", ctx, "outbox-1").Return(nil)
 
 		err := handler.ProcessAuditOutbox(ctx, nil)
