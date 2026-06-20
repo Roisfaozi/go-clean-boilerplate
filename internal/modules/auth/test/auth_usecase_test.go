@@ -974,7 +974,7 @@ func TestRequestVerification_Success(t *testing.T) {
 
 	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == user.ID && req.Action == "VERIFICATION_EMAIL_REQUESTED"
-	}), mock.Anything).Return(nil)
+	})).Return(nil)
 
 	err := authService.RequestVerification(context.Background(), user.ID)
 
@@ -2531,7 +2531,6 @@ func TestAuthUseCase_ForgotPassword_Edge_EmailDistributorFailure(t *testing.T) {
 	deps.taskDistributor.AssertExpectations(t)
 }
 
-
 func TestAuthUseCase_GetSSORedirectURL_Success(t *testing.T) {
 	uc, deps := setupTest(t)
 
@@ -2600,7 +2599,6 @@ func TestAuthUseCase_HandleSSOCallback_GetUserInfoError(t *testing.T) {
 	assert.Nil(t, res)
 	ssoProvider.AssertExpectations(t)
 }
-
 
 func TestAuthUseCase_HandleSSOCallback_ExistingSSOIdentity_Success(t *testing.T) {
 	uc, deps := setupTest(t)
