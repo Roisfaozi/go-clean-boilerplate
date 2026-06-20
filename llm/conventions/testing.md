@@ -34,6 +34,7 @@ Guide for choosing the right verification layer, understanding infra assumptions
 - E2E: `make test-e2e`
 - all backend tests: `make test-all`
 - bench: `make bench`
+- benchmark workflow: `llm/workflows/benchmarking.md`
 - frontend client E2E: package script `test:e2e`
 - frontend web checks: app scripts `lint`, `typecheck`, `build`
 - frontend client checks: `typecheck`, `build`, `test:e2e`; lint is placeholder-only
@@ -90,6 +91,17 @@ Guide for choosing the right verification layer, understanding infra assumptions
 - prefer integration tests when change affects DB, Redis, Casbin, worker, or stateful runtime
 - prefer E2E when route-group, cookie, tenant, or full lifecycle behavior is user-visible
 - prefer failing-first bug reproduction when seam is meaningful
+- before refactor, improve, optimization, or logic rewrite, perform benchmark audit first
+- if no relevant `BenchmarkXxx` exists, report that `make bench` is placeholder-grade for that path unless benchmark cases are added
+
+## Benchmarking rules
+
+- use `llm/workflows/benchmarking.md` before codebase improve/refactor/performance-sensitive logic changes
+- benchmark before and after when a meaningful benchmark exists
+- do not claim performance improvement from `make bench` if no benchmark functions cover the changed path
+- benchmark results never replace correctness tests
+- keep before/after commands identical: same package, same `BENCHTIME`, same `-count`, same environment
+- prefer targeted package benchmarks over repo-wide benchmark runs when investigating one hotspot
 
 ## Mock and fixture rules
 

@@ -29,6 +29,7 @@ Goal: keep producer and consumer in sync across this monorepo.
 5. `llm/cache/domain-rules.md`
 6. `llm/workflows/api-endpoint.md` if route contract is changing
 7. `llm/conventions/typescript.md`
+8. `llm/workflows/benchmarking.md` if proxy/API/runtime path performance can change
 
 ## Live Code to Inspect
 
@@ -63,6 +64,8 @@ Write exact change in:
 - proxy forwarding semantics if relevant
 
 ### Step 3 — Patch In Stable Order
+
+Before patching existing runtime hot path, perform benchmark audit when change can affect latency, allocations, query cost, or proxy overhead.
 
 Default order:
 

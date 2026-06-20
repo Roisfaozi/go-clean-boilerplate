@@ -27,7 +27,8 @@ This is top-level orchestration workflow. Use narrower workflows underneath it w
 6. `llm/cache/frontend-map.md` if frontend relevant
 7. `llm/cache/api-contracts.md` if API boundary relevant
 8. relevant `llm/conventions/*.md`
-9. narrower workflow once feature shape known
+9. `llm/workflows/benchmarking.md` if implementation changes existing hot path or refactors logic
+10. narrower workflow once feature shape known
 
 ## Workflow Steps
 
@@ -74,6 +75,15 @@ Default order:
 5. verification and handoff
 
 Do not start from UI if persisted behavior and route contract are still unclear.
+
+### Step 4.5 — Benchmark Before Refactor Or Improve
+
+If feature requires refactoring existing code, changing query behavior, rewriting core logic, or touching auth/tenant/Casbin/upload/realtime/worker hot paths:
+
+- run `llm/workflows/benchmarking.md` before implementation
+- capture existing benchmark if present
+- record benchmark gap if no `BenchmarkXxx` covers target path
+- do not claim performance impact without before/after evidence
 
 ### Step 5 — Record Active State Correctly
 

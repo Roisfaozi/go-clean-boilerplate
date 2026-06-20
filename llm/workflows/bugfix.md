@@ -22,6 +22,7 @@ Primary workflow for fixing incorrect behavior, regressions, security drift, or 
 2. failing tests or exact runtime evidence
 3. `llm/conventions/testing.md`
 4. `AGENTS.md` high-risk rules if auth, tenant, Casbin, API-key, upload, realtime, or worker involved
+5. `llm/workflows/benchmarking.md` if fix changes performance-sensitive logic or refactors hot path
 
 ## Live Code to Inspect
 
@@ -56,6 +57,8 @@ Classify bug location:
 - proxy/frontend consumer mismatch
 
 ### Step 3 — Fix Root Cause, Not Only Output Symptom
+
+If bugfix includes refactor or logic rewrite on a measurable hot path, perform benchmark audit before changing code.
 
 Patch smallest root owner that explains failure.
 

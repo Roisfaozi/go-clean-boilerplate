@@ -37,6 +37,7 @@ Then verify against live code before changing anything.
 Fast routing by task type:
 
 - backend feature: read `llm/workflows/go-service.md`, `llm/cache/backend-map.md`, `llm/cache/module-map.md`.
+- benchmarking/refactor/improve before code change: read `llm/workflows/benchmarking.md`, `llm/conventions/testing.md`, then target package tests.
 - API route change: read `llm/workflows/api-endpoint.md`, `llm/cache/api-contracts.md`, `internal/router/router.go`.
 - frontend change: read `llm/cache/frontend-map.md`, `llm/cache/frontend-proxy-system.md`, `llm/conventions/typescript.md`, then the target app package.
 - frontend design/new UI flow: read `llm/workflows/frontend-design.md`, `llm/references/frontend-skill-map.md`, then target app package.
@@ -172,6 +173,7 @@ Use these workflow files instead of improvising:
 
 - `llm/workflows/feature.md`
 - `llm/workflows/bugfix.md`
+- `llm/workflows/benchmarking.md`
 - `llm/workflows/api-endpoint.md`
 - `llm/workflows/go-service.md`
 - `llm/workflows/cross-stack-change.md`

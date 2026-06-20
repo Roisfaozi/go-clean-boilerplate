@@ -26,6 +26,7 @@ Primary workflow for backend module logic changes in Go: usecases, repositories,
 4. relevant domain cache files
 5. `internal/config/app.go`
 6. target module under `internal/modules/*`
+7. `llm/workflows/benchmarking.md` before refactor/improve/performance-sensitive logic changes
 
 ## Live Code to Inspect
 
@@ -54,6 +55,10 @@ For nontrivial changes, trace:
 - enforcer/task distributor/storage dependencies
 
 ### Step 3 — Patch Smallest Correct Owner
+
+Before patching existing hot path, run benchmark audit from `llm/workflows/benchmarking.md`.
+
+If no relevant benchmark exists, record that gap before refactor and decide whether to add a small benchmark seam.
 
 Preferred order:
 
