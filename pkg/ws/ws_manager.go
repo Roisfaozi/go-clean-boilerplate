@@ -207,7 +207,9 @@ func (m *WebSocketManager) handleUnregister(client *Client) {
 		}
 
 		delete(m.clients, client)
-		close(client.Send)
+		if client.Send != nil {
+			close(client.Send)
+		}
 
 		telemetry.ActiveWSConnections.Dec()
 		m.log.Infof("Client unregistered: %s, total clients: %d", client.ID, len(m.clients))

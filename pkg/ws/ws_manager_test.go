@@ -151,6 +151,22 @@ func TestWebSocketManager_UnregisterKeepsPresenceForOtherConnections(t *testing.
 	assert.Equal(t, 1, presence.OfflineCalls())
 }
 
+func TestWebSocketManager_UnregisterNilSendClient(t *testing.T) {
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+	manager := ws.NewWebSocketManager(&ws.WebSocketConfig{}, logger, nil, &NoOpPresenceManager{})
+	go manager.Run()
+	defer manager.Stop()
+
+	client := &ws.Client{ID: "nil-send-client"}
+
+	manager.RegisterClient(client)
+	require.Eventually(t, func() bool { return manager.ClientCount() == 1 }, time.Second, 10*time.Millisecond)
+
+	manager.UnregisterClient(client)
+	require.Eventually(t, func() bool { return manager.ClientCount() == 0 }, time.Second, 10*time.Millisecond)
+}
+
 func TestWebSocketManager_Integration(t *testing.T) {
 	manager, server := setupTestServer()
 	defer server.Close()
