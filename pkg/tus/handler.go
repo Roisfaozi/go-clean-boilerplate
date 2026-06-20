@@ -43,7 +43,16 @@ func NewHandler(cfg Config, registry *Registry, s3Client *s3.Client, log *logrus
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
 		PreUploadCreateCallback: func(hook handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error) {
-			return BindAuthenticatedMetadata(hook)
+			resp, changes, err := BindAuthenticatedMetadata(hook)
+			if err != nil {
+				return resp, changes, err
+			}
+
+			if resp, _, err := ValidateUploadMetadata(changes.MetaData, registry); err != nil {
+				return resp, handler.FileInfoChanges{}, err
+			}
+
+			return resp, changes, nil
 		},
 	})
 	if err != nil {

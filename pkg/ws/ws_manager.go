@@ -185,13 +185,12 @@ func (m *WebSocketManager) handleUnregister(client *Client) {
 	if _, ok := m.clients[client]; ok {
 		// Update Presence
 		if client.UserID != "" && client.OrgID != "" {
-			// Only set offline if no other connections for this user?
-			// For simplicity in MVP, we just set offline.
-			// Better: Reference counting or checking other clients.
-			if err := m.presence.SetUserOffline(context.Background(), client.OrgID, client.UserID); err != nil {
-				m.log.WithError(err).Error("Failed to set user offline in presence manager")
-			} else {
-				m.PresenceUpdate(client.OrgID, "leave", &PresenceUser{UserID: client.UserID})
+			if !m.hasOtherConnectionLocked(client) {
+				if err := m.presence.SetUserOffline(context.Background(), client.OrgID, client.UserID); err != nil {
+					m.log.WithError(err).Error("Failed to set user offline in presence manager")
+				} else {
+					m.PresenceUpdate(client.OrgID, "leave", &PresenceUser{UserID: client.UserID})
+				}
 			}
 		}
 
@@ -213,6 +212,18 @@ func (m *WebSocketManager) handleUnregister(client *Client) {
 		telemetry.ActiveWSConnections.Dec()
 		m.log.Infof("Client unregistered: %s, total clients: %d", client.ID, len(m.clients))
 	}
+}
+
+func (m *WebSocketManager) hasOtherConnectionLocked(client *Client) bool {
+	for other := range m.clients {
+		if other == client {
+			continue
+		}
+		if other.UserID == client.UserID && other.OrgID == client.OrgID {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {

@@ -40,3 +40,32 @@ func TestBindAuthenticatedMetadata_RejectsMissingUserContext(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "ERR_UNAUTHORIZED_UPLOAD")
 }
+
+func TestValidateUploadMetadata_AllowsRegisteredType(t *testing.T) {
+	registry := NewRegistry()
+	registry.Register("avatar", &MockHook{})
+
+	_, _, err := ValidateUploadMetadata(tusd.MetaData{"type": "avatar"}, registry)
+
+	require.NoError(t, err)
+}
+
+func TestValidateUploadMetadata_RejectsMissingType(t *testing.T) {
+	registry := NewRegistry()
+	registry.Register("avatar", &MockHook{})
+
+	_, _, err := ValidateUploadMetadata(tusd.MetaData{}, registry)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ERR_UPLOAD_TYPE_REQUIRED")
+}
+
+func TestValidateUploadMetadata_RejectsUnknownType(t *testing.T) {
+	registry := NewRegistry()
+	registry.Register("avatar", &MockHook{})
+
+	_, _, err := ValidateUploadMetadata(tusd.MetaData{"type": "../../etc/passwd"}, registry)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ERR_UNSUPPORTED_UPLOAD_TYPE")
+}

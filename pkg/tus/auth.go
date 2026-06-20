@@ -1,6 +1,7 @@
 package tus
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
@@ -28,4 +29,25 @@ func BindAuthenticatedMetadata(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.Fil
 	meta[authenticatedUserIDMetadataKey] = userID
 
 	return tusd.HTTPResponse{}, tusd.FileInfoChanges{MetaData: meta}, nil
+}
+
+func ValidateUploadMetadata(meta tusd.MetaData, registry *Registry) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
+	uploadType := meta["type"]
+	if uploadType == "" {
+		return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusd.NewError(
+			"ERR_UPLOAD_TYPE_REQUIRED",
+			"upload type metadata is required",
+			http.StatusBadRequest,
+		)
+	}
+
+	if registry == nil || !registry.Has(uploadType) {
+		return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusd.NewError(
+			"ERR_UNSUPPORTED_UPLOAD_TYPE",
+			fmt.Sprintf("unsupported upload type: %s", uploadType),
+			http.StatusBadRequest,
+		)
+	}
+
+	return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, nil
 }
