@@ -71,6 +71,27 @@ func TestOutboxTaskHandler_ProcessAuditOutbox_Robustness(t *testing.T) {
 		mockRepo.AssertExpectations(t)
 	})
 
+	t.Run("Delete Failure - Marks moved entry completed to avoid duplicate replay", func(t *testing.T) {
+		mockRepo := new(mocks.MockAuditRepository)
+		handler := NewOutboxTaskHandler(mockRepo, logger)
+		ctx := context.Background()
+
+		entries := []*auditEntity.AuditOutbox{
+			{ID: "outbox-3", UserID: "user-1", Action: "UPDATE", Entity: "Profile", EntityID: "user-1"},
+		}
+		deleteErr := errors.New("delete failed")
+
+		mockRepo.On("FindPendingOutbox", ctx, 50).Return(entries, nil)
+		mockRepo.On("Create", ctx, mock.AnythingOfType("*entity.AuditLog")).Return(nil)
+		mockRepo.On("DeleteOutbox", ctx, "outbox-3").Return(deleteErr)
+		mockRepo.On("UpdateOutboxStatus", ctx, "outbox-3", auditEntity.OutboxStatusCompleted, deleteErr.Error()).Return(nil)
+
+		err := handler.ProcessAuditOutbox(ctx, nil)
+
+		assert.NoError(t, err)
+		mockRepo.AssertExpectations(t)
+	})
+
 	t.Run("Empty Outbox - Does nothing gracefully", func(t *testing.T) {
 		mockRepo := new(mocks.MockAuditRepository)
 		handler := NewOutboxTaskHandler(mockRepo, logger)
