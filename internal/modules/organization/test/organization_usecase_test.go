@@ -22,6 +22,7 @@ import (
 type organizationTestDeps struct {
 	OrgRepo    *mocks.MockOrganizationRepository
 	MemberRepo *mocks.MockOrganizationMemberRepository
+	OrgReader  *mocks.MockIOrganizationReader
 	TM         *mocking.MockWithTransactionManager
 	Enforcer   *permissionMocks.MockIEnforcer
 }
@@ -31,6 +32,7 @@ func setupOrganizationTest() (*organizationTestDeps, usecase.OrganizationUseCase
 	deps := &organizationTestDeps{
 		OrgRepo:    new(mocks.MockOrganizationRepository),
 		MemberRepo: new(mocks.MockOrganizationMemberRepository),
+		OrgReader:  new(mocks.MockIOrganizationReader),
 		TM:         new(mocking.MockWithTransactionManager),
 		Enforcer:   mockEnforcer,
 	}
@@ -41,8 +43,9 @@ func setupOrganizationTest() (*organizationTestDeps, usecase.OrganizationUseCase
 
 	mockEnforcer.On("WithContext", mock.Anything).Maybe().Return(mockEnforcer)
 	mockEnforcer.On("LoadPolicy").Maybe().Return(nil)
+	deps.OrgReader.On("InvalidateOrganizationCache", mock.Anything, mock.Anything).Maybe().Return(nil)
 
-	uc := usecase.NewOrganizationUseCase(log, deps.TM, deps.OrgRepo, deps.MemberRepo, nil, deps.Enforcer)
+	uc := usecase.NewOrganizationUseCase(log, deps.TM, deps.OrgRepo, deps.MemberRepo, deps.OrgReader, deps.Enforcer)
 
 	return deps, uc
 }
@@ -454,6 +457,7 @@ func TestOrganizationUseCase_DeleteOrganization(t *testing.T) {
 
 		err := uc.DeleteOrganization(ctx, orgID, userID)
 		assert.NoError(t, err)
+		deps.OrgReader.AssertCalled(t, "InvalidateOrganizationCache", mock.Anything, orgID)
 	})
 
 	t.Run("Not Owner", func(t *testing.T) {

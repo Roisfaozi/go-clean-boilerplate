@@ -20,6 +20,10 @@ const (
 	apiKeyScopesContextKey = "api_key_scopes"
 )
 
+var apiKeyScopeResourceAliases = map[string]string{
+	"organization": "org",
+}
+
 type APIKeyMiddleware struct {
 	ApiKeyUseCase apiKeyUsecase.ApiKeyUseCase
 	UserRepo      userRepository.UserRepository
@@ -88,21 +92,11 @@ func (m *APIKeyMiddleware) RequireScopeAuto() gin.HandlerFunc {
 			return
 		}
 
-		// Extract resource name from path (e.g., /api/v1/projects -> projects)
-		pathParts := strings.Split(strings.Trim(c.Request.URL.Path, "/"), "/")
-		if len(pathParts) < 3 { // Expected /api/v1/:resource
+		requiredScope, ok := requiredScopeFromRequest(c.Request.URL.Path, c.Request.Method)
+		if !ok {
 			c.Next()
 			return
 		}
-
-		resource := pathParts[2]
-		// Singularize if ends with 's' (very basic singularization)
-		if strings.HasSuffix(resource, "s") && !strings.HasSuffix(resource, "ss") {
-			resource = resource[:len(resource)-1]
-		}
-
-		action := ScopeFromMethod(c.Request.Method)
-		requiredScope := resource + ":" + action
 
 		scopes, ok := GetAPIKeyScopesFromContext(c)
 		if !ok || !hasRequiredScope(scopes, requiredScope) {
@@ -119,6 +113,37 @@ func (m *APIKeyMiddleware) RequireScopeAuto() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func requiredScopeFromRequest(path, method string) (string, bool) {
+	resource, ok := resourceFromRequestPath(path)
+	if !ok {
+		return "", false
+	}
+
+	return resource + ":" + ScopeFromMethod(method), true
+}
+
+func resourceFromRequestPath(path string) (string, bool) {
+	pathParts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(pathParts) < 3 {
+		return "", false
+	}
+
+	resource := pathParts[2]
+	if resource == "" {
+		return "", false
+	}
+
+	if strings.HasSuffix(resource, "s") && !strings.HasSuffix(resource, "ss") {
+		resource = resource[:len(resource)-1]
+	}
+
+	if alias, ok := apiKeyScopeResourceAliases[resource]; ok {
+		resource = alias
+	}
+
+	return resource, true
 }
 
 func (m *APIKeyMiddleware) RequireScopes(requiredScopes ...string) gin.HandlerFunc {
