@@ -20,6 +20,7 @@ Perbaikan bertahap berdasarkan audit kelemahan repo, fokus pada auth, tenant, Ca
 - Phase 4 baseline verification slice continued: representative API-key/JWT chain tests, Casbin trailing-slash test, extracted auto-scope derivation tests, and strict non-local Casbin startup guard are in place; miniredis-backed API-key package tests still need host/socket-capable verification.
 - Regression playbook created in `llm/test-playbooks/security-boundary-regression-playbook.md`.
 - Phase 5 research artifact created in `llm/research/webhook-worker-failure-modes.md`.
+- Phase 5 reliability slice started: webhook handler now surfaces webhook-log persistence failures for retryable delivery failures without converting successful or permanent 4xx deliveries into retries; socket-free worker handler/tasks plus audit/webhook package tests pass, Redis-backed worker root tests still need host/socket-capable verification.
 - Phase 6 research artifact created in `llm/research/upload-realtime-contract-audit.md`.
 - Phase 7 research artifact created in `llm/research/frontend-contract-map.md`.
 

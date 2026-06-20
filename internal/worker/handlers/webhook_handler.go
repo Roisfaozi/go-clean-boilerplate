@@ -21,14 +21,18 @@ import (
 )
 
 type WebhookHandler struct {
-	repo repository.WebhookRepository
-	log  *logrus.Logger
+	repo   repository.WebhookRepository
+	log    *logrus.Logger
+	client *http.Client
 }
 
 func NewWebhookHandler(repo repository.WebhookRepository, log *logrus.Logger) *WebhookHandler {
 	return &WebhookHandler{
 		repo: repo,
 		log:  log,
+		client: &http.Client{
+			Timeout: 10 * time.Second,
+		},
 	}
 }
 
@@ -59,11 +63,7 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 	req.Header.Set("X-Webhook-ID", payload.WebhookID)
 	req.Header.Set("X-Webhook-Timestamp", timestamp)
 
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	resp, err := client.Do(req)
+	resp, err := h.client.Do(req)
 
 	executionTime := time.Since(start).Milliseconds()
 
@@ -78,7 +78,9 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 
 	if err != nil {
 		logEntry.ErrorMessage = err.Error()
-		_ = h.repo.CreateLog(ctx, logEntry)
+		if logErr := h.saveWebhookLog(ctx, logEntry); logErr != nil {
+			return fmt.Errorf("webhook request failed: %w; failed to save webhook log: %v", err, logErr)
+		}
 		return fmt.Errorf("webhook request failed: %w", err)
 	}
 	defer func() {
@@ -95,12 +97,23 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 		logEntry.ErrorMessage = fmt.Sprintf("received status code %d", resp.StatusCode)
 	}
 
-	if err := h.repo.CreateLog(ctx, logEntry); err != nil {
-		h.log.WithError(err).Error("Failed to save webhook log")
+	if err := h.saveWebhookLog(ctx, logEntry); err != nil {
+		if resp.StatusCode >= 500 {
+			return fmt.Errorf("upstream server error: %d; failed to save webhook log: %w", resp.StatusCode, err)
+		}
 	}
 
 	if resp.StatusCode >= 500 {
 		return fmt.Errorf("upstream server error: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func (h *WebhookHandler) saveWebhookLog(ctx context.Context, logEntry *entity.WebhookLog) error {
+	if err := h.repo.CreateLog(ctx, logEntry); err != nil {
+		h.log.WithError(err).Error("Failed to save webhook log")
+		return err
 	}
 
 	return nil
