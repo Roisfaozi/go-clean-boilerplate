@@ -17,6 +17,8 @@ import (
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/glebarez/sqlite"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -379,6 +381,40 @@ func TestUpdatePermission_PolicyNotFound(t *testing.T) {
 	updated, err := uc.UpdatePermission(context.Background(), oldP, newP)
 	assert.Error(t, err)
 	assert.False(t, updated)
+}
+
+func TestDeleteRole_ReloadsPolicyOutsideTransaction(t *testing.T) {
+	deps, uc := setupPermissionTest()
+	roleName := "role:editor"
+
+	deps.Enforcer.On("DeleteRole", roleName).Return(true, nil)
+	deps.Enforcer.On("LoadPolicy").Return(nil)
+
+	err := uc.DeleteRole(context.Background(), roleName)
+
+	assert.NoError(t, err)
+	deps.Enforcer.AssertCalled(t, "LoadPolicy")
+}
+
+func TestDeleteRole_DefersPolicyReloadInsideTransaction(t *testing.T) {
+	deps, uc := setupPermissionTest()
+	roleName := "role:editor"
+
+	deps.Enforcer.On("DeleteRole", roleName).Return(true, nil)
+
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	assert.NoError(t, err)
+
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	tm := tx.NewTransactionManager(db, logger)
+
+	err = tm.WithinTransaction(context.Background(), func(txCtx context.Context) error {
+		return uc.DeleteRole(txCtx, roleName)
+	})
+
+	assert.NoError(t, err)
+	deps.Enforcer.AssertNotCalled(t, "LoadPolicy")
 }
 
 // ============================================================================

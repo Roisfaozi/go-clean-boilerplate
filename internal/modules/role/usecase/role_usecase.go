@@ -24,6 +24,10 @@ type roleUseCase struct {
 	PermissionUseCase permissionUC.IPermissionUseCase
 }
 
+type policyReloader interface {
+	ReloadPolicy(ctx context.Context) error
+}
+
 func NewRoleUseCase(
 	log *logrus.Logger,
 	tm tx.WithTransactionManager,
@@ -122,7 +126,7 @@ func (uc *roleUseCase) GetAll(ctx context.Context) ([]model.RoleResponse, error)
 }
 
 func (uc *roleUseCase) Delete(ctx context.Context, id string) error {
-	return uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		role, err := uc.RoleRepository.FindByID(txCtx, id)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -152,6 +156,18 @@ func (uc *roleUseCase) Delete(ctx context.Context, id string) error {
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	if reloader, ok := uc.PermissionUseCase.(policyReloader); ok {
+		if err := reloader.ReloadPolicy(ctx); err != nil {
+			uc.Log.WithContext(ctx).Errorf("Failed to reload Casbin policy after role deletion: %v", err)
+			return exception.ErrInternalServer
+		}
+	}
+
+	return nil
 }
 
 func (uc *roleUseCase) GetAllRolesDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]model.RoleResponse, error) {
