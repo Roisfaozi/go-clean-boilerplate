@@ -17,7 +17,7 @@ Perbaikan bertahap berdasarkan audit kelemahan repo, fokus pada auth, tenant, Ca
 - Representative middleware tests added for API-key vs user-session and Casbin path normalization.
 - Phase 2 completed: auth session methods moved to `internal/modules/auth/usecase/auth_session.go`; recovery, ticket, and SSO methods moved to `internal/modules/auth/usecase/auth_recovery_sso.go`; host-run `go test ./internal/modules/auth/... -v` passes.
 - Phase 3 completed at unit level: organization member invite/update/remove/accept-invitation and organization delete cache invalidation assertions pass on host-run `go test ./internal/modules/organization/... -v`.
-- Phase 4 baseline verification slice started: representative API-key/JWT chain tests, Casbin trailing-slash test, and extracted auto-scope derivation tests added; full implementation is not complete yet.
+- Phase 4 baseline verification slice continued: representative API-key/JWT chain tests, Casbin trailing-slash test, extracted auto-scope derivation tests, and strict non-local Casbin startup guard are in place; miniredis-backed API-key package tests still need host/socket-capable verification.
 - Regression playbook created in `llm/test-playbooks/security-boundary-regression-playbook.md`.
 - Phase 5 research artifact created in `llm/research/webhook-worker-failure-modes.md`.
 - Phase 6 research artifact created in `llm/research/upload-realtime-contract-audit.md`.

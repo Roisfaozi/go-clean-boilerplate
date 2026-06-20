@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
@@ -120,23 +121,26 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		return nil, err
 	}
 
-	// ── Production Safety Guard ──
-	// In production, Casbin MUST be enabled and policies MUST be loaded.
+	// ── Runtime Safety Guard ──
+	// Outside local/test/dev, Casbin MUST be enabled and policies MUST be loaded.
 	// This prevents a catastrophic "fail-open" scenario.
-	if cfg.Server.AppEnv == "production" {
+	if isStrictCasbinEnv(cfg.Server.AppEnv) {
 		if globalEnforcer == nil {
-			logger.Fatal("CRITICAL: Casbin is DISABLED in production. Set CASBIN_ENABLED=true. Aborting startup.")
+			logger.Fatal("CRITICAL: Casbin is DISABLED outside local/test/dev. Set CASBIN_ENABLED=true. Aborting startup.")
 		}
 		policies, _ := globalEnforcer.GetPolicy()
 		if len(policies) == 0 {
-			logger.Fatal("CRITICAL: Casbin enforcer loaded with ZERO policies in production. Seed policies before deploying. Aborting startup.")
+			logger.Fatal("CRITICAL: Casbin enforcer loaded with ZERO policies outside local/test/dev. Seed policies before deploying. Aborting startup.")
 		}
-		logger.Infof("Casbin production guard passed: %d policies loaded.", len(policies))
+		logger.Infof("Casbin strict environment guard passed: %d policies loaded.", len(policies))
 	} else if globalEnforcer == nil {
-		logger.Warn("Casbin is disabled. Authorization checks will be skipped. Do NOT run this in production.")
+		logger.Warn("Casbin is disabled. Authorization checks will be skipped. Only use this in local/test/dev.")
 	}
 
-	enforcer := usecase.NewTransactionalEnforcer(globalEnforcer, cfg.Casbin.Model)
+	var enforcer usecase.IEnforcer
+	if globalEnforcer != nil {
+		enforcer = usecase.NewTransactionalEnforcer(globalEnforcer, cfg.Casbin.Model)
+	}
 
 	storageProvider, err := NewStorageProvider(cfg)
 	if err != nil {
@@ -401,6 +405,15 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 
 	return app, nil
+}
+
+func isStrictCasbinEnv(appEnv string) bool {
+	switch strings.ToLower(strings.TrimSpace(appEnv)) {
+	case "", "local", "dev", "development", "test", "testing":
+		return false
+	default:
+		return true
+	}
 }
 
 func (app *Application) Shutdown(ctx context.Context) error {
