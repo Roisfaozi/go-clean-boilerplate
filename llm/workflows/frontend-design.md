@@ -171,7 +171,7 @@ Start narrow.
 
 ### Repo Notes
 
-- `apps/client` lint aliases typecheck; treat it as TypeScript validation, not ESLint coverage
+- `apps/client` lint runs Biome; run `typecheck` separately for TypeScript validation
 - if both apps consume same change, verify both owners or say why not
 
 ## Stop Conditions

@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useCallback, ReactNode } from "react";
-import { Project, projectsApi } from "~/lib/api/projects";
+import { createContext, useContext, useCallback, type ReactNode } from "react";
+import { type Project, projectsApi } from "~/lib/api/projects";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
 import useSWR from "swr";
@@ -15,7 +15,9 @@ interface ProjectsContextType {
   deleteProject: (id: string) => Promise<void>;
 }
 
-const ProjectsContext = createContext<ProjectsContextType | undefined>(undefined);
+const ProjectsContext = createContext<ProjectsContextType | undefined>(
+  undefined,
+);
 
 export function ProjectsProvider({
   children,
@@ -65,7 +67,7 @@ export function ProjectsProvider({
         await projectsApi.update(id, data);
         toast.success("Project updated successfully");
         await mutate();
-      } catch (error) {
+      } catch (_error) {
         toast.error("Failed to update project");
       }
     },
@@ -79,7 +81,7 @@ export function ProjectsProvider({
         await projectsApi.delete(id);
         toast.success("Project deleted successfully");
         await mutate();
-      } catch (error) {
+      } catch (_error) {
         toast.error("Failed to delete project");
       }
     },

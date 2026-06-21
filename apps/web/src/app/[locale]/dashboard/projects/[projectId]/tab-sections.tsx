@@ -1,6 +1,6 @@
 "use client";
 
-import { Project } from "~/lib/api/projects";
+import type { Project } from "~/lib/api/projects";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { ProjectDetailProvider } from "./_components/project-detail-context";
 import { ProjectDetailsForm } from "./_components/project-details-form";

@@ -23,7 +23,9 @@ export function FormGroup({
         {label}
         {required && <span className="text-danger ml-0.5">*</span>}
       </label>
-      {description && <p className="text-caption text-muted-foreground">{description}</p>}
+      {description && (
+        <p className="text-caption text-muted-foreground">{description}</p>
+      )}
       {children}
       {error && <p className="text-caption text-danger">{error}</p>}
     </div>

@@ -12,7 +12,7 @@ import {
 import { Badge } from "~/components/ui/badge";
 import { Icon } from "~/components/shared/icon";
 import { LogDetailDialog } from "~/components/dashboard/audit/log-detail-dialog";
-import { AuditLog } from "~/lib/api/audit";
+import type { AuditLog } from "~/lib/api/audit";
 import { memo } from "react";
 import { EmptyState } from "~/components/shared/empty-state";
 
@@ -70,14 +70,22 @@ export function AuditTable() {
               </TableRow>
             ) : (
               logs.map((log) => (
-                <MemoizedAuditRow key={log.id} log={log} onClick={() => handleRowClick(log)} />
+                <MemoizedAuditRow
+                  key={log.id}
+                  log={log}
+                  onClick={() => handleRowClick(log)}
+                />
               ))
             )}
           </TableBody>
         </Table>
       </div>
 
-      <LogDetailDialog log={selectedLog} open={isDetailOpen} onOpenChange={setIsDetailOpen} />
+      <LogDetailDialog
+        log={selectedLog}
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+      />
     </>
   );
 }
@@ -109,7 +117,9 @@ const MemoizedAuditRow = memo(function AuditRow({
       <TableCell className="text-muted-foreground max-w-[120px] truncate font-mono text-[10px]">
         {log.entity_id}
       </TableCell>
-      <TableCell className="text-muted-foreground text-xs">{log.ip_address}</TableCell>
+      <TableCell className="text-muted-foreground text-xs">
+        {log.ip_address}
+      </TableCell>
       <TableCell>
         <Icon
           name="ChevronRight"

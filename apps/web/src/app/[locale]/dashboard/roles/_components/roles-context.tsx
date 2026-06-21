@@ -1,7 +1,14 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
-import { rolesApi, Role } from "~/lib/api/roles";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from "react";
+import { rolesApi, type Role } from "~/lib/api/roles";
 import { toast } from "sonner";
 
 interface RolesContextType {
@@ -80,7 +87,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
       await rolesApi.delete(selectedRole.id);
       toast.success("Role deleted successfully");
       await fetchRoles();
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete role");
     } finally {
       setIsAlertOpen(false);

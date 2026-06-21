@@ -22,7 +22,7 @@
 ## Phase 4
 
 - Conventions in this repo are driven more by live module patterns and Makefile/CI than by style docs alone.
-- Frontend apps are active; `apps/client` lint now aliases typecheck, so it is TypeScript validation but not ESLint coverage.
+- Frontend apps are active; `apps/client` lint now runs Biome; `typecheck` remains the separate TypeScript gate.
 - Integration/E2E validation expectations are strong because auth, tenant, worker, upload, and realtime flows are infrastructure-heavy.
 
 ## Phase 5+

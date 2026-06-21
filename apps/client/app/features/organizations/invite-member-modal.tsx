@@ -53,7 +53,9 @@ export function InviteMemberModal({ onInvite }: InviteMemberModalProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Invite Member</DialogTitle>
-          <DialogDescription>Send an invitation to join the organization</DialogDescription>
+          <DialogDescription>
+            Send an invitation to join the organization
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -79,7 +81,10 @@ export function InviteMemberModal({ onInvite }: InviteMemberModalProps) {
           <NexusButton variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </NexusButton>
-          <NexusButton onClick={handleInvite} disabled={!email.trim() || loading}>
+          <NexusButton
+            onClick={handleInvite}
+            disabled={!email.trim() || loading}
+          >
             {loading ? "Sending…" : "Send Invitation"}
           </NexusButton>
         </DialogFooter>

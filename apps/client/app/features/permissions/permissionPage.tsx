@@ -1,5 +1,10 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { CrudFormDialog, CrudTable, DeleteDialog, type CrudColumnDef } from "@/features/shared";
+import {
+  CrudFormDialog,
+  CrudTable,
+  DeleteDialog,
+  type CrudColumnDef,
+} from "@/features/shared";
 import type { Permission, Role } from "@/lib/api/types";
 import {
   NexusBadge,
@@ -18,7 +23,16 @@ import {
   TabsList,
   TabsTrigger,
 } from "@casbin/ui";
-import { ArrowRight, Box, GitBranch, Key, Plus, RefreshCw, Shield, Trash2 } from "lucide-react";
+import {
+  ArrowRight,
+  Box,
+  GitBranch,
+  Key,
+  Plus,
+  RefreshCw,
+  Shield,
+  Trash2,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 import { useRoles } from "../roles/roleHooks";
@@ -53,7 +67,10 @@ function MatrixCell({
   const status = useMemo(() => {
     const data = Array.isArray(roleData) ? roleData : [];
     const item = data.find((r: any) => r.id === resourceId);
-    return { assigned: item?.is_assigned ?? false, partial: item?.is_partial ?? false };
+    return {
+      assigned: item?.is_assigned ?? false,
+      partial: item?.is_partial ?? false,
+    };
   }, [roleData, resourceId]);
 
   if (isLoading) return <Skeleton className="mx-auto h-5 w-10" />;
@@ -63,7 +80,12 @@ function MatrixCell({
       <Switch
         checked={status.assigned}
         onCheckedChange={(checked) =>
-          toggle.mutate({ role, access_right_id: resourceId, granted: checked, domain })
+          toggle.mutate({
+            role,
+            access_right_id: resourceId,
+            granted: checked,
+            domain,
+          })
         }
         disabled={toggle.isPending}
       />
@@ -74,7 +96,13 @@ function MatrixCell({
   );
 }
 
-function PermissionMatrix({ roles, resources }: { roles: Role[]; resources: any[] }) {
+function PermissionMatrix({
+  roles,
+  resources,
+}: {
+  roles: Role[];
+  resources: any[];
+}) {
   return (
     <NexusCard className="shadow-premium overflow-hidden border-none bg-white/50 backdrop-blur-sm">
       <div className="overflow-x-auto">
@@ -102,7 +130,10 @@ function PermissionMatrix({ roles, resources }: { roles: Role[]; resources: any[
           </TableHeader>
           <TableBody>
             {resources.map((res) => (
-              <TableRow key={res.id} className="hover:bg-primary/5 group transition-colors">
+              <TableRow
+                key={res.id}
+                className="hover:bg-primary/5 group transition-colors"
+              >
                 <TableCell className="py-4 pl-8 font-medium">
                   <div className="flex flex-col">
                     <span className="text-foreground group-hover:text-primary transition-colors">
@@ -114,7 +145,10 @@ function PermissionMatrix({ roles, resources }: { roles: Role[]; resources: any[
                   </div>
                 </TableCell>
                 {roles.map((role) => (
-                  <TableCell key={`${res.id}-${role.id}`} className="text-center">
+                  <TableCell
+                    key={`${res.id}-${role.id}`}
+                    className="text-center"
+                  >
                     <MatrixCell role={role.name} resourceId={res.id} />
                   </TableCell>
                 ))}
@@ -140,12 +174,18 @@ function RoleInheritanceDetail({
   const removeInheritance = useRemoveInheritance();
 
   const handleAddParent = async (parentRole: string) => {
-    await addInheritance.mutateAsync({ child_role: role.name, parent_role: parentRole });
+    await addInheritance.mutateAsync({
+      child_role: role.name,
+      parent_role: parentRole,
+    });
     onInheritanceChange();
   };
 
   const handleRemoveParent = async (parentRole: string) => {
-    await removeInheritance.mutateAsync({ child_role: role.name, parent_role: parentRole });
+    await removeInheritance.mutateAsync({
+      child_role: role.name,
+      parent_role: parentRole,
+    });
     onInheritanceChange();
   };
 
@@ -164,8 +204,12 @@ function RoleInheritanceDetail({
                 <Shield className="text-primary h-6 w-6" />
               </div>
               <div>
-                <h3 className="text-foreground text-lg font-bold">{role.name}</h3>
-                <p className="text-muted-foreground text-sm">Role Management & Inheritance</p>
+                <h3 className="text-foreground text-lg font-bold">
+                  {role.name}
+                </h3>
+                <p className="text-muted-foreground text-sm">
+                  Role Management & Inheritance
+                </p>
               </div>
             </div>
             <NexusBadge variant="neutral" className="px-3 py-1">
@@ -188,7 +232,9 @@ function RoleInheritanceDetail({
             </h4>
             <div className="mb-4 flex flex-wrap gap-2">
               {(role.parents || []).length === 0 ? (
-                <p className="text-muted-foreground text-xs italic">No parent roles assigned.</p>
+                <p className="text-muted-foreground text-xs italic">
+                  No parent roles assigned.
+                </p>
               ) : (
                 role.parents?.map((parent) => (
                   <NexusBadge
@@ -213,7 +259,9 @@ function RoleInheritanceDetail({
 
             {availableRoles.length > 0 && (
               <div className="flex items-center gap-2 border-t border-dashed pt-2">
-                <span className="text-muted-foreground text-xs font-medium">Add Parent:</span>
+                <span className="text-muted-foreground text-xs font-medium">
+                  Add Parent:
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {availableRoles.slice(0, 5).map((r) => (
                     <NexusButton
@@ -249,7 +297,9 @@ function RoleInheritanceDetail({
                     className="bg-muted/5 group hover:border-primary/30 flex items-center justify-between rounded-lg border p-3 transition-colors"
                   >
                     <div className="flex flex-col">
-                      <span className="text-foreground text-sm font-medium">{perm[0]}</span>
+                      <span className="text-foreground text-sm font-medium">
+                        {perm[0]}
+                      </span>
                       <div className="mt-1 flex items-center gap-1.5">
                         <span className="text-muted-foreground font-mono text-[10px]">
                           {perm[1]}
@@ -272,7 +322,9 @@ function RoleInheritanceDetail({
               {(role.effective_permissions || []).length === 0 && (
                 <div className="bg-muted/5 col-span-2 rounded-xl border border-dashed py-8 text-center">
                   <Shield className="text-muted/20 mx-auto mb-2 h-8 w-8" />
-                  <p className="text-muted-foreground text-xs italic">No permissions granted.</p>
+                  <p className="text-muted-foreground text-xs italic">
+                    No permissions granted.
+                  </p>
                 </div>
               )}
             </div>
@@ -315,7 +367,7 @@ export default function PermissionsPage() {
   const [activeTab, setActiveTab] = useState("matrix");
   const [selectedItem, setSelectedItem] = useState<RoleNode | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [editItem, setEditItem] = useState<Permission | null>(null);
+  const [_editItem, setEditItem] = useState<Permission | null>(null);
   const [deleteItem, setDeleteItem] = useState<Permission | null>(null);
 
   // Queries
@@ -325,12 +377,14 @@ export default function PermissionsPage() {
     refetch: refetchPermissions,
   } = usePermissions();
   const { data: rolesResponse, isLoading: rolesLoading } = useRoles();
-  const { data: resourcesResponse, isLoading: resourcesLoading } = useResourceAggregation();
-  const { data: inheritanceResponse, isLoading: inheritanceLoading } = useInheritanceTree();
+  const { data: resourcesResponse, isLoading: resourcesLoading } =
+    useResourceAggregation();
+  const { data: inheritanceResponse, isLoading: inheritanceLoading } =
+    useInheritanceTree();
 
   // Mutations
   const createPermission = useCreatePermission();
-  const updatePermission = useUpdatePermission();
+  const _updatePermission = useUpdatePermission();
   const deletePermission = useDeletePermission();
 
   const permissions: Permission[] = useMemo(() => {
@@ -350,7 +404,11 @@ export default function PermissionsPage() {
     [inheritanceResponse],
   );
 
-  const isLoading = permissionsLoading || rolesLoading || resourcesLoading || inheritanceLoading;
+  const isLoading =
+    permissionsLoading ||
+    rolesLoading ||
+    resourcesLoading ||
+    inheritanceLoading;
 
   return (
     <div className="space-y-6">
@@ -359,7 +417,11 @@ export default function PermissionsPage() {
         description="Configure access rights and security policies for your roles."
         actions={
           <div className="flex gap-2">
-            <NexusButton variant="outline" size="sm" onClick={() => refetchPermissions()}>
+            <NexusButton
+              variant="outline"
+              size="sm"
+              onClick={() => refetchPermissions()}
+            >
               <RefreshCw className="mr-2 h-4 w-4" /> Refresh
             </NexusButton>
             <NexusButton size="sm" onClick={() => setCreateOpen(true)}>
@@ -382,7 +444,8 @@ export default function PermissionsPage() {
               value="inheritance"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
             >
-              <GitBranch className="text-primary mr-2 h-4 w-4" /> Role Inheritance
+              <GitBranch className="text-primary mr-2 h-4 w-4" /> Role
+              Inheritance
             </TabsTrigger>
             <TabsTrigger
               value="list"
@@ -393,7 +456,10 @@ export default function PermissionsPage() {
           </TabsList>
         </div>
 
-        <TabsContent value="matrix" className="mt-0 outline-none focus-visible:ring-0">
+        <TabsContent
+          value="matrix"
+          className="mt-0 outline-none focus-visible:ring-0"
+        >
           {isLoading ? (
             <div className="grid grid-cols-1 gap-4">
               <Skeleton className="h-[400px] w-full rounded-xl" />
@@ -403,7 +469,10 @@ export default function PermissionsPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="inheritance" className="mt-0 outline-none focus-visible:ring-0">
+        <TabsContent
+          value="inheritance"
+          className="mt-0 outline-none focus-visible:ring-0"
+        >
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
             <div className="lg:col-span-5">
               {isLoading ? (
@@ -431,10 +500,12 @@ export default function PermissionsPage() {
                   <div className="bg-primary/10 mb-4 flex h-16 w-16 items-center justify-center rounded-full">
                     <GitBranch className="text-primary h-8 w-8" />
                   </div>
-                  <h4 className="text-foreground font-semibold">Select a Role</h4>
+                  <h4 className="text-foreground font-semibold">
+                    Select a Role
+                  </h4>
                   <p className="text-muted-foreground mt-2 max-w-xs text-sm">
-                    Select a role from the tree to view its inheritance details, effective
-                    permissions, and manage its parent roles.
+                    Select a role from the tree to view its inheritance details,
+                    effective permissions, and manage its parent roles.
                   </p>
                 </NexusCard>
               )}
@@ -442,7 +513,10 @@ export default function PermissionsPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="list" className="mt-0 outline-none focus-visible:ring-0">
+        <TabsContent
+          value="list"
+          className="mt-0 outline-none focus-visible:ring-0"
+        >
           <CrudTable
             columns={columns}
             data={permissions}

@@ -22,28 +22,36 @@ export default function FAQ() {
           <AccordionItem value="item-1">
             <AccordionTrigger>Is it Next.js 15 or 16?</AccordionTrigger>
             <AccordionContent>
-              We are using the latest stable Next.js 16 with App Router and React 19 support.
+              We are using the latest stable Next.js 16 with App Router and
+              React 19 support.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="item-2">
-            <AccordionTrigger>What is &quot;Fluid Density&quot;?</AccordionTrigger>
+            <AccordionTrigger>
+              What is &quot;Fluid Density&quot;?
+            </AccordionTrigger>
             <AccordionContent>
-              Fluid Density is our proprietary system that allows the UI to switch between a
-              spacious &quot;Comfort&quot; mode (ideal for SaaS) and a dense &quot;Compact&quot;
-              mode (ideal for Enterprise data entry) instantly.
+              Fluid Density is our proprietary system that allows the UI to
+              switch between a spacious &quot;Comfort&quot; mode (ideal for
+              SaaS) and a dense &quot;Compact&quot; mode (ideal for Enterprise
+              data entry) instantly.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="item-3">
-            <AccordionTrigger>Can I use this with Laravel or Django?</AccordionTrigger>
+            <AccordionTrigger>
+              Can I use this with Laravel or Django?
+            </AccordionTrigger>
             <AccordionContent>
-              Yes! The Enterprise license includes a pure Vite/React version that is easy to
-              integrate into legacy backends like Laravel, Django, or ASP.NET.
+              Yes! The Enterprise license includes a pure Vite/React version
+              that is easy to integrate into legacy backends like Laravel,
+              Django, or ASP.NET.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="item-4">
             <AccordionTrigger>Do you offer a refund?</AccordionTrigger>
             <AccordionContent>
-              We offer a 30-day money-back guarantee if you find a critical bug that we cannot fix.
+              We offer a 30-day money-back guarantee if you find a critical bug
+              that we cannot fix.
             </AccordionContent>
           </AccordionItem>
         </Accordion>

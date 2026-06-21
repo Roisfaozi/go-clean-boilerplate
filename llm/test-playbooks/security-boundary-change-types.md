@@ -154,7 +154,7 @@ Backend response shape, error envelope, auth cookies, proxy headers, shared API 
 - both proxies still preserve required cookies and response headers.
 - shared types match backend response changes used by both apps.
 - app-local types remain local only when one app owns flow or transport differs.
-- `apps/client` lint is meaningful because it aliases typecheck.
+- `apps/client` lint runs Biome; use `typecheck` for TypeScript validation.
 
 ## Broad Suite Separation
 

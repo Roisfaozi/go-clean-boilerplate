@@ -19,13 +19,19 @@ interface MegaDropdownProps {
   className?: string;
 }
 
-export function MegaDropdown({ trigger, sections, footer, className }: MegaDropdownProps) {
+export function MegaDropdown({
+  trigger,
+  sections,
+  footer,
+  className,
+}: MegaDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -64,12 +70,18 @@ export function MegaDropdown({ trigger, sections, footer, className }: MegaDropd
                       className="hover:bg-surface-hover flex items-start gap-3 rounded-md p-2 transition-colors"
                     >
                       {item.icon && (
-                        <span className="text-muted-foreground mt-0.5 shrink-0">{item.icon}</span>
+                        <span className="text-muted-foreground mt-0.5 shrink-0">
+                          {item.icon}
+                        </span>
                       )}
                       <div>
-                        <p className="text-body text-foreground font-medium">{item.label}</p>
+                        <p className="text-body text-foreground font-medium">
+                          {item.label}
+                        </p>
                         {item.description && (
-                          <p className="text-caption text-muted-foreground">{item.description}</p>
+                          <p className="text-caption text-muted-foreground">
+                            {item.description}
+                          </p>
                         )}
                       </div>
                     </a>
@@ -78,7 +90,9 @@ export function MegaDropdown({ trigger, sections, footer, className }: MegaDropd
               </div>
             ))}
           </div>
-          {footer && <div className="border-border mt-4 border-t pt-4">{footer}</div>}
+          {footer && (
+            <div className="border-border mt-4 border-t pt-4">{footer}</div>
+          )}
         </div>
       )}
     </div>

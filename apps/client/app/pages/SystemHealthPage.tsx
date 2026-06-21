@@ -1,6 +1,13 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { SystemHealthIndicator, ServiceHealth } from "@/components/admin/system-health-indicator";
-import { MetricsPanel, MetricSummary, TimeSeriesPoint } from "@/components/admin/metrics-panel";
+import {
+  SystemHealthIndicator,
+  type ServiceHealth,
+} from "@/components/admin/system-health-indicator";
+import {
+  MetricsPanel,
+  type MetricSummary,
+  type TimeSeriesPoint,
+} from "@/components/admin/metrics-panel";
 import { Cpu, HardDrive, Wifi, Clock } from "lucide-react";
 
 import { useQuery } from "@tanstack/react-query";
@@ -29,7 +36,13 @@ const baseServices: ServiceHealth[] = [
     uptime: 99.99,
     last_check: "just now",
   },
-  { name: "Storage", status: "operational", latency_ms: 52, uptime: 99.95, last_check: "just now" },
+  {
+    name: "Storage",
+    status: "operational",
+    latency_ms: 52,
+    uptime: 99.95,
+    last_check: "just now",
+  },
   {
     name: "Background Jobs",
     status: "operational",
@@ -40,10 +53,34 @@ const baseServices: ServiceHealth[] = [
 ];
 
 const resourceSummaries: MetricSummary[] = [
-  { label: "CPU Usage", value: "34%", change: -5.2, changeLabel: "vs last hour", icon: Cpu },
-  { label: "Memory", value: "6.2 GB", change: 2.1, changeLabel: "vs last hour", icon: HardDrive },
-  { label: "Network I/O", value: "142 MB/s", change: 8.4, changeLabel: "vs last hour", icon: Wifi },
-  { label: "Avg Response", value: "42ms", change: -12.3, changeLabel: "vs last hour", icon: Clock },
+  {
+    label: "CPU Usage",
+    value: "34%",
+    change: -5.2,
+    changeLabel: "vs last hour",
+    icon: Cpu,
+  },
+  {
+    label: "Memory",
+    value: "6.2 GB",
+    change: 2.1,
+    changeLabel: "vs last hour",
+    icon: HardDrive,
+  },
+  {
+    label: "Network I/O",
+    value: "142 MB/s",
+    change: 8.4,
+    changeLabel: "vs last hour",
+    icon: Wifi,
+  },
+  {
+    label: "Avg Response",
+    value: "42ms",
+    change: -12.3,
+    changeLabel: "vs last hour",
+    icon: Clock,
+  },
 ];
 
 const resourceTimeline: TimeSeriesPoint[] = [
@@ -68,16 +105,19 @@ export default function SystemHealthPage() {
 
   if (healthData) {
     // Update API Gateway (representing the overall backend)
-    activeServices[0].status = healthData.status === "OK" ? "operational" : "degraded";
+    activeServices[0].status =
+      healthData.status === "OK" ? "operational" : "degraded";
 
     // Update MySQL
     if (healthData.details?.mysql) {
-      activeServices[1].status = healthData.details.mysql === "UP" ? "operational" : "down";
+      activeServices[1].status =
+        healthData.details.mysql === "UP" ? "operational" : "down";
     }
 
     // Update Redis
     if (healthData.details?.redis) {
-      activeServices[2].status = healthData.details.redis === "UP" ? "operational" : "down";
+      activeServices[2].status =
+        healthData.details.redis === "UP" ? "operational" : "down";
     }
   }
 

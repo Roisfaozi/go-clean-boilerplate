@@ -4,8 +4,15 @@ import { toast } from "@casbin/ui";
 
 const KEY = ["permissions"];
 
-export function usePermissions(params?: { page?: number; limit?: number; role_id?: string }) {
-  return useQuery({ queryKey: [...KEY, params], queryFn: () => permissionService.list(params) });
+export function usePermissions(params?: {
+  page?: number;
+  limit?: number;
+  role_id?: string;
+}) {
+  return useQuery({
+    queryKey: [...KEY, params],
+    queryFn: () => permissionService.list(params),
+  });
 }
 
 export function useCreatePermission() {
@@ -61,7 +68,7 @@ export function useRoleAccessRights(role: string, domain?: string) {
 }
 
 export function useToggleAccessRight() {
-  const qc = useQueryClient();
+  const _qc = useQueryClient();
   return useMutation({
     mutationFn: ({
       role,
@@ -75,9 +82,17 @@ export function useToggleAccessRight() {
       domain?: string;
     }) => {
       if (granted) {
-        return permissionService.assignAccessRight({ role, access_right_id, domain });
+        return permissionService.assignAccessRight({
+          role,
+          access_right_id,
+          domain,
+        });
       } else {
-        return permissionService.revokeAccessRight({ role, access_right_id, domain });
+        return permissionService.revokeAccessRight({
+          role,
+          access_right_id,
+          domain,
+        });
       }
     },
     onError: () => toast.error("Failed to update permission"),

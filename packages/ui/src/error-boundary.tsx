@@ -13,7 +13,10 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -42,7 +45,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             <AlertTriangle className="text-destructive h-7 w-7" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-foreground text-lg font-semibold">Something went wrong</h3>
+            <h3 className="text-foreground text-lg font-semibold">
+              Something went wrong
+            </h3>
             <p className="text-muted-foreground max-w-md text-sm">
               {this.state.error?.message || "An unexpected error occurred."}
             </p>

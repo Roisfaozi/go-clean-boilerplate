@@ -68,7 +68,7 @@ Playbook ringkas untuk verifikasi setelah perubahan auth, tenant, Casbin, API ke
 - Snap Go can block `go test` and `make test-race` in this environment.
 - Docker/Testcontainers required for integration/E2E.
 - restricted sandbox can block local sockets used by Redis/test servers.
-- `apps/client` lint currently aliases typecheck; it is meaningful TypeScript validation but not ESLint coverage.
+- `apps/client` lint runs Biome; run `typecheck` separately for TypeScript validation.
 
 ## Reporting Rules
 

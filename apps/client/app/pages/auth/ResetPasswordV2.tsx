@@ -91,13 +91,19 @@ export default function ResetPasswordV2() {
                   <div className="from-primary/20 to-accent/20 border-primary/20 flex h-14 w-14 items-center justify-center rounded-2xl border bg-gradient-to-br">
                     <ShieldCheck className="text-primary h-7 w-7" />
                   </div>
-                  <h1 className="text-foreground text-2xl font-bold">Set new password</h1>
+                  <h1 className="text-foreground text-2xl font-bold">
+                    Set new password
+                  </h1>
                   <p className="text-muted-foreground text-sm">
                     Create a strong password for your account.
                   </p>
                 </div>
                 <form className="space-y-5" onSubmit={handleSubmit}>
-                  <FormGroup label="New Password" required error={errors.password}>
+                  <FormGroup
+                    label="New Password"
+                    required
+                    error={errors.password}
+                  >
                     <div className="relative">
                       <NexusInput
                         type={showPassword ? "text" : "password"}
@@ -146,7 +152,11 @@ export default function ResetPasswordV2() {
                       </div>
                     </motion.div>
                   )}
-                  <FormGroup label="Confirm Password" required error={errors.confirmPassword}>
+                  <FormGroup
+                    label="Confirm Password"
+                    required
+                    error={errors.confirmPassword}
+                  >
                     <div className="relative">
                       <NexusInput
                         type={showConfirm ? "text" : "password"}
@@ -161,14 +171,19 @@ export default function ResetPasswordV2() {
                         onClick={() => setShowConfirm(!showConfirm)}
                         className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
                       >
-                        {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showConfirm ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
-                    {confirmPassword.length > 0 && password === confirmPassword && (
-                      <p className="text-primary mt-1 flex items-center gap-1 text-xs">
-                        <CheckCircle className="h-3 w-3" /> Passwords match
-                      </p>
-                    )}
+                    {confirmPassword.length > 0 &&
+                      password === confirmPassword && (
+                        <p className="text-primary mt-1 flex items-center gap-1 text-xs">
+                          <CheckCircle className="h-3 w-3" /> Passwords match
+                        </p>
+                      )}
                   </FormGroup>
                   <NexusButton
                     className="from-primary to-accent text-primary-foreground h-12 w-full gap-2 rounded-xl bg-gradient-to-r"
@@ -201,11 +216,16 @@ export default function ResetPasswordV2() {
                     <CheckCircle className="text-primary h-10 w-10" />
                   </div>
                 </motion.div>
-                <h2 className="text-foreground text-2xl font-bold">All done!</h2>
+                <h2 className="text-foreground text-2xl font-bold">
+                  All done!
+                </h2>
                 <p className="text-muted-foreground text-sm">
                   Your password has been successfully reset.
                 </p>
-                <NexusButton className="h-12 w-full rounded-xl" onClick={() => navigate("/login")}>
+                <NexusButton
+                  className="h-12 w-full rounded-xl"
+                  onClick={() => navigate("/login")}
+                >
                   Continue to Sign In
                 </NexusButton>
               </motion.div>

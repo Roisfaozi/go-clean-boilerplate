@@ -50,7 +50,12 @@ const statusConfig = {
 };
 
 function HealthBar({ value }: { value: number }) {
-  const color = value >= 99.9 ? "bg-success" : value >= 99 ? "bg-warning" : "bg-destructive";
+  const color =
+    value >= 99.9
+      ? "bg-success"
+      : value >= 99
+        ? "bg-warning"
+        : "bg-destructive";
   return (
     <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
       <div
@@ -66,7 +71,10 @@ interface SystemHealthIndicatorProps {
   overallStatus?: "operational" | "degraded" | "down";
 }
 
-export function SystemHealthIndicator({ services, overallStatus }: SystemHealthIndicatorProps) {
+export function SystemHealthIndicator({
+  services,
+  overallStatus,
+}: SystemHealthIndicatorProps) {
   const overall =
     overallStatus ??
     (services.some((s) => s.status === "down")
@@ -90,11 +98,18 @@ export function SystemHealthIndicator({ services, overallStatus }: SystemHealthI
     <div className="space-y-4">
       {/* Overall status banner */}
       <NexusCard className={cn("flex items-center gap-4", cfg.bg, "border-0")}>
-        <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", cfg.bg)}>
+        <div
+          className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-xl",
+            cfg.bg,
+          )}
+        >
           <OverallIcon className={cn("h-6 w-6", cfg.color)} />
         </div>
         <div className="flex-1">
-          <p className="text-muted-foreground text-sm font-medium">System Status</p>
+          <p className="text-muted-foreground text-sm font-medium">
+            System Status
+          </p>
           <p className={cn("text-lg font-bold", cfg.color)}>{cfg.label}</p>
         </div>
         <Badge variant={cfg.badge} className="gap-1.5">
@@ -107,9 +122,13 @@ export function SystemHealthIndicator({ services, overallStatus }: SystemHealthI
       <div className="space-y-2">
         {services.map((service) => {
           const sc = statusConfig[service.status];
-          const ServiceIcon = service.icon ?? defaultIcons[service.name] ?? Activity;
+          const ServiceIcon =
+            service.icon ?? defaultIcons[service.name] ?? Activity;
           return (
-            <NexusCard key={service.name} className="flex items-center gap-4 py-3">
+            <NexusCard
+              key={service.name}
+              className="flex items-center gap-4 py-3"
+            >
               <div
                 className={cn(
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
@@ -120,8 +139,13 @@ export function SystemHealthIndicator({ services, overallStatus }: SystemHealthI
               </div>
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="text-foreground text-sm font-medium">{service.name}</span>
-                  <Badge variant={sc.badge} className="gap-1 px-1.5 py-0 text-[10px]">
+                  <span className="text-foreground text-sm font-medium">
+                    {service.name}
+                  </span>
+                  <Badge
+                    variant={sc.badge}
+                    className="gap-1 px-1.5 py-0 text-[10px]"
+                  >
                     <span className={cn("h-1.5 w-1.5 rounded-full", sc.dot)} />
                     {sc.label}
                   </Badge>

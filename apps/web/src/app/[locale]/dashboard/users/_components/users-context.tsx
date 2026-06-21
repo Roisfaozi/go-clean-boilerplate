@@ -1,9 +1,15 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  type ReactNode,
+} from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import useSWR, { KeyedMutator } from "swr";
-import { User, usersApi, UserListResponse } from "~/lib/api/users";
+import useSWR, { type KeyedMutator } from "swr";
+import { type User, usersApi, type UserListResponse } from "~/lib/api/users";
 import { toast } from "sonner";
 import { usePermission } from "~/hooks/use-permission";
 
@@ -130,7 +136,7 @@ export function UsersProvider({
       await usersApi.delete(selectedUser.id);
       toast.success("User deleted successfully");
       mutate();
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete user");
     } finally {
       setIsAlertOpen(false);

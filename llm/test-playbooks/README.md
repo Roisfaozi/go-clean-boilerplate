@@ -45,7 +45,7 @@ Setiap playbook sebaiknya punya:
 ## Repo-Specific Notes
 
 - backend integration dan E2E sering butuh Docker
-- `apps/client` lint now aliases typecheck; older logs before Phase 7 may still show placeholder-only lint
+- `apps/client` lint runs Biome; older logs before Phase 7 may still show placeholder-only lint
 - auth/tenant/Casbin behavior harus dicek ke `internal/router/router.go` dan middleware terkait
 - proxy behavior bisa perlu dicek di `apps/web/src/app/api/v1/[...path]/route.ts` atau `apps/client/app/routes/api-proxy.ts`
 - worker/webhook/audit behavior kadang butuh eventual-consistency wait step

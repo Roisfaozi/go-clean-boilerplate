@@ -56,7 +56,7 @@ For every backend route contract change, complete this before commit:
 ## Validation Gate
 
 - `apps/web`: `pnpm --filter casbin-web typecheck`; add `pnpm --filter casbin-web build` for runtime route/component changes.
-- `apps/client`: `pnpm --filter casbin-client typecheck`; `pnpm --filter casbin-client lint` now aliases typecheck instead of placeholder output.
+- `apps/client`: `pnpm --filter casbin-client typecheck`; `pnpm --filter casbin-client lint` runs Biome instead of placeholder output.
 - `packages/api-types`: `pnpm --filter @casbin/api-types typecheck` when shared contract types change.
 - Browser/E2E: `pnpm --filter casbin-client test:e2e` or targeted backend E2E when auth, tenant, upload, or realtime behavior changes.
 

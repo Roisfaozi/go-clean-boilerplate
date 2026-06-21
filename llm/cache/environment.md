@@ -86,7 +86,7 @@ Frontend package commands confirmed
 
 Active command caveat:
 
-- `apps/client` lint aliases `pnpm typecheck`; it is meaningful TypeScript validation but not ESLint coverage.
+- `apps/client` lint runs Biome; `pnpm typecheck` remains the TypeScript validation gate.
 - `make docker-dev` is an active repo command; it is the preferred wrapper for dev infra if the user wants one command.
 
 ## Local infra files confirmed

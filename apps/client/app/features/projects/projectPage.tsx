@@ -10,7 +10,12 @@ import {
   type FieldDef,
 } from "@/features/shared";
 import { Plus, RefreshCcw } from "lucide-react";
-import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from "./projectHooks";
+import {
+  useProjects,
+  useCreateProject,
+  useUpdateProject,
+  useDeleteProject,
+} from "./projectHooks";
 import { useOrganizationStore } from "@/stores/organization-store";
 import type { Project } from "@/lib/api/schemas";
 
@@ -22,9 +27,20 @@ const statusVariant = (s: string) =>
       : ("neutral" as const);
 
 const columns: CrudColumnDef<Project>[] = [
-  { id: "name", header: "Project", accessorKey: "name", sortable: true, minWidth: 180 },
+  {
+    id: "name",
+    header: "Project",
+    accessorKey: "name",
+    sortable: true,
+    minWidth: 180,
+  },
   { id: "slug", header: "Slug", accessorKey: "slug" },
-  { id: "description", header: "Description", accessorKey: "description", minWidth: 200 },
+  {
+    id: "description",
+    header: "Description",
+    accessorKey: "description",
+    minWidth: 200,
+  },
   {
     id: "status",
     header: "Status",
@@ -36,7 +52,9 @@ const columns: CrudColumnDef<Project>[] = [
       { label: "Draft", value: "draft" },
       { label: "Archived", value: "archived" },
     ],
-    cell: (row) => <NexusBadge variant={statusVariant(row.status)}>{row.status}</NexusBadge>,
+    cell: (row) => (
+      <NexusBadge variant={statusVariant(row.status)}>{row.status}</NexusBadge>
+    ),
   },
 ];
 
@@ -147,7 +165,11 @@ export default function ProjectsPage() {
         description="Manage your workspace projects."
         actions={
           <div className="flex gap-2">
-            <NexusButton variant="outline" size="icon" onClick={() => refetch()}>
+            <NexusButton
+              variant="outline"
+              size="icon"
+              onClick={() => refetch()}
+            >
               <RefreshCcw className="h-4 w-4" />
             </NexusButton>
             <NexusButton onClick={() => setCreateOpen(true)}>

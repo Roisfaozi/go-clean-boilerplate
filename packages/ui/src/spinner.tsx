@@ -9,5 +9,13 @@ interface SpinnerProps {
 const sizeMap = { sm: "h-4 w-4", md: "h-6 w-6", lg: "h-8 w-8" };
 
 export function Spinner({ className, size = "md" }: SpinnerProps) {
-  return <Loader2 className={cn("text-muted-foreground animate-spin", sizeMap[size], className)} />;
+  return (
+    <Loader2
+      className={cn(
+        "text-muted-foreground animate-spin",
+        sizeMap[size],
+        className,
+      )}
+    />
+  );
 }

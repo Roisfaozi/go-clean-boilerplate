@@ -19,9 +19,8 @@ import {
 } from "./endpointHooks";
 import { useResources } from "@/features/resources/resourceHooks";
 import type { Endpoint, Resource } from "@/lib/api/types";
-import { Skeleton } from "@casbin/ui";
 
-const mockData: Endpoint[] = [
+const _mockData: Endpoint[] = [
   {
     id: "1",
     name: "List Users",
@@ -126,17 +125,34 @@ const columns: CrudColumnDef<Endpoint>[] = [
       { label: "PATCH", value: "PATCH" },
       { label: "DELETE", value: "DELETE" },
     ],
-    cell: (row) => <NexusBadge variant={methodColor(row.method)}>{row.method}</NexusBadge>,
+    cell: (row) => (
+      <NexusBadge variant={methodColor(row.method)}>{row.method}</NexusBadge>
+    ),
   },
-  { id: "name", header: "Name", accessorKey: "name", sortable: true, minWidth: 160 },
+  {
+    id: "name",
+    header: "Name",
+    accessorKey: "name",
+    sortable: true,
+    minWidth: 160,
+  },
   {
     id: "path",
     header: "Path",
     accessorKey: "path",
     minWidth: 220,
-    cell: (row) => <code className="bg-muted rounded px-2 py-1 font-mono text-xs">{row.path}</code>,
+    cell: (row) => (
+      <code className="bg-muted rounded px-2 py-1 font-mono text-xs">
+        {row.path}
+      </code>
+    ),
   },
-  { id: "resource_name", header: "Resource", accessorKey: "resource_name", sortable: true },
+  {
+    id: "resource_name",
+    header: "Resource",
+    accessorKey: "resource_name",
+    sortable: true,
+  },
   {
     id: "auth_required",
     header: "Auth",
@@ -179,7 +195,13 @@ const baseFields: FieldDef[] = [
       { label: "DELETE", value: "DELETE" },
     ],
   },
-  { name: "path", label: "Path", type: "text", required: true, placeholder: "/api/v1/users" },
+  {
+    name: "path",
+    label: "Path",
+    type: "text",
+    required: true,
+    placeholder: "/api/v1/users",
+  },
   {
     name: "description",
     label: "Description",
@@ -274,7 +296,10 @@ export default function EndpointsPage() {
         initialValues={editItem || undefined}
         onSubmit={async (v) => {
           if (editItem) {
-            await updateEndpoint.mutateAsync({ id: editItem.id, data: v as any });
+            await updateEndpoint.mutateAsync({
+              id: editItem.id,
+              data: v as any,
+            });
             setEditItem(null);
           }
         }}

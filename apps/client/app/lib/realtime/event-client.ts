@@ -109,7 +109,10 @@ export class EventClient {
 
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
-    const delay = Math.min(this.baseDelay * Math.pow(2, this.reconnectAttempts), 30000);
+    const delay = Math.min(
+      this.baseDelay * Math.pow(2, this.reconnectAttempts),
+      30000,
+    );
     this.reconnectAttempts++;
     this.reconnectTimer = setTimeout(() => this.connect(), delay);
   }

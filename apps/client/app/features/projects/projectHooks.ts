@@ -5,8 +5,15 @@ import type { Project } from "@/lib/api/schemas";
 
 const KEY = ["projects"];
 
-export function useProjects(params?: { page?: number; limit?: number; org_id?: string }) {
-  return useQuery({ queryKey: [...KEY, params], queryFn: () => projectService.list(params) });
+export function useProjects(params?: {
+  page?: number;
+  limit?: number;
+  org_id?: string;
+}) {
+  return useQuery({
+    queryKey: [...KEY, params],
+    queryFn: () => projectService.list(params),
+  });
 }
 
 export function useCreateProject() {

@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@casbin/ui";
-import { useNotificationStore, type RealtimeNotification } from "@/stores/realtime-store";
+import {
+  useNotificationStore,
+  type RealtimeNotification,
+} from "@/stores/realtime-store";
 import {
   Bell,
-  Check,
   CheckCheck,
   Trash2,
   Info,
@@ -35,7 +37,8 @@ export function NotificationBell({ className }: NotificationBellProps) {
   // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -112,18 +115,26 @@ export function NotificationBell({ className }: NotificationBellProps) {
                     <p
                       className={cn(
                         "text-body truncate",
-                        !n.read ? "text-foreground font-semibold" : "text-foreground",
+                        !n.read
+                          ? "text-foreground font-semibold"
+                          : "text-foreground",
                       )}
                     >
                       {n.title}
                     </p>
                     {n.description && (
-                      <p className="text-caption text-muted-foreground truncate">{n.description}</p>
+                      <p className="text-caption text-muted-foreground truncate">
+                        {n.description}
+                      </p>
                     )}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="text-caption text-muted-foreground">{n.time}</span>
-                    {!n.read && <span className="bg-primary h-2 w-2 rounded-full" />}
+                    <span className="text-caption text-muted-foreground">
+                      {n.time}
+                    </span>
+                    {!n.read && (
+                      <span className="bg-primary h-2 w-2 rounded-full" />
+                    )}
                   </div>
                 </button>
               ))

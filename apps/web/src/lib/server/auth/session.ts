@@ -28,9 +28,14 @@ export const createSession = async (token: string, userId: string) => ({
 export const generateSessionToken = () => "placeholder-token";
 export const invalidateSession = async (sessionId: string) => {};
 export const invalidateAllSessions = async (userId: string) => {};
-export const verifyVerificationCode = async (user: { id: string; email: string }, code: string) =>
-  true;
-export const generateEmailVerificationCode = async (userId: string, email: string) => "123456";
+export const verifyVerificationCode = async (
+  user: { id: string; email: string },
+  code: string,
+) => true;
+export const generateEmailVerificationCode = async (
+  userId: string,
+  email: string,
+) => "123456";
 
 export const authMiddleware = async ({ next }: { next: any }) => {
   const { session, user } = await getCurrentSession();

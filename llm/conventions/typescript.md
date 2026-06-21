@@ -97,7 +97,7 @@ Frontend visibility is not authorization. Route hiding or disabled UI is not sub
 
 - `apps/web`: `lint`, `typecheck`, `build` scripts exist and are meaningful
 - `apps/client`: `typecheck`, `build`, and Playwright E2E scripts exist
-- `apps/client` lint aliases typecheck; present it as TypeScript validation, not ESLint coverage
+- `apps/client` lint runs Biome; run `typecheck` separately for TypeScript validation
 - cross-stack changes should verify backend plus affected frontend app, not frontend alone
 
 ## Common mistakes

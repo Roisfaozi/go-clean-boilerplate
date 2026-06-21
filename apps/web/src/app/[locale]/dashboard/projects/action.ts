@@ -62,7 +62,7 @@ export async function checkIfFreePlanLimitReached() {
   try {
     const projects = await projectsApi.getAll();
     return (projects?.length || 0) >= 3;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
@@ -87,7 +87,7 @@ export async function getProjectById(id: string) {
   try {
     const project = await projectsApi.getByID(id);
     return project;
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }

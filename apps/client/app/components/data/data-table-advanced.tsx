@@ -12,15 +12,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Search,
-  Filter,
-  MoreHorizontal,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@casbin/ui";
 
 /* ── Types ── */
 export interface ColumnDef<T> {
@@ -44,7 +36,10 @@ interface DataTableAdvancedProps<T extends { id: string | number }> {
   data: T[];
   pageSize?: number;
   selectable?: boolean;
-  bulkActions?: { label: string; onClick: (selectedIds: (string | number)[]) => void }[];
+  bulkActions?: {
+    label: string;
+    onClick: (selectedIds: (string | number)[]) => void;
+  }[];
   searchable?: boolean;
   className?: string;
 }
@@ -84,9 +79,13 @@ export function DataTableAdvanced<T extends { id: string | number }>({
         if (!col?.accessorKey) continue;
         const aVal = a[col.accessorKey];
         const bVal = b[col.accessorKey];
-        const cmp = String(aVal ?? "").localeCompare(String(bVal ?? ""), undefined, {
-          numeric: true,
-        });
+        const cmp = String(aVal ?? "").localeCompare(
+          String(bVal ?? ""),
+          undefined,
+          {
+            numeric: true,
+          },
+        );
         if (cmp !== 0) return sort.direction === "asc" ? cmp : -cmp;
       }
       return 0;
@@ -102,14 +101,17 @@ export function DataTableAdvanced<T extends { id: string | number }>({
       const existing = prev.find((s) => s.column === colId);
       if (!existing) return [...prev, { column: colId, direction: "asc" }];
       if (existing.direction === "asc")
-        return prev.map((s) => (s.column === colId ? { ...s, direction: "desc" } : s));
+        return prev.map((s) =>
+          s.column === colId ? { ...s, direction: "desc" } : s,
+        );
       return prev.filter((s) => s.column !== colId);
     });
   };
 
   const getSortIcon = (colId: string) => {
     const s = sorts.find((s) => s.column === colId);
-    if (!s) return <ArrowUpDown className="text-muted-foreground h-3.5 w-3.5" />;
+    if (!s)
+      return <ArrowUpDown className="text-muted-foreground h-3.5 w-3.5" />;
     return s.direction === "asc" ? (
       <ArrowUp className="text-primary h-3.5 w-3.5" />
     ) : (
@@ -149,7 +151,9 @@ export function DataTableAdvanced<T extends { id: string | number }>({
         )}
         {bulkActions && selected.size > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-small text-muted-foreground">{selected.size} selected</span>
+            <span className="text-small text-muted-foreground">
+              {selected.size} selected
+            </span>
             {bulkActions.map((action) => (
               <NexusButton
                 key={action.label}
@@ -226,7 +230,10 @@ export function DataTableAdvanced<T extends { id: string | number }>({
                     </td>
                   )}
                   {columns.map((col) => (
-                    <td key={col.id} className="text-body px-[var(--table-cell-padding)] py-3">
+                    <td
+                      key={col.id}
+                      className="text-body px-[var(--table-cell-padding)] py-3"
+                    >
                       {col.cell
                         ? col.cell(row)
                         : col.accessorKey
@@ -245,8 +252,8 @@ export function DataTableAdvanced<T extends { id: string | number }>({
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-caption text-muted-foreground">
-            {page * pageSize + 1}–{Math.min((page + 1) * pageSize, sorted.length)} of{" "}
-            {sorted.length}
+            {page * pageSize + 1}–
+            {Math.min((page + 1) * pageSize, sorted.length)} of {sorted.length}
           </p>
           <div className="flex items-center gap-1">
             <NexusButton

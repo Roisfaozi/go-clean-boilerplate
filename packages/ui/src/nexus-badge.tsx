@@ -22,5 +22,10 @@ interface NexusBadgeProps
     VariantProps<typeof nexusBadgeVariants> {}
 
 export function NexusBadge({ className, variant, ...props }: NexusBadgeProps) {
-  return <span className={cn(nexusBadgeVariants({ variant }), className)} {...props} />;
+  return (
+    <span
+      className={cn(nexusBadgeVariants({ variant }), className)}
+      {...props}
+    />
+  );
 }

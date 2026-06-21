@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, Variants } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { cn } from "~/lib/utils";
 
 interface WordPullUpProps {

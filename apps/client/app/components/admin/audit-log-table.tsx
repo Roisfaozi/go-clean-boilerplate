@@ -1,10 +1,13 @@
-import { useState } from "react";
 import { Badge } from "@casbin/ui";
-import { NexusInput } from "@casbin/ui";
-import { NexusButton } from "@casbin/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@casbin/ui";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@casbin/ui";
-import { Search, Download, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@casbin/ui";
+import { Search } from "lucide-react";
 
 export interface AuditLogEntry {
   id: string;
@@ -17,7 +20,10 @@ export interface AuditLogEntry {
   details?: string;
 }
 
-const severityMap: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const severityMap: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
   info: "secondary",
   warning: "outline",
   critical: "destructive",
@@ -50,7 +56,10 @@ export function AuditLogTable({ logs }: AuditLogTableProps) {
         <TableBody>
           {logs.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-muted-foreground py-12 text-center">
+              <TableCell
+                colSpan={6}
+                className="text-muted-foreground py-12 text-center"
+              >
                 <div className="flex flex-col items-center gap-2">
                   <Search className="text-muted-foreground/20 h-8 w-8" />
                   <p>No activity logs found matching your criteria</p>
@@ -59,15 +68,27 @@ export function AuditLogTable({ logs }: AuditLogTableProps) {
             </TableRow>
           ) : (
             logs.map((log) => (
-              <TableRow key={log.id} className="hover:bg-muted/30 group transition-colors">
+              <TableRow
+                key={log.id}
+                className="hover:bg-muted/30 group transition-colors"
+              >
                 <TableCell className="text-foreground/70 pl-8 font-mono text-[10px] font-bold tracking-wider uppercase">
                   {log.action}
                 </TableCell>
-                <TableCell className="text-foreground font-medium">{log.actor}</TableCell>
-                <TableCell className="text-muted-foreground text-xs">{log.target}</TableCell>
+                <TableCell className="text-foreground font-medium">
+                  {log.actor}
+                </TableCell>
+                <TableCell className="text-muted-foreground text-xs">
+                  {log.target}
+                </TableCell>
                 <TableCell>
-                  <Badge variant={severityMap[log.severity] ?? "default"} className="h-6 gap-1.5">
-                    <span className={`h-1.5 w-1.5 rounded-full ${severityDot[log.severity]}`} />
+                  <Badge
+                    variant={severityMap[log.severity] ?? "default"}
+                    className="h-6 gap-1.5"
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${severityDot[log.severity]}`}
+                    />
                     {log.severity}
                   </Badge>
                 </TableCell>

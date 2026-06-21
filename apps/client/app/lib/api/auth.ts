@@ -20,24 +20,37 @@ export interface WsTicketResponse {
 export const authApi = {
   login: (data: LoginRequest) => {
     loginRequestSchema.parse(data);
-    return apiClient.post<LoginResponse>("/auth/login", data, loginResponseSchema);
+    return apiClient.post<LoginResponse>(
+      "/auth/login",
+      data,
+      loginResponseSchema,
+    );
   },
 
   register: (data: RegisterRequest) => {
     registerRequestSchema.parse(data);
-    return apiClient.post<LoginResponse>("/auth/register", data, loginResponseSchema);
+    return apiClient.post<LoginResponse>(
+      "/auth/register",
+      data,
+      loginResponseSchema,
+    );
   },
 
   logout: () => apiClient.post("/auth/logout"),
 
   refreshToken: () =>
-    apiClient.post<TokenResponse>("/auth/refresh", undefined, tokenResponseSchema),
+    apiClient.post<TokenResponse>(
+      "/auth/refresh",
+      undefined,
+      tokenResponseSchema,
+    ),
 
   getWsTicket: () => apiClient.post<WsTicketResponse>("/auth/ticket"),
 
   getCurrentUser: () => apiClient.get<User>("/auth/me", userSchema),
 
-  forgotPassword: (email: string) => apiClient.post("/auth/forgot-password", { email }),
+  forgotPassword: (email: string) =>
+    apiClient.post("/auth/forgot-password", { email }),
 
   resetPassword: (token: string, newPassword: string) =>
     apiClient.post("/auth/reset-password", {

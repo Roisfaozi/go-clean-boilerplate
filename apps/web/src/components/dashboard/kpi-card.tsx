@@ -3,7 +3,7 @@
 import { useDensity } from "~/components/shared/providers/density-provider";
 import { cn } from "~/lib/utils";
 import { Icon } from "~/components/shared/icon";
-import { icons } from "lucide-react";
+import type { icons } from "lucide-react";
 
 interface KPICardProps {
   title: string;
@@ -14,7 +14,14 @@ interface KPICardProps {
   description?: string;
 }
 
-export function KPICard({ title, value, trend, trendUp, iconName, description }: KPICardProps) {
+export function KPICard({
+  title,
+  value,
+  trend,
+  trendUp,
+  iconName,
+  description,
+}: KPICardProps) {
   const { density } = useDensity();
   const isCompact = density === "compact";
 
@@ -25,18 +32,35 @@ export function KPICard({ title, value, trend, trendUp, iconName, description }:
         // Base styles
         "bg-card text-card-foreground",
         // Comfort Mode Styles
-        !isCompact && "rounded-[var(--radius-xl)] border-transparent p-6 shadow-md hover:shadow-lg",
+        !isCompact &&
+          "rounded-[var(--radius-xl)] border-transparent p-6 shadow-md hover:shadow-lg",
         // Compact Mode Styles
-        isCompact && "border-border rounded-[var(--radius-md)] border p-3 shadow-none",
+        isCompact &&
+          "border-border rounded-[var(--radius-md)] border p-3 shadow-none",
       )}
     >
-      <div className={cn("flex items-start justify-between", isCompact && "items-center")}>
+      <div
+        className={cn(
+          "flex items-start justify-between",
+          isCompact && "items-center",
+        )}
+      >
         <div className="space-y-1">
-          <p className={cn("text-muted-foreground font-medium", isCompact ? "text-xs" : "text-sm")}>
+          <p
+            className={cn(
+              "text-muted-foreground font-medium",
+              isCompact ? "text-xs" : "text-sm",
+            )}
+          >
             {title}
           </p>
           <div className="flex items-baseline gap-2">
-            <h3 className={cn("font-bold tracking-tight", isCompact ? "text-xl" : "text-3xl")}>
+            <h3
+              className={cn(
+                "font-bold tracking-tight",
+                isCompact ? "text-xl" : "text-3xl",
+              )}
+            >
               {value}
             </h3>
             {trend && (

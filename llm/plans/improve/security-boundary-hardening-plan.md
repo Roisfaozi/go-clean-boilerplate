@@ -361,7 +361,7 @@ No backend response-shape change without consumer map update.
 ### Phase 7 Result
 
 - Consumer map and backend API checklist recorded in `llm/research/frontend-contract-map.md`.
-- `apps/client` lint no longer returns placeholder success; it runs the package typecheck gate.
+- `apps/client` lint no longer returns placeholder success; it runs Biome and typecheck remains separate.
 - Required frontend verification commands are documented per app/package.
 
 ## Phase 8 — Verification Pipeline and Regression Playbook

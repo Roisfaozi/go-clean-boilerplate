@@ -65,7 +65,11 @@ const navSections: NavSection[] = [
       { label: "Users", path: "/users", icon: Users },
       { label: "Roles", path: "/roles", icon: Shield },
       { label: "Permissions", path: "/permissions", icon: Lock },
-      { label: "Role Permissions", path: "/roles-permissions", icon: ShieldCheck },
+      {
+        label: "Role Permissions",
+        path: "/roles-permissions",
+        icon: ShieldCheck,
+      },
       { label: "Resources", path: "/resources", icon: Box },
       { label: "Endpoints", path: "/endpoints", icon: Globe },
     ],
@@ -110,12 +114,36 @@ const navSections: NavSection[] = [
           { label: "Register V1", path: "/auth/register-v1", icon: UserPlus },
           { label: "Register V2", path: "/auth/register-v2", icon: UserPlus },
           { label: "Register V3", path: "/auth/register-v3", icon: UserPlus },
-          { label: "Forgot V1", path: "/auth/forgot-password-v1", icon: KeySquare },
-          { label: "Forgot V2", path: "/auth/forgot-password-v2", icon: KeySquare },
-          { label: "Forgot V3", path: "/auth/forgot-password-v3", icon: KeySquare },
-          { label: "Reset V1", path: "/auth/reset-password-v1", icon: KeyRound },
-          { label: "Reset V2", path: "/auth/reset-password-v2", icon: KeyRound },
-          { label: "Reset V3", path: "/auth/reset-password-v3", icon: KeyRound },
+          {
+            label: "Forgot V1",
+            path: "/auth/forgot-password-v1",
+            icon: KeySquare,
+          },
+          {
+            label: "Forgot V2",
+            path: "/auth/forgot-password-v2",
+            icon: KeySquare,
+          },
+          {
+            label: "Forgot V3",
+            path: "/auth/forgot-password-v3",
+            icon: KeySquare,
+          },
+          {
+            label: "Reset V1",
+            path: "/auth/reset-password-v1",
+            icon: KeyRound,
+          },
+          {
+            label: "Reset V2",
+            path: "/auth/reset-password-v2",
+            icon: KeyRound,
+          },
+          {
+            label: "Reset V3",
+            path: "/auth/reset-password-v3",
+            icon: KeyRound,
+          },
         ],
       },
       {
@@ -142,7 +170,11 @@ const navSections: NavSection[] = [
         items: [
           { label: "Login", path: "/login", icon: LogIn },
           { label: "Register", path: "/register", icon: UserPlus },
-          { label: "Forgot Password", path: "/forgot-password", icon: KeySquare },
+          {
+            label: "Forgot Password",
+            path: "/forgot-password",
+            icon: KeySquare,
+          },
           { label: "Reset Password", path: "/reset-password", icon: KeyRound },
         ],
       },
@@ -161,7 +193,10 @@ function SidebarSection({
 }) {
   const hasActiveChild =
     section.items.some((i) => i.path === currentPath) ||
-    (section.subSections?.some((s) => s.items.some((i) => i.path === currentPath)) ?? false);
+    (section.subSections?.some((s) =>
+      s.items.some((i) => i.path === currentPath),
+    ) ??
+      false);
   const sectionKey = `section:${section.label}`;
   const { sidebarSectionOpen, setSidebarSectionOpen } = useUIStore();
   const stored = sidebarSectionOpen[sectionKey];
@@ -206,7 +241,10 @@ function SidebarSection({
       >
         <span>{section.label}</span>
         <ChevronDown
-          className={cn("h-3.5 w-3.5 transition-transform duration-200", open && "rotate-180")}
+          className={cn(
+            "h-3.5 w-3.5 transition-transform duration-200",
+            open && "rotate-180",
+          )}
         />
       </button>
       {open && (

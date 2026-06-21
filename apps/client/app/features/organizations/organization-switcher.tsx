@@ -1,15 +1,32 @@
 import { useState } from "react";
 import { cn } from "@casbin/ui";
 import { useOrganizationStore } from "@/stores/organization-store";
-import { Building2, Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@casbin/ui";
-import { NexusButton } from "@casbin/ui";
 import type { Organization } from "@/lib/api/types";
 
 const mockOrgs: Organization[] = [
-  { id: "1", name: "Acme Corp", slug: "acme", owner_id: "u1", status: "active" },
-  { id: "2", name: "Globex Inc", slug: "globex", owner_id: "u2", status: "active" },
-  { id: "3", name: "Initech", slug: "initech", owner_id: "u1", status: "active" },
+  {
+    id: "1",
+    name: "Acme Corp",
+    slug: "acme",
+    owner_id: "u1",
+    status: "active",
+  },
+  {
+    id: "2",
+    name: "Globex Inc",
+    slug: "globex",
+    owner_id: "u2",
+    status: "active",
+  },
+  {
+    id: "3",
+    name: "Initech",
+    slug: "initech",
+    owner_id: "u1",
+    status: "active",
+  },
 ];
 
 interface OrganizationSwitcherProps {
@@ -42,14 +59,18 @@ export function OrganizationSwitcher({ collapsed }: OrganizationSwitcherProps) {
               onClick={() => handleSelect(org)}
               className={cn(
                 "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-                current.id === org.id ? "bg-primary/10 text-primary" : "hover:bg-muted",
+                current.id === org.id
+                  ? "bg-primary/10 text-primary"
+                  : "hover:bg-muted",
               )}
             >
               <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs font-bold">
                 {org.name.charAt(0)}
               </div>
               <span className="truncate">{org.name}</span>
-              {current.id === org.id && <Check className="ml-auto h-4 w-4 shrink-0" />}
+              {current.id === org.id && (
+                <Check className="ml-auto h-4 w-4 shrink-0" />
+              )}
             </button>
           ))}
         </PopoverContent>
@@ -65,7 +86,9 @@ export function OrganizationSwitcher({ collapsed }: OrganizationSwitcherProps) {
             {current.name.charAt(0)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sidebar-foreground truncate text-sm font-medium">{current.name}</p>
+            <p className="text-sidebar-foreground truncate text-sm font-medium">
+              {current.name}
+            </p>
             <p className="text-muted-foreground text-[11px]">Organization</p>
           </div>
           <ChevronsUpDown className="text-muted-foreground h-4 w-4 shrink-0" />
@@ -81,7 +104,9 @@ export function OrganizationSwitcher({ collapsed }: OrganizationSwitcherProps) {
             onClick={() => handleSelect(org)}
             className={cn(
               "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-              current.id === org.id ? "bg-primary/10 text-primary" : "hover:bg-muted",
+              current.id === org.id
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted",
             )}
           >
             <div className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded text-xs font-bold">

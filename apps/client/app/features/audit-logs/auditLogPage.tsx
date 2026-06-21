@@ -1,7 +1,10 @@
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { useAuditLogs, useExportAuditLogs } from "./auditHooks";
-import { AuditLogTable, type AuditLogEntry } from "@/components/admin/audit-log-table";
+import {
+  AuditLogTable,
+  type AuditLogEntry,
+} from "@/components/admin/audit-log-table";
 import { NexusButton, NexusCard, NexusInput, Skeleton } from "@casbin/ui";
 import { format } from "date-fns";
 import { Download, RefreshCw, Search } from "lucide-react";
@@ -57,7 +60,11 @@ export default function AuditLogsPage() {
         description="System-wide activity trail and change history."
         actions={
           <div className="flex gap-2">
-            <NexusButton variant="outline" size="sm" onClick={() => exportLogs({ format: "csv" })}>
+            <NexusButton
+              variant="outline"
+              size="sm"
+              onClick={() => exportLogs({ format: "csv" })}
+            >
               <Download className="mr-2 h-4 w-4" /> Export CSV
             </NexusButton>
             <NexusButton
@@ -66,7 +73,9 @@ export default function AuditLogsPage() {
               onClick={() => refetch()}
               disabled={isFetching}
             >
-              <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+              />
               Refresh
             </NexusButton>
           </div>

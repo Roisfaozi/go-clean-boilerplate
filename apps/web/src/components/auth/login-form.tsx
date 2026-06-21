@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import type { z } from "zod";
 import { loginAction } from "~/app/actions/auth";
 import { Button } from "~/components/ui/button";
 import { toast } from "~/hooks/use-toast";
@@ -71,7 +71,8 @@ export default function AuthForm() {
       // Redirect to target page or dashboard
       window.location.href = decodeURIComponent(returnTo);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Invalid username or password";
+      const errorMessage =
+        error instanceof Error ? error.message : "Invalid username or password";
       toast({
         title: "Login failed",
         description: errorMessage,
@@ -105,7 +106,9 @@ export default function AuthForm() {
               </div>
             </div>
             {errors?.username && (
-              <p className="text-destructive px-1 text-xs">{errors.username.message}</p>
+              <p className="text-destructive px-1 text-xs">
+                {errors.username.message}
+              </p>
             )}
           </div>
 
@@ -128,12 +131,20 @@ export default function AuthForm() {
               {...register("password")}
             />
             {errors?.password && (
-              <p className="text-destructive px-1 text-xs">{errors.password.message}</p>
+              <p className="text-destructive px-1 text-xs">
+                {errors.password.message}
+              </p>
             )}
           </div>
 
-          <Button type="submit" className="mt-2 w-full" disabled={isLoading || isGithubLoading}>
-            {isLoading ? <Icons.spinner className="mr-2 h-4 w-4 animate-spin" /> : null}
+          <Button
+            type="submit"
+            className="mt-2 w-full"
+            disabled={isLoading || isGithubLoading}
+          >
+            {isLoading ? (
+              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
             Sign In
           </Button>
         </div>
@@ -144,7 +155,9 @@ export default function AuthForm() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background text-muted-foreground px-2">Or continue with</span>
+          <span className="bg-background text-muted-foreground px-2">
+            Or continue with
+          </span>
         </div>
       </div>
 

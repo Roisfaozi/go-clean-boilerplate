@@ -1,0 +1,119 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.8/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "ignoreUnknown": false,
+    "maxSize": 1258291,
+    "includes": [
+      "**/*.json",
+      "!**/node_modules/**",
+      "!**/.next/**",
+      "!**/.react-router/**",
+      "!**/.turbo/**",
+      "!**/build/**",
+      "!**/dist/**",
+      "!**/coverage/**",
+      "!deploy/**",
+      "!docs/**",
+      "!postman/**",
+      "!**/pnpm-lock.yaml"
+    ]
+  },
+  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2 },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": false,
+      "a11y": {
+        "noAccessKey": "warn",
+        "noAriaUnsupportedElements": "warn",
+        "noRedundantAlt": "warn",
+        "noRedundantRoles": "warn",
+        "useAltText": "warn",
+        "useAnchorContent": "warn",
+        "useAriaPropsForRole": "warn",
+        "useAriaPropsSupportedByRole": "warn",
+        "useIframeTitle": "warn",
+        "useValidAnchor": "warn",
+        "useValidAriaProps": "warn",
+        "useValidAriaRole": {
+          "level": "warn",
+          "options": { "ignoreNonDom": true }
+        },
+        "useValidAriaValues": "warn",
+        "useValidLang": "warn"
+      },
+      "complexity": {
+        "noCommaOperator": "warn",
+        "noExtraBooleanCast": "warn",
+        "noUselessConstructor": "warn",
+        "noUselessEscapeInRegex": "warn",
+        "noUselessLabel": "warn",
+        "noUselessLoneBlockStatements": "warn",
+        "noUselessRename": "warn",
+        "noUselessStringConcat": "warn",
+        "useLiteralKeys": "warn"
+      },
+      "correctness": {
+        "noConstAssign": "error",
+        "noEmptyCharacterClassInRegex": "warn",
+        "noEmptyPattern": "warn",
+        "noInvalidUseBeforeDeclaration": "warn",
+        "noSelfAssign": "warn",
+        "noUndeclaredVariables": "error",
+        "noUnreachable": "warn",
+        "noUnreachableSuper": "warn",
+        "noUnusedLabels": "warn",
+        "noUnusedVariables": "warn",
+        "noUnusedImports": "error",
+        "useExhaustiveDependencies": "warn",
+        "useHookAtTopLevel": "error",
+        "useIsNan": "warn",
+        "useJsxKeyInIterable": "warn",
+        "useValidTypeof": "warn",
+        "useYield": "warn"
+      },
+      "security": {
+        "noDangerouslySetInnerHtmlWithChildren": "warn",
+        "noGlobalEval": "error"
+      },
+      "style": {
+        "useArrayLiterals": "warn",
+        "useImportType": { "level": "warn", "options": { "style": "auto" } }
+      },
+      "suspicious": {
+        "noCatchAssign": "warn",
+        "noCommentText": "warn",
+        "noControlCharactersInRegex": "warn",
+        "noDuplicateCase": "warn",
+        "noDuplicateClassMembers": "warn",
+        "noDuplicateObjectKeys": "warn",
+        "noDuplicateParameters": "warn",
+        "noEmptyBlockStatements": "warn",
+        "noFunctionAssign": "error",
+        "noGlobalAssign": "error",
+        "noLabelVar": "warn",
+        "noRedeclare": "error",
+        "noSelfCompare": "warn",
+        "noShadowRestrictedNames": "off",
+        "noSparseArray": "warn",
+        "noTemplateCurlyInString": "warn",
+        "noUnsafeNegation": "warn",
+        "useGetterReturn": "warn",
+        "useIterableCallbackReturn": "warn"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": { "quoteStyle": "double", "trailingCommas": "all" }
+  },
+  "json": {
+    "parser": { "allowTrailingCommas": false },
+    "formatter": { "trailingCommas": "none" }
+  },
+  "css": { "parser": { "tailwindDirectives": true } },
+  "assist": {
+    "enabled": true,
+    "actions": { "source": { "organizeImports": "on" } }
+  }
+}

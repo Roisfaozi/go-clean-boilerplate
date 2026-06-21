@@ -10,7 +10,11 @@ interface SidebarGroupProps {
   className?: string;
 }
 
-export function SidebarGroup({ label, children, className }: SidebarGroupProps) {
+export function SidebarGroup({
+  label,
+  children,
+  className,
+}: SidebarGroupProps) {
   return (
     <div className={cn("space-y-1", className)}>
       {label && (
@@ -33,7 +37,14 @@ interface SidebarItemProps {
   className?: string;
 }
 
-export function SidebarItem({ label, href, icon, badge, collapsed, className }: SidebarItemProps) {
+export function SidebarItem({
+  label,
+  href,
+  icon,
+  badge,
+  collapsed,
+  className,
+}: SidebarItemProps) {
   const location = useLocation();
   const isActive = location.pathname === href;
 

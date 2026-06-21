@@ -34,13 +34,27 @@ interface ChartCardProps {
   className?: string;
 }
 
-function ChartCard({ title, description, children, className }: ChartCardProps) {
+function ChartCard({
+  title,
+  description,
+  children,
+  className,
+}: ChartCardProps) {
   return (
-    <div className={cn("bg-card border-border p-card-pad rounded-lg border shadow-sm", className)}>
+    <div
+      className={cn(
+        "bg-card border-border p-card-pad rounded-lg border shadow-sm",
+        className,
+      )}
+    >
       {(title || description) && (
         <div className="mb-4 space-y-1">
-          {title && <h3 className="text-h4 text-foreground font-semibold">{title}</h3>}
-          {description && <p className="text-caption text-muted-foreground">{description}</p>}
+          {title && (
+            <h3 className="text-h4 text-foreground font-semibold">{title}</h3>
+          )}
+          {description && (
+            <p className="text-caption text-muted-foreground">{description}</p>
+          )}
         </div>
       )}
       {children}
@@ -73,8 +87,15 @@ export function NexusLineChart({
       <ResponsiveContainer width="100%" height={height}>
         <ReLineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis dataKey={xKey} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-          <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+          <XAxis
+            dataKey={xKey}
+            tick={{ fontSize: 12 }}
+            stroke="hsl(var(--muted-foreground))"
+          />
+          <YAxis
+            tick={{ fontSize: 12 }}
+            stroke="hsl(var(--muted-foreground))"
+          />
           <Tooltip
             contentStyle={{
               background: "hsl(var(--popover))",
@@ -127,8 +148,15 @@ export function NexusAreaChart({
       <ResponsiveContainer width="100%" height={height}>
         <ReAreaChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis dataKey={xKey} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-          <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+          <XAxis
+            dataKey={xKey}
+            tick={{ fontSize: 12 }}
+            stroke="hsl(var(--muted-foreground))"
+          />
+          <YAxis
+            tick={{ fontSize: 12 }}
+            stroke="hsl(var(--muted-foreground))"
+          />
           <Tooltip
             contentStyle={{
               background: "hsl(var(--popover))",
@@ -186,8 +214,15 @@ export function NexusBarChart({
       <ResponsiveContainer width="100%" height={height}>
         <ReBarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis dataKey={xKey} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-          <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+          <XAxis
+            dataKey={xKey}
+            tick={{ fontSize: 12 }}
+            stroke="hsl(var(--muted-foreground))"
+          />
+          <YAxis
+            tick={{ fontSize: 12 }}
+            stroke="hsl(var(--muted-foreground))"
+          />
           <Tooltip
             contentStyle={{
               background: "hsl(var(--popover))",
@@ -243,11 +278,16 @@ export function NexusPieChart({
             outerRadius="80%"
             paddingAngle={2}
             dataKey="value"
-            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            label={({ name, percent }) =>
+              `${name} ${(percent * 100).toFixed(0)}%`
+            }
             labelLine={false}
           >
             {data.map((entry, i) => (
-              <Cell key={i} fill={entry.color || CHART_COLORS[i % CHART_COLORS.length]} />
+              <Cell
+                key={i}
+                fill={entry.color || CHART_COLORS[i % CHART_COLORS.length]}
+              />
             ))}
           </Pie>
           <Tooltip
@@ -315,7 +355,9 @@ export function NexusHeatmap({
           <tbody>
             {yLabels.map((y) => (
               <tr key={y}>
-                <td className="text-caption text-muted-foreground py-1 pr-3 text-right">{y}</td>
+                <td className="text-caption text-muted-foreground py-1 pr-3 text-right">
+                  {y}
+                </td>
                 {xLabels.map((x) => {
                   const cell = data.find((d) => d.x === x && d.y === y);
                   const intensity = cell ? cell.value / maxVal : 0;
@@ -325,7 +367,10 @@ export function NexusHeatmap({
                         className="text-caption flex aspect-square items-center justify-center rounded-sm"
                         style={{
                           backgroundColor: `hsl(239, 84%, 67%, ${intensity * 0.8 + 0.05})`,
-                          color: intensity > 0.5 ? "white" : "hsl(var(--muted-foreground))",
+                          color:
+                            intensity > 0.5
+                              ? "white"
+                              : "hsl(var(--muted-foreground))",
                         }}
                         title={`${x}, ${y}: ${cell?.value ?? 0}`}
                       >
@@ -364,11 +409,18 @@ export function Sparkline({
   const min = Math.min(...data);
   const range = max - min || 1;
   const points = data
-    .map((v, i) => `${(i / (data.length - 1)) * width},${height - ((v - min) / range) * height}`)
+    .map(
+      (v, i) =>
+        `${(i / (data.length - 1)) * width},${height - ((v - min) / range) * height}`,
+    )
     .join(" ");
 
   return (
-    <svg width={width} height={height} className={cn("inline-block", className)}>
+    <svg
+      width={width}
+      height={height}
+      className={cn("inline-block", className)}
+    >
       <polyline fill="none" stroke={color} strokeWidth={1.5} points={points} />
     </svg>
   );

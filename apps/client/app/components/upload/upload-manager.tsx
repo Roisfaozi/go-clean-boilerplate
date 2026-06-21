@@ -1,5 +1,13 @@
 import { useMemo } from "react";
-import { ChevronDown, ChevronUp, UploadCloud, X, RotateCcw, Ban, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  UploadCloud,
+  X,
+  RotateCcw,
+  Ban,
+  Trash2,
+} from "lucide-react";
 import { Badge } from "@casbin/ui";
 import { Progress } from "@casbin/ui";
 import { NexusButton } from "@casbin/ui";
@@ -39,7 +47,9 @@ export function UploadManager() {
 
   // Summary derived inline from the same `items` slice so it stays reactive without an extra subscription.
   const summary = useMemo(() => {
-    const active = items.filter((i) => i.status === "preparing" || i.status === "uploading").length;
+    const active = items.filter(
+      (i) => i.status === "preparing" || i.status === "uploading",
+    ).length;
     const queued = items.filter((i) => i.status === "queued").length;
     const done = items.filter((i) => i.status === "success").length;
     const failed = items.filter((i) => i.status === "error").length;
@@ -52,8 +62,12 @@ export function UploadManager() {
       .reduce((s, i) => s + (i.speedBps ?? 0), 0);
     const remainingBytes = items
       .filter((i) => i.status === "uploading")
-      .reduce((s, i) => s + Math.max(0, i.fileSize - (i.bytesUploaded ?? 0)), 0);
-    const etaSeconds = speedBps > 0 ? Math.round(remainingBytes / speedBps) : undefined;
+      .reduce(
+        (s, i) => s + Math.max(0, i.fileSize - (i.bytesUploaded ?? 0)),
+        0,
+      );
+    const etaSeconds =
+      speedBps > 0 ? Math.round(remainingBytes / speedBps) : undefined;
     return {
       active,
       queued,
@@ -91,7 +105,9 @@ export function UploadManager() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="text-foreground truncate text-sm font-semibold">Uploads</h3>
+                <h3 className="text-foreground truncate text-sm font-semibold">
+                  Uploads
+                </h3>
                 <Badge variant="secondary" className="text-[10px]">
                   {items.length}
                 </Badge>
@@ -114,7 +130,11 @@ export function UploadManager() {
               onClick={() => setOpen(!open)}
               aria-label={open ? "Collapse uploads" : "Expand uploads"}
             >
-              {open ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+              {open ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4" />
+              )}
             </NexusButton>
             <NexusButton
               variant="ghost"
@@ -128,7 +148,9 @@ export function UploadManager() {
           </div>
         </div>
 
-        {!open && <Progress value={summary.progress} className="h-1 rounded-none" />}
+        {!open && (
+          <Progress value={summary.progress} className="h-1 rounded-none" />
+        )}
 
         {open && (
           <>

@@ -7,9 +7,10 @@
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
-    "lint": "pnpm typecheck",
+    "lint": "biome lint --write .",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "format": "biome format --write ."
   },
   "dependencies": {
     "@casbin/api-types": "workspace:*",

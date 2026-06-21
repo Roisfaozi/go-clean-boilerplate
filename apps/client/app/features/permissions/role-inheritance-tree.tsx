@@ -41,7 +41,9 @@ function TreeNode({
         }}
         className={cn(
           "hover:bg-muted/50 group flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors",
-          activeId === node.id ? "bg-primary/10 text-primary" : "text-foreground",
+          activeId === node.id
+            ? "bg-primary/10 text-primary"
+            : "text-foreground",
         )}
         style={{ paddingLeft: `${depth * 20 + 12}px` }}
       >
@@ -86,7 +88,9 @@ export function RoleInheritanceTree({
   return (
     <NexusCard className="shadow-premium h-full overflow-hidden border-none">
       <div className="border-border bg-muted/20 border-b p-4">
-        <h3 className="text-foreground text-sm font-semibold">Security Hierarchy</h3>
+        <h3 className="text-foreground text-sm font-semibold">
+          Security Hierarchy
+        </h3>
         <p className="text-muted-foreground mt-0.5 text-xs">
           Visual tree of role permissions and inheritance
         </p>
@@ -95,11 +99,19 @@ export function RoleInheritanceTree({
         {tree.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <Shield className="text-muted/30 mb-2 h-10 w-10" />
-            <p className="text-muted-foreground text-xs italic">No roles defined</p>
+            <p className="text-muted-foreground text-xs italic">
+              No roles defined
+            </p>
           </div>
         ) : (
           tree.map((node) => (
-            <TreeNode key={node.id} node={node} depth={0} onSelect={onSelect} activeId={activeId} />
+            <TreeNode
+              key={node.id}
+              node={node}
+              depth={0}
+              onSelect={onSelect}
+              activeId={activeId}
+            />
           ))
         )}
       </div>

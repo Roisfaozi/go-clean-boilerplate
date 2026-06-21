@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import { PaginatedResponse } from "./types";
+import type { PaginatedResponse } from "./types";
 
 export interface AccessRight {
   id: string;
@@ -24,13 +24,20 @@ export interface Endpoint {
 
 export const accessApi = {
   listRights: (params?: { page?: number; limit?: number }) =>
-    apiClient.get<PaginatedResponse<AccessRight>>("/access-rights", undefined, { params }),
+    apiClient.get<PaginatedResponse<AccessRight>>("/access-rights", undefined, {
+      params,
+    }),
 
   searchRights: (params: any) =>
-    apiClient.post<PaginatedResponse<AccessRight>>("/access-rights/search", params),
+    apiClient.post<PaginatedResponse<AccessRight>>(
+      "/access-rights/search",
+      params,
+    ),
 
   listEndpoints: (params?: { page?: number; limit?: number }) =>
-    apiClient.get<PaginatedResponse<Endpoint>>("/endpoints", undefined, { params }),
+    apiClient.get<PaginatedResponse<Endpoint>>("/endpoints", undefined, {
+      params,
+    }),
 
   searchEndpoints: (params: any) =>
     apiClient.post<PaginatedResponse<Endpoint>>("/endpoints/search", params),

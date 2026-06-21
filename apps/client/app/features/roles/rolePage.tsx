@@ -10,23 +10,64 @@ import {
   type FieldDef,
 } from "@/features/shared";
 import { Plus } from "lucide-react";
-import { useRoles, useCreateRole, useUpdateRole, useDeleteRole } from "./roleHooks";
+import {
+  useRoles,
+  useCreateRole,
+  useUpdateRole,
+  useDeleteRole,
+} from "./roleHooks";
 import type { Role } from "@/lib/api/schemas";
 import { Skeleton } from "@casbin/ui";
 
 const mockRoles: (Role & { id: string })[] = [
-  { id: "1", name: "Admin", description: "Full access to all resources", created_at: 1700000000 },
-  { id: "2", name: "Editor", description: "Can create and edit content", created_at: 1700100000 },
-  { id: "3", name: "Viewer", description: "Read-only access", created_at: 1700200000 },
-  { id: "4", name: "Moderator", description: "Can moderate user content", created_at: 1700300000 },
-  { id: "5", name: "Manager", description: "Team management capabilities", created_at: 1700400000 },
+  {
+    id: "1",
+    name: "Admin",
+    description: "Full access to all resources",
+    created_at: 1700000000,
+  },
+  {
+    id: "2",
+    name: "Editor",
+    description: "Can create and edit content",
+    created_at: 1700100000,
+  },
+  {
+    id: "3",
+    name: "Viewer",
+    description: "Read-only access",
+    created_at: 1700200000,
+  },
+  {
+    id: "4",
+    name: "Moderator",
+    description: "Can moderate user content",
+    created_at: 1700300000,
+  },
+  {
+    id: "5",
+    name: "Manager",
+    description: "Team management capabilities",
+    created_at: 1700400000,
+  },
 ];
 
 type RoleRow = Role & { id: string };
 
 const columns: CrudColumnDef<RoleRow>[] = [
-  { id: "name", header: "Role Name", accessorKey: "name", sortable: true, minWidth: 160 },
-  { id: "description", header: "Description", accessorKey: "description", minWidth: 250 },
+  {
+    id: "name",
+    header: "Role Name",
+    accessorKey: "name",
+    sortable: true,
+    minWidth: 160,
+  },
+  {
+    id: "description",
+    header: "Description",
+    accessorKey: "description",
+    minWidth: 250,
+  },
 ];
 
 const schema = z.object({
@@ -35,7 +76,13 @@ const schema = z.object({
 });
 
 const fields: FieldDef[] = [
-  { name: "name", label: "Role Name", type: "text", required: true, placeholder: "e.g. Manager" },
+  {
+    name: "name",
+    label: "Role Name",
+    type: "text",
+    required: true,
+    placeholder: "e.g. Manager",
+  },
   {
     name: "description",
     label: "Description",
@@ -79,7 +126,12 @@ export default function RolesPage() {
           ))}
         </div>
       ) : (
-        <CrudTable columns={columns} data={roles} onEdit={setEditItem} onDelete={setDeleteItem} />
+        <CrudTable
+          columns={columns}
+          data={roles}
+          onEdit={setEditItem}
+          onDelete={setDeleteItem}
+        />
       )}
 
       <CrudFormDialog
@@ -106,7 +158,10 @@ export default function RolesPage() {
         initialValues={editItem || undefined}
         onSubmit={async (values) => {
           if (editItem) {
-            await updateRole.mutateAsync({ id: editItem.id, data: values as any });
+            await updateRole.mutateAsync({
+              id: editItem.id,
+              data: values as any,
+            });
             setEditItem(null);
           }
         }}

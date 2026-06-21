@@ -13,13 +13,21 @@ const paginatedMembers = paginatedSchema(orgMemberSchema);
 
 export const organizationsApi = {
   list: (params?: { page?: number; limit?: number }) =>
-    apiClient.get<PaginatedResponse<Organization>>("/organizations/me", paginatedOrgs, { params }),
+    apiClient.get<PaginatedResponse<Organization>>(
+      "/organizations/me",
+      paginatedOrgs,
+      { params },
+    ),
 
   create: (data: { name: string; slug?: string }) =>
     apiClient.post<Organization>("/organizations", data, organizationSchema),
 
   update: (id: string, data: Partial<Organization>) =>
-    apiClient.put<Organization>(`/organizations/${id}`, data, organizationSchema),
+    apiClient.put<Organization>(
+      `/organizations/${id}`,
+      data,
+      organizationSchema,
+    ),
 
   delete: (id: string) => apiClient.delete(`/organizations/${id}`),
 

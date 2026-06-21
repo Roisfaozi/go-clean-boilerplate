@@ -13,7 +13,7 @@ export default function LogoutButton({ className }: { className?: string }) {
         onClick={async () => {
           try {
             await logoutAction();
-          } catch (error) {
+          } catch (_error) {
             toast({
               title: "Logout failed",
               variant: "destructive",

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { cn } from "@casbin/ui";
 import { NexusButton } from "@casbin/ui";
 import { NexusInput } from "@casbin/ui";
 import { NexusTextarea } from "@casbin/ui";
@@ -12,16 +11,29 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@casbin/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@casbin/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@casbin/ui";
 import { Switch } from "@casbin/ui";
 import { Loader2 } from "lucide-react";
-import { z } from "zod";
+import type { z } from "zod";
 
 /* ── Types ── */
 export interface FieldDef {
   name: string;
   label: string;
-  type: "text" | "email" | "password" | "textarea" | "select" | "switch" | "number";
+  type:
+    | "text"
+    | "email"
+    | "password"
+    | "textarea"
+    | "select"
+    | "switch"
+    | "number";
   placeholder?: string;
   required?: boolean;
   description?: string;
@@ -63,7 +75,8 @@ export function CrudFormDialog({
     if (open) {
       const defaults: Record<string, any> = {};
       fields.forEach((f) => {
-        defaults[f.name] = initialValues?.[f.name] ?? (f.type === "switch" ? false : "");
+        defaults[f.name] =
+          initialValues?.[f.name] ?? (f.type === "switch" ? false : "");
       });
       setValues(defaults);
       setErrors({});
@@ -139,7 +152,10 @@ export function CrudFormDialog({
                   >
                     <SelectTrigger>
                       <SelectValue
-                        placeholder={field.placeholder || `Select ${field.label.toLowerCase()}`}
+                        placeholder={
+                          field.placeholder ||
+                          `Select ${field.label.toLowerCase()}`
+                        }
                       />
                     </SelectTrigger>
                     <SelectContent>
@@ -166,7 +182,9 @@ export function CrudFormDialog({
                     onChange={(e) =>
                       setValue(
                         field.name,
-                        field.type === "number" ? Number(e.target.value) : e.target.value,
+                        field.type === "number"
+                          ? Number(e.target.value)
+                          : e.target.value,
                       )
                     }
                     placeholder={field.placeholder}

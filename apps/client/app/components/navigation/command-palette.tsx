@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -9,7 +9,7 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@casbin/ui";
-import { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export interface CommandPaletteItem {
   id: string;
@@ -48,12 +48,15 @@ export function CommandPalette({
     return () => document.removeEventListener("keydown", down);
   }, [isOpen, setOpen]);
 
-  const groups = items.reduce<Record<string, CommandPaletteItem[]>>((acc, item) => {
-    const group = item.group || "Actions";
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(item);
-    return acc;
-  }, {});
+  const groups = items.reduce<Record<string, CommandPaletteItem[]>>(
+    (acc, item) => {
+      const group = item.group || "Actions";
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(item);
+      return acc;
+    },
+    {},
+  );
 
   return (
     <CommandDialog open={isOpen} onOpenChange={setOpen}>
@@ -74,7 +77,9 @@ export function CommandPalette({
                 >
                   {item.icon && <item.icon className="mr-2 h-4 w-4" />}
                   <span>{item.label}</span>
-                  {item.shortcut && <CommandShortcut>{item.shortcut}</CommandShortcut>}
+                  {item.shortcut && (
+                    <CommandShortcut>{item.shortcut}</CommandShortcut>
+                  )}
                 </CommandItem>
               ))}
             </CommandGroup>

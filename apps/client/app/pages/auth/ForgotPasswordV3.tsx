@@ -8,7 +8,9 @@ import { Hexagon, ArrowLeft, Mail, Send } from "lucide-react";
 import { toast } from "@casbin/ui";
 import { motion, AnimatePresence } from "framer-motion";
 
-const emailSchema = z.object({ email: z.string().trim().email("Email tidak valid") });
+const emailSchema = z.object({
+  email: z.string().trim().email("Email tidak valid"),
+});
 
 export default function ForgotPasswordV3() {
   const [loading, setLoading] = useState(false);
@@ -74,7 +76,9 @@ export default function ForgotPasswordV3() {
                       Nexus
                     </span>
                   </div>
-                  <h1 className="text-background text-2xl font-bold">Forgot password?</h1>
+                  <h1 className="text-background text-2xl font-bold">
+                    Forgot password?
+                  </h1>
                   <p className="text-background/50 text-sm">
                     Enter your email to receive a password reset link.
                   </p>
@@ -111,17 +115,26 @@ export default function ForgotPasswordV3() {
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 15,
+                    delay: 0.2,
+                  }}
                   className="flex justify-center"
                 >
                   <div className="bg-primary/10 border-primary/20 flex h-20 w-20 items-center justify-center rounded-full border-4">
                     <Mail className="text-primary h-9 w-9" />
                   </div>
                 </motion.div>
-                <h2 className="text-background text-xl font-bold">Check your email</h2>
+                <h2 className="text-background text-xl font-bold">
+                  Check your email
+                </h2>
                 <p className="text-background/50 text-sm">
                   Reset link sent to{" "}
-                  <span className="text-background/80 font-semibold">{email}</span>
+                  <span className="text-background/80 font-semibold">
+                    {email}
+                  </span>
                 </p>
                 <div className="space-y-3">
                   <NexusButton

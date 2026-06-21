@@ -1,8 +1,15 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { statsApi, SystemInsights } from "~/lib/api/stats";
-import { auditApi, AuditLog } from "~/lib/api/audit";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
+import { statsApi, type SystemInsights } from "~/lib/api/stats";
+import { auditApi, type AuditLog } from "~/lib/api/audit";
 import { toast } from "sonner";
 
 interface DashboardContextType {
@@ -17,7 +24,9 @@ interface DashboardContextType {
   refresh: () => Promise<void>;
 }
 
-const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
+const DashboardContext = createContext<DashboardContextType | undefined>(
+  undefined,
+);
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const [stats, setStats] = useState({

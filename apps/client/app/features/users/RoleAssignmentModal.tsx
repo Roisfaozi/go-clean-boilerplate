@@ -11,10 +11,9 @@ import { NexusButton } from "@casbin/ui";
 import { Checkbox } from "@casbin/ui";
 import { Skeleton } from "@casbin/ui";
 import { Badge } from "@casbin/ui";
-import { Shield, UserPlus, X } from "lucide-react";
+import { Shield } from "lucide-react";
 import { useRoles } from "../roles/roleHooks";
-import { useToggleAccessRight } from "../permissions/permissionHooks";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { permissionService } from "../permissions/permissionService";
 import { toast } from "@casbin/ui";
 
@@ -47,7 +46,10 @@ export function RoleAssignmentModal({
 
   const assignMutation = useMutation({
     mutationFn: (roleName: string) =>
-      permissionService.addInheritance({ child_role: userId, parent_role: roleName }),
+      permissionService.addInheritance({
+        child_role: userId,
+        parent_role: roleName,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users"] });
       toast.success("Role assigned");
@@ -57,7 +59,10 @@ export function RoleAssignmentModal({
 
   const revokeMutation = useMutation({
     mutationFn: (roleName: string) =>
-      permissionService.removeInheritance({ child_role: userId, parent_role: roleName }),
+      permissionService.removeInheritance({
+        child_role: userId,
+        parent_role: roleName,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users"] });
       toast.success("Role revoked");
@@ -91,10 +96,16 @@ export function RoleAssignmentModal({
         <div className="space-y-4 py-4">
           <div className="mb-2 flex flex-wrap gap-1.5">
             {selectedRoles.length === 0 ? (
-              <span className="text-muted-foreground text-xs italic">No roles assigned</span>
+              <span className="text-muted-foreground text-xs italic">
+                No roles assigned
+              </span>
             ) : (
               selectedRoles.map((r) => (
-                <Badge key={r} variant="secondary" className="px-2 py-0.5 text-[10px] font-bold">
+                <Badge
+                  key={r}
+                  variant="secondary"
+                  className="px-2 py-0.5 text-[10px] font-bold"
+                >
                   {r}
                 </Badge>
               ))
@@ -123,7 +134,9 @@ export function RoleAssignmentModal({
                     </div>
                     <Checkbox
                       checked={selectedRoles.includes(role.name)}
-                      onCheckedChange={(checked) => handleToggle(role.name, !!checked)}
+                      onCheckedChange={(checked) =>
+                        handleToggle(role.name, !!checked)
+                      }
                     />
                   </div>
                 ))}

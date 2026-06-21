@@ -11,7 +11,12 @@ import {
   type FieldDef,
 } from "@/features/shared";
 import { Plus, UserCog } from "lucide-react";
-import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from "./userHooks";
+import {
+  useUsers,
+  useCreateUser,
+  useUpdateUser,
+  useDeleteUser,
+} from "./userHooks";
 import { RoleAssignmentModal } from "./RoleAssignmentModal";
 import type { User } from "@/lib/api/schemas";
 import { Skeleton } from "@casbin/ui";
@@ -108,7 +113,12 @@ export default function UsersPage() {
           </div>
         ),
       },
-      { id: "username", header: "Username", accessorKey: "username", sortable: true },
+      {
+        id: "username",
+        header: "Username",
+        accessorKey: "username",
+        sortable: true,
+      },
       {
         id: "roles",
         header: "Roles",
@@ -116,12 +126,18 @@ export default function UsersPage() {
           <div className="flex max-w-[200px] flex-wrap gap-1">
             {row.roles && row.roles.length > 0 ? (
               row.roles.map((r: string) => (
-                <NexusBadge key={r} variant="neutral" className="px-1.5 py-0 text-[10px]">
+                <NexusBadge
+                  key={r}
+                  variant="neutral"
+                  className="px-1.5 py-0 text-[10px]"
+                >
                   {r}
                 </NexusBadge>
               ))
             ) : (
-              <span className="text-muted-foreground text-[10px] italic">No roles</span>
+              <span className="text-muted-foreground text-[10px] italic">
+                No roles
+              </span>
             )}
             <NexusButton
               variant="ghost"
@@ -228,7 +244,10 @@ export default function UsersPage() {
         initialValues={editItem || undefined}
         onSubmit={async (values) => {
           if (editItem) {
-            await updateUser.mutateAsync({ id: editItem.id, data: values as any });
+            await updateUser.mutateAsync({
+              id: editItem.id,
+              data: values as any,
+            });
             setEditItem(null);
           }
         }}

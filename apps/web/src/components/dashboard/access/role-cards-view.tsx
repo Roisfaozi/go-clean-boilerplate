@@ -21,7 +21,10 @@ interface RoleCardData extends Role {
   resourceCount: number;
 }
 
-export function RoleCardsView({ onRoleClick, onManagePermissions }: RoleCardsViewProps) {
+export function RoleCardsView({
+  onRoleClick,
+  onManagePermissions,
+}: RoleCardsViewProps) {
   const { density } = useDensity();
   const isCompact = density === "compact";
   const [roles, setRoles] = useState<RoleCardData[]>([]);
@@ -42,7 +45,9 @@ export function RoleCardsView({ onRoleClick, onManagePermissions }: RoleCardsVie
       const enriched: RoleCardData[] = roleList.map((role: Role) => {
         const resourceCount = resources.filter((r) => {
           const crud = r.role_permissions[role.name];
-          return crud && (crud.create || crud.read || crud.update || crud.delete);
+          return (
+            crud && (crud.create || crud.read || crud.update || crud.delete)
+          );
         }).length;
 
         return {
@@ -70,7 +75,10 @@ export function RoleCardsView({ onRoleClick, onManagePermissions }: RoleCardsVie
         className={`grid grid-cols-1 ${isCompact ? "gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "gap-4 sm:grid-cols-2 lg:grid-cols-3"}`}
       >
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className={`${isCompact ? "h-36" : "h-44"} w-full rounded-xl`} />
+          <Skeleton
+            key={i}
+            className={`${isCompact ? "h-36" : "h-44"} w-full rounded-xl`}
+          />
         ))}
       </div>
     );
@@ -94,13 +102,21 @@ export function RoleCardsView({ onRoleClick, onManagePermissions }: RoleCardsVie
               className={`group relative flex flex-col justify-between rounded-xl border ${isCompact ? "p-3" : "p-5"} hover:border-primary/30 transition-all hover:shadow-md`}
             >
               <div>
-                <div className={`flex items-center gap-2 ${isCompact ? "mb-1.5" : "mb-3"}`}>
+                <div
+                  className={`flex items-center gap-2 ${isCompact ? "mb-1.5" : "mb-3"}`}
+                >
                   <div className="bg-primary/10 text-primary rounded-md p-1.5">
-                    <Icon name="Shield" className={`${isCompact ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
+                    <Icon
+                      name="Shield"
+                      className={`${isCompact ? "h-3.5 w-3.5" : "h-4 w-4"}`}
+                    />
                   </div>
                   <h3 className="font-semibold">{cleanName}</h3>
                   {isSystem && (
-                    <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                    <Badge
+                      variant="secondary"
+                      className="px-1.5 py-0 text-[10px]"
+                    >
                       System
                     </Badge>
                   )}
@@ -157,11 +173,17 @@ export function RoleCardsView({ onRoleClick, onManagePermissions }: RoleCardsVie
             <Icon name="Plus" className="text-muted-foreground h-5 w-5" />
           </div>
           <span className="text-sm font-medium">Create Role</span>
-          <span className="text-muted-foreground mt-1 text-xs">Add a new role to the system</span>
+          <span className="text-muted-foreground mt-1 text-xs">
+            Add a new role to the system
+          </span>
         </button>
       </div>
 
-      <RoleDialog open={dialogOpen} onOpenChange={setDialogOpen} onSuccess={fetchData} />
+      <RoleDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={fetchData}
+      />
     </>
   );
 }

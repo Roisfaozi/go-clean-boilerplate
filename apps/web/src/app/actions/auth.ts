@@ -5,14 +5,20 @@ import { redirect } from "next/navigation";
 import { loginSchema } from "~/lib/api/auth";
 import { actionClient } from "~/lib/client/safe-action";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080/api/v1";
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080/api/v1";
 
 const isSecure =
   process.env.NEXT_PUBLIC_COOKIE_SECURE === "true" ||
-  (process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_COOKIE_SECURE !== "false");
+  (process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PUBLIC_COOKIE_SECURE !== "false");
 
-const ACCESS_TOKEN_MAX_AGE = Number(process.env.NEXT_PUBLIC_ACCESS_TOKEN_MAX_AGE || 60 * 15);
-const REFRESH_TOKEN_MAX_AGE = Number(process.env.NEXT_PUBLIC_REFRESH_TOKEN_MAX_AGE || 60 * 60 * 24);
+const ACCESS_TOKEN_MAX_AGE = Number(
+  process.env.NEXT_PUBLIC_ACCESS_TOKEN_MAX_AGE || 60 * 15,
+);
+const REFRESH_TOKEN_MAX_AGE = Number(
+  process.env.NEXT_PUBLIC_REFRESH_TOKEN_MAX_AGE || 60 * 60 * 24,
+);
 
 export const loginAction = actionClient
   .schema(loginSchema)
@@ -30,7 +36,8 @@ export const loginAction = actionClient
         console.error("Login Fetch Error:", fetchError);
         return {
           success: false,
-          message: "Sistem tidak dapat terhubung ke API server. Pastikan backend sudah menyala.",
+          message:
+            "Sistem tidak dapat terhubung ke API server. Pastikan backend sudah menyala.",
         };
       }
 
@@ -38,7 +45,9 @@ export const loginAction = actionClient
 
       if (!response.ok) {
         if (response.status === 502 || result.code === "BACKEND_OFFLINE") {
-          throw new Error(result.message || "Gagal terhubung ke server (Backend Offline).");
+          throw new Error(
+            result.message || "Gagal terhubung ke server (Backend Offline).",
+          );
         }
         console.log("ini response", response);
         throw new Error(result.error || result.message || "Login failed");

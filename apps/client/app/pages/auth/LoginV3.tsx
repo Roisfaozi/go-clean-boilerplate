@@ -3,11 +3,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { z } from "zod";
 import { NexusButton } from "@casbin/ui";
-import { NexusInput } from "@casbin/ui";
-import { FormGroup } from "@/components/patterns/form-group";
 import { Hexagon, ArrowRight, Lock, User, ChevronRight } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
-import { toast } from "@casbin/ui";
 import { motion } from "framer-motion";
 
 const loginSchema = z.object({
@@ -74,7 +71,12 @@ export default function LoginV3() {
   const handleGoogleLogin = () => {
     setGoogleLoading(true);
     setTimeout(() => {
-      login({ id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" });
+      login({
+        id: "g1",
+        name: "Google User",
+        email: "user@gmail.com",
+        username: "googleuser",
+      });
       navigate("/");
     }, 1500);
   };
@@ -119,7 +121,8 @@ export default function LoginV3() {
               </span>
             </h1>
             <p className="max-w-md text-lg opacity-60">
-              Secure, scalable, and beautifully crafted. Your command center awaits.
+              Secure, scalable, and beautifully crafted. Your command center
+              awaits.
             </p>
           </div>
 
@@ -140,8 +143,9 @@ export default function LoginV3() {
           {/* Testimonial */}
           <div className="border-primary-foreground/10 bg-primary-foreground/5 rounded-2xl border p-6 backdrop-blur-sm">
             <p className="text-sm leading-relaxed italic opacity-70">
-              "NexusOS transformed how we manage access control across 200+ microservices. The RBAC
-              system is incredibly powerful yet intuitive."
+              "NexusOS transformed how we manage access control across 200+
+              microservices. The RBAC system is incredibly powerful yet
+              intuitive."
             </p>
             <div className="mt-4 flex items-center gap-3">
               <div className="bg-primary/30 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold">
@@ -174,7 +178,9 @@ export default function LoginV3() {
 
           <div className="space-y-2">
             <h2 className="text-3xl font-bold">Sign in</h2>
-            <p className="text-sm opacity-50">Access your workspace and projects</p>
+            <p className="text-sm opacity-50">
+              Access your workspace and projects
+            </p>
           </div>
 
           {/* Google */}
@@ -191,7 +197,9 @@ export default function LoginV3() {
 
           <div className="flex items-center gap-3">
             <div className="bg-primary-foreground/10 h-px flex-1" />
-            <span className="text-xs tracking-widest uppercase opacity-40">or</span>
+            <span className="text-xs tracking-widest uppercase opacity-40">
+              or
+            </span>
             <div className="bg-primary-foreground/10 h-px flex-1" />
           </div>
 
@@ -207,14 +215,19 @@ export default function LoginV3() {
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={loading}
               />
-              {errors.username && <p className="text-danger mt-1 text-xs">{errors.username}</p>}
+              {errors.username && (
+                <p className="text-danger mt-1 text-xs">{errors.username}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 text-sm font-medium opacity-70">
                   <Lock className="h-3.5 w-3.5" /> Password
                 </label>
-                <Link to="/forgot-password" className="text-primary text-xs hover:underline">
+                <Link
+                  to="/forgot-password"
+                  className="text-primary text-xs hover:underline"
+                >
                   Forgot?
                 </Link>
               </div>
@@ -226,7 +239,9 @@ export default function LoginV3() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
               />
-              {errors.password && <p className="text-danger mt-1 text-xs">{errors.password}</p>}
+              {errors.password && (
+                <p className="text-danger mt-1 text-xs">{errors.password}</p>
+              )}
             </div>
             <NexusButton
               className="bg-primary hover:bg-primary-hover text-primary-foreground h-12 w-full gap-2 rounded-xl"

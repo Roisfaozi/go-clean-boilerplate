@@ -10,7 +10,12 @@ interface PermissionMatrixProps {
   resources: string[];
   actions: string[];
   initialPermissions?: Record<string, Record<string, string[]>>;
-  onPermissionChange?: (role: string, resource: string, action: string, granted: boolean) => void;
+  onPermissionChange?: (
+    role: string,
+    resource: string,
+    action: string,
+    granted: boolean,
+  ) => void;
 }
 
 export function PermissionMatrix({
@@ -27,7 +32,7 @@ export function PermissionMatrix({
   // Sync with parent data
   useEffect(() => {
     setPermissions(initialPermissions);
-  }, [JSON.stringify(initialPermissions)]);
+  }, [initialPermissions]);
 
   const hasPermission = (role: string, resource: string, action: string) =>
     permissions[role]?.[resource]?.includes(action) ?? false;
@@ -53,7 +58,10 @@ export function PermissionMatrix({
   };
 
   const rolePermCount = (role: string) =>
-    Object.values(permissions[role] ?? {}).reduce((sum, acts) => sum + acts.length, 0);
+    Object.values(permissions[role] ?? {}).reduce(
+      (sum, acts) => sum + acts.length,
+      0,
+    );
 
   return (
     <NexusCard className="overflow-hidden">
@@ -110,7 +118,9 @@ export function PermissionMatrix({
                     >
                       <Checkbox
                         checked={hasPermission(role, resource, action)}
-                        onCheckedChange={() => togglePermission(role, resource, action)}
+                        onCheckedChange={() =>
+                          togglePermission(role, resource, action)
+                        }
                         className={cn(
                           "mx-auto",
                           hasPermission(role, resource, action) &&

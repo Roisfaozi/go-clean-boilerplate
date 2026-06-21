@@ -139,7 +139,7 @@ Read with:
 ## Known sharp edges
 
 - `apps/web` and `apps/client` are both active; do not patch one and assume repo done.
-- `apps/client` lint aliases typecheck; use build/E2E too when runtime or browser behavior changes.
+- `apps/client` lint runs Biome; use typecheck and build/E2E too when runtime or browser behavior changes.
 - proxy `BACKEND_OFFLINE` behavior is user-facing contract and should stay consistent unless intentionally redesigned.
 - cookie/header forwarding lists are security-sensitive and should not be widened casually.
 

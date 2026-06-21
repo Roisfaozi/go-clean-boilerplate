@@ -8,7 +8,13 @@ import {
   NexusCardContent,
 } from "@casbin/ui";
 import { NexusButton } from "@casbin/ui";
-import { Lock, ShieldOff, Search, ServerCrash, ExternalLink } from "lucide-react";
+import {
+  Lock,
+  ShieldOff,
+  Search,
+  ServerCrash,
+  ExternalLink,
+} from "lucide-react";
 
 const sections = [
   {
@@ -72,8 +78,12 @@ export default function ErrorShowcasePage() {
                   <section.icon className={`h-5 w-5 ${section.color}`} />
                 </div>
                 <div>
-                  <NexusCardTitle className="text-base">{section.title}</NexusCardTitle>
-                  <NexusCardDescription>3 visual variations</NexusCardDescription>
+                  <NexusCardTitle className="text-base">
+                    {section.title}
+                  </NexusCardTitle>
+                  <NexusCardDescription>
+                    3 visual variations
+                  </NexusCardDescription>
                 </div>
               </div>
             </NexusCardHeader>

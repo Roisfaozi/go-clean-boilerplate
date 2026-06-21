@@ -14,7 +14,12 @@ export default function ResetPassword() {
       <div className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="password">New Password</Label>
-          <Input id="password" placeholder="••••••••" type="password" autoComplete="new-password" />
+          <Input
+            id="password"
+            placeholder="••••••••"
+            type="password"
+            autoComplete="new-password"
+          />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="confirmPassword">Confirm New Password</Label>

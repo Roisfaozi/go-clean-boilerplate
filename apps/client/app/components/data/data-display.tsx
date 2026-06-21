@@ -63,7 +63,12 @@ function TreeNode({
       {hasChildren && open && (
         <div>
           {node.children!.map((child) => (
-            <TreeNode key={child.id} node={child} onSelect={onSelect} depth={depth + 1} />
+            <TreeNode
+              key={child.id}
+              node={child}
+              onSelect={onSelect}
+              depth={depth + 1}
+            />
           ))}
         </div>
       )}
@@ -94,7 +99,9 @@ export function KeyValueList({ items, striped, className }: KeyValueListProps) {
             striped && i % 2 === 0 && "bg-surface",
           )}
         >
-          <dt className="text-small text-muted-foreground shrink-0 font-medium">{item.key}</dt>
+          <dt className="text-small text-muted-foreground shrink-0 font-medium">
+            {item.key}
+          </dt>
           <dd className="text-body text-foreground text-right">{item.value}</dd>
         </div>
       ))}
@@ -119,11 +126,15 @@ export function CodeBlock({ code, language, className }: CodeBlockProps) {
     >
       {language && (
         <div className="border-border flex items-center justify-between border-b px-4 py-2">
-          <span className="text-caption text-muted-foreground font-mono">{language}</span>
+          <span className="text-caption text-muted-foreground font-mono">
+            {language}
+          </span>
         </div>
       )}
       <pre className="overflow-x-auto p-4">
-        <code className="text-small text-foreground font-mono whitespace-pre">{code}</code>
+        <code className="text-small text-foreground font-mono whitespace-pre">
+          {code}
+        </code>
       </pre>
     </div>
   );
@@ -164,16 +175,24 @@ export function Timeline({ items, className }: TimelineProps) {
                 timelineColors[item.variant || "default"],
               )}
             >
-              {item.icon || <div className="bg-background h-2 w-2 rounded-full" />}
+              {item.icon || (
+                <div className="bg-background h-2 w-2 rounded-full" />
+              )}
             </div>
             {i < items.length - 1 && <div className="bg-border w-px flex-1" />}
           </div>
           <div className="pt-1 pb-6">
-            <p className="text-body text-foreground font-medium">{item.title}</p>
+            <p className="text-body text-foreground font-medium">
+              {item.title}
+            </p>
             {item.description && (
-              <p className="text-small text-muted-foreground mt-0.5">{item.description}</p>
+              <p className="text-small text-muted-foreground mt-0.5">
+                {item.description}
+              </p>
             )}
-            <p className="text-caption text-muted-foreground mt-1">{item.time}</p>
+            <p className="text-caption text-muted-foreground mt-1">
+              {item.time}
+            </p>
           </div>
         </div>
       ))}
@@ -213,9 +232,15 @@ export function ActivityFeed({ items, className }: ActivityFeedProps) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-body">
-              <span className="text-foreground font-semibold">{item.user.name}</span>{" "}
+              <span className="text-foreground font-semibold">
+                {item.user.name}
+              </span>{" "}
               <span className="text-muted-foreground">{item.action}</span>{" "}
-              {item.target && <span className="text-foreground font-medium">{item.target}</span>}
+              {item.target && (
+                <span className="text-foreground font-medium">
+                  {item.target}
+                </span>
+              )}
             </p>
             <p className="text-caption text-muted-foreground">{item.time}</p>
           </div>

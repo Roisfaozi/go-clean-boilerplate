@@ -42,7 +42,8 @@ export function LandingFooter() {
               <span className="text-lg font-bold tracking-tight">NexusOS</span>
             </Link>
             <p className="text-muted-foreground mt-4 max-w-xs text-sm">
-              The operating system for modern teams. Build, ship, and scale with confidence.
+              The operating system for modern teams. Build, ship, and scale with
+              confidence.
             </p>
             <div className="mt-6 flex items-center gap-3">
               {[Globe, Mail, MessageSquare].map((Icon, i) => (
@@ -59,7 +60,9 @@ export function LandingFooter() {
 
           {sections.map((section) => (
             <div key={section.title}>
-              <h4 className="text-foreground mb-4 text-sm font-semibold">{section.title}</h4>
+              <h4 className="text-foreground mb-4 text-sm font-semibold">
+                {section.title}
+              </h4>
               <ul className="space-y-3">
                 {section.links.map((link) => (
                   <li key={link.label}>

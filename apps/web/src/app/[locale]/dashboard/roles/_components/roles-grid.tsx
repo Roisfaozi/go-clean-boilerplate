@@ -12,7 +12,7 @@ import {
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Icon } from "~/components/shared/icon";
-import { Role } from "~/lib/api/roles";
+import type { Role } from "~/lib/api/roles";
 import { memo } from "react";
 import { EmptyState } from "~/components/shared/empty-state";
 import { CardGridSkeleton } from "~/components/shared/skeletons";
@@ -79,7 +79,10 @@ const RoleCard = memo(function RoleCard({ role }: { role: Role }) {
             <CardTitle className="text-lg">{role.name}</CardTitle>
           </div>
           {role.name.startsWith("role:") ? (
-            <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10">
+            <Badge
+              variant="secondary"
+              className="bg-primary/5 text-primary border-primary/10"
+            >
               System
             </Badge>
           ) : (

@@ -74,7 +74,13 @@ const mockOrgs: OrgRow[] = [
 ];
 
 const columns: CrudColumnDef<OrgRow>[] = [
-  { id: "name", header: "Organization", accessorKey: "name", sortable: true, minWidth: 180 },
+  {
+    id: "name",
+    header: "Organization",
+    accessorKey: "name",
+    sortable: true,
+    minWidth: 180,
+  },
   { id: "slug", header: "Slug", accessorKey: "slug" },
   { id: "members", header: "Members", accessorKey: "members", sortable: true },
   {
@@ -87,7 +93,9 @@ const columns: CrudColumnDef<OrgRow>[] = [
       { label: "Suspended", value: "suspended" },
     ],
     cell: (row) => (
-      <NexusBadge variant={row.status === "active" ? "success" : "danger"}>{row.status}</NexusBadge>
+      <NexusBadge variant={row.status === "active" ? "success" : "danger"}>
+        {row.status}
+      </NexusBadge>
     ),
   },
 ];
@@ -114,7 +122,13 @@ const editSchema = z.object({
 });
 
 const createFields: FieldDef[] = [
-  { name: "name", label: "Name", type: "text", required: true, placeholder: "e.g. Acme Corp" },
+  {
+    name: "name",
+    label: "Name",
+    type: "text",
+    required: true,
+    placeholder: "e.g. Acme Corp",
+  },
   {
     name: "slug",
     label: "Slug",
@@ -215,7 +229,10 @@ export default function OrganizationsPage() {
         initialValues={editItem || undefined}
         onSubmit={async (values) => {
           if (editItem) {
-            await updateOrg.mutateAsync({ id: editItem.id, data: values as any });
+            await updateOrg.mutateAsync({
+              id: editItem.id,
+              data: values as any,
+            });
             setEditItem(null);
           }
         }}

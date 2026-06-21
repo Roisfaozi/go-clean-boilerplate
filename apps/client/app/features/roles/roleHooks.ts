@@ -5,7 +5,10 @@ import { toast } from "@casbin/ui";
 const KEY = ["roles"];
 
 export function useRoles(params?: { page?: number; limit?: number }) {
-  return useQuery({ queryKey: [...KEY, params], queryFn: () => roleService.list(params) });
+  return useQuery({
+    queryKey: [...KEY, params],
+    queryFn: () => roleService.list(params),
+  });
 }
 
 export function useCreateRole() {
@@ -23,7 +26,8 @@ export function useCreateRole() {
 export function useUpdateRole() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<any> }) => roleService.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<any> }) =>
+      roleService.update(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY });
       toast.success("Role updated");

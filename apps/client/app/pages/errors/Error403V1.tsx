@@ -39,8 +39,8 @@ export default function Error403V1() {
             <p className="text-danger/20 text-8xl font-black">403</p>
             <h1 className="text-foreground text-3xl font-bold">Forbidden</h1>
             <p className="text-muted-foreground">
-              You don't have permission to access this resource. Contact your administrator if you
-              think this is a mistake.
+              You don't have permission to access this resource. Contact your
+              administrator if you think this is a mistake.
             </p>
           </div>
           <div className="flex flex-col justify-center gap-3 sm:flex-row">

@@ -17,12 +17,19 @@ export function useAuditLogs(params: {
 }
 
 export function useExportAuditLogs() {
-  return async (params: { from_date?: string; to_date?: string; format: "csv" | "excel" }) => {
+  return async (params: {
+    from_date?: string;
+    to_date?: string;
+    format: "csv" | "excel";
+  }) => {
     const response = await auditService.export(params);
     const url = window.URL.createObjectURL(new Blob([response as any]));
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `audit-logs-${new Date().toISOString()}.${params.format}`);
+    link.setAttribute(
+      "download",
+      `audit-logs-${new Date().toISOString()}.${params.format}`,
+    );
     document.body.appendChild(link);
     link.click();
     link.remove();

@@ -8,12 +8,19 @@ interface FormSectionProps {
   className?: string;
 }
 
-export function FormSection({ title, description, children, className }: FormSectionProps) {
+export function FormSection({
+  title,
+  description,
+  children,
+  className,
+}: FormSectionProps) {
   return (
     <div className={cn("space-y-4", className)}>
       <div className="space-y-1">
         <h3 className="text-h3 text-foreground">{title}</h3>
-        {description && <p className="text-small text-muted-foreground">{description}</p>}
+        {description && (
+          <p className="text-small text-muted-foreground">{description}</p>
+        )}
       </div>
       <div className="space-y-4">{children}</div>
     </div>
@@ -27,7 +34,11 @@ interface FieldGroupProps {
   className?: string;
 }
 
-export function FieldGroup({ layout = "vertical", children, className }: FieldGroupProps) {
+export function FieldGroup({
+  layout = "vertical",
+  children,
+  className,
+}: FieldGroupProps) {
   return (
     <div
       className={cn(

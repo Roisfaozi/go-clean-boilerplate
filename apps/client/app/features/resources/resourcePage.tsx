@@ -18,7 +18,7 @@ import {
   useUpdateResource,
 } from "./resourceHooks";
 
-const mockData: Resource[] = [
+const _mockData: Resource[] = [
   {
     id: "1",
     name: "Users",
@@ -70,8 +70,19 @@ const mockData: Resource[] = [
 ];
 
 const columns: CrudColumnDef<Resource>[] = [
-  { id: "name", header: "Name", accessorKey: "name", sortable: true, minWidth: 160 },
-  { id: "description", header: "Description", accessorKey: "description", minWidth: 300 },
+  {
+    id: "name",
+    header: "Name",
+    accessorKey: "name",
+    sortable: true,
+    minWidth: 160,
+  },
+  {
+    id: "description",
+    header: "Description",
+    accessorKey: "description",
+    minWidth: 300,
+  },
   {
     id: "status",
     header: "Status",
@@ -101,7 +112,13 @@ const editSchema = z.object({
 });
 
 const createFields: FieldDef[] = [
-  { name: "name", label: "Resource Name", type: "text", required: true, placeholder: "e.g. Users" },
+  {
+    name: "name",
+    label: "Resource Name",
+    type: "text",
+    required: true,
+    placeholder: "e.g. Users",
+  },
   {
     name: "description",
     label: "Description",
@@ -189,7 +206,10 @@ export default function ResourcesPage() {
         initialValues={editItem || undefined}
         onSubmit={async (v) => {
           if (editItem) {
-            await updateResource.mutateAsync({ id: editItem.id, data: v as any });
+            await updateResource.mutateAsync({
+              id: editItem.id,
+              data: v as any,
+            });
             setEditItem(null);
           }
         }}

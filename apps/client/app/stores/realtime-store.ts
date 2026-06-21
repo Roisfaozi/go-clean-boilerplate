@@ -13,7 +13,9 @@ export interface RealtimeNotification {
 interface NotificationState {
   notifications: RealtimeNotification[];
   unreadCount: number;
-  addNotification: (n: Omit<RealtimeNotification, "id" | "time" | "read">) => void;
+  addNotification: (
+    n: Omit<RealtimeNotification, "id" | "time" | "read">,
+  ) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearAll: () => void;
@@ -60,8 +62,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
   markAsRead: (id) =>
     set((s) => {
-      const notifications = s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
-      return { notifications, unreadCount: notifications.filter((n) => !n.read).length };
+      const notifications = s.notifications.map((n) =>
+        n.id === id ? { ...n, read: true } : n,
+      );
+      return {
+        notifications,
+        unreadCount: notifications.filter((n) => !n.read).length,
+      };
     }),
   markAllAsRead: () =>
     set((s) => ({
@@ -102,20 +109,32 @@ export const usePresenceStore = create<PresenceState>((set) => ({
     set((s) => {
       if (s.users.find((u) => u.id === user.id)) return s;
       const users = [...s.users, user];
-      return { users, onlineCount: users.filter((u) => u.status === "online").length };
+      return {
+        users,
+        onlineCount: users.filter((u) => u.status === "online").length,
+      };
     }),
   removeUser: (id) =>
     set((s) => {
       const users = s.users.filter((u) => u.id !== id);
-      return { users, onlineCount: users.filter((u) => u.status === "online").length };
+      return {
+        users,
+        onlineCount: users.filter((u) => u.status === "online").length,
+      };
     }),
   updateUser: (id, data) =>
     set((s) => {
       const users = s.users.map((u) => (u.id === id ? { ...u, ...data } : u));
-      return { users, onlineCount: users.filter((u) => u.status === "online").length };
+      return {
+        users,
+        onlineCount: users.filter((u) => u.status === "online").length,
+      };
     }),
   setUsers: (users) =>
-    set({ users, onlineCount: users.filter((u) => u.status === "online").length }),
+    set({
+      users,
+      onlineCount: users.filter((u) => u.status === "online").length,
+    }),
 }));
 
 /* ═══════ Activity Feed Store ═══════ */
@@ -229,10 +248,14 @@ export const useMetricsStore = create<MetricsState>((set) => ({
   history: [],
   updateMetrics: (m) =>
     set((s) => {
-      const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      const newHistory = [...s.history, { time: now, rps: m.rps, latency: m.avg_latency }].slice(
-        -20,
-      );
+      const now = new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const newHistory = [
+        ...s.history,
+        { time: now, rps: m.rps, latency: m.avg_latency },
+      ].slice(-20);
       return { metrics: m, history: newHistory };
     }),
 }));

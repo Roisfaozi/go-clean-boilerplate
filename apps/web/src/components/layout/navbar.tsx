@@ -84,7 +84,11 @@ export default function Navbar({
             >
               {headerText.changelog}
             </Link>
-            <Link href="/about" onClick={() => setIsOpen(false)} className="text-sm font-medium">
+            <Link
+              href="/about"
+              onClick={() => setIsOpen(false)}
+              className="text-sm font-medium"
+            >
               {headerText.about}
             </Link>
 

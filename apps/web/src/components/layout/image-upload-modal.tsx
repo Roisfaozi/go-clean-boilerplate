@@ -17,7 +17,9 @@ interface ImageUploadModalProps {
   onImageChange: (url: string) => void;
 }
 
-export default function ImageUploadModal({ onImageChange }: ImageUploadModalProps) {
+export default function ImageUploadModal({
+  onImageChange,
+}: ImageUploadModalProps) {
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -83,7 +85,11 @@ export default function ImageUploadModal({ onImageChange }: ImageUploadModalProp
             <div className="border-muted relative h-40 w-40 overflow-hidden rounded-full border-4">
               {/* Using standard img to avoid next/image domain config issues for base64/blobs */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt="Preview" className="h-full w-full object-cover" />
+              <img
+                src={preview}
+                alt="Preview"
+                className="h-full w-full object-cover"
+              />
             </div>
           ) : (
             <div className="border-muted bg-muted/30 text-muted-foreground flex h-40 w-40 flex-col items-center justify-center rounded-full border-4 border-dashed">
@@ -117,7 +123,11 @@ export default function ImageUploadModal({ onImageChange }: ImageUploadModalProp
             >
               Cancel
             </Button>
-            <Button type="button" onClick={handleSave} disabled={!preview || isUploading}>
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={!preview || isUploading}
+            >
               {isUploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

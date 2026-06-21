@@ -5,7 +5,12 @@ import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { Icon } from "./icon";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
 interface SmartFormFieldProps extends React.ComponentProps<typeof Input> {
   label: string;
@@ -21,8 +26,24 @@ interface SmartFormFieldProps extends React.ComponentProps<typeof Input> {
  * Combines Label, Input, Error, and AI features.
  * Adapts layout based on global density: Vertical (Comfort) vs Horizontal (Compact).
  */
-export const SmartFormField = React.forwardRef<HTMLInputElement, SmartFormFieldProps>(
-  ({ label, error, hint, isAI, onAiClick, isLoadingAi, className, id, ...props }, ref) => {
+export const SmartFormField = React.forwardRef<
+  HTMLInputElement,
+  SmartFormFieldProps
+>(
+  (
+    {
+      label,
+      error,
+      hint,
+      isAI,
+      onAiClick,
+      isLoadingAi,
+      className,
+      id,
+      ...props
+    },
+    ref,
+  ) => {
     const generatedId = React.useId();
     const fieldId = id || generatedId;
 
@@ -46,7 +67,9 @@ export const SmartFormField = React.forwardRef<HTMLInputElement, SmartFormFieldP
             {props.required && <span className="text-destructive ml-1">*</span>}
           </Label>
           {hint && !error && (
-            <p className="text-muted-foreground text-xs [data-density=compact]:hidden">{hint}</p>
+            <p className="text-muted-foreground text-xs [data-density=compact]:hidden">
+              {hint}
+            </p>
           )}
         </div>
 

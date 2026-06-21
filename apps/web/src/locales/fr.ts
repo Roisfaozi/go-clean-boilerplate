@@ -20,11 +20,15 @@ export default {
     libs: {
       nextjs:
         "Répertoire App, routage, mises en page, routes API, composants serveur, actions serveur.",
-      tailwindcss: "Composants UI construits avec Radix UI et stylisés avec Tailwind CSS.",
-      postgres: "Utilisation de Postgres avec Prisma ORM, hébergé sur Vercel Postgres.",
+      tailwindcss:
+        "Composants UI construits avec Radix UI et stylisés avec Tailwind CSS.",
+      postgres:
+        "Utilisation de Postgres avec Prisma ORM, hébergé sur Vercel Postgres.",
       lucia: "Authentification et autorisation avec LuciaAuth v3.",
-      uploadthing: "Téléchargez et prévisualisez des fichiers facilement avec UploadThing.",
-      reactEmail: "Créez des e-mails avec React Email et envoyez-les avec Resend.",
+      uploadthing:
+        "Téléchargez et prévisualisez des fichiers facilement avec UploadThing.",
+      reactEmail:
+        "Créez des e-mails avec React Email et envoyez-les avec Resend.",
       internationalization:
         "Support d'internationalisation avec Next-International, sécurisé par typage.",
       stripe: "Recevez et traitez les paiements avec Stripe.",

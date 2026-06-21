@@ -1,4 +1,4 @@
-import { type Metadata } from "next";
+import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import Footer from "~/components/layout/footer";
@@ -120,7 +120,13 @@ export default async function RootLayout({
   const { locale } = await params;
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className={cn("font-sans antialiased", fontSans.variable, fontMono.variable)}>
+      <body
+        className={cn(
+          "font-sans antialiased",
+          fontSans.variable,
+          fontMono.variable,
+        )}
+      >
         <GlobalProviders>
           {/* <AnnouncementBanner /> */}
           <main>

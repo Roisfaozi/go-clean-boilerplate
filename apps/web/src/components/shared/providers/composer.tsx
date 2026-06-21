@@ -1,6 +1,7 @@
 "use client";
 
-import React, { ReactNode } from "react";
+import type React from "react";
+import type { ReactNode } from "react";
 
 interface ProviderComposerProps {
   providers: Array<React.JSXElementConstructor<React.PropsWithChildren<any>>>;
@@ -11,7 +12,10 @@ interface ProviderComposerProps {
  * ProviderComposer - Flattens nested providers into a single linear list.
  * Helps prevent the "wrapper hell" in root layouts.
  */
-export function ProviderComposer({ providers, children }: ProviderComposerProps) {
+export function ProviderComposer({
+  providers,
+  children,
+}: ProviderComposerProps) {
   return (
     <>
       {providers.reduceRight((acc, Provider) => {

@@ -5,7 +5,10 @@ import { toast } from "@casbin/ui";
 const KEY = ["access-rights"];
 
 export function useAccessRights(params?: { page?: number; limit?: number }) {
-  return useQuery({ queryKey: [...KEY, params], queryFn: () => accessRightService.list(params) });
+  return useQuery({
+    queryKey: [...KEY, params],
+    queryFn: () => accessRightService.list(params),
+  });
 }
 
 export function useCreateAccessRight() {

@@ -37,7 +37,7 @@ Guide for choosing the right verification layer, understanding infra assumptions
 - benchmark workflow: `llm/workflows/benchmarking.md`
 - frontend client E2E: package script `test:e2e`
 - frontend web checks: app scripts `lint`, `typecheck`, `build`
-- frontend client checks: `lint`, `typecheck`, `build`, `test:e2e`; `lint` aliases typecheck after Phase 7
+- frontend client checks: `lint`, `typecheck`, `build`, `test:e2e`; `lint` uses Biome and `typecheck` remains separate
 - security-sensitive change playbooks: `llm/test-playbooks/security-boundary-change-types.md`
 
 ## Infrastructure assumptions
@@ -115,5 +115,5 @@ Guide for choosing the right verification layer, understanding infra assumptions
 
 - separate passed checks from skipped checks
 - if Docker is unavailable, say integration/E2E were not run because Docker is required
-- if frontend client lint is run, say it currently aliases typecheck and is not ESLint coverage
+- if frontend lint is run, say it uses Biome and does not replace `typecheck`
 - do not imply success from unrun checks

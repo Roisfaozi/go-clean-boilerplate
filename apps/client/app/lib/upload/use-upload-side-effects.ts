@@ -10,14 +10,21 @@ import { useUploadStore } from "./upload-store";
  */
 export function useUploadSideEffects() {
   const items = useUploadStore((s) => s.items);
-  const lastBatchRef = useRef<{ active: number; failed: number; done: number } | null>(null);
+  const lastBatchRef = useRef<{
+    active: number;
+    failed: number;
+    done: number;
+  } | null>(null);
 
   // Before-unload protection while uploads are in flight.
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       const { items: current } = useUploadStore.getState();
       const inFlight = current.some(
-        (i) => i.status === "uploading" || i.status === "preparing" || i.status === "queued",
+        (i) =>
+          i.status === "uploading" ||
+          i.status === "preparing" ||
+          i.status === "queued",
       );
       if (!inFlight) return;
       e.preventDefault();
@@ -37,7 +44,8 @@ export function useUploadSideEffects() {
       const el = target as HTMLElement | null;
       if (!el) return false;
       const tag = el.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT")
+        return true;
       if (el.isContentEditable) return true;
       // Walk up: catches contentEditable wrappers (rich text editors, code editors).
       if (
@@ -54,7 +62,12 @@ export function useUploadSideEffects() {
       if (isEditableTarget(e.target)) return;
       // Don't hijack when an overlay that owns its own paste UX is open
       // (command palette, modal dialog, etc.).
-      if (document.querySelector('[data-state="open"][role="dialog"], [cmdk-root]')) return;
+      if (
+        document.querySelector(
+          '[data-state="open"][role="dialog"], [cmdk-root]',
+        )
+      )
+        return;
 
       const cd = e.clipboardData;
       if (!cd) return;
@@ -77,7 +90,9 @@ export function useUploadSideEffects() {
               const named =
                 f.name && f.name !== "image.png"
                   ? f
-                  : new File([f], `pasted-${Date.now()}.${ext}`, { type: f.type });
+                  : new File([f], `pasted-${Date.now()}.${ext}`, {
+                      type: f.type,
+                    });
               files.push(named);
             }
           }
@@ -104,7 +119,10 @@ export function useUploadSideEffects() {
   // Batch completion notifications: fire when the queue drains.
   useEffect(() => {
     const active = items.filter(
-      (i) => i.status === "uploading" || i.status === "preparing" || i.status === "queued",
+      (i) =>
+        i.status === "uploading" ||
+        i.status === "preparing" ||
+        i.status === "queued",
     ).length;
     const failed = items.filter((i) => i.status === "error").length;
     const done = items.filter((i) => i.status === "success").length;
@@ -113,11 +131,15 @@ export function useUploadSideEffects() {
     // Detect: was active, now zero active, has at least one finished item.
     if (prev && prev.active > 0 && active === 0 && (done > 0 || failed > 0)) {
       if (failed === 0) {
-        toast.success(`${done} file${done > 1 ? "s" : ""} uploaded successfully`);
+        toast.success(
+          `${done} file${done > 1 ? "s" : ""} uploaded successfully`,
+        );
       } else if (done === 0) {
         toast.error(`${failed} upload${failed > 1 ? "s" : ""} failed`);
       } else {
-        toast.warning(`Upload completed with ${failed} error${failed > 1 ? "s" : ""}`);
+        toast.warning(
+          `Upload completed with ${failed} error${failed > 1 ? "s" : ""}`,
+        );
       }
     }
     lastBatchRef.current = { active, failed, done };

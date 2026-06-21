@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { buttonVariants } from "~/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { cn } from "~/lib/utils";
 import { OrganizationSwitcher } from "../dashboard/organization-switcher";
 import { Icon } from "../shared/icon";
@@ -64,7 +69,11 @@ const navItems = [
   },
 ];
 
-export const Sidebar = memo(function Sidebar({ className }: { className?: string }) {
+export const Sidebar = memo(function Sidebar({
+  className,
+}: {
+  className?: string;
+}) {
   const pathname = usePathname();
   const { currentOrganization } = useDashboardShell();
 
@@ -78,7 +87,10 @@ export const Sidebar = memo(function Sidebar({ className }: { className?: string
     >
       {/* Header / Logo + Switcher */}
       <div className="flex h-[var(--navbar-height)] items-center gap-2 border-b px-3">
-        <Link href="/" className="flex shrink-0 items-center gap-2 overflow-hidden">
+        <Link
+          href="/"
+          className="flex shrink-0 items-center gap-2 overflow-hidden"
+        >
           <Icon name="Command" size="md" className="text-primary" />
         </Link>
         <OrganizationSwitcher />
@@ -87,7 +99,8 @@ export const Sidebar = memo(function Sidebar({ className }: { className?: string
       {/* Navigation */}
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive =
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (
             <TooltipProvider key={item.href}>
@@ -101,17 +114,24 @@ export const Sidebar = memo(function Sidebar({ className }: { className?: string
                         size: "default",
                       }),
                       "w-full justify-start overflow-hidden",
-                      isActive && "bg-primary/10 text-primary hover:bg-primary/20",
+                      isActive &&
+                        "bg-primary/10 text-primary hover:bg-primary/20",
                       "[data-density=compact]:justify-center [data-density=compact]:px-0",
                     )}
                   >
-                    <Icon name={item.iconName as any} className={cn(isActive && "text-primary")} />
+                    <Icon
+                      name={item.iconName as any}
+                      className={cn(isActive && "text-primary")}
+                    />
                     <span className="ml-3 truncate [data-density=compact]:hidden">
                       {item.title}
                     </span>
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="hidden [data-density=compact]:block">
+                <TooltipContent
+                  side="right"
+                  className="hidden [data-density=compact]:block"
+                >
                   {item.title}
                 </TooltipContent>
               </Tooltip>
@@ -124,7 +144,9 @@ export const Sidebar = memo(function Sidebar({ className }: { className?: string
       <div className="border-t p-4 [data-density=compact]:p-2">
         <div className="text-muted-foreground flex flex-col gap-1 text-[10px] font-bold tracking-wider uppercase [data-density=compact]:hidden">
           <span>Active Org</span>
-          <span className="text-primary truncate">{currentOrganization?.name || "None"}</span>
+          <span className="text-primary truncate">
+            {currentOrganization?.name || "None"}
+          </span>
         </div>
       </div>
     </aside>

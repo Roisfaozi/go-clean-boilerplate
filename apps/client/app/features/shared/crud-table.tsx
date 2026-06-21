@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { cn } from "@casbin/ui";
 import { NexusButton } from "@casbin/ui";
 import { NexusInput } from "@casbin/ui";
-import { NexusBadge } from "@casbin/ui";
 import { Checkbox } from "@casbin/ui";
 import {
   ArrowUp,
@@ -25,7 +24,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@casbin/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@casbin/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@casbin/ui";
 
 /* ── Types ── */
 export interface CrudColumnDef<T> {
@@ -74,7 +79,9 @@ export function CrudTable<T extends { id: string | number }>({
   className,
 }: CrudTableProps<T>) {
   const [search, setSearch] = useState("");
-  const [sorts, setSorts] = useState<{ column: string; direction: "asc" | "desc" }[]>([]);
+  const [sorts, setSorts] = useState<
+    { column: string; direction: "asc" | "desc" }[]
+  >([]);
   const [filters, setFilters] = useState<FilterState>({});
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
@@ -97,7 +104,9 @@ export function CrudTable<T extends { id: string | number }>({
       if (!filterVal || filterVal === "__all__") return;
       const col = columns.find((c) => c.id === colId);
       if (!col?.accessorKey) return;
-      result = result.filter((row) => String(row[col.accessorKey!]) === filterVal);
+      result = result.filter(
+        (row) => String(row[col.accessorKey!]) === filterVal,
+      );
     });
     return result;
   }, [data, search, filters, columns]);
@@ -111,9 +120,13 @@ export function CrudTable<T extends { id: string | number }>({
         if (!col?.accessorKey) continue;
         const aVal = a[col.accessorKey];
         const bVal = b[col.accessorKey];
-        const cmp = String(aVal ?? "").localeCompare(String(bVal ?? ""), undefined, {
-          numeric: true,
-        });
+        const cmp = String(aVal ?? "").localeCompare(
+          String(bVal ?? ""),
+          undefined,
+          {
+            numeric: true,
+          },
+        );
         if (cmp !== 0) return sort.direction === "asc" ? cmp : -cmp;
       }
       return 0;
@@ -129,14 +142,17 @@ export function CrudTable<T extends { id: string | number }>({
       const existing = prev.find((s) => s.column === colId);
       if (!existing) return [{ column: colId, direction: "asc" }];
       if (existing.direction === "asc")
-        return prev.map((s) => (s.column === colId ? { ...s, direction: "desc" as const } : s));
+        return prev.map((s) =>
+          s.column === colId ? { ...s, direction: "desc" as const } : s,
+        );
       return prev.filter((s) => s.column !== colId);
     });
   };
 
   const getSortIcon = (colId: string) => {
     const s = sorts.find((s) => s.column === colId);
-    if (!s) return <ArrowUpDown className="text-muted-foreground h-3.5 w-3.5" />;
+    if (!s)
+      return <ArrowUpDown className="text-muted-foreground h-3.5 w-3.5" />;
     return s.direction === "asc" ? (
       <ArrowUp className="text-primary h-3.5 w-3.5" />
     ) : (
@@ -198,7 +214,9 @@ export function CrudTable<T extends { id: string | number }>({
         ))}
         {bulkActions && selected.size > 0 && (
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-muted-foreground text-sm">{selected.size} selected</span>
+            <span className="text-muted-foreground text-sm">
+              {selected.size} selected
+            </span>
             {bulkActions.map((action) => (
               <NexusButton
                 key={action.label}
@@ -273,7 +291,9 @@ export function CrudTable<T extends { id: string | number }>({
             ) : paged.length === 0 ? (
               <tr>
                 <td
-                  colSpan={columns.length + (selectable ? 1 : 0) + (hasActions ? 1 : 0)}
+                  colSpan={
+                    columns.length + (selectable ? 1 : 0) + (hasActions ? 1 : 0)
+                  }
                   className="text-muted-foreground py-12 text-center"
                 >
                   No records found
@@ -309,7 +329,11 @@ export function CrudTable<T extends { id: string | number }>({
                     <td className="px-3 py-3">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <NexusButton variant="ghost" size="icon" className="h-8 w-8">
+                          <NexusButton
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </NexusButton>
                         </DropdownMenuTrigger>

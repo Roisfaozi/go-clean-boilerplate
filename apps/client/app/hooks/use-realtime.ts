@@ -95,5 +95,14 @@ export function useRealtimeInit() {
       eventClient.disconnect();
       wsClient.disconnect();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    addActivity,
+    addNotification,
+    addUser,
+    removeUser,
+    setSseConnected,
+    setWsConnected,
+    updateMetrics,
+    updateUser,
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
 }

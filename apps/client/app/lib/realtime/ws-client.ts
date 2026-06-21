@@ -62,7 +62,9 @@ export class WebSocketClient {
       return;
     }
 
-    const url = ticket ? `${this.url}?ticket=${encodeURIComponent(ticket)}` : this.url;
+    const url = ticket
+      ? `${this.url}?ticket=${encodeURIComponent(ticket)}`
+      : this.url;
 
     try {
       this.ws = new WebSocket(url);
@@ -87,7 +89,10 @@ export class WebSocketClient {
       this.ws.onclose = () => {
         this._connected = false;
         this.stopPing();
-        this.emit({ type: "presence_update", data: { status: "disconnected" } });
+        this.emit({
+          type: "presence_update",
+          data: { status: "disconnected" },
+        });
         this.scheduleReconnect();
       };
 
@@ -147,7 +152,10 @@ export class WebSocketClient {
 
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
-    const delay = Math.min(this.baseDelay * Math.pow(2, this.reconnectAttempts), 30000);
+    const delay = Math.min(
+      this.baseDelay * Math.pow(2, this.reconnectAttempts),
+      30000,
+    );
     this.reconnectAttempts++;
     this.reconnectTimer = setTimeout(() => this.connect(), delay);
   }

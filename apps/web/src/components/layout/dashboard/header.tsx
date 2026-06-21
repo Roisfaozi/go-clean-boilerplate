@@ -7,7 +7,6 @@ import { NotificationCenter } from "~/components/dashboard/notification-center";
 import ThemeToggle from "~/components/shared/theme-toggle";
 import LocaleToggler from "~/components/shared/locale-toggler";
 import { UserNav } from "~/components/dashboard/user-nav";
-import { SidebarTrigger } from "~/components/ui/sidebar";
 import { Separator } from "~/components/ui/separator";
 import { PresenceAvatarStack } from "~/components/dashboard/presence-avatar-stack";
 import { cn } from "~/lib/utils";

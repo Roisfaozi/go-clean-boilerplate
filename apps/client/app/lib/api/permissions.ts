@@ -42,20 +42,32 @@ export interface ResourceAggregationResponse {
 }
 
 export const permissionsApi = {
-  getInheritanceTree: () => apiClient.get<InheritanceTreeResponse>("/permissions/inheritance-tree"),
+  getInheritanceTree: () =>
+    apiClient.get<InheritanceTreeResponse>("/permissions/inheritance-tree"),
 
   getResourceAggregation: () =>
     apiClient.get<ResourceAggregationResponse>("/permissions/resources"),
 
-  grant: (data: { role: string; path: string; method: string; domain?: string }) =>
-    apiClient.post("/permissions/grant", data),
+  grant: (data: {
+    role: string;
+    path: string;
+    method: string;
+    domain?: string;
+  }) => apiClient.post("/permissions/grant", data),
 
-  revoke: (data: { role: string; path: string; method: string; domain?: string }) =>
-    apiClient.post("/permissions/revoke", data),
+  revoke: (data: {
+    role: string;
+    path: string;
+    method: string;
+    domain?: string;
+  }) => apiClient.post("/permissions/revoke", data),
 
   addInheritance: (data: { role: string; parent: string; domain?: string }) =>
     apiClient.post("/permissions/inheritance", data),
 
-  removeInheritance: (data: { role: string; parent: string; domain?: string }) =>
-    apiClient.delete("/permissions/inheritance", { data }),
+  removeInheritance: (data: {
+    role: string;
+    parent: string;
+    domain?: string;
+  }) => apiClient.delete("/permissions/inheritance", { data }),
 };

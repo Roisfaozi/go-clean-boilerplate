@@ -20,8 +20,16 @@ export const auditService = {
     sort?: string;
     filters?: any[];
     search?: string;
-  }) => apiClient.post<PaginatedResponse<AuditLog>>("/audit-logs/search", params),
+  }) =>
+    apiClient.post<PaginatedResponse<AuditLog>>("/audit-logs/search", params),
 
-  export: (params: { from_date?: string; to_date?: string; format: "csv" | "excel" }) =>
-    apiClient.get("/audit-logs/export", undefined, { params, responseType: "blob" }),
+  export: (params: {
+    from_date?: string;
+    to_date?: string;
+    format: "csv" | "excel";
+  }) =>
+    apiClient.get("/audit-logs/export", undefined, {
+      params,
+      responseType: "blob",
+    }),
 };

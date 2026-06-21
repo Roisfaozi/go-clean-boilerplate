@@ -5,7 +5,10 @@ import { toast } from "@casbin/ui";
 const KEY = ["organizations"];
 
 export function useOrganizations(params?: { page?: number; limit?: number }) {
-  return useQuery({ queryKey: [...KEY, params], queryFn: () => organizationService.list(params) });
+  return useQuery({
+    queryKey: [...KEY, params],
+    queryFn: () => organizationService.list(params),
+  });
 }
 
 export function useCreateOrganization() {

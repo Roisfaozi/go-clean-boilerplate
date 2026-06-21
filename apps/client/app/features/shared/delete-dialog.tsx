@@ -55,15 +55,21 @@ export function DeleteDialog({
               <AlertDialogTitle>Delete {resourceName}</AlertDialogTitle>
               <AlertDialogDescription className="mt-1">
                 Are you sure you want to delete
-                {itemName ? ` "${itemName}"` : ` this ${resourceName.toLowerCase()}`}? This action
-                cannot be undone.
+                {itemName
+                  ? ` "${itemName}"`
+                  : ` this ${resourceName.toLowerCase()}`}
+                ? This action cannot be undone.
               </AlertDialogDescription>
             </div>
           </div>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
-          <NexusButton variant="danger" onClick={handleConfirm} disabled={isLoading}>
+          <NexusButton
+            variant="danger"
+            onClick={handleConfirm}
+            disabled={isLoading}
+          >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Delete
           </NexusButton>

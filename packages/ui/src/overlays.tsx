@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { cn } from "./lib/utils";
 import { NexusButton } from "./nexus-button";
 import {
   Dialog,
@@ -46,7 +44,9 @@ export function ConfirmationDialog({
           )}
           <DialogTitle className="text-center">{title}</DialogTitle>
           {description && (
-            <DialogDescription className="text-center">{description}</DialogDescription>
+            <DialogDescription className="text-center">
+              {description}
+            </DialogDescription>
           )}
         </DialogHeader>
         <DialogFooter className="gap-2 sm:justify-center">
@@ -75,7 +75,6 @@ import {
   CommandItem,
   CommandList,
 } from "./command";
-import { useEffect } from "react";
 
 export interface CommandSearchItem {
   id: string;
@@ -98,12 +97,15 @@ export function CommandSearch({
   onOpenChange,
   placeholder = "Search…",
 }: CommandSearchProps) {
-  const groups = items.reduce<Record<string, CommandSearchItem[]>>((acc, item) => {
-    const cat = item.category || "Results";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(item);
-    return acc;
-  }, {});
+  const groups = items.reduce<Record<string, CommandSearchItem[]>>(
+    (acc, item) => {
+      const cat = item.category || "Results";
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(item);
+      return acc;
+    },
+    {},
+  );
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
