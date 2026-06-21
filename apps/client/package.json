@@ -7,7 +7,7 @@
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
-    "lint": "echo 'lint not configured yet'",
+    "lint": "pnpm typecheck",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

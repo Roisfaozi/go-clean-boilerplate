@@ -329,14 +329,14 @@ Keep backend route contract, shared types, and both frontend apps aligned.
 
 ### Tasks
 
-1. Build consumer map:
+1. Build consumer map: ✅
    - backend endpoint
    - shared type
    - `apps/web` consumer/proxy
    - `apps/client` consumer/proxy
-2. Add contract checklist for backend API changes.
-3. Replace or supplement `apps/client` placeholder lint with meaningful validation.
-4. Add typecheck/build expectations per app in PR checklist.
+2. Add contract checklist for backend API changes. ✅
+3. Replace or supplement `apps/client` placeholder lint with meaningful validation. ✅
+4. Add typecheck/build expectations per app in PR checklist. ✅
 
 ### Verification
 
@@ -349,6 +349,12 @@ Keep backend route contract, shared types, and both frontend apps aligned.
 ### Gate
 
 No backend response-shape change without consumer map update.
+
+### Phase 7 Result
+
+- Consumer map and backend API checklist recorded in `llm/research/frontend-contract-map.md`.
+- `apps/client` lint no longer returns placeholder success; it runs the package typecheck gate.
+- Required frontend verification commands are documented per app/package.
 
 ## Phase 8 — Verification Pipeline and Regression Playbook
 
