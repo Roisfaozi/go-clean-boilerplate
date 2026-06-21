@@ -84,9 +84,9 @@ Frontend package commands confirmed
 - `react-router typegen && tsc`
 - `playwright test`
 
-Active but low-confidence command caveat:
+Active command caveat:
 
-- `apps/client` lint script is placeholder-only (`echo 'lint not configured yet'`), so do not use it as a real quality gate.
+- `apps/client` lint aliases `pnpm typecheck`; it is meaningful TypeScript validation but not ESLint coverage.
 - `make docker-dev` is an active repo command; it is the preferred wrapper for dev infra if the user wants one command.
 
 ## Local infra files confirmed

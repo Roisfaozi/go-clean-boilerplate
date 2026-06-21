@@ -372,16 +372,16 @@ Make verification repeatable and honest.
 
 ### Tasks
 
-1. Create test playbooks by change type:
+1. Create test playbooks by change type: ✅
    - auth/session
    - tenant/Casbin/API key
    - upload/storage
    - worker/webhook/audit
    - realtime
    - frontend contract
-2. Document Snap Go and Docker/Testcontainers blockers.
-3. Add targeted race-test recommendations for stateful packages.
-4. Keep broad suite separate from narrow proof checks.
+2. Document Snap Go and Docker/Testcontainers blockers. ✅
+3. Add targeted race-test recommendations for stateful packages. ✅
+4. Keep broad suite separate from narrow proof checks. ✅
 
 ### Verification
 
@@ -393,6 +393,12 @@ Make verification repeatable and honest.
   - `make test-e2e`
   - `pnpm typecheck`
   - `pnpm build`
+
+### Phase 8 Result
+
+- Change-type verification playbook added in `llm/test-playbooks/security-boundary-change-types.md`.
+- Test playbook index and testing convention updated for current frontend/client lint behavior.
+- Security regression playbook now includes race-test recommendations and environment blockers.
 
 ## Dependency Order
 

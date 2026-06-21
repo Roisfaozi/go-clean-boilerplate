@@ -56,11 +56,19 @@ Playbook ringkas untuk verifikasi setelah perubahan auth, tenant, Casbin, API ke
 4. E2E only when route or consumer behavior is user-visible
 5. race tests for WS/worker/cache stateful paths
 
+## Targeted Race-Test Recommendations
+
+- `pkg/ws`: run `go test -race ./pkg/ws` after presence, ticket, client map, Redis, or broadcast changes.
+- `pkg/sse`: run `go test -race ./pkg/sse` after client register/unregister or broadcast changes.
+- `internal/worker`: run race tests for touched worker packages when handler state, scheduler state, or shared dependencies change.
+- cache/membership packages: run race tests when Redis/local cache invalidation or shared maps change.
+
 ## Known Environment Blockers
 
 - Snap Go can block `go test` and `make test-race` in this environment.
 - Docker/Testcontainers required for integration/E2E.
-- `apps/client` lint is placeholder-only and should not be treated as meaningful verification.
+- restricted sandbox can block local sockets used by Redis/test servers.
+- `apps/client` lint currently aliases typecheck; it is meaningful TypeScript validation but not ESLint coverage.
 
 ## Reporting Rules
 

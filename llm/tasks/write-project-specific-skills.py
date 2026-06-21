@@ -80,7 +80,7 @@ write_skill(
         'Map changed files to backend, frontend, DB, worker, upload, realtime, or docs layers.',
         'Run the narrowest relevant check first.',
         'Use `pnpm go:test` or targeted Go tests for backend behavior; use integration/E2E for DB/Redis/Casbin/worker/tenant/upload boundaries.',
-        'Use app-specific frontend typecheck/build for affected app; remember `apps/client` lint is placeholder-only.',
+        'Use app-specific frontend typecheck/build for affected app; remember `apps/client` lint aliases typecheck and is not ESLint coverage.',
         'Report exact commands, pass/fail status, and skipped checks with blockers such as Docker or Snap Go.',
     ],
     ['No evidence, no success claim.', 'Do not hide unrelated failures.'],

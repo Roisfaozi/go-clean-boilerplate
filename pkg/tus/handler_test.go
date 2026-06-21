@@ -11,9 +11,8 @@ import (
 )
 
 type fakeTerminatableStore struct {
-	upload     *fakeTerminatableUpload
-	getErr     error
-	terminated bool
+	upload *fakeTerminatableUpload
+	getErr error
 }
 
 func (s *fakeTerminatableStore) NewUpload(ctx context.Context, info handler.FileInfo) (handler.Upload, error) {

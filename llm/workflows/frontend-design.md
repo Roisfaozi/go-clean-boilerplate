@@ -171,7 +171,7 @@ Start narrow.
 
 ### Repo Notes
 
-- `apps/client` lint is placeholder-only; do not treat it as strong verification
+- `apps/client` lint aliases typecheck; treat it as TypeScript validation, not ESLint coverage
 - if both apps consume same change, verify both owners or say why not
 
 ## Stop Conditions
