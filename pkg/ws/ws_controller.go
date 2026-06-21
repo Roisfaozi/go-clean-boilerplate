@@ -1,21 +1,30 @@
 package ws
 
 import (
+	"context"
 	"net/http"
 	"time"
 
+	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	_ "github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
 
+type CasbinEnforcer interface {
+	GetRolesForUser(name string, domain ...string) ([]string, error)
+}
+
 type WebSocketController struct {
 	log      *logrus.Logger
 	manager  Manager
 	upgrader *websocket.Upgrader
+	userRepo userRepo.UserRepository
+	enforcer CasbinEnforcer
 }
 
-func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins []string) *WebSocketController {
+func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins []string, userRepo userRepo.UserRepository, enforcer CasbinEnforcer) *WebSocketController {
 	checkOrigin := func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
 		for _, o := range allowedOrigins {
@@ -40,9 +49,19 @@ func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins 
 		log:      log,
 		manager:  manager,
 		upgrader: upgrader,
+		userRepo: userRepo,
+		enforcer: enforcer,
 	}
 }
 
+// HandleWebSocket godoc
+// @Summary      WebSocket connection
+// @Description  Establishes a WebSocket connection for real-time updates and presence. Requires a one-time ticket obtained from `/auth/ticket`.
+// @Tags         realtime
+// @Param        ticket query string true "One-time WebSocket ticket from /auth/ticket"
+// @Success      101  {string}  string "Switching Protocols"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Router       /ws [get]
 func (c *WebSocketController) HandleWebSocket(ctx *gin.Context) {
 	conn, err := c.upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
@@ -57,12 +76,46 @@ func (c *WebSocketController) HandleWebSocket(ctx *gin.Context) {
 		MaxMessageSize: 512 * 1024,
 	}
 
-	client := NewWebsocketClient(conn, c.manager, c.log, config)
+	userIDVal, exists := ctx.Get("user_id")
+	userID := ""
+	if exists && userIDVal != nil {
+		userID = userIDVal.(string)
+	}
+
+	orgIDVal, exists := ctx.Get("organization_id")
+	orgID := "global"
+	if exists && orgIDVal != nil && orgIDVal != "" {
+		orgID = orgIDVal.(string)
+	}
+
+	// Fetch User Details for Presence
+	var userData *PresenceUser
+	if userID != "" && c.userRepo != nil {
+		user, err := c.userRepo.FindByID(context.Background(), userID)
+		if err == nil && user != nil {
+			role := "member"
+			if c.enforcer != nil {
+				roles, _ := c.enforcer.GetRolesForUser(userID, orgID)
+				if len(roles) > 0 {
+					role = roles[0]
+				}
+			}
+			userData = &PresenceUser{
+				UserID:    userID,
+				Name:      user.Name,
+				AvatarURL: user.AvatarURL,
+				Role:      role,
+				Status:    "online",
+			}
+		}
+	}
+
+	client := NewWebsocketClient(conn, c.manager, c.log, config, userID, orgID, userData)
 
 	c.manager.RegisterClient(client)
 
 	go client.WritePump()
 	go client.ReadPump()
 
-	c.log.Infof("New WebSocket connection established: %s", client.ID)
+	c.log.Infof("New WebSocket connection established for user %s in org %s", userID, orgID)
 }

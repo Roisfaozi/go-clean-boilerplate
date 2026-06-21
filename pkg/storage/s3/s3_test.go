@@ -123,6 +123,28 @@ func TestDeleteFile(t *testing.T) {
 	})
 }
 
+func TestNewS3Storage(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		cfg := s3.S3Config{
+			Endpoint:       "http://localhost:9000",
+			Region:         "us-east-1",
+			Bucket:         "test-bucket",
+			AccessKey:      "minioadmin",
+			SecretKey:      "minioadmin",
+			UseSSL:         false,
+			ForcePathStyle: true,
+		}
+
+		storage, err := s3.NewS3Storage(cfg)
+		assert.NoError(t, err)
+		assert.NotNil(t, storage)
+		assert.Equal(t, "test-bucket", storage.Bucket)
+		assert.Equal(t, "http://localhost:9000", storage.Endpoint)
+		assert.NotNil(t, storage.Client)
+		assert.NotNil(t, storage.Presigner)
+	})
+}
+
 func TestGetFileUrl(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockPresigner := new(MockS3Presigner)
@@ -134,7 +156,7 @@ func TestGetFileUrl(t *testing.T) {
 			return *input.Bucket == "test-bucket" && *input.Key == "test.png"
 		}), mock.Anything).Return(&v4.PresignedHTTPRequest{URL: "http://url.com/test.png"}, nil)
 
-		url, err := storage.GetFileUrl("test.png")
+		url, err := storage.GetFileUrl(context.Background(), "test.png")
 		assert.NoError(t, err)
 		assert.Equal(t, "http://url.com/test.png", url)
 	})
@@ -147,7 +169,7 @@ func TestGetFileUrl(t *testing.T) {
 		}
 		mockPresigner.On("PresignGetObject", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("presign failed"))
 
-		_, err := storage.GetFileUrl("test.png")
+		_, err := storage.GetFileUrl(context.Background(), "test.png")
 		assert.Error(t, err)
 	})
 }

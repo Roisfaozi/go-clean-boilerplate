@@ -30,13 +30,12 @@ func TestScenario_RBAC_Orchestration(t *testing.T) {
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 
 	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
-	roleService := roleUC.NewRoleUseCase(env.Logger, tm, rRepo)
-
 	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
 	accessService := accessUC.NewAccessUseCase(aRepo, env.Logger)
 
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo)
+	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo, nil)
+	roleService := roleUC.NewRoleUseCase(env.Logger, tm, rRepo, permService)
 
 	roleName := "Analyst"
 	_, err := roleService.Create(ctx, &roleModel.CreateRoleRequest{Name: roleName, Description: "Data Analyst"})
@@ -60,17 +59,17 @@ func TestScenario_RBAC_Orchestration(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = permService.GrantPermissionToRole(ctx, roleName, endpoint.Path, endpoint.Method)
+	err = permService.GrantPermissionToRole(ctx, roleName, endpoint.Path, endpoint.Method, "global")
 	require.NoError(t, err)
 
 	user := setup.CreateTestUser(t, env.DB, "analyst_user", "analyst@test.com", "pass")
-	err = permService.AssignRoleToUser(ctx, user.ID, roleName)
+	err = permService.AssignRoleToUser(ctx, user.ID, roleName, "global")
 	require.NoError(t, err)
 
-	ok, err := env.Enforcer.Enforce(user.ID, endpoint.Path, endpoint.Method)
+	ok, err := env.Enforcer.Enforce(user.ID, "global", endpoint.Path, endpoint.Method)
 	require.NoError(t, err)
 	assert.True(t, ok, "User should be able to access the endpoint granted via role")
 
-	ok, _ = env.Enforcer.Enforce(user.ID, endpoint.Path, "DELETE")
+	ok, _ = env.Enforcer.Enforce(user.ID, "global", endpoint.Path, "DELETE")
 	assert.False(t, ok, "User should not have DELETE permission")
 }

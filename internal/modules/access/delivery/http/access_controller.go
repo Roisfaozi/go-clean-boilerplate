@@ -167,6 +167,46 @@ func (h *AccessController) LinkEndpointToAccessRight(c *gin.Context) {
 	response.Success(c, gin.H{"message": "Endpoint linked successfully"})
 }
 
+// @Summary      Unlink endpoint from access right
+// @Description  Removes an association between an endpoint and a specific access right.
+// @Tags         access-rights
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.LinkEndpointRequest true "Unlink Request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper "Endpoint unlinked successfully"
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /access-rights/unlink [post]
+func (h *AccessController) UnlinkEndpointFromAccessRight(c *gin.Context) {
+	var req model.LinkEndpointRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
+		return
+	}
+
+	err := h.useCase.UnlinkEndpointFromAccessRight(c.Request.Context(), req)
+	if err != nil {
+		if _, ok := err.(validator.ValidationErrors); ok {
+			msg := validation.FormatValidationErrors(err)
+			response.ValidationError(c, exception.ErrValidationError, msg)
+			return
+		}
+		h.log.WithError(err).Error("Failed to unlink endpoint from access right")
+		response.InternalServerError(c, errors.New("could not unlink endpoint"), "failed to unlink endpoint")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "Endpoint unlinked successfully"})
+}
+
 // @Summary      Delete access right
 // @Description  Deletes an access right by ID.
 // @Tags         access-rights

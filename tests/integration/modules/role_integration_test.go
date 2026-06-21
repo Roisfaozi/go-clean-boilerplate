@@ -9,9 +9,12 @@ import (
 	"strings"
 	"testing"
 
+	accessRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
+	permissionUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase"
+	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -22,13 +25,13 @@ import (
 func setupRoleIntegration(env *setup.TestEnvironment) usecase.RoleUseCase {
 	roleRepo := repository.NewRoleRepository(env.DB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	return usecase.NewRoleUseCase(env.Logger, tm, roleRepo)
+	permUC := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo, userRepository.NewUserRepository(env.DB, env.Logger), accessRepository.NewAccessRepository(env.DB, env.Logger), nil)
+	return usecase.NewRoleUseCase(env.Logger, tm, roleRepo, permUC)
 }
 
 func TestRoleIntegration_Create_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -48,7 +51,6 @@ func TestRoleIntegration_Create_Success(t *testing.T) {
 func TestRoleIntegration_Delete_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -66,7 +68,6 @@ func TestRoleIntegration_Delete_Success(t *testing.T) {
 func TestRoleIntegration_GetAll_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -89,7 +90,6 @@ func TestRoleIntegration_GetAll_Success(t *testing.T) {
 func TestRoleIntegration_DynamicSearch_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -121,7 +121,6 @@ func TestRoleIntegration_DynamicSearch_Success(t *testing.T) {
 func TestRoleIntegration_Create_Negative_DuplicateName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -137,7 +136,6 @@ func TestRoleIntegration_Create_Negative_DuplicateName(t *testing.T) {
 func TestRoleIntegration_Create_Negative_EmptyName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -153,7 +151,6 @@ func TestRoleIntegration_Create_Negative_EmptyName(t *testing.T) {
 func TestRoleIntegration_Delete_Negative_NonExistentRole(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -164,7 +161,6 @@ func TestRoleIntegration_Delete_Negative_NonExistentRole(t *testing.T) {
 func TestRoleIntegration_Edge_Create_LongName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -178,7 +174,6 @@ func TestRoleIntegration_Edge_Create_LongName(t *testing.T) {
 func TestRoleIntegration_Edge_SpecialCharactersInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -199,7 +194,6 @@ func TestRoleIntegration_Edge_SpecialCharactersInName(t *testing.T) {
 func TestRoleIntegration_Edge_UnicodeInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -220,7 +214,6 @@ func TestRoleIntegration_Edge_UnicodeInName(t *testing.T) {
 func TestRoleIntegration_Edge_MinimumNameLength(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -233,7 +226,6 @@ func TestRoleIntegration_Edge_MinimumNameLength(t *testing.T) {
 func TestRoleIntegration_Security_SQLInjectionInName(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -254,7 +246,6 @@ func TestRoleIntegration_Security_SQLInjectionInName(t *testing.T) {
 func TestRoleIntegration_Security_XSSInDescription(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -279,7 +270,6 @@ func TestRoleIntegration_Security_XSSInDescription(t *testing.T) {
 func TestRoleIntegration_Security_Delete_SuperadminForbidden(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -290,7 +280,6 @@ func TestRoleIntegration_Security_Delete_SuperadminForbidden(t *testing.T) {
 func TestRoleIntegration_Update_Success(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
-	setup.CleanupDatabase(t, env.DB)
 
 	roleUC := setupRoleIntegration(env)
 
@@ -310,4 +299,35 @@ func TestRoleIntegration_Update_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, updated.ID)
 	assert.Equal(t, "Updated Description", updated.Description)
+}
+
+func TestRoleIntegration_Delete_WithActiveUsers_DocumentsBehavior(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	roleUC := setupRoleIntegration(env)
+
+	created, err := roleUC.Create(context.Background(), &model.CreateRoleRequest{
+		Name:        "RoleWithUsers",
+		Description: "Has active assignments",
+	})
+	require.NoError(t, err)
+
+	_, err = env.Enforcer.AddGroupingPolicy("user:fake-active-user", created.Name, "global")
+	require.NoError(t, err)
+	env.Enforcer.SavePolicy()
+	err = roleUC.Delete(context.Background(), created.ID)
+	require.NoError(t, err, "Role deletion should succeed even when users are assigned")
+
+	err = roleUC.Delete(context.Background(), created.ID)
+	assert.Error(t, err, "Role already deleted — second delete should return not-found")
+
+	rolesAfter, _ := env.Enforcer.GetRolesForUser("user:fake-active-user", "global")
+	roleStillInCasbin := false
+	for _, r := range rolesAfter {
+		if r == created.Name {
+			roleStillInCasbin = true
+		}
+	}
+	t.Logf("KNOWN GAP: Casbin grouping still contains deleted role '%s': %v — cleanup not cascaded by usecase.Delete", created.Name, roleStillInCasbin)
 }

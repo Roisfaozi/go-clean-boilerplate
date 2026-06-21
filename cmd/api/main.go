@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"os/signal"
 	"syscall"
 	"time"
@@ -45,6 +47,16 @@ func main() {
 	app, err := config.NewApplication(cfg)
 	if err != nil {
 		log.Fatalf("Failed to create application: %v", err)
+	}
+
+	if cfg.Pprof.Enabled {
+		go func() {
+			pprofAddr := fmt.Sprintf("localhost:%d", cfg.Pprof.Port)
+			log.Printf("Starting pprof server on %s", pprofAddr)
+			if err := http.ListenAndServe(pprofAddr, nil); err != nil {
+				log.Printf("Failed to start pprof server: %v", err)
+			}
+		}()
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

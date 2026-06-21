@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	net_http "net/http"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
@@ -30,6 +31,20 @@ func NewAuditController(uc usecase.AuditUseCase, validate *validator.Validate, l
 	}
 }
 
+// GetLogsDynamic godoc
+// @Summary      Search audit logs
+// @Description  Retrieves audit logs with dynamic filtering and pagination.
+// @Tags         audit-logs
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        filter body querybuilder.DynamicFilter true "Dynamic filter and sort criteria"
+// @Success      200  {object}  response.SwaggerAuditLogListResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid filter format"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /audit-logs/search [post]
 func (h *AuditController) GetLogsDynamic(c *gin.Context) {
 	var filter querybuilder.DynamicFilter
 	if err := c.ShouldBindJSON(&filter); err != nil {
@@ -56,6 +71,18 @@ func (h *AuditController) GetLogsDynamic(c *gin.Context) {
 	})
 }
 
+// Export godoc
+// @Summary      Export audit logs
+// @Description  Exports audit logs to CSV format within a date range.
+// @Tags         audit-logs
+// @Security     BearerAuth
+// @Produce      text/csv
+// @Param        from_date query string false "Start date (YYYY-MM-DD)"
+// @Param        to_date query string false "End date (YYYY-MM-DD)"
+// @Success      200  {file}  file "CSV file download"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /audit-logs/export [get]
 func (h *AuditController) Export(c *gin.Context) {
 	fromDate := c.Query("from_date")
 	toDate := c.Query("to_date")
@@ -110,6 +137,34 @@ func (h *AuditController) Export(c *gin.Context) {
 		h.Log.WithError(err).Error("Failed to export logs")
 		return
 	}
+}
+
+// ExportAsync godoc
+// @Summary      Export audit logs (Async)
+// @Description  Initiates an asynchronous export of audit logs to CSV format. Returns immediately.
+// @Tags         audit-logs
+// @Security     BearerAuth
+// @Produce      json
+// @Param        from_date query string false "Start date (YYYY-MM-DD)"
+// @Param        to_date query string false "End date (YYYY-MM-DD)"
+// @Success      202  {object}  response.SwaggerSuccessResponseWrapper "Export task initiated"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /audit-logs/export-async [get]
+func (h *AuditController) ExportAsync(c *gin.Context) {
+	fromDate := c.Query("from_date")
+	toDate := c.Query("to_date")
+	userID := c.GetString("user_id")
+	orgID := c.GetString("organization_id")
+
+	err := h.UseCase.ExportLogsAsync(c.Request.Context(), userID, orgID, fromDate, toDate, "csv")
+	if err != nil {
+		h.Log.WithError(err).Error("Failed to initiate async export")
+		response.InternalServerError(c, err, "Failed to initiate export")
+		return
+	}
+
+	response.SuccessResponse(c, net_http.StatusAccepted, "Audit log export task initiated. You will be notified when it is complete.")
 }
 
 // sanitizeCSVField escapes fields to prevent CSV injection (formula injection).

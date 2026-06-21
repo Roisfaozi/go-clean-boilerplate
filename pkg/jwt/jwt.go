@@ -12,7 +12,16 @@ type Claims struct {
 	SessionID string `json:"session_id"`
 	Role      string `json:"role"`
 	Username  string `json:"username"`
+	OrgID     string `json:"org_id,omitempty"`
 	jwt.RegisteredClaims
+}
+
+type UserContext struct {
+	UserID    string
+	SessionID string
+	Role      string
+	Username  string
+	OrgID     string
 }
 
 type JWTManager struct {
@@ -31,13 +40,13 @@ func NewJWTManager(accessSecret, refreshSecret string, accessDuration, refreshDu
 	}
 }
 
-func (m *JWTManager) GenerateTokenPair(userID, sessionID, role, username string) (string, string, error) {
-	accessToken, err := m.generateToken(userID, sessionID, role, username, m.accessTokenSecret, m.accessTokenDuration)
+func (m *JWTManager) GenerateTokenPair(ctx UserContext) (string, string, error) {
+	accessToken, err := m.generateToken(ctx, m.accessTokenSecret, m.accessTokenDuration)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	refreshToken, err := m.generateToken(userID, sessionID, role, username, m.refreshTokenSecret, m.refreshTokenDuration)
+	refreshToken, err := m.generateToken(ctx, m.refreshTokenSecret, m.refreshTokenDuration)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -45,19 +54,20 @@ func (m *JWTManager) GenerateTokenPair(userID, sessionID, role, username string)
 	return accessToken, refreshToken, nil
 }
 
-func (m *JWTManager) generateToken(userID, sessionID, role, username, secret string, expiresIn time.Duration) (string, error) {
+func (m *JWTManager) generateToken(ctx UserContext, secret string, expiresIn time.Duration) (string, error) {
 	now := time.Now()
 	claims := &Claims{
-		UserID:    userID,
-		SessionID: sessionID,
-		Role:      role,
-		Username:  username,
+		UserID:    ctx.UserID,
+		SessionID: ctx.SessionID,
+		Role:      ctx.Role,
+		Username:  ctx.Username,
+		OrgID:     ctx.OrgID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   userID,
+			Subject:   ctx.UserID,
 			ExpiresAt: jwt.NewNumericDate(now.Add(expiresIn)),
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
-			ID:        sessionID,
+			ID:        ctx.SessionID,
 		},
 	}
 
@@ -101,12 +111,13 @@ func (m *JWTManager) GetAccessTokenDuration() time.Duration {
 	return m.accessTokenDuration
 }
 
-func GenerateTestToken(userID, sessionID, role, username, secret string, expiry time.Duration) (string, error) {
+func GenerateTestToken(userID, sessionID, role, username, orgID, secret string, expiry time.Duration) (string, error) {
 	claims := &Claims{
 		UserID:    userID,
 		SessionID: sessionID,
 		Role:      role,
 		Username:  username,
+		OrgID:     orgID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        sessionID,
 			Subject:   userID,

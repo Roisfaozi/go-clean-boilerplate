@@ -2,6 +2,7 @@ package ws
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -12,12 +13,15 @@ import (
 )
 
 type Client struct {
-	ID      string
-	Manager Manager
-	Conn    *websocket.Conn
-	Send    chan []byte
-	Log     *logrus.Logger
-	Config  *WebSocketConfig
+	ID       string
+	UserID   string
+	OrgID    string
+	UserData *PresenceUser
+	Manager  Manager
+	Conn     *websocket.Conn
+	Send     chan []byte
+	Log      *logrus.Logger
+	Config   *WebSocketConfig
 }
 
 type ClientMessage struct {
@@ -38,19 +42,22 @@ var (
 )
 
 // NewWebsocketClient creates a new Client instance
-func NewWebsocketClient(conn *websocket.Conn, manager Manager, log *logrus.Logger, config *WebSocketConfig) *Client {
+func NewWebsocketClient(conn *websocket.Conn, manager Manager, log *logrus.Logger, config *WebSocketConfig, userID, orgID string, userData *PresenceUser) *Client {
 	uid, err := uuid.NewV7()
 	if err != nil {
 		log.Errorf("Failed to generate UUID for client: %v", err)
-		return nil // Or handle error appropriately
+		return nil
 	}
 	return &Client{
-		ID:      uid.String(),
-		Manager: manager,
-		Conn:    conn,
-		Send:    make(chan []byte, 256), // Buffered channel
-		Log:     log,
-		Config:  config,
+		ID:       uid.String(),
+		UserID:   userID,
+		OrgID:    orgID,
+		UserData: userData,
+		Manager:  manager,
+		Conn:     conn,
+		Send:     make(chan []byte, 256),
+		Log:      log,
+		Config:   config,
 	}
 }
 
@@ -174,6 +181,15 @@ func (c *Client) handleMessage(message []byte) {
 	case "unsubscribe":
 		c.Manager.UnsubscribeFromChannel(c, clientMsg.Channel)
 		c.sendInfo(clientMsg.Channel, fmt.Sprintf("Unsubscribed from channel: %s", clientMsg.Channel))
+	case "presence_heartbeat":
+		if c.UserID != "" && c.OrgID != "" {
+			pm := c.Manager.GetPresenceManager()
+			if pm != nil {
+				if err := pm.RefreshUserHeartbeat(context.Background(), c.OrgID, c.UserID); err != nil {
+					c.Log.WithError(err).Error("Failed to refresh heartbeat")
+				}
+			}
+		}
 	case "message":
 		c.Log.Infof("Client %s sent message to channel %s: %s", c.ID, clientMsg.Channel, clientMsg.Data)
 		// For now, we only handle subscribe/unsubscribe/info. Actual message broadcast is handled by manager.

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	querybuilder2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/sirupsen/logrus"
@@ -103,7 +104,15 @@ func (r *userRepositoryData) Delete(ctx context.Context, id string) error {
 func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserListRequest) ([]*entity.User, int64, error) {
 	var users []*entity.User
 	var total int64
-	query := r.getDB(ctx).Model(&entity.User{})
+	db := r.getDB(ctx)
+	query := db.Model(&entity.User{})
+
+	// Handle multi-tenancy via subquery if org_id is present in context
+	orgID := database.GetOrganizationID(ctx)
+	if orgID != "" {
+		subQuery := db.Table("organization_members").Select("user_id").Where("organization_id = ?", orgID)
+		query = query.Where("users.id IN (?)", subQuery)
+	}
 
 	if filter.Username != "" {
 		query = query.Where("name LIKE ?", "%"+filter.Username+"%")
@@ -138,7 +147,15 @@ func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserL
 func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.User, int64, error) {
 	var users []*entity.User
 	var total int64
-	query := r.getDB(ctx).Model(&entity.User{})
+	db := r.getDB(ctx)
+	query := db.Model(&entity.User{})
+
+	// Handle multi-tenancy via subquery if org_id is present in context
+	orgID := database.GetOrganizationID(ctx)
+	if orgID != "" {
+		subQuery := db.Table("organization_members").Select("user_id").Where("organization_id = ?", orgID)
+		query = query.Where("users.id IN (?)", subQuery)
+	}
 
 	// Apply Dynamic Filter
 	var err error
@@ -148,8 +165,12 @@ func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybu
 	}
 
 	// Get Total Count using a session branch
-	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
-		return nil, 0, err
+	if !filter.SkipCount {
+		if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	} else {
+		total = -1 // convention for skipped count
 	}
 
 	// Apply Dynamic Sort
@@ -195,6 +216,40 @@ func (r *userRepositoryData) HardDeleteSoftDeletedUsers(ctx context.Context, ret
 	// We check if deleted_at is not 0 (deleted) AND deleted_at is older than cutoff.
 	if err := r.getDB(ctx).Unscoped().Where("deleted_at > 0 AND deleted_at < ?", cutoffTime).Delete(&entity.User{}).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("failed to hard delete old users")
+		return err
+	}
+	return nil
+}
+
+func (r *userRepositoryData) GetByOrganization(ctx context.Context, orgID string) ([]*entity.User, error) {
+	var users []*entity.User
+	db := r.getDB(ctx)
+	// Subquery to find user IDs belonging to the organization
+	subQuery := db.Table("organization_members").Select("user_id").Where("organization_id = ?", orgID)
+
+	if err := db.Where("users.id IN (?)", subQuery).Find(&users).Error; err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("failed to find users by organization")
+		return nil, err
+	}
+	return users, nil
+}
+
+func (r *userRepositoryData) FindBySSOIdentity(ctx context.Context, provider, providerID string) (*entity.UserSSOIdentity, error) {
+	var identity entity.UserSSOIdentity
+	err := r.getDB(ctx).Where("provider = ? AND provider_id = ?", provider, providerID).First(&identity).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, gorm.ErrRecordNotFound
+		}
+		r.log.WithContext(ctx).WithError(err).Error("failed to find sso identity")
+		return nil, err
+	}
+	return &identity, nil
+}
+
+func (r *userRepositoryData) CreateSSOIdentity(ctx context.Context, identity *entity.UserSSOIdentity) error {
+	if err := r.getDB(ctx).Create(identity).Error; err != nil {
+		r.log.WithContext(ctx).WithError(err).Error("failed to create sso identity")
 		return err
 	}
 	return nil

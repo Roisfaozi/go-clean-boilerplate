@@ -1,6 +1,7 @@
 package ws_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -25,6 +26,24 @@ func (w *NoOpWriter) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
+type NoOpPresenceManager struct{}
+
+func (m *NoOpPresenceManager) SetUserOnline(ctx context.Context, orgID, userID string, userData *ws.PresenceUser) error {
+	return nil
+}
+func (m *NoOpPresenceManager) SetUserOffline(ctx context.Context, orgID, userID string) error {
+	return nil
+}
+func (m *NoOpPresenceManager) GetOnlineUsers(ctx context.Context, orgID string) ([]ws.PresenceUser, error) {
+	return []ws.PresenceUser{}, nil
+}
+func (m *NoOpPresenceManager) RefreshUserHeartbeat(ctx context.Context, orgID, userID string) error {
+	return nil
+}
+func (m *NoOpPresenceManager) PruneStaleUsers(ctx context.Context, timeout time.Duration) (map[string][]string, error) {
+	return nil, nil
+}
+
 func setupTestServer() (*ws.WebSocketManager, *httptest.Server) {
 	config := &ws.WebSocketConfig{
 		WriteWait:      10 * time.Second,
@@ -35,7 +54,8 @@ func setupTestServer() (*ws.WebSocketManager, *httptest.Server) {
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 	// For unit tests, we don't need Redis scaling, so pass nil
-	manager := ws.NewWebSocketManager(config, logger, nil)
+	presence := &NoOpPresenceManager{}
+	manager := ws.NewWebSocketManager(config, logger, nil, presence)
 	go manager.Run()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +66,7 @@ func setupTestServer() (*ws.WebSocketManager, *httptest.Server) {
 		if err != nil {
 			return
 		}
-		client := ws.NewWebsocketClient(conn, manager, logger, config)
+		client := ws.NewWebsocketClient(conn, manager, logger, config, "u1", "org1", nil)
 		manager.RegisterClient(client)
 		go client.WritePump()
 		go client.ReadPump()
@@ -83,14 +103,61 @@ func TestNewWebSocketManager(t *testing.T) {
 	defer server.Close()
 	defer manager.Stop()
 	assert.NotNil(t, manager)
+	assert.NotNil(t, manager.GetPresenceManager())
+	assert.NotNil(t, manager.Channels())
 }
 
 func TestWebSocketManager_Integration(t *testing.T) {
 	manager, server := setupTestServer()
 	defer server.Close()
-	defer manager.Stop()
 
 	conn, err := connectClient(server.URL)
+	require.NoError(t, err)
+	defer func() { _ = conn.Close() }() // Ignore close error
+
+	// Wait for registration
+	for i := 0; i < 10; i++ {
+		if manager.ClientCount() == 1 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	assert.Equal(t, 1, manager.ClientCount())
+
+	// Test Unregister and Timeouts by calling them on stopped manager
+	manager.Stop()
+	manager.Stop() // Should not panic
+
+	c := &ws.Client{}
+	manager.RegisterClient(c)
+	manager.UnregisterClient(c)
+	manager.BroadcastToChannel("test", []byte("msg"))
+	manager.SubscribeToChannel(c, "test")
+	manager.UnsubscribeFromChannel(c, "test")
+
+	// Trigger channel block timeouts
+	manager3 := ws.NewWebSocketManager(&ws.WebSocketConfig{}, logrus.New(), nil, nil)
+	// Do NOT run manager3.Run(), so channels will block when full
+	for i := 0; i < 256; i++ {
+		manager3.RegisterClient(c)
+		manager3.UnregisterClient(c)
+		manager3.BroadcastToChannel("test", []byte("msg"))
+		manager3.SubscribeToChannel(c, "test")
+		manager3.UnsubscribeFromChannel(c, "test")
+	}
+	// The 257th should hit the timeout
+	manager3.RegisterClient(c)
+	manager3.UnregisterClient(c)
+	manager3.BroadcastToChannel("test", []byte("msg"))
+	manager3.SubscribeToChannel(c, "test")
+	manager3.UnsubscribeFromChannel(c, "test")
+
+	// Start a new one for the rest of the test
+	manager, server = setupTestServer()
+	defer server.Close()
+	defer manager.Stop()
+
+	conn, err = connectClient(server.URL)
 	require.NoError(t, err)
 	defer func() { _ = conn.Close() }() // Ignore close error
 

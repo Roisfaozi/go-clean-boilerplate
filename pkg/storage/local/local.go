@@ -69,7 +69,7 @@ func (s *LocalStorage) DeleteFile(ctx context.Context, filename string) error {
 	return nil
 }
 
-func (s *LocalStorage) GetFileUrl(filename string) (string, error) {
+func (s *LocalStorage) GetFileUrl(ctx context.Context, filename string) (string, error) {
 	baseName := filepath.Base(filename)
 	return fmt.Sprintf("%s/%s", s.BaseURL, baseName), nil
 }

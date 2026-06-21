@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type TestModel struct {
@@ -25,6 +26,7 @@ type TestModelNoDelete struct {
 func setupDB() *gorm.DB {
 	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
 		DryRun: true,
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	return db
 }

@@ -92,7 +92,7 @@ func (s *S3Storage) UploadFile(ctx context.Context, file io.Reader, filename str
 
 	// For S3-compatible, usually we return key or construct URL
 	telemetry.StorageUploadsTotal.WithLabelValues("s3", "success").Inc()
-	return s.GetFileUrl(filename)
+	return s.GetFileUrl(ctx, filename)
 }
 
 func (s *S3Storage) DeleteFile(ctx context.Context, filename string) error {
@@ -106,9 +106,9 @@ func (s *S3Storage) DeleteFile(ctx context.Context, filename string) error {
 	return nil
 }
 
-func (s *S3Storage) GetFileUrl(filename string) (string, error) {
+func (s *S3Storage) GetFileUrl(ctx context.Context, filename string) (string, error) {
 	// Generate Presigned URL (valid for 1 hour)
-	req, err := s.Presigner.PresignGetObject(context.TODO(), &s3.GetObjectInput{
+	req, err := s.Presigner.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.Bucket),
 		Key:    aws.String(filename),
 	}, func(opts *s3.PresignOptions) {

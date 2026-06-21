@@ -37,6 +37,31 @@ type AppConfig struct {
 		ServiceName  string `env:"OTEL_SERVICE_NAME" envDefault:"go-clean-api"`
 		CollectorURL string `env:"OTEL_COLLECTOR_URL" envDefault:"localhost:4317"`
 	}
+	Tus   TusConfig   `mapstructure:"tus"`
+	Pprof PprofConfig `mapstructure:"pprof"`
+	SSO   SSOConfig   `mapstructure:"sso"`
+}
+
+type SSOConfig struct {
+	Google    OAuthProviderConfig `mapstructure:"google"`
+	Microsoft OAuthProviderConfig `mapstructure:"microsoft"`
+	GitHub    OAuthProviderConfig `mapstructure:"github"`
+}
+
+type OAuthProviderConfig struct {
+	ClientID     string   `mapstructure:"client_id"`
+	ClientSecret string   `mapstructure:"client_secret"`
+	RedirectURL  string   `mapstructure:"redirect_url"`
+	Scopes       []string `mapstructure:"scopes"`
+}
+
+type TusConfig struct {
+	BasePath string `mapstructure:"base_path"`
+}
+
+type PprofConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+	Port    int  `mapstructure:"port"`
 }
 
 type StorageConfig struct {
@@ -57,12 +82,13 @@ type StorageConfig struct {
 }
 
 type ServerConfig struct {
-	Port           int           `mapstructure:"port" validate:"required"`
-	ReadTimeout    time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout   time.Duration `mapstructure:"write_timeout"`
-	AppName        string        `mapstructure:"app_name"`
-	AppEnv         string        `mapstructure:"app_env"`
-	TrustedProxies []string      `mapstructure:"trusted_proxies"`
+	Port            int           `mapstructure:"port" validate:"required"`
+	ReadTimeout     time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout    time.Duration `mapstructure:"write_timeout"`
+	AppName         string        `mapstructure:"app_name"`
+	AppEnv          string        `mapstructure:"app_env"`
+	TrustedProxies  []string      `mapstructure:"trusted_proxies"`
+	FrontendBaseURL string        `mapstructure:"frontend_base_url"`
 }
 
 type SecurityConfig struct {
@@ -137,9 +163,11 @@ type LoggerConfig struct {
 }
 
 type CasbinConfig struct {
-	Enabled bool          `mapstructure:"enabled"`
-	Model   string        `mapstructure:"model"`
-	Watcher WatcherConfig `mapstructure:"watcher"`
+	Enabled       bool          `mapstructure:"enabled"`
+	Model         string        `mapstructure:"model"`
+	DefaultRole   string        `mapstructure:"default_role"`
+	DefaultDomain string        `mapstructure:"default_domain"`
+	Watcher       WatcherConfig `mapstructure:"watcher"`
 }
 
 type WatcherConfig struct {
@@ -164,11 +192,13 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("mysql.port", 3306)
 	v.SetDefault("redis.addr", "localhost:6379")
 	v.SetDefault("jwt.access_duration", "15m")
-	v.SetDefault("jwt.refresh_duration", "720h")
+	v.SetDefault("jwt.refresh_duration", "24h")
 	v.SetDefault("security.max_login_attempts", 5)
 	v.SetDefault("security.lockout_duration", "30m")
-	v.SetDefault("casbin.enabled", false)
+	v.SetDefault("casbin.enabled", true)
 	v.SetDefault("casbin.model", "internal/config/casbin_model.conf")
+	v.SetDefault("casbin.default_role", "role:user")
+	v.SetDefault("casbin.default_domain", "global")
 	v.SetDefault("casbin.watcher.enabled", false)
 	v.SetDefault("casbin.watcher.channel", "/casbin")
 	// v.SetDefault("cors.allowed_origins", "*") // Removed unsafe default
@@ -196,6 +226,9 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("storage.local.root_path", "./uploads")
 	v.SetDefault("storage.local.base_url", "http://localhost:8080/uploads")
 	v.SetDefault("storage.s3.use_ssl", true)
+	v.SetDefault("tus.base_path", "/api/v1/upload/files/")
+	v.SetDefault("pprof.enabled", false)
+	v.SetDefault("pprof.port", 6060)
 
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
@@ -218,8 +251,25 @@ func NewConfig() (*AppConfig, error) {
 	cfg.Storage.S3.UseSSL = v.GetBool("storage.s3.use_ssl")
 	cfg.Storage.S3.ForcePathStyle = v.GetBool("storage.s3.force_path_style")
 
+	cfg.Tus.BasePath = v.GetString("tus.base_path")
+
+	cfg.Pprof.Enabled = v.GetBool("pprof.enabled")
+	cfg.Pprof.Port = v.GetInt("pprof.port")
+
 	cfg.JWT.AccessTokenSecret = v.GetString("jwt.access_secret")
 	cfg.JWT.RefreshTokenSecret = v.GetString("jwt.refresh_secret")
+
+	cfg.SSO.Google.ClientID = v.GetString("sso.google.client_id")
+	cfg.SSO.Google.ClientSecret = v.GetString("sso.google.client_secret")
+	cfg.SSO.Google.RedirectURL = v.GetString("sso.google.redirect_url")
+
+	cfg.SSO.Microsoft.ClientID = v.GetString("sso.microsoft.client_id")
+	cfg.SSO.Microsoft.ClientSecret = v.GetString("sso.microsoft.client_secret")
+	cfg.SSO.Microsoft.RedirectURL = v.GetString("sso.microsoft.redirect_url")
+
+	cfg.SSO.GitHub.ClientID = v.GetString("sso.github.client_id")
+	cfg.SSO.GitHub.ClientSecret = v.GetString("sso.github.client_secret")
+	cfg.SSO.GitHub.RedirectURL = v.GetString("sso.github.redirect_url")
 
 	cfg.Security.MaxLoginAttempts = v.GetInt("security.max_login_attempts")
 	cfg.Security.LockoutDuration = v.GetDuration("security.lockout_duration")
@@ -258,6 +308,8 @@ func NewConfig() (*AppConfig, error) {
 
 	cfg.Casbin.Enabled = v.GetBool("casbin.enabled")
 	cfg.Casbin.Model = v.GetString("casbin.model")
+	cfg.Casbin.DefaultRole = v.GetString("casbin.default_role")
+	cfg.Casbin.DefaultDomain = v.GetString("casbin.default_domain")
 	cfg.Casbin.Watcher.Enabled = v.GetBool("casbin.watcher.enabled")
 	cfg.Casbin.Watcher.Channel = v.GetString("casbin.watcher.channel")
 

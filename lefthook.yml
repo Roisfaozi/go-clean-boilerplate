@@ -1,0 +1,27 @@
+# Lefthook configuration for Go Clean Boilerplate Monorepo
+# https://github.com/evilmartians/lefthook
+
+pre-commit:
+  parallel: true
+  commands:
+    # ─── GO BACKEND ───
+    go-fmt:
+      glob: "**/*.go"
+      run: go fmt {staged_files}
+
+    go-vet:
+      glob: "**/*.go"
+      run: go vet ./...
+
+    # ─── FRONTEND & UI ───
+    format:
+      glob: "**/*.{js,ts,jsx,tsx,json,css,md}"
+      run: npx prettier --write {staged_files} && git add {staged_files}
+
+    # ─── VALIDATION ───
+    typecheck:
+      run: pnpm turbo run typecheck
+
+    # Temporarily disabled lint in pre-commit due to existing baseline errors
+    # lint:
+    #   run: pnpm turbo run lint

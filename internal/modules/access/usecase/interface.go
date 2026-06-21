@@ -16,4 +16,5 @@ type IAccessUseCase interface {
 	GetEndpointsDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*model.EndpointResponse, int64, error)
 	DeleteEndpoint(ctx context.Context, id string) error
 	LinkEndpointToAccessRight(ctx context.Context, req model.LinkEndpointRequest) error
+	UnlinkEndpointFromAccessRight(ctx context.Context, req model.LinkEndpointRequest) error
 }

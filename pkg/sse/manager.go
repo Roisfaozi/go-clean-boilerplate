@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 
+	_ "github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -108,6 +109,15 @@ func (m *Manager) UnregisterClient(client *Client) {
 	m.unregister <- client
 }
 
+// ServeHTTP godoc
+// @Summary      SSE connection
+// @Description  Establishes a Server-Sent Events connection for unidirectional real-time notifications.
+// @Tags         realtime
+// @Security     BearerAuth
+// @Produce      text/event-stream
+// @Success      200  {string}  string "Event stream"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Router       /events [get]
 func (m *Manager) ServeHTTP() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -115,6 +125,7 @@ func (m *Manager) ServeHTTP() gin.HandlerFunc {
 		c.Writer.Header().Set("Cache-Control", "no-cache")
 		c.Writer.Header().Set("Connection", "keep-alive")
 		c.Writer.Header().Set("Transfer-Encoding", "chunked")
+		c.Writer.Flush()
 
 		clientChan := make(chan Event, 10)
 		client := &Client{Channel: clientChan}

@@ -8,7 +8,11 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
+	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,15 +20,23 @@ var (
 	exportBatchSize = 1000
 )
 
-type auditUseCase struct {
-	repo AuditRepository
-	log  *logrus.Logger
+type TaskDistributor interface {
+	DistributeTaskAuditLogExport(ctx context.Context, payload model.AuditLogExportPayload, opts ...asynq.Option) error
 }
 
-func NewAuditUseCase(repo AuditRepository, log *logrus.Logger) AuditUseCase {
+type auditUseCase struct {
+	repo            AuditRepository
+	log             *logrus.Logger
+	ws              ws.Manager
+	taskDistributor TaskDistributor
+}
+
+func NewAuditUseCase(repo AuditRepository, log *logrus.Logger, ws ws.Manager, taskDistributor TaskDistributor) AuditUseCase {
 	return &auditUseCase{
-		repo: repo,
-		log:  log,
+		repo:            repo,
+		log:             log,
+		ws:              ws,
+		taskDistributor: taskDistributor,
 	}
 }
 
@@ -34,9 +46,41 @@ func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLo
 		return fmt.Errorf("missing required fields for audit log: UserID, Action, and Entity are mandatory")
 	}
 
+	orgID := database.GetOrganizationID(ctx)
+	if req.OrganizationID != "" {
+		orgID = req.OrganizationID
+	}
+
 	oldValJSON, _ := json.Marshal(req.OldValues)
 	newValJSON, _ := json.Marshal(req.NewValues)
 
+	// Check if we are inside a transaction
+	if _, ok := tx.DBFromContext(ctx); ok {
+		// TRANSACTIONAL PATH: Write to Outbox
+		outbox := &entity.AuditOutbox{
+			UserID:    req.UserID,
+			Action:    req.Action,
+			Entity:    req.Entity,
+			EntityID:  req.EntityID,
+			OldValues: string(oldValJSON),
+			NewValues: string(newValJSON),
+			IPAddress: req.IPAddress,
+			UserAgent: req.UserAgent,
+			Status:    entity.OutboxStatusPending,
+		}
+		if orgID != "" {
+			outbox.OrganizationID = &orgID
+		}
+
+		if err := uc.repo.CreateOutbox(ctx, outbox); err != nil {
+			uc.log.WithContext(ctx).WithError(err).Error("Failed to create audit outbox entry")
+			return err
+		}
+		return nil
+	}
+
+	// NON-TRANSACTIONAL PATH: Distribute Task (Existing behavior)
+	// Usually for Login/Logout which are not always wrapped in a domain transaction
 	logEntity := &entity.AuditLog{
 		UserID:    req.UserID,
 		Action:    req.Action,
@@ -48,10 +92,38 @@ func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLo
 		UserAgent: req.UserAgent,
 	}
 
+	if orgID != "" {
+		logEntity.OrganizationID = &orgID
+	}
+
 	if err := uc.repo.Create(ctx, logEntity); err != nil {
 		uc.log.WithContext(ctx).WithError(err).Error("Failed to create audit log")
 		return err
 	}
+
+	// Broadcast event
+	// Response model mapping logic here or simple map
+	eventData := model.AuditLogResponse{
+		ID:             logEntity.ID,
+		OrganizationID: logEntity.OrganizationID,
+		UserID:         logEntity.UserID,
+		Action:         logEntity.Action,
+		Entity:         logEntity.Entity,
+		EntityID:       logEntity.EntityID,
+		OldValues:      req.OldValues,
+		NewValues:      req.NewValues,
+		IPAddress:      logEntity.IPAddress,
+		UserAgent:      logEntity.UserAgent,
+		CreatedAt:      logEntity.CreatedAt,
+	}
+
+	msg, err := json.Marshal(eventData)
+	if err == nil && uc.ws != nil {
+		uc.ws.BroadcastToChannel("audit", msg)
+	} else if err != nil {
+		uc.log.WithContext(ctx).Warnf("Failed to marshal audit log event: %v", err)
+	}
+
 	return nil
 }
 
@@ -69,16 +141,17 @@ func (uc *auditUseCase) GetLogsDynamic(ctx context.Context, filter *querybuilder
 		_ = json.Unmarshal([]byte(log.NewValues), &newVal)
 
 		response = append(response, model.AuditLogResponse{
-			ID:        log.ID,
-			UserID:    log.UserID,
-			Action:    log.Action,
-			Entity:    log.Entity,
-			EntityID:  log.EntityID,
-			OldValues: oldVal,
-			NewValues: newVal,
-			IPAddress: log.IPAddress,
-			UserAgent: log.UserAgent,
-			CreatedAt: log.CreatedAt,
+			ID:             log.ID,
+			OrganizationID: log.OrganizationID,
+			UserID:         log.UserID,
+			Action:         log.Action,
+			Entity:         log.Entity,
+			EntityID:       log.EntityID,
+			OldValues:      oldVal,
+			NewValues:      newVal,
+			IPAddress:      log.IPAddress,
+			UserAgent:      log.UserAgent,
+			CreatedAt:      log.CreatedAt,
 		})
 	}
 	return response, total, nil
@@ -117,18 +190,35 @@ func (uc *auditUseCase) ExportLogs(ctx context.Context, fromDate, toDate string,
 				uc.log.WithError(err).Warnf("Failed to unmarshal NewValues for audit log %s", log.ID)
 			}
 			response = append(response, model.AuditLogResponse{
-				ID:        log.ID,
-				UserID:    log.UserID,
-				Action:    log.Action,
-				Entity:    log.Entity,
-				EntityID:  log.EntityID,
-				OldValues: oldVal,
-				NewValues: newVal,
-				IPAddress: log.IPAddress,
-				UserAgent: log.UserAgent,
-				CreatedAt: log.CreatedAt,
+				ID:             log.ID,
+				OrganizationID: log.OrganizationID,
+				UserID:         log.UserID,
+				Action:         log.Action,
+				Entity:         log.Entity,
+				EntityID:       log.EntityID,
+				OldValues:      oldVal,
+				NewValues:      newVal,
+				IPAddress:      log.IPAddress,
+				UserAgent:      log.UserAgent,
+				CreatedAt:      log.CreatedAt,
 			})
 		}
 		return process(response)
 	})
+}
+
+func (uc *auditUseCase) ExportLogsAsync(ctx context.Context, userID, orgID, fromDate, toDate, format string) error {
+	if uc.taskDistributor == nil {
+		return fmt.Errorf("task distributor not configured")
+	}
+
+	payload := model.AuditLogExportPayload{
+		UserID:         userID,
+		OrganizationID: orgID,
+		FromDate:       fromDate,
+		ToDate:         toDate,
+		Format:         format,
+	}
+
+	return uc.taskDistributor.DistributeTaskAuditLogExport(ctx, payload)
 }

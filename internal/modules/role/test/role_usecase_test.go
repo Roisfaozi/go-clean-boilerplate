@@ -3,9 +3,11 @@ package test
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
+	permissionMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test/mocks"
@@ -19,16 +21,20 @@ import (
 )
 
 type roleTestDeps struct {
-	Repo *mocks.MockRoleRepository
-	TM   *mocking.MockWithTransactionManager
+	Repo           *mocks.MockRoleRepository
+	TM             *mocking.MockWithTransactionManager
+	PermissionMock *permissionMocks.MockIPermissionUseCase
 }
 
 func setupRoleTest() (*roleTestDeps, usecase.RoleUseCase) {
 	deps := &roleTestDeps{
-		Repo: new(mocks.MockRoleRepository),
-		TM:   new(mocking.MockWithTransactionManager),
+		Repo:           new(mocks.MockRoleRepository),
+		TM:             new(mocking.MockWithTransactionManager),
+		PermissionMock: new(permissionMocks.MockIPermissionUseCase),
 	}
-	uc := usecase.NewRoleUseCase(logrus.New(), deps.TM, deps.Repo)
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+	uc := usecase.NewRoleUseCase(log, deps.TM, deps.Repo, deps.PermissionMock)
 	return deps, uc
 }
 
@@ -156,6 +162,7 @@ func TestRoleUseCase_GetAll(t *testing.T) {
 func TestRoleUseCase_Delete(t *testing.T) {
 
 	roleID := "role-123"
+	roleName := "editor"
 
 	t.Run("Success - Role Deleted", func(t *testing.T) {
 
@@ -171,9 +178,10 @@ func TestRoleUseCase_Delete(t *testing.T) {
 
 			})
 
-		deps.Repo.On("FindByID", mock.Anything, roleID).Return(&entity.Role{ID: roleID, Name: "editor"}, nil)
+		deps.Repo.On("FindByID", mock.Anything, roleID).Return(&entity.Role{ID: roleID, Name: roleName}, nil)
 
 		deps.Repo.On("Delete", mock.Anything, roleID).Return(nil)
+		deps.PermissionMock.On("DeleteRole", mock.Anything, roleName).Return(nil)
 
 		err := uc.Delete(context.Background(), roleID)
 
@@ -182,6 +190,7 @@ func TestRoleUseCase_Delete(t *testing.T) {
 		deps.Repo.AssertExpectations(t)
 
 		deps.TM.AssertExpectations(t)
+		deps.PermissionMock.AssertExpectations(t)
 
 	})
 

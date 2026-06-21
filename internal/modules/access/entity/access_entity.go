@@ -7,13 +7,14 @@ import (
 )
 
 type AccessRight struct {
-	ID          string                `gorm:"primaryKey;column:id"`
-	Name        string                `gorm:"column:name;type:varchar(191);unique;not null"`
-	Description string                `gorm:"column:description;type:text"`
-	Endpoints   []Endpoint            `gorm:"many2many:access_right_endpoints;"`
-	CreatedAt   int64                 `gorm:"column:created_at;autoCreateTime:milli"`
-	UpdatedAt   int64                 `gorm:"column:updated_at;autoCreateTime:milli;autoUpdateTime:milli"`
-	DeletedAt   soft_delete.DeletedAt `gorm:"column:deleted_at;softDelete:milli;index"`
+	ID             string                `gorm:"primaryKey;column:id"`
+	OrganizationID *string               `gorm:"column:organization_id;index:idx_access_org_deleted;index"`
+	Name           string                `gorm:"column:name;type:varchar(191);unique;not null"`
+	Description    string                `gorm:"column:description;type:text"`
+	Endpoints      []Endpoint            `gorm:"many2many:access_right_endpoints;"`
+	CreatedAt      int64                 `gorm:"column:created_at;autoCreateTime:milli"`
+	UpdatedAt      int64                 `gorm:"column:updated_at;autoCreateTime:milli;autoUpdateTime:milli"`
+	DeletedAt      soft_delete.DeletedAt `gorm:"column:deleted_at;softDelete:milli;index;index:idx_access_org_deleted"`
 }
 
 func (a *AccessRight) BeforeCreate(tx *gorm.DB) error {

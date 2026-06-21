@@ -3,6 +3,7 @@ package test_test
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -31,7 +32,8 @@ func setupUserTestRouter() *gin.Engine {
 
 func newTestUserHandler(mockUseCase *mocks.MockUserUseCase) *userHandler.UserController {
 	log := logrus.New()
-	log.SetLevel(logrus.PanicLevel)
+	log.SetOutput(io.Discard)
+	log.SetLevel(logrus.FatalLevel)
 	validate := validator.New()
 	_ = validation.RegisterCustomValidations(validate)
 	return userHandler.NewUserController(mockUseCase, log, validate)

@@ -27,6 +27,7 @@ func RegisterAccessRoutes(router *gin.RouterGroup, controller *AccessController)
 		accessGroup.POST("/search", controller.GetAccessRightsDynamic)
 		accessGroup.DELETE("/:id", controller.DeleteAccessRight)
 		accessGroup.POST("/link", controller.LinkEndpointToAccessRight)
+		accessGroup.POST("/unlink", controller.UnlinkEndpointFromAccessRight)
 	}
 
 	endpointGroup := router.Group("/endpoints")

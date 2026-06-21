@@ -24,7 +24,7 @@ func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *UserContro
 func RegisterAuthorizedRoutes(router *gin.RouterGroup, controller *UserController) {
 	userGroup := router.Group("/users")
 	{
-		userGroup.GET("/", controller.GetAllUsers)
+		userGroup.GET("", controller.GetAllUsers)
 		userGroup.POST("/search", controller.GetUsersDynamic)
 		userGroup.GET("/:id", controller.GetUserByID)
 		userGroup.PATCH("/:id/status", controller.UpdateUserStatus)

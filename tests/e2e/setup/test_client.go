@@ -21,6 +21,10 @@ func (c *TestClient) POST(path string, body interface{}, opts ...RequestOption) 
 	req, _ := http.NewRequest("POST", c.BaseURL+path, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+
 	for _, opt := range opts {
 		opt(req)
 	}
@@ -31,6 +35,10 @@ func (c *TestClient) POST(path string, body interface{}, opts ...RequestOption) 
 
 func (c *TestClient) GET(path string, opts ...RequestOption) *Response {
 	req, _ := http.NewRequest("GET", c.BaseURL+path, nil)
+
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
 
 	for _, opt := range opts {
 		opt(req)
@@ -45,6 +53,10 @@ func (c *TestClient) PUT(path string, body interface{}, opts ...RequestOption) *
 	req, _ := http.NewRequest("PUT", c.BaseURL+path, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+
 	for _, opt := range opts {
 		opt(req)
 	}
@@ -57,6 +69,10 @@ func (c *TestClient) PATCH(path string, body interface{}, opts ...RequestOption)
 	jsonBody, _ := json.Marshal(body)
 	req, _ := http.NewRequest("PATCH", c.BaseURL+path, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
+
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
 
 	for _, opt := range opts {
 		opt(req)
@@ -74,6 +90,8 @@ func (c *TestClient) DELETE(path string, bodyOrOpts ...interface{}) *Response {
 		switch v := arg.(type) {
 		case RequestOption:
 			opts = append(opts, v)
+		case func(*http.Request):
+			opts = append(opts, RequestOption(v))
 		default:
 			body = v
 		}
@@ -86,6 +104,10 @@ func (c *TestClient) DELETE(path string, bodyOrOpts ...interface{}) *Response {
 		req.Header.Set("Content-Type", "application/json")
 	} else {
 		req, _ = http.NewRequest("DELETE", c.BaseURL+path, nil)
+	}
+
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}
 
 	for _, opt := range opts {
@@ -113,6 +135,12 @@ func WithCookie(name, value string) RequestOption {
 func WithHeader(key, value string) RequestOption {
 	return func(req *http.Request) {
 		req.Header.Set(key, value)
+	}
+}
+
+func WithOrg(orgID string) RequestOption {
+	return func(req *http.Request) {
+		req.Header.Set("X-Organization-ID", orgID)
 	}
 }
 

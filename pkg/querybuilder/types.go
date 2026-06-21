@@ -12,10 +12,11 @@ type SortModel struct {
 }
 
 type DynamicFilter struct {
-	Filter   map[string]Filter `json:"filter,omitempty" validate:"omitempty,dive,keys,max=100,endkeys"`
-	Sort     *[]SortModel      `json:"sort,omitempty" validate:"omitempty,dive"`
-	Page     int               `json:"page,omitempty" validate:"omitempty,min=1"`
-	PageSize int               `json:"page_size,omitempty" validate:"omitempty,min=1,max=100"`
+	Filter    map[string]Filter `json:"filter,omitempty" validate:"omitempty,dive,keys,max=100,endkeys"`
+	Sort      *[]SortModel      `json:"sort,omitempty" validate:"omitempty,dive"`
+	Page      int               `json:"page,omitempty" validate:"omitempty,min=1"`
+	PageSize  int               `json:"page_size,omitempty" validate:"omitempty,min=1,max=100"`
+	SkipCount bool              `json:"skip_count,omitempty"`
 }
 
 type PreloadEntity struct {

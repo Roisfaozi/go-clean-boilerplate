@@ -3,13 +3,14 @@ package setup
 import (
 	"context"
 	"fmt"
+	"io"
 	"os/exec"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
-	"github.com/casbin/casbin/v2"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
@@ -19,6 +20,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	mysqlDriver "gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var (
@@ -34,21 +36,89 @@ var (
 type TestEnvironment struct {
 	DB        *gorm.DB
 	Redis     *redis.Client
-	Enforcer  *casbin.Enforcer
+	Enforcer  usecase.IEnforcer
 	Logger    *logrus.Logger
 	Ctx       context.Context
 	MySQLAddr string
 	RedisAddr string
+	S3URL     string
+	S3Bucket  string
+	Closers   []func()
+}
+
+func (env *TestEnvironment) StartWorker(processor interface {
+	Start() error
+	Shutdown()
+}) {
+	go func() {
+		if err := processor.Start(); err != nil {
+			env.Logger.Errorf("Failed to start worker in test: %v", err)
+		}
+	}()
+	env.AddCloser(processor.Shutdown)
+}
+
+func (env *TestEnvironment) AddCloser(closer func()) {
+	env.Closers = append(env.Closers, closer)
+}
+
+func (env *TestEnvironment) Cleanup() {
+	for i := len(env.Closers) - 1; i >= 0; i-- {
+		env.Closers[i]()
+	}
+}
+
+func SetupRustFS(t *testing.T, ctx context.Context) (string, string) {
+	bucket := "test-bucket"
+	// Ensure we wait for both the port and a successful response from health check or similar
+	req := testcontainers.ContainerRequest{
+		Image:        "rustfs/rustfs:latest",
+		ExposedPorts: []string{"9000/tcp"},
+		Env: map[string]string{
+			"RUSTFS_ACCESS_KEY":     "rustfsadmin",
+			"RUSTFS_SECRET_KEY":     "rustfsadmin",
+			"RUSTFS_CONSOLE_ENABLE": "true",
+			"RUSTFS_VOLUMES":        "/data",
+		},
+		WaitingFor: wait.ForAll(
+			wait.ForListeningPort("9000/tcp"),
+			wait.ForHTTP("/minio/health/live").WithPort("9000/tcp"),
+		).WithDeadline(60 * time.Second),
+	}
+
+	rustfsC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+	if err != nil {
+		t.Skipf("Skipping: Failed to start RustFS: %v", err)
+		return "", ""
+	}
+
+	t.Cleanup(func() {
+		_ = rustfsC.Terminate(ctx)
+	})
+
+	host, err := rustfsC.Host(ctx)
+	require.NoError(t, err)
+
+	p, err := rustfsC.MappedPort(ctx, "9000/tcp")
+	require.NoError(t, err)
+
+	s3URL := fmt.Sprintf("http://%s:%s", host, p.Port())
+
+	return s3URL, bucket
 }
 
 func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 	ctx := context.Background()
 	logger := logrus.New()
-	logger.SetLevel(logrus.ErrorLevel)
+	logger.SetOutput(io.Discard) // Create a cleaner test output
+	logger.SetLevel(logrus.FatalLevel)
 
 	initOnce.Do(func() {
 		var err error
-		logger.Info("🐳 Starting Shared Integration Containers...")
+		// logger.Info("🐳 Starting Shared Integration Containers...") // Suppressed
 
 		if !IsDockerAvailable() {
 			_ = fmt.Errorf("docker not available")
@@ -71,7 +141,7 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 		}
 
 		redisC, err = redisContainer.Run(ctx,
-			"redis:8.4-alpine",
+			"redis:7.2-alpine",
 			testcontainers.WithWaitStrategy(
 				wait.ForLog("Ready to accept connections").
 					WithStartupTimeout(30*time.Second),
@@ -96,7 +166,11 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 		if err != nil {
 			panic(err)
 		}
-		globalRDB = redis.NewClient(&redis.Options{Addr: redisAddr})
+		globalRDB = redis.NewClient(&redis.Options{
+			Addr:            redisAddr,
+			Protocol:        3,
+			DisableIdentity: true, // Suppress maint_notifications handshake error
+		})
 
 		RunMigrations(nil, globalDB)
 	})
@@ -125,10 +199,6 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 	}
 }
 
-func (env *TestEnvironment) Cleanup() {
-
-}
-
 func connectWithRetry(connStr string, maxRetries int) (*gorm.DB, error) {
 	var db *gorm.DB
 	var err error
@@ -136,7 +206,7 @@ func connectWithRetry(connStr string, maxRetries int) (*gorm.DB, error) {
 	for i := 0; i < maxRetries; i++ {
 		db, err = gorm.Open(mysqlDriver.Open(connStr), &gorm.Config{
 			DisableForeignKeyConstraintWhenMigrating: true,
-			Logger:                                   nil,
+			Logger:                                   logger.Default.LogMode(logger.Silent),
 		})
 		if err == nil {
 			sqlDB, err := db.DB()
@@ -152,7 +222,8 @@ func connectWithRetry(connStr string, maxRetries int) (*gorm.DB, error) {
 	return nil, fmt.Errorf("failed to connect after %d retries: %w", maxRetries, err)
 }
 
-func SetupCasbin(t *testing.T, db *gorm.DB, logger *logrus.Logger) *casbin.Enforcer {
+func SetupCasbin(t *testing.T, db *gorm.DB, logger *logrus.Logger) usecase.IEnforcer {
+	// Ensure config path is correct relative to integration tests
 	cfg := &config.AppConfig{
 		Casbin: config.CasbinConfig{
 			Enabled: true,
@@ -162,12 +233,12 @@ func SetupCasbin(t *testing.T, db *gorm.DB, logger *logrus.Logger) *casbin.Enfor
 	}
 	enforcer, err := config.NewCasbinEnforcer(cfg, db, logger)
 	require.NoError(t, err, "Failed to setup Casbin enforcer")
-	return enforcer
+	return usecase.NewTransactionalEnforcer(enforcer, cfg.Casbin.Model)
 }
 
 func SetupRedisContainer(ctx context.Context) (*redisContainer.RedisContainer, string, error) {
 	redisC, err := redisContainer.Run(ctx,
-		"redis:8.4-alpine",
+		"redis:7.2-alpine",
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("Ready to accept connections").
 				WithStartupTimeout(30*time.Second),
@@ -177,16 +248,6 @@ func SetupRedisContainer(ctx context.Context) (*redisContainer.RedisContainer, s
 		return nil, "", err
 	}
 
-	// Remove the protocol if present (e.g., "redis://") as client usually expects host:port
-	// Actually Endpoint returns host:port, so no need to strip protocol usually unless mapped port retrieval is weird.
-	// But redis.NewClient Options.Addr expects "host:port". redisC.Endpoint returns exactly that.
-
-	// Extract port is tricky from Endpoint directly if we want just port, but we need host:port for client.
-	// The function signature in test expects (container, port), but actually it uses it as Addr.
-	// Let's return the full address as "port" string for simplicity in the test usage which does fmt.Sprintf("localhost:%s", port) - WAIT.
-	// If test does `fmt.Sprintf("localhost:%s", redisPort)`, it expects ONLY port.
-
-	// Let's get the mapped port.
 	p, err := redisC.MappedPort(ctx, "6379")
 	if err != nil {
 		return nil, "", err
@@ -196,7 +257,7 @@ func SetupRedisContainer(ctx context.Context) (*redisContainer.RedisContainer, s
 }
 
 func IsDockerAvailable() bool {
-	cmd := exec.Command("docker", "info")
+	cmd := exec.Command("docker", "ps")
 	if err := cmd.Run(); err != nil {
 		return false
 	}

@@ -17,6 +17,8 @@ type UserUseCase interface {
 	Update(ctx context.Context, request *model.UpdateUserRequest) (*model.UserResponse, error)
 	UpdateStatus(ctx context.Context, userID, status string) error
 	UpdateAvatar(ctx context.Context, userID string, file io.Reader, filename string, contentType string) (*model.UserResponse, error)
+	SetAvatarURL(ctx context.Context, userID string, url string) error
+	GetAvatarUrl(ctx context.Context, userID string) (string, error)
 	HardDeleteSoftDeletedUsers(ctx context.Context, retentionDays int) error
 	DeleteUser(ctx context.Context, actorUserID string, request *model.DeleteUserRequest) error
 }

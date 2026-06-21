@@ -145,7 +145,6 @@ func (h *UserController) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	// Capture Audit Data
 	req.IPAddress = c.ClientIP()
 	req.UserAgent = c.Request.UserAgent()
 

@@ -31,3 +31,14 @@ type TokenRepository interface {
 	LockAccount(ctx context.Context, username string, duration time.Duration) error
 	IsAccountLocked(ctx context.Context, username string) (bool, time.Duration, error)
 }
+
+// NotificationPublisher abstracts real-time notification broadcasting (WS/SSE).
+type NotificationPublisher interface {
+	PublishUserLoggedIn(ctx context.Context, user model.UserInfo, orgIDs []string)
+}
+
+// AuthzManager abstracts authorization logic (Casbin).
+type AuthzManager interface {
+	AssignDefaultRole(ctx context.Context, userID string) error
+	GetRolesForUser(ctx context.Context, userID string, domain string) ([]string, error)
+}

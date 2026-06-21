@@ -28,12 +28,22 @@ func RegisterPermissionRoutes(router *gin.RouterGroup, controller *PermissionCon
 		permissionGroup.POST("/grant", controller.GrantPermission)
 		permissionGroup.GET("", controller.GetAllPermissions)
 		permissionGroup.GET("/:role", controller.GetPermissionsForRole)
+		permissionGroup.GET("/roles/:role/users", controller.GetUsersForRole)
 		permissionGroup.PUT("", controller.UpdatePermission)
 		permissionGroup.DELETE("/revoke", controller.RevokePermission)
 
 		permissionGroup.POST("/inheritance", controller.AddRoleInheritance)
 		permissionGroup.DELETE("/inheritance", controller.RemoveRoleInheritance)
 		permissionGroup.GET("/:role/parents", controller.GetParentRoles)
+
+		// New routes for Matrix View
+		permissionGroup.GET("/resources", controller.GetResourceAggregation)
+		permissionGroup.GET("/inheritance-tree", controller.GetInheritanceTree)
+
+		// Bulk Access Right assignment
+		permissionGroup.GET("/roles/:role/access-rights", controller.GetRoleAccessRights)
+		permissionGroup.POST("/assign-access-right", controller.AssignAccessRight)
+		permissionGroup.DELETE("/revoke-access-right", controller.RevokeAccessRight)
 	}
 }
 

@@ -17,8 +17,8 @@ DB_PASSWORD = Password0!
 DB_PASSWORD_PROD = 
 DB_HOST = localhost
 DB_HOST_PROD = 
-DB_PORT = 3307
-DB_PORT_PROD = 3307
+DB_PORT = 3306
+DB_PORT_PROD = 3306
 DB_NAME = gin_starter
 DB_NAME_PROD = 
 DB_URL = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@tcp($(DB_HOST):$(DB_PORT))/$(DB_NAME)"
@@ -30,7 +30,7 @@ DB_URL_STAG = "$(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD_PROD)@tcp($(DB_HOST_PROD)
 SWAG_CLI=go run github.com/swaggo/swag/cmd/swag@v1.8.12
 
 # Binary name
-BINARY_NAME=main.exe
+BINARY_NAME=main
 
 # Default target executed when you just run `make`
 .PHONY: all
@@ -169,13 +169,7 @@ deploy: ## Run Blue-Green deployment
 docs:
 	@echo "Generating Swagger/OpenAPI documentation..."
 	$(SWAG_CLI) init -g cmd/api/main.go --parseDependency --parseInternal --parseDepth 1
-	# sanitize generated file: remove LeftDelim/RightDelim if present (compatibility across swag versions)
-	@{ \
-		if [ -f ./docs/docs.go ]; then \
-			sed -i '/LeftDelim/d' ./docs/docs.go || true; \
-			sed -i '/RightDelim/d' ./docs/docs.go || true; \
-		fi; \
-	}
+	@echo "Swagger documentation generated successfully!"
 
 # Tidy go.mod and go.sum files
 .PHONY: tidy
@@ -268,8 +262,10 @@ seed-down: ## Rollback seeded data (if applicable, be careful!)
 
 
 .PHONY: gemini
-gemini: ## Set MySQL environment variables
-	@powershell -ExecutionPolicy Bypass -Command "$$env:MYSQL_HOST='$(DB_HOST)'; $$env:MYSQL_PORT='$(DB_PORT)'; $$env:MYSQL_DATABASE='$(DB_NAME)'; $$env:MYSQL_USER='$(DB_USER)'; $$env:MYSQL_PASSWORD='$(DB_PASSWORD)'; gemini"
+gemini: ## Set MySQL environment variables and run gemini using zsh
+		@echo "Starting gemini with MySQL environment variables (zsh)..."
+		@env MYSQL_HOST="$(DB_HOST)" MYSQL_PORT="$(DB_PORT)" MYSQL_DATABASE="$(DB_NAME)" MYSQL_USER="$(DB_USER)" MYSQL_PASSWORD="$(DB_PASSWORD)" zsh -c 'gemini'
+	@#powershell -ExecutionPolicy Bypass -Command "$$env:MYSQL_HOST='$(DB_HOST)'; $$env:MYSQL_PORT='$(DB_PORT)'; $$env:MYSQL_DATABASE='$(DB_NAME)'; $$env:MYSQL_USER='$(DB_USER)'; $$env:MYSQL_PASSWORD='$(DB_PASSWORD)'; gemini"
 
 # Generate new module boilerplate
 .PHONY: gen-module
