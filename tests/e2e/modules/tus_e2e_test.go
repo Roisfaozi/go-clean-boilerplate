@@ -81,7 +81,7 @@ func TestTUS_E2E_Lifecycle(t *testing.T) {
 				setup.WithAuth(adminToken),
 				setup.WithHeader("Tus-Resumable", "1.0.0"),
 				setup.WithHeader("Upload-Length", "5"),
-				setup.WithHeader("Upload-Metadata", "filename file1.txt,type avatar"),
+				setup.WithHeader("Upload-Metadata", "filename ZmlsZTEudHh0,type YXZhdGFy"), // filename file1.txt, type avatar
 			}
 			resp := server.Client.POST("/api/v1/upload/files/", nil, reqHeaders...)
 			assert.Equal(t, http.StatusCreated, resp.StatusCode)
@@ -94,7 +94,7 @@ func TestTUS_E2E_Lifecycle(t *testing.T) {
 				setup.WithAuth(adminToken2),
 				setup.WithHeader("Tus-Resumable", "1.0.0"),
 				setup.WithHeader("Upload-Length", "5"),
-				setup.WithHeader("Upload-Metadata", "filename file2.txt,type avatar"),
+				setup.WithHeader("Upload-Metadata", "filename ZmlsZTIudHh0,type YXZhdGFy"), // filename file2.txt, type avatar
 			}
 			resp := server.Client.POST("/api/v1/upload/files/", nil, reqHeaders...)
 			assert.Equal(t, http.StatusCreated, resp.StatusCode)
