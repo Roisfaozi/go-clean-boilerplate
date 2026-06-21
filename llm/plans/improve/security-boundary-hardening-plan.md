@@ -219,16 +219,16 @@ Align API-key scope, user-session requirements, tenant domain, and Casbin policy
 
 ### Tasks
 
-1. Verify all routes with API-key support have explicit or valid auto-derived scopes.
-2. Add tests for representative protected routes:
+1. Verify all routes with API-key support have explicit or valid auto-derived scopes. ✅
+2. Add tests for representative protected routes: ✅
    - JWT allowed
    - API key allowed
    - API key denied by missing scope
    - API key denied by `RequireUserSession()`
    - wildcard scope behavior
-3. Audit policy writes that coincide with DB writes.
-4. Ensure transactional enforcer path is used where DB and policy must commit together.
-5. Consider stronger nil-enforcer guard for non-local environments.
+3. Audit policy writes that coincide with DB writes. ✅
+4. Ensure transactional enforcer path is used where DB and policy must commit together. ✅
+5. Consider stronger nil-enforcer guard for non-local environments. ✅
 
 ### Verification
 
@@ -239,6 +239,14 @@ Align API-key scope, user-session requirements, tenant domain, and Casbin policy
 ### Gate
 
 No route group movement without route matrix update and focused endpoint tests.
+
+### Phase 4 Result
+
+- Router grouping remains explicit: `authenticated` uses `Authenticate()` + `RequireScopeAuto()` + `RequireUserSession()`, while `tenantAuthorized` uses `Authenticate()` + tenant resolution + `RequireScopeAuto()`.
+- Representative route and middleware tests cover JWT allowed, API-key allowed, missing scope, `RequireUserSession()` denial, wildcard behavior, and Casbin path normalization.
+- Transactional enforcer regression coverage exists for grouping policy persistence and organization-create policy persistence.
+- Strict non-local Casbin startup guard is in place in `internal/config/app.go`.
+- Host/Docker-backed integration proof remains environment-dependent and skips cleanly when DB/Testcontainers are unavailable.
 
 ## Phase 5 — Worker, Audit, Webhook Reliability
 
