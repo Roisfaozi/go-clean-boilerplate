@@ -5,11 +5,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterWebhookRoutes(r *gin.RouterGroup, controller *WebhookController, apiKeyMiddleware *middleware.APIKeyMiddleware) {
+func RegisterWebhookRoutes(r *gin.RouterGroup, controller *WebhookController, apiKeyMiddleware *middleware.APIKeyMiddleware, idempotencyMiddleware gin.HandlerFunc) {
 	webhooks := r.Group("/webhooks")
 	{
 		webhooks.Use(apiKeyMiddleware.RequireScopes("webhook:manage"))
-		webhooks.POST("", controller.Create)
+		if idempotencyMiddleware != nil {
+			webhooks.POST("", idempotencyMiddleware, controller.Create)
+		} else {
+			webhooks.POST("", controller.Create)
+		}
 		webhooks.GET("", controller.FindByOrganization)
 		webhooks.GET("/:id", controller.FindByID)
 		webhooks.PUT("/:id", controller.Update)

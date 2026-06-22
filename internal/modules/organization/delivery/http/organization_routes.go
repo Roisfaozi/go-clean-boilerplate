@@ -5,13 +5,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterAuthenticatedRoutes registers organization routes that require authentication
-// but NOT organization-level authorization (can access any org data)
-func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *OrganizationController) {
+func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *OrganizationController, idempotencyMiddleware gin.HandlerFunc) {
 	orgGroup := router.Group("/organizations")
 	{
 		// Create new organization
-		orgGroup.POST("", controller.CreateOrganization)
+		if idempotencyMiddleware != nil {
+			orgGroup.POST("", idempotencyMiddleware, controller.CreateOrganization)
+		} else {
+			orgGroup.POST("", controller.CreateOrganization)
+		}
 
 		// Get organizations the user is a member of
 		orgGroup.GET("/me", controller.GetMyOrganizations)
@@ -19,16 +21,20 @@ func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *Organizati
 }
 
 // RegisterPublicRoutes registers routes that do not require authentication or tenant context
-func RegisterPublicRoutes(router *gin.RouterGroup, controller *OrganizationController) {
+func RegisterPublicRoutes(router *gin.RouterGroup, controller *OrganizationController, idempotencyMiddleware gin.HandlerFunc) {
 	orgGroup := router.Group("/organizations")
 	{
-		orgGroup.POST("/invitations/accept", controller.AcceptInvitation)
+		if idempotencyMiddleware != nil {
+			orgGroup.POST("/invitations/accept", idempotencyMiddleware, controller.AcceptInvitation)
+		} else {
+			orgGroup.POST("/invitations/accept", controller.AcceptInvitation)
+		}
 	}
 }
 
 // RegisterTenantRoutes registers routes that require tenant context
 // These routes use TenantMiddleware to set organization context
-func RegisterTenantRoutes(router *gin.RouterGroup, controller *OrganizationController, apiKeyMiddleware *middleware.APIKeyMiddleware) {
+func RegisterTenantRoutes(router *gin.RouterGroup, controller *OrganizationController, apiKeyMiddleware *middleware.APIKeyMiddleware, idempotencyMiddleware gin.HandlerFunc) {
 	orgGroup := router.Group("/organizations")
 	{
 		orgGroup.GET("/:id", apiKeyMiddleware.RequireScopes("org:view", "org:manage"), controller.GetOrganization)
@@ -40,7 +46,11 @@ func RegisterTenantRoutes(router *gin.RouterGroup, controller *OrganizationContr
 		membersGroup := orgGroup.Group("/:id/members")
 		{
 			// Invite member
-			membersGroup.POST("/invite", apiKeyMiddleware.RequireScopes("member:manage"), controller.InviteMember)
+			if idempotencyMiddleware != nil {
+				membersGroup.POST("/invite", idempotencyMiddleware, apiKeyMiddleware.RequireScopes("member:manage"), controller.InviteMember)
+			} else {
+				membersGroup.POST("/invite", apiKeyMiddleware.RequireScopes("member:manage"), controller.InviteMember)
+			}
 
 			// Get all members
 			membersGroup.GET("", apiKeyMiddleware.RequireScopes("member:manage"), controller.GetMembers)
