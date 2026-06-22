@@ -198,7 +198,9 @@ export default function OrganizationsPage() {
             {
               label: "Delete Selected",
               onClick: (ids) => {
-                ids.forEach((id) => deleteOrg.mutate(String(id)));
+                ids.forEach((id) => {
+                  deleteOrg.mutate(String(id));
+                });
               },
             },
           ]}

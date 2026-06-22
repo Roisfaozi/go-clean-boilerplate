@@ -27,7 +27,7 @@ import { useDensityStore } from "~/stores/use-density-store";
 
 export function GlobalSearch() {
   const [open, setOpen] = React.useState(false);
-  const { density } = useDensityStore();
+  useDensityStore();
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {

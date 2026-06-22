@@ -34,7 +34,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     new Map(),
   );
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const connectRef = useRef<() => void>(() => {});
+  const connectRef = useRef<() => void>(() => undefined);
 
   const sendJson = useCallback((data: any) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -78,7 +78,9 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
               const channel = message.channel || "global";
               const listeners = subscriptions.current.get(channel);
               if (listeners) {
-                listeners.forEach((callback) => callback(message));
+                listeners.forEach((callback) => {
+                  callback(message);
+                });
               }
             } catch (parseError) {
               console.error(

@@ -18,7 +18,7 @@ import { EmptyState } from "~/components/shared/empty-state";
 import { CardGridSkeleton } from "~/components/shared/skeletons";
 
 export function ProjectsGrid() {
-  const { projects, isLoading, createProject } = useProjects();
+  const { projects, isLoading } = useProjects();
 
   if (isLoading && projects.length === 0) {
     return <CardGridSkeleton count={4} />;

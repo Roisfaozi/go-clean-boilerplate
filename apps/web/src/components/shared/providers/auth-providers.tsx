@@ -16,7 +16,7 @@ const AUTH_PATHS = [
 ];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { user, setUser, logout } = useAuthStore();
+  const { setUser, logout } = useAuthStore();
   const { setPermissions, clearPermissions } = usePermissionStore();
   const pathname = usePathname();
 

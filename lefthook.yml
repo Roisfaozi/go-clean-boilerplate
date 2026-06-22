@@ -6,16 +6,16 @@ pre-commit:
   commands:
     # ─── GO BACKEND ───
     go-fmt:
-      glob: "**/*.go"
+      glob: '**/*.go'
       run: gofmt -w {staged_files} && git add {staged_files}
 
     go-vet:
-      glob: "**/*.go"
+      glob: '**/*.go'
       run: go vet ./...
 
     # ─── FRONTEND & UI ───
     format:
-      glob: "**/*.{js,ts,jsx,tsx,json,css}"
+      glob: '**/*.{js,ts,jsx,tsx,json,css}'
       run: pnpm exec biome format --write {staged_files} && git add {staged_files}
 
     # ─── VALIDATION ───
@@ -23,5 +23,5 @@ pre-commit:
       run: pnpm turbo run typecheck
 
     # Temporarily disabled lint in pre-commit due to existing baseline errors
-    # lint:
-    #   run: pnpm turbo run lint
+    lint:
+      run: pnpm lint

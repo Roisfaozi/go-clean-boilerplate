@@ -133,8 +133,12 @@ export class WebSocketClient {
   }
 
   private emit(message: WSMessage): void {
-    this.globalHandlers.forEach((h) => h(message));
-    this.handlers.get(message.type)?.forEach((h) => h(message));
+    this.globalHandlers.forEach((h) => {
+      h(message);
+    });
+    this.handlers.get(message.type)?.forEach((h) => {
+      h(message);
+    });
   }
 
   private startPing(): void {

@@ -103,8 +103,12 @@ export class EventClient {
   }
 
   private emit(event: SSEEvent): void {
-    this.globalHandlers.forEach((h) => h(event));
-    this.handlers.get(event.type)?.forEach((h) => h(event));
+    this.globalHandlers.forEach((h) => {
+      h(event);
+    });
+    this.handlers.get(event.type)?.forEach((h) => {
+      h(event);
+    });
   }
 
   private scheduleReconnect(): void {

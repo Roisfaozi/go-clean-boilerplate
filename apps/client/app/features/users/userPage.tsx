@@ -205,7 +205,9 @@ export default function UsersPage() {
             {
               label: "Delete Selected",
               onClick: (ids) => {
-                ids.forEach((id) => deleteUser.mutate(String(id)));
+                ids.forEach((id) => {
+                  deleteUser.mutate(String(id));
+                });
               },
             },
           ]}

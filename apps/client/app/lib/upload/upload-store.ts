@@ -312,12 +312,12 @@ export const useUploadStore = create<UploadState>()((set, get) => {
         toast.success(
           `${newItems.length} upload${newItems.length > 1 ? "s" : ""} added to queue`,
         );
-        newItems.forEach((it) =>
+        newItems.forEach((it) => {
           logUploadEvent("upload_started", {
             id: it.id,
             fileName: it.fileName,
-          }),
-        );
+          });
+        });
         get().startAll();
       }
 
@@ -361,7 +361,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
         (i) => i.status === "preparing" || i.status === "uploading",
       ).length;
       const toStart = queued.slice(0, maxConcurrent - active);
-      toStart.forEach((i) => startUpload(i.id));
+      toStart.forEach((i) => {
+        startUpload(i.id);
+      });
     },
 
     pauseUpload: (id) => {
@@ -413,13 +415,17 @@ export const useUploadStore = create<UploadState>()((set, get) => {
             i.status === "preparing" ||
             i.status === "paused",
         )
-        .forEach((i) => get().cancelUpload(i.id));
+        .forEach((i) => {
+          get().cancelUpload(i.id);
+        });
     },
 
     cancelAllQueued: () => {
       get()
         .items.filter((i) => i.status === "queued")
-        .forEach((i) => get().cancelUpload(i.id));
+        .forEach((i) => {
+          get().cancelUpload(i.id);
+        });
     },
 
     retryUpload: (id) => {
@@ -446,7 +452,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
     retryAllFailed: () => {
       get()
         .items.filter((i) => i.status === "error")
-        .forEach((i) => get().retryUpload(i.id));
+        .forEach((i) => {
+          get().retryUpload(i.id);
+        });
     },
 
     removeItem: (id) => {

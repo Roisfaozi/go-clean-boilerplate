@@ -94,7 +94,7 @@ const resourceTimeline: TimeSeriesPoint[] = [
 ];
 
 export default function SystemHealthPage() {
-  const { data: healthData, isLoading } = useQuery({
+  const { data: healthData } = useQuery({
     queryKey: ["systemHealth"],
     queryFn: getSystemHealth,
     refetchInterval: 10000, // Poll every 10s

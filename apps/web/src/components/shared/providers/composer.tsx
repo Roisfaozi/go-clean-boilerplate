@@ -18,8 +18,8 @@ export function ProviderComposer({
 }: ProviderComposerProps) {
   return (
     <>
-      {providers.reduceRight((acc, Provider) => {
-        return <Provider>{acc}</Provider>;
+      {providers.reduceRight((acc, Provider, index) => {
+        return <Provider key={index}>{acc}</Provider>;
       }, children)}
     </>
   );
