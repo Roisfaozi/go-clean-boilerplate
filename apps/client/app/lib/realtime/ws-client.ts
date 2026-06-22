@@ -50,6 +50,10 @@ export class WebSocketClient {
 
 	async connect(): Promise<void> {
 		if (typeof window === "undefined") return;
+		if (this.reconnectTimer) {
+			clearTimeout(this.reconnectTimer);
+			this.reconnectTimer = null;
+		}
 		if (this.ws) this.disconnect();
 
 		let ticket = "";
