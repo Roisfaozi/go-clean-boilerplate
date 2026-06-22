@@ -13,6 +13,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func respondPermissionNoop(c *gin.Context, message string) {
+	response.Success(c, gin.H{"changed": false, "message": message})
+}
+
 type PermissionController struct {
 	useCase  usecase.IPermissionUseCase
 	log      *logrus.Logger
@@ -109,6 +113,10 @@ func (h *PermissionController) RevokeRole(c *gin.Context) {
 
 	err := h.useCase.RevokeRoleFromUser(c.Request.Context(), req.UserID, req.Role, resolveDomain(c, req.Domain))
 	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoop(c, message)
+			return
+		}
 		response.HandleError(c, err, "failed to revoke role")
 		return
 	}
@@ -145,6 +153,10 @@ func (h *PermissionController) GrantPermission(c *gin.Context) {
 
 	err := h.useCase.GrantPermissionToRole(c.Request.Context(), req.Role, req.Path, req.Method, resolveDomain(c, req.Domain))
 	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoop(c, message)
+			return
+		}
 		response.HandleError(c, err, "failed to grant permission")
 		return
 	}
@@ -311,6 +323,10 @@ func (h *PermissionController) RevokePermission(c *gin.Context) {
 
 	err := h.useCase.RevokePermissionFromRole(c.Request.Context(), req.Role, req.Path, req.Method, resolveDomain(c, req.Domain))
 	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoop(c, message)
+			return
+		}
 		response.HandleError(c, err, "failed to revoke permission")
 		return
 	}
@@ -384,6 +400,10 @@ func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 
 	err := h.useCase.RemoveParentRole(c.Request.Context(), req.ChildRole, req.ParentRole, resolveDomain(c, req.Domain))
 	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoop(c, message)
+			return
+		}
 		response.HandleError(c, err, "failed to remove role inheritance")
 		return
 	}
@@ -557,6 +577,10 @@ func (h *PermissionController) AssignAccessRight(c *gin.Context) {
 
 	req.Domain = resolveDomain(c, req.Domain)
 	if err := h.useCase.AssignAccessRight(c.Request.Context(), req); err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoop(c, message)
+			return
+		}
 		response.HandleError(c, err, "failed to assign access right")
 		return
 	}
@@ -592,6 +616,10 @@ func (h *PermissionController) RevokeAccessRight(c *gin.Context) {
 
 	req.Domain = resolveDomain(c, req.Domain)
 	if err := h.useCase.RevokeAccessRight(c.Request.Context(), req); err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoop(c, message)
+			return
+		}
 		response.HandleError(c, err, "failed to revoke access right")
 		return
 	}

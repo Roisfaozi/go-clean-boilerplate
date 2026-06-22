@@ -274,6 +274,14 @@ func (s *Service) Verify(ctx context.Context, userID string, sessionID string) (
 func (s *Service) RevokeToken(ctx context.Context, userID, sessionID string) error {
 	s.log.WithContext(ctx).Infof("Revoking token for user %s with session %s", userID, sessionID)
 
+	currentSession, err := s.tokenRepo.GetToken(ctx, userID, sessionID)
+	if err != nil {
+		return err
+	}
+	if currentSession == nil {
+		return nil
+	}
+
 	if s.taskDistributor != nil {
 		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
 			UserID:   userID,

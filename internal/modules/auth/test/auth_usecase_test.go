@@ -478,6 +478,7 @@ func TestRevokeToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	userID, sessionID := "user-1", "session-1"
 
+	deps.tokenRepo.On("GetToken", mock.Anything, userID, sessionID).Return(&model.Auth{ID: sessionID, UserID: userID}, nil)
 	deps.tokenRepo.On("DeleteToken", mock.Anything, userID, sessionID).Return(nil)
 	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == userID && req.Action == "LOGOUT" && req.Entity == "Auth" && req.EntityID == sessionID
@@ -494,6 +495,7 @@ func TestRevokeToken_AuditError(t *testing.T) {
 	authService, deps := setupTest(t)
 	userID, sessionID := "user-1", "session-1"
 
+	deps.tokenRepo.On("GetToken", mock.Anything, userID, sessionID).Return(&model.Auth{ID: sessionID, UserID: userID}, nil)
 	deps.tokenRepo.On("DeleteToken", mock.Anything, userID, sessionID).Return(nil)
 	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("audit error"))
 
@@ -1007,7 +1009,7 @@ func TestRequestVerification_AlreadyVerified(t *testing.T) {
 	err := authService.RequestVerification(context.Background(), user.ID)
 
 	assert.Error(t, err)
-	assert.True(t, errors.Is(err, usecase.ErrAlreadyVerified))
+	assert.Equal(t, usecase.ErrAlreadyVerified, err)
 	deps.userRepo.AssertExpectations(t)
 	deps.tokenRepo.AssertNotCalled(t, "SaveVerificationToken", mock.Anything, mock.Anything)
 }
@@ -1152,8 +1154,7 @@ func TestVerifyEmail_AlreadyVerified(t *testing.T) {
 
 	err := authService.VerifyEmail(context.Background(), token)
 
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, usecase.ErrAlreadyVerified))
+	assert.NoError(t, err)
 	deps.tokenRepo.AssertExpectations(t)
 }
 
@@ -2289,10 +2290,22 @@ func TestAuthUseCase_VerifyEmail_AlreadyVerified(t *testing.T) {
 	err := authService.VerifyEmail(ctx, token)
 
 	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, usecase.ErrAlreadyVerified, err)
+	assert.NoError(t, err)
 	deps.tokenRepo.AssertExpectations(t)
 	deps.userRepo.AssertExpectations(t)
+}
+
+func TestRevokeToken_NoSession_NoOp(t *testing.T) {
+	authService, deps := setupTest(t)
+	userID, sessionID := "user-1", "session-1"
+
+	deps.tokenRepo.On("GetToken", mock.Anything, userID, sessionID).Return(nil, nil)
+
+	err := authService.RevokeToken(context.Background(), userID, sessionID)
+
+	assert.NoError(t, err)
+	deps.tokenRepo.AssertExpectations(t)
+	deps.taskDistributor.AssertNotCalled(t, "DistributeTaskAuditLog", mock.Anything, mock.Anything)
 }
 
 // // --- Merged from auth_usecase_guardian_test.go ---

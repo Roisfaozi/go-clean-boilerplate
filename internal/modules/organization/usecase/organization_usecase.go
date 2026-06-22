@@ -313,7 +313,8 @@ func (uc *organizationUseCase) RestoreOrganization(ctx context.Context, id strin
 			return exception.ErrInternalServer
 		}
 		if org == nil {
-			return exception.ErrNotFound
+			response = nil
+			return nil
 		}
 
 		if org.DeletedAt == 0 {
@@ -358,7 +359,7 @@ func (uc *organizationUseCase) HardDeleteOrganization(ctx context.Context, id st
 			return exception.ErrInternalServer
 		}
 		if org == nil {
-			return exception.ErrNotFound
+			return nil
 		}
 		if org.DeletedAt == 0 {
 			return exception.ErrBadRequest

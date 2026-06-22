@@ -124,9 +124,9 @@ func TestAssignAccessRight_NotFound(t *testing.T) {
 	err := uc.AssignAccessRight(context.Background(), req)
 
 	assert.Error(t, err)
-	assert.Equal(t, exception.ErrNotFound, err)
-}
+	assert.Equal(t, "access right 'ar1' not found", err.Error())
 
+}
 func TestAssignAccessRight_NoEndpoints(t *testing.T) {
 	deps, uc := setupPermissionTest()
 
@@ -191,5 +191,5 @@ func TestRevokeAccessRight_NotFound(t *testing.T) {
 	err := uc.RevokeAccessRight(context.Background(), req)
 
 	assert.Error(t, err)
-	assert.Equal(t, exception.ErrNotFound, err)
+	assert.Equal(t, "access right 'ar1' not found", err.Error())
 }

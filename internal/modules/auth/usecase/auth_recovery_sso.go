@@ -191,7 +191,7 @@ func (s *Service) VerifyEmail(ctx context.Context, token string) error {
 
 	if user.EmailVerifiedAt != nil {
 		_ = s.tokenRepo.DeleteVerificationTokenByEmail(ctx, verificationToken.Email)
-		return ErrAlreadyVerified
+		return nil
 	}
 
 	user.EmailVerifiedAt = &now

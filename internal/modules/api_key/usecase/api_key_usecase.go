@@ -132,7 +132,7 @@ func (uc *apiKeyUseCase) Revoke(ctx context.Context, orgID, id string) error {
 	apiKey, err := uc.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return exception.ErrNotFound
+			return nil
 		}
 		return exception.ErrInternalServer
 	}

@@ -43,6 +43,26 @@ type IPermissionUseCase interface {
 	DeleteRole(ctx context.Context, roleName string) error
 }
 
+type NoopError struct {
+	Message string
+}
+
+func (e NoopError) Error() string {
+	return e.Message
+}
+
+func NewNoopError(message string) error {
+	return NoopError{Message: message}
+}
+
+func IsNoopError(err error) (string, bool) {
+	var noopErr NoopError
+	if errors.As(err, &noopErr) {
+		return noopErr.Message, true
+	}
+	return "", false
+}
+
 type PermissionUseCase struct {
 	enforcer   IEnforcer
 	log        *logrus.Logger
@@ -233,7 +253,7 @@ func (uc *PermissionUseCase) RevokeRoleFromUser(ctx context.Context, userID, rol
 		return exception.ErrInternalServer
 	}
 	if !removed {
-		return errors.New("role was not assigned to user in specified domain")
+		return NewNoopError("role was not assigned to user in specified domain")
 	}
 	return nil
 }
@@ -293,7 +313,7 @@ func (uc *PermissionUseCase) RevokePermissionFromRole(ctx context.Context, role,
 		return err
 	}
 	if !removed {
-		return errors.New("policy to revoke not found in specified domain")
+		return NewNoopError("policy to revoke not found in specified domain")
 	}
 	return nil
 }

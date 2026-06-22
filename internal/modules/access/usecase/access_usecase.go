@@ -113,8 +113,8 @@ func (uc *AccessUseCase) DeleteAccessRight(ctx context.Context, id string) error
 	_, err := uc.repo.GetAccessRightByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			uc.log.WithContext(ctx).Warnf("Access right with ID %s not found for deletion", id)
-			return exception.ErrNotFound
+			uc.log.WithContext(ctx).Warnf("Access right with ID %s already absent; treating delete as success", id)
+			return nil
 		}
 		uc.log.WithContext(ctx).WithError(err).Errorf("Failed to find access right with ID %s: %v", id, err)
 		return exception.ErrInternalServer
@@ -131,11 +131,19 @@ func (uc *AccessUseCase) DeleteAccessRight(ctx context.Context, id string) error
 
 func (uc *AccessUseCase) DeleteEndpoint(ctx context.Context, id string) error {
 	uc.log.WithContext(ctx).Infof("Attempting to delete endpoint with ID: %s", id)
+	if _, err := uc.repo.GetEndpointByID(ctx, id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			uc.log.WithContext(ctx).Warnf("Endpoint with ID %s already absent; treating delete as success", id)
+			return nil
+		}
+		uc.log.WithContext(ctx).WithError(err).Errorf("Failed to find endpoint with ID %s: %v", id, err)
+		return exception.ErrInternalServer
+	}
 
 	if err := uc.repo.DeleteEndpoint(ctx, id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			uc.log.WithContext(ctx).Warnf("Endpoint with ID %s not found for deletion", id)
-			return exception.ErrNotFound
+			uc.log.WithContext(ctx).Warnf("Endpoint with ID %s already absent; treating delete as success", id)
+			return nil
 		}
 		uc.log.WithContext(ctx).WithError(err).Errorf("Failed to delete endpoint with ID %s: %v", id, err)
 		return exception.ErrInternalServer

@@ -286,7 +286,7 @@ func TestRevokePermissionFromRole_PolicyNotFound(t *testing.T) {
 
 	err := uc.RevokePermissionFromRole(context.Background(), role, path, method, "global")
 	assert.Error(t, err)
-	assert.Equal(t, errors.New("policy to revoke not found in specified domain"), err)
+	assert.Equal(t, "policy to revoke not found in specified domain", err.Error())
 }
 
 func TestRevokePermissionFromRole_EmptyInput(t *testing.T) {
@@ -634,7 +634,7 @@ func TestRevokeRoleFromUser_Guardian_RoleNotAssigned(t *testing.T) {
 
 	err := uc.RevokeRoleFromUser(context.Background(), "u", "r", "global")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "role was not assigned to user")
+	assert.Equal(t, "role was not assigned to user in specified domain", err.Error())
 }
 
 func TestAddParentRole_Guardian_Success(t *testing.T) {

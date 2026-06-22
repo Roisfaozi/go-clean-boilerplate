@@ -227,7 +227,7 @@ func (uc *organizationMemberUseCase) UpdateMember(ctx context.Context, orgID, us
 			return err
 		}
 		if !isMember {
-			return exception.ErrNotFound
+			return nil
 		}
 
 		if org.OwnerID == userID {
@@ -413,7 +413,7 @@ func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, us
 			return err
 		}
 		if !isMember {
-			return exception.ErrNotFound
+			return nil
 		}
 
 		// Prevent removing owner

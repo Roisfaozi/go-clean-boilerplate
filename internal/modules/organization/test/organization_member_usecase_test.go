@@ -569,6 +569,25 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 		deps.OrgReader.AssertCalled(t, "InvalidateMembershipCache", mock.Anything, orgID, userID)
 	})
 
+	t.Run("No-op - Member Already Gone", func(t *testing.T) {
+		deps, uc := setupMemberTest()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
+		orgID := "org-1"
+		userID := "user-1"
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
+
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+
+		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
+		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(false, nil)
+
+		err := uc.RemoveMember(ctx, orgID, userID)
+		require.NoError(t, err)
+	})
+
 	t.Run("Forbidden - Remove Owner", func(t *testing.T) {
 		deps, uc := setupMemberTest()
 		ctx := context.Background()

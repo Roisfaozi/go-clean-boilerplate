@@ -215,7 +215,7 @@ func TestDeleteAccessRight(t *testing.T) {
 
 		deps.Repo.On("GetAccessRightByID", ctx, id).Return(nil, gorm.ErrRecordNotFound).Once()
 		err := uc.DeleteAccessRight(ctx, id)
-		assert.ErrorIs(t, err, exception.ErrNotFound)
+		assert.NoError(t, err)
 		deps.Repo.AssertExpectations(t)
 	})
 }
@@ -227,19 +227,20 @@ func TestDeleteEndpoint(t *testing.T) {
 		deps, uc := setupAccessTest()
 		ctx := context.Background()
 
+		deps.Repo.On("GetEndpointByID", ctx, id).Return(&entity.Endpoint{ID: id}, nil).Once()
 		deps.Repo.On("DeleteEndpoint", ctx, id).Return(nil).Once()
 		err := uc.DeleteEndpoint(ctx, id)
 		assert.NoError(t, err)
 		deps.Repo.AssertExpectations(t)
 	})
 
-	t.Run("Error - Not Found (GORM delete behavior)", func(t *testing.T) {
+	t.Run("No-op - Not Found (GORM delete behavior)", func(t *testing.T) {
 		deps, uc := setupAccessTest()
 		ctx := context.Background()
 
-		deps.Repo.On("DeleteEndpoint", ctx, id).Return(gorm.ErrRecordNotFound).Once()
+		deps.Repo.On("GetEndpointByID", ctx, id).Return(nil, gorm.ErrRecordNotFound).Once()
 		err := uc.DeleteEndpoint(ctx, id)
-		assert.ErrorIs(t, err, exception.ErrNotFound)
+		assert.NoError(t, err)
 		deps.Repo.AssertExpectations(t)
 	})
 }
