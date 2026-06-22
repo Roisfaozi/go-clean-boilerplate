@@ -42,7 +42,7 @@ jobs:
         run: pnpm --filter casbin-web build
 
       - name: Upload web build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-build-${{ github.event.workflow_run.head_branch }}
           path: |
