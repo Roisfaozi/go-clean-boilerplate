@@ -32,7 +32,7 @@ export function PermissionMatrix({
 	// Sync with parent data
 	useEffect(() => {
 		setPermissions(initialPermissions);
-	}, [JSON.stringify(initialPermissions)]);
+	}, [initialPermissions]);
 
 	const hasPermission = (role: string, resource: string, action: string) =>
 		permissions[role]?.[resource]?.includes(action) ?? false;
