@@ -1,4 +1,4 @@
-name: CI (Integration & Quality)
+name: Backend CI (Integration & Quality)
 
 on:
   push:

@@ -1,4 +1,4 @@
-name: CD Production
+name: Backend CD Production
 
 on:
   workflow_run:

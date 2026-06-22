@@ -1,4 +1,4 @@
-name: CD Staging
+name: Backend CD Staging
 
 on:
   workflow_run:
