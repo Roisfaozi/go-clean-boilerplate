@@ -151,7 +151,7 @@ func (uc *PermissionUseCase) RemoveParentRole(ctx context.Context, childRole, pa
 		return err
 	}
 	if !removed {
-		return errors.New("inheritance relationship not found")
+		return NewNoopError("inheritance relationship not found")
 	}
 	return nil
 }

@@ -223,6 +223,16 @@ func TestGrantPermissionToRole_EnforcerError(t *testing.T) {
 	assert.Equal(t, errors.New("casbin error"), err)
 }
 
+func TestGrantPermissionToRole_AlreadyExists(t *testing.T) {
+	deps, uc := setupPermissionTest()
+	role, path, method := "editor", "/api/v1/articles", "POST"
+	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(&roleEntity.Role{Name: role}, nil)
+	deps.Enforcer.On("AddPolicy", mock.Anything).Return(false, nil)
+
+	err := uc.GrantPermissionToRole(context.Background(), role, path, method, "global")
+	assert.NoError(t, err)
+}
+
 func TestGrantPermissionToRole_EmptyInput(t *testing.T) {
 	_, uc := setupPermissionTest()
 	assert.Error(t, uc.GrantPermissionToRole(context.Background(), "", "path", "GET", "global"))
@@ -717,7 +727,18 @@ func TestRemoveParentRole_Guardian_RelationshipNotFound(t *testing.T) {
 
 	err := uc.RemoveParentRole(context.Background(), child, parent, "global")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "inheritance relationship not found")
+	assert.Equal(t, "inheritance relationship not found", err.Error())
+}
+
+func TestAddParentRole_Guardian_AlreadyExists(t *testing.T) {
+	deps, uc := setupPermissionTest()
+	child, parent := "editor", "viewer"
+	deps.RoleRepo.On("FindByName", mock.Anything, child).Return(&roleEntity.Role{Name: child}, nil)
+	deps.RoleRepo.On("FindByName", mock.Anything, parent).Return(&roleEntity.Role{Name: parent}, nil)
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(false, nil)
+
+	err := uc.AddParentRole(context.Background(), child, parent, "global")
+	assert.NoError(t, err)
 }
 
 func TestGetParentRoles_Guardian_Success(t *testing.T) {

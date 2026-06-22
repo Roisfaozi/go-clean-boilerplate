@@ -108,6 +108,31 @@ func TestGrantPermission_UseCaseError(t *testing.T) {
 	mockUseCase.AssertExpectations(t)
 }
 
+func TestAddRoleInheritance_Success(t *testing.T) {
+	mockUseCase := new(mocks.MockIPermissionUseCase)
+	handler := newTestPermissionController(mockUseCase)
+	router := setupPermissionTestRouter()
+	router.POST("/permissions/inheritance", handler.AddRoleInheritance)
+
+	reqBody := model.RoleInheritanceRequest{
+		ChildRole:  "editor",
+		ParentRole: "viewer",
+		Domain:     "global",
+	}
+
+	mockUseCase.On("AddParentRole", mock.Anything, reqBody.ChildRole, reqBody.ParentRole, "global").Return(nil)
+
+	bodyBytes, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/permissions/inheritance", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
 // --- Handler Tests ---
 
 func setupPermissionControllerTest() (*mocks.MockIPermissionUseCase, *permHandler.PermissionController) {
