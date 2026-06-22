@@ -42,7 +42,7 @@ export function RoleAssignmentModal({
 	// Re-sync when currentRoles changes
 	useEffect(() => {
 		setSelectedRoles(currentRoles);
-	}, [JSON.stringify(currentRoles)]);
+	}, [currentRoles.join(",")]);
 
 	const assignMutation = useMutation({
 		mutationFn: (roleName: string) =>
