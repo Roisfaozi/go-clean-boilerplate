@@ -33,6 +33,11 @@ var (
 	initOnce  sync.Once
 )
 
+const (
+	TestS3AccessKey = "casbin-test-access"
+	TestS3SecretKey = "casbin-test-secret"
+)
+
 type TestEnvironment struct {
 	DB        *gorm.DB
 	Redis     *redis.Client
@@ -75,15 +80,12 @@ func SetupRustFS(t *testing.T, ctx context.Context) (string, string) {
 		Image:        "rustfs/rustfs:latest",
 		ExposedPorts: []string{"9000/tcp"},
 		Env: map[string]string{
-			"RUSTFS_ACCESS_KEY":     "rustfsadmin",
-			"RUSTFS_SECRET_KEY":     "rustfsadmin",
+			"RUSTFS_ACCESS_KEY":     TestS3AccessKey,
+			"RUSTFS_SECRET_KEY":     TestS3SecretKey,
 			"RUSTFS_CONSOLE_ENABLE": "true",
 			"RUSTFS_VOLUMES":        "/data",
 		},
-		WaitingFor: wait.ForAll(
-			wait.ForListeningPort("9000/tcp"),
-			wait.ForHTTP("/minio/health/live").WithPort("9000/tcp"),
-		).WithDeadline(60 * time.Second),
+		WaitingFor: wait.ForListeningPort("9000/tcp").WithStartupTimeout(60 * time.Second),
 	}
 
 	rustfsC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{

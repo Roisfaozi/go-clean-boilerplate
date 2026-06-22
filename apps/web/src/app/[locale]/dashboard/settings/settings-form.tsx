@@ -20,11 +20,15 @@ import {
 import { Input } from "~/components/ui/input";
 import { useToast } from "~/hooks/use-toast";
 import { settingsSchema, type SettingsValues } from "~/lib/validations";
-import { type User } from "~/types";
+import type { User } from "~/types";
 import { removeNewImageFromCDN, removeUserOldImageFromCDN } from "./actions";
 
-const ImageUploadModal = dynamic(() => import("~/components/layout/image-upload-modal"));
-const CancelConfirmModal = dynamic(() => import("~/components/layout/cancel-confirm-modal"));
+const ImageUploadModal = dynamic(
+  () => import("~/components/layout/image-upload-modal"),
+);
+const CancelConfirmModal = dynamic(
+  () => import("~/components/layout/cancel-confirm-modal"),
+);
 
 export default function SettingsForm({ currentUser }: { currentUser: User }) {
   const oldImage = useRef(currentUser.picture ?? "");
@@ -50,7 +54,7 @@ export default function SettingsForm({ currentUser }: { currentUser: User }) {
       picture: currentUser.picture ?? "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
+  }, [currentUser, reset]);
 
   useEffect(() => {
     if (isImageChanged && currentUser.picture !== oldImage.current) {
@@ -62,7 +66,10 @@ export default function SettingsForm({ currentUser }: { currentUser: User }) {
     startTransition(async () => {
       try {
         if (currentUser.picture && isImageChanged) {
-          await removeUserOldImageFromCDN(data.picture ?? "", currentUser.picture);
+          await removeUserOldImageFromCDN(
+            data.picture ?? "",
+            currentUser.picture,
+          );
         }
         // await updateUser(currentUser.id, data);
         toast({ title: "Updated successfully!" });
@@ -91,14 +98,19 @@ export default function SettingsForm({ currentUser }: { currentUser: User }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="max-w-2xl space-y-8 rounded-md border p-6">
+      <form
+        onSubmit={onSubmit}
+        className="max-w-2xl space-y-8 rounded-md border p-6"
+      >
         <FormField
           control={form.control}
           name="picture"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Picture</FormLabel>
-              <FormDescription>Click on the avatar to upload new one.</FormDescription>
+              <FormDescription>
+                Click on the avatar to upload new one.
+              </FormDescription>
               <FormControl>
                 <Avatar className="group relative h-28 w-28 rounded-full">
                   <AvatarImage src={field.value} alt={getValues().name ?? ""} />
@@ -131,7 +143,12 @@ export default function SettingsForm({ currentUser }: { currentUser: User }) {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input className="bg-muted" readOnly placeholder="Your email address" {...field} />
+                <Input
+                  className="bg-muted"
+                  readOnly
+                  placeholder="Your email address"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

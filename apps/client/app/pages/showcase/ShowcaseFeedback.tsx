@@ -72,8 +72,20 @@ export default function ShowcaseFeedback() {
       <Section title="Progress Bars">
         <div className="max-w-lg space-y-4">
           <ProgressBar value={75} label="Upload" showValue variant="primary" />
-          <ProgressBar value={45} label="Processing" showValue variant="info" size="sm" />
-          <ProgressBar value={90} label="Complete" showValue variant="success" size="lg" />
+          <ProgressBar
+            value={45}
+            label="Processing"
+            showValue
+            variant="info"
+            size="sm"
+          />
+          <ProgressBar
+            value={90}
+            label="Complete"
+            showValue
+            variant="success"
+            size="lg"
+          />
           <ProgressBar value={30} variant="warning" showValue />
         </div>
       </Section>
@@ -110,7 +122,13 @@ export default function ShowcaseFeedback() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="space-y-4">
       <h2 className="text-h2 text-foreground">{title}</h2>

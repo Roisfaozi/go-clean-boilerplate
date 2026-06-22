@@ -74,7 +74,13 @@ const mockOrgs: OrgRow[] = [
 ];
 
 const columns: CrudColumnDef<OrgRow>[] = [
-  { id: "name", header: "Organization", accessorKey: "name", sortable: true, minWidth: 180 },
+  {
+    id: "name",
+    header: "Organization",
+    accessorKey: "name",
+    sortable: true,
+    minWidth: 180,
+  },
   { id: "slug", header: "Slug", accessorKey: "slug" },
   { id: "members", header: "Members", accessorKey: "members", sortable: true },
   {
@@ -87,7 +93,9 @@ const columns: CrudColumnDef<OrgRow>[] = [
       { label: "Suspended", value: "suspended" },
     ],
     cell: (row) => (
-      <NexusBadge variant={row.status === "active" ? "success" : "danger"}>{row.status}</NexusBadge>
+      <NexusBadge variant={row.status === "active" ? "success" : "danger"}>
+        {row.status}
+      </NexusBadge>
     ),
   },
 ];
@@ -114,7 +122,13 @@ const editSchema = z.object({
 });
 
 const createFields: FieldDef[] = [
-  { name: "name", label: "Name", type: "text", required: true, placeholder: "e.g. Acme Corp" },
+  {
+    name: "name",
+    label: "Name",
+    type: "text",
+    required: true,
+    placeholder: "e.g. Acme Corp",
+  },
   {
     name: "slug",
     label: "Slug",
@@ -184,7 +198,9 @@ export default function OrganizationsPage() {
             {
               label: "Delete Selected",
               onClick: (ids) => {
-                ids.forEach((id) => deleteOrg.mutate(String(id)));
+                ids.forEach((id) => {
+                  deleteOrg.mutate(String(id));
+                });
               },
             },
           ]}
@@ -198,8 +214,8 @@ export default function OrganizationsPage() {
         description="Add a new organization."
         fields={createFields}
         schema={createSchema}
-        onSubmit={async (values) => {
-          await createOrg.mutateAsync(values as any);
+        onSubmit={(values) => {
+          createOrg.mutate(values as any);
           setCreateOpen(false);
         }}
         submitLabel="Create"
@@ -213,9 +229,12 @@ export default function OrganizationsPage() {
         fields={editFields}
         schema={editSchema}
         initialValues={editItem || undefined}
-        onSubmit={async (values) => {
+        onSubmit={(values) => {
           if (editItem) {
-            await updateOrg.mutateAsync({ id: editItem.id, data: values as any });
+            updateOrg.mutate({
+              id: editItem.id,
+              data: values as any,
+            });
             setEditItem(null);
           }
         }}
@@ -227,9 +246,9 @@ export default function OrganizationsPage() {
         onOpenChange={(open) => !open && setDeleteItem(null)}
         resourceName="Organization"
         itemName={deleteItem?.name}
-        onConfirm={async () => {
+        onConfirm={() => {
           if (deleteItem) {
-            await deleteOrg.mutateAsync(String(deleteItem.id));
+            deleteOrg.mutate(String(deleteItem.id));
             setDeleteItem(null);
           }
         }}

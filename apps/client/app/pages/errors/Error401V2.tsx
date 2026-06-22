@@ -16,10 +16,15 @@ export default function Error401V2() {
           <Lock className="text-warning h-10 w-10 -rotate-12" />
         </div>
         <div className="space-y-2">
-          <p className="text-warning text-sm font-semibold tracking-widest uppercase">Error 401</p>
-          <h1 className="text-foreground text-4xl font-bold">Not Authenticated</h1>
+          <p className="text-warning text-sm font-semibold tracking-widest uppercase">
+            Error 401
+          </p>
+          <h1 className="text-foreground text-4xl font-bold">
+            Not Authenticated
+          </h1>
           <p className="text-muted-foreground leading-relaxed">
-            Your session has expired or you haven't signed in yet. Please authenticate to continue.
+            Your session has expired or you haven't signed in yet. Please
+            authenticate to continue.
           </p>
         </div>
         <div className="flex flex-col gap-3">

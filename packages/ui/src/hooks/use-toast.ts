@@ -79,7 +79,9 @@ export const reducer = (state: State, action: Action): State => {
     case "UPDATE_TOAST":
       return {
         ...state,
-        toasts: state.toasts.map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
+        toasts: state.toasts.map((t) =>
+          t.id === action.toast.id ? { ...t, ...action.toast } : t,
+        ),
       };
 
     case "DISMISS_TOAST": {
@@ -135,7 +137,9 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">;
 
 interface ToastFunction {
-  (props: Toast): {
+  (
+    props: Toast,
+  ): {
     id: string;
     dismiss: () => void;
     update: (props: ToasterToast) => void;
@@ -174,9 +178,12 @@ const toast = (({ ...props }: Toast) => {
   };
 }) as ToastFunction;
 
-toast.success = (title: string, props?: Toast) => toast({ ...props, title, variant: "default" });
-toast.error = (title: string, props?: Toast) => toast({ ...props, title, variant: "destructive" });
-toast.warning = (title: string, props?: Toast) => toast({ ...props, title, variant: "default" });
+toast.success = (title: string, props?: Toast) =>
+  toast({ ...props, title, variant: "default" });
+toast.error = (title: string, props?: Toast) =>
+  toast({ ...props, title, variant: "destructive" });
+toast.warning = (title: string, props?: Toast) =>
+  toast({ ...props, title, variant: "default" });
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
@@ -189,7 +196,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []);
 
   return {
     ...state,

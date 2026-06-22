@@ -1,6 +1,6 @@
 "use client";
 
-import { icons, LucideProps } from "lucide-react";
+import { icons, type LucideProps } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 interface IconProps extends LucideProps {

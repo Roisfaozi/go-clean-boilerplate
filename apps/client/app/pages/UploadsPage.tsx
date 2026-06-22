@@ -31,7 +31,9 @@ export default function UploadsPage() {
 
       {completed.length > 0 && (
         <div>
-          <h3 className="text-foreground mb-3 text-sm font-semibold">Completed Uploads</h3>
+          <h3 className="text-foreground mb-3 text-sm font-semibold">
+            Completed Uploads
+          </h3>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {completed.map((item) => (
               <FilePreview key={item.id} file={item.file} url={item.url} />

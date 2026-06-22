@@ -241,8 +241,9 @@ func SetupRouter(
 		authorized.Use(authLimiter)
 	}
 	{
+		organizationHttp.RegisterAdminRoutes(authorized, organizationModule.OrganizationController, apiKeyMiddleware)
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
-		accessHttp.RegisterAccessRoutes(authorized, accessModule.AccessController)
+		accessHttp.RegisterAccessRoutes(authorized.Group("", tenantMiddleware.OptionalOrganization()), accessModule.AccessController)
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
 		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
 		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)
@@ -251,6 +252,7 @@ func SetupRouter(
 	// TUS Upload Handler
 	uploadGroup := router.Group("/api/v1/upload")
 	uploadGroup.Use(authMiddleware.ValidateToken())
+	uploadGroup.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	{
 		uploadGroup.Any("/files/*any", gin.WrapH(http.StripPrefix("/api/v1/upload/files/", tusHandler)))
 	}

@@ -14,11 +14,41 @@ import { Plus } from "lucide-react";
 import type { AccessRight } from "@/lib/api/types";
 
 const mockData: AccessRight[] = [
-  { id: "1", name: "Read Users", resource: "users", action: "read", created_at: 1700000000 },
-  { id: "2", name: "Write Users", resource: "users", action: "write", created_at: 1700100000 },
-  { id: "3", name: "Delete Users", resource: "users", action: "delete", created_at: 1700200000 },
-  { id: "4", name: "Read Projects", resource: "projects", action: "read", created_at: 1700300000 },
-  { id: "5", name: "Manage Roles", resource: "roles", action: "manage", created_at: 1700400000 },
+  {
+    id: "1",
+    name: "Read Users",
+    resource: "users",
+    action: "read",
+    created_at: 1700000000,
+  },
+  {
+    id: "2",
+    name: "Write Users",
+    resource: "users",
+    action: "write",
+    created_at: 1700100000,
+  },
+  {
+    id: "3",
+    name: "Delete Users",
+    resource: "users",
+    action: "delete",
+    created_at: 1700200000,
+  },
+  {
+    id: "4",
+    name: "Read Projects",
+    resource: "projects",
+    action: "read",
+    created_at: 1700300000,
+  },
+  {
+    id: "5",
+    name: "Manage Roles",
+    resource: "roles",
+    action: "manage",
+    created_at: 1700400000,
+  },
   {
     id: "6",
     name: "Read Organizations",
@@ -45,7 +75,13 @@ const actionColor = (a: string) =>
         : ("neutral" as const);
 
 const columns: CrudColumnDef<AccessRight>[] = [
-  { id: "name", header: "Name", accessorKey: "name", sortable: true, minWidth: 180 },
+  {
+    id: "name",
+    header: "Name",
+    accessorKey: "name",
+    sortable: true,
+    minWidth: 180,
+  },
   {
     id: "resource",
     header: "Resource",
@@ -70,7 +106,9 @@ const columns: CrudColumnDef<AccessRight>[] = [
       { label: "Delete", value: "delete" },
       { label: "Manage", value: "manage" },
     ],
-    cell: (row) => <NexusBadge variant={actionColor(row.action)}>{row.action}</NexusBadge>,
+    cell: (row) => (
+      <NexusBadge variant={actionColor(row.action)}>{row.action}</NexusBadge>
+    ),
   },
 ];
 
@@ -81,7 +119,13 @@ const schema = z.object({
 });
 
 const fields: FieldDef[] = [
-  { name: "name", label: "Name", type: "text", required: true, placeholder: "e.g. Read Users" },
+  {
+    name: "name",
+    label: "Name",
+    type: "text",
+    required: true,
+    placeholder: "e.g. Read Users",
+  },
   {
     name: "resource",
     label: "Resource",
@@ -124,7 +168,12 @@ export default function AccessRightsPage() {
           </NexusButton>
         }
       />
-      <CrudTable columns={columns} data={mockData} onEdit={setEditItem} onDelete={setDeleteItem} />
+      <CrudTable
+        columns={columns}
+        data={mockData}
+        onEdit={setEditItem}
+        onDelete={setDeleteItem}
+      />
       <CrudFormDialog
         open={createOpen}
         onOpenChange={setCreateOpen}

@@ -4,7 +4,14 @@ import { z } from "zod";
 import { NexusButton } from "@casbin/ui";
 import { NexusInput } from "@casbin/ui";
 import { FormGroup } from "@/components/patterns/form-group";
-import { Hexagon, CheckCircle, ShieldCheck, Lock, Eye, EyeOff } from "lucide-react";
+import {
+  Hexagon,
+  CheckCircle,
+  ShieldCheck,
+  Lock,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { authApi } from "@/lib/api/auth";
 import { toast } from "@casbin/ui";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,7 +30,10 @@ const requirements = [
   { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
   { label: "Contains a number", test: (p: string) => /\d/.test(p) },
   { label: "Contains uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "Contains special character", test: (p: string) => /[!@#$%^&*]/.test(p) },
+  {
+    label: "Contains special character",
+    test: (p: string) => /[!@#$%^&*]/.test(p),
+  },
 ];
 
 export default function ResetPasswordPage() {
@@ -39,7 +49,9 @@ export default function ResetPasswordPage() {
 
   const token = useMemo(() => {
     const params = new URLSearchParams(location.search);
-    return params.get("token") || location.hash?.match(/token=([^&]+)/)?.[1] || "";
+    return (
+      params.get("token") || location.hash?.match(/token=([^&]+)/)?.[1] || ""
+    );
   }, [location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,8 +117,8 @@ export default function ResetPasswordPage() {
           </motion.div>
           <h2 className="mb-2 text-2xl font-bold">Secure Reset</h2>
           <p className="max-w-xs text-center text-sm opacity-50">
-            Your password is encrypted end-to-end. Choose a strong password to keep your account
-            safe.
+            Your password is encrypted end-to-end. Choose a strong password to
+            keep your account safe.
           </p>
         </div>
       </div>
@@ -132,12 +144,17 @@ export default function ResetPasswordPage() {
                   Set new password
                 </h1>
                 <p className="text-muted-foreground">
-                  Your new password must be different from previously used passwords.
+                  Your new password must be different from previously used
+                  passwords.
                 </p>
               </div>
 
               <form className="space-y-5" onSubmit={handleSubmit}>
-                <FormGroup label="New Password" required error={errors.password}>
+                <FormGroup
+                  label="New Password"
+                  required
+                  error={errors.password}
+                >
                   <div className="relative">
                     <NexusInput
                       type={showPassword ? "text" : "password"}
@@ -152,7 +169,11 @@ export default function ResetPasswordPage() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 transition-colors"
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </FormGroup>
@@ -183,7 +204,11 @@ export default function ResetPasswordPage() {
                   </motion.div>
                 )}
 
-                <FormGroup label="Confirm Password" required error={errors.confirmPassword}>
+                <FormGroup
+                  label="Confirm Password"
+                  required
+                  error={errors.confirmPassword}
+                >
                   <div className="relative">
                     <NexusInput
                       type={showConfirm ? "text" : "password"}
@@ -198,14 +223,19 @@ export default function ResetPasswordPage() {
                       onClick={() => setShowConfirm(!showConfirm)}
                       className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 transition-colors"
                     >
-                      {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showConfirm ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
-                  {confirmPassword.length > 0 && password === confirmPassword && (
-                    <p className="text-success mt-1 flex items-center gap-1 text-xs">
-                      <CheckCircle className="h-3 w-3" /> Passwords match
-                    </p>
-                  )}
+                  {confirmPassword.length > 0 &&
+                    password === confirmPassword && (
+                      <p className="text-success mt-1 flex items-center gap-1 text-xs">
+                        <CheckCircle className="h-3 w-3" /> Passwords match
+                      </p>
+                    )}
                 </FormGroup>
 
                 <NexusButton className="h-11 w-full gap-2" loading={loading}>
@@ -213,7 +243,10 @@ export default function ResetPasswordPage() {
                 </NexusButton>
               </form>
 
-              <Link to="/login" className="text-primary block text-center text-sm hover:underline">
+              <Link
+                to="/login"
+                className="text-primary block text-center text-sm hover:underline"
+              >
                 Back to Sign In
               </Link>
             </motion.div>
@@ -228,7 +261,12 @@ export default function ResetPasswordPage() {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 15,
+                  delay: 0.2,
+                }}
                 className="flex justify-center"
               >
                 <div className="bg-success/10 border-success/20 flex h-24 w-24 items-center justify-center rounded-full border-4">
@@ -237,8 +275,8 @@ export default function ResetPasswordPage() {
               </motion.div>
               <h1 className="text-foreground text-3xl font-bold">All done!</h1>
               <p className="text-muted-foreground mx-auto max-w-xs">
-                Your password has been successfully reset. You can now sign in with your new
-                password.
+                Your password has been successfully reset. You can now sign in
+                with your new password.
               </p>
               <NexusButton
                 className="mx-auto h-11 w-full max-w-xs"

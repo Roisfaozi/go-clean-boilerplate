@@ -30,7 +30,9 @@ export function nFormatter(num: number, digits?: number) {
     .find(function (item) {
       return num >= item.value;
     });
-  return item ? (num / item.value).toFixed(digits || 1).replace(rx, "$1") + item.symbol : "0";
+  return item
+    ? (num / item.value).toFixed(digits || 1).replace(rx, "$1") + item.symbol
+    : "0";
 }
 
 /**

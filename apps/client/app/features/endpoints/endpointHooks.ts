@@ -4,8 +4,15 @@ import { toast } from "@casbin/ui";
 
 const KEY = ["endpoints"];
 
-export function useEndpoints(params?: { page?: number; limit?: number; resource_id?: string }) {
-  return useQuery({ queryKey: [...KEY, params], queryFn: () => endpointService.list(params) });
+export function useEndpoints(params?: {
+  page?: number;
+  limit?: number;
+  resource_id?: string;
+}) {
+  return useQuery({
+    queryKey: [...KEY, params],
+    queryFn: () => endpointService.list(params),
+  });
 }
 
 export function useCreateEndpoint() {

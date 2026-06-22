@@ -24,7 +24,9 @@ async function handleRequest(request: Request, params: any) {
       method: request.method,
       headers: headers,
       body:
-        request.method !== "GET" && request.method !== "HEAD" ? await request.blob() : undefined,
+        request.method !== "GET" && request.method !== "HEAD"
+          ? await request.blob()
+          : undefined,
     });
 
     // Create response headers

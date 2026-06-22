@@ -1,4 +1,9 @@
-import { NexusCard, NexusCardHeader, NexusCardTitle, NexusCardDescription } from "@casbin/ui";
+import {
+  NexusCard,
+  NexusCardHeader,
+  NexusCardTitle,
+  NexusCardDescription,
+} from "@casbin/ui";
 import { cn } from "@casbin/ui";
 import {
   AreaChart,
@@ -13,7 +18,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, TrendingDown, Minus, LucideIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, type LucideIcon } from "lucide-react";
 
 export interface MetricSummary {
   label: string;
@@ -39,9 +44,18 @@ const tooltipStyle = {
 function TrendBadge({ value }: { value: number }) {
   const Icon = value > 0 ? TrendingUp : value < 0 ? TrendingDown : Minus;
   const color =
-    value > 0 ? "text-success" : value < 0 ? "text-destructive" : "text-muted-foreground";
+    value > 0
+      ? "text-success"
+      : value < 0
+        ? "text-destructive"
+        : "text-muted-foreground";
   return (
-    <span className={cn("inline-flex items-center gap-1 text-xs font-medium", color)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-xs font-medium",
+        color,
+      )}
+    >
       <Icon className="h-3 w-3" />
       {Math.abs(value)}%
     </span>
@@ -71,7 +85,9 @@ export function MetricsPanel({
     <NexusCard>
       <NexusCardHeader>
         <NexusCardTitle>{title}</NexusCardTitle>
-        {description && <NexusCardDescription>{description}</NexusCardDescription>}
+        {description && (
+          <NexusCardDescription>{description}</NexusCardDescription>
+        )}
       </NexusCardHeader>
 
       {/* Summary cards */}
@@ -93,12 +109,17 @@ export function MetricsPanel({
         <ResponsiveContainer width="100%" height="100%">
           {chartType === "bar" ? (
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
               <XAxis
                 dataKey="label"
                 tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
               />
-              <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+              <YAxis
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+              />
               <Tooltip contentStyle={tooltipStyle} />
               <Bar
                 dataKey="value"
@@ -117,12 +138,17 @@ export function MetricsPanel({
             </BarChart>
           ) : chartType === "line" ? (
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
               <XAxis
                 dataKey="label"
                 tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
               />
-              <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+              <YAxis
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+              />
               <Tooltip contentStyle={tooltipStyle} />
               <Line
                 type="monotone"
@@ -148,16 +174,29 @@ export function MetricsPanel({
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="metricsGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  <stop
+                    offset="0%"
+                    stopColor="hsl(var(--primary))"
+                    stopOpacity={0.2}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="hsl(var(--primary))"
+                    stopOpacity={0}
+                  />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
               <XAxis
                 dataKey="label"
                 tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
               />
-              <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+              <YAxis
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+              />
               <Tooltip contentStyle={tooltipStyle} />
               <Area
                 type="monotone"

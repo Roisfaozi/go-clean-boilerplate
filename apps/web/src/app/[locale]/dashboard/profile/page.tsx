@@ -1,4 +1,4 @@
-import { type Metadata } from "next";
+import type { Metadata } from "next";
 import { getCurrentSession } from "~/lib/server/auth/session";
 import { ProfileProvider } from "./_components/profile-context";
 import { ProfileHeader } from "./_components/profile-header";

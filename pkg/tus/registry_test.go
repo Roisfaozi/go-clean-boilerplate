@@ -36,6 +36,16 @@ func TestRegistry_GetNonExistent(t *testing.T) {
 	retrieved := registry.Get("non-existent")
 
 	assert.Nil(t, retrieved)
+	assert.False(t, registry.Has("non-existent"))
+}
+
+func TestRegistry_HasRegisteredType(t *testing.T) {
+	registry := NewRegistry()
+	hook := &MockHook{}
+
+	registry.Register("avatar", hook)
+
+	assert.True(t, registry.Has("avatar"))
 }
 
 func TestRegistry_OverwriteHook(t *testing.T) {

@@ -33,6 +33,13 @@ func (r *userRepositoryData) getDB(ctx context.Context) *gorm.DB {
 	return r.db.WithContext(ctx)
 }
 
+func (r *userRepositoryData) organizationMemberUserSubQuery(db *gorm.DB, ctx context.Context, orgID string) *gorm.DB {
+	subQuery := db.Table("organization_members").
+		Select("organization_members.user_id").
+		Where("organization_members.organization_id = ? AND (organization_members.deleted_at = 0 OR organization_members.deleted_at IS NULL)", orgID)
+	return subQuery
+}
+
 func (r *userRepositoryData) Create(ctx context.Context, user *entity.User) error {
 	if err := r.getDB(ctx).Create(user).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("failed to create user")
@@ -110,7 +117,7 @@ func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserL
 	// Handle multi-tenancy via subquery if org_id is present in context
 	orgID := database.GetOrganizationID(ctx)
 	if orgID != "" {
-		subQuery := db.Table("organization_members").Select("user_id").Where("organization_id = ?", orgID)
+		subQuery := r.organizationMemberUserSubQuery(db, ctx, orgID)
 		query = query.Where("users.id IN (?)", subQuery)
 	}
 
@@ -153,7 +160,7 @@ func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybu
 	// Handle multi-tenancy via subquery if org_id is present in context
 	orgID := database.GetOrganizationID(ctx)
 	if orgID != "" {
-		subQuery := db.Table("organization_members").Select("user_id").Where("organization_id = ?", orgID)
+		subQuery := r.organizationMemberUserSubQuery(db, ctx, orgID)
 		query = query.Where("users.id IN (?)", subQuery)
 	}
 
@@ -225,7 +232,7 @@ func (r *userRepositoryData) GetByOrganization(ctx context.Context, orgID string
 	var users []*entity.User
 	db := r.getDB(ctx)
 	// Subquery to find user IDs belonging to the organization
-	subQuery := db.Table("organization_members").Select("user_id").Where("organization_id = ?", orgID)
+	subQuery := r.organizationMemberUserSubQuery(db, ctx, orgID)
 
 	if err := db.Where("users.id IN (?)", subQuery).Find(&users).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("failed to find users by organization")

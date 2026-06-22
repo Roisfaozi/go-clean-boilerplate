@@ -1,5 +1,5 @@
 import { cn } from "@casbin/ui";
-import { TrendingUp, TrendingDown, Minus, LucideIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, type LucideIcon } from "lucide-react";
 import { ResponsiveContainer } from "recharts";
 
 /* ═══════ TrendIndicator ═══════ */
@@ -10,11 +10,20 @@ interface TrendIndicatorProps {
   className?: string;
 }
 
-export function TrendIndicator({ value, label, size = "md", className }: TrendIndicatorProps) {
+export function TrendIndicator({
+  value,
+  label,
+  size = "md",
+  className,
+}: TrendIndicatorProps) {
   const isPositive = value > 0;
   const isNeutral = value === 0;
   const Icon = isNeutral ? Minus : isPositive ? TrendingUp : TrendingDown;
-  const color = isNeutral ? "text-muted-foreground" : isPositive ? "text-success" : "text-danger";
+  const color = isNeutral
+    ? "text-muted-foreground"
+    : isPositive
+      ? "text-success"
+      : "text-danger";
   const textSize = size === "sm" ? "text-caption" : "text-small";
 
   return (
@@ -24,7 +33,9 @@ export function TrendIndicator({ value, label, size = "md", className }: TrendIn
         {isPositive ? "+" : ""}
         {value}%
       </span>
-      {label && <span className={cn(textSize, "text-muted-foreground")}>{label}</span>}
+      {label && (
+        <span className={cn(textSize, "text-muted-foreground")}>{label}</span>
+      )}
     </span>
   );
 }
@@ -50,17 +61,31 @@ export function MetricCard({
   className,
 }: MetricCardProps) {
   return (
-    <div className={cn("bg-card border-border p-card-pad rounded-lg border shadow-sm", className)}>
+    <div
+      className={cn(
+        "bg-card border-border p-card-pad rounded-lg border shadow-sm",
+        className,
+      )}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1 space-y-1">
           <p className="text-small text-muted-foreground">{title}</p>
           <p className="text-h1 text-foreground font-bold">{value}</p>
-          {trend && <TrendIndicator value={trend.value} label={trend.label} size="sm" />}
+          {trend && (
+            <TrendIndicator value={trend.value} label={trend.label} size="sm" />
+          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           {Icon && (
-            <div className={cn("rounded-lg p-2.5", iconColor || "bg-primary/10")}>
-              <Icon className={cn("h-5 w-5", iconColor ? "text-current" : "text-primary")} />
+            <div
+              className={cn("rounded-lg p-2.5", iconColor || "bg-primary/10")}
+            >
+              <Icon
+                className={cn(
+                  "h-5 w-5",
+                  iconColor ? "text-current" : "text-primary",
+                )}
+              />
             </div>
           )}
           {sparkline}
@@ -89,11 +114,18 @@ export function ChartCard({
   className,
 }: ChartCardProps) {
   return (
-    <div className={cn("bg-card border-border p-card-pad rounded-lg border shadow-sm", className)}>
+    <div
+      className={cn(
+        "bg-card border-border p-card-pad rounded-lg border shadow-sm",
+        className,
+      )}
+    >
       <div className="mb-4 flex items-start justify-between">
         <div className="space-y-1">
           <h3 className="text-h4 text-foreground font-semibold">{title}</h3>
-          {description && <p className="text-caption text-muted-foreground">{description}</p>}
+          {description && (
+            <p className="text-caption text-muted-foreground">{description}</p>
+          )}
         </div>
         {actions}
       </div>
@@ -121,11 +153,18 @@ export function AnalyticsCard({
   className,
 }: AnalyticsCardProps) {
   return (
-    <div className={cn("bg-card border-border p-card-pad rounded-lg border shadow-sm", className)}>
+    <div
+      className={cn(
+        "bg-card border-border p-card-pad rounded-lg border shadow-sm",
+        className,
+      )}
+    >
       <div className="mb-4 flex items-start justify-between">
         <div className="space-y-1">
           <h3 className="text-h4 text-foreground font-semibold">{title}</h3>
-          {description && <p className="text-caption text-muted-foreground">{description}</p>}
+          {description && (
+            <p className="text-caption text-muted-foreground">{description}</p>
+          )}
         </div>
         {actions}
       </div>
@@ -158,10 +197,14 @@ export function InsightMetric({
   return (
     <div className="border-border flex items-center justify-between border-b py-3 last:border-0">
       <div className="flex items-center gap-3">
-        <span className={cn("h-2 w-2 shrink-0 rounded-full", statusDot[status])} />
+        <span
+          className={cn("h-2 w-2 shrink-0 rounded-full", statusDot[status])}
+        />
         <div>
           <p className="text-body text-foreground">{label}</p>
-          {description && <p className="text-caption text-muted-foreground">{description}</p>}
+          {description && (
+            <p className="text-caption text-muted-foreground">{description}</p>
+          )}
         </div>
       </div>
       <span className="text-body text-foreground font-semibold">{value}</span>

@@ -5,7 +5,10 @@ interface DividerProps {
   orientation?: "horizontal" | "vertical";
 }
 
-export function Divider({ className, orientation = "horizontal" }: DividerProps) {
+export function Divider({
+  className,
+  orientation = "horizontal",
+}: DividerProps) {
   return (
     <div
       className={cn(

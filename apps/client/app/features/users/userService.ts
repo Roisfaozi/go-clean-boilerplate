@@ -1,11 +1,18 @@
 import { apiClient } from "@/lib/api/client";
-import { userSchema, paginatedSchema, type User, type PaginatedResponse } from "@/lib/api/schemas";
+import {
+  userSchema,
+  paginatedSchema,
+  type User,
+  type PaginatedResponse,
+} from "@/lib/api/schemas";
 
 const paginatedUsers = paginatedSchema(userSchema);
 
 export const userService = {
   list: (params?: { page?: number; limit?: number; search?: string }) =>
-    apiClient.get<PaginatedResponse<User>>("/users", paginatedUsers, { params }),
+    apiClient.get<PaginatedResponse<User>>("/users", paginatedUsers, {
+      params,
+    }),
 
   get: (id: string) => apiClient.get<User>(`/users/${id}`, userSchema),
 

@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 import { cn } from "@casbin/ui";
 import { Spinner } from "@casbin/ui";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
@@ -40,7 +40,9 @@ export function DataTable<T extends Record<string, unknown>>({
   };
 
   return (
-    <div className={cn("border-border overflow-auto rounded-lg border", className)}>
+    <div
+      className={cn("border-border overflow-auto rounded-lg border", className)}
+    >
       <table className="text-body w-full">
         <thead>
           <tr className="border-border bg-surface border-b">
@@ -49,7 +51,8 @@ export function DataTable<T extends Record<string, unknown>>({
                 key={col.key}
                 className={cn(
                   "h-table-row text-muted-foreground px-[var(--table-cell-padding)] text-left font-medium",
-                  col.sortable && "hover:text-foreground cursor-pointer select-none",
+                  col.sortable &&
+                    "hover:text-foreground cursor-pointer select-none",
                   col.className,
                 )}
                 onClick={() => col.sortable && handleSort(col.key)}
@@ -80,7 +83,10 @@ export function DataTable<T extends Record<string, unknown>>({
             </tr>
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="text-muted-foreground h-32 text-center">
+              <td
+                colSpan={columns.length}
+                className="text-muted-foreground h-32 text-center"
+              >
                 {emptyMessage}
               </td>
             </tr>
@@ -93,9 +99,14 @@ export function DataTable<T extends Record<string, unknown>>({
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={cn("h-table-row px-[var(--table-cell-padding)]", col.className)}
+                    className={cn(
+                      "h-table-row px-[var(--table-cell-padding)]",
+                      col.className,
+                    )}
                   >
-                    {col.render ? col.render(item) : String(item[col.key] ?? "")}
+                    {col.render
+                      ? col.render(item)
+                      : String(item[col.key] ?? "")}
                   </td>
                 ))}
               </tr>

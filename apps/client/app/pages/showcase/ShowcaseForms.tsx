@@ -40,7 +40,10 @@ export default function ShowcaseForms() {
             <NexusInput disabled placeholder="Cannot edit" />
           </FormGroup>
           <FormGroup label="With Error" error="This field is required">
-            <NexusInput placeholder="Oops" className="border-danger focus-visible:ring-danger" />
+            <NexusInput
+              placeholder="Oops"
+              className="border-danger focus-visible:ring-danger"
+            />
           </FormGroup>
         </FieldGroup>
       </FormSection>
@@ -110,7 +113,10 @@ export default function ShowcaseForms() {
               >
                 Back
               </NexusButton>
-              <NexusButton onClick={() => setStep(Math.min(2, step + 1))} disabled={step === 2}>
+              <NexusButton
+                onClick={() => setStep(Math.min(2, step + 1))}
+                disabled={step === 2}
+              >
                 Next
               </NexusButton>
             </NexusCardFooter>

@@ -5,23 +5,13 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 )
 
 // GetResourceAggregation aggregates permissions by resource with CRUD mapping
 func (uc *PermissionUseCase) GetResourceAggregation(ctx context.Context) (*model.ResourceAggregationResponse, error) {
-	// Get all access rights with their endpoints
-	accessRepo, ok := uc.RoleRepo.(interface {
-		GetAccessRepository() repository.AccessRepository
-	})
-
-	// If we can't get access repository, fall back to permission-based aggregation
-	if !ok {
-		return uc.getResourceAggregationFromPermissions(ctx)
-	}
-
-	accessRights, err := accessRepo.GetAccessRepository().GetAccessRights(ctx)
+	// Use the directly available AccessRepo
+	accessRights, err := uc.AccessRepo.GetAccessRights(ctx)
 	if err != nil {
 		uc.log.WithContext(ctx).Errorf("Failed to get access rights: %v", err)
 		return nil, err
@@ -46,22 +36,35 @@ func (uc *PermissionUseCase) GetResourceAggregation(ctx context.Context) (*model
 
 	// Process access rights to group endpoints by resource
 	for _, ar := range accessRights {
+		resourceName, basePath := ar.Name, "/api/v1/"+strings.ToLower(ar.Name)
+		if len(ar.Endpoints) > 0 {
+			// Try to extract more accurate name from path if endpoints exist
+			extractedName, extractedPath := extractResourceFromPath(ar.Endpoints[0].Path)
+			resourceName = extractedName
+			basePath = extractedPath
+		}
+
+		if _, exists := resourceMap[resourceName]; !exists {
+			resourceMap[resourceName] = &model.ResourcePermission{
+				Name:            resourceName,
+				BasePath:        basePath,
+				RolePermissions: make(map[string]model.ResourceCRUD),
+				EndpointCount:   0,
+			}
+		}
+
+		// If no endpoints, still ensure all roles have empty CRUD
+		for _, role := range roles {
+			if _, exists := resourceMap[resourceName].RolePermissions[role.Name]; !exists {
+				resourceMap[resourceName].RolePermissions[role.Name] = model.ResourceCRUD{}
+			}
+		}
+
 		if len(ar.Endpoints) == 0 {
 			continue
 		}
 
 		for _, endpoint := range ar.Endpoints {
-			resourceName, basePath := extractResourceFromPath(endpoint.Path)
-
-			if _, exists := resourceMap[resourceName]; !exists {
-				resourceMap[resourceName] = &model.ResourcePermission{
-					Name:            resourceName,
-					BasePath:        basePath,
-					RolePermissions: make(map[string]model.ResourceCRUD),
-					EndpointCount:   0,
-				}
-			}
-
 			resourceMap[resourceName].EndpointCount++
 
 			// Map permissions for each role
@@ -76,71 +79,7 @@ func (uc *PermissionUseCase) GetResourceAggregation(ctx context.Context) (*model
 			}
 		}
 	}
-
 	// Convert map to slice
-	resources := make([]model.ResourcePermission, 0, len(resourceMap))
-	for _, res := range resourceMap {
-		resources = append(resources, *res)
-	}
-
-	return &model.ResourceAggregationResponse{
-		Resources: resources,
-	}, nil
-}
-
-// getResourceAggregationFromPermissions is a fallback that builds aggregation from raw permissions
-func (uc *PermissionUseCase) getResourceAggregationFromPermissions(ctx context.Context) (*model.ResourceAggregationResponse, error) {
-	// Get all roles
-	roles, err := uc.RoleRepo.FindAll(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get all permissions
-	allPerms, err := uc.GetAllPermissions(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceMap := make(map[string]*model.ResourcePermission)
-
-	// Process all permissions
-	for _, perm := range allPerms {
-		if len(perm) < 4 {
-			continue
-		}
-
-		roleName := perm[0]
-		path := perm[2]
-		method := perm[3]
-
-		resourceName, basePath := extractResourceFromPath(path)
-
-		if _, exists := resourceMap[resourceName]; !exists {
-			resourceMap[resourceName] = &model.ResourcePermission{
-				Name:            resourceName,
-				BasePath:        basePath,
-				RolePermissions: make(map[string]model.ResourceCRUD),
-				EndpointCount:   0,
-			}
-		}
-
-		resourceMap[resourceName].EndpointCount++
-
-		crud := resourceMap[resourceName].RolePermissions[roleName]
-		crud = mapMethodToCRUD(method, crud)
-		resourceMap[resourceName].RolePermissions[roleName] = crud
-	}
-
-	// Ensure all roles are represented
-	for _, role := range roles {
-		for _, res := range resourceMap {
-			if _, exists := res.RolePermissions[role.Name]; !exists {
-				res.RolePermissions[role.Name] = model.ResourceCRUD{}
-			}
-		}
-	}
-
 	resources := make([]model.ResourcePermission, 0, len(resourceMap))
 	for _, res := range resourceMap {
 		resources = append(resources, *res)

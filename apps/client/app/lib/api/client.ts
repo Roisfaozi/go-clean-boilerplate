@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/stores/auth-store";
 import { useOrganizationStore } from "@/stores/organization-store";
-import axios, { AxiosError, AxiosRequestConfig } from "axios";
-import { z } from "zod";
+import axios, { type AxiosError, type AxiosRequestConfig } from "axios";
+import type { z } from "zod";
 
 const API_BASE_URL = "/api/v1";
 
@@ -21,7 +21,10 @@ export class ApiError extends Error {
     error: AxiosError<{ message?: string; error?: string; code?: string }>,
   ): ApiError {
     const status = error.response?.status ?? 0;
-    const message = error.response?.data?.message ?? error.response?.data?.error ?? error.message;
+    const message =
+      error.response?.data?.message ??
+      error.response?.data?.error ??
+      error.message;
     const code = error.response?.data?.code;
     return new ApiError(message, status, code, error.response?.data);
   }
@@ -142,14 +145,21 @@ function validate<T>(schema: z.ZodType<T> | z.ZodTypeAny, data: unknown): T {
   if (import.meta.env.DEV) {
     const result = schema.safeParse(data);
     if (!result.success) {
-      console.warn("[API] Response validation warning:", result.error.flatten());
+      console.warn(
+        "[API] Response validation warning:",
+        result.error.flatten(),
+      );
     }
   }
   return data as T;
 }
 
 export const apiClient = {
-  async get<T>(url: string, schema?: z.ZodTypeAny, config?: AxiosRequestConfig): Promise<T> {
+  async get<T>(
+    url: string,
+    schema?: z.ZodTypeAny,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
     const res = await axiosInstance.get(url, config);
     const payload = extractPayload<T>(res);
     return schema ? validate<T>(schema, payload) : payload;

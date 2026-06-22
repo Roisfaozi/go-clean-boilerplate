@@ -25,6 +25,12 @@ type OrganizationUseCase interface {
 
 	// DeleteOrganization deletes an organization (owner only)
 	DeleteOrganization(ctx context.Context, id string, userID string) error
+
+	// RestoreOrganization restores a soft-deleted organization (superadmin only)
+	RestoreOrganization(ctx context.Context, id string) (*model.OrganizationResponse, error)
+
+	// HardDeleteOrganization permanently deletes a previously soft-deleted organization (superadmin only)
+	HardDeleteOrganization(ctx context.Context, id string) error
 }
 
 // OrganizationMemberUseCase defines the interface for member management business logic

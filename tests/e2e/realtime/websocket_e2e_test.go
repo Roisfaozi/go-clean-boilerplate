@@ -275,11 +275,11 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 	// C should NOT receive Org 1 events
 	// ... (rest of the test)
 
-	connA3.Close()
+	require.NoError(t, connA3.Close())
 
-	connA.SetReadDeadline(time.Now().Add(5 * time.Second))
+	connA.SetReadDeadline(time.Now().Add(1 * time.Second))
 
-	// Read loop to find the leave event
+	// Closing A3 must not emit leave because A and A2 are still online for the same user/org.
 	foundLeave := false
 	for {
 		_, msg, err := connA.ReadMessage()
@@ -292,5 +292,5 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 			break
 		}
 	}
-	require.True(t, foundLeave, "Did not receive leave event")
+	require.False(t, foundLeave, "Received leave event while same user still has active org connections")
 }

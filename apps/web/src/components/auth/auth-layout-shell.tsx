@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Icons from "~/components/shared/icons";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 interface AuthLayoutShellProps {
   children: ReactNode;
@@ -49,7 +49,11 @@ export function AuthLayoutShell({
 
           {children}
 
-          {footer && <div className="mt-8 text-center text-sm lg:text-left">{footer}</div>}
+          {footer && (
+            <div className="mt-8 text-center text-sm lg:text-left">
+              {footer}
+            </div>
+          )}
         </div>
       </div>
 
@@ -67,16 +71,24 @@ export function AuthLayoutShell({
             <h2 className="mb-6 text-4xl leading-tight font-bold tracking-tight">
               {brandingTitle}
             </h2>
-            <p className="mb-10 text-lg text-indigo-100">{brandingDescription}</p>
+            <p className="mb-10 text-lg text-indigo-100">
+              {brandingDescription}
+            </p>
 
             {testimonial && (
               <div className="rounded-2xl bg-white/10 p-6 backdrop-blur-lg">
-                <p className="text-indigo-50 italic">&quot;{testimonial.quote}&quot;</p>
+                <p className="text-indigo-50 italic">
+                  &quot;{testimonial.quote}&quot;
+                </p>
                 <div className="mt-4 flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-indigo-300/50" />
                   <div>
-                    <p className="text-sm font-semibold">{testimonial.author}</p>
-                    <p className="text-xs text-indigo-200">{testimonial.role}</p>
+                    <p className="text-sm font-semibold">
+                      {testimonial.author}
+                    </p>
+                    <p className="text-xs text-indigo-200">
+                      {testimonial.role}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -100,7 +112,9 @@ export function AuthLayoutShell({
                         />
                       </svg>
                     </div>
-                    <span className="text-sm font-medium text-indigo-50">{item}</span>
+                    <span className="text-sm font-medium text-indigo-50">
+                      {item}
+                    </span>
                   </li>
                 ))}
               </ul>

@@ -1,8 +1,19 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { MetricsPanel, MetricSummary, TimeSeriesPoint } from "@/components/admin/metrics-panel";
+import {
+  MetricsPanel,
+  type MetricSummary,
+  type TimeSeriesPoint,
+} from "@/components/admin/metrics-panel";
 import { NexusCard, NexusCardHeader, NexusCardTitle } from "@casbin/ui";
 import { Badge } from "@casbin/ui";
-import { Users, Shield, FileText, Zap, TrendingUp, Activity } from "lucide-react";
+import {
+  Users,
+  Shield,
+  FileText,
+  Zap,
+  TrendingUp,
+  Activity,
+} from "lucide-react";
 
 const requestMetrics: MetricSummary[] = [
   {
@@ -12,7 +23,13 @@ const requestMetrics: MetricSummary[] = [
     changeLabel: "vs last week",
     icon: Activity,
   },
-  { label: "Avg Latency", value: "42ms", change: -8.1, changeLabel: "vs last week", icon: Zap },
+  {
+    label: "Avg Latency",
+    value: "42ms",
+    change: -8.1,
+    changeLabel: "vs last week",
+    icon: Zap,
+  },
   {
     label: "Error Rate",
     value: "0.12%",
@@ -20,7 +37,13 @@ const requestMetrics: MetricSummary[] = [
     changeLabel: "vs last week",
     icon: TrendingUp,
   },
-  { label: "Active Users", value: "1,847", change: 6.3, changeLabel: "vs last week", icon: Users },
+  {
+    label: "Active Users",
+    value: "1,847",
+    change: 6.3,
+    changeLabel: "vs last week",
+    icon: Users,
+  },
 ];
 
 const requestTimeline: TimeSeriesPoint[] = [
@@ -34,9 +57,27 @@ const requestTimeline: TimeSeriesPoint[] = [
 ];
 
 const securityMetrics: MetricSummary[] = [
-  { label: "Failed Logins", value: "47", change: -15.3, changeLabel: "vs last week", icon: Shield },
-  { label: "Role Changes", value: "12", change: 33.0, changeLabel: "vs last week", icon: Shield },
-  { label: "New Permissions", value: "8", change: 0, changeLabel: "this week", icon: Shield },
+  {
+    label: "Failed Logins",
+    value: "47",
+    change: -15.3,
+    changeLabel: "vs last week",
+    icon: Shield,
+  },
+  {
+    label: "Role Changes",
+    value: "12",
+    change: 33.0,
+    changeLabel: "vs last week",
+    icon: Shield,
+  },
+  {
+    label: "New Permissions",
+    value: "8",
+    change: 0,
+    changeLabel: "this week",
+    icon: Shield,
+  },
   {
     label: "Audit Events",
     value: "3,421",
@@ -57,11 +98,36 @@ const securityTimeline: TimeSeriesPoint[] = [
 ];
 
 const topEndpoints = [
-  { endpoint: "GET /api/users", calls: "42.3K", p99: "38ms", status: "healthy" },
-  { endpoint: "POST /api/auth/login", calls: "28.1K", p99: "125ms", status: "healthy" },
-  { endpoint: "GET /api/projects", calls: "18.7K", p99: "45ms", status: "healthy" },
-  { endpoint: "PUT /api/roles/:id", calls: "3.2K", p99: "210ms", status: "warning" },
-  { endpoint: "DELETE /api/permissions", calls: "1.1K", p99: "92ms", status: "healthy" },
+  {
+    endpoint: "GET /api/users",
+    calls: "42.3K",
+    p99: "38ms",
+    status: "healthy",
+  },
+  {
+    endpoint: "POST /api/auth/login",
+    calls: "28.1K",
+    p99: "125ms",
+    status: "healthy",
+  },
+  {
+    endpoint: "GET /api/projects",
+    calls: "18.7K",
+    p99: "45ms",
+    status: "healthy",
+  },
+  {
+    endpoint: "PUT /api/roles/:id",
+    calls: "3.2K",
+    p99: "210ms",
+    status: "warning",
+  },
+  {
+    endpoint: "DELETE /api/permissions",
+    calls: "1.1K",
+    p99: "92ms",
+    status: "healthy",
+  },
 ];
 
 export default function SystemInsightsPage() {
@@ -103,12 +169,16 @@ export default function SystemInsightsPage() {
                 className="bg-muted/50 hover:bg-muted/80 flex items-center justify-between rounded-lg p-3 transition-colors"
               >
                 <div className="min-w-0">
-                  <p className="text-foreground truncate font-mono text-sm">{ep.endpoint}</p>
+                  <p className="text-foreground truncate font-mono text-sm">
+                    {ep.endpoint}
+                  </p>
                   <p className="text-muted-foreground text-xs">
                     {ep.calls} calls · p99: {ep.p99}
                   </p>
                 </div>
-                <Badge variant={ep.status === "healthy" ? "secondary" : "outline"}>
+                <Badge
+                  variant={ep.status === "healthy" ? "secondary" : "outline"}
+                >
                   {ep.status}
                 </Badge>
               </div>

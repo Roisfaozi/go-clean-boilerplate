@@ -5,9 +5,30 @@ import { NexusButton } from "@casbin/ui";
 import { Plus, MoreHorizontal } from "lucide-react";
 
 const mockOrgs = [
-  { id: "1", name: "Acme Corp", slug: "acme", status: "active", owner_id: "u1", members: 45 },
-  { id: "2", name: "Globex Inc", slug: "globex", status: "active", owner_id: "u2", members: 23 },
-  { id: "3", name: "Initech", slug: "initech", status: "suspended", owner_id: "u3", members: 12 },
+  {
+    id: "1",
+    name: "Acme Corp",
+    slug: "acme",
+    status: "active",
+    owner_id: "u1",
+    members: 45,
+  },
+  {
+    id: "2",
+    name: "Globex Inc",
+    slug: "globex",
+    status: "active",
+    owner_id: "u2",
+    members: 23,
+  },
+  {
+    id: "3",
+    name: "Initech",
+    slug: "initech",
+    status: "suspended",
+    owner_id: "u3",
+    members: 12,
+  },
 ];
 
 export default function OrganizationsPage() {
@@ -19,7 +40,9 @@ export default function OrganizationsPage() {
       key: "status",
       header: "Status",
       render: (o: (typeof mockOrgs)[0]) => (
-        <NexusBadge variant={o.status === "active" ? "success" : "danger"}>{o.status}</NexusBadge>
+        <NexusBadge variant={o.status === "active" ? "success" : "danger"}>
+          {o.status}
+        </NexusBadge>
       ),
     },
     {

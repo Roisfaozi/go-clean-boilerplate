@@ -2,12 +2,16 @@
 
 import { memo, useState } from "react";
 import { usePermissionMatrix } from "./permission-matrix-context";
-import { Icon } from "~/components/shared/icon";
 import { Badge } from "~/components/ui/badge";
 import { useDensity } from "~/components/shared/providers/density-provider";
 import { Skeleton } from "~/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
-import { ResourceCRUD } from "~/lib/api/access";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
+import type { ResourceCRUD } from "~/lib/api/access";
 import { EmptyState } from "~/components/shared/empty-state";
 
 export function MatrixGrid() {
@@ -84,9 +88,14 @@ export function MatrixGrid() {
                 }`}
               >
                 <div className="flex items-center justify-between gap-4">
-                  <span className="truncate">{role.name.replace("role:", "")}</span>
+                  <span className="truncate">
+                    {role.name.replace("role:", "")}
+                  </span>
                   {role.name === "role:superadmin" && (
-                    <Badge variant="secondary" className="h-4 px-1 text-[8px] uppercase">
+                    <Badge
+                      variant="secondary"
+                      className="h-4 px-1 text-[8px] uppercase"
+                    >
                       Root
                     </Badge>
                   )}
@@ -133,7 +142,9 @@ const MatrixCell = memo(function MatrixCell({
   const flags = [crud.create, crud.read, crud.update, crud.delete];
 
   return (
-    <td className={`border-r last:border-r-0 ${isCompact ? "px-1 py-1" : "px-2 py-2"} text-center`}>
+    <td
+      className={`border-r last:border-r-0 ${isCompact ? "px-1 py-1" : "px-2 py-2"} text-center`}
+    >
       <div className="flex items-center justify-center">
         <TooltipProvider delayDuration={100}>
           <Tooltip>
@@ -148,20 +159,26 @@ const MatrixCell = memo(function MatrixCell({
                   <div
                     key={CRUD_LABELS[i]}
                     className={`h-5 w-2.5 rounded-[2px] transition-colors ${
-                      enabled ? "bg-primary shadow-sm" : "bg-muted-foreground/15"
+                      enabled
+                        ? "bg-primary shadow-sm"
+                        : "bg-muted-foreground/15"
                     }`}
                   />
                 ))}
               </button>
             </TooltipTrigger>
             <TooltipContent side="top" className="text-[10px]">
-              <div className="mb-1 font-semibold tracking-wider uppercase">{resourceName}</div>
+              <div className="mb-1 font-semibold tracking-wider uppercase">
+                {resourceName}
+              </div>
               <div className="flex gap-2">
                 {CRUD_LABELS.map((label, i) => (
                   <div
                     key={label}
                     className={
-                      flags[i] ? "text-primary font-bold" : "text-muted-foreground opacity-40"
+                      flags[i]
+                        ? "text-primary font-bold"
+                        : "text-muted-foreground opacity-40"
                     }
                   >
                     {label}

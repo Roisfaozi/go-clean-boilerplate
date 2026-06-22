@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { z } from "zod";
-import { Loader2, Mail, AlertCircle, Send, MailCheck, CheckCircle2 } from "lucide-react";
+import {
+  Loader2,
+  Mail,
+  AlertCircle,
+  Send,
+  MailCheck,
+  CheckCircle2,
+} from "lucide-react";
 import { cn } from "@casbin/ui";
 import { subscribeNewsletter } from "@/lib/email/newsletter-service";
 
@@ -65,11 +72,14 @@ export function LandingNewsletter() {
               </h3>
               <p className="text-muted-foreground mb-2 text-sm md:text-base">
                 We sent a confirmation link to{" "}
-                <span className="text-foreground font-medium">{submittedEmail}</span>.
+                <span className="text-foreground font-medium">
+                  {submittedEmail}
+                </span>
+                .
               </p>
               <p className="text-muted-foreground text-sm">
-                Click the link in the email to activate your subscription. The link expires in 24
-                hours.
+                Click the link in the email to activate your subscription. The
+                link expires in 24 hours.
               </p>
 
               <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
@@ -86,7 +96,8 @@ export function LandingNewsletter() {
               </div>
 
               <p className="text-muted-foreground mt-6 text-xs">
-                Didn't get it? Check your spam folder, or wait a minute and try again.
+                Didn't get it? Check your spam folder, or wait a minute and try
+                again.
               </p>
             </div>
           </div>
@@ -111,8 +122,8 @@ export function LandingNewsletter() {
                 Stay in the loop
               </h3>
               <p className="text-muted-foreground text-sm md:text-base">
-                Get product updates, tips, and engineering deep-dives delivered straight to your
-                inbox. No spam, unsubscribe anytime.
+                Get product updates, tips, and engineering deep-dives delivered
+                straight to your inbox. No spam, unsubscribe anytime.
               </p>
             </div>
 

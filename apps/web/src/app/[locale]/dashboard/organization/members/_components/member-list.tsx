@@ -1,6 +1,5 @@
 "use client";
 
-import { ReactNode } from "react";
 import { useMembers } from "./members-context";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import {
@@ -22,7 +21,7 @@ import {
 } from "~/components/ui/select";
 import { Button } from "~/components/ui/button";
 import { Icon } from "~/components/shared/icon";
-import { Member } from "~/lib/api/organizations";
+import type { Member } from "~/lib/api/organizations";
 import { memo } from "react";
 
 export function MemberTable() {
@@ -46,7 +45,9 @@ export function MemberTable() {
           ) : members.length === 0 ? (
             <MemberTableEmpty />
           ) : (
-            members.map((member) => <MemoizedMemberTableRow key={member.id} member={member} />)
+            members.map((member) => (
+              <MemoizedMemberTableRow key={member.id} member={member} />
+            ))
           )}
         </TableBody>
       </Table>
@@ -54,7 +55,11 @@ export function MemberTable() {
   );
 }
 
-const MemoizedMemberTableRow = memo(function MemberTableRow({ member }: { member: Member }) {
+const MemoizedMemberTableRow = memo(function MemberTableRow({
+  member,
+}: {
+  member: Member;
+}) {
   const { currentOrganization } = useOrganizationStore();
   const { roles, updateMemberRole, removeMember } = useMembers();
 
@@ -71,8 +76,12 @@ const MemoizedMemberTableRow = memo(function MemberTableRow({ member }: { member
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <span className="text-sm font-medium">{member.user?.name || "Invited User"}</span>
-            <span className="text-muted-foreground text-[10px]">{member.user?.email}</span>
+            <span className="text-sm font-medium">
+              {member.user?.name || "Invited User"}
+            </span>
+            <span className="text-muted-foreground text-[10px]">
+              {member.user?.email}
+            </span>
           </div>
         </div>
       </TableCell>
@@ -102,7 +111,9 @@ const MemoizedMemberTableRow = memo(function MemberTableRow({ member }: { member
         </Badge>
       </TableCell>
       <TableCell className="text-muted-foreground text-xs">
-        {member.joined_at ? new Date(member.joined_at).toLocaleDateString() : "-"}
+        {member.joined_at
+          ? new Date(member.joined_at).toLocaleDateString()
+          : "-"}
       </TableCell>
       <TableCell className="text-right">
         <Button
@@ -110,7 +121,10 @@ const MemoizedMemberTableRow = memo(function MemberTableRow({ member }: { member
           size="icon"
           className="text-destructive hover:bg-destructive/10 h-8 w-8"
           onClick={() =>
-            removeMember(member.user_id, member.user?.name || member.user?.email || "")
+            removeMember(
+              member.user_id,
+              member.user?.name || member.user?.email || "",
+            )
           }
           disabled={member.user_id === currentOrganization.owner_id}
         >
@@ -136,7 +150,10 @@ function MemberTableSkeleton() {
 function MemberTableEmpty() {
   return (
     <TableRow>
-      <TableCell colSpan={5} className="text-muted-foreground h-24 text-center italic">
+      <TableCell
+        colSpan={5}
+        className="text-muted-foreground h-24 text-center italic"
+      >
         No members found.
       </TableCell>
     </TableRow>

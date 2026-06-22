@@ -48,55 +48,64 @@ const CASE_CONFIG: Record<
   search: {
     icon: "SearchX",
     title: "No results found",
-    description: "We couldn't find what you were looking for. Try adjusting your keywords.",
+    description:
+      "We couldn't find what you were looking for. Try adjusting your keywords.",
     color: "text-muted-foreground",
   },
   filter: {
     icon: "FilterX",
     title: "No matches found",
-    description: "Your current filters are too restrictive. Try clearing some to see more data.",
+    description:
+      "Your current filters are too restrictive. Try clearing some to see more data.",
     color: "text-muted-foreground",
   },
   activity: {
     icon: "Inbox",
     title: "No activity yet",
-    description: "System logs and user actions will appear here as they happen.",
+    description:
+      "System logs and user actions will appear here as they happen.",
     color: "text-muted-foreground/50",
   },
   users: {
     icon: "UserPlus",
     title: "No users found",
-    description: "Start managing your team by adding or inviting your first member.",
+    description:
+      "Start managing your team by adding or inviting your first member.",
     color: "text-primary",
   },
   roles: {
     icon: "ShieldAlert",
     title: "No roles defined",
-    description: "Roles define what your users can do. Create one to start managing permissions.",
+    description:
+      "Roles define what your users can do. Create one to start managing permissions.",
     color: "text-amber-500",
   },
   resources: {
     icon: "Database",
     title: "No resources found",
-    description: "Add API endpoints and group them into resources to configure access.",
+    description:
+      "Add API endpoints and group them into resources to configure access.",
     color: "text-primary",
   },
   security: {
     icon: "Lock",
     title: "Access Denied",
-    description: "You don't have the required permissions to view this section.",
+    description:
+      "You don't have the required permissions to view this section.",
     color: "text-destructive",
   },
   error: {
     icon: "AlertTriangle",
     title: "Unable to load data",
-    description: "A connection error occurred. Please check your internet or try again.",
+    description:
+      "A connection error occurred. Please check your internet or try again.",
     color: "text-destructive",
   },
   generic: {
     icon: "FileQuestion",
     title: "Nothing here yet",
-    description: "This section is currently empty. Check back later or add some data.",
+    description:
+      "This section is currently empty. Check back later or add some data.",
     color: "text-muted-foreground",
   },
 };
@@ -114,7 +123,9 @@ export function EmptyState({
   const isCompact = density === "compact";
   const config = CASE_CONFIG[stateCase];
 
-  const displayTitle = searchTerm ? `No results for "${searchTerm}"` : (title ?? config.title);
+  const displayTitle = searchTerm
+    ? `No results for "${searchTerm}"`
+    : (title ?? config.title);
   const displayDescription = description ?? config.description;
 
   // Render Logic based on Variant and Density
@@ -128,12 +139,21 @@ export function EmptyState({
           className,
         )}
       >
-        <Icon name={config.icon as any} size="sm" className={cn("shrink-0", config.color)} />
+        <Icon
+          name={config.icon as any}
+          size="sm"
+          className={cn("shrink-0", config.color)}
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{displayTitle}</p>
         </div>
         {action && (
-          <Button variant="ghost" size="sm" onClick={action.onClick} className="h-7 px-2 text-xs">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={action.onClick}
+            className="h-7 px-2 text-xs"
+          >
             {action.label}
           </Button>
         )}
@@ -163,7 +183,10 @@ export function EmptyState({
         >
           <Icon
             name={config.icon as any}
-            className={cn(config.color, variant === "hero" ? "h-10 w-10" : "h-7 w-7")}
+            className={cn(
+              config.color,
+              variant === "hero" ? "h-10 w-10" : "h-7 w-7",
+            )}
           />
         </div>
 
@@ -176,7 +199,9 @@ export function EmptyState({
           >
             {displayTitle}
           </h3>
-          <p className="text-muted-foreground text-sm leading-relaxed">{displayDescription}</p>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            {displayDescription}
+          </p>
         </div>
 
         {action && (
@@ -186,10 +211,14 @@ export function EmptyState({
               size={variant === "hero" ? "lg" : "default"}
               className={cn(
                 "font-semibold transition-all hover:scale-105 active:scale-95",
-                variant === "hero" ? "shadow-primary/20 h-12 rounded-xl px-8 shadow-xl" : "",
+                variant === "hero"
+                  ? "shadow-primary/20 h-12 rounded-xl px-8 shadow-xl"
+                  : "",
               )}
             >
-              {action.icon && <Icon name={action.icon as any} className="mr-2 h-4 w-4" />}
+              {action.icon && (
+                <Icon name={action.icon as any} className="mr-2 h-4 w-4" />
+              )}
               {action.label}
             </Button>
           </div>

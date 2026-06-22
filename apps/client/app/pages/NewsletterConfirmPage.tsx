@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { CheckCircle2, AlertCircle, Loader2, Hexagon, ArrowRight } from "lucide-react";
+import {
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Hexagon,
+  ArrowRight,
+} from "lucide-react";
 import { confirmSubscription } from "@/lib/email/newsletter-service";
 
 type Status = "loading" | "success" | "error";
@@ -74,11 +80,16 @@ export default function NewsletterConfirmPage() {
                 <p className="text-muted-foreground mb-6 text-sm">
                   {email ? (
                     <>
-                      <span className="text-foreground font-medium">{email}</span> is now confirmed.
-                      Welcome to the NexusOS newsletter.
+                      <span className="text-foreground font-medium">
+                        {email}
+                      </span>{" "}
+                      is now confirmed. Welcome to the NexusOS newsletter.
                     </>
                   ) : (
-                    <>Your email is now confirmed. Welcome to the NexusOS newsletter.</>
+                    <>
+                      Your email is now confirmed. Welcome to the NexusOS
+                      newsletter.
+                    </>
                   )}
                 </p>
                 <Link

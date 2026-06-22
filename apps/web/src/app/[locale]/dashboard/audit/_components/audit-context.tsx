@@ -1,7 +1,14 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
-import { auditApi, AuditLog } from "~/lib/api/audit";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from "react";
+import { auditApi, type AuditLog } from "~/lib/api/audit";
 import { toast } from "sonner";
 import { useAuditStream } from "~/hooks/use-audit-stream";
 

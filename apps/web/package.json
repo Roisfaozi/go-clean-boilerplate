@@ -6,9 +6,9 @@
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src",
+    "lint": "biome lint --write .",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write 'src/**/*.{ts,tsx,js,jsx,css}'",
+    "format": "biome format --write .",
     "release": "release-it"
   },
   "dependencies": {
@@ -69,9 +69,6 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.3",
-    "@eslint/js": "^9.39.2",
-    "@next/eslint-plugin-next": "^16.1.6",
     "@tailwindcss/line-clamp": "^0.4.4",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/typography": "^0.5.16",
@@ -80,13 +77,8 @@
     "@types/react-dom": "19.2.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "eslint": "9.24.0",
-    "eslint-config-next": "16.0.10",
-    "eslint-config-prettier": "^10.1.1",
     "lefthook": "^1.10.7",
     "postcss": "8.5.1",
-    "prettier": "3.5.3",
-    "prettier-plugin-tailwindcss": "^0.7.2",
     "release-it": "^18.1.1",
     "release-it-pnpm": "^4.6.4",
     "serwist": "^9.0.11",

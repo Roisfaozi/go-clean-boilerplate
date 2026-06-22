@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { z } from "zod";
 import { PageHeader } from "@/components/layout/page-header";
-import { NexusButton } from "@casbin/ui";
-import { NexusBadge } from "@casbin/ui";
+import { NexusButton, NexusBadge } from "@casbin/ui";
 import {
   CrudTable,
   CrudFormDialog,
@@ -10,59 +9,15 @@ import {
   type CrudColumnDef,
   type FieldDef,
 } from "@/features/shared";
-import { Plus } from "lucide-react";
-
-interface ProjectRow {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  status: string;
-  organization_id: string;
-}
-
-const mockProjects: ProjectRow[] = [
-  {
-    id: "1",
-    name: "Marketing Dashboard",
-    slug: "marketing",
-    description: "Analytics for marketing team",
-    status: "active",
-    organization_id: "1",
-  },
-  {
-    id: "2",
-    name: "Customer Portal",
-    slug: "customer-portal",
-    description: "Self-service customer portal",
-    status: "active",
-    organization_id: "1",
-  },
-  {
-    id: "3",
-    name: "Internal Tools",
-    slug: "internal",
-    description: "Developer productivity tools",
-    status: "draft",
-    organization_id: "2",
-  },
-  {
-    id: "4",
-    name: "API Gateway",
-    slug: "api-gw",
-    description: "Central API management",
-    status: "archived",
-    organization_id: "2",
-  },
-  {
-    id: "5",
-    name: "Mobile App",
-    slug: "mobile-app",
-    description: "Cross-platform mobile application",
-    status: "active",
-    organization_id: "1",
-  },
-];
+import { Plus, RefreshCcw } from "lucide-react";
+import {
+  useProjects,
+  useCreateProject,
+  useUpdateProject,
+  useDeleteProject,
+} from "./projectHooks";
+import { useOrganizationStore } from "@/stores/organization-store";
+import type { Project } from "@/lib/api/schemas";
 
 const statusVariant = (s: string) =>
   s === "active"
@@ -71,10 +26,21 @@ const statusVariant = (s: string) =>
       ? ("warning" as const)
       : ("neutral" as const);
 
-const columns: CrudColumnDef<ProjectRow>[] = [
-  { id: "name", header: "Project", accessorKey: "name", sortable: true, minWidth: 180 },
+const columns: CrudColumnDef<Project>[] = [
+  {
+    id: "name",
+    header: "Project",
+    accessorKey: "name",
+    sortable: true,
+    minWidth: 180,
+  },
   { id: "slug", header: "Slug", accessorKey: "slug" },
-  { id: "description", header: "Description", accessorKey: "description", minWidth: 200 },
+  {
+    id: "description",
+    header: "Description",
+    accessorKey: "description",
+    minWidth: 200,
+  },
   {
     id: "status",
     header: "Status",
@@ -86,7 +52,9 @@ const columns: CrudColumnDef<ProjectRow>[] = [
       { label: "Draft", value: "draft" },
       { label: "Archived", value: "archived" },
     ],
-    cell: (row) => <NexusBadge variant={statusVariant(row.status)}>{row.status}</NexusBadge>,
+    cell: (row) => (
+      <NexusBadge variant={statusVariant(row.status)}>{row.status}</NexusBadge>
+    ),
   },
 ];
 
@@ -135,16 +103,6 @@ const createFields: FieldDef[] = [
     type: "textarea",
     placeholder: "Project description…",
   },
-  {
-    name: "organization_id",
-    label: "Organization",
-    type: "select",
-    required: true,
-    options: [
-      { label: "Acme Corp", value: "1" },
-      { label: "Globex Inc", value: "2" },
-    ],
-  },
 ];
 
 const editFields: FieldDef[] = [
@@ -166,8 +124,39 @@ const editFields: FieldDef[] = [
 
 export default function ProjectsPage() {
   const [createOpen, setCreateOpen] = useState(false);
-  const [editItem, setEditItem] = useState<ProjectRow | null>(null);
-  const [deleteItem, setDeleteItem] = useState<ProjectRow | null>(null);
+  const [editItem, setEditItem] = useState<Project | null>(null);
+  const [deleteItem, setDeleteItem] = useState<Project | null>(null);
+
+  const activeOrg = useOrganizationStore((s) => s.activeOrganization);
+  const { data, isLoading, refetch } = useProjects({ org_id: activeOrg?.id });
+
+  const createMutation = useCreateProject();
+  const updateMutation = useUpdateProject();
+  const deleteMutation = useDeleteProject();
+
+  const handleCreate = (values: any) => {
+    if (!activeOrg) return;
+    createMutation.mutate({
+      ...values,
+      organization_id: activeOrg.id,
+    });
+    setCreateOpen(false);
+  };
+
+  const handleUpdate = (values: any) => {
+    if (!editItem) return;
+    updateMutation.mutate({
+      id: editItem.id,
+      data: values,
+    });
+    setEditItem(null);
+  };
+
+  const handleDelete = () => {
+    if (!deleteItem) return;
+    deleteMutation.mutate(deleteItem.id);
+    setDeleteItem(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -175,14 +164,24 @@ export default function ProjectsPage() {
         title="Projects"
         description="Manage your workspace projects."
         actions={
-          <NexusButton onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" /> New Project
-          </NexusButton>
+          <div className="flex gap-2">
+            <NexusButton
+              variant="outline"
+              size="icon"
+              onClick={() => refetch()}
+            >
+              <RefreshCcw className="h-4 w-4" />
+            </NexusButton>
+            <NexusButton onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4" /> New Project
+            </NexusButton>
+          </div>
         }
       />
       <CrudTable
         columns={columns}
-        data={mockProjects}
+        data={data?.data || []}
+        loading={isLoading}
         onEdit={setEditItem}
         onDelete={setDeleteItem}
         selectable
@@ -192,9 +191,10 @@ export default function ProjectsPage() {
         onOpenChange={setCreateOpen}
         title="Create Project"
         fields={createFields}
-        schema={createSchema}
-        onSubmit={async (v) => console.log("create", v)}
+        schema={createSchema.omit({ organization_id: true })}
+        onSubmit={handleCreate}
         submitLabel="Create Project"
+        loading={createMutation.isPending}
       />
       <CrudFormDialog
         open={!!editItem}
@@ -203,15 +203,17 @@ export default function ProjectsPage() {
         fields={editFields}
         schema={editSchema}
         initialValues={editItem || undefined}
-        onSubmit={async (v) => console.log("update", editItem?.id, v)}
+        onSubmit={handleUpdate}
         submitLabel="Save Changes"
+        loading={updateMutation.isPending}
       />
       <DeleteDialog
         open={!!deleteItem}
         onOpenChange={(o) => !o && setDeleteItem(null)}
         resourceName="Project"
         itemName={deleteItem?.name}
-        onConfirm={async () => console.log("delete", deleteItem?.id)}
+        onConfirm={handleDelete}
+        loading={deleteMutation.isPending}
       />
     </div>
   );

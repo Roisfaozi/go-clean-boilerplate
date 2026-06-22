@@ -1,5 +1,11 @@
 import { Badge } from "@casbin/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@casbin/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@casbin/ui";
 
 const roles = [
   { value: "owner", label: "Owner", color: "destructive" as const },
@@ -14,7 +20,11 @@ interface MemberRoleSelectorProps {
   disabled?: boolean;
 }
 
-export function MemberRoleSelector({ value, onChange, disabled }: MemberRoleSelectorProps) {
+export function MemberRoleSelector({
+  value,
+  onChange,
+  disabled,
+}: MemberRoleSelectorProps) {
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
       <SelectTrigger className="h-8 w-[120px] text-xs">

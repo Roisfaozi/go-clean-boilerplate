@@ -1,5 +1,10 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { NexusCard, NexusCardHeader, NexusCardTitle, NexusCardContent } from "@casbin/ui";
+import {
+  NexusCard,
+  NexusCardHeader,
+  NexusCardTitle,
+  NexusCardContent,
+} from "@casbin/ui";
 import { NexusButton } from "@casbin/ui";
 import { NexusInput } from "@casbin/ui";
 import { FormGroup } from "@/components/patterns/form-group";
@@ -11,7 +16,10 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" description="Manage your workspace preferences." />
+      <PageHeader
+        title="Settings"
+        description="Manage your workspace preferences."
+      />
 
       <div className="gap-gap grid grid-cols-1 lg:grid-cols-2">
         <NexusCard>
@@ -42,12 +50,16 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-body font-medium">Density</p>
-                <p className="text-caption text-muted-foreground">Adjust UI spacing density</p>
+                <p className="text-caption text-muted-foreground">
+                  Adjust UI spacing density
+                </p>
               </div>
               <NexusButton
                 variant="outline"
                 size="sm"
-                onClick={() => setDensity(density === "comfort" ? "compact" : "comfort")}
+                onClick={() =>
+                  setDensity(density === "comfort" ? "compact" : "comfort")
+                }
               >
                 {density === "comfort" ? (
                   <Minimize2 className="mr-2 h-4 w-4" />
@@ -69,7 +81,11 @@ export default function SettingsPage() {
               <NexusInput placeholder="Your name" defaultValue="Admin User" />
             </FormGroup>
             <FormGroup label="Email">
-              <NexusInput placeholder="Email" defaultValue="admin@nexus.io" type="email" />
+              <NexusInput
+                placeholder="Email"
+                defaultValue="admin@nexus.io"
+                type="email"
+              />
             </FormGroup>
             <NexusButton>Save Changes</NexusButton>
           </NexusCardContent>

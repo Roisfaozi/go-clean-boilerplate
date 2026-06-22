@@ -9,7 +9,10 @@ import { RoleDialog } from "~/components/dashboard/roles/role-dialog";
 import { Icon } from "~/components/shared/icon";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { AccessControlProvider, useAccessControl } from "./_components/access-control-context";
+import {
+  AccessControlProvider,
+  useAccessControl,
+} from "./_components/access-control-context";
 
 export default function AccessPage() {
   return (
@@ -20,8 +23,13 @@ export default function AccessPage() {
 }
 
 function AccessControlContent() {
-  const { activeTab, setActiveTab, roleDialogOpen, setRoleDialogOpen, handleRoleClick } =
-    useAccessControl();
+  const {
+    activeTab,
+    setActiveTab,
+    roleDialogOpen,
+    setRoleDialogOpen,
+    handleRoleClick,
+  } = useAccessControl();
 
   // State for the permission management sheet
   const [permSheetOpen, setPermSheetOpen] = useState(false);
@@ -38,12 +46,20 @@ function AccessControlContent() {
         <div>
           <div className="mb-1 flex items-center gap-2">
             <Icon name="Shield" className="text-primary h-6 w-6" />
-            <h2 className="text-2xl font-bold tracking-tight">Access Control</h2>
+            <h2 className="text-2xl font-bold tracking-tight">
+              Access Control
+            </h2>
           </div>
-          <p className="text-muted-foreground">Configure role permissions and access policies</p>
+          <p className="text-muted-foreground">
+            Configure role permissions and access policies
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setRoleDialogOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setRoleDialogOpen(true)}
+          >
             <Icon name="Plus" className="mr-2 h-4 w-4" />
             Add Role
           </Button>

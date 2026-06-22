@@ -15,14 +15,21 @@ export default function Error404V2() {
           <Search className="text-primary h-10 w-10 -rotate-12" />
         </div>
         <div className="space-y-2">
-          <p className="text-primary text-sm font-semibold tracking-widest uppercase">Error 404</p>
+          <p className="text-primary text-sm font-semibold tracking-widest uppercase">
+            Error 404
+          </p>
           <h1 className="text-foreground text-4xl font-bold">Page Not Found</h1>
           <p className="text-muted-foreground leading-relaxed">
             Looks like this page went on vacation. Let's get you back on track.
           </p>
         </div>
         <div className="flex flex-col gap-3">
-          <NexusButton variant="primary" size="lg" className="w-full" onClick={() => navigate("/")}>
+          <NexusButton
+            variant="primary"
+            size="lg"
+            className="w-full"
+            onClick={() => navigate("/")}
+          >
             <Home className="h-4 w-4" />
             Back to Dashboard
           </NexusButton>

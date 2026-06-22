@@ -1,4 +1,4 @@
-import { ServerCrash, ArrowLeft, Home, RefreshCw } from "lucide-react";
+import { ServerCrash, Home, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router";
 import { NexusButton } from "@casbin/ui";
 
@@ -28,7 +28,8 @@ export default function Error500V1() {
           </div>
           <h2 className="text-foreground text-3xl font-bold">Server Error</h2>
           <p className="text-muted-foreground max-w-md text-lg">
-            Something went wrong on our end. Our team has been notified and is working on a fix.
+            Something went wrong on our end. Our team has been notified and is
+            working on a fix.
           </p>
         </div>
       </div>
@@ -37,13 +38,19 @@ export default function Error500V1() {
         <div className="w-full max-w-md space-y-8 text-center">
           <div className="space-y-2">
             <p className="text-destructive/20 text-8xl font-black">500</p>
-            <h1 className="text-foreground text-3xl font-bold">Internal Server Error</h1>
+            <h1 className="text-foreground text-3xl font-bold">
+              Internal Server Error
+            </h1>
             <p className="text-muted-foreground">
-              We're experiencing technical difficulties. Please try again in a few moments.
+              We're experiencing technical difficulties. Please try again in a
+              few moments.
             </p>
           </div>
           <div className="flex flex-col justify-center gap-3 sm:flex-row">
-            <NexusButton variant="primary" onClick={() => window.location.reload()}>
+            <NexusButton
+              variant="primary"
+              onClick={() => window.location.reload()}
+            >
               <RefreshCw className="h-4 w-4" />
               Try Again
             </NexusButton>

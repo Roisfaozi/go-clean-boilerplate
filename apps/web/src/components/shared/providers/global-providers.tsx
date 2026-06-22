@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import ThemeProvider from "./theme-provider";
 import { AuthProvider } from "./auth-provider";
 import { DensityProvider } from "./density-provider";

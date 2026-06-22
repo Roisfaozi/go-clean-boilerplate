@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"errors"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
@@ -41,7 +42,7 @@ func NewApiKeyController(useCase usecase.ApiKeyUseCase, log *logrus.Logger, vali
 func (h *ApiKeyController) Create(c *gin.Context) {
 	var req model.CreateApiKeyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request")
 		return
 	}
 

@@ -10,7 +10,10 @@ export function useAiChat() {
 
     // Simulate AI response
     setTimeout(() => {
-      setMessages((prev) => [...prev, { role: "ai", content: "This is a placeholder response." }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "ai", content: "This is a placeholder response." },
+      ]);
       setIsTyping(false);
     }, 1000);
   };

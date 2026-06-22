@@ -16,7 +16,10 @@ import { Users, ShieldCheck, Activity, TrendingUp } from "lucide-react";
 export default function ShowcaseCards() {
   return (
     <div className="max-w-5xl space-y-10">
-      <PageHeader title="Cards" description="NexusCard and StatCard components." />
+      <PageHeader
+        title="Cards"
+        description="NexusCard and StatCard components."
+      />
 
       <section className="space-y-4">
         <h2 className="text-h2 text-foreground">Basic Cards</h2>
@@ -24,10 +27,14 @@ export default function ShowcaseCards() {
           <NexusCard>
             <NexusCardHeader>
               <NexusCardTitle>Basic Card</NexusCardTitle>
-              <NexusCardDescription>With header, content, and footer.</NexusCardDescription>
+              <NexusCardDescription>
+                With header, content, and footer.
+              </NexusCardDescription>
             </NexusCardHeader>
             <NexusCardContent>
-              <p className="text-body text-muted-foreground">Card body content here.</p>
+              <p className="text-body text-muted-foreground">
+                Card body content here.
+              </p>
             </NexusCardContent>
             <NexusCardFooter className="justify-end gap-2">
               <NexusButton variant="outline" size="sm">
@@ -48,7 +55,10 @@ export default function ShowcaseCards() {
               </div>
               <div className="flex items-center gap-2">
                 <Checkbox id="terms2" />
-                <label htmlFor="terms2" className="text-body text-muted-foreground">
+                <label
+                  htmlFor="terms2"
+                  className="text-body text-muted-foreground"
+                >
                   Accept terms
                 </label>
               </div>

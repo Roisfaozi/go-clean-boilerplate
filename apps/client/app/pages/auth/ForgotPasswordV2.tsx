@@ -8,7 +8,9 @@ import { ArrowLeft, Mail, Send } from "lucide-react";
 import { toast } from "@casbin/ui";
 import { motion, AnimatePresence } from "framer-motion";
 
-const emailSchema = z.object({ email: z.string().trim().email("Email tidak valid") });
+const emailSchema = z.object({
+  email: z.string().trim().email("Email tidak valid"),
+});
 
 export default function ForgotPasswordV2() {
   const [loading, setLoading] = useState(false);
@@ -73,9 +75,12 @@ export default function ForgotPasswordV2() {
                   <div className="from-primary/20 to-accent/20 border-primary/20 mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border bg-gradient-to-br">
                     <Mail className="text-primary h-7 w-7" />
                   </div>
-                  <h1 className="text-foreground text-2xl font-bold">Forgot password?</h1>
+                  <h1 className="text-foreground text-2xl font-bold">
+                    Forgot password?
+                  </h1>
                   <p className="text-muted-foreground text-sm leading-relaxed">
-                    No worries! Enter your email and we'll send you a recovery link.
+                    No worries! Enter your email and we'll send you a recovery
+                    link.
                   </p>
                 </div>
                 <form className="space-y-4" onSubmit={handleSubmit}>
@@ -107,14 +112,21 @@ export default function ForgotPasswordV2() {
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 15,
+                    delay: 0.2,
+                  }}
                   className="flex justify-center"
                 >
                   <div className="from-primary/20 to-accent/20 border-primary/10 flex h-20 w-20 items-center justify-center rounded-full border-4 bg-gradient-to-br">
                     <Mail className="text-primary h-9 w-9" />
                   </div>
                 </motion.div>
-                <h2 className="text-foreground text-xl font-bold">Check your inbox</h2>
+                <h2 className="text-foreground text-xl font-bold">
+                  Check your inbox
+                </h2>
                 <p className="text-muted-foreground text-sm">
                   We sent a reset link to{" "}
                   <span className="text-foreground font-semibold">{email}</span>

@@ -4,11 +4,21 @@ import { z } from "zod";
 import { NexusButton } from "@casbin/ui";
 import { NexusInput } from "@casbin/ui";
 import { FormGroup } from "@/components/patterns/form-group";
-import { Hexagon, ArrowLeft, Mail, Send, KeyRound, Shield, Lock } from "lucide-react";
+import {
+  Hexagon,
+  ArrowLeft,
+  Mail,
+  Send,
+  KeyRound,
+  Shield,
+  Lock,
+} from "lucide-react";
 import { toast } from "@casbin/ui";
 import { motion, AnimatePresence } from "framer-motion";
 
-const emailSchema = z.object({ email: z.string().trim().email("Email tidak valid") });
+const emailSchema = z.object({
+  email: z.string().trim().email("Email tidak valid"),
+});
 
 export default function ForgotPasswordV1() {
   const [loading, setLoading] = useState(false);
@@ -49,7 +59,11 @@ export default function ForgotPasswordV1() {
                 y: "-50%",
               }}
               animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
-              transition={{ duration: 20 + i * 5, repeat: Infinity, ease: "linear" }}
+              transition={{
+                duration: 20 + i * 5,
+                repeat: Infinity,
+                ease: "linear",
+              }}
             />
           ))}
         </div>
@@ -64,7 +78,8 @@ export default function ForgotPasswordV1() {
           </motion.div>
           <h2 className="mb-3 text-2xl font-bold">Password Recovery</h2>
           <p className="mb-10 max-w-xs text-center text-sm opacity-70">
-            Don't worry, it happens to the best of us. We'll help you get back into your account.
+            Don't worry, it happens to the best of us. We'll help you get back
+            into your account.
           </p>
           <div className="w-full max-w-xs space-y-4">
             {[
@@ -114,7 +129,8 @@ export default function ForgotPasswordV1() {
                   Forgot password?
                 </h1>
                 <p className="text-muted-foreground">
-                  Enter the email associated with your account and we'll send a reset link.
+                  Enter the email associated with your account and we'll send a
+                  reset link.
                 </p>
               </div>
               <form className="space-y-5" onSubmit={handleSubmit}>
@@ -143,14 +159,21 @@ export default function ForgotPasswordV1() {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 15,
+                  delay: 0.2,
+                }}
                 className="flex justify-center"
               >
                 <div className="bg-primary/10 border-primary/20 flex h-24 w-24 items-center justify-center rounded-full border-4">
                   <Mail className="text-primary h-12 w-12" />
                 </div>
               </motion.div>
-              <h2 className="text-foreground text-2xl font-bold">Check your email</h2>
+              <h2 className="text-foreground text-2xl font-bold">
+                Check your email
+              </h2>
               <p className="text-muted-foreground">
                 We've sent a password reset link to{" "}
                 <span className="text-foreground font-semibold">{email}</span>
@@ -166,7 +189,10 @@ export default function ForgotPasswordV1() {
                 >
                   Didn't receive? Send again
                 </NexusButton>
-                <Link to="/login" className="text-primary block text-sm hover:underline">
+                <Link
+                  to="/login"
+                  className="text-primary block text-sm hover:underline"
+                >
                   Back to Sign In
                 </Link>
               </div>

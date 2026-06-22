@@ -16,6 +16,7 @@ import (
 	apiKeyRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/repository"
 	apiKeyUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/usecase"
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
+	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -40,9 +41,10 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 	// Repositories
 	uRepo := userRepo.NewUserRepository(env.DB, logger)
 	akRepo := apiKeyRepo.NewApiKeyRepository(env.DB)
+	organizationRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
 
 	// UseCases
-	akUC := apiKeyUC.NewApiKeyUseCase(akRepo, uRepo, env.Redis, logger)
+	akUC := apiKeyUC.NewApiKeyUseCase(akRepo, organizationRepo, uRepo, env.Redis, logger)
 
 	// Middlewares
 	akMiddleware := middleware.NewAPIKeyMiddleware(akUC, uRepo, logger)
@@ -151,6 +153,30 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("Access after Organization soft delete is blocked", func(t *testing.T) {
+		err := organizationRepo.Delete(ctx, org.ID)
+		require.NoError(t, err)
+
+		req, _ := http.NewRequest("GET", "/protected", nil)
+		req.Header.Set("X-API-Key", apiKey)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("Access after Organization restore succeeds", func(t *testing.T) {
+		err := organizationRepo.Restore(ctx, org.ID)
+		require.NoError(t, err)
+
+		req, _ := http.NewRequest("GET", "/protected", nil)
+		req.Header.Set("X-API-Key", apiKey)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
 	// 7. Revoke Key

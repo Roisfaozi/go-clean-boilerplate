@@ -85,7 +85,12 @@ export default function RegisterPage() {
     try {
       const { confirmPassword: _, ...data } = result.data;
       const res = await authApi.register(
-        data as { name: string; email: string; username: string; password: string },
+        data as {
+          name: string;
+          email: string;
+          username: string;
+          password: string;
+        },
       );
       login(res.user);
       toast.success("Registrasi berhasil!");
@@ -104,7 +109,12 @@ export default function RegisterPage() {
   };
 
   const handleGoogleSignup = () => {
-    login({ id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" });
+    login({
+      id: "g1",
+      name: "Google User",
+      email: "user@gmail.com",
+      username: "googleuser",
+    });
     navigate("/");
   };
 
@@ -146,7 +156,8 @@ export default function RegisterPage() {
                 <span className="opacity-80">something amazing.</span>
               </h2>
               <p className="text-sm opacity-70">
-                Join thousands of teams using NexusOS to manage their infrastructure.
+                Join thousands of teams using NexusOS to manage their
+                infrastructure.
               </p>
             </div>
 
@@ -169,9 +180,12 @@ export default function RegisterPage() {
 
             <div className="border-secondary-foreground/15 border-t pt-4">
               <p className="text-xs opacity-60">
-                "NexusOS has transformed how we manage our team's permissions and projects."
+                "NexusOS has transformed how we manage our team's permissions
+                and projects."
               </p>
-              <p className="mt-2 text-xs opacity-40">— Engineering Lead, TechCorp</p>
+              <p className="mt-2 text-xs opacity-40">
+                — Engineering Lead, TechCorp
+              </p>
             </div>
           </motion.div>
         </div>
@@ -187,12 +201,18 @@ export default function RegisterPage() {
         >
           <div className="mb-2 flex items-center gap-3">
             <Hexagon className="text-primary h-8 w-8" />
-            <span className="text-foreground text-xl font-bold lg:hidden">NexusOS</span>
+            <span className="text-foreground text-xl font-bold lg:hidden">
+              NexusOS
+            </span>
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-foreground text-3xl font-bold tracking-tight">Create account</h1>
-            <p className="text-muted-foreground">Free forever. No credit card required.</p>
+            <h1 className="text-foreground text-3xl font-bold tracking-tight">
+              Create account
+            </h1>
+            <p className="text-muted-foreground">
+              Free forever. No credit card required.
+            </p>
           </div>
 
           <NexusButton
@@ -207,7 +227,9 @@ export default function RegisterPage() {
 
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
-            <span className="text-muted-foreground text-xs tracking-wider uppercase">or</span>
+            <span className="text-muted-foreground text-xs tracking-wider uppercase">
+              or
+            </span>
             <Separator className="flex-1" />
           </div>
 
@@ -261,11 +283,17 @@ export default function RegisterPage() {
                       />
                     ))}
                   </div>
-                  <span className="text-muted-foreground text-xs">{strengthLabel}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {strengthLabel}
+                  </span>
                 </div>
               )}
             </FormGroup>
-            <FormGroup label="Confirm Password" required error={errors.confirmPassword}>
+            <FormGroup
+              label="Confirm Password"
+              required
+              error={errors.confirmPassword}
+            >
               <NexusInput
                 type="password"
                 placeholder="Confirm password"
@@ -283,13 +311,17 @@ export default function RegisterPage() {
 
           <p className="text-muted-foreground text-center text-sm">
             Already have an account?{" "}
-            <Link to="/login" className="text-primary font-medium hover:underline">
+            <Link
+              to="/login"
+              className="text-primary font-medium hover:underline"
+            >
               Sign in
             </Link>
           </p>
 
           <p className="text-muted-foreground/60 text-center text-[11px]">
-            By creating an account you agree to our Terms of Service and Privacy Policy
+            By creating an account you agree to our Terms of Service and Privacy
+            Policy
           </p>
         </motion.div>
       </div>

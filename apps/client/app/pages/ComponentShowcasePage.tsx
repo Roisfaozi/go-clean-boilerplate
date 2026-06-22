@@ -121,7 +121,9 @@ export default function ComponentsIndexPage() {
                   {cat.count}
                 </Badge>
               </div>
-              <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">{cat.description}</p>
+              <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">
+                {cat.description}
+              </p>
             </div>
           </Link>
         ))}

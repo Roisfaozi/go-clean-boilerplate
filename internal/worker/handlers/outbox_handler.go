@@ -56,6 +56,7 @@ func (h *OutboxTaskHandler) ProcessAuditOutbox(ctx context.Context, t *asynq.Tas
 func (h *OutboxTaskHandler) processEntry(ctx context.Context, entry *auditEntity.AuditOutbox) error {
 	// Map Outbox to AuditLog
 	auditLog := &auditEntity.AuditLog{
+		ID:             entry.ID,
 		OrganizationID: entry.OrganizationID,
 		UserID:         entry.UserID,
 		Action:         entry.Action,
@@ -76,8 +77,9 @@ func (h *OutboxTaskHandler) processEntry(ctx context.Context, entry *auditEntity
 	// 2. Remove from outbox (Strongly consistent move)
 	if err := h.repo.DeleteOutbox(ctx, entry.ID); err != nil {
 		h.log.WithError(err).Warnf("Successfully logged audit but failed to delete outbox entry %s", entry.ID)
-		// We don't fail here to avoid duplicate processing if possible,
-		// but the deletion failure will trigger a retry usually.
+		if statusErr := h.repo.UpdateOutboxStatus(ctx, entry.ID, auditEntity.OutboxStatusCompleted, err.Error()); statusErr != nil {
+			return fmt.Errorf("failed to mark outbox completed after delete failure: %w", statusErr)
+		}
 	}
 
 	return nil

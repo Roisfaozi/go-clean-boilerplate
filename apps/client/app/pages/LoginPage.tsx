@@ -60,7 +60,9 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      const res = await authApi.login(result.data as { username: string; password: string });
+      const res = await authApi.login(
+        result.data as { username: string; password: string },
+      );
       console.log("response login:", res);
       login(res.user);
       toast.success("Login berhasil!");
@@ -82,7 +84,12 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     setGoogleLoading(true);
     setTimeout(() => {
-      login({ id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" });
+      login({
+        id: "g1",
+        name: "Google User",
+        email: "user@gmail.com",
+        username: "googleuser",
+      });
       toast.success("Login dengan Google berhasil (mock)");
       navigate("/");
     }, 1500);
@@ -110,12 +117,22 @@ export default function LoginPage() {
         />
         <motion.div
           animate={{ y: [0, 15, 0], rotate: [0, -3, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1,
+          }}
           className="border-primary-foreground/20 bg-primary-foreground/5 absolute bottom-32 left-16 h-24 w-24 rounded-full border backdrop-blur-sm"
         />
         <motion.div
           animate={{ y: [0, -10, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          transition={{
+            duration: 5,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2,
+          }}
           className="border-primary-foreground/15 bg-primary-foreground/5 absolute top-1/2 right-1/3 h-16 w-16 rotate-45 rounded-lg border backdrop-blur-sm"
         />
 
@@ -148,7 +165,10 @@ export default function LoginPage() {
                 { icon: Zap, text: "Real-time analytics & insights" },
                 { icon: Globe, text: "Multi-organization workspace" },
               ].map(({ icon: Icon, text }) => (
-                <div key={text} className="flex items-center gap-3 text-sm opacity-90">
+                <div
+                  key={text}
+                  className="flex items-center gap-3 text-sm opacity-90"
+                >
                   <div className="bg-primary-foreground/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
                     <Icon className="h-4 w-4" />
                   </div>
@@ -158,7 +178,9 @@ export default function LoginPage() {
             </motion.div>
           </div>
 
-          <p className="text-xs opacity-60">© 2026 NexusOS. All rights reserved.</p>
+          <p className="text-xs opacity-60">
+            © 2026 NexusOS. All rights reserved.
+          </p>
         </div>
       </div>
 
@@ -177,8 +199,12 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-foreground text-3xl font-bold tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground">Enter your credentials to access your account</p>
+            <h1 className="text-foreground text-3xl font-bold tracking-tight">
+              Welcome back
+            </h1>
+            <p className="text-muted-foreground">
+              Enter your credentials to access your account
+            </p>
           </div>
 
           <NexusButton
@@ -194,13 +220,17 @@ export default function LoginPage() {
 
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
-            <span className="text-muted-foreground text-xs tracking-wider uppercase">or</span>
+            <span className="text-muted-foreground text-xs tracking-wider uppercase">
+              or
+            </span>
             <Separator className="flex-1" />
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             <FormGroup label="Username" required error={errors.username}>
               <NexusInput
+                id="username"
+                name="username"
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -210,6 +240,8 @@ export default function LoginPage() {
             </FormGroup>
             <FormGroup label="Password" required error={errors.password}>
               <NexusInput
+                id="password"
+                name="password"
                 type="password"
                 placeholder="Enter your password"
                 value={password}
@@ -230,14 +262,22 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-            <NexusButton className="h-11 w-full gap-2" loading={loading} disabled={googleLoading}>
+            <NexusButton
+              type="submit"
+              className="h-11 w-full gap-2"
+              loading={loading}
+              disabled={googleLoading}
+            >
               Sign In <ArrowRight className="h-4 w-4" />
             </NexusButton>
           </form>
 
           <p className="text-muted-foreground text-center text-sm">
             Don't have an account?{" "}
-            <Link to="/register" className="text-primary font-medium hover:underline">
+            <Link
+              to="/register"
+              className="text-primary font-medium hover:underline"
+            >
               Create account
             </Link>
           </p>

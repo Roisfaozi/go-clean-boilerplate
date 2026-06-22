@@ -2,7 +2,12 @@
 
 import { Box, Layers } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { useDensityStore } from "~/stores/use-density-store";
 import { cn } from "~/lib/utils";
 
@@ -13,7 +18,12 @@ export function DensitySwitcher() {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="sm" onClick={toggleDensity} className="w-9 px-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleDensity}
+            className="w-9 px-0"
+          >
             <div className="relative">
               {/* Animated Icon Transition */}
               <Box
@@ -40,7 +50,9 @@ export function DensitySwitcher() {
         </TooltipTrigger>
         <TooltipContent>
           <p>
-            {density === "comfort" ? "Switch to Compact (Enterprise)" : "Switch to Comfort (SaaS)"}
+            {density === "comfort"
+              ? "Switch to Compact (Enterprise)"
+              : "Switch to Comfort (SaaS)"}
           </p>
         </TooltipContent>
       </Tooltip>

@@ -30,12 +30,18 @@ const MESSAGES: Record<UploadErrorCode, string> = {
 const RETRYABLE: UploadErrorCode[] = ["network_error", "unknown"];
 
 export function mapUploadError(error: unknown): MappedUploadError {
-  const raw = typeof error === "string" ? error : error instanceof Error ? error.message : "";
+  const raw =
+    typeof error === "string"
+      ? error
+      : error instanceof Error
+        ? error.message
+        : "";
   const lower = raw.toLowerCase();
 
   // Try to read a status code if it's an axios/ApiError-like object
   const status =
-    (error as { status?: number; response?: { status?: number } } | null)?.status ??
+    (error as { status?: number; response?: { status?: number } } | null)
+      ?.status ??
     (error as { response?: { status?: number } } | null)?.response?.status;
 
   let code: UploadErrorCode = "unknown";
@@ -47,11 +53,23 @@ export function mapUploadError(error: unknown): MappedUploadError {
     lower.includes("permission")
   ) {
     code = "permission_denied";
-  } else if (status === 413 || lower.includes("too large") || lower.includes("payload")) {
+  } else if (
+    status === 413 ||
+    lower.includes("too large") ||
+    lower.includes("payload")
+  ) {
     code = "file_too_large";
-  } else if (status === 415 || lower.includes("unsupported") || lower.includes("mime")) {
+  } else if (
+    status === 415 ||
+    lower.includes("unsupported") ||
+    lower.includes("mime")
+  ) {
     code = "unsupported_type";
-  } else if (status === 507 || lower.includes("quota") || lower.includes("storage full")) {
+  } else if (
+    status === 507 ||
+    lower.includes("quota") ||
+    lower.includes("storage full")
+  ) {
     code = "quota_exceeded";
   } else if (
     lower.includes("network") ||
@@ -80,7 +98,10 @@ export type UploadTelemetryEvent =
   | "upload_canceled"
   | "retry_clicked";
 
-export function logUploadEvent(event: UploadTelemetryEvent, payload?: Record<string, unknown>) {
+export function logUploadEvent(
+  event: UploadTelemetryEvent,
+  payload?: Record<string, unknown>,
+) {
   if (import.meta.env.DEV) {
     // eslint-disable-next-line no-console
     console.debug(`[upload] ${event}`, payload ?? {});

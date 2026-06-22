@@ -14,7 +14,10 @@ interface LiveActivityFeedProps {
   className?: string;
 }
 
-export function LiveActivityFeed({ maxItems = 10, className }: LiveActivityFeedProps) {
+export function LiveActivityFeed({
+  maxItems = 10,
+  className,
+}: LiveActivityFeedProps) {
   const activities = useActivityStore((s) => s.activities).slice(0, maxItems);
 
   if (activities.length === 0) {
@@ -37,15 +40,24 @@ export function LiveActivityFeed({ maxItems = 10, className }: LiveActivityFeedP
         <div key={a.id} className="flex gap-3 py-2.5">
           {/* Timeline dot + line */}
           <div className="flex flex-col items-center">
-            <div className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", typeColors[a.type])} />
-            {i < activities.length - 1 && <div className="bg-border w-px flex-1" />}
+            <div
+              className={cn(
+                "mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full",
+                typeColors[a.type],
+              )}
+            />
+            {i < activities.length - 1 && (
+              <div className="bg-border w-px flex-1" />
+            )}
           </div>
           {/* Content */}
           <div className="min-w-0 flex-1 pb-1">
             <p className="text-body">
               <span className="text-foreground font-semibold">{a.user}</span>{" "}
               <span className="text-muted-foreground">{a.action}</span>{" "}
-              {a.target && <span className="text-foreground font-medium">{a.target}</span>}
+              {a.target && (
+                <span className="text-foreground font-medium">{a.target}</span>
+              )}
             </p>
             <p className="text-caption text-muted-foreground">{a.time}</p>
           </div>

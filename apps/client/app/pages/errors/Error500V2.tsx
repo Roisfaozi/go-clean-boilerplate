@@ -1,4 +1,4 @@
-import { ServerCrash, ArrowLeft, Home, RefreshCw } from "lucide-react";
+import { ServerCrash, Home, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router";
 import { NexusButton } from "@casbin/ui";
 
@@ -20,7 +20,8 @@ export default function Error500V2() {
           </p>
           <h1 className="text-foreground text-4xl font-bold">Server Error</h1>
           <p className="text-muted-foreground leading-relaxed">
-            Our servers are having a moment. We've been notified and are working to fix this.
+            Our servers are having a moment. We've been notified and are working
+            to fix this.
           </p>
         </div>
         <div className="flex flex-col gap-3">

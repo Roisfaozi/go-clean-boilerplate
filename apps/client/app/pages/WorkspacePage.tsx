@@ -6,7 +6,7 @@ import { MembersTableUI } from "@/features/organizations/members-table";
 import { InviteMemberModal } from "@/features/organizations/invite-member-modal";
 import { NexusCard } from "@casbin/ui";
 import { Badge } from "@casbin/ui";
-import { Users, Building2, FolderKanban, Shield } from "lucide-react";
+import { Users, FolderKanban, Shield } from "lucide-react";
 
 const stats = [
   { label: "Members", value: "6", icon: Users, change: "+2 this month" },
@@ -41,7 +41,9 @@ export default function WorkspacePage() {
                 <stat.icon className="text-primary h-5 w-5" />
               </div>
               <div>
-                <p className="text-foreground text-2xl font-bold">{stat.value}</p>
+                <p className="text-foreground text-2xl font-bold">
+                  {stat.value}
+                </p>
                 <p className="text-muted-foreground text-xs">{stat.label}</p>
               </div>
               <Badge variant="outline" className="ml-auto text-[10px]">
@@ -64,7 +66,9 @@ export default function WorkspacePage() {
 
         <TabsContent value="settings" className="mt-4">
           <NexusCard className="p-6">
-            <h3 className="text-foreground mb-4 text-sm font-semibold">Organization Settings</h3>
+            <h3 className="text-foreground mb-4 text-sm font-semibold">
+              Organization Settings
+            </h3>
             <div className="space-y-3 text-sm">
               <div className="border-border flex justify-between border-b py-2">
                 <span className="text-muted-foreground">Name</span>

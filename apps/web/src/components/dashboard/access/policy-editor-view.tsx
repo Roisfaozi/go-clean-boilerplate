@@ -65,7 +65,9 @@ function CRUDLabels({ permissions }: { permissions: string[][] }) {
   );
 }
 
-function groupPermissionsByResource(permissions: string[][]): Map<string, string[][]> {
+function groupPermissionsByResource(
+  permissions: string[][],
+): Map<string, string[][]> {
   const map = new Map<string, string[][]>();
   for (const perm of permissions) {
     if (perm.length < 4) continue;
@@ -103,7 +105,9 @@ function RoleTreeNode({
   const hasChildren = (node.children?.length ?? 0) > 0;
 
   const ownResources = groupPermissionsByResource(node.own_permissions);
-  const inheritedResources = groupPermissionsByResource(node.inherited_permissions);
+  const inheritedResources = groupPermissionsByResource(
+    node.inherited_permissions,
+  );
   const allResourceKeys = Array.from(
     new Set([...ownResources.keys(), ...inheritedResources.keys()]),
   );
@@ -139,7 +143,10 @@ function RoleTreeNode({
                 : "text-muted-foreground group-hover:text-foreground",
             )}
           >
-            <Icon name={isExpanded ? "FolderOpen" : "Folder"} size={isCompact ? "sm" : "md"} />
+            <Icon
+              name={isExpanded ? "FolderOpen" : "Folder"}
+              size={isCompact ? "sm" : "md"}
+            />
           </div>
           <span className="font-semibold tracking-tight">{cleanName}</span>
           {hasChildren && (
@@ -316,7 +323,8 @@ export function PolicyEditorView({ onRoleClick }: PolicyEditorViewProps) {
         </div>
         <h3 className="text-lg font-semibold">No Role Hierarchy</h3>
         <p className="text-muted-foreground mt-1 max-w-xs text-sm">
-          Start by creating roles and defining parent-child relationships to see the tree.
+          Start by creating roles and defining parent-child relationships to see
+          the tree.
         </p>
       </div>
     );
@@ -345,7 +353,12 @@ export function PolicyEditorView({ onRoleClick }: PolicyEditorViewProps) {
           >
             Expand All
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={collapseAll}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs"
+            onClick={collapseAll}
+          >
             Collapse All
           </Button>
         </div>

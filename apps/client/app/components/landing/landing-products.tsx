@@ -1,5 +1,13 @@
 import { Link } from "react-router";
-import { ArrowUpRight, Users, Shield, BarChart3, Upload, Building2, Activity } from "lucide-react";
+import {
+  ArrowUpRight,
+  Users,
+  Shield,
+  BarChart3,
+  Upload,
+  Building2,
+  Activity,
+} from "lucide-react";
 
 const products = [
   {
@@ -57,7 +65,10 @@ const accentMap: Record<string, string> = {
 
 export function LandingProducts() {
   return (
-    <section id="products" className="border-border bg-surface/50 border-b py-20 md:py-28">
+    <section
+      id="products"
+      className="border-border bg-surface/50 border-b py-20 md:py-28"
+    >
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto mb-14 max-w-2xl text-center">
           <span className="text-primary text-sm font-semibold tracking-wider uppercase">
@@ -85,8 +96,12 @@ export function LandingProducts() {
                 >
                   <Icon className="h-5 w-5" />
                 </div>
-                <h3 className="text-card-foreground mb-2 text-lg font-semibold">{product.title}</h3>
-                <p className="text-muted-foreground flex-1 text-sm">{product.description}</p>
+                <h3 className="text-card-foreground mb-2 text-lg font-semibold">
+                  {product.title}
+                </h3>
+                <p className="text-muted-foreground flex-1 text-sm">
+                  {product.description}
+                </p>
                 <div className="text-primary mt-5 flex items-center gap-1.5 text-sm font-medium">
                   Explore
                   <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />

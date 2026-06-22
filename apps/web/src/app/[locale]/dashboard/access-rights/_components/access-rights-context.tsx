@@ -1,8 +1,15 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
-import { accessApi, AccessRight, Endpoint } from "~/lib/api/access";
+import { accessApi, type AccessRight, type Endpoint } from "~/lib/api/access";
 
 interface AccessRightsContextType {
   accessRights: AccessRight[];
@@ -15,10 +22,16 @@ interface AccessRightsContextType {
   createEndpoint: (method: string, path: string) => Promise<void>;
   deleteAccessRight: (id: string) => Promise<void>;
   deleteEndpoint: (id: string) => Promise<void>;
-  toggleLink: (accessRightId: string, endpointId: string, isLinked: boolean) => Promise<void>;
+  toggleLink: (
+    accessRightId: string,
+    endpointId: string,
+    isLinked: boolean,
+  ) => Promise<void>;
 }
 
-const AccessRightsContext = createContext<AccessRightsContextType | undefined>(undefined);
+const AccessRightsContext = createContext<AccessRightsContextType | undefined>(
+  undefined,
+);
 
 export function AccessRightsProvider({ children }: { children: ReactNode }) {
   const [accessRights, setAccessRights] = useState<AccessRight[]>([]);
@@ -36,7 +49,7 @@ export function AccessRightsProvider({ children }: { children: ReactNode }) {
       ]);
       if (arResp && arResp.data) setAccessRights(arResp.data.data);
       if (epResp && epResp.data) setEndpoints(epResp.data);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to fetch data");
     } finally {
       setIsLoading(false);
@@ -88,7 +101,7 @@ export function AccessRightsProvider({ children }: { children: ReactNode }) {
         await accessApi.deleteAccessRight(id);
         toast.success("Access Right deleted");
         await fetchData();
-      } catch (error) {
+      } catch (_error) {
         toast.error("Failed to delete Access Right");
       } finally {
         setIsProcessing(null);
@@ -104,7 +117,7 @@ export function AccessRightsProvider({ children }: { children: ReactNode }) {
         await accessApi.deleteEndpoint(id);
         toast.success("Endpoint deleted");
         await fetchData();
-      } catch (error) {
+      } catch (_error) {
         toast.error("Failed to delete Endpoint");
       } finally {
         setIsProcessing(null);
@@ -126,7 +139,7 @@ export function AccessRightsProvider({ children }: { children: ReactNode }) {
           toast.success("Endpoint linked");
         }
         await fetchData();
-      } catch (error) {
+      } catch (_error) {
         toast.error("Failed to update access right link");
       } finally {
         setIsProcessing(null);
@@ -159,7 +172,9 @@ export function AccessRightsProvider({ children }: { children: ReactNode }) {
 export function useAccessRights() {
   const context = useContext(AccessRightsContext);
   if (context === undefined) {
-    throw new Error("useAccessRights must be used within an AccessRightsProvider");
+    throw new Error(
+      "useAccessRights must be used within an AccessRightsProvider",
+    );
   }
   return context;
 }

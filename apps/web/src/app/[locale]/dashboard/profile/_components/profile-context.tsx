@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, ReactNode } from "react";
-import { User } from "~/lib/api/users";
+import { createContext, useContext, type ReactNode } from "react";
+import type { User } from "~/lib/api/users";
 
 interface ProfileContextType {
   user: User | any;
@@ -9,8 +9,18 @@ interface ProfileContextType {
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
-export function ProfileProvider({ user, children }: { user: User | any; children: ReactNode }) {
-  return <ProfileContext.Provider value={{ user }}>{children}</ProfileContext.Provider>;
+export function ProfileProvider({
+  user,
+  children,
+}: {
+  user: User | any;
+  children: ReactNode;
+}) {
+  return (
+    <ProfileContext.Provider value={{ user }}>
+      {children}
+    </ProfileContext.Provider>
+  );
 }
 
 export function useProfile() {

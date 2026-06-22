@@ -19,11 +19,15 @@ export default function Error404V3() {
       <div className="relative z-10 w-full max-w-2xl space-y-10 text-center">
         <div className="flex items-center justify-center gap-4">
           <Compass className="text-primary/40 h-8 w-8" />
-          <span className="text-primary/10 text-9xl leading-none font-black">404</span>
+          <span className="text-primary/10 text-9xl leading-none font-black">
+            404
+          </span>
           <Compass className="text-primary/40 h-8 w-8" />
         </div>
         <div className="space-y-4">
-          <h1 className="text-sidebar-foreground text-4xl font-bold">Page Not Found</h1>
+          <h1 className="text-sidebar-foreground text-4xl font-bold">
+            Page Not Found
+          </h1>
           <p className="text-muted-foreground mx-auto max-w-md text-lg">
             The destination you're trying to reach doesn't exist in our system.
           </p>
@@ -35,7 +39,11 @@ export default function Error404V3() {
           </p>
         </div>
         <div className="flex justify-center gap-3">
-          <NexusButton variant="primary" size="lg" onClick={() => navigate("/")}>
+          <NexusButton
+            variant="primary"
+            size="lg"
+            onClick={() => navigate("/")}
+          >
             <Home className="h-4 w-4" />
             Dashboard
           </NexusButton>

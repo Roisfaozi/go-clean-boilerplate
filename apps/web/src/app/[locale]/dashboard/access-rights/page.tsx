@@ -13,7 +13,9 @@ export default function AccessRightsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Access Rights & Endpoints</h2>
+            <h2 className="text-2xl font-bold tracking-tight">
+              Access Rights & Endpoints
+            </h2>
             <p className="text-muted-foreground">
               Define resource groups and register API endpoints.
             </p>

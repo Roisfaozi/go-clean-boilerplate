@@ -33,13 +33,17 @@ function OrganizationSettingsContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Organization Settings</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Organization Settings
+          </h2>
           <p className="text-muted-foreground">
             Update your organization profile and general settings.
           </p>
         </div>
         <Button onClick={handleUpdate} disabled={isLoading || !hasChanges}>
-          {isLoading && <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading && (
+            <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
+          )}
           Save All Changes
         </Button>
       </div>

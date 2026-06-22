@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { OrganizationSwitcher } from "@/features/organizations/organization-switcher";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@casbin/ui";
+import { PresenceAvatars } from "@/components/realtime/presence-avatars";
 
 interface NavItem {
   label: string;
@@ -64,8 +65,11 @@ const navSections: NavSection[] = [
       { label: "Users", path: "/users", icon: Users },
       { label: "Roles", path: "/roles", icon: Shield },
       { label: "Permissions", path: "/permissions", icon: Lock },
-      { label: "Access Rights", path: "/access-rights", icon: KeyRound },
-      { label: "Role Permissions", path: "/roles-permissions", icon: ShieldCheck },
+      {
+        label: "Role Permissions",
+        path: "/roles-permissions",
+        icon: ShieldCheck,
+      },
       { label: "Resources", path: "/resources", icon: Box },
       { label: "Endpoints", path: "/endpoints", icon: Globe },
     ],
@@ -110,12 +114,36 @@ const navSections: NavSection[] = [
           { label: "Register V1", path: "/auth/register-v1", icon: UserPlus },
           { label: "Register V2", path: "/auth/register-v2", icon: UserPlus },
           { label: "Register V3", path: "/auth/register-v3", icon: UserPlus },
-          { label: "Forgot V1", path: "/auth/forgot-password-v1", icon: KeySquare },
-          { label: "Forgot V2", path: "/auth/forgot-password-v2", icon: KeySquare },
-          { label: "Forgot V3", path: "/auth/forgot-password-v3", icon: KeySquare },
-          { label: "Reset V1", path: "/auth/reset-password-v1", icon: KeyRound },
-          { label: "Reset V2", path: "/auth/reset-password-v2", icon: KeyRound },
-          { label: "Reset V3", path: "/auth/reset-password-v3", icon: KeyRound },
+          {
+            label: "Forgot V1",
+            path: "/auth/forgot-password-v1",
+            icon: KeySquare,
+          },
+          {
+            label: "Forgot V2",
+            path: "/auth/forgot-password-v2",
+            icon: KeySquare,
+          },
+          {
+            label: "Forgot V3",
+            path: "/auth/forgot-password-v3",
+            icon: KeySquare,
+          },
+          {
+            label: "Reset V1",
+            path: "/auth/reset-password-v1",
+            icon: KeyRound,
+          },
+          {
+            label: "Reset V2",
+            path: "/auth/reset-password-v2",
+            icon: KeyRound,
+          },
+          {
+            label: "Reset V3",
+            path: "/auth/reset-password-v3",
+            icon: KeyRound,
+          },
         ],
       },
       {
@@ -142,7 +170,11 @@ const navSections: NavSection[] = [
         items: [
           { label: "Login", path: "/login", icon: LogIn },
           { label: "Register", path: "/register", icon: UserPlus },
-          { label: "Forgot Password", path: "/forgot-password", icon: KeySquare },
+          {
+            label: "Forgot Password",
+            path: "/forgot-password",
+            icon: KeySquare,
+          },
           { label: "Reset Password", path: "/reset-password", icon: KeyRound },
         ],
       },
@@ -161,7 +193,10 @@ function SidebarSection({
 }) {
   const hasActiveChild =
     section.items.some((i) => i.path === currentPath) ||
-    (section.subSections?.some((s) => s.items.some((i) => i.path === currentPath)) ?? false);
+    (section.subSections?.some((s) =>
+      s.items.some((i) => i.path === currentPath),
+    ) ??
+      false);
   const sectionKey = `section:${section.label}`;
   const { sidebarSectionOpen, setSidebarSectionOpen } = useUIStore();
   const stored = sidebarSectionOpen[sectionKey];
@@ -206,7 +241,10 @@ function SidebarSection({
       >
         <span>{section.label}</span>
         <ChevronDown
-          className={cn("h-3.5 w-3.5 transition-transform duration-200", open && "rotate-180")}
+          className={cn(
+            "h-3.5 w-3.5 transition-transform duration-200",
+            open && "rotate-180",
+          )}
         />
       </button>
       {open && (
@@ -343,6 +381,19 @@ export function AppSidebar() {
           />
         ))}
       </nav>
+
+      {/* Real-time Presence */}
+      {!sidebarCollapsed && (
+        <div className="border-sidebar-border bg-sidebar-accent/30 mx-2 mb-4 rounded-lg border p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
+              Who's Online
+            </span>
+            <div className="bg-success h-1.5 w-1.5 animate-pulse rounded-full" />
+          </div>
+          <PresenceAvatars max={4} size="sm" showCount />
+        </div>
+      )}
 
       {/* Collapse toggle */}
       <div className="border-sidebar-border shrink-0 border-t p-2">

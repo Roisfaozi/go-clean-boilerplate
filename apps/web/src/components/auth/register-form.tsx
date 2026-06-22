@@ -70,7 +70,8 @@ export default function RegisterForm() {
       // Redirect to login
       window.location.href = "/login";
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to create account";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create account";
 
       toast({
         title: "Registration failed",
@@ -98,7 +99,11 @@ export default function RegisterForm() {
               disabled={isLoading}
               {...register("name")}
             />
-            {errors?.name && <p className="text-destructive px-1 text-xs">{errors.name.message}</p>}
+            {errors?.name && (
+              <p className="text-destructive px-1 text-xs">
+                {errors.name.message}
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2">
@@ -114,7 +119,9 @@ export default function RegisterForm() {
               {...register("username")}
             />
             {errors?.username && (
-              <p className="text-destructive px-1 text-xs">{errors.username.message}</p>
+              <p className="text-destructive px-1 text-xs">
+                {errors.username.message}
+              </p>
             )}
           </div>
 
@@ -131,7 +138,9 @@ export default function RegisterForm() {
               {...register("email")}
             />
             {errors?.email && (
-              <p className="text-destructive px-1 text-xs">{errors.email.message}</p>
+              <p className="text-destructive px-1 text-xs">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
@@ -146,7 +155,9 @@ export default function RegisterForm() {
               {...register("password")}
             />
             {errors?.password && (
-              <p className="text-destructive px-1 text-xs">{errors.password.message}</p>
+              <p className="text-destructive px-1 text-xs">
+                {errors.password.message}
+              </p>
             )}
             <div className="bg-muted mt-1 flex h-1 w-full gap-1 overflow-hidden rounded-full">
               <div
@@ -175,12 +186,16 @@ export default function RegisterForm() {
               {...register("confirmPassword")}
             />
             {errors?.confirmPassword && (
-              <p className="text-destructive px-1 text-xs">{errors.confirmPassword.message}</p>
+              <p className="text-destructive px-1 text-xs">
+                {errors.confirmPassword.message}
+              </p>
             )}
           </div>
 
           <Button type="submit" className="mt-2 w-full" disabled={isLoading}>
-            {isLoading ? <Icons.spinner className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isLoading ? (
+              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
             Create Account
           </Button>
         </div>
@@ -191,7 +206,9 @@ export default function RegisterForm() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background text-muted-foreground px-2">Or continue with</span>
+          <span className="bg-background text-muted-foreground px-2">
+            Or continue with
+          </span>
         </div>
       </div>
 

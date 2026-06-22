@@ -12,8 +12,10 @@ function getFileIcon(type: string) {
   if (type.startsWith("image/")) return Image;
   if (type.startsWith("video/")) return Film;
   if (type.startsWith("audio/")) return Music;
-  if (type.includes("zip") || type.includes("rar") || type.includes("tar")) return Archive;
-  if (type.includes("pdf") || type.includes("doc") || type.includes("text")) return FileText;
+  if (type.includes("zip") || type.includes("rar") || type.includes("tar"))
+    return Archive;
+  if (type.includes("pdf") || type.includes("doc") || type.includes("text"))
+    return FileText;
   return File;
 }
 
@@ -46,7 +48,9 @@ export function FilePreview({ file, url, className }: FilePreviewProps) {
 
       {/* Info */}
       <div className="space-y-1 p-3">
-        <p className="text-foreground truncate text-sm font-medium">{file.name}</p>
+        <p className="text-foreground truncate text-sm font-medium">
+          {file.name}
+        </p>
         <div className="text-muted-foreground flex items-center gap-2 text-[11px]">
           <span>{formatFileSize(file.size)}</span>
           <span>·</span>

@@ -79,7 +79,9 @@ export function FileUploader({
       <div
         className={cn(
           "flex h-12 w-12 items-center justify-center rounded-full transition-colors",
-          dragActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+          dragActive
+            ? "bg-primary/10 text-primary"
+            : "bg-muted text-muted-foreground",
         )}
       >
         {dragActive ? (
@@ -92,7 +94,8 @@ export function FileUploader({
         <p className="text-foreground text-sm font-medium">
           {dragActive
             ? "Drop here"
-            : (title ?? (directory ? "Upload folder" : "Drag & drop files here"))}
+            : (title ??
+              (directory ? "Upload folder" : "Drag & drop files here"))}
         </p>
         <p className="text-muted-foreground mt-1 text-xs">
           {description ??

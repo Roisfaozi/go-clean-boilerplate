@@ -19,8 +19,8 @@ export function AnnouncementBanner() {
         <div className="flex items-center justify-between">
           <div className="text-primary-foreground flex-1 text-center text-sm font-medium">
             <span className="mr-2">🚀</span>
-            The Author has released a timesaver tool for vibe coders, developers, founders, AI users
-            -{" "}
+            The Author has released a timesaver tool for vibe coders,
+            developers, founders, AI users -{" "}
             <Link
               href="https://voicetypr.com"
               target="_blank"

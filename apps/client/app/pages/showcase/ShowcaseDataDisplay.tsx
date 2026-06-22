@@ -1,6 +1,9 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { NexusBadge } from "@casbin/ui";
-import { DataTableAdvanced, type ColumnDef } from "@/components/data/data-table-advanced";
+import {
+  DataTableAdvanced,
+  type ColumnDef,
+} from "@/components/data/data-table-advanced";
 import {
   TreeView,
   KeyValueList,
@@ -67,10 +70,18 @@ const treeData: TreeNode[] = [
           },
         ],
       },
-      { id: "5", label: "App.tsx", icon: <FileText className="text-muted-foreground h-4 w-4" /> },
+      {
+        id: "5",
+        label: "App.tsx",
+        icon: <FileText className="text-muted-foreground h-4 w-4" />,
+      },
     ],
   },
-  { id: "6", label: "package.json", icon: <File className="text-muted-foreground h-4 w-4" /> },
+  {
+    id: "6",
+    label: "package.json",
+    icon: <File className="text-muted-foreground h-4 w-4" />,
+  },
 ];
 
 const timelineItems: TimelineItem[] = [
@@ -88,7 +99,12 @@ const timelineItems: TimelineItem[] = [
     time: "1 hour ago",
     variant: "info",
   },
-  { id: "3", title: "First deployment", time: "30 min ago", variant: "default" },
+  {
+    id: "3",
+    title: "First deployment",
+    time: "30 min ago",
+    variant: "default",
+  },
   {
     id: "4",
     title: "Error detected",
@@ -106,7 +122,13 @@ const activityItems: ActivityItem[] = [
     target: "NexusOS",
     time: "5 min ago",
   },
-  { id: "2", user: { name: "Bob" }, action: "updated role", target: "Admin", time: "12 min ago" },
+  {
+    id: "2",
+    user: { name: "Bob" },
+    action: "updated role",
+    target: "Admin",
+    time: "12 min ago",
+  },
   {
     id: "3",
     user: { name: "Carol" },
@@ -143,19 +165,30 @@ export default function ShowcaseDataDisplay() {
           <div>
             <h3 className="text-h4 text-muted-foreground mb-3">Tree View</h3>
             <div className="border-border rounded-lg border p-3">
-              <TreeView nodes={treeData} onSelect={(n) => console.log("Selected:", n.label)} />
+              <TreeView
+                nodes={treeData}
+                onSelect={(n) => console.log("Selected:", n.label)}
+              />
             </div>
           </div>
           <div>
-            <h3 className="text-h4 text-muted-foreground mb-3">Key-Value List</h3>
+            <h3 className="text-h4 text-muted-foreground mb-3">
+              Key-Value List
+            </h3>
             <KeyValueList
               striped
               items={[
                 { key: "Name", value: "NexusOS" },
                 { key: "Version", value: "2.1.0" },
-                { key: "Status", value: <NexusBadge variant="success">Active</NexusBadge> },
+                {
+                  key: "Status",
+                  value: <NexusBadge variant="success">Active</NexusBadge>,
+                },
                 { key: "License", value: "MIT" },
-                { key: "Build", value: <Sparkline data={[3, 7, 4, 8, 5, 9, 6]} /> },
+                {
+                  key: "Build",
+                  value: <Sparkline data={[3, 7, 4, 8, 5, 9, 6]} />,
+                },
               ]}
             />
           </div>
@@ -180,7 +213,9 @@ export function MyComponent() {
             <Timeline items={timelineItems} />
           </div>
           <div>
-            <h3 className="text-h4 text-muted-foreground mb-3">Activity Feed</h3>
+            <h3 className="text-h4 text-muted-foreground mb-3">
+              Activity Feed
+            </h3>
             <ActivityFeed items={activityItems} />
           </div>
         </div>
@@ -189,7 +224,13 @@ export function MyComponent() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="space-y-4">
       <h2 className="text-h2 text-foreground">{title}</h2>

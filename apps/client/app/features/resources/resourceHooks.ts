@@ -4,8 +4,8 @@ import { toast } from "@casbin/ui";
 
 const KEY = ["resources"];
 
-export function useResources(params?: { page?: number; limit?: number }) {
-  return useQuery({ queryKey: [...KEY, params], queryFn: () => resourceService.list(params) });
+export function useResources() {
+  return useQuery({ queryKey: KEY, queryFn: () => resourceService.list() });
 }
 
 export function useCreateResource() {

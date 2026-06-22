@@ -30,7 +30,8 @@ import { RealtimeIndicator } from "@/components/realtime/realtime-indicator";
 import { PresenceAvatars } from "@/components/realtime/presence-avatars";
 
 export function AppNavbar() {
-  const { theme, setTheme, density, setDensity, toggleSidebarCollapse } = useUIStore();
+  const { theme, setTheme, density, setDensity, toggleSidebarCollapse } =
+    useUIStore();
   const { logout: clearStore, user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -73,8 +74,12 @@ export function AppNavbar() {
         <NexusButton
           variant="ghost"
           size="icon"
-          onClick={() => setDensity(density === "comfort" ? "compact" : "comfort")}
-          title={density === "comfort" ? "Switch to compact" : "Switch to comfort"}
+          onClick={() =>
+            setDensity(density === "comfort" ? "compact" : "comfort")
+          }
+          title={
+            density === "comfort" ? "Switch to compact" : "Switch to comfort"
+          }
         >
           {density === "comfort" ? (
             <Minimize2 className="h-4 w-4" />
@@ -87,7 +92,11 @@ export function AppNavbar() {
           size="icon"
           onClick={() => setTheme(theme === "light" ? "dark" : "light")}
         >
-          {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          {theme === "light" ? (
+            <Moon className="h-4 w-4" />
+          ) : (
+            <Sun className="h-4 w-4" />
+          )}
         </NexusButton>
 
         <NotificationBell />
@@ -106,8 +115,12 @@ export function AppNavbar() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm leading-none font-medium">{user?.username}</p>
-                <p className="text-muted-foreground text-xs leading-none">{user?.email}</p>
+                <p className="text-sm leading-none font-medium">
+                  {user?.username}
+                </p>
+                <p className="text-muted-foreground text-xs leading-none">
+                  {user?.email}
+                </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

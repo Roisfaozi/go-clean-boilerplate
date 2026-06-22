@@ -30,6 +30,7 @@ import (
 	orgRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tus"
@@ -84,7 +85,7 @@ func TestTUS_Integration_Lifecycle(t *testing.T) {
 
 	awsCfg, _ := awsconfig.LoadDefaultConfig(ctx,
 		awsconfig.WithRegion(rustfsRegion),
-		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("rustfsadmin", "rustfsadmin", "")),
+		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(setup.TestS3AccessKey, setup.TestS3SecretKey, "")),
 	)
 	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(s3URL)
@@ -111,6 +112,7 @@ func TestTUS_Integration_Lifecycle(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/files/", nil)
 		req.Header.Set("Tus-Resumable", "1.0.0")
 		req.Header.Set("Upload-Length", "5")
+		req = req.WithContext(authcontext.WithUserID(req.Context(), userID))
 
 		userIDBase64 := base64.StdEncoding.EncodeToString([]byte(userID))
 		req.Header.Set("Upload-Metadata", fmt.Sprintf("filename dGVzdC50eHQ=,type YXZhdGFy,user_id %s", userIDBase64))

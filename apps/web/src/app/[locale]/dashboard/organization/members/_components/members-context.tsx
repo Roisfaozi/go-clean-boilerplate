@@ -1,8 +1,15 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
-import { Member, organizationsApi } from "~/lib/api/organizations";
-import { Role, rolesApi } from "~/lib/api/roles";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  type ReactNode,
+  useEffect,
+} from "react";
+import { type Member, organizationsApi } from "~/lib/api/organizations";
+import { type Role, rolesApi } from "~/lib/api/roles";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
 
@@ -73,12 +80,16 @@ export function MembersProvider({ children }: { children: ReactNode }) {
     async (userId: string, roleId: string) => {
       if (!currentOrganization) return;
       try {
-        await organizationsApi.updateMemberRole(currentOrganization.id, userId, {
-          role_id: roleId,
-        });
+        await organizationsApi.updateMemberRole(
+          currentOrganization.id,
+          userId,
+          {
+            role_id: roleId,
+          },
+        );
         toast.success("Member role updated");
         await fetchData();
-      } catch (error) {
+      } catch (_error) {
         toast.error("Failed to update role");
       }
     },
@@ -88,13 +99,18 @@ export function MembersProvider({ children }: { children: ReactNode }) {
   const removeMember = useCallback(
     async (userId: string, name: string) => {
       if (!currentOrganization) return;
-      if (!confirm(`Are you sure you want to remove ${name} from the organization?`)) return;
+      if (
+        !confirm(
+          `Are you sure you want to remove ${name} from the organization?`,
+        )
+      )
+        return;
 
       try {
         await organizationsApi.removeMember(currentOrganization.id, userId);
         toast.success("Member removed successfully");
         await fetchData();
-      } catch (error) {
+      } catch (_error) {
         toast.error("Failed to remove member");
       }
     },

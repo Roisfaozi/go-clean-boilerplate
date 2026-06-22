@@ -7,7 +7,6 @@ import { NexusInput } from "@casbin/ui";
 import { FormGroup } from "@/components/patterns/form-group";
 import { Hexagon, Sparkles } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
-import { toast } from "@casbin/ui";
 import { Separator } from "@casbin/ui";
 import { motion } from "framer-motion";
 
@@ -88,7 +87,12 @@ export default function RegisterV2() {
   };
 
   const handleGoogleSignup = () => {
-    login({ id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" });
+    login({
+      id: "g1",
+      name: "Google User",
+      email: "user@gmail.com",
+      username: "googleuser",
+    });
     navigate("/");
   };
 
@@ -101,7 +105,9 @@ export default function RegisterV2() {
           ? 2
           : 3;
   const strengthLabel = ["", "Weak", "Good", "Strong"][strength];
-  const strengthColor = ["", "bg-destructive", "bg-warning", "bg-success"][strength];
+  const strengthColor = ["", "bg-destructive", "bg-warning", "bg-success"][
+    strength
+  ];
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
@@ -125,7 +131,12 @@ export default function RegisterV2() {
       />
       <motion.div
         animate={{ y: [0, 20, 0], x: [0, -15, 0] }}
-        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        transition={{
+          duration: 9,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 2,
+        }}
         className="bg-accent/10 absolute right-1/4 bottom-1/4 h-48 w-48 rounded-full blur-3xl"
       />
 
@@ -148,7 +159,9 @@ export default function RegisterV2() {
               <Hexagon className="text-primary-foreground h-8 w-8" />
             </motion.div>
             <h1 className="text-foreground text-2xl font-bold">Join NexusOS</h1>
-            <p className="text-muted-foreground text-sm">Create your free account</p>
+            <p className="text-muted-foreground text-sm">
+              Create your free account
+            </p>
           </div>
 
           <NexusButton
@@ -162,7 +175,9 @@ export default function RegisterV2() {
 
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
-            <span className="text-muted-foreground text-xs">or register with email</span>
+            <span className="text-muted-foreground text-xs">
+              or register with email
+            </span>
             <Separator className="flex-1" />
           </div>
 
@@ -216,11 +231,17 @@ export default function RegisterV2() {
                       />
                     ))}
                   </div>
-                  <span className="text-muted-foreground text-xs">{strengthLabel}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {strengthLabel}
+                  </span>
                 </div>
               )}
             </FormGroup>
-            <FormGroup label="Confirm Password" required error={errors.confirmPassword}>
+            <FormGroup
+              label="Confirm Password"
+              required
+              error={errors.confirmPassword}
+            >
               <NexusInput
                 type="password"
                 placeholder="Confirm password"
@@ -230,14 +251,20 @@ export default function RegisterV2() {
                 className="h-11 rounded-xl"
               />
             </FormGroup>
-            <NexusButton className="h-11 w-full gap-2 rounded-xl" loading={loading}>
+            <NexusButton
+              className="h-11 w-full gap-2 rounded-xl"
+              loading={loading}
+            >
               <Sparkles className="h-4 w-4" /> Create Account
             </NexusButton>
           </form>
 
           <p className="text-muted-foreground text-center text-sm">
             Already have an account?{" "}
-            <Link to="/login" className="text-primary font-medium hover:underline">
+            <Link
+              to="/login"
+              className="text-primary font-medium hover:underline"
+            >
               Sign in
             </Link>
           </p>

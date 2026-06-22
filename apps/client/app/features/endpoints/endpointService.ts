@@ -3,8 +3,8 @@ import type { PaginatedResponse } from "@/lib/api/schemas";
 import type { Endpoint } from "@/lib/api/types";
 
 export const endpointService = {
-  list: (params?: { page?: number; limit?: number; resource_id?: string }) =>
-    apiClient.get<PaginatedResponse<Endpoint>>("/endpoints", undefined, { params }),
+  list: (params?: any) =>
+    apiClient.post<PaginatedResponse<Endpoint>>("/endpoints/search", params),
   create: (data: {
     name: string;
     method: string;

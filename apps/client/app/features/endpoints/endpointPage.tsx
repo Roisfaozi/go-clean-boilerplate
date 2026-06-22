@@ -18,10 +18,9 @@ import {
   useDeleteEndpoint,
 } from "./endpointHooks";
 import { useResources } from "@/features/resources/resourceHooks";
-import type { Endpoint, Resource } from "@/lib/api/types";
-import { Skeleton } from "@casbin/ui";
+import type { AccessRight, Endpoint } from "@/lib/api/types";
 
-const mockData: Endpoint[] = [
+const _mockData: Endpoint[] = [
   {
     id: "1",
     name: "List Users",
@@ -126,17 +125,34 @@ const columns: CrudColumnDef<Endpoint>[] = [
       { label: "PATCH", value: "PATCH" },
       { label: "DELETE", value: "DELETE" },
     ],
-    cell: (row) => <NexusBadge variant={methodColor(row.method)}>{row.method}</NexusBadge>,
+    cell: (row) => (
+      <NexusBadge variant={methodColor(row.method)}>{row.method}</NexusBadge>
+    ),
   },
-  { id: "name", header: "Name", accessorKey: "name", sortable: true, minWidth: 160 },
+  {
+    id: "name",
+    header: "Name",
+    accessorKey: "name",
+    sortable: true,
+    minWidth: 160,
+  },
   {
     id: "path",
     header: "Path",
     accessorKey: "path",
     minWidth: 220,
-    cell: (row) => <code className="bg-muted rounded px-2 py-1 font-mono text-xs">{row.path}</code>,
+    cell: (row) => (
+      <code className="bg-muted rounded px-2 py-1 font-mono text-xs">
+        {row.path}
+      </code>
+    ),
   },
-  { id: "resource_name", header: "Resource", accessorKey: "resource_name", sortable: true },
+  {
+    id: "resource_name",
+    header: "Resource",
+    accessorKey: "resource_name",
+    sortable: true,
+  },
   {
     id: "auth_required",
     header: "Auth",
@@ -179,7 +195,13 @@ const baseFields: FieldDef[] = [
       { label: "DELETE", value: "DELETE" },
     ],
   },
-  { name: "path", label: "Path", type: "text", required: true, placeholder: "/api/v1/users" },
+  {
+    name: "path",
+    label: "Path",
+    type: "text",
+    required: true,
+    placeholder: "/api/v1/users",
+  },
   {
     name: "description",
     label: "Description",
@@ -194,7 +216,7 @@ export default function EndpointsPage() {
   const [editItem, setEditItem] = useState<Endpoint | null>(null);
   const [deleteItem, setDeleteItem] = useState<Endpoint | null>(null);
 
-  const { data: response, isLoading, isError } = useEndpoints();
+  const { data: response, isLoading, refetch } = useEndpoints();
   const { data: resourcesResponse } = useResources();
   const createEndpoint = useCreateEndpoint();
   const updateEndpoint = useUpdateEndpoint();
@@ -202,20 +224,12 @@ export default function EndpointsPage() {
 
   const endpoints: Endpoint[] = useMemo(() => {
     if (response?.data) return response.data as Endpoint[];
-    if (isError) return mockData;
-    return mockData;
-  }, [response, isError]);
+    return [];
+  }, [response]);
 
-  const resources: Resource[] = useMemo(() => {
-    if (resourcesResponse?.data) return resourcesResponse.data as Resource[];
-    return [
-      { id: "1", name: "Users", slug: "users" },
-      { id: "2", name: "Projects", slug: "projects" },
-      { id: "3", name: "Roles", slug: "roles" },
-      { id: "4", name: "Organizations", slug: "organizations" },
-      { id: "5", name: "Audit Logs", slug: "audit-logs" },
-      { id: "6", name: "System", slug: "system" },
-    ] as Resource[];
+  const resources: AccessRight[] = useMemo(() => {
+    if (resourcesResponse?.data) return resourcesResponse.data as AccessRight[];
+    return [];
   }, [resourcesResponse]);
 
   const fields: FieldDef[] = useMemo(() => {
@@ -238,26 +252,24 @@ export default function EndpointsPage() {
         title="Endpoints"
         description="Register and manage API endpoints."
         actions={
-          <NexusButton onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" /> New Endpoint
-          </NexusButton>
+          <div className="flex gap-2">
+            <NexusButton variant="outline" onClick={() => refetch()}>
+              Refresh
+            </NexusButton>
+            <NexusButton onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> New Endpoint
+            </NexusButton>
+          </div>
         }
       />
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : (
-        <CrudTable
-          columns={columns}
-          data={endpoints}
-          onEdit={setEditItem}
-          onDelete={setDeleteItem}
-        />
-      )}
+      <CrudTable
+        columns={columns}
+        data={endpoints}
+        loading={isLoading}
+        onEdit={setEditItem}
+        onDelete={setDeleteItem}
+      />
 
       <CrudFormDialog
         open={createOpen}
@@ -266,8 +278,9 @@ export default function EndpointsPage() {
         description="Add a new API endpoint."
         fields={fields}
         schema={schema}
-        onSubmit={async (v) => {
-          await createEndpoint.mutateAsync(v as any);
+        loading={createEndpoint.isPending}
+        onSubmit={(v) => {
+          createEndpoint.mutate(v as any);
           setCreateOpen(false);
         }}
         submitLabel="Create Endpoint"
@@ -279,10 +292,14 @@ export default function EndpointsPage() {
         description="Update endpoint details."
         fields={fields}
         schema={schema}
+        loading={updateEndpoint.isPending}
         initialValues={editItem || undefined}
-        onSubmit={async (v) => {
+        onSubmit={(v) => {
           if (editItem) {
-            await updateEndpoint.mutateAsync({ id: editItem.id, data: v as any });
+            updateEndpoint.mutate({
+              id: editItem.id,
+              data: v as any,
+            });
             setEditItem(null);
           }
         }}
@@ -293,9 +310,10 @@ export default function EndpointsPage() {
         onOpenChange={(o) => !o && setDeleteItem(null)}
         resourceName="Endpoint"
         itemName={deleteItem?.name}
-        onConfirm={async () => {
+        loading={deleteEndpoint.isPending}
+        onConfirm={() => {
           if (deleteItem) {
-            await deleteEndpoint.mutateAsync(String(deleteItem.id));
+            deleteEndpoint.mutate(String(deleteItem.id));
             setDeleteItem(null);
           }
         }}

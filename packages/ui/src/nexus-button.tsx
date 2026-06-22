@@ -9,9 +9,12 @@ const nexusButtonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary-hover shadow-sm",
-        outline: "border border-border bg-transparent hover:bg-surface-hover text-foreground",
+        primary:
+          "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary-hover shadow-sm",
+        outline:
+          "border border-border bg-transparent hover:bg-surface-hover text-foreground",
         ghost: "hover:bg-surface-hover text-foreground",
         danger: "bg-danger text-danger-foreground hover:opacity-90 shadow-sm",
         link: "text-primary underline-offset-4 hover:underline",
@@ -38,7 +41,19 @@ export interface NexusButtonProps
 }
 
 const NexusButton = React.forwardRef<HTMLButtonElement, NexusButtonProps>(
-  ({ className, variant, size, asChild = false, loading, children, disabled, ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      loading,
+      children,
+      disabled,
+      ...props
+    },
+    ref,
+  ) => {
     const Comp = asChild ? Slot : "button";
     return (
       <Comp

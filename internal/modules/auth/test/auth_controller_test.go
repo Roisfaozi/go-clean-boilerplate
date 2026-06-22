@@ -507,3 +507,42 @@ func TestAuthController_Login_XSS(t *testing.T) {
 	assert.Equal(t, 422, w.Code) // Validation Error
 	assert.Contains(t, w.Body.String(), "xss")
 }
+
+func TestAuthHandler_SSOLogin_SetsStateCookieAndRedirects(t *testing.T) {
+	mockUseCase := new(mocks.MockAuthUseCase)
+	handler := newTestAuthController(mockUseCase)
+	router := setupAuthTestRouter()
+	router.GET("/auth/sso/:provider", handler.SSOLogin)
+
+	mockUseCase.On(
+		"GetSSORedirectURL",
+		mock.Anything,
+		"google",
+		mock.MatchedBy(func(state string) bool { return state != "" }),
+	).Return("https://accounts.example.com/oauth", nil).Once()
+
+	req, _ := http.NewRequest(http.MethodGet, "/auth/sso/google", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
+	assert.Equal(t, "https://accounts.example.com/oauth", w.Header().Get("Location"))
+	assert.Contains(t, w.Header().Get("Set-Cookie"), "sso_state=")
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestAuthHandler_SSOCallback_InvalidState(t *testing.T) {
+	mockUseCase := new(mocks.MockAuthUseCase)
+	handler := newTestAuthController(mockUseCase)
+	router := setupAuthTestRouter()
+	router.GET("/auth/sso/:provider/callback", handler.SSOCallback)
+
+	req, _ := http.NewRequest(http.MethodGet, "/auth/sso/google/callback?code=test-code&state=bad-state", nil)
+	req.AddCookie(&http.Cookie{Name: "sso_state", Value: "expected-state"})
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	mockUseCase.AssertNotCalled(t, "HandleSSOCallback", mock.Anything, mock.Anything, mock.Anything)
+}

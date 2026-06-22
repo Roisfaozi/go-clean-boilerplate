@@ -62,7 +62,10 @@ interface UploadState {
   removeItem: (id: string) => void;
   clearCompleted: () => void;
   clearCanceled: () => void;
-  resolveDuplicate: (existingId: string, resolution: DuplicateResolution) => void;
+  resolveDuplicate: (
+    existingId: string,
+    resolution: DuplicateResolution,
+  ) => void;
   dismissDuplicatePrompt: () => void;
   getSummary: () => UploadSummary;
   _updateItem: (id: string, patch: Partial<UploadItem>) => void;
@@ -79,12 +82,20 @@ function getStoredManagerOpen() {
 }
 
 function getRelativePath(file: File) {
-  return (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+  return (
+    (file as File & { webkitRelativePath?: string }).webkitRelativePath ||
+    file.name
+  );
 }
 
-function isSameTargetPath(a: UploadItem, file: File, options?: AddFilesOptions) {
+function isSameTargetPath(
+  a: UploadItem,
+  file: File,
+  options?: AddFilesOptions,
+) {
   return (
-    a.fileName === file.name && (a.targetFolderId ?? null) === (options?.targetFolderId ?? null)
+    a.fileName === file.name &&
+    (a.targetFolderId ?? null) === (options?.targetFolderId ?? null)
   );
 }
 
@@ -100,7 +111,10 @@ function uniqueName(name: string, existing: Set<string>): string {
 
 export const useUploadStore = create<UploadState>()((set, get) => {
   // Track per-item progress timing for speed/ETA calculations.
-  const progressTracker = new Map<string, { lastBytes: number; lastTs: number }>();
+  const progressTracker = new Map<
+    string,
+    { lastBytes: number; lastTs: number }
+  >();
 
   const getOptions = (): TusUploaderOptions => ({
     endpoint: get().endpoint,
@@ -124,7 +138,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
       }
       const remaining = item.fileSize - bytes;
       const etaSeconds =
-        speedBps && speedBps > 0 ? Math.max(0, Math.round(remaining / speedBps)) : undefined;
+        speedBps && speedBps > 0
+          ? Math.max(0, Math.round(remaining / speedBps))
+          : undefined;
       get()._updateItem(id, {
         progress,
         status: "uploading",
@@ -152,7 +168,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
       get()._onItemFinalized(id);
       if (item) {
         window.dispatchEvent(
-          new CustomEvent("nexus:upload-complete", { detail: { item: { ...item, url } } }),
+          new CustomEvent("nexus:upload-complete", {
+            detail: { item: { ...item, url } },
+          }),
         );
       }
     },
@@ -162,7 +180,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
       const item = get().items.find((i) => i.id === id);
       const retryCount = item?.retryCount ?? 0;
       const canAutoRetry =
-        mapped.retryable && !item?.autoRetried && retryCount < get().maxAutoRetries;
+        mapped.retryable &&
+        !item?.autoRetried &&
+        retryCount < get().maxAutoRetries;
 
       get()._updateItem(id, {
         status: "error",
@@ -172,7 +192,11 @@ export const useUploadStore = create<UploadState>()((set, get) => {
         speedBps: undefined,
         etaSeconds: undefined,
       });
-      logUploadEvent("upload_failed", { id, code: mapped.code, message: error.message });
+      logUploadEvent("upload_failed", {
+        id,
+        code: mapped.code,
+        message: error.message,
+      });
 
       if (canAutoRetry) {
         // Brief backoff, then retry once for transient errors.
@@ -185,7 +209,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
       } else {
         if (item) {
           window.dispatchEvent(
-            new CustomEvent("nexus:upload-error", { detail: { id, code: mapped.code, item } }),
+            new CustomEvent("nexus:upload-error", {
+              detail: { id, code: mapped.code, item },
+            }),
           );
         }
       }
@@ -205,7 +231,8 @@ export const useUploadStore = create<UploadState>()((set, get) => {
 
     setEndpoint: (endpoint) => set({ endpoint }),
 
-    setMaxConcurrent: (value) => set({ maxConcurrent: Math.max(1, Math.min(6, value)) }),
+    setMaxConcurrent: (value) =>
+      set({ maxConcurrent: Math.max(1, Math.min(6, value)) }),
 
     setManagerOpen: (open) => {
       if (typeof window !== "undefined")
@@ -213,24 +240,30 @@ export const useUploadStore = create<UploadState>()((set, get) => {
       set({ managerOpen: open });
     },
 
-    setAutoRemoveSuccessMs: (ms) => set({ autoRemoveSuccessMs: Math.max(0, ms) }),
+    setAutoRemoveSuccessMs: (ms) =>
+      set({ autoRemoveSuccessMs: Math.max(0, ms) }),
 
     addFiles: (files, options) => {
       // Detect duplicates within the same target folder against existing non-canceled items.
-      const existing = get().items.filter((i) => i.status !== "canceled" && i.status !== "error");
+      const existing = get().items.filter(
+        (i) => i.status !== "canceled" && i.status !== "error",
+      );
       const duplicates: { file: File; existingId: string }[] = [];
       const fresh: File[] = [];
       files.forEach((f) => {
         const dup = existing.find((i) => isSameTargetPath(i, f, options));
-        if (dup && !options?.duplicateResolution) duplicates.push({ file: f, existingId: dup.id });
+        if (dup && !options?.duplicateResolution)
+          duplicates.push({ file: f, existingId: dup.id });
         else fresh.push(f);
       });
 
       // If a global resolution was provided, apply it directly.
       const usedNames = new Set(existing.map((i) => i.fileName));
-      const resolved: { file: File; renamedTo?: string; replacesId?: string }[] = fresh.map(
-        (f) => ({ file: f }),
-      );
+      const resolved: {
+        file: File;
+        renamedTo?: string;
+        replacesId?: string;
+      }[] = fresh.map((f) => ({ file: f }));
       if (options?.duplicateResolution) {
         files.forEach((f) => {
           const dup = existing.find((i) => isSameTargetPath(i, f, options));
@@ -241,7 +274,10 @@ export const useUploadStore = create<UploadState>()((set, get) => {
           } else if (options.duplicateResolution === "keep-both") {
             const newName = uniqueName(f.name, usedNames);
             usedNames.add(newName);
-            const renamed = new File([f], newName, { type: f.type, lastModified: f.lastModified });
+            const renamed = new File([f], newName, {
+              type: f.type,
+              lastModified: f.lastModified,
+            });
             resolved.push({ file: renamed, renamedTo: newName });
           }
         });
@@ -273,10 +309,15 @@ export const useUploadStore = create<UploadState>()((set, get) => {
           uploadQueue: [...s.uploadQueue, ...newItems],
         }));
         get().setManagerOpen(true);
-        toast.success(`${newItems.length} upload${newItems.length > 1 ? "s" : ""} added to queue`);
-        newItems.forEach((it) =>
-          logUploadEvent("upload_started", { id: it.id, fileName: it.fileName }),
+        toast.success(
+          `${newItems.length} upload${newItems.length > 1 ? "s" : ""} added to queue`,
         );
+        newItems.forEach((it) => {
+          logUploadEvent("upload_started", {
+            id: it.id,
+            fileName: it.fileName,
+          });
+        });
         get().startAll();
       }
 
@@ -286,7 +327,11 @@ export const useUploadStore = create<UploadState>()((set, get) => {
           duplicatePrompt: {
             pending: [
               ...s.duplicatePrompt.pending,
-              ...duplicates.map((d) => ({ file: d.file, existingId: d.existingId, options })),
+              ...duplicates.map((d) => ({
+                file: d.file,
+                existingId: d.existingId,
+                options,
+              })),
             ],
           },
         }));
@@ -295,7 +340,8 @@ export const useUploadStore = create<UploadState>()((set, get) => {
 
     startUpload: (id) => {
       const item = get().items.find((i) => i.id === id);
-      if (!item || item.status === "uploading" || item.status === "success") return;
+      if (!item || item.status === "uploading" || item.status === "success")
+        return;
 
       const upload = createTusUpload(item, getOptions());
       get()._updateItem(id, {
@@ -315,7 +361,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
         (i) => i.status === "preparing" || i.status === "uploading",
       ).length;
       const toStart = queued.slice(0, maxConcurrent - active);
-      toStart.forEach((i) => startUpload(i.id));
+      toStart.forEach((i) => {
+        startUpload(i.id);
+      });
     },
 
     pauseUpload: (id) => {
@@ -353,22 +401,31 @@ export const useUploadStore = create<UploadState>()((set, get) => {
         etaSeconds: undefined,
       });
       logUploadEvent("upload_canceled", { id });
-      window.dispatchEvent(new CustomEvent("nexus:upload-canceled", { detail: { id } }));
+      window.dispatchEvent(
+        new CustomEvent("nexus:upload-canceled", { detail: { id } }),
+      );
       get().startAll();
     },
 
     cancelAllUploading: () => {
       get()
         .items.filter(
-          (i) => i.status === "uploading" || i.status === "preparing" || i.status === "paused",
+          (i) =>
+            i.status === "uploading" ||
+            i.status === "preparing" ||
+            i.status === "paused",
         )
-        .forEach((i) => get().cancelUpload(i.id));
+        .forEach((i) => {
+          get().cancelUpload(i.id);
+        });
     },
 
     cancelAllQueued: () => {
       get()
         .items.filter((i) => i.status === "queued")
-        .forEach((i) => get().cancelUpload(i.id));
+        .forEach((i) => {
+          get().cancelUpload(i.id);
+        });
     },
 
     retryUpload: (id) => {
@@ -395,7 +452,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
     retryAllFailed: () => {
       get()
         .items.filter((i) => i.status === "error")
-        .forEach((i) => get().retryUpload(i.id));
+        .forEach((i) => {
+          get().retryUpload(i.id);
+        });
     },
 
     removeItem: (id) => {
@@ -419,21 +478,30 @@ export const useUploadStore = create<UploadState>()((set, get) => {
 
     clearCanceled: () => {
       set((s) => {
-        const uploadQueue = s.uploadQueue.filter((i) => i.status !== "canceled");
+        const uploadQueue = s.uploadQueue.filter(
+          (i) => i.status !== "canceled",
+        );
         return { items: uploadQueue, uploadQueue };
       });
     },
 
     resolveDuplicate: (existingId, resolution) => {
-      const pending = get().duplicatePrompt.pending.find((p) => p.existingId === existingId);
+      const pending = get().duplicatePrompt.pending.find(
+        (p) => p.existingId === existingId,
+      );
       if (!pending) return;
       set((s) => ({
         duplicatePrompt: {
-          pending: s.duplicatePrompt.pending.filter((p) => p.existingId !== existingId),
+          pending: s.duplicatePrompt.pending.filter(
+            (p) => p.existingId !== existingId,
+          ),
         },
       }));
       if (resolution === "skip") return;
-      get().addFiles([pending.file], { ...pending.options, duplicateResolution: resolution });
+      get().addFiles([pending.file], {
+        ...pending.options,
+        duplicateResolution: resolution,
+      });
     },
 
     dismissDuplicatePrompt: () => set({ duplicatePrompt: { pending: [] } }),
@@ -449,14 +517,17 @@ export const useUploadStore = create<UploadState>()((set, get) => {
       const failed = items.filter((i) => i.status === "error").length;
       const canceled = items.filter((i) => i.status === "canceled").length;
       const paused = items.filter((i) => i.status === "paused").length;
-      const progress = total ? Math.round(items.reduce((s, i) => s + i.progress, 0) / total) : 0;
+      const progress = total
+        ? Math.round(items.reduce((s, i) => s + i.progress, 0) / total)
+        : 0;
       const activeItems = items.filter((i) => i.status === "uploading");
       const speedBps = activeItems.reduce((s, i) => s + (i.speedBps ?? 0), 0);
       const remainingBytes = activeItems.reduce(
         (s, i) => s + Math.max(0, i.fileSize - (i.bytesUploaded ?? 0)),
         0,
       );
-      const etaSeconds = speedBps > 0 ? Math.round(remainingBytes / speedBps) : undefined;
+      const etaSeconds =
+        speedBps > 0 ? Math.round(remainingBytes / speedBps) : undefined;
       return {
         total,
         active,
@@ -474,7 +545,9 @@ export const useUploadStore = create<UploadState>()((set, get) => {
     _updateItem: (id, patch) => {
       set((s) => ({
         items: s.items.map((i) => (i.id === id ? { ...i, ...patch } : i)),
-        uploadQueue: s.uploadQueue.map((i) => (i.id === id ? { ...i, ...patch } : i)),
+        uploadQueue: s.uploadQueue.map((i) =>
+          i.id === id ? { ...i, ...patch } : i,
+        ),
       }));
     },
 
