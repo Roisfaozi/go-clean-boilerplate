@@ -14,7 +14,7 @@
 
 `cmd/api/main.go` starts the API binary and calls application construction through `internal/config.NewApplication`.
 
-`internal/config/app.go` is the composition root. It wires:
+`internal/config/app.go` is the top-level composition root. Most wiring helpers now live in `internal/config/app_helpers.go`, but `app.go` still owns the final assembly. It wires:
 
 - logger
 - circuit breaker config
@@ -35,6 +35,8 @@
 - business modules
 - Gin router
 - scheduler
+
+`internal/config/app_helpers.go` holds extracted builders for SSO providers, module graphs, realtime metrics broadcasting, and TUS handler setup.
 
 The composition root also initializes production safety around Casbin and shared managers for realtime, auth, and upload flows before route registration.
 

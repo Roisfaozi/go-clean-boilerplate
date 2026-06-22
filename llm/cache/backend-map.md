@@ -4,7 +4,7 @@
 
 - API binary: `cmd/api/main.go`
 - Generator binary: `cmd/gen/main.go`
-- Composition root: `internal/config/app.go`
+- Composition root: `internal/config/app.go` with extracted helper wiring in `internal/config/app_helpers.go`
 - Router: `internal/router/router.go`
 
 ## Shared infrastructure
@@ -24,7 +24,8 @@
 
 Runtime wiring direction:
 
-- `internal/config/app.go` owns cross-module composition.
+- `internal/config/app.go` owns final cross-module composition.
+- `internal/config/app_helpers.go` owns extracted helper builders for modules, SSO providers, realtime broadcaster, and TUS handler setup.
 - `internal/modules/*/module.go` owns module-local construction.
 - controllers should not create repositories or global clients directly.
 - usecases should receive explicit dependencies and primitives.

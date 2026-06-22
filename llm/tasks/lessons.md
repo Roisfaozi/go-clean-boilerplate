@@ -8,7 +8,7 @@
 
 ## Phase 2
 
-- `internal/config/app.go` is the highest-value file for runtime truth.
+- `internal/config/app.go` remains highest-value file for runtime truth, but helper extraction means `internal/config/app_helpers.go` must also be checked for module wiring, broadcaster behavior, SSO providers, and TUS setup.
 - `internal/router/router.go` is the clearest single file for route strata, middleware layering, and upload/realtime exposure.
 - `internal/modules/*/module.go` files are the best compact view of real dependency boundaries.
 
