@@ -15,7 +15,7 @@ pre-commit:
 
     # ─── FRONTEND & UI ───
     format:
-      glob: "**/*.{js,ts,jsx,tsx,json,css,md}"
+      glob: "**/*.{js,ts,jsx,tsx,json,css}"
       run: pnpm exec biome format --write {staged_files} && git add {staged_files}
 
     # ─── VALIDATION ───

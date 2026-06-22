@@ -237,7 +237,9 @@ The project follows a standard Go project layout suitable for scalable microserv
 
 ## 📜 Documentation Links
 
+- [Documentation Index](./documentation/README.md)
 - [System Architecture](./documentation/architecture/SYSTEM_ARCHITECTURE.md)
+- [Developer Flow](./documentation/guides/DEVELOPER_FLOW.md)
 - [Getting Started](./documentation/guides/GETTING_STARTED.md)
 - [API Usage Guide](./documentation/guides/API_USAGE.md)
 - [API Access & RBAC](./documentation/guides/API_ACCESS_WORKFLOW.md)
@@ -248,8 +250,7 @@ The project follows a standard Go project layout suitable for scalable microserv
 - [Multi-Provider Storage](./documentation/guides/STORAGE.md)
 - [Observability (Tracing/Metrics)](./documentation/guides/OBSERVABILITY.md)
 - [Maintenance & Scheduler](./documentation/guides/MAINTENANCE.md)
-- [Frontend Guide](./web/README.md)
-- [Future Roadmap](./documentation/ops/UI_ROADMAP.md)
+- [Frontend Structure](./documentation/guides/FRONTEND_STRUCTURE.md)
 
 ---
 
