@@ -9,7 +9,11 @@ interface CopyButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
   content: string;
 }
 
-export default function CopyButton({ content, className, ...props }: CopyButtonProps) {
+export default function CopyButton({
+  content,
+  className,
+  ...props
+}: CopyButtonProps) {
   const [hasCopied, setHasCopied] = React.useState(false);
 
   React.useEffect(() => {

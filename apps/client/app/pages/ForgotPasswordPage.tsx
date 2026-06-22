@@ -82,10 +82,12 @@ export default function ForgotPasswordPage() {
                   <div className="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-xl">
                     <Hexagon className="text-primary h-6 w-6" />
                   </div>
-                  <h1 className="text-foreground text-2xl font-bold">Forgot your password?</h1>
+                  <h1 className="text-foreground text-2xl font-bold">
+                    Forgot your password?
+                  </h1>
                   <p className="text-muted-foreground text-sm leading-relaxed">
-                    No worries! Enter the email address associated with your account and we'll send
-                    you a link to reset your password.
+                    No worries! Enter the email address associated with your
+                    account and we'll send you a link to reset your password.
                   </p>
                 </div>
 
@@ -115,7 +117,12 @@ export default function ForgotPasswordPage() {
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 15,
+                    delay: 0.2,
+                  }}
                   className="flex justify-center"
                 >
                   <div className="bg-success/10 border-success/20 flex h-20 w-20 items-center justify-center rounded-full border-4">
@@ -123,7 +130,9 @@ export default function ForgotPasswordPage() {
                   </div>
                 </motion.div>
                 <div className="space-y-2">
-                  <h2 className="text-foreground text-xl font-bold">Check your email</h2>
+                  <h2 className="text-foreground text-xl font-bold">
+                    Check your email
+                  </h2>
                   <p className="text-muted-foreground text-sm">
                     We've sent a password reset link to
                   </p>

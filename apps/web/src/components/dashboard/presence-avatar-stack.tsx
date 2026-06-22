@@ -3,7 +3,12 @@
 import { usePresenceStore } from "~/stores/use-presence-store";
 import { useAuthStore } from "~/stores/use-auth-store";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { cn } from "~/lib/utils";
 
 export function PresenceAvatarStack({ className }: { className?: string }) {
@@ -18,7 +23,12 @@ export function PresenceAvatarStack({ className }: { className?: string }) {
   if (otherUsers.length === 0) return null;
 
   return (
-    <div className={cn("flex items-center -space-x-2 overflow-hidden px-2", className)}>
+    <div
+      className={cn(
+        "flex items-center -space-x-2 overflow-hidden px-2",
+        className,
+      )}
+    >
       <TooltipProvider>
         {displayUsers.map((user) => (
           <Tooltip key={user.user_id}>
@@ -35,8 +45,12 @@ export function PresenceAvatarStack({ className }: { className?: string }) {
             </TooltipTrigger>
             <TooltipContent>
               <div className="flex flex-col gap-1">
-                <p className="text-xs font-semibold">{user.name || "Anonymous"}</p>
-                <p className="text-muted-foreground text-[10px] uppercase">{user.role}</p>
+                <p className="text-xs font-semibold">
+                  {user.name || "Anonymous"}
+                </p>
+                <p className="text-muted-foreground text-[10px] uppercase">
+                  {user.role}
+                </p>
               </div>
             </TooltipContent>
           </Tooltip>

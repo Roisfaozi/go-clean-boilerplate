@@ -280,6 +280,37 @@ func TestAuthMiddleware_ContextSet(t *testing.T) {
 	mockAuthUseCase.AssertExpectations(t)
 }
 
+func TestAuthMiddleware_SkipsJWTValidationForAPIKeyAuth(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	mockAuthUseCase := new(authMocks.MockAuthUseCase)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+	mockTicketManager := new(MockTicketManager)
+	authMiddleware := middleware.NewAuthMiddleware(mockAuthUseCase, logger, mockTicketManager)
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("auth_method", "api_key")
+		c.Set("user_id", "api-key-user")
+		c.Next()
+	})
+	r.Use(authMiddleware.ValidateToken())
+	r.GET("/test", func(c *gin.Context) {
+		assert.Equal(t, "api-key-user", c.GetString("user_id"))
+		c.Status(http.StatusOK)
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockAuthUseCase.AssertNotCalled(t, "ValidateAccessToken")
+	mockAuthUseCase.AssertNotCalled(t, "Verify")
+}
+
 func TestAuthMiddleware_ValidateWebSocketToken_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()

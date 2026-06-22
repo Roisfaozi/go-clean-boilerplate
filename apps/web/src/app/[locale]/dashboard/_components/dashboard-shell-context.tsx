@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useCallback, ReactNode } from "react";
-import { Organization, organizationsApi } from "~/lib/api/organizations";
+import { createContext, useContext, useCallback, type ReactNode } from "react";
+import { type Organization, organizationsApi } from "~/lib/api/organizations";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
 import useSWR from "swr";
@@ -14,7 +14,9 @@ interface DashboardShellContextType {
   refreshOrganizations: () => Promise<void>;
 }
 
-const DashboardShellContext = createContext<DashboardShellContextType | undefined>(undefined);
+const DashboardShellContext = createContext<
+  DashboardShellContextType | undefined
+>(undefined);
 
 export function DashboardShellProvider({
   children,
@@ -23,7 +25,8 @@ export function DashboardShellProvider({
   children: ReactNode;
   initialData?: Organization[];
 }) {
-  const { currentOrganization, setCurrentOrganization } = useOrganizationStore();
+  const { currentOrganization, setCurrentOrganization } =
+    useOrganizationStore();
 
   const {
     data: organizations = [],
@@ -31,7 +34,10 @@ export function DashboardShellProvider({
     mutate,
   } = useSWR(
     "/api/v1/organizations/me",
-    () => organizationsApi.getMyOrganizations().then((res) => res.data?.organizations || []),
+    () =>
+      organizationsApi
+        .getMyOrganizations()
+        .then((res) => res.data?.organizations || []),
     {
       fallbackData: initialData,
       keepPreviousData: true,
@@ -74,7 +80,9 @@ export function DashboardShellProvider({
 export function useDashboardShell() {
   const context = useContext(DashboardShellContext);
   if (context === undefined) {
-    throw new Error("useDashboardShell must be used within a DashboardShellProvider");
+    throw new Error(
+      "useDashboardShell must be used within a DashboardShellProvider",
+    );
   }
   return context;
 }

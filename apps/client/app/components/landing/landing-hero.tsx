@@ -1,5 +1,12 @@
 import { Link } from "react-router";
-import { ArrowRight, Sparkles, ShieldCheck, KeySquare, Activity, Users } from "lucide-react";
+import {
+  ArrowRight,
+  Sparkles,
+  ShieldCheck,
+  KeySquare,
+  Activity,
+  Users,
+} from "lucide-react";
 
 export function LandingHero() {
   return (
@@ -25,8 +32,9 @@ export function LandingHero() {
           </h1>
 
           <p className="text-body-lg text-muted-foreground mt-5 max-w-xl">
-            Bangun operasi bisnis, kontrol akses, manajemen project, integrasi API, dan
-            observability dalam satu workspace yang konsisten dan scalable.
+            Bangun operasi bisnis, kontrol akses, manajemen project, integrasi
+            API, dan observability dalam satu workspace yang konsisten dan
+            scalable.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -74,11 +82,20 @@ export function LandingHero() {
             <div className="grid grid-cols-12 gap-3 p-4">
               {/* Side nav */}
               <div className="bg-surface col-span-3 space-y-1.5 rounded-md p-2">
-                {["Overview", "Users", "Projects", "Access", "Audit", "Settings"].map((l, i) => (
+                {[
+                  "Overview",
+                  "Users",
+                  "Projects",
+                  "Access",
+                  "Audit",
+                  "Settings",
+                ].map((l, i) => (
                   <div
                     key={l}
                     className={`text-caption rounded px-2 py-1.5 ${
-                      i === 0 ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground"
+                      i === 0
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {l}
@@ -101,15 +118,26 @@ export function LandingHero() {
                       track: "bg-secondary/15",
                       bar: "bg-secondary",
                     },
-                    { label: "Uptime", value: "99.98%", track: "bg-success/15", bar: "bg-success" },
+                    {
+                      label: "Uptime",
+                      value: "99.98%",
+                      track: "bg-success/15",
+                      bar: "bg-success",
+                    },
                   ].map((s) => (
                     <div
                       key={s.label}
                       className="border-border bg-background rounded-md border p-3"
                     >
-                      <div className="text-caption text-muted-foreground">{s.label}</div>
-                      <div className="text-h3 text-foreground mt-1 font-semibold">{s.value}</div>
-                      <div className={`mt-2 h-1 w-full rounded-full ${s.track}`}>
+                      <div className="text-caption text-muted-foreground">
+                        {s.label}
+                      </div>
+                      <div className="text-h3 text-foreground mt-1 font-semibold">
+                        {s.value}
+                      </div>
+                      <div
+                        className={`mt-2 h-1 w-full rounded-full ${s.track}`}
+                      >
                         <div className={`h-1 w-2/3 rounded-full ${s.bar}`} />
                       </div>
                     </div>
@@ -117,17 +145,23 @@ export function LandingHero() {
                 </div>
                 <div className="border-border bg-background rounded-md border p-3">
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-caption text-foreground font-medium">Activity</span>
-                    <span className="text-caption text-muted-foreground">Last 24h</span>
+                    <span className="text-caption text-foreground font-medium">
+                      Activity
+                    </span>
+                    <span className="text-caption text-muted-foreground">
+                      Last 24h
+                    </span>
                   </div>
                   <div className="flex h-20 items-end gap-1.5">
-                    {[40, 65, 30, 80, 55, 90, 70, 60, 85, 45, 75, 95].map((h, i) => (
-                      <div
-                        key={i}
-                        className="from-primary/30 to-primary flex-1 rounded-t bg-gradient-to-t"
-                        style={{ height: `${h}%` }}
-                      />
-                    ))}
+                    {[40, 65, 30, 80, 55, 90, 70, 60, 85, 45, 75, 95].map(
+                      (h, i) => (
+                        <div
+                          key={i}
+                          className="from-primary/30 to-primary flex-1 rounded-t bg-gradient-to-t"
+                          style={{ height: `${h}%` }}
+                        />
+                      ),
+                    )}
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -144,7 +178,9 @@ export function LandingHero() {
                         <span className="font-medium">{a.who}</span>{" "}
                         <span className="text-muted-foreground">{a.what}</span>
                       </span>
-                      <span className="text-muted-foreground">{a.when} ago</span>
+                      <span className="text-muted-foreground">
+                        {a.when} ago
+                      </span>
                     </div>
                   ))}
                 </div>

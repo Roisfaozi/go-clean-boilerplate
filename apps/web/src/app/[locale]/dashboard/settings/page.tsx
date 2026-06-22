@@ -1,4 +1,4 @@
-import { type Metadata } from "next";
+import type { Metadata } from "next";
 import { getCurrentSession } from "~/lib/server/auth/session";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Icon } from "~/components/shared/icon";
@@ -20,7 +20,9 @@ export default async function SettingsPage() {
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
-          <p className="text-muted-foreground">Manage your account settings and preferences.</p>
+          <p className="text-muted-foreground">
+            Manage your account settings and preferences.
+          </p>
         </div>
 
         <Tabs defaultValue="profile" className="space-y-4">

@@ -3,7 +3,9 @@ import type { AccessRight, PaginatedResponse } from "@/lib/api/schemas";
 
 export const accessRightService = {
   list: (params?: { page?: number; limit?: number }) =>
-    apiClient.get<PaginatedResponse<AccessRight>>("/access-rights", undefined, { params }),
+    apiClient.get<PaginatedResponse<AccessRight>>("/access-rights", undefined, {
+      params,
+    }),
   create: (data: {
     name: string;
     resource: string;

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
@@ -27,7 +28,7 @@ func setupRoleRepo(t *testing.T) (repository.RoleRepository, *gorm.DB) {
 	})
 	require.NoError(t, err)
 
-	err = db.AutoMigrate(&entity.Role{})
+	err = db.AutoMigrate(&entity.Role{}, &orgEntity.Organization{})
 	require.NoError(t, err)
 
 	// Silent Logrus
@@ -135,4 +136,92 @@ func TestRoleRepository_CRUD(t *testing.T) {
 	_, err = repo.FindByID(ctx, role.ID)
 	assert.Error(t, err)
 	assert.Equal(t, gorm.ErrRecordNotFound, err)
+}
+
+func TestRoleRepository_Update(t *testing.T) {
+	repo, db := setupRoleRepo(t)
+	ctx := context.Background()
+
+	role := &entity.Role{
+		ID:          "role-2",
+		Name:        "TestRole",
+		Description: "Old Description",
+	}
+
+	err := repo.Create(ctx, role)
+	require.NoError(t, err)
+
+	role.Description = "New Description"
+	err = repo.Update(ctx, role)
+	require.NoError(t, err)
+
+	var updatedRole entity.Role
+	err = db.First(&updatedRole, "id = ?", role.ID).Error
+	require.NoError(t, err)
+	assert.Equal(t, "New Description", updatedRole.Description)
+}
+
+func TestRoleRepository_FindAllDynamic_ErrorSort(t *testing.T) {
+	repo, _ := setupRoleRepo(t)
+	ctx := context.Background()
+
+	filter := &querybuilder.DynamicFilter{
+		Sort: &[]querybuilder.SortModel{{ColId: "NonExistentColumn", Sort: "desc"}},
+	}
+
+	// This will just get ignored or error depending on the underlying implementation. Let's verify behavior.
+	_, err := repo.FindAllDynamic(ctx, filter)
+	// According to querybuilder, unknown columns in sort might return an error. Let's assert an error.
+	assert.Error(t, err)
+}
+
+func TestRoleRepository_FindAllDynamic_ErrorFilter(t *testing.T) {
+	repo, _ := setupRoleRepo(t)
+	ctx := context.Background()
+
+	filter := &querybuilder.DynamicFilter{
+		Filter: map[string]querybuilder.Filter{
+			"NonExistentColumn": {Type: "equals"},
+		},
+	}
+
+	_, err := repo.FindAllDynamic(ctx, filter)
+	assert.Error(t, err)
+}
+
+func TestRoleRepository_ErrorPath(t *testing.T) {
+	repo, db := setupRoleRepo(t)
+	ctx := context.Background()
+
+	// Close db to force error
+	sqlDB, _ := db.DB()
+	_ = sqlDB.Close()
+
+	// Create
+	err := repo.Create(ctx, &entity.Role{})
+	assert.Error(t, err)
+
+	// Update
+	err = repo.Update(ctx, &entity.Role{ID: "role-2"})
+	assert.Error(t, err)
+
+	// FindByID
+	_, err = repo.FindByID(ctx, "role-2")
+	assert.Error(t, err)
+
+	// FindByName
+	_, err = repo.FindByName(ctx, "test")
+	assert.Error(t, err)
+
+	// FindAll
+	_, err = repo.FindAll(ctx)
+	assert.Error(t, err)
+
+	// FindAllDynamic
+	_, err = repo.FindAllDynamic(ctx, &querybuilder.DynamicFilter{})
+	assert.Error(t, err)
+
+	// Delete
+	err = repo.Delete(ctx, "role-2")
+	assert.Error(t, err)
 }

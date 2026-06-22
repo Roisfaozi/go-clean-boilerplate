@@ -13,7 +13,7 @@ import (
 )
 
 func TestAvatarHook_HandleUpload(t *testing.T) {
-	t.Run("Positive: Success with valid user_id", func(t *testing.T) {
+	t.Run("Positive: Success with authenticated_user_id", func(t *testing.T) {
 		mockUC := new(mocks.MockUserUseCase)
 		hook := &usecase.AvatarHook{
 			UserUseCase: mockUC,
@@ -22,8 +22,8 @@ func TestAvatarHook_HandleUpload(t *testing.T) {
 		event := tus.UploadEvent{
 			FileURL: "https://s3.example.com/avatars/user123.png",
 			Metadata: map[string]string{
-				"user_id": "user123",
-				"type":    "avatar",
+				"authenticated_user_id": "user123",
+				"type":                  "avatar",
 			},
 		}
 
@@ -51,7 +51,7 @@ func TestAvatarHook_HandleUpload(t *testing.T) {
 		// UseCase should NOT be called
 		err := hook.HandleUpload(ctx, event)
 
-		assert.NoError(t, err) // Early exit returns nil
+		assert.ErrorIs(t, err, usecase.ErrAuthenticatedUploadUserRequired)
 		mockUC.AssertNotCalled(t, "SetAvatarURL", mock.Anything, mock.Anything, mock.Anything)
 	})
 
@@ -64,7 +64,7 @@ func TestAvatarHook_HandleUpload(t *testing.T) {
 		event := tus.UploadEvent{
 			FileURL: "https://s3.example.com/avatars/user123.png",
 			Metadata: map[string]string{
-				"user_id": "user123",
+				"authenticated_user_id": "user123",
 			},
 		}
 
@@ -94,7 +94,7 @@ func TestAvatarHook_HandleUpload(t *testing.T) {
 		// UseCase should NOT be called
 		err := hook.HandleUpload(ctx, event)
 
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, usecase.ErrAuthenticatedUploadUserRequired)
 		mockUC.AssertNotCalled(t, "SetAvatarURL", mock.Anything, mock.Anything, mock.Anything)
 	})
 
@@ -107,9 +107,9 @@ func TestAvatarHook_HandleUpload(t *testing.T) {
 		event := tus.UploadEvent{
 			FileURL: "https://s3.example.com/avatars/user123.png",
 			Metadata: map[string]string{
-				"user_id":  "user123",
-				"extra":    "value",
-				"filename": "test.png",
+				"authenticated_user_id": "user123",
+				"extra":                 "value",
+				"filename":              "test.png",
 			},
 		}
 
@@ -121,7 +121,7 @@ func TestAvatarHook_HandleUpload(t *testing.T) {
 		mockUC.AssertExpectations(t)
 	})
 
-	t.Run("Security: UserID with injection payload", func(t *testing.T) {
+	t.Run("Security: legacy user_id injection payload is rejected", func(t *testing.T) {
 		mockUC := new(mocks.MockUserUseCase)
 		hook := &usecase.AvatarHook{
 			UserUseCase: mockUC,
@@ -135,8 +135,27 @@ func TestAvatarHook_HandleUpload(t *testing.T) {
 			},
 		}
 
-		// Hook should pass it to UC which handles security
-		mockUC.On("SetAvatarURL", ctx, injectionPayload, event.FileURL).Return(nil).Once()
+		err := hook.HandleUpload(ctx, event)
+
+		assert.ErrorIs(t, err, usecase.ErrAuthenticatedUploadUserRequired)
+		mockUC.AssertNotCalled(t, "SetAvatarURL", mock.Anything, mock.Anything, mock.Anything)
+	})
+
+	t.Run("Security: authenticated_user_id takes precedence over client metadata", func(t *testing.T) {
+		mockUC := new(mocks.MockUserUseCase)
+		hook := &usecase.AvatarHook{
+			UserUseCase: mockUC,
+		}
+		ctx := context.Background()
+		event := tus.UploadEvent{
+			FileURL: "https://s3.example.com/avatars/secure.png",
+			Metadata: map[string]string{
+				"user_id":               "victim-user",
+				"authenticated_user_id": "user123",
+			},
+		}
+
+		mockUC.On("SetAvatarURL", ctx, "user123", event.FileURL).Return(nil).Once()
 
 		err := hook.HandleUpload(ctx, event)
 

@@ -55,7 +55,7 @@ func (ctrl *OrganizationController) CreateOrganization(c *gin.Context) {
 
 	var request model.CreateOrganizationRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -176,7 +176,7 @@ func (ctrl *OrganizationController) UpdateOrganization(c *gin.Context) {
 
 	var request model.UpdateOrganizationRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -241,6 +241,70 @@ func (ctrl *OrganizationController) DeleteOrganization(c *gin.Context) {
 		}
 		ctrl.Log.WithError(err).Error("Failed to delete organization")
 		response.InternalServerError(c, err, "failed to delete organization")
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+// RestoreOrganization restores a soft-deleted organization.
+func (ctrl *OrganizationController) RestoreOrganization(c *gin.Context) {
+	orgID := c.Param("id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, nil, "user not authenticated")
+		return
+	}
+
+	ctx := usecase.WithActorUserID(c.Request.Context(), userID.(string))
+	ctx = usecase.WithActorRole(ctx, c.GetString("user_role"))
+
+	result, err := ctrl.OrgUseCase.RestoreOrganization(ctx, orgID)
+	if err != nil {
+		if err == exception.ErrNotFound {
+			response.NotFound(c, err, "organization not found")
+			return
+		}
+		if err == exception.ErrForbidden {
+			response.Forbidden(c, err, "only superadmin can restore this organization")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to restore organization")
+		response.InternalServerError(c, err, "failed to restore organization")
+		return
+	}
+
+	response.Success(c, result)
+}
+
+// HardDeleteOrganization permanently deletes a previously soft-deleted organization.
+func (ctrl *OrganizationController) HardDeleteOrganization(c *gin.Context) {
+	orgID := c.Param("id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, nil, "user not authenticated")
+		return
+	}
+
+	ctx := usecase.WithActorUserID(c.Request.Context(), userID.(string))
+	ctx = usecase.WithActorRole(ctx, c.GetString("user_role"))
+
+	err := ctrl.OrgUseCase.HardDeleteOrganization(ctx, orgID)
+	if err != nil {
+		if err == exception.ErrNotFound {
+			response.NotFound(c, err, "organization not found")
+			return
+		}
+		if err == exception.ErrForbidden {
+			response.Forbidden(c, err, "only superadmin can hard delete this organization")
+			return
+		}
+		if err == exception.ErrBadRequest {
+			response.BadRequest(c, err, "organization must be soft-deleted before hard delete")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to hard delete organization")
+		response.InternalServerError(c, err, "failed to hard delete organization")
 		return
 	}
 
@@ -333,7 +397,7 @@ func (ctrl *OrganizationController) InviteMember(c *gin.Context) {
 
 	var request model.InviteMemberRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -434,7 +498,7 @@ func (ctrl *OrganizationController) UpdateMemberRole(c *gin.Context) {
 
 	var request model.UpdateMemberRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 

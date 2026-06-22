@@ -7,14 +7,17 @@ import { Input } from "~/components/ui/input";
 import { auditApi } from "~/lib/api/audit";
 
 export function AuditToolbar() {
-  const { searchTerm, setSearchTerm, setPage, isLoading, totalItems } = useAudit();
+  const { searchTerm, setSearchTerm, setPage, isLoading, totalItems } =
+    useAudit();
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Audit Logs</h2>
-          <p className="text-muted-foreground">Monitor system activity and user actions.</p>
+          <p className="text-muted-foreground">
+            Monitor system activity and user actions.
+          </p>
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -40,10 +43,15 @@ export function AuditToolbar() {
             className="h-8 w-[150px] lg:w-[250px]"
           />
           {isLoading && (
-            <Icon name="Loader" className="text-muted-foreground h-4 w-4 animate-spin" />
+            <Icon
+              name="Loader"
+              className="text-muted-foreground h-4 w-4 animate-spin"
+            />
           )}
         </div>
-        <div className="text-muted-foreground text-xs">Total: {totalItems} logs</div>
+        <div className="text-muted-foreground text-xs">
+          Total: {totalItems} logs
+        </div>
       </div>
     </div>
   );

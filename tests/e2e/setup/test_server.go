@@ -206,8 +206,8 @@ func SetupTusTestServer(t *testing.T) *TestServer {
 				Endpoint:       s3URL,
 				Region:         "us-east-1",
 				Bucket:         s3Bucket,
-				AccessKey:      "rustfsadmin",
-				SecretKey:      "rustfsadmin",
+				AccessKey:      integrationSetup.TestS3AccessKey,
+				SecretKey:      integrationSetup.TestS3SecretKey,
 				UseSSL:         false,
 				ForcePathStyle: true,
 			},
@@ -220,7 +220,7 @@ func SetupTusTestServer(t *testing.T) *TestServer {
 	// Create bucket using a temporary client
 	awsCfg, _ := awsconfig.LoadDefaultConfig(ctx,
 		awsconfig.WithRegion("us-east-1"),
-		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("rustfsadmin", "rustfsadmin", "")),
+		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(integrationSetup.TestS3AccessKey, integrationSetup.TestS3SecretKey, "")),
 	)
 	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(s3URL)

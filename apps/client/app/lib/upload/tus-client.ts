@@ -53,7 +53,10 @@ export interface TusUploaderOptions {
 
 const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
 
-export function createTusUpload(item: UploadItem, options: TusUploaderOptions): tus.Upload {
+export function createTusUpload(
+  item: UploadItem,
+  options: TusUploaderOptions,
+): tus.Upload {
   const upload = new tus.Upload(item.file, {
     endpoint: options.endpoint,
     chunkSize: options.chunkSize ?? DEFAULT_CHUNK_SIZE,

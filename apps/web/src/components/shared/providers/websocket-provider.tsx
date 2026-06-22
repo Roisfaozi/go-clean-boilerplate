@@ -1,6 +1,14 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import type React from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { authApi } from "~/lib/api/auth";
 import { useAuthStore } from "~/stores/use-auth-store";
 import { useOrganizationStore } from "~/stores/use-organization-store";
@@ -22,9 +30,11 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const { currentOrganization } = useOrganizationStore();
   const { user } = useAuthStore();
   const socketRef = useRef<WebSocket | null>(null);
-  const subscriptions = useRef<Map<string, Set<(data: any) => void>>>(new Map());
+  const subscriptions = useRef<Map<string, Set<(data: any) => void>>>(
+    new Map(),
+  );
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const connectRef = useRef<() => void>(() => {});
+  const connectRef = useRef<() => void>(() => undefined);
 
   const sendJson = useCallback((data: any) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -58,7 +68,9 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         try {
           // The backend might send multiple JSON objects separated by newlines in one frame
           const rawData = event.data as string;
-          const lines = rawData.split("\n").filter((line) => line.trim() !== "");
+          const lines = rawData
+            .split("\n")
+            .filter((line) => line.trim() !== "");
 
           for (const line of lines) {
             try {
@@ -66,10 +78,16 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
               const channel = message.channel || "global";
               const listeners = subscriptions.current.get(channel);
               if (listeners) {
-                listeners.forEach((callback) => callback(message));
+                listeners.forEach((callback) => {
+                  callback(message);
+                });
               }
             } catch (parseError) {
-              console.error("Failed to parse WS message line:", line, parseError);
+              console.error(
+                "Failed to parse WS message line:",
+                line,
+                parseError,
+              );
             }
           }
         } catch (error) {
@@ -86,8 +104,12 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         if (event.code === 1000 || event.code === 4001) return;
 
         // Reconnect logic
-        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = setTimeout(() => connectRef.current(), RECONNECT_INTERVAL);
+        if (reconnectTimeoutRef.current)
+          clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = setTimeout(
+          () => connectRef.current(),
+          RECONNECT_INTERVAL,
+        );
       };
 
       socket.onerror = (error) => {
@@ -104,8 +126,12 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
       if (isAuthError) return;
 
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = setTimeout(() => connectRef.current(), RECONNECT_INTERVAL);
+      if (reconnectTimeoutRef.current)
+        clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = setTimeout(
+        () => connectRef.current(),
+        RECONNECT_INTERVAL,
+      );
     }
   }, [sendJson, currentOrganization, user]);
 
@@ -119,7 +145,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       socketRef.current.close(1000, "Organization Context Changed");
     }
     connectRef.current();
-  }, [currentOrganization?.id]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -158,7 +184,9 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <WebSocketContext.Provider value={{ isConnected, subscribe, unsubscribe, sendJson }}>
+    <WebSocketContext.Provider
+      value={{ isConnected, subscribe, unsubscribe, sendJson }}
+    >
       {children}
     </WebSocketContext.Provider>
   );

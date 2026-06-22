@@ -174,6 +174,13 @@ func (r *CachedOrgReader) InvalidateOrganizationCache(ctx context.Context, orgID
 		}
 	}
 
+	statusKey := fmt.Sprintf("nexusos:org_status:%s", orgID)
+	if err := r.redis.Del(ctx, statusKey).Err(); err != nil {
+		r.log.WithError(err).Error("Failed to delete organization status cache key")
+		return err
+	}
+	deletedCount++
+
 	r.log.WithFields(logrus.Fields{
 		"org_id":        orgID,
 		"deleted_count": deletedCount,

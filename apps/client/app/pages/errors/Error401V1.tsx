@@ -27,9 +27,12 @@ export default function Error401V1() {
           <div className="bg-primary/10 mx-auto flex h-24 w-24 items-center justify-center rounded-full">
             <Lock className="text-primary h-12 w-12" />
           </div>
-          <h2 className="text-foreground text-3xl font-bold">Authentication Required</h2>
+          <h2 className="text-foreground text-3xl font-bold">
+            Authentication Required
+          </h2>
           <p className="text-muted-foreground max-w-md text-lg">
-            You need to sign in to access this resource. Your session may have expired.
+            You need to sign in to access this resource. Your session may have
+            expired.
           </p>
         </div>
       </div>
@@ -41,7 +44,8 @@ export default function Error401V1() {
             <p className="text-primary/20 text-8xl font-black">401</p>
             <h1 className="text-foreground text-3xl font-bold">Unauthorized</h1>
             <p className="text-muted-foreground">
-              Please sign in to continue. If you believe this is an error, contact support.
+              Please sign in to continue. If you believe this is an error,
+              contact support.
             </p>
           </div>
           <div className="flex flex-col justify-center gap-3 sm:flex-row">

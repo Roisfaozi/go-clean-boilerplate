@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Organization } from "~/lib/api/organizations";
+import type { Organization } from "~/lib/api/organizations";
 
 interface OrganizationState {
   currentOrganization: Organization | null;

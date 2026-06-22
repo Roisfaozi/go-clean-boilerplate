@@ -22,6 +22,7 @@ import (
 type organizationTestDeps struct {
 	OrgRepo    *mocks.MockOrganizationRepository
 	MemberRepo *mocks.MockOrganizationMemberRepository
+	OrgReader  *mocks.MockIOrganizationReader
 	TM         *mocking.MockWithTransactionManager
 	Enforcer   *permissionMocks.MockIEnforcer
 }
@@ -31,6 +32,7 @@ func setupOrganizationTest() (*organizationTestDeps, usecase.OrganizationUseCase
 	deps := &organizationTestDeps{
 		OrgRepo:    new(mocks.MockOrganizationRepository),
 		MemberRepo: new(mocks.MockOrganizationMemberRepository),
+		OrgReader:  new(mocks.MockIOrganizationReader),
 		TM:         new(mocking.MockWithTransactionManager),
 		Enforcer:   mockEnforcer,
 	}
@@ -41,8 +43,9 @@ func setupOrganizationTest() (*organizationTestDeps, usecase.OrganizationUseCase
 
 	mockEnforcer.On("WithContext", mock.Anything).Maybe().Return(mockEnforcer)
 	mockEnforcer.On("LoadPolicy").Maybe().Return(nil)
+	deps.OrgReader.On("InvalidateOrganizationCache", mock.Anything, mock.Anything).Maybe().Return(nil)
 
-	uc := usecase.NewOrganizationUseCase(log, deps.TM, deps.OrgRepo, deps.MemberRepo, deps.Enforcer)
+	uc := usecase.NewOrganizationUseCase(log, deps.TM, deps.OrgRepo, deps.MemberRepo, deps.OrgReader, deps.Enforcer)
 
 	return deps, uc
 }
@@ -272,10 +275,10 @@ func TestOrganizationUseCase_GetOrganizationBySlug(t *testing.T) {
 func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, uc := setupOrganizationTest()
-		ctx := context.Background()
+		ctx := usecase.WithActorUserID(context.Background(), "owner-1")
 		orgID := "org-1"
 		req := &model.UpdateOrganizationRequest{Name: "New Name"}
-		existingOrg := &entity.Organization{ID: orgID, Name: "Old Name"}
+		existingOrg := &entity.Organization{ID: orgID, Name: "Old Name", OwnerID: "owner-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -294,11 +297,11 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 
 	t.Run("Settings Update", func(t *testing.T) {
 		deps, uc := setupOrganizationTest()
-		ctx := context.Background()
+		ctx := usecase.WithActorUserID(context.Background(), "owner-1")
 		orgID := "org-1"
 		settings := map[string]interface{}{"theme": "dark"}
 		req := &model.UpdateOrganizationRequest{Settings: settings}
-		existingOrg := &entity.Organization{ID: orgID}
+		existingOrg := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -317,10 +320,10 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 
 	t.Run("No Change", func(t *testing.T) {
 		deps, uc := setupOrganizationTest()
-		ctx := context.Background()
+		ctx := usecase.WithActorUserID(context.Background(), "owner-1")
 		orgID := "org-1"
 		req := &model.UpdateOrganizationRequest{} // Empty
-		existingOrg := &entity.Organization{ID: orgID, Name: "Name"}
+		existingOrg := &entity.Organization{ID: orgID, Name: "Name", OwnerID: "owner-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -367,8 +370,8 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 
 	t.Run("Update Error", func(t *testing.T) {
 		deps, uc := setupOrganizationTest()
-		ctx := context.Background()
-		existingOrg := &entity.Organization{ID: "org-1"}
+		ctx := usecase.WithActorUserID(context.Background(), "owner-1")
+		existingOrg := &entity.Organization{ID: "org-1", OwnerID: "owner-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -454,6 +457,7 @@ func TestOrganizationUseCase_DeleteOrganization(t *testing.T) {
 
 		err := uc.DeleteOrganization(ctx, orgID, userID)
 		assert.NoError(t, err)
+		deps.OrgReader.AssertCalled(t, "InvalidateOrganizationCache", mock.Anything, orgID)
 	})
 
 	t.Run("Not Owner", func(t *testing.T) {
@@ -566,7 +570,7 @@ func TestCreateOrganization_XSS(t *testing.T) {
 // TestUpdateOrganization_Settings verifies that arbitrary JSON settings can be persisted correctly.
 func TestUpdateOrganization_Settings(t *testing.T) {
 	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
-	ctx := context.Background()
+	ctx := usecase.WithActorUserID(context.Background(), "owner-1")
 
 	orgID := "org-123"
 	settings := map[string]interface{}{
@@ -578,6 +582,7 @@ func TestUpdateOrganization_Settings(t *testing.T) {
 	existingOrg := &entity.Organization{
 		ID:       orgID,
 		Name:     "Acme Corp",
+		OwnerID:  "owner-1",
 		Settings: nil,
 	}
 
@@ -607,12 +612,13 @@ func TestUpdateOrganization_Settings(t *testing.T) {
 // Verifies that updates process cleanly even if data unchanged
 func TestUpdateOrganization_NoChange(t *testing.T) {
 	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
-	ctx := context.Background()
+	ctx := usecase.WithActorUserID(context.Background(), "owner-1")
 
 	orgID := "org-123"
 	existingOrg := &entity.Organization{
-		ID:   orgID,
-		Name: "Acme Corp",
+		ID:      orgID,
+		Name:    "Acme Corp",
+		OwnerID: "owner-1",
 	}
 
 	request := &model.UpdateOrganizationRequest{} // Empty request
@@ -652,7 +658,7 @@ func setupOrganizationUseCase() (*mocks.MockOrganizationRepository, *mocks.MockO
 	enforcer.On("AddGroupingPolicy", mock.Anything).Maybe().Return(true, nil)
 	enforcer.On("LoadPolicy").Maybe().Return(nil)
 
-	uc := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, enforcer)
+	uc := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, nil, enforcer)
 	return orgRepo, memberRepo, tm, enforcer, uc
 }
 
@@ -807,7 +813,7 @@ func TestGetOrganizationBySlug_Success(t *testing.T) {
 
 func TestUpdateOrganization_Success(t *testing.T) {
 	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
-	ctx := context.Background()
+	ctx := usecase.WithActorUserID(context.Background(), "user-123")
 
 	existingOrg := &entity.Organization{
 		ID:      "org-123",

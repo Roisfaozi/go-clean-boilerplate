@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useWebSocket } from "~/components/shared/providers/websocket-provider";
-import { AuditLog } from "~/lib/api/audit";
+import type { AuditLog } from "~/lib/api/audit";
 import { toast } from "sonner";
 
 export function useAuditStream() {

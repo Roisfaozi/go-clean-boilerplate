@@ -29,11 +29,14 @@ export function UploadDuplicateDialog() {
         <AlertDialogHeader>
           <AlertDialogTitle>File already exists</AlertDialogTitle>
           <AlertDialogDescription>
-            <span className="text-foreground font-medium">{current?.file.name}</span> already exists
-            in this folder. Choose how to handle this upload.
+            <span className="text-foreground font-medium">
+              {current?.file.name}
+            </span>{" "}
+            already exists in this folder. Choose how to handle this upload.
             {pending.length > 1 && (
               <span className="text-muted-foreground mt-2 block text-xs">
-                {pending.length - 1} more conflict{pending.length - 1 > 1 ? "s" : ""} after this.
+                {pending.length - 1} more conflict
+                {pending.length - 1 > 1 ? "s" : ""} after this.
               </span>
             )}
           </AlertDialogDescription>
@@ -54,7 +57,9 @@ export function UploadDuplicateDialog() {
             Keep both
           </NexusButton>
           <AlertDialogAction asChild>
-            <NexusButton onClick={() => current && resolve(current.existingId, "replace")}>
+            <NexusButton
+              onClick={() => current && resolve(current.existingId, "replace")}
+            >
               Replace
             </NexusButton>
           </AlertDialogAction>

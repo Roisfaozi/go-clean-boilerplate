@@ -91,7 +91,8 @@ export function PresenceAvatars({
       </div>
       {showCount && (
         <span className="text-small text-muted-foreground ml-3">
-          <span className="text-foreground font-semibold">{onlineCount}</span> online
+          <span className="text-foreground font-semibold">{onlineCount}</span>{" "}
+          online
         </span>
       )}
     </div>

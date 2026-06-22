@@ -2,11 +2,17 @@
 
 import * as React from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
-import { statsApi, ActivityPoint } from "~/lib/api/stats";
+import { statsApi, type ActivityPoint } from "~/lib/api/stats";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import {
-  ChartConfig,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import {
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -52,15 +58,22 @@ export function ActivityChart() {
     <Card className="flex flex-col">
       <CardHeader>
         <CardTitle>System Activity</CardTitle>
-        <CardDescription>Daily trends for audit events and user logins.</CardDescription>
+        <CardDescription>
+          Daily trends for audit events and user logins.
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         {isLoading ? (
           <div className="flex h-[250px] w-full items-center justify-center">
-            <p className="text-muted-foreground animate-pulse text-sm">Loading activity data...</p>
+            <p className="text-muted-foreground animate-pulse text-sm">
+              Loading activity data...
+            </p>
           </div>
         ) : (
-          <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-[250px] w-full"
+          >
             <LineChart
               accessibilityLayer
               data={data}
@@ -81,8 +94,16 @@ export function ActivityChart() {
                   });
                 }}
               />
-              <YAxis tickLine={false} axisLine={false} tickMargin={8} fontSize={10} />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                fontSize={10}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel />}
+              />
               <Line
                 dataKey="audits"
                 type="natural"

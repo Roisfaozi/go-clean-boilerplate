@@ -1,7 +1,17 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { OrganizationSettings, organizationsApi, Organization } from "~/lib/api/organizations";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
+import {
+  type OrganizationSettings,
+  organizationsApi,
+  type Organization,
+} from "~/lib/api/organizations";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -19,10 +29,13 @@ interface SettingsContextType {
   currentOrganization: Organization | null;
 }
 
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+const SettingsContext = createContext<SettingsContextType | undefined>(
+  undefined,
+);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const { currentOrganization, setCurrentOrganization } = useOrganizationStore();
+  const { currentOrganization, setCurrentOrganization } =
+    useOrganizationStore();
   const [name, setName] = useState(currentOrganization?.name || "");
   const [settings, setSettings] = useState<OrganizationSettings>(
     currentOrganization?.settings || {},
@@ -88,7 +101,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const hasChanges =
     name !== currentOrganization?.name ||
-    JSON.stringify(settings) !== JSON.stringify(currentOrganization?.settings || {});
+    JSON.stringify(settings) !==
+      JSON.stringify(currentOrganization?.settings || {});
 
   return (
     <SettingsContext.Provider

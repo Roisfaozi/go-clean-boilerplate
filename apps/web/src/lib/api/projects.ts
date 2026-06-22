@@ -1,5 +1,5 @@
 import { api } from "./client";
-import { Project } from "~/types";
+import type { Project } from "~/types";
 
 export type { Project };
 
@@ -27,13 +27,20 @@ export const projectsApi = {
     api.get<ProjectListResponse>("/projects", options).then((res) => res.data),
 
   getByID: (id: string, options?: RequestOptions) =>
-    api.get<{ data: Project }>(`/projects/${id}`, options).then((res) => res.data),
+    api
+      .get<{ data: Project }>(`/projects/${id}`, options)
+      .then((res) => res.data),
 
   create: (req: CreateProjectRequest, options?: RequestOptions) =>
-    api.post<{ data: Project }>("/projects", req, options).then((res) => res.data),
+    api
+      .post<{ data: Project }>("/projects", req, options)
+      .then((res) => res.data),
 
   update: (id: string, req: UpdateProjectRequest, options?: RequestOptions) =>
-    api.put<{ data: Project }>(`/projects/${id}`, req, options).then((res) => res.data),
+    api
+      .put<{ data: Project }>(`/projects/${id}`, req, options)
+      .then((res) => res.data),
 
-  delete: (id: string, options?: RequestOptions) => api.delete(`/projects/${id}`, options),
+  delete: (id: string, options?: RequestOptions) =>
+    api.delete(`/projects/${id}`, options),
 };

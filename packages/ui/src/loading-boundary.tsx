@@ -55,8 +55,14 @@ const fallbacks: Record<string, React.ReactNode> = {
   inline: <InlineSkeleton />,
 };
 
-export function LoadingBoundary({ children, fallback, variant = "page" }: LoadingBoundaryProps) {
-  return <Suspense fallback={fallback ?? fallbacks[variant]}>{children}</Suspense>;
+export function LoadingBoundary({
+  children,
+  fallback,
+  variant = "page",
+}: LoadingBoundaryProps) {
+  return (
+    <Suspense fallback={fallback ?? fallbacks[variant]}>{children}</Suspense>
+  );
 }
 
 export { PageSkeleton, CardSkeleton, InlineSkeleton };

@@ -14,7 +14,12 @@ export const statsApi = {
     apiClient.get<DashboardStats>("/stats/dashboard", dashboardStatsSchema),
 
   getActivityMetrics: (params?: { from?: string; to?: string }) =>
-    apiClient.get<ActivityMetric[]>("/stats/activity", z.array(activityMetricSchema), { params }),
+    apiClient.get<ActivityMetric[]>(
+      "/stats/activity",
+      z.array(activityMetricSchema),
+      { params },
+    ),
 
-  getSystemInsights: () => apiClient.get<SystemInsight>("/stats/insights", systemInsightSchema),
+  getSystemInsights: () =>
+    apiClient.get<SystemInsight>("/stats/insights", systemInsightSchema),
 };

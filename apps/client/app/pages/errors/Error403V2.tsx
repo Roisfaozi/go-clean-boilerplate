@@ -15,14 +15,24 @@ export default function Error403V2() {
           <ShieldOff className="text-danger h-10 w-10 -rotate-12" />
         </div>
         <div className="space-y-2">
-          <p className="text-danger text-sm font-semibold tracking-widest uppercase">Error 403</p>
-          <h1 className="text-foreground text-4xl font-bold">Access Forbidden</h1>
+          <p className="text-danger text-sm font-semibold tracking-widest uppercase">
+            Error 403
+          </p>
+          <h1 className="text-foreground text-4xl font-bold">
+            Access Forbidden
+          </h1>
           <p className="text-muted-foreground leading-relaxed">
-            Your account doesn't have the required permissions. Contact an admin to request access.
+            Your account doesn't have the required permissions. Contact an admin
+            to request access.
           </p>
         </div>
         <div className="flex flex-col gap-3">
-          <NexusButton variant="primary" size="lg" className="w-full" onClick={() => navigate("/")}>
+          <NexusButton
+            variant="primary"
+            size="lg"
+            className="w-full"
+            onClick={() => navigate("/")}
+          >
             <Home className="h-4 w-4" />
             Return to Dashboard
           </NexusButton>

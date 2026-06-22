@@ -11,6 +11,7 @@ import (
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -358,11 +359,17 @@ func (uc *PermissionUseCase) DeleteRole(ctx context.Context, roleName string) er
 		return err
 	}
 
-	// Force reload to ensure all enforcer instances (especially the global one used by middleware)
-	// reflect the changes made in DB.
+	if _, inTx := tx.DBFromContext(ctx); !inTx {
+		return uc.ReloadPolicy(ctx)
+	}
+
+	return nil
+}
+
+func (uc *PermissionUseCase) ReloadPolicy(ctx context.Context) error {
 	if err := uc.enforcer.LoadPolicy(); err != nil {
-		uc.log.WithContext(ctx).Errorf("Failed to reload Casbin policy after role deletion: %v", err)
-		// We don't return error here because the DB change was successful
+		uc.log.WithContext(ctx).Errorf("Failed to reload Casbin policy: %v", err)
+		return err
 	}
 
 	return nil

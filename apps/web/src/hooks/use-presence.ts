@@ -2,7 +2,10 @@
 
 import { useEffect, useCallback } from "react";
 import { useWebSocket } from "~/components/shared/providers/websocket-provider";
-import { usePresenceStore, PresenceUser } from "~/stores/use-presence-store";
+import {
+  usePresenceStore,
+  type PresenceUser,
+} from "~/stores/use-presence-store";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { organizationsApi } from "~/lib/api/organizations";
 

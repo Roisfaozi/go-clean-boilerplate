@@ -23,25 +23,43 @@ type Config struct {
 func NewHandler(cfg Config, registry *Registry, s3Client *s3.Client, log *logrus.Logger) (*handler.Handler, error) {
 	var store handler.DataStore
 	if cfg.StorageDriver == "s3" {
-		store = s3store.New(cfg.S3Bucket, s3Client)
+		s3Store := s3store.New(cfg.S3Bucket, s3Client)
+		store = s3Store
 	} else {
 		// Default to local file store
 		err := os.MkdirAll(cfg.LocalRootPath, 0755)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create tus directory: %w", err)
 		}
-		store = filestore.New(cfg.LocalRootPath)
+		fileStore := filestore.New(cfg.LocalRootPath)
+		store = fileStore
 	}
 
 	// Create Composer
 	composer := handler.NewStoreComposer()
-	composer.UseCore(store)
+	if extendedStore, ok := store.(interface{ UseIn(*handler.StoreComposer) }); ok {
+		extendedStore.UseIn(composer)
+	} else {
+		composer.UseCore(store)
+	}
 
 	// Create Handler with Notifications Enabled
 	tusHandler, err := handler.NewHandler(handler.Config{
 		BasePath:              cfg.BasePath,
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
+		PreUploadCreateCallback: func(hook handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error) {
+			resp, changes, err := BindAuthenticatedMetadata(hook)
+			if err != nil {
+				return resp, changes, err
+			}
+
+			if resp, _, err := ValidateUploadMetadata(changes.MetaData, registry); err != nil {
+				return resp, handler.FileInfoChanges{}, err
+			}
+
+			return resp, changes, nil
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -74,10 +92,40 @@ func NewHandler(cfg Config, registry *Registry, s3Client *s3.Client, log *logrus
 					} else {
 						fmt.Printf("Hook error for %s: %v\n", uploadType, err)
 					}
+					cleanupFailedCompletedUpload(context.Background(), store, event.Upload.ID, log)
 				}
 			}
 		}
 	}()
 
 	return tusHandler, nil
+}
+
+func cleanupFailedCompletedUpload(ctx context.Context, store handler.DataStore, uploadID string, log *logrus.Logger) {
+	terminater, ok := store.(handler.TerminaterDataStore)
+	if !ok {
+		if log != nil {
+			log.Warnf("TUS store does not support termination after hook failure for upload %s", uploadID)
+		}
+		return
+	}
+
+	upload, err := store.GetUpload(ctx, uploadID)
+	if err != nil {
+		if log != nil {
+			log.WithError(err).Warnf("Failed to load completed upload %s for cleanup after hook failure", uploadID)
+		}
+		return
+	}
+
+	if err := terminater.AsTerminatableUpload(upload).Terminate(ctx); err != nil {
+		if log != nil {
+			log.WithError(err).Warnf("Failed to terminate completed upload %s after hook failure", uploadID)
+		}
+		return
+	}
+
+	if log != nil {
+		log.Warnf("Terminated completed upload %s after hook failure", uploadID)
+	}
 }

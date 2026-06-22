@@ -12,7 +12,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "echo 'no lint configured yet'"
+    "lint": "biome lint --write .",
+    "format": "biome format --write ."
   },
   "peerDependencies": {
     "react": "^18 || ^19",

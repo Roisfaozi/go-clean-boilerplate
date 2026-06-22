@@ -80,7 +80,9 @@ export default function ProjectsPage() {
               <NexusCardDescription>{p.description}</NexusCardDescription>
             </NexusCardHeader>
             <NexusCardContent>
-              <NexusBadge variant={statusVariant(p.status)}>{p.status}</NexusBadge>
+              <NexusBadge variant={statusVariant(p.status)}>
+                {p.status}
+              </NexusBadge>
             </NexusCardContent>
           </NexusCard>
         ))}

@@ -4,7 +4,7 @@ import { DataTable } from "@/components/patterns/data-table";
 import { NexusBadge } from "@casbin/ui";
 import { NexusButton } from "@casbin/ui";
 import { NexusInput } from "@casbin/ui";
-import { Plus, Search, MoreHorizontal, Trash2 } from "lucide-react";
+import { Plus, Search, MoreHorizontal } from "lucide-react";
 
 const mockUsers = [
   {
@@ -80,7 +80,9 @@ export default function UsersPage() {
       key: "status",
       header: "Status",
       render: (u: (typeof mockUsers)[0]) => (
-        <NexusBadge variant={u.status === "active" ? "success" : "danger"}>{u.status}</NexusBadge>
+        <NexusBadge variant={u.status === "active" ? "success" : "danger"}>
+          {u.status}
+        </NexusBadge>
       ),
     },
     {

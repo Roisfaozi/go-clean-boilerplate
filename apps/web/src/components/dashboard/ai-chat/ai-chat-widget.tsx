@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { useState, useRef, useEffect } from "react";
 import { useAiChat } from "~/hooks/use-ai-chat";
 import { Button } from "~/components/ui/button";
@@ -22,7 +21,7 @@ export function AiChatWidget() {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, []);
 
   const handleSend = async () => {
     if (!inputValue.trim() || isTyping) return;
@@ -79,7 +78,9 @@ export function AiChatWidget() {
                     <div
                       className={cn(
                         "h-1.5 w-1.5 rounded-full",
-                        isTyping ? "animate-pulse bg-emerald-500" : "bg-muted-foreground/30",
+                        isTyping
+                          ? "animate-pulse bg-emerald-500"
+                          : "bg-muted-foreground/30",
                       )}
                     />
                     <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
@@ -116,14 +117,19 @@ export function AiChatWidget() {
               {messages.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center py-12 text-center opacity-50">
                   <Icon name="MessagesSquare" className="mb-2 h-8 w-8" />
-                  <p className="text-sm">How can I help you with your dashboard today?</p>
+                  <p className="text-sm">
+                    How can I help you with your dashboard today?
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {messages.map((msg, i) => (
                     <div
                       key={i}
-                      className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}
+                      className={cn(
+                        "flex",
+                        msg.role === "user" ? "justify-end" : "justify-start",
+                      )}
                     >
                       <div
                         className={cn(
@@ -183,7 +189,9 @@ export function AiChatWidget() {
                 <QuickChip
                   label="Audit Help"
                   icon="FileText"
-                  onClick={() => setInputValue("Explain how to read audit logs")}
+                  onClick={() =>
+                    setInputValue("Explain how to read audit logs")
+                  }
                 />
               </div>
             </div>
@@ -194,7 +202,15 @@ export function AiChatWidget() {
   );
 }
 
-function QuickChip({ label, icon, onClick }: { label: string; icon: string; onClick: () => void }) {
+function QuickChip({
+  label,
+  icon,
+  onClick,
+}: {
+  label: string;
+  icon: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"

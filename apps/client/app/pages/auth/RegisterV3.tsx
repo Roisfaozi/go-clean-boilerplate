@@ -3,9 +3,16 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { z } from "zod";
 import { NexusButton } from "@casbin/ui";
-import { Hexagon, ArrowRight, User, Mail, Lock, KeyRound, ChevronRight } from "lucide-react";
+import {
+  Hexagon,
+  ArrowRight,
+  User,
+  Mail,
+  Lock,
+  KeyRound,
+  ChevronRight,
+} from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
-import { toast } from "@casbin/ui";
 import { motion } from "framer-motion";
 
 const registerSchema = z
@@ -85,7 +92,12 @@ export default function RegisterV3() {
   };
 
   const handleGoogleSignup = () => {
-    login({ id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" });
+    login({
+      id: "g1",
+      name: "Google User",
+      email: "user@gmail.com",
+      username: "googleuser",
+    });
     navigate("/");
   };
 
@@ -98,7 +110,9 @@ export default function RegisterV3() {
           ? 2
           : 3;
   const strengthLabel = ["", "Weak", "Good", "Strong"][strength];
-  const strengthColor = ["", "bg-destructive", "bg-warning", "bg-success"][strength];
+  const strengthColor = ["", "bg-destructive", "bg-warning", "bg-success"][
+    strength
+  ];
 
   const inputClass =
     "w-full h-12 rounded-xl border border-primary-foreground/15 bg-primary-foreground/5 px-4 text-primary-foreground placeholder:opacity-30 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors";
@@ -143,7 +157,8 @@ export default function RegisterV3() {
               </span>
             </h1>
             <p className="max-w-md text-lg opacity-60">
-              Create your free account and start managing teams, roles, and projects with ease.
+              Create your free account and start managing teams, roles, and
+              projects with ease.
             </p>
           </div>
 
@@ -164,8 +179,8 @@ export default function RegisterV3() {
           {/* Testimonial */}
           <div className="border-primary-foreground/10 bg-primary-foreground/5 rounded-2xl border p-6 backdrop-blur-sm">
             <p className="text-sm leading-relaxed italic opacity-70">
-              "Setting up our entire team on NexusOS took less than 10 minutes. The onboarding
-              experience is seamless."
+              "Setting up our entire team on NexusOS took less than 10 minutes.
+              The onboarding experience is seamless."
             </p>
             <div className="mt-4 flex items-center gap-3">
               <div className="bg-primary/30 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold">
@@ -173,7 +188,9 @@ export default function RegisterV3() {
               </div>
               <div>
                 <div className="text-sm font-medium">Sarah Kim</div>
-                <div className="text-xs opacity-50">VP Engineering, StartupXYZ</div>
+                <div className="text-xs opacity-50">
+                  VP Engineering, StartupXYZ
+                </div>
               </div>
             </div>
           </div>
@@ -198,7 +215,9 @@ export default function RegisterV3() {
 
           <div className="space-y-2">
             <h2 className="text-3xl font-bold">Create account</h2>
-            <p className="text-sm opacity-50">Free forever. No credit card required.</p>
+            <p className="text-sm opacity-50">
+              Free forever. No credit card required.
+            </p>
           </div>
 
           <NexusButton
@@ -212,7 +231,9 @@ export default function RegisterV3() {
 
           <div className="flex items-center gap-3">
             <div className="bg-primary-foreground/10 h-px flex-1" />
-            <span className="text-xs tracking-widest uppercase opacity-40">or</span>
+            <span className="text-xs tracking-widest uppercase opacity-40">
+              or
+            </span>
             <div className="bg-primary-foreground/10 h-px flex-1" />
           </div>
 
@@ -229,7 +250,9 @@ export default function RegisterV3() {
                   onChange={update("name")}
                   disabled={loading}
                 />
-                {errors.name && <p className="text-destructive mt-1 text-xs">{errors.name}</p>}
+                {errors.name && (
+                  <p className="text-destructive mt-1 text-xs">{errors.name}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <label className="flex items-center gap-2 text-sm font-medium opacity-70">
@@ -243,7 +266,9 @@ export default function RegisterV3() {
                   disabled={loading}
                 />
                 {errors.username && (
-                  <p className="text-destructive mt-1 text-xs">{errors.username}</p>
+                  <p className="text-destructive mt-1 text-xs">
+                    {errors.username}
+                  </p>
                 )}
               </div>
             </div>
@@ -259,7 +284,9 @@ export default function RegisterV3() {
                 onChange={update("email")}
                 disabled={loading}
               />
-              {errors.email && <p className="text-destructive mt-1 text-xs">{errors.email}</p>}
+              {errors.email && (
+                <p className="text-destructive mt-1 text-xs">{errors.email}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <label className="flex items-center gap-2 text-sm font-medium opacity-70">
@@ -287,7 +314,9 @@ export default function RegisterV3() {
                 </div>
               )}
               {errors.password && (
-                <p className="text-destructive mt-1 text-xs">{errors.password}</p>
+                <p className="text-destructive mt-1 text-xs">
+                  {errors.password}
+                </p>
               )}
             </div>
             <div className="space-y-1.5">
@@ -303,7 +332,9 @@ export default function RegisterV3() {
                 disabled={loading}
               />
               {errors.confirmPassword && (
-                <p className="text-destructive mt-1 text-xs">{errors.confirmPassword}</p>
+                <p className="text-destructive mt-1 text-xs">
+                  {errors.confirmPassword}
+                </p>
               )}
             </div>
             <NexusButton
@@ -324,7 +355,8 @@ export default function RegisterV3() {
             </Link>
           </p>
           <p className="text-center text-[11px] opacity-30">
-            By creating an account you agree to our Terms of Service and Privacy Policy
+            By creating an account you agree to our Terms of Service and Privacy
+            Policy
           </p>
         </motion.div>
       </div>

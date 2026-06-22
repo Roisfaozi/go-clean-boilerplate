@@ -11,16 +11,15 @@ import {
   TrendIndicator,
 } from "@/components/data/analytics-cards";
 import { Sparkline } from "@/components/charts/charts";
+import { useMetricsStore } from "@/stores/realtime-store";
 import {
   Users,
-  Shield,
   Building2,
   FileText,
   Activity,
   Zap,
   AlertTriangle,
   Clock,
-  ArrowUpRight,
   UserCheck,
   BarChart3,
   TrendingUp,
@@ -40,7 +39,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  ResponsiveContainer,
 } from "recharts";
 
 /* ── Mock data simulating API responses ── */
@@ -124,8 +122,14 @@ type Range = "7d" | "14d" | "30d";
 
 export default function DashboardPage() {
   const [range, setRange] = useState<Range>("14d");
+  const { metrics, history } = useMetricsStore();
 
-  const displayedActivity = range === "7d" ? activityData.slice(7) : activityData;
+  const displayedActivity =
+    range === "7d" ? activityData.slice(7) : activityData;
+
+  // Real-time RPS history for sparklines
+  const rpsHistory = history.map((h) => h.rps);
+  const _latencyHistory = history.map((h) => h.latency);
 
   return (
     <div className="space-y-6">
@@ -152,19 +156,40 @@ export default function DashboardPage() {
       <DashboardGrid columns={4}>
         <MetricCard
           title="Total Users"
-          value={summaryData.total_users.toLocaleString()}
+          value={
+            metrics?.total_users.toLocaleString() ||
+            summaryData.total_users.toLocaleString()
+          }
           trend={summaryTrends.total_users}
           icon={Users}
           iconColor="bg-primary/10"
-          sparkline={<Sparkline data={[18, 22, 25, 23, 28, 30, 28]} color="hsl(239, 84%, 67%)" />}
+          sparkline={
+            <Sparkline
+              data={
+                rpsHistory.length > 0
+                  ? rpsHistory
+                  : [18, 22, 25, 23, 28, 30, 28]
+              }
+              color="hsl(239, 84%, 67%)"
+            />
+          }
         />
         <MetricCard
-          title="Total Roles"
-          value={summaryData.total_roles.toString()}
-          trend={summaryTrends.total_roles}
-          icon={Shield}
-          iconColor="bg-info/10"
-          sparkline={<Sparkline data={[14, 14, 15, 16, 16, 17, 18]} color="hsl(217, 91%, 60%)" />}
+          title="Active Users"
+          value={metrics?.active_users.toString() || "0"}
+          trend={{ value: 5.2, label: "Live now" }}
+          icon={Activity}
+          iconColor="bg-success/10"
+          sparkline={
+            <Sparkline
+              data={
+                rpsHistory.length > 0
+                  ? rpsHistory
+                  : [14, 14, 15, 16, 16, 17, 18]
+              }
+              color="hsl(168, 76%, 42%)"
+            />
+          }
         />
         <MetricCard
           title="Org Members"
@@ -186,7 +211,10 @@ export default function DashboardPage() {
           icon={FileText}
           iconColor="bg-warning/10"
           sparkline={
-            <Sparkline data={[560, 540, 580, 520, 550, 530, 542]} color="hsl(38, 92%, 50%)" />
+            <Sparkline
+              data={[560, 540, 580, 520, 550, 530, 542]}
+              color="hsl(38, 92%, 50%)"
+            />
           }
         />
       </DashboardGrid>
@@ -208,17 +236,38 @@ export default function DashboardPage() {
           <AreaChart data={displayedActivity}>
             <defs>
               <linearGradient id="loginGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(239, 84%, 67%)" stopOpacity={0.25} />
-                <stop offset="100%" stopColor="hsl(239, 84%, 67%)" stopOpacity={0} />
+                <stop
+                  offset="0%"
+                  stopColor="hsl(239, 84%, 67%)"
+                  stopOpacity={0.25}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="hsl(239, 84%, 67%)"
+                  stopOpacity={0}
+                />
               </linearGradient>
               <linearGradient id="auditGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(168, 76%, 42%)" stopOpacity={0.25} />
-                <stop offset="100%" stopColor="hsl(168, 76%, 42%)" stopOpacity={0} />
+                <stop
+                  offset="0%"
+                  stopColor="hsl(168, 76%, 42%)"
+                  stopOpacity={0.25}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="hsl(168, 76%, 42%)"
+                  stopOpacity={0}
+                />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="date" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-            <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+            />
+            <YAxis
+              tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+            />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend />
             <Area
@@ -241,31 +290,39 @@ export default function DashboardPage() {
         </ChartCard>
 
         {/* System Insights (sidebar) */}
-        <AnalyticsCard title="System Performance" description="Real-time health metrics">
+        <AnalyticsCard
+          title="System Performance"
+          description="Real-time health metrics"
+          actions={
+            <NexusBadge variant="success" className="animate-pulse">
+              LIVE
+            </NexusBadge>
+          }
+        >
           <div className="space-y-0">
             <InsightMetric
+              label="Real-time RPS"
+              value={`${metrics?.rps.toFixed(1) || "0.0"}`}
+              status={(metrics?.rps || 0) < 50 ? "good" : "warning"}
+              description="Requests per second"
+            />
+            <InsightMetric
               label="Avg Latency"
-              value={`${insightsData.avg_latency_ms}ms`}
-              status={insightsData.avg_latency_ms < 100 ? "good" : "warning"}
+              value={`${metrics?.avg_latency.toFixed(0) || insightsData.avg_latency_ms}ms`}
+              status={(metrics?.avg_latency || 0) < 100 ? "good" : "warning"}
               description="Response time p95"
             />
             <InsightMetric
               label="Error Rate"
-              value={`${insightsData.error_rate}%`}
-              status={insightsData.error_rate < 0.5 ? "good" : "critical"}
+              value={`${metrics?.error_rate || insightsData.error_rate}%`}
+              status={(metrics?.error_rate || 0) < 0.5 ? "good" : "critical"}
               description="Last 24 hours"
             />
             <InsightMetric
               label="Uptime"
-              value={`${insightsData.uptime_percent}%`}
-              status={insightsData.uptime_percent > 99.9 ? "good" : "warning"}
+              value={`${metrics?.uptime || insightsData.uptime_percent}%`}
+              status={(metrics?.uptime || 0) > 99.9 ? "good" : "warning"}
               description="30-day rolling"
-            />
-            <InsightMetric
-              label="Most Active Role"
-              value={insightsData.most_active_role}
-              status="neutral"
-              description="By login frequency"
             />
           </div>
 
@@ -284,7 +341,9 @@ export default function DashboardPage() {
               <div className="bg-danger/10 inline-flex h-10 w-10 items-center justify-center rounded-full">
                 <AlertTriangle className="text-danger h-4 w-4" />
               </div>
-              <p className="text-caption text-foreground font-medium">{insightsData.error_rate}%</p>
+              <p className="text-caption text-foreground font-medium">
+                {insightsData.error_rate}%
+              </p>
               <p className="text-caption text-muted-foreground">Errors</p>
             </div>
             <div className="space-y-1 text-center">
@@ -303,13 +362,27 @@ export default function DashboardPage() {
       {/* ═══ User Insights & Performance ═══ */}
       <div className="gap-gap grid grid-cols-1 lg:grid-cols-2">
         {/* User Growth */}
-        <ChartCard title="User Growth" description="Monthly registered users" height={280}>
+        <ChartCard
+          title="User Growth"
+          description="Monthly registered users"
+          height={280}
+        >
           <BarChart data={userGrowthData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-            <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+            <XAxis
+              dataKey="month"
+              tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+            />
+            <YAxis
+              tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+            />
             <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="users" name="Users" fill="hsl(239, 84%, 67%)" radius={[6, 6, 0, 0]} />
+            <Bar
+              dataKey="users"
+              name="Users"
+              fill="hsl(239, 84%, 67%)"
+              radius={[6, 6, 0, 0]}
+            />
           </BarChart>
         </ChartCard>
 
@@ -321,8 +394,14 @@ export default function DashboardPage() {
         >
           <LineChart data={performanceTimeline}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="time" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-            <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+            <XAxis
+              dataKey="time"
+              tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+            />
+            <YAxis
+              yAxisId="left"
+              tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+            />
             <YAxis
               yAxisId="right"
               orientation="right"
@@ -355,7 +434,11 @@ export default function DashboardPage() {
 
       {/* ═══ Bottom Row: Role Distribution + Quick Metrics ═══ */}
       <div className="gap-gap grid grid-cols-1 lg:grid-cols-3">
-        <ChartCard title="Role Distribution" description="Active user roles" height={260}>
+        <ChartCard
+          title="Role Distribution"
+          description="Active user roles"
+          height={260}
+        >
           <PieChart>
             <Pie
               data={roleDistribution}
@@ -382,18 +465,45 @@ export default function DashboardPage() {
         >
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
-              { label: "New Users", value: "347", trend: 15.2, icon: UserCheck },
-              { label: "Active Sessions", value: "1,204", trend: 8.7, icon: Activity },
-              { label: "API Calls", value: "284K", trend: -3.4, icon: BarChart3 },
-              { label: "Conversions", value: "12.4%", trend: 22.1, icon: TrendingUp },
+              {
+                label: "New Users",
+                value: "347",
+                trend: 15.2,
+                icon: UserCheck,
+              },
+              {
+                label: "Active Sessions",
+                value: "1,204",
+                trend: 8.7,
+                icon: Activity,
+              },
+              {
+                label: "API Calls",
+                value: "284K",
+                trend: -3.4,
+                icon: BarChart3,
+              },
+              {
+                label: "Conversions",
+                value: "12.4%",
+                trend: 22.1,
+                icon: TrendingUp,
+              },
             ].map((metric) => (
-              <div key={metric.label} className="bg-surface space-y-2 rounded-lg p-4">
+              <div
+                key={metric.label}
+                className="bg-surface space-y-2 rounded-lg p-4"
+              >
                 <div className="flex items-center justify-between">
                   <metric.icon className="text-muted-foreground h-4 w-4" />
                   <TrendIndicator value={metric.trend} size="sm" />
                 </div>
-                <p className="text-h2 text-foreground font-bold">{metric.value}</p>
-                <p className="text-caption text-muted-foreground">{metric.label}</p>
+                <p className="text-h2 text-foreground font-bold">
+                  {metric.value}
+                </p>
+                <p className="text-caption text-muted-foreground">
+                  {metric.label}
+                </p>
               </div>
             ))}
           </div>
@@ -401,12 +511,19 @@ export default function DashboardPage() {
           {/* Recent activity summary */}
           <div className="border-border mt-4 border-t pt-4">
             <div className="flex items-center justify-between">
-              <p className="text-small text-muted-foreground">Platform health score</p>
+              <p className="text-small text-muted-foreground">
+                Platform health score
+              </p>
               <div className="flex items-center gap-2">
                 <div className="bg-muted h-2 w-32 overflow-hidden rounded-full">
-                  <div className="bg-success h-full rounded-full" style={{ width: "94%" }} />
+                  <div
+                    className="bg-success h-full rounded-full"
+                    style={{ width: "94%" }}
+                  />
                 </div>
-                <span className="text-body text-success font-semibold">94%</span>
+                <span className="text-body text-success font-semibold">
+                  94%
+                </span>
               </div>
             </div>
           </div>

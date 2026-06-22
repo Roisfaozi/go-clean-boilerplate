@@ -1,5 +1,3 @@
-import { DashboardHeader } from "~/components/layout/dashboard/header";
-import { Sidebar } from "~/components/layout/sidebar";
 import { DashboardShellProvider } from "./_components/dashboard-shell-context";
 import { organizationsApi } from "~/lib/api/organizations";
 
@@ -7,7 +5,11 @@ import { organizationsApi } from "~/lib/api/organizations";
 // Let's create a Client wrapper for the layout logic
 import { DashboardLayoutClient } from "./layout-client";
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   // 1. Fetch organizations on Server (Critical for Navigation/Switcher)
   let initialOrgs = undefined;
   try {

@@ -26,8 +26,9 @@ export default function Hero() {
           />
 
           <p className="animate-delay-200 animate-fade-in max-w-[48rem] text-lg text-slate-500 sm:text-xl dark:text-slate-400">
-            The ultimate Go + Next.js boilerplate. Granular Casbin RBAC, Multi-tenancy, Real-time
-            Presence, and Modular Audit Logging—everything you need to ship enterprise SaaS in days.
+            The ultimate Go + Next.js boilerplate. Granular Casbin RBAC,
+            Multi-tenancy, Real-time Presence, and Modular Audit
+            Logging—everything you need to ship enterprise SaaS in days.
           </p>
 
           <div className="flex flex-col items-center gap-4 sm:flex-row">
@@ -40,7 +41,10 @@ export default function Hero() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Link href="https://github.com/Roisfaozi/go-clean-boilerplate" target="_blank">
+            <Link
+              href="https://github.com/Roisfaozi/go-clean-boilerplate"
+              target="_blank"
+            >
               <Button
                 variant="outline"
                 size="lg"

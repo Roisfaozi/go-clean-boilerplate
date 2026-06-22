@@ -1,12 +1,14 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { NexusButton } from "@casbin/ui";
-import { NexusBadge } from "@casbin/ui";
 import { Info } from "lucide-react";
 
 export default function ShowcaseButtons() {
   return (
     <div className="max-w-5xl space-y-8">
-      <PageHeader title="Buttons" description="NexusButton — all variants, sizes, and states." />
+      <PageHeader
+        title="Buttons"
+        description="NexusButton — all variants, sizes, and states."
+      />
 
       <Section title="Variants">
         <div className="flex flex-wrap items-center gap-3">
@@ -40,7 +42,13 @@ export default function ShowcaseButtons() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="space-y-4">
       <h2 className="text-h2 text-foreground">{title}</h2>

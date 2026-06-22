@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { NexusCard } from "@casbin/ui";
-import { NexusButton } from "@casbin/ui";
 import { NexusInput } from "@casbin/ui";
-import { Badge } from "@casbin/ui";
 import { useToast } from "@casbin/ui";
-import { Link2, Unlink, Search } from "lucide-react";
-import { accessApi, AccessRight, Endpoint } from "@/lib/api/access";
+import { Search } from "lucide-react";
+import { accessApi } from "@/lib/api/access";
 
 export function AccessRightManager() {
   const { toast } = useToast();
@@ -24,7 +22,7 @@ export function AccessRightManager() {
     queryFn: () => accessApi.listEndpoints({ limit: 500 }),
   });
 
-  const linkMutation = useMutation({
+  const _linkMutation = useMutation({
     mutationFn: accessApi.link,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["access-rights"] });
@@ -32,7 +30,7 @@ export function AccessRightManager() {
     },
   });
 
-  const unlinkMutation = useMutation({
+  const _unlinkMutation = useMutation({
     mutationFn: accessApi.unlink,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["access-rights"] });
@@ -41,9 +39,11 @@ export function AccessRightManager() {
   });
 
   const rights = rightsRes?.data || [];
-  const allEndpoints = endpointsRes?.data || [];
+  const _allEndpoints = endpointsRes?.data || [];
 
-  const filtered = rights.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = rights.filter((r) =>
+    r.name.toLowerCase().includes(search.toLowerCase()),
+  );
 
   const selected = rights.find((r) => r.id === selectedRightId);
 
@@ -58,7 +58,9 @@ export function AccessRightManager() {
       {/* Rights list */}
       <NexusCard className="lg:col-span-1">
         <div className="border-border border-b p-4">
-          <h3 className="text-foreground text-sm font-semibold">Access Rights</h3>
+          <h3 className="text-foreground text-sm font-semibold">
+            Access Rights
+          </h3>
           <div className="relative mt-2">
             <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
             <NexusInput
@@ -71,14 +73,18 @@ export function AccessRightManager() {
         </div>
         <div className="divide-border max-h-[400px] divide-y overflow-y-auto">
           {isLoadingRights ? (
-            <div className="text-muted-foreground p-4 text-center text-xs">Loading...</div>
+            <div className="text-muted-foreground p-4 text-center text-xs">
+              Loading...
+            </div>
           ) : (
             filtered.map((right) => (
               <button
                 key={right.id}
                 onClick={() => setSelectedRightId(right.id)}
                 className={`hover:bg-muted/50 w-full px-4 py-3 text-left text-sm transition-colors ${
-                  selectedRightId === right.id ? "bg-primary/5 border-l-primary border-l-2" : ""
+                  selectedRightId === right.id
+                    ? "bg-primary/5 border-l-primary border-l-2"
+                    : ""
                 }`}
               >
                 <div className="text-foreground font-medium">{right.name}</div>
@@ -95,9 +101,11 @@ export function AccessRightManager() {
       <NexusCard className="lg:col-span-2">
         {selected ? (
           <div className="text-muted-foreground p-4 text-center text-sm">
-            Access Right management is currently being migrated to use granular Endpoint mapping.
+            Access Right management is currently being migrated to use granular
+            Endpoint mapping.
             <br />
-            Please use the Permission Matrix for direct role-to-resource mapping.
+            Please use the Permission Matrix for direct role-to-resource
+            mapping.
           </div>
         ) : (
           <div className="text-muted-foreground flex h-64 items-center justify-center text-sm">

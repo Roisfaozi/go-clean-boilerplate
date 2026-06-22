@@ -91,11 +91,19 @@ export default function ResetPasswordV3() {
                       Nexus
                     </span>
                   </div>
-                  <h1 className="text-background text-2xl font-bold">Set new password</h1>
-                  <p className="text-background/50 text-sm">Create a strong, unique password.</p>
+                  <h1 className="text-background text-2xl font-bold">
+                    Set new password
+                  </h1>
+                  <p className="text-background/50 text-sm">
+                    Create a strong, unique password.
+                  </p>
                 </div>
                 <form className="space-y-5" onSubmit={handleSubmit}>
-                  <FormGroup label="New Password" required error={errors.password}>
+                  <FormGroup
+                    label="New Password"
+                    required
+                    error={errors.password}
+                  >
                     <div className="relative">
                       <NexusInput
                         type={showPassword ? "text" : "password"}
@@ -144,7 +152,11 @@ export default function ResetPasswordV3() {
                       </div>
                     </motion.div>
                   )}
-                  <FormGroup label="Confirm Password" required error={errors.confirmPassword}>
+                  <FormGroup
+                    label="Confirm Password"
+                    required
+                    error={errors.confirmPassword}
+                  >
                     <div className="relative">
                       <NexusInput
                         type={showConfirm ? "text" : "password"}
@@ -159,14 +171,19 @@ export default function ResetPasswordV3() {
                         onClick={() => setShowConfirm(!showConfirm)}
                         className="text-background/40 hover:text-background/70 absolute top-1/2 right-3 -translate-y-1/2"
                       >
-                        {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showConfirm ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
-                    {confirmPassword.length > 0 && password === confirmPassword && (
-                      <p className="text-primary mt-1 flex items-center gap-1 text-xs">
-                        <CheckCircle className="h-3 w-3" /> Match
-                      </p>
-                    )}
+                    {confirmPassword.length > 0 &&
+                      password === confirmPassword && (
+                        <p className="text-primary mt-1 flex items-center gap-1 text-xs">
+                          <CheckCircle className="h-3 w-3" /> Match
+                        </p>
+                      )}
                   </FormGroup>
                   <NexusButton
                     className="bg-primary hover:bg-primary/90 h-11 w-full gap-2"
@@ -199,7 +216,9 @@ export default function ResetPasswordV3() {
                     <CheckCircle className="text-primary h-10 w-10" />
                   </div>
                 </motion.div>
-                <h2 className="text-background text-2xl font-bold">All done!</h2>
+                <h2 className="text-background text-2xl font-bold">
+                  All done!
+                </h2>
                 <p className="text-background/50 text-sm">
                   Your password has been successfully reset.
                 </p>

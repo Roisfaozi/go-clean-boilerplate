@@ -4,7 +4,14 @@ import { z } from "zod";
 import { NexusButton } from "@casbin/ui";
 import { NexusInput } from "@casbin/ui";
 import { FormGroup } from "@/components/patterns/form-group";
-import { Hexagon, CheckCircle, ShieldCheck, Lock, Eye, EyeOff, KeyRound } from "lucide-react";
+import {
+  Hexagon,
+  CheckCircle,
+  ShieldCheck,
+  Lock,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { toast } from "@casbin/ui";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -72,7 +79,11 @@ export default function ResetPasswordV1() {
                 y: "-50%",
               }}
               animate={{ rotate: [0, 360] }}
-              transition={{ duration: 20 + i * 5, repeat: Infinity, ease: "linear" }}
+              transition={{
+                duration: 20 + i * 5,
+                repeat: Infinity,
+                ease: "linear",
+              }}
             />
           ))}
         </div>
@@ -111,11 +122,16 @@ export default function ResetPasswordV1() {
                   Set new password
                 </h1>
                 <p className="text-muted-foreground">
-                  Your new password must be different from previously used passwords.
+                  Your new password must be different from previously used
+                  passwords.
                 </p>
               </div>
               <form className="space-y-5" onSubmit={handleSubmit}>
-                <FormGroup label="New Password" required error={errors.password}>
+                <FormGroup
+                  label="New Password"
+                  required
+                  error={errors.password}
+                >
                   <div className="relative">
                     <NexusInput
                       type={showPassword ? "text" : "password"}
@@ -130,7 +146,11 @@ export default function ResetPasswordV1() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 transition-colors"
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </FormGroup>
@@ -158,7 +178,11 @@ export default function ResetPasswordV1() {
                     })}
                   </motion.div>
                 )}
-                <FormGroup label="Confirm Password" required error={errors.confirmPassword}>
+                <FormGroup
+                  label="Confirm Password"
+                  required
+                  error={errors.confirmPassword}
+                >
                   <div className="relative">
                     <NexusInput
                       type={showConfirm ? "text" : "password"}
@@ -173,20 +197,28 @@ export default function ResetPasswordV1() {
                       onClick={() => setShowConfirm(!showConfirm)}
                       className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 transition-colors"
                     >
-                      {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showConfirm ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
-                  {confirmPassword.length > 0 && password === confirmPassword && (
-                    <p className="text-primary mt-1 flex items-center gap-1 text-xs">
-                      <CheckCircle className="h-3 w-3" /> Passwords match
-                    </p>
-                  )}
+                  {confirmPassword.length > 0 &&
+                    password === confirmPassword && (
+                      <p className="text-primary mt-1 flex items-center gap-1 text-xs">
+                        <CheckCircle className="h-3 w-3" /> Passwords match
+                      </p>
+                    )}
                 </FormGroup>
                 <NexusButton className="h-11 w-full gap-2" loading={loading}>
                   <Lock className="h-4 w-4" /> Reset Password
                 </NexusButton>
               </form>
-              <Link to="/login" className="text-primary block text-center text-sm hover:underline">
+              <Link
+                to="/login"
+                className="text-primary block text-center text-sm hover:underline"
+              >
                 Back to Sign In
               </Link>
             </motion.div>
@@ -200,7 +232,12 @@ export default function ResetPasswordV1() {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 15,
+                  delay: 0.2,
+                }}
                 className="flex justify-center"
               >
                 <div className="bg-primary/10 border-primary/20 flex h-24 w-24 items-center justify-center rounded-full border-4">
@@ -208,7 +245,9 @@ export default function ResetPasswordV1() {
                 </div>
               </motion.div>
               <h1 className="text-foreground text-3xl font-bold">All done!</h1>
-              <p className="text-muted-foreground">Your password has been successfully reset.</p>
+              <p className="text-muted-foreground">
+                Your password has been successfully reset.
+              </p>
               <NexusButton
                 className="mx-auto h-11 w-full max-w-xs"
                 onClick={() => navigate("/login")}

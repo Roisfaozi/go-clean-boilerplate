@@ -27,7 +27,9 @@ const pieData = [
 const heatmapData = (() => {
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
   const hours = ["9am", "10am", "11am", "12pm", "1pm", "2pm", "3pm", "4pm"];
-  return days.flatMap((y) => hours.map((x) => ({ x, y, value: Math.floor(Math.random() * 50) })));
+  return days.flatMap((y) =>
+    hours.map((x) => ({ x, y, value: Math.floor(Math.random() * 50) })),
+  );
 })();
 
 export default function ShowcaseCharts() {
@@ -79,11 +81,17 @@ export default function ShowcaseCharts() {
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-3">
             <span className="text-body text-foreground">Revenue</span>
-            <Sparkline data={[10, 25, 18, 30, 22, 40, 35]} color="hsl(160, 84%, 39%)" />
+            <Sparkline
+              data={[10, 25, 18, 30, 22, 40, 35]}
+              color="hsl(160, 84%, 39%)"
+            />
           </div>
           <div className="flex items-center gap-3">
             <span className="text-body text-foreground">Errors</span>
-            <Sparkline data={[5, 12, 8, 15, 20, 10, 3]} color="hsl(0, 72%, 51%)" />
+            <Sparkline
+              data={[5, 12, 8, 15, 20, 10, 3]}
+              color="hsl(0, 72%, 51%)"
+            />
           </div>
           <div className="flex items-center gap-3">
             <span className="text-body text-foreground">Users</span>

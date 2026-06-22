@@ -14,6 +14,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/repository"
+	orgRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/google/uuid"
@@ -29,16 +30,25 @@ type ApiKeyUseCase interface {
 	Authenticate(ctx context.Context, key string) (*model.ApiKeyIdentity, error)
 }
 
+const (
+	cacheKeyOrganizationStatus = "nexusos:org_status:%s"
+	organizationStatusActive   = "active"
+	organizationStatusDeleted  = "deleted"
+	organizationStatusCacheTTL = 30 * time.Second
+)
+
 type apiKeyUseCase struct {
 	repo     repository.ApiKeyRepository
+	orgRepo  orgRepository.OrganizationRepository
 	userRepo userRepository.UserRepository
 	redis    *redis.Client
 	log      *logrus.Logger
 }
 
-func NewApiKeyUseCase(repo repository.ApiKeyRepository, userRepo userRepository.UserRepository, redis *redis.Client, log *logrus.Logger) ApiKeyUseCase {
+func NewApiKeyUseCase(repo repository.ApiKeyRepository, orgRepo orgRepository.OrganizationRepository, userRepo userRepository.UserRepository, redis *redis.Client, log *logrus.Logger) ApiKeyUseCase {
 	return &apiKeyUseCase{
 		repo:     repo,
+		orgRepo:  orgRepo,
 		userRepo: userRepo,
 		redis:    redis,
 		log:      log,
@@ -159,6 +169,9 @@ func (uc *apiKeyUseCase) Authenticate(ctx context.Context, key string) (*model.A
 				if identity.ExpiresAt != nil && identity.ExpiresAt.Before(time.Now()) {
 					return nil, exception.ErrUnauthorized
 				}
+				if err := uc.ensureOrganizationAccessible(ctx, identity.OrganizationID); err != nil {
+					return nil, err
+				}
 				return &identity, nil
 			}
 		}
@@ -168,8 +181,10 @@ func (uc *apiKeyUseCase) Authenticate(ctx context.Context, key string) (*model.A
 	apiKey, err := uc.repo.FindByHash(ctx, keyHash)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			uc.log.Warn("API key not found during authentication")
 			return nil, exception.ErrUnauthorized
 		}
+		uc.log.WithError(err).Error("Failed to load API key during authentication")
 		return nil, exception.ErrInternalServer
 	}
 
@@ -177,10 +192,18 @@ func (uc *apiKeyUseCase) Authenticate(ctx context.Context, key string) (*model.A
 		return nil, exception.ErrUnauthorized
 	}
 
+	if err := uc.ensureOrganizationAccessible(ctx, apiKey.OrganizationID); err != nil {
+		return nil, err
+	}
+
 	// Fetch User Info to complete the identity
 	user, err := uc.userRepo.FindByID(ctx, apiKey.UserID)
 	if err != nil {
-		uc.log.WithError(err).Errorf("Failed to find user %s for API key", apiKey.UserID)
+		uc.log.WithError(err).WithFields(logrus.Fields{
+			"user_id":         apiKey.UserID,
+			"organization_id": apiKey.OrganizationID,
+			"api_key_id":      apiKey.ID,
+		}).Error("Failed to find user for API key authentication")
 		return nil, exception.ErrUnauthorized
 	}
 
@@ -210,6 +233,55 @@ func (uc *apiKeyUseCase) Authenticate(ctx context.Context, key string) (*model.A
 	}
 
 	return identity, nil
+}
+
+func (uc *apiKeyUseCase) ensureOrganizationAccessible(ctx context.Context, orgID string) error {
+	if orgID == "" || uc.orgRepo == nil {
+		return nil
+	}
+
+	cacheKey := fmt.Sprintf(cacheKeyOrganizationStatus, orgID)
+	if uc.redis != nil {
+		status, err := uc.redis.Get(ctx, cacheKey).Result()
+		if err == nil {
+			switch status {
+			case organizationStatusActive:
+				return nil
+			case organizationStatusDeleted:
+				uc.log.WithField("organization_id", orgID).Warn("Organization is soft-deleted for API key authentication")
+				return exception.ErrUnauthorized
+			}
+		}
+
+		if !errors.Is(err, redis.Nil) {
+			uc.log.WithError(err).Warn("Redis error reading organization status cache")
+		}
+	}
+
+	org, err := uc.orgRepo.FindByID(ctx, orgID)
+	if err != nil {
+		uc.log.WithError(err).WithField("organization_id", orgID).Error("Failed to validate organization for API key")
+		return exception.ErrInternalServer
+	}
+	if org == nil {
+		uc.cacheOrganizationStatus(ctx, orgID, organizationStatusDeleted)
+		uc.log.WithField("organization_id", orgID).Warn("Organization not accessible for API key authentication")
+		return exception.ErrUnauthorized
+	}
+
+	uc.cacheOrganizationStatus(ctx, orgID, organizationStatusActive)
+	return nil
+}
+
+func (uc *apiKeyUseCase) cacheOrganizationStatus(ctx context.Context, orgID, status string) {
+	if uc.redis == nil {
+		return
+	}
+
+	cacheKey := fmt.Sprintf(cacheKeyOrganizationStatus, orgID)
+	if err := uc.redis.Set(ctx, cacheKey, status, organizationStatusCacheTTL).Err(); err != nil {
+		uc.log.WithError(err).WithField("organization_id", orgID).Warn("Failed to cache organization status")
+	}
 }
 
 func (uc *apiKeyUseCase) generateSecureKey() (string, error) {

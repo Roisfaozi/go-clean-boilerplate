@@ -9,14 +9,20 @@ const plans = [
     cadence: "/ month",
     description: "For small teams getting started with internal tooling.",
     cta: { label: "Start Free", to: "/register" },
-    features: ["Core workspace", "Basic roles", "Project management", "Standard support"],
+    features: [
+      "Core workspace",
+      "Basic roles",
+      "Project management",
+      "Standard support",
+    ],
     highlight: false,
   },
   {
     name: "Growth",
     price: "$49",
     cadence: "/ user / month",
-    description: "For scaling teams that need more access control & automation.",
+    description:
+      "For scaling teams that need more access control & automation.",
     cta: { label: "Start Growth", to: "/register" },
     features: [
       "Advanced access control",
@@ -46,7 +52,10 @@ const plans = [
 
 export function LandingPricing() {
   return (
-    <section id="pricing" className="border-border bg-background border-b py-20 md:py-24">
+    <section
+      id="pricing"
+      className="border-border bg-background border-b py-20 md:py-24"
+    >
       <div className="px-layout mx-auto max-w-7xl">
         <div className="mx-auto mb-14 max-w-2xl text-center">
           <span className="text-caption text-primary font-semibold tracking-wider uppercase">
@@ -78,8 +87,12 @@ export function LandingPricing() {
               )}
 
               <div className="mb-5">
-                <h3 className="text-h3 text-foreground font-semibold">{plan.name}</h3>
-                <p className="text-body text-muted-foreground mt-1.5">{plan.description}</p>
+                <h3 className="text-h3 text-foreground font-semibold">
+                  {plan.name}
+                </h3>
+                <p className="text-body text-muted-foreground mt-1.5">
+                  {plan.description}
+                </p>
               </div>
 
               <div className="mb-6 flex items-baseline gap-1">
@@ -87,7 +100,9 @@ export function LandingPricing() {
                   {plan.price}
                 </span>
                 {plan.cadence && (
-                  <span className="text-body text-muted-foreground">{plan.cadence}</span>
+                  <span className="text-body text-muted-foreground">
+                    {plan.cadence}
+                  </span>
                 )}
               </div>
 

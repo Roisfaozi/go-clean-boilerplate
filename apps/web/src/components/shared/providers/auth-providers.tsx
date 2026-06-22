@@ -1,16 +1,22 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import React, { useEffect } from "react";
+import type React from "react";
+import { useEffect } from "react";
 import { accessApi } from "~/lib/api/access";
 import { authApi } from "~/lib/api/auth";
 import { useAuthStore } from "~/stores/use-auth-store";
 import { usePermissionStore } from "~/stores/use-permission-store";
 
-const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
+const AUTH_PATHS = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { user, setUser, logout } = useAuthStore();
+  const { setUser, logout } = useAuthStore();
   const { setPermissions, clearPermissions } = usePermissionStore();
   const pathname = usePathname();
 
@@ -25,7 +31,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (userResp.user) {
           setUser(userResp.user);
 
-          const permsResp = await accessApi.getPermissionsForRole(userResp.user.role);
+          const permsResp = await accessApi.getPermissionsForRole(
+            userResp.user.role,
+          );
           if (permsResp.data) {
             setPermissions(permsResp.data);
           }

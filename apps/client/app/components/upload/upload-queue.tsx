@@ -29,7 +29,9 @@ export function UploadQueue() {
       {/* Header */}
       <div className="border-border flex items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-2">
-          <h3 className="text-foreground text-sm font-semibold">Upload Queue</h3>
+          <h3 className="text-foreground text-sm font-semibold">
+            Upload Queue
+          </h3>
           <Badge variant="secondary" className="text-[10px]">
             {items.length}
           </Badge>
@@ -42,7 +44,9 @@ export function UploadQueue() {
           )}
           {queued > 0 && <Badge variant="outline">{queued} queued</Badge>}
           {completed > 0 && (
-            <Badge className="bg-success/10 text-success border-success/20">{completed} done</Badge>
+            <Badge className="bg-success/10 text-success border-success/20">
+              {completed} done
+            </Badge>
           )}
           {errors > 0 && <Badge variant="destructive">{errors} failed</Badge>}
           {canceled > 0 && <Badge variant="outline">{canceled} canceled</Badge>}
@@ -72,7 +76,12 @@ export function UploadQueue() {
           </NexusButton>
         )}
         {completed > 0 && (
-          <NexusButton size="sm" variant="ghost" onClick={clearCompleted} className="ml-auto">
+          <NexusButton
+            size="sm"
+            variant="ghost"
+            onClick={clearCompleted}
+            className="ml-auto"
+          >
             <Trash2 className="mr-1.5 h-3.5 w-3.5" />
             Clear Completed
           </NexusButton>

@@ -21,11 +21,15 @@ export default function Error401V3() {
       <div className="relative z-10 w-full max-w-2xl space-y-10 text-center">
         <div className="flex items-center justify-center gap-4">
           <Shield className="text-primary/40 h-8 w-8" />
-          <span className="text-primary/10 text-9xl leading-none font-black">401</span>
+          <span className="text-primary/10 text-9xl leading-none font-black">
+            401
+          </span>
           <Shield className="text-primary/40 h-8 w-8" />
         </div>
         <div className="space-y-4">
-          <h1 className="text-sidebar-foreground text-4xl font-bold">Authentication Required</h1>
+          <h1 className="text-sidebar-foreground text-4xl font-bold">
+            Authentication Required
+          </h1>
           <p className="text-muted-foreground mx-auto max-w-md text-lg">
             Access denied. Valid credentials are required to view this resource.
           </p>
@@ -33,11 +37,16 @@ export default function Error401V3() {
         <div className="bg-sidebar-accent/50 border-border mx-auto max-w-sm rounded-xl border p-6">
           <Lock className="text-primary mx-auto mb-3 h-8 w-8" />
           <p className="text-muted-foreground text-sm">
-            This area requires authentication. Please sign in with your credentials.
+            This area requires authentication. Please sign in with your
+            credentials.
           </p>
         </div>
         <div className="flex justify-center gap-3">
-          <NexusButton variant="primary" size="lg" onClick={() => navigate("/login")}>
+          <NexusButton
+            variant="primary"
+            size="lg"
+            onClick={() => navigate("/login")}
+          >
             <LogIn className="h-4 w-4" />
             Sign In
           </NexusButton>

@@ -28,7 +28,8 @@ export default function Error404V1() {
           </div>
           <h2 className="text-foreground text-3xl font-bold">Lost in Space</h2>
           <p className="text-muted-foreground max-w-md text-lg">
-            The page you're looking for has been moved, deleted, or never existed.
+            The page you're looking for has been moved, deleted, or never
+            existed.
           </p>
         </div>
       </div>
@@ -37,9 +38,12 @@ export default function Error404V1() {
         <div className="w-full max-w-md space-y-8 text-center">
           <div className="space-y-2">
             <p className="text-primary/20 text-8xl font-black">404</p>
-            <h1 className="text-foreground text-3xl font-bold">Page Not Found</h1>
+            <h1 className="text-foreground text-3xl font-bold">
+              Page Not Found
+            </h1>
             <p className="text-muted-foreground">
-              We couldn't find the page you were looking for. Check the URL or navigate back.
+              We couldn't find the page you were looking for. Check the URL or
+              navigate back.
             </p>
           </div>
           <div className="flex flex-col justify-center gap-3 sm:flex-row">

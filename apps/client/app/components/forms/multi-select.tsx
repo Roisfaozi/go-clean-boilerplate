@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, KeyboardEvent } from "react";
+import { useState, useRef, type KeyboardEvent } from "react";
 import { cn } from "@casbin/ui";
 import { X, Check, ChevronDown } from "lucide-react";
 
@@ -28,12 +28,16 @@ export function MultiSelect({
   const ref = useRef<HTMLDivElement>(null);
 
   const filtered = options.filter(
-    (o) => o.label.toLowerCase().includes(search.toLowerCase()) && !value.includes(o.value),
+    (o) =>
+      o.label.toLowerCase().includes(search.toLowerCase()) &&
+      !value.includes(o.value),
   );
   const selected = options.filter((o) => value.includes(o.value));
 
   const toggle = (val: string) => {
-    const next = value.includes(val) ? value.filter((v) => v !== val) : [...value, val];
+    const next = value.includes(val)
+      ? value.filter((v) => v !== val)
+      : [...value, val];
     onChange?.(next);
   };
 
@@ -75,7 +79,9 @@ export function MultiSelect({
             />
           </div>
           {filtered.length === 0 && (
-            <p className="text-caption text-muted-foreground px-3 py-2">No options</p>
+            <p className="text-caption text-muted-foreground px-3 py-2">
+              No options
+            </p>
           )}
           {filtered.map((o) => (
             <button
@@ -89,7 +95,9 @@ export function MultiSelect({
           {value.length > 0 && (
             <>
               <div className="border-border my-1 border-t" />
-              <p className="text-caption text-muted-foreground px-3 py-1">Selected</p>
+              <p className="text-caption text-muted-foreground px-3 py-1">
+                Selected
+              </p>
               {selected.map((o) => (
                 <button
                   key={o.value}

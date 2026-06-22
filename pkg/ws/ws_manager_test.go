@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -42,6 +43,25 @@ func (m *NoOpPresenceManager) RefreshUserHeartbeat(ctx context.Context, orgID, u
 }
 func (m *NoOpPresenceManager) PruneStaleUsers(ctx context.Context, timeout time.Duration) (map[string][]string, error) {
 	return nil, nil
+}
+
+type RecordingPresenceManager struct {
+	NoOpPresenceManager
+	mu           sync.Mutex
+	offlineCalls int
+}
+
+func (m *RecordingPresenceManager) SetUserOffline(ctx context.Context, orgID, userID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.offlineCalls++
+	return nil
+}
+
+func (m *RecordingPresenceManager) OfflineCalls() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.offlineCalls
 }
 
 func setupTestServer() (*ws.WebSocketManager, *httptest.Server) {
@@ -105,6 +125,46 @@ func TestNewWebSocketManager(t *testing.T) {
 	assert.NotNil(t, manager)
 	assert.NotNil(t, manager.GetPresenceManager())
 	assert.NotNil(t, manager.Channels())
+}
+
+func TestWebSocketManager_UnregisterKeepsPresenceForOtherConnections(t *testing.T) {
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+	presence := &RecordingPresenceManager{}
+	manager := ws.NewWebSocketManager(&ws.WebSocketConfig{}, logger, nil, presence)
+	go manager.Run()
+	defer manager.Stop()
+
+	clientOne := &ws.Client{ID: "client-1", UserID: "user-1", OrgID: "org-1", Send: make(chan []byte, 1)}
+	clientTwo := &ws.Client{ID: "client-2", UserID: "user-1", OrgID: "org-1", Send: make(chan []byte, 1)}
+
+	manager.RegisterClient(clientOne)
+	manager.RegisterClient(clientTwo)
+	require.Eventually(t, func() bool { return manager.ClientCount() == 2 }, time.Second, 10*time.Millisecond)
+
+	manager.UnregisterClient(clientOne)
+	require.Eventually(t, func() bool { return manager.ClientCount() == 1 }, time.Second, 10*time.Millisecond)
+	assert.Equal(t, 0, presence.OfflineCalls())
+
+	manager.UnregisterClient(clientTwo)
+	require.Eventually(t, func() bool { return manager.ClientCount() == 0 }, time.Second, 10*time.Millisecond)
+	assert.Equal(t, 1, presence.OfflineCalls())
+}
+
+func TestWebSocketManager_UnregisterNilSendClient(t *testing.T) {
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+	manager := ws.NewWebSocketManager(&ws.WebSocketConfig{}, logger, nil, &NoOpPresenceManager{})
+	go manager.Run()
+	defer manager.Stop()
+
+	client := &ws.Client{ID: "nil-send-client"}
+
+	manager.RegisterClient(client)
+	require.Eventually(t, func() bool { return manager.ClientCount() == 1 }, time.Second, 10*time.Millisecond)
+
+	manager.UnregisterClient(client)
+	require.Eventually(t, func() bool { return manager.ClientCount() == 0 }, time.Second, 10*time.Millisecond)
 }
 
 func TestWebSocketManager_Integration(t *testing.T) {

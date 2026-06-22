@@ -8,7 +8,12 @@ interface TimePickerProps {
   className?: string;
 }
 
-export function TimePicker({ value = "", onChange, disabled, className }: TimePickerProps) {
+export function TimePicker({
+  value = "",
+  onChange,
+  disabled,
+  className,
+}: TimePickerProps) {
   return (
     <div className={cn("relative", className)}>
       <Clock className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />

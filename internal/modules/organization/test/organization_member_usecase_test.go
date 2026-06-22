@@ -32,6 +32,7 @@ type memberTestDeps struct {
 	TaskDistributor *mocking.MockTaskDistributor
 	Enforcer        *permissionMocks.MockIEnforcer
 	Presence        *mocks.MockPresenceReader
+	OrgReader       *mocks.MockIOrganizationReader
 	TM              *mocking.MockWithTransactionManager
 }
 
@@ -45,6 +46,7 @@ func setupMemberTest() (*memberTestDeps, usecase.OrganizationMemberUseCase) {
 		TaskDistributor: new(mocking.MockTaskDistributor),
 		Enforcer:        mockEnforcer,
 		Presence:        new(mocks.MockPresenceReader),
+		OrgReader:       new(mocks.MockIOrganizationReader),
 		TM:              new(mocking.MockWithTransactionManager),
 	}
 
@@ -62,8 +64,11 @@ func setupMemberTest() (*memberTestDeps, usecase.OrganizationMemberUseCase) {
 		deps.TaskDistributor,
 		deps.Enforcer,
 		deps.Presence,
+		deps.OrgReader,
 		"http://localhost:3000",
 	)
+
+	deps.OrgReader.On("InvalidateMembershipCache", mock.Anything, mock.Anything, mock.Anything).Maybe().Return(nil)
 
 	return deps, uc
 }
@@ -100,6 +105,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 		assert.NotNil(t, res)
 		assert.Equal(t, user.ID, res.UserID)
 		assert.Equal(t, entity.MemberStatusInvited, res.Status)
+		deps.OrgReader.AssertCalled(t, "InvalidateMembershipCache", mock.Anything, orgID, user.ID)
 	})
 
 	t.Run("Success - Shadow User", func(t *testing.T) {
@@ -130,6 +136,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 		res, err := uc.InviteMember(ctx, orgID, req)
 		require.NoError(t, err)
 		assert.NotNil(t, res)
+		deps.OrgReader.AssertCalled(t, "InvalidateMembershipCache", mock.Anything, orgID, res.UserID)
 	})
 
 	t.Run("Already Member", func(t *testing.T) {
@@ -385,6 +392,7 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		res, err := uc.UpdateMember(ctx, orgID, userID, req)
 		require.NoError(t, err)
 		assert.Equal(t, "new-role", res.RoleID)
+		deps.OrgReader.AssertCalled(t, "InvalidateMembershipCache", mock.Anything, orgID, userID)
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
@@ -558,6 +566,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 
 		err := uc.RemoveMember(ctx, orgID, userID)
 		require.NoError(t, err)
+		deps.OrgReader.AssertCalled(t, "InvalidateMembershipCache", mock.Anything, orgID, userID)
 	})
 
 	t.Run("Forbidden - Remove Owner", func(t *testing.T) {
@@ -699,6 +708,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 
 		err := uc.AcceptInvitation(ctx, req)
 		require.NoError(t, err)
+		deps.OrgReader.AssertCalled(t, "InvalidateMembershipCache", mock.Anything, inv.OrganizationID, user.ID)
 	})
 
 	t.Run("Invalid Token", func(t *testing.T) {

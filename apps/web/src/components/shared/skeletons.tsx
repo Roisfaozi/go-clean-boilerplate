@@ -7,7 +7,13 @@ import { Card, CardContent, CardHeader } from "~/components/ui/card";
 /**
  * TableSkeleton - Standard pattern for data grids (Users, Audit, Members)
  */
-export function TableSkeleton({ rows = 5, columns = 5 }: { rows?: number; columns?: number }) {
+export function TableSkeleton({
+  rows = 5,
+  columns = 5,
+}: {
+  rows?: number;
+  columns?: number;
+}) {
   return (
     <div className="w-full space-y-4">
       <div className="overflow-hidden rounded-md border">
@@ -24,7 +30,10 @@ export function TableSkeleton({ rows = 5, columns = 5 }: { rows?: number; column
               {Array.from({ length: columns }).map((_, j) => (
                 <Skeleton
                   key={j}
-                  className={cn("h-4 flex-1", j === 0 && "h-8 w-8 flex-none rounded-full")}
+                  className={cn(
+                    "h-4 flex-1",
+                    j === 0 && "h-8 w-8 flex-none rounded-full",
+                  )}
                 />
               ))}
             </div>
@@ -117,7 +126,11 @@ export function StatsChartSkeleton() {
       <CardContent>
         <div className="flex h-[250px] items-end gap-2 px-2">
           {barHeights.map((height, i) => (
-            <Skeleton key={i} className="flex-1 rounded-t-sm" style={{ height: `${height}%` }} />
+            <Skeleton
+              key={i}
+              className="flex-1 rounded-t-sm"
+              style={{ height: `${height}%` }}
+            />
           ))}
         </div>
       </CardContent>

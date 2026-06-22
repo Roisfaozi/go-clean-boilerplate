@@ -4,8 +4,32 @@ on:
   push:
     branches: ["**"] # Run on all branches
     tags: ["v*"] # Run on version tags
+    paths:
+      - "internal/**"
+      - "pkg/**"
+      - "cmd/**"
+      - "go.mod"
+      - "go.sum"
+      - "Makefile"
+      - "deploy/**"
+      - "docker-compose*.yml"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/cd-staging.yml"
+      - ".github/workflows/cd-production.yml"
   pull_request:
     branches: ["**"] # Run on all PRs
+    paths:
+      - "internal/**"
+      - "pkg/**"
+      - "cmd/**"
+      - "go.mod"
+      - "go.sum"
+      - "Makefile"
+      - "deploy/**"
+      - "docker-compose*.yml"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/cd-staging.yml"
+      - ".github/workflows/cd-production.yml"
 
 jobs:
   lint:
@@ -13,10 +37,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: "1.25.5"
           cache: true
@@ -33,10 +57,10 @@ jobs:
     needs: lint
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: "1.25.5"
           cache: true
@@ -60,10 +84,10 @@ jobs:
     needs: lint
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: "1.25.5"
           cache: true
@@ -82,10 +106,10 @@ jobs:
     needs: lint
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: "1.25.5"
           cache: true
@@ -104,10 +128,10 @@ jobs:
     needs: lint
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: "1.25.5"
           cache: true
@@ -124,10 +148,10 @@ jobs:
     needs: lint
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: "1.25.5"
           cache: true

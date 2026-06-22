@@ -218,8 +218,8 @@ func (_c *MockAuthUseCase_GenerateRefreshToken_Call) RunAndReturn(run func(user 
 }
 
 // GetSSORedirectURL provides a mock function for the type MockAuthUseCase
-func (_mock *MockAuthUseCase) GetSSORedirectURL(ctx context.Context, provider string) (string, error) {
-	ret := _mock.Called(ctx, provider)
+func (_mock *MockAuthUseCase) GetSSORedirectURL(ctx context.Context, provider string, state string) (string, error) {
+	ret := _mock.Called(ctx, provider, state)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetSSORedirectURL")
@@ -227,16 +227,16 @@ func (_mock *MockAuthUseCase) GetSSORedirectURL(ctx context.Context, provider st
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
-		return returnFunc(ctx, provider)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (string, error)); ok {
+		return returnFunc(ctx, provider, state)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) string); ok {
-		r0 = returnFunc(ctx, provider)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) string); ok {
+		r0 = returnFunc(ctx, provider, state)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, provider)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, provider, state)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -251,11 +251,12 @@ type MockAuthUseCase_GetSSORedirectURL_Call struct {
 // GetSSORedirectURL is a helper method to define mock.On call
 //   - ctx context.Context
 //   - provider string
-func (_e *MockAuthUseCase_Expecter) GetSSORedirectURL(ctx interface{}, provider interface{}) *MockAuthUseCase_GetSSORedirectURL_Call {
-	return &MockAuthUseCase_GetSSORedirectURL_Call{Call: _e.mock.On("GetSSORedirectURL", ctx, provider)}
+//   - state string
+func (_e *MockAuthUseCase_Expecter) GetSSORedirectURL(ctx interface{}, provider interface{}, state interface{}) *MockAuthUseCase_GetSSORedirectURL_Call {
+	return &MockAuthUseCase_GetSSORedirectURL_Call{Call: _e.mock.On("GetSSORedirectURL", ctx, provider, state)}
 }
 
-func (_c *MockAuthUseCase_GetSSORedirectURL_Call) Run(run func(ctx context.Context, provider string)) *MockAuthUseCase_GetSSORedirectURL_Call {
+func (_c *MockAuthUseCase_GetSSORedirectURL_Call) Run(run func(ctx context.Context, provider string, state string)) *MockAuthUseCase_GetSSORedirectURL_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -265,9 +266,14 @@ func (_c *MockAuthUseCase_GetSSORedirectURL_Call) Run(run func(ctx context.Conte
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -278,7 +284,7 @@ func (_c *MockAuthUseCase_GetSSORedirectURL_Call) Return(s string, err error) *M
 	return _c
 }
 
-func (_c *MockAuthUseCase_GetSSORedirectURL_Call) RunAndReturn(run func(ctx context.Context, provider string) (string, error)) *MockAuthUseCase_GetSSORedirectURL_Call {
+func (_c *MockAuthUseCase_GetSSORedirectURL_Call) RunAndReturn(run func(ctx context.Context, provider string, state string) (string, error)) *MockAuthUseCase_GetSSORedirectURL_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -1,8 +1,9 @@
 package http
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
-
 	"net/http"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
@@ -14,6 +15,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
+
+const ssoStateCookieName = "sso_state"
 
 type AuthController struct {
 	AuthUseCase usecase.AuthUseCase
@@ -46,7 +49,7 @@ func (h *AuthController) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.log.WithContext(c.Request.Context()).WithError(err).Error("Login failed: could not bind request")
-		response.BadRequest(c, err, "could not bind request")
+		response.BadRequest(c, exception.ErrBadRequest, "could not bind request")
 		return
 	}
 
@@ -150,7 +153,7 @@ func (h *AuthController) Logout(c *gin.Context) {
 func (h *AuthController) ForgotPassword(c *gin.Context) {
 	var req model.ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -185,7 +188,7 @@ func (h *AuthController) ForgotPassword(c *gin.Context) {
 func (h *AuthController) ResetPassword(c *gin.Context) {
 	var req model.ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -219,7 +222,7 @@ func (h *AuthController) ResetPassword(c *gin.Context) {
 func (h *AuthController) VerifyEmail(c *gin.Context) {
 	var req model.VerifyEmailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -283,7 +286,7 @@ func (h *AuthController) Register(c *gin.Context) {
 	var req model.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.log.WithContext(c.Request.Context()).WithError(err).Error("Register failed: could not bind request")
-		response.BadRequest(c, err, "could not bind request")
+		response.BadRequest(c, exception.ErrBadRequest, "could not bind request")
 		return
 	}
 
@@ -441,13 +444,19 @@ func GetUsernameFromContext(c *gin.Context) (string, bool) {
 // @Router       /auth/sso/{provider} [get]
 func (ac *AuthController) SSOLogin(c *gin.Context) {
 	provider := c.Param("provider")
+	state, err := generateSSOState()
+	if err != nil {
+		response.InternalServerError(c, err, "failed to generate SSO state")
+		return
+	}
 
-	url, err := ac.AuthUseCase.GetSSORedirectURL(c.Request.Context(), provider)
+	url, err := ac.AuthUseCase.GetSSORedirectURL(c.Request.Context(), provider, state)
 	if err != nil {
 		response.HandleError(c, err, "Failed to initiate SSO")
 		return
 	}
 
+	setStateCookie(c, ssoStateCookieName, state, 300)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
@@ -464,13 +473,21 @@ func (ac *AuthController) SSOLogin(c *gin.Context) {
 func (ac *AuthController) SSOCallback(c *gin.Context) {
 	provider := c.Param("provider")
 	code := c.Query("code")
+	state := c.Query("state")
 
 	if code == "" {
-		err := errors.New("authorization code is required")
-		response.BadRequest(c, err, "authorization code is required")
+		response.BadRequest(c, exception.ErrBadRequest, "authorization code is required")
 		return
 	}
 
+	expectedState, err := c.Cookie(ssoStateCookieName)
+	if err != nil || expectedState == "" || state == "" || state != expectedState {
+		clearStateCookie(c, ssoStateCookieName)
+		response.Unauthorized(c, exception.ErrUnauthorized, "invalid SSO state")
+		return
+	}
+
+	clearStateCookie(c, ssoStateCookieName)
 	res, refreshToken, err := ac.AuthUseCase.HandleSSOCallback(c.Request.Context(), provider, code)
 	if err != nil {
 		response.HandleError(c, err, "Failed to handle SSO callback")
@@ -481,4 +498,37 @@ func (ac *AuthController) SSOCallback(c *gin.Context) {
 	c.SetCookie("access_token", res.AccessToken, int(res.ExpiresIn), "/", "", false, true)
 
 	response.Success(c, res)
+}
+
+func generateSSOState() (string, error) {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(buf), nil
+}
+
+func setStateCookie(c *gin.Context, name, value string, maxAge int) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     "/",
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		Secure:   c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https",
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func clearStateCookie(c *gin.Context, name string) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https",
+		SameSite: http.SameSiteLaxMode,
+	})
 }

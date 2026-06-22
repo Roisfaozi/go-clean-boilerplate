@@ -26,17 +26,23 @@ export const useUIStore = create<UIState>()(
       density: "comfort",
       sidebarSectionOpen: {},
       toggleSidebar: () => set({ sidebarOpen: !get().sidebarOpen }),
-      toggleSidebarCollapse: () => set({ sidebarCollapsed: !get().sidebarCollapsed }),
+      toggleSidebarCollapse: () =>
+        set({ sidebarCollapsed: !get().sidebarCollapsed }),
       setTheme: (theme) => {
         document.documentElement.classList.toggle("dark", theme === "dark");
         set({ theme });
       },
       setDensity: (density) => {
-        document.documentElement.classList.toggle("density-compact", density === "compact");
+        document.documentElement.classList.toggle(
+          "density-compact",
+          density === "compact",
+        );
         set({ density });
       },
       setSidebarSectionOpen: (key, open) =>
-        set({ sidebarSectionOpen: { ...get().sidebarSectionOpen, [key]: open } }),
+        set({
+          sidebarSectionOpen: { ...get().sidebarSectionOpen, [key]: open },
+        }),
     }),
     { name: "nexus-ui" },
   ),

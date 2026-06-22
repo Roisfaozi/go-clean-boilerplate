@@ -12,7 +12,7 @@ import {
   Palette,
   Component,
 } from "lucide-react";
-import { CommandPalette, CommandPaletteItem } from "./command-palette";
+import { CommandPalette, type CommandPaletteItem } from "./command-palette";
 import { useState, useEffect } from "react";
 
 export function AppCommandPalette() {

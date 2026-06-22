@@ -13,8 +13,13 @@ export default function OrganizationMembersPage() {
     return (
       <div className="flex h-[400px] items-center justify-center rounded-lg border-2 border-dashed">
         <div className="text-center">
-          <Icon name="Building2" className="text-muted-foreground/50 mx-auto h-8 w-8" />
-          <p className="text-muted-foreground mt-2">Please select an organization first.</p>
+          <Icon
+            name="Building2"
+            className="text-muted-foreground/50 mx-auto h-8 w-8"
+          />
+          <p className="text-muted-foreground mt-2">
+            Please select an organization first.
+          </p>
         </div>
       </div>
     );
@@ -25,9 +30,12 @@ export default function OrganizationMembersPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Organization Members</h2>
+            <h2 className="text-2xl font-bold tracking-tight">
+              Organization Members
+            </h2>
             <p className="text-muted-foreground">
-              Manage who has access to <strong>{currentOrganization.name}</strong>.
+              Manage who has access to{" "}
+              <strong>{currentOrganization.name}</strong>.
             </p>
           </div>
           <MemberInviteDialog />

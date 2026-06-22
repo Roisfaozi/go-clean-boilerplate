@@ -36,15 +36,19 @@ export function RolesModals() {
         onSuccess={fetchRoles}
       />
 
-      <RoleDetailSheet open={isSheetOpen} onOpenChange={setIsSheetOpen} role={selectedRole} />
+      <RoleDetailSheet
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+        role={selectedRole}
+      />
 
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the role and remove all
-              associated permissions.
+              This action cannot be undone. This will permanently delete the
+              role and remove all associated permissions.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

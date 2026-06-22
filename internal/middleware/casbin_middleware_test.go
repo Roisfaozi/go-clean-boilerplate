@@ -168,6 +168,30 @@ func TestCasbinMiddleware_WithOrganizationContext(t *testing.T) {
 	mockEnforcer.AssertExpectations(t)
 }
 
+func TestCasbinMiddleware_StripsTrailingSlashBeforeEnforce(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/projects/", nil)
+	c.Request = req
+
+	userID := "user-uuid-123"
+	c.Set("user_id", userID)
+
+	mockEnforcer := new(MockCasbinEnforcer)
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	mockEnforcer.On("Enforce", userID, "global", "/api/v1/projects", "GET").Return(true, nil)
+
+	casbinMiddleware := middleware.CasbinMiddleware(mockEnforcer, logger)
+
+	casbinMiddleware(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockEnforcer.AssertExpectations(t)
+}
+
 func TestCasbinMiddleware_WithInvalidOrganizationContext(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()

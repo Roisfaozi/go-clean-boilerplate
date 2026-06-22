@@ -50,8 +50,12 @@ export default function Testimonials() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h4 className="font-semibold text-slate-900 dark:text-slate-50">{t.name}</h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{t.role}</p>
+                  <h4 className="font-semibold text-slate-900 dark:text-slate-50">
+                    {t.name}
+                  </h4>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {t.role}
+                  </p>
                 </div>
               </div>
             </div>

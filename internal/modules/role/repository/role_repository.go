@@ -40,7 +40,9 @@ func (r *roleRepository) Update(ctx context.Context, role *entity.Role) error {
 
 func (r *roleRepository) FindByID(ctx context.Context, id string) (*entity.Role, error) {
 	var role entity.Role
-	if err := r.getDB(ctx).First(&role, "id = ?", id).Error; err != nil {
+	if err := r.getDB(ctx).
+		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "roles.organization_id")).
+		First(&role, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &role, nil
@@ -48,7 +50,9 @@ func (r *roleRepository) FindByID(ctx context.Context, id string) (*entity.Role,
 
 func (r *roleRepository) FindByName(ctx context.Context, name string) (*entity.Role, error) {
 	var role entity.Role
-	if err := r.getDB(ctx).First(&role, "name = ?", name).Error; err != nil {
+	if err := r.getDB(ctx).
+		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "roles.organization_id")).
+		First(&role, "name = ?", name).Error; err != nil {
 		return nil, err
 	}
 	return &role, nil
@@ -56,7 +60,9 @@ func (r *roleRepository) FindByName(ctx context.Context, name string) (*entity.R
 
 func (r *roleRepository) FindAll(ctx context.Context) ([]*entity.Role, error) {
 	var roles []*entity.Role
-	result := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Find(&roles)
+	result := r.getDB(ctx).
+		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "roles.organization_id")).
+		Find(&roles)
 	if result.Error != nil {
 		r.log.WithError(result.Error).Error("Error in FindAll")
 		return nil, result.Error
@@ -73,7 +79,9 @@ func (r *roleRepository) FindAll(ctx context.Context) ([]*entity.Role, error) {
 
 func (r *roleRepository) FindAllDynamic(ctx context.Context, filter *querybuilder2.DynamicFilter) ([]*entity.Role, error) {
 	var roles []*entity.Role
-	query := r.getDB(ctx).Scopes(database.OrganizationScope(ctx)).Model(&entity.Role{})
+	query := r.getDB(ctx).
+		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "roles.organization_id")).
+		Model(&entity.Role{})
 
 	// Apply Dynamic Filter
 	query, err := querybuilder2.GenerateDynamicQuery(query, &entity.Role{}, filter)
@@ -93,5 +101,7 @@ func (r *roleRepository) FindAllDynamic(ctx context.Context, filter *querybuilde
 }
 
 func (r *roleRepository) Delete(ctx context.Context, id string) error {
-	return r.getDB(ctx).Delete(&entity.Role{}, "id = ?", id).Error
+	return r.getDB(ctx).
+		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "roles.organization_id")).
+		Delete(&entity.Role{}, "id = ?", id).Error
 }

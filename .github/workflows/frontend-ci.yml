@@ -1,0 +1,64 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "biome.jsonc"
+      - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/frontend-cd.yml"
+  pull_request:
+    branches: ["**"]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "biome.jsonc"
+      - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/frontend-cd.yml"
+
+jobs:
+  quality:
+    name: Frontend Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend lint
+        run: pnpm lint
+
+      - name: Run frontend typecheck
+        run: pnpm typecheck
+
+      - name: Build web app
+        run: pnpm --filter casbin-web build
+        env:
+          CI: true
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Build client app
+        run: pnpm --filter casbin-client build
+        env:
+          CI: true

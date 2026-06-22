@@ -5,7 +5,11 @@ import type { User } from "@/lib/api/schemas";
 
 const USERS_KEY = ["users"];
 
-export function useUsers(params?: { page?: number; limit?: number; search?: string }) {
+export function useUsers(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}) {
   return useQuery({
     queryKey: [...USERS_KEY, params],
     queryFn: () => userService.list(params),
@@ -35,7 +39,8 @@ export function useCreateUser() {
 export function useUpdateUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<User> }) => userService.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<User> }) =>
+      userService.update(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: USERS_KEY });
       toast.success("User updated");

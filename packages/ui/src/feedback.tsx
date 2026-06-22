@@ -1,22 +1,36 @@
 import { cn } from "./lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
-import { AlertCircle, CheckCircle2, Info, AlertTriangle, X } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Info,
+  AlertTriangle,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 
 /* ── InlineAlert ── */
-const alertVariants = cva("flex items-start gap-3 rounded-lg border p-4 text-body", {
-  variants: {
-    variant: {
-      info: "bg-info/5 border-info/20 text-info",
-      success: "bg-success/5 border-success/20 text-success",
-      warning: "bg-warning/5 border-warning/20 text-warning",
-      danger: "bg-danger/5 border-danger/20 text-danger",
+const alertVariants = cva(
+  "flex items-start gap-3 rounded-lg border p-4 text-body",
+  {
+    variants: {
+      variant: {
+        info: "bg-info/5 border-info/20 text-info",
+        success: "bg-success/5 border-success/20 text-success",
+        warning: "bg-warning/5 border-warning/20 text-warning",
+        danger: "bg-danger/5 border-danger/20 text-danger",
+      },
     },
+    defaultVariants: { variant: "info" },
   },
-  defaultVariants: { variant: "info" },
-});
+);
 
-const iconMap = { info: Info, success: CheckCircle2, warning: AlertTriangle, danger: AlertCircle };
+const iconMap = {
+  info: Info,
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  danger: AlertCircle,
+};
 
 interface InlineAlertProps extends VariantProps<typeof alertVariants> {
   title?: string;
@@ -44,7 +58,10 @@ export function InlineAlert({
         <div className="text-foreground">{children}</div>
       </div>
       {dismissible && (
-        <button onClick={() => setVisible(false)} className="shrink-0 hover:opacity-70">
+        <button
+          onClick={() => setVisible(false)}
+          className="shrink-0 hover:opacity-70"
+        >
           <X className="h-4 w-4" />
         </button>
       )}
@@ -67,7 +84,12 @@ interface StatusIndicatorProps {
   className?: string;
 }
 
-export function StatusIndicator({ status, label, pulse = true, className }: StatusIndicatorProps) {
+export function StatusIndicator({
+  status,
+  label,
+  pulse = true,
+  className,
+}: StatusIndicatorProps) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       <span className="relative flex h-2.5 w-2.5">
@@ -80,27 +102,37 @@ export function StatusIndicator({ status, label, pulse = true, className }: Stat
           />
         )}
         <span
-          className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", statusColors[status])}
+          className={cn(
+            "relative inline-flex h-2.5 w-2.5 rounded-full",
+            statusColors[status],
+          )}
         />
       </span>
-      {label && <span className="text-small text-foreground capitalize">{label || status}</span>}
+      {label && (
+        <span className="text-small text-foreground capitalize">
+          {label || status}
+        </span>
+      )}
     </span>
   );
 }
 
 /* ── ProgressBar ── */
-const progressBarVariants = cva("h-full rounded-full transition-all duration-slow", {
-  variants: {
-    variant: {
-      primary: "bg-primary",
-      success: "bg-success",
-      warning: "bg-warning",
-      danger: "bg-danger",
-      info: "bg-info",
+const progressBarVariants = cva(
+  "h-full rounded-full transition-all duration-slow",
+  {
+    variants: {
+      variant: {
+        primary: "bg-primary",
+        success: "bg-success",
+        warning: "bg-warning",
+        danger: "bg-danger",
+        info: "bg-info",
+      },
     },
+    defaultVariants: { variant: "primary" },
   },
-  defaultVariants: { variant: "primary" },
-});
+);
 
 interface ProgressBarProps extends VariantProps<typeof progressBarVariants> {
   value: number;
@@ -127,12 +159,19 @@ export function ProgressBar({
     <div className={cn("space-y-1.5", className)}>
       {(label || showValue) && (
         <div className="text-small flex items-center justify-between">
-          {label && <span className="text-foreground font-medium">{label}</span>}
-          {showValue && <span className="text-muted-foreground">{Math.round(pct)}%</span>}
+          {label && (
+            <span className="text-foreground font-medium">{label}</span>
+          )}
+          {showValue && (
+            <span className="text-muted-foreground">{Math.round(pct)}%</span>
+          )}
         </div>
       )}
       <div className={cn("bg-muted w-full overflow-hidden rounded-full", h)}>
-        <div className={cn(progressBarVariants({ variant }), h)} style={{ width: `${pct}%` }} />
+        <div
+          className={cn(progressBarVariants({ variant }), h)}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );
@@ -145,7 +184,11 @@ interface SkeletonLoaderProps {
   className?: string;
 }
 
-export function SkeletonLoader({ variant = "text", rows = 3, className }: SkeletonLoaderProps) {
+export function SkeletonLoader({
+  variant = "text",
+  rows = 3,
+  className,
+}: SkeletonLoaderProps) {
   const base = "animate-pulse rounded-md bg-muted";
 
   if (variant === "circle") {
@@ -154,7 +197,12 @@ export function SkeletonLoader({ variant = "text", rows = 3, className }: Skelet
 
   if (variant === "card") {
     return (
-      <div className={cn("border-border p-card-pad space-y-3 rounded-lg border", className)}>
+      <div
+        className={cn(
+          "border-border p-card-pad space-y-3 rounded-lg border",
+          className,
+        )}
+      >
         <div className={cn(base, "h-4 w-1/3")} />
         <div className={cn(base, "h-8 w-2/3")} />
         <div className={cn(base, "h-3 w-full")} />
@@ -178,7 +226,10 @@ export function SkeletonLoader({ variant = "text", rows = 3, className }: Skelet
   return (
     <div className={cn("space-y-2", className)}>
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className={cn(base, "h-4", i === rows - 1 ? "w-3/4" : "w-full")} />
+        <div
+          key={i}
+          className={cn(base, "h-4", i === rows - 1 ? "w-3/4" : "w-full")}
+        />
       ))}
     </div>
   );
@@ -226,14 +277,19 @@ export function NotificationCenter({
           )}
         </div>
         {onClear && (
-          <button onClick={onClear} className="text-caption text-primary hover:underline">
+          <button
+            onClick={onClear}
+            className="text-caption text-primary hover:underline"
+          >
             Clear all
           </button>
         )}
       </div>
       <div className="divide-border max-h-80 divide-y overflow-y-auto">
         {notifications.length === 0 ? (
-          <p className="text-body text-muted-foreground p-6 text-center">No notifications</p>
+          <p className="text-body text-muted-foreground p-6 text-center">
+            No notifications
+          </p>
         ) : (
           notifications.map((n) => (
             <button
@@ -249,16 +305,22 @@ export function NotificationCenter({
                 <p
                   className={cn(
                     "text-body truncate",
-                    !n.read ? "text-foreground font-semibold" : "text-foreground",
+                    !n.read
+                      ? "text-foreground font-semibold"
+                      : "text-foreground",
                   )}
                 >
                   {n.title}
                 </p>
                 {n.description && (
-                  <p className="text-caption text-muted-foreground truncate">{n.description}</p>
+                  <p className="text-caption text-muted-foreground truncate">
+                    {n.description}
+                  </p>
                 )}
               </div>
-              <span className="text-caption text-muted-foreground shrink-0">{n.time}</span>
+              <span className="text-caption text-muted-foreground shrink-0">
+                {n.time}
+              </span>
             </button>
           ))
         )}

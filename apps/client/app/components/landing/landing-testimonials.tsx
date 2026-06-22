@@ -29,7 +29,10 @@ const testimonials = [
 
 export function LandingTestimonials() {
   return (
-    <section id="testimonials" className="border-border bg-surface border-b py-20 md:py-24">
+    <section
+      id="testimonials"
+      className="border-border bg-surface border-b py-20 md:py-24"
+    >
       <div className="px-layout mx-auto max-w-7xl">
         <div className="mx-auto mb-14 max-w-2xl text-center">
           <span className="text-caption text-primary font-semibold tracking-wider uppercase">
@@ -58,7 +61,9 @@ export function LandingTestimonials() {
                   {t.initials}
                 </div>
                 <div>
-                  <div className="text-foreground text-sm font-semibold">{t.name}</div>
+                  <div className="text-foreground text-sm font-semibold">
+                    {t.name}
+                  </div>
                   <div className="text-muted-foreground text-xs">
                     {t.role} · {t.company}
                   </div>

@@ -1,34 +1,46 @@
-import { LayoutGrid, ShieldCheck, Activity, Plug, Palette, Lock } from "lucide-react";
+import {
+  LayoutGrid,
+  ShieldCheck,
+  Activity,
+  Plug,
+  Palette,
+  Lock,
+} from "lucide-react";
 
 const features = [
   {
     icon: LayoutGrid,
     title: "Unified Workspace",
-    description: "Kelola operasi, user, project, dan konfigurasi dari satu platform.",
+    description:
+      "Kelola operasi, user, project, dan konfigurasi dari satu platform.",
     tone: "primary",
   },
   {
     icon: ShieldCheck,
     title: "Access Control",
-    description: "Role, permission, dan organizational scope siap untuk skenario enterprise.",
+    description:
+      "Role, permission, dan organizational scope siap untuk skenario enterprise.",
     tone: "accent",
   },
   {
     icon: Activity,
     title: "Operational Visibility",
-    description: "Pantau activity, audit trail, insights, dan usage secara real-time.",
+    description:
+      "Pantau activity, audit trail, insights, dan usage secara real-time.",
     tone: "secondary",
   },
   {
     icon: Plug,
     title: "API-Ready Foundation",
-    description: "Struktur siap integrasi backend, webhook, upload, dan event-driven workflow.",
+    description:
+      "Struktur siap integrasi backend, webhook, upload, dan event-driven workflow.",
     tone: "info",
   },
   {
     icon: Palette,
     title: "Scalable UI System",
-    description: "Design system konsisten untuk admin, dashboard, dan marketing surfaces.",
+    description:
+      "Design system konsisten untuk admin, dashboard, dan marketing surfaces.",
     tone: "warning",
   },
   {
@@ -51,7 +63,10 @@ const toneMap: Record<string, string> = {
 
 export function LandingFeatures() {
   return (
-    <section id="features" className="border-border bg-surface border-b py-20 md:py-24">
+    <section
+      id="features"
+      className="border-border bg-surface border-b py-20 md:py-24"
+    >
       <div className="px-layout mx-auto max-w-7xl">
         <div className="mx-auto mb-14 max-w-2xl text-center">
           <span className="text-caption text-primary font-semibold tracking-wider uppercase">
@@ -78,8 +93,12 @@ export function LandingFeatures() {
                 >
                   <Icon className="h-5 w-5" />
                 </div>
-                <h3 className="text-h4 text-foreground mb-2 font-semibold">{feature.title}</h3>
-                <p className="text-body text-muted-foreground">{feature.description}</p>
+                <h3 className="text-h4 text-foreground mb-2 font-semibold">
+                  {feature.title}
+                </h3>
+                <p className="text-body text-muted-foreground">
+                  {feature.description}
+                </p>
               </div>
             );
           })}

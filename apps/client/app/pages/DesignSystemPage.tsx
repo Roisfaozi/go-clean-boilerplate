@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import {
   NexusCard,
@@ -9,7 +8,7 @@ import {
 } from "@casbin/ui";
 import { Badge } from "@casbin/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@casbin/ui";
-import { Palette, Type, Maximize, Layers, Square, Droplets, Moon, Sun } from "lucide-react";
+import { Palette, Type, Maximize, Layers, Square } from "lucide-react";
 
 const ColorSwatch = ({
   name,
@@ -63,7 +62,9 @@ const DocSection = ({
   <NexusCard>
     <NexusCardHeader>
       <NexusCardTitle>{title}</NexusCardTitle>
-      {description && <NexusCardDescription>{description}</NexusCardDescription>}
+      {description && (
+        <NexusCardDescription>{description}</NexusCardDescription>
+      )}
     </NexusCardHeader>
     <NexusCardContent>{children}</NexusCardContent>
   </NexusCard>
@@ -108,30 +109,84 @@ export default function DesignSystemPage() {
             description="Foundation colors used across all components."
           >
             <div className="flex flex-wrap gap-5">
-              <ColorSwatch name="Background" variable="--background" className="bg-background" />
-              <ColorSwatch name="Foreground" variable="--foreground" className="bg-foreground" />
-              <ColorSwatch name="Surface" variable="--surface" className="bg-surface" />
-              <ColorSwatch name="Muted" variable="--muted" className="bg-muted" />
-              <ColorSwatch name="Border" variable="--border" className="bg-border" />
+              <ColorSwatch
+                name="Background"
+                variable="--background"
+                className="bg-background"
+              />
+              <ColorSwatch
+                name="Foreground"
+                variable="--foreground"
+                className="bg-foreground"
+              />
+              <ColorSwatch
+                name="Surface"
+                variable="--surface"
+                className="bg-surface"
+              />
+              <ColorSwatch
+                name="Muted"
+                variable="--muted"
+                className="bg-muted"
+              />
+              <ColorSwatch
+                name="Border"
+                variable="--border"
+                className="bg-border"
+              />
               <ColorSwatch name="Card" variable="--card" className="bg-card" />
             </div>
           </DocSection>
 
-          <DocSection title="Brand Colors" description="Primary interaction and accent colors.">
+          <DocSection
+            title="Brand Colors"
+            description="Primary interaction and accent colors."
+          >
             <div className="flex flex-wrap gap-5">
-              <ColorSwatch name="Primary" variable="--primary" className="bg-primary" />
-              <ColorSwatch name="Secondary" variable="--secondary" className="bg-secondary" />
-              <ColorSwatch name="Accent" variable="--accent" className="bg-accent" />
+              <ColorSwatch
+                name="Primary"
+                variable="--primary"
+                className="bg-primary"
+              />
+              <ColorSwatch
+                name="Secondary"
+                variable="--secondary"
+                className="bg-secondary"
+              />
+              <ColorSwatch
+                name="Accent"
+                variable="--accent"
+                className="bg-accent"
+              />
             </div>
           </DocSection>
 
-          <DocSection title="Semantic Colors" description="Status and feedback indicators.">
+          <DocSection
+            title="Semantic Colors"
+            description="Status and feedback indicators."
+          >
             <div className="flex flex-wrap gap-5">
               <ColorSwatch name="Info" variable="--info" className="bg-info" />
-              <ColorSwatch name="Success" variable="--success" className="bg-success" />
-              <ColorSwatch name="Warning" variable="--warning" className="bg-warning" />
-              <ColorSwatch name="Danger" variable="--danger" className="bg-danger" />
-              <ColorSwatch name="Destructive" variable="--destructive" className="bg-destructive" />
+              <ColorSwatch
+                name="Success"
+                variable="--success"
+                className="bg-success"
+              />
+              <ColorSwatch
+                name="Warning"
+                variable="--warning"
+                className="bg-warning"
+              />
+              <ColorSwatch
+                name="Danger"
+                variable="--danger"
+                className="bg-danger"
+              />
+              <ColorSwatch
+                name="Destructive"
+                variable="--destructive"
+                className="bg-destructive"
+              />
             </div>
           </DocSection>
 
@@ -142,7 +197,9 @@ export default function DesignSystemPage() {
                 <ul className="text-muted-foreground list-inside list-disc space-y-1">
                   <li>
                     Use semantic tokens:{" "}
-                    <code className="bg-muted rounded px-1 text-xs">text-foreground</code>
+                    <code className="bg-muted rounded px-1 text-xs">
+                      text-foreground
+                    </code>
                   </li>
                   <li>Reference CSS variables for consistency</li>
                   <li>Test both light and dark modes</li>
@@ -153,7 +210,9 @@ export default function DesignSystemPage() {
                 <ul className="text-muted-foreground list-inside list-disc space-y-1">
                   <li>
                     Hardcode colors:{" "}
-                    <code className="bg-muted rounded px-1 text-xs line-through">text-white</code>
+                    <code className="bg-muted rounded px-1 text-xs line-through">
+                      text-white
+                    </code>
                   </li>
                   <li>Use hex/rgb values directly in components</li>
                   <li>Create one-off color values</li>
@@ -176,19 +235,38 @@ export default function DesignSystemPage() {
                 { cls: "text-h2", label: "Heading 2", spec: "20px / Semibold" },
                 { cls: "text-h3", label: "Heading 3", spec: "18px / Semibold" },
                 { cls: "text-h4", label: "Heading 4", spec: "16px / Semibold" },
-                { cls: "text-body-lg", label: "Body Large", spec: "16px / Regular" },
+                {
+                  cls: "text-body-lg",
+                  label: "Body Large",
+                  spec: "16px / Regular",
+                },
                 { cls: "text-body", label: "Body", spec: "14px / Regular" },
-                { cls: "text-body-compact", label: "Body Compact", spec: "13px / Regular" },
+                {
+                  cls: "text-body-compact",
+                  label: "Body Compact",
+                  spec: "13px / Regular",
+                },
                 { cls: "text-small", label: "Small", spec: "13px / Regular" },
-                { cls: "text-caption", label: "Caption", spec: "12px / Regular" },
+                {
+                  cls: "text-caption",
+                  label: "Caption",
+                  spec: "12px / Regular",
+                },
               ].map((t) => (
-                <div key={t.cls} className="flex items-baseline justify-between py-3">
-                  <p className={`${t.cls} text-foreground`}>The quick brown fox</p>
+                <div
+                  key={t.cls}
+                  className="flex items-baseline justify-between py-3"
+                >
+                  <p className={`${t.cls} text-foreground`}>
+                    The quick brown fox
+                  </p>
                   <div className="flex items-center gap-3">
                     <code className="text-muted-foreground bg-muted rounded px-2 py-0.5 font-mono text-xs">
                       {t.cls}
                     </code>
-                    <span className="text-muted-foreground w-28 text-right text-xs">{t.spec}</span>
+                    <span className="text-muted-foreground w-28 text-right text-xs">
+                      {t.spec}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -206,41 +284,77 @@ export default function DesignSystemPage() {
               <TokenRow
                 label="Layout Padding"
                 value="--layout-padding: 32px"
-                preview={<div className="bg-primary/20 h-4 rounded" style={{ width: 32 }} />}
+                preview={
+                  <div
+                    className="bg-primary/20 h-4 rounded"
+                    style={{ width: 32 }}
+                  />
+                }
               />
               <TokenRow
                 label="Card Padding"
                 value="--card-padding: 24px"
-                preview={<div className="bg-primary/20 h-4 rounded" style={{ width: 24 }} />}
+                preview={
+                  <div
+                    className="bg-primary/20 h-4 rounded"
+                    style={{ width: 24 }}
+                  />
+                }
               />
               <TokenRow
                 label="Component Gap"
                 value="--component-gap: 16px"
-                preview={<div className="bg-primary/20 h-4 rounded" style={{ width: 16 }} />}
+                preview={
+                  <div
+                    className="bg-primary/20 h-4 rounded"
+                    style={{ width: 16 }}
+                  />
+                }
               />
               <TokenRow
                 label="Button Padding X"
                 value="--button-padding-x: 20px"
-                preview={<div className="bg-primary/20 h-4 rounded" style={{ width: 20 }} />}
+                preview={
+                  <div
+                    className="bg-primary/20 h-4 rounded"
+                    style={{ width: 20 }}
+                  />
+                }
               />
               <TokenRow
                 label="Input Padding X"
                 value="--input-padding-x: 16px"
-                preview={<div className="bg-primary/20 h-4 rounded" style={{ width: 16 }} />}
+                preview={
+                  <div
+                    className="bg-primary/20 h-4 rounded"
+                    style={{ width: 16 }}
+                  />
+                }
               />
               <TokenRow
                 label="Table Cell Padding"
                 value="--table-cell-padding: 16px"
-                preview={<div className="bg-primary/20 h-4 rounded" style={{ width: 16 }} />}
+                preview={
+                  <div
+                    className="bg-primary/20 h-4 rounded"
+                    style={{ width: 16 }}
+                  />
+                }
               />
             </div>
           </DocSection>
 
-          <DocSection title="Sizing Tokens" description="Consistent component heights and widths.">
+          <DocSection
+            title="Sizing Tokens"
+            description="Consistent component heights and widths."
+          >
             <div className="divide-border divide-y">
               <TokenRow label="Button Height" value="--button-height: 44px" />
               <TokenRow label="Input Height" value="--input-height: 44px" />
-              <TokenRow label="Table Row Height" value="--table-row-height: 64px" />
+              <TokenRow
+                label="Table Row Height"
+                value="--table-row-height: 64px"
+              />
               <TokenRow label="Navbar Height" value="--navbar-height: 80px" />
               <TokenRow label="Sidebar Width" value="--sidebar-width: 280px" />
               <TokenRow label="Icon Size" value="--icon-size: 20px" />
@@ -250,7 +364,10 @@ export default function DesignSystemPage() {
 
         {/* ── Radii & Shadows ── */}
         <TabsContent value="radii" className="space-y-6">
-          <DocSection title="Border Radius" description="Consistent roundness for UI elements.">
+          <DocSection
+            title="Border Radius"
+            description="Consistent roundness for UI elements."
+          >
             <div className="flex flex-wrap items-end gap-8">
               {[
                 { label: "sm", cls: "rounded-sm", size: "2px" },
@@ -261,8 +378,12 @@ export default function DesignSystemPage() {
               ].map((r) => (
                 <div key={r.label} className="flex flex-col items-center gap-2">
                   <div className={`bg-primary h-16 w-16 ${r.cls}`} />
-                  <span className="text-foreground text-sm font-medium">{r.label}</span>
-                  <span className="text-muted-foreground text-xs">{r.size}</span>
+                  <span className="text-foreground text-sm font-medium">
+                    {r.label}
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    {r.size}
+                  </span>
                 </div>
               ))}
             </div>
@@ -270,9 +391,17 @@ export default function DesignSystemPage() {
 
           <DocSection title="Shadows" description="Elevation layers for depth.">
             <div className="flex flex-wrap items-end gap-8">
-              {["shadow-xs", "shadow-sm", "shadow-md", "shadow-lg", "shadow-xl"].map((s) => (
+              {[
+                "shadow-xs",
+                "shadow-sm",
+                "shadow-md",
+                "shadow-lg",
+                "shadow-xl",
+              ].map((s) => (
                 <div key={s} className="flex flex-col items-center gap-2">
-                  <div className={`bg-card border-border h-20 w-20 rounded-lg border ${s}`} />
+                  <div
+                    className={`bg-card border-border h-20 w-20 rounded-lg border ${s}`}
+                  />
                   <code className="text-muted-foreground text-xs">{s}</code>
                 </div>
               ))}
@@ -288,7 +417,9 @@ export default function DesignSystemPage() {
           >
             <div className="space-y-4">
               <div className="bg-muted/50 rounded-lg p-4">
-                <h4 className="text-foreground mb-2 text-sm font-semibold">File Structure</h4>
+                <h4 className="text-foreground mb-2 text-sm font-semibold">
+                  File Structure
+                </h4>
                 <pre className="text-muted-foreground font-mono text-xs whitespace-pre">{`src/components/
 ├── ui/          # Base primitives (Button, Input, Card)
 ├── layout/      # Layout components (Sidebar, Navbar, Grid)
@@ -299,28 +430,41 @@ export default function DesignSystemPage() {
               </div>
 
               <div className="bg-muted/50 rounded-lg p-4">
-                <h4 className="text-foreground mb-2 text-sm font-semibold">Naming Conventions</h4>
+                <h4 className="text-foreground mb-2 text-sm font-semibold">
+                  Naming Conventions
+                </h4>
                 <ul className="text-muted-foreground list-inside list-disc space-y-1 text-sm">
                   <li>
                     Components:{" "}
-                    <code className="bg-muted rounded px-1 text-xs">PascalCase.tsx</code>
+                    <code className="bg-muted rounded px-1 text-xs">
+                      PascalCase.tsx
+                    </code>
                   </li>
                   <li>
-                    Hooks: <code className="bg-muted rounded px-1 text-xs">use-kebab-case.ts</code>
+                    Hooks:{" "}
+                    <code className="bg-muted rounded px-1 text-xs">
+                      use-kebab-case.ts
+                    </code>
                   </li>
                   <li>
                     Services:{" "}
-                    <code className="bg-muted rounded px-1 text-xs">camelCaseService.ts</code>
+                    <code className="bg-muted rounded px-1 text-xs">
+                      camelCaseService.ts
+                    </code>
                   </li>
                   <li>
                     Stores:{" "}
-                    <code className="bg-muted rounded px-1 text-xs">kebab-case-store.ts</code>
+                    <code className="bg-muted rounded px-1 text-xs">
+                      kebab-case-store.ts
+                    </code>
                   </li>
                 </ul>
               </div>
 
               <div className="bg-muted/50 rounded-lg p-4">
-                <h4 className="text-foreground mb-2 text-sm font-semibold">API Layer</h4>
+                <h4 className="text-foreground mb-2 text-sm font-semibold">
+                  API Layer
+                </h4>
                 <pre className="text-muted-foreground font-mono text-xs whitespace-pre">{`// All API calls use typed client with Zod validation
 import { apiClient } from '@/lib/api/client';
 import { userSchema } from '@/lib/api/schemas';
@@ -334,7 +478,9 @@ loginRequestSchema.parse({ username, password });`}</pre>
               </div>
 
               <div className="bg-muted/50 rounded-lg p-4">
-                <h4 className="text-foreground mb-2 text-sm font-semibold">Error Handling</h4>
+                <h4 className="text-foreground mb-2 text-sm font-semibold">
+                  Error Handling
+                </h4>
                 <pre className="text-muted-foreground font-mono text-xs whitespace-pre">{`import {  ErrorBoundary  } from '/ui';
 import {  LoadingBoundary  } from '/ui';
 

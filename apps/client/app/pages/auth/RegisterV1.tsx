@@ -5,9 +5,8 @@ import { z } from "zod";
 import { NexusButton } from "@casbin/ui";
 import { NexusInput } from "@casbin/ui";
 import { FormGroup } from "@/components/patterns/form-group";
-import { Hexagon, Shield, Zap, Globe, ArrowRight, Check } from "lucide-react";
+import { Hexagon, Shield, Zap, Globe, ArrowRight } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
-import { toast } from "@casbin/ui";
 import { Separator } from "@casbin/ui";
 import { motion } from "framer-motion";
 
@@ -88,7 +87,12 @@ export default function RegisterV1() {
   };
 
   const handleGoogleSignup = () => {
-    login({ id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" });
+    login({
+      id: "g1",
+      name: "Google User",
+      email: "user@gmail.com",
+      username: "googleuser",
+    });
     navigate("/");
   };
 
@@ -101,7 +105,9 @@ export default function RegisterV1() {
           ? 2
           : 3;
   const strengthLabel = ["", "Weak", "Good", "Strong"][strength];
-  const strengthColor = ["", "bg-destructive", "bg-warning", "bg-success"][strength];
+  const strengthColor = ["", "bg-destructive", "bg-warning", "bg-success"][
+    strength
+  ];
 
   return (
     <div className="flex min-h-screen">
@@ -122,12 +128,22 @@ export default function RegisterV1() {
         />
         <motion.div
           animate={{ y: [0, 15, 0], rotate: [0, -3, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1,
+          }}
           className="border-primary-foreground/20 bg-primary-foreground/5 absolute bottom-32 left-16 h-24 w-24 rounded-full border backdrop-blur-sm"
         />
         <motion.div
           animate={{ y: [0, -10, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          transition={{
+            duration: 5,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2,
+          }}
           className="border-primary-foreground/15 bg-primary-foreground/5 absolute top-1/2 right-1/3 h-16 w-16 rotate-45 rounded-lg border backdrop-blur-sm"
         />
         <div className="text-primary-foreground relative z-10 flex w-full flex-col justify-between p-12">
@@ -157,7 +173,10 @@ export default function RegisterV1() {
                 { icon: Zap, text: "Real-time analytics & insights" },
                 { icon: Globe, text: "Multi-organization workspace" },
               ].map(({ icon: Icon, text }) => (
-                <div key={text} className="flex items-center gap-3 text-sm opacity-90">
+                <div
+                  key={text}
+                  className="flex items-center gap-3 text-sm opacity-90"
+                >
                   <div className="bg-primary-foreground/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
                     <Icon className="h-4 w-4" />
                   </div>
@@ -166,7 +185,9 @@ export default function RegisterV1() {
               ))}
             </motion.div>
           </div>
-          <p className="text-xs opacity-60">© 2026 NexusOS. All rights reserved.</p>
+          <p className="text-xs opacity-60">
+            © 2026 NexusOS. All rights reserved.
+          </p>
         </div>
       </div>
 
@@ -183,8 +204,12 @@ export default function RegisterV1() {
             <span className="text-foreground text-xl font-bold">NexusOS</span>
           </div>
           <div className="space-y-1">
-            <h1 className="text-foreground text-3xl font-bold tracking-tight">Create account</h1>
-            <p className="text-muted-foreground">Free forever. No credit card required.</p>
+            <h1 className="text-foreground text-3xl font-bold tracking-tight">
+              Create account
+            </h1>
+            <p className="text-muted-foreground">
+              Free forever. No credit card required.
+            </p>
           </div>
 
           <NexusButton
@@ -198,7 +223,9 @@ export default function RegisterV1() {
 
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
-            <span className="text-muted-foreground text-xs tracking-wider uppercase">or</span>
+            <span className="text-muted-foreground text-xs tracking-wider uppercase">
+              or
+            </span>
             <Separator className="flex-1" />
           </div>
 
@@ -252,11 +279,17 @@ export default function RegisterV1() {
                       />
                     ))}
                   </div>
-                  <span className="text-muted-foreground text-xs">{strengthLabel}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {strengthLabel}
+                  </span>
                 </div>
               )}
             </FormGroup>
-            <FormGroup label="Confirm Password" required error={errors.confirmPassword}>
+            <FormGroup
+              label="Confirm Password"
+              required
+              error={errors.confirmPassword}
+            >
               <NexusInput
                 type="password"
                 placeholder="Confirm password"
@@ -273,12 +306,16 @@ export default function RegisterV1() {
 
           <p className="text-muted-foreground text-center text-sm">
             Already have an account?{" "}
-            <Link to="/login" className="text-primary font-medium hover:underline">
+            <Link
+              to="/login"
+              className="text-primary font-medium hover:underline"
+            >
               Sign in
             </Link>
           </p>
           <p className="text-muted-foreground/60 text-center text-[11px]">
-            By creating an account you agree to our Terms of Service and Privacy Policy
+            By creating an account you agree to our Terms of Service and Privacy
+            Policy
           </p>
         </motion.div>
       </div>

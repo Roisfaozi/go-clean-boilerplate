@@ -62,7 +62,9 @@ export function LandingCtaBanner({
               <p
                 className={cn(
                   "text-body-lg mt-3",
-                  isPrimary ? "text-primary-foreground/85" : "text-muted-foreground",
+                  isPrimary
+                    ? "text-primary-foreground/85"
+                    : "text-muted-foreground",
                 )}
               >
                 {description}

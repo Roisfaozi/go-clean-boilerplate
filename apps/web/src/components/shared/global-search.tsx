@@ -2,11 +2,8 @@
 
 import * as React from "react";
 import {
-  Calculator,
-  Calendar,
   CreditCard,
   Settings,
-  Smile,
   User,
   Search,
   LayoutDashboard,
@@ -30,7 +27,7 @@ import { useDensityStore } from "~/stores/use-density-store";
 
 export function GlobalSearch() {
   const [open, setOpen] = React.useState(false);
-  const { density } = useDensityStore();
+  useDensityStore();
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -58,7 +55,9 @@ export function GlobalSearch() {
         onClick={() => setOpen(true)}
       >
         <Search className="h-4 w-4 shrink-0 [data-density=comfort]:mr-2" />
-        <span className="inline-flex [data-density=compact]:hidden">Search...</span>
+        <span className="inline-flex [data-density=compact]:hidden">
+          Search...
+        </span>
         <kbd className="bg-muted pointer-events-none absolute top-1/2 right-2 hidden h-5 -translate-y-1/2 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 select-none md:flex [data-density=compact]:hidden">
           <span className="text-xs">⌘</span>K
         </kbd>

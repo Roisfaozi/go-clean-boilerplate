@@ -5,9 +5,8 @@ import { z } from "zod";
 import { NexusButton } from "@casbin/ui";
 import { NexusInput } from "@casbin/ui";
 import { FormGroup } from "@/components/patterns/form-group";
-import { Hexagon, ArrowRight, Sparkles } from "lucide-react";
+import { Hexagon, Sparkles } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
-import { toast } from "@casbin/ui";
 import { Separator } from "@casbin/ui";
 import { motion } from "framer-motion";
 
@@ -75,7 +74,12 @@ export default function LoginV2() {
   const handleGoogleLogin = () => {
     setGoogleLoading(true);
     setTimeout(() => {
-      login({ id: "g1", name: "Google User", email: "user@gmail.com", username: "googleuser" });
+      login({
+        id: "g1",
+        name: "Google User",
+        email: "user@gmail.com",
+        username: "googleuser",
+      });
       navigate("/");
     }, 1500);
   };
@@ -102,7 +106,12 @@ export default function LoginV2() {
       />
       <motion.div
         animate={{ y: [0, 20, 0], x: [0, -15, 0] }}
-        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        transition={{
+          duration: 9,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 2,
+        }}
         className="bg-accent/10 absolute right-1/4 bottom-1/4 h-48 w-48 rounded-full blur-3xl"
       />
 
@@ -124,8 +133,12 @@ export default function LoginV2() {
             >
               <Hexagon className="text-primary-foreground h-8 w-8" />
             </motion.div>
-            <h1 className="text-foreground text-2xl font-bold">Welcome to NexusOS</h1>
-            <p className="text-muted-foreground text-sm">Sign in to continue to your dashboard</p>
+            <h1 className="text-foreground text-2xl font-bold">
+              Welcome to NexusOS
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Sign in to continue to your dashboard
+            </p>
           </div>
 
           {/* Google */}
@@ -142,7 +155,9 @@ export default function LoginV2() {
 
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
-            <span className="text-muted-foreground text-xs">or sign in with email</span>
+            <span className="text-muted-foreground text-xs">
+              or sign in with email
+            </span>
             <Separator className="flex-1" />
           </div>
 
@@ -172,7 +187,10 @@ export default function LoginV2() {
                 <input type="checkbox" className="border-border rounded" />
                 Remember me
               </label>
-              <Link to="/forgot-password" className="text-primary font-medium hover:underline">
+              <Link
+                to="/forgot-password"
+                className="text-primary font-medium hover:underline"
+              >
                 Forgot?
               </Link>
             </div>
@@ -188,7 +206,10 @@ export default function LoginV2() {
 
           <p className="text-muted-foreground text-center text-sm">
             New here?{" "}
-            <Link to="/register" className="text-primary font-medium hover:underline">
+            <Link
+              to="/register"
+              className="text-primary font-medium hover:underline"
+            >
               Create an account
             </Link>
           </p>

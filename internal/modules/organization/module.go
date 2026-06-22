@@ -38,7 +38,7 @@ func NewOrganizationModule(
 	frontendBaseURL string,
 ) *OrganizationModule {
 	// Create repositories
-	orgRepo := repository.NewOrganizationRepository(db)
+	orgRepo := repository.NewOrganizationRepository(db, redisClient)
 	memberRepo := repository.NewOrganizationMemberRepository(db)
 	invitationRepo := repository.NewInvitationRepository(db)
 
@@ -46,8 +46,8 @@ func NewOrganizationModule(
 	orgReader := usecase.NewCachedOrgReader(memberRepo, redisClient, log)
 
 	// Create use cases
-	orgUseCase := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, enforcer)
-	memberUseCase := usecase.NewOrganizationMemberUseCase(log, tm, memberRepo, orgRepo, invitationRepo, userRepo, taskDistributor, enforcer, presenceReader, frontendBaseURL)
+	orgUseCase := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, orgReader, enforcer)
+	memberUseCase := usecase.NewOrganizationMemberUseCase(log, tm, memberRepo, orgRepo, invitationRepo, userRepo, taskDistributor, enforcer, presenceReader, orgReader, frontendBaseURL)
 
 	// Create controller
 	orgController := http.NewOrganizationController(orgUseCase, memberUseCase, log, validate)

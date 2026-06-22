@@ -28,3 +28,8 @@ func (r *Registry) Register(uploadType string, hook UploadHook) {
 func (r *Registry) Get(uploadType string) UploadHook {
 	return r.hooks[uploadType]
 }
+
+func (r *Registry) Has(uploadType string) bool {
+	_, ok := r.hooks[uploadType]
+	return ok
+}

@@ -25,7 +25,10 @@ import { AuthLayoutShell } from "~/components/auth/auth-layout-shell";
 const inviteSchema = z
   .object({
     name: z.string().min(2, "Name must be at least 2 characters.").optional(),
-    password: z.string().min(8, "Password must be at least 8 characters.").optional(),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters.")
+      .optional(),
     confirmPassword: z.string().optional(),
   })
   .refine(
@@ -109,7 +112,9 @@ export default function InvitationPage({ params }: Props) {
                 <FormControl>
                   <Input placeholder="John Doe" {...field} />
                 </FormControl>
-                <FormDescription>Optional: Update your display name.</FormDescription>
+                <FormDescription>
+                  Optional: Update your display name.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

@@ -1,9 +1,20 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
-import { accessApi, ResourceCRUD, ResourcePermission } from "~/lib/api/access";
-import { rolesApi, Role } from "~/lib/api/roles";
+import {
+  accessApi,
+  type ResourceCRUD,
+  type ResourcePermission,
+} from "~/lib/api/access";
+import { rolesApi, type Role } from "~/lib/api/roles";
 
 interface PermissionMatrixContextType {
   resources: ResourcePermission[];
@@ -29,9 +40,15 @@ interface PermissionMatrixContextType {
   closeDialog: () => void;
 }
 
-const PermissionMatrixContext = createContext<PermissionMatrixContextType | undefined>(undefined);
+const PermissionMatrixContext = createContext<
+  PermissionMatrixContextType | undefined
+>(undefined);
 
-export function PermissionMatrixProvider({ children }: { children: ReactNode }) {
+export function PermissionMatrixProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [resources, setResources] = useState<ResourcePermission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +80,7 @@ export function PermissionMatrixProvider({ children }: { children: ReactNode }) 
       if (rolesResp.data) {
         setRoles(rolesResp.data);
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to load permission matrix");
     } finally {
       setIsLoading(false);
@@ -93,26 +110,49 @@ export function PermissionMatrixProvider({ children }: { children: ReactNode }) 
         delete: "DELETE",
       };
 
-      const CRUD_KEYS: (keyof ResourceCRUD)[] = ["create", "read", "update", "delete"];
+      const CRUD_KEYS: (keyof ResourceCRUD)[] = [
+        "create",
+        "read",
+        "update",
+        "delete",
+      ];
       const promises: Promise<any>[] = [];
 
       for (const key of CRUD_KEYS) {
         if (oldCrud[key] !== newCrud[key]) {
           if (newCrud[key]) {
-            promises.push(accessApi.grantPermission(roleName, basePath, methodMap[key]));
-            promises.push(accessApi.grantPermission(roleName, `${basePath}/*`, methodMap[key]));
+            promises.push(
+              accessApi.grantPermission(roleName, basePath, methodMap[key]),
+            );
+            promises.push(
+              accessApi.grantPermission(
+                roleName,
+                `${basePath}/*`,
+                methodMap[key],
+              ),
+            );
           } else {
-            promises.push(accessApi.revokePermission(roleName, basePath, methodMap[key]));
-            promises.push(accessApi.revokePermission(roleName, `${basePath}/*`, methodMap[key]));
+            promises.push(
+              accessApi.revokePermission(roleName, basePath, methodMap[key]),
+            );
+            promises.push(
+              accessApi.revokePermission(
+                roleName,
+                `${basePath}/*`,
+                methodMap[key],
+              ),
+            );
           }
         }
       }
 
       try {
         await Promise.all(promises);
-        toast.success(`Permissions updated for ${roleName.replace("role:", "")}`);
+        toast.success(
+          `Permissions updated for ${roleName.replace("role:", "")}`,
+        );
         await fetchData();
-      } catch (error) {
+      } catch (_error) {
         toast.error("Failed to update some permissions");
       } finally {
         setIsProcessing(false);
@@ -121,9 +161,12 @@ export function PermissionMatrixProvider({ children }: { children: ReactNode }) 
     [resources, fetchData],
   );
 
-  const openDialog = useCallback((role: string, resource: string, crud: ResourceCRUD) => {
-    setDialog({ open: true, role, resource, crud });
-  }, []);
+  const openDialog = useCallback(
+    (role: string, resource: string, crud: ResourceCRUD) => {
+      setDialog({ open: true, role, resource, crud });
+    },
+    [],
+  );
 
   const closeDialog = useCallback(() => {
     setDialog((prev) => ({ ...prev, open: false }));
@@ -151,7 +194,9 @@ export function PermissionMatrixProvider({ children }: { children: ReactNode }) 
 export function usePermissionMatrix() {
   const context = useContext(PermissionMatrixContext);
   if (context === undefined) {
-    throw new Error("usePermissionMatrix must be used within a PermissionMatrixProvider");
+    throw new Error(
+      "usePermissionMatrix must be used within a PermissionMatrixProvider",
+    );
   }
   return context;
 }

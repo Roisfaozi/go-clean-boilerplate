@@ -27,7 +27,9 @@ import (
 	mock_auth "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	mock_org "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	mock_user "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 )
 
@@ -51,6 +53,7 @@ type testDependencies struct {
 	log             *logrus.Logger
 	taskDistributor *mocking.MockTaskDistributor
 	ticketManager   *mock_auth.MockTicketManager
+	ssoProviders    map[string]sso.Provider
 }
 
 func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
@@ -68,6 +71,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		log:             logrus.New(),
 		taskDistributor: new(mocking.MockTaskDistributor),
 		ticketManager:   new(mock_auth.MockTicketManager),
+		ssoProviders:    make(map[string]sso.Provider),
 	}
 
 	deps.log.SetOutput(io.Discard)
@@ -85,7 +89,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		deps.authz,
 		deps.taskDistributor,
 		deps.ticketManager,
-		nil,
+		deps.ssoProviders,
 	)
 
 	return authService, deps
@@ -970,7 +974,7 @@ func TestRequestVerification_Success(t *testing.T) {
 
 	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
 		return req.UserID == user.ID && req.Action == "VERIFICATION_EMAIL_REQUESTED"
-	}), mock.Anything).Return(nil)
+	})).Return(nil)
 
 	err := authService.RequestVerification(context.Background(), user.ID)
 
@@ -2525,4 +2529,177 @@ func TestAuthUseCase_ForgotPassword_Edge_EmailDistributorFailure(t *testing.T) {
 
 	assert.NoError(t, err) // Should not return error
 	deps.taskDistributor.AssertExpectations(t)
+}
+
+func TestAuthUseCase_GetSSORedirectURL_Success(t *testing.T) {
+	uc, deps := setupTest(t)
+
+	ssoProvider := new(mock_auth.MockSSOProvider)
+	ssoProvider.On("GetLoginURL", "test-state").Return("http://sso-login-url")
+
+	deps.ssoProviders["github"] = ssoProvider
+
+	url, err := uc.GetSSORedirectURL(context.Background(), "github", "test-state")
+
+	assert.NoError(t, err)
+	assert.Equal(t, "http://sso-login-url", url)
+	ssoProvider.AssertExpectations(t)
+}
+
+func TestAuthUseCase_GetSSORedirectURL_ProviderNotFound(t *testing.T) {
+	uc, _ := setupTest(t)
+
+	url, err := uc.GetSSORedirectURL(context.Background(), "unknown-provider", "test-state")
+
+	assert.Error(t, err)
+	assert.Equal(t, "bad request", err.Error())
+	assert.Equal(t, "", url)
+}
+
+func TestAuthUseCase_HandleSSOCallback_ProviderNotFound(t *testing.T) {
+	uc, _ := setupTest(t)
+
+	res, _, err := uc.HandleSSOCallback(context.Background(), "unknown", "test-code")
+
+	assert.Error(t, err)
+	assert.Equal(t, "bad request", err.Error())
+	assert.Nil(t, res)
+}
+
+func TestAuthUseCase_HandleSSOCallback_ExchangeCodeError(t *testing.T) {
+	uc, deps := setupTest(t)
+
+	ssoProvider := new(mock_auth.MockSSOProvider)
+	ssoProvider.On("ExchangeCode", mock.Anything, "test-code").Return(nil, errors.New("exchange error"))
+	deps.ssoProviders["github"] = ssoProvider
+
+	res, _, err := uc.HandleSSOCallback(context.Background(), "github", "test-code")
+
+	assert.Error(t, err)
+	assert.Equal(t, "unauthorized", err.Error())
+	assert.Nil(t, res)
+	ssoProvider.AssertExpectations(t)
+}
+
+func TestAuthUseCase_HandleSSOCallback_GetUserInfoError(t *testing.T) {
+	uc, deps := setupTest(t)
+
+	token := &oauth2.Token{AccessToken: "token"}
+
+	ssoProvider := new(mock_auth.MockSSOProvider)
+	ssoProvider.On("ExchangeCode", mock.Anything, "test-code").Return(token, nil)
+	ssoProvider.On("GetUserInfo", mock.Anything, token).Return(nil, errors.New("user info error"))
+
+	deps.ssoProviders["github"] = ssoProvider
+
+	res, _, err := uc.HandleSSOCallback(context.Background(), "github", "test-code")
+
+	assert.Error(t, err)
+	assert.Equal(t, "unauthorized", err.Error())
+	assert.Nil(t, res)
+	ssoProvider.AssertExpectations(t)
+}
+
+func TestAuthUseCase_HandleSSOCallback_ExistingSSOIdentity_Success(t *testing.T) {
+	uc, deps := setupTest(t)
+
+	token := &oauth2.Token{AccessToken: "token"}
+	userInfo := &sso.UserInfo{Email: "test@example.com", ProviderID: "12345", Name: "Test User"}
+
+	ssoProvider := new(mock_auth.MockSSOProvider)
+	ssoProvider.On("ExchangeCode", mock.Anything, "test-code").Return(token, nil)
+	ssoProvider.On("GetUserInfo", mock.Anything, token).Return(userInfo, nil)
+	deps.ssoProviders["github"] = ssoProvider
+
+	ssoIdentity := &entity.UserSSOIdentity{UserID: TestUserID, Provider: "github", ProviderID: "12345"}
+	deps.userRepo.On("FindBySSOIdentity", mock.Anything, "github", "12345").Return(ssoIdentity, nil)
+
+	usr := &entity.User{ID: TestUserID, Email: "test@example.com", Status: entity.UserStatusActive}
+	deps.userRepo.On("FindByID", mock.Anything, TestUserID).Return(usr, nil)
+
+	deps.authz.On("GetRolesForUser", mock.Anything, TestUserID, "").Return([]string{"user"}, nil)
+	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, usr.Email).Return(nil)
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	res, refresh, err := uc.HandleSSOCallback(context.Background(), "github", "test-code")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.NotEmpty(t, refresh)
+	ssoProvider.AssertExpectations(t)
+	deps.userRepo.AssertExpectations(t)
+}
+
+func TestAuthUseCase_HandleSSOCallback_ExistingEmail_LinkIdentity(t *testing.T) {
+	uc, deps := setupTest(t)
+
+	token := &oauth2.Token{AccessToken: "token"}
+	userInfo := &sso.UserInfo{Email: "test@example.com", ProviderID: "12345", Name: "Test User"}
+
+	ssoProvider := new(mock_auth.MockSSOProvider)
+	ssoProvider.On("ExchangeCode", mock.Anything, "test-code").Return(token, nil)
+	ssoProvider.On("GetUserInfo", mock.Anything, token).Return(userInfo, nil)
+	deps.ssoProviders["github"] = ssoProvider
+
+	deps.userRepo.On("FindBySSOIdentity", mock.Anything, "github", "12345").Return(nil, errors.New("not found"))
+
+	usr := &entity.User{ID: TestUserID, Email: "test@example.com", Status: entity.UserStatusActive}
+	deps.userRepo.On("FindByEmail", mock.Anything, "test@example.com").Return(usr, nil)
+
+	deps.userRepo.On("CreateSSOIdentity", mock.Anything, mock.AnythingOfType("*entity.UserSSOIdentity")).Return(nil)
+
+	deps.authz.On("GetRolesForUser", mock.Anything, TestUserID, "").Return([]string{"user"}, nil)
+	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
+	deps.tokenRepo.On("StoreSession", mock.Anything, TestUserID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, usr.Email).Return(nil)
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything).Return(nil)
+
+	res, refresh, err := uc.HandleSSOCallback(context.Background(), "github", "test-code")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.NotEmpty(t, refresh)
+	ssoProvider.AssertExpectations(t)
+	deps.userRepo.AssertExpectations(t)
+}
+
+func TestAuthUseCase_HandleSSOCallback_NewUser_AutoProvision(t *testing.T) {
+	uc, deps := setupTest(t)
+
+	token := &oauth2.Token{AccessToken: "token"}
+	userInfo := &sso.UserInfo{Email: "new@example.com", ProviderID: "12345", Name: "New User"}
+
+	ssoProvider := new(mock_auth.MockSSOProvider)
+	ssoProvider.On("ExchangeCode", mock.Anything, "test-code").Return(token, nil)
+	ssoProvider.On("GetUserInfo", mock.Anything, token).Return(userInfo, nil)
+	deps.ssoProviders["github"] = ssoProvider
+
+	deps.userRepo.On("FindBySSOIdentity", mock.Anything, "github", "12345").Return(nil, errors.New("not found"))
+	deps.userRepo.On("FindByEmail", mock.Anything, "new@example.com").Return(nil, errors.New("not found"))
+
+	deps.tm.On("WithinTransaction", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		fn := args.Get(1).(func(context.Context) error)
+		_ = fn(context.Background())
+	})
+
+	deps.userRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
+	deps.authz.On("AssignDefaultRole", mock.Anything, mock.AnythingOfType("string")).Return(nil)
+	deps.orgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.Organization"), "owner").Return(nil)
+
+	deps.userRepo.On("CreateSSOIdentity", mock.Anything, mock.AnythingOfType("*entity.UserSSOIdentity")).Return(nil)
+
+	deps.authz.On("GetRolesForUser", mock.Anything, mock.AnythingOfType("string"), "").Return([]string{"user"}, nil)
+	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, "new@example.com").Return(nil)
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	res, refresh, err := uc.HandleSSOCallback(context.Background(), "github", "test-code")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.NotEmpty(t, refresh)
+	ssoProvider.AssertExpectations(t)
+	deps.userRepo.AssertExpectations(t)
+	deps.orgRepo.AssertExpectations(t)
 }

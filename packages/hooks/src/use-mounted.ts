@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-const emptySubscribe = () => () => {};
+const emptySubscribe = () => () => undefined;
 
 /**
  * Hook to detect if the component has mounted on the client.

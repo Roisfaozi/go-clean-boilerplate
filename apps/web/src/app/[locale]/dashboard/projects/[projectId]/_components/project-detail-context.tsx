@@ -1,7 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { Project, projectsApi } from "~/lib/api/projects";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  type ReactNode,
+} from "react";
+import { type Project, projectsApi } from "~/lib/api/projects";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -13,7 +19,9 @@ interface ProjectDetailContextType {
   deleteProject: () => Promise<void>;
 }
 
-const ProjectDetailContext = createContext<ProjectDetailContextType | undefined>(undefined);
+const ProjectDetailContext = createContext<
+  ProjectDetailContextType | undefined
+>(undefined);
 
 export function ProjectDetailProvider({
   initialProject,
@@ -37,7 +45,7 @@ export function ProjectDetailProvider({
           setProject(resp);
           toast.success("Project updated successfully");
         }
-      } catch (error) {
+      } catch (_error) {
         toast.error("Failed to update project");
       } finally {
         setIsLoading(false);
@@ -48,7 +56,11 @@ export function ProjectDetailProvider({
 
   const deleteProject = useCallback(async () => {
     if (!currentOrganization) return;
-    if (!confirm("Are you sure you want to delete this project? This action cannot be undone."))
+    if (
+      !confirm(
+        "Are you sure you want to delete this project? This action cannot be undone.",
+      )
+    )
       return;
 
     setIsLoading(true);
@@ -56,7 +68,7 @@ export function ProjectDetailProvider({
       await projectsApi.delete(project.id);
       toast.success("Project deleted successfully");
       router.push("/dashboard/projects");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete project");
     } finally {
       setIsLoading(false);
@@ -80,7 +92,9 @@ export function ProjectDetailProvider({
 export function useProjectDetail() {
   const context = useContext(ProjectDetailContext);
   if (context === undefined) {
-    throw new Error("useProjectDetail must be used within a ProjectDetailProvider");
+    throw new Error(
+      "useProjectDetail must be used within a ProjectDetailProvider",
+    );
   }
   return context;
 }

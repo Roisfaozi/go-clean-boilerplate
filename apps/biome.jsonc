@@ -1,0 +1,18 @@
+{
+  "root": false,
+  "$schema": "https://biomejs.dev/schemas/2.3.8/schema.json",
+  "extends": ["../biome.jsonc"],
+  "linter": {
+    "rules": {
+      "recommended": false
+    }
+  },
+  "files": {
+    "includes": [
+      "./**/src/**/*.{ts,tsx,js,jsx}",
+      "./**/app/**/*.{ts,tsx,js,jsx}",
+      "!**/.next/**",
+      "!**/.react-router/**"
+    ]
+  }
+}

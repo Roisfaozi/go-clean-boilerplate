@@ -4,7 +4,7 @@ import { NexusInput } from "@casbin/ui";
 import { NexusButton } from "@casbin/ui";
 import { Avatar, AvatarFallback, AvatarImage } from "@casbin/ui";
 import { Badge } from "@casbin/ui";
-import { MemberRoleSelector, MemberRoleBadge } from "./member-role-selector";
+import { MemberRoleSelector } from "./member-role-selector";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,7 +94,9 @@ export function MembersTable() {
   );
 
   const handleRoleChange = (memberId: string, newRole: string) => {
-    setMembers((prev) => prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)));
+    setMembers((prev) =>
+      prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
+    );
     toast({ title: "Role Updated", description: `Changed to ${newRole}` });
   };
 
@@ -115,11 +117,20 @@ export function MembersTable() {
     setMembers((prev) => [...prev, newMember]);
   };
 
-  return { filtered, search, setSearch, handleRoleChange, handleRemove, addMember, members };
+  return {
+    filtered,
+    search,
+    setSearch,
+    handleRoleChange,
+    handleRemove,
+    addMember,
+    members,
+  };
 }
 
 export function MembersTableUI() {
-  const { filtered, search, setSearch, handleRoleChange, handleRemove } = MembersTable();
+  const { filtered, search, setSearch, handleRoleChange, handleRemove } =
+    MembersTable();
 
   return (
     <NexusCard className="overflow-hidden">
@@ -138,10 +149,18 @@ export function MembersTableUI() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-border bg-muted/50 border-b">
-              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Member</th>
-              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Status</th>
-              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Role</th>
-              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Joined</th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">
+                Member
+              </th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">
+                Status
+              </th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">
+                Role
+              </th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">
+                Joined
+              </th>
               <th className="text-muted-foreground w-12 px-4 py-3 text-right font-medium"></th>
             </tr>
           </thead>
@@ -171,8 +190,12 @@ export function MembersTableUI() {
                       />
                     </div>
                     <div>
-                      <p className="text-foreground font-medium">{member.name}</p>
-                      <p className="text-muted-foreground text-xs">{member.email}</p>
+                      <p className="text-foreground font-medium">
+                        {member.name}
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        {member.email}
+                      </p>
                     </div>
                   </div>
                 </td>
@@ -181,8 +204,10 @@ export function MembersTableUI() {
                     variant={member.status === "online" ? "default" : "outline"}
                     className={cn(
                       "text-[10px] capitalize",
-                      member.status === "online" && "bg-success/10 text-success border-success/20",
-                      member.status === "away" && "bg-warning/10 text-warning border-warning/20",
+                      member.status === "online" &&
+                        "bg-success/10 text-success border-success/20",
+                      member.status === "away" &&
+                        "bg-warning/10 text-warning border-warning/20",
                     )}
                   >
                     {member.status}
@@ -195,11 +220,17 @@ export function MembersTableUI() {
                     disabled={member.role === "owner"}
                   />
                 </td>
-                <td className="text-muted-foreground px-4 py-3 text-xs">{member.joinedAt}</td>
+                <td className="text-muted-foreground px-4 py-3 text-xs">
+                  {member.joinedAt}
+                </td>
                 <td className="px-4 py-3 text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <NexusButton variant="ghost" size="icon" className="h-8 w-8">
+                      <NexusButton
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </NexusButton>
                     </DropdownMenuTrigger>
@@ -223,7 +254,10 @@ export function MembersTableUI() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="text-muted-foreground px-4 py-8 text-center">
+                <td
+                  colSpan={5}
+                  className="text-muted-foreground px-4 py-8 text-center"
+                >
                   No members found
                 </td>
               </tr>

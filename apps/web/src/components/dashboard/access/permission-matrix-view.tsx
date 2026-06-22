@@ -4,13 +4,15 @@ import { PermissionMatrixProvider } from "~/app/[locale]/dashboard/access/_compo
 import { MatrixGrid } from "~/app/[locale]/dashboard/access/_components/matrix-grid";
 import { MatrixDialog } from "~/app/[locale]/dashboard/access/_components/matrix-dialog";
 import { Icon } from "~/components/shared/icon";
-import { Role } from "~/lib/api/roles";
+import type { Role } from "~/lib/api/roles";
 
 interface PermissionMatrixViewProps {
   onRoleClick?: (role: Role) => void;
 }
 
-export function PermissionMatrixView({ onRoleClick }: PermissionMatrixViewProps) {
+export function PermissionMatrixView({
+  onRoleClick,
+}: PermissionMatrixViewProps) {
   return (
     <PermissionMatrixProvider>
       <div className="space-y-4">
@@ -19,9 +21,9 @@ export function PermissionMatrixView({ onRoleClick }: PermissionMatrixViewProps)
             <Icon name="Info" className="text-primary h-4 w-4" />
           </div>
           <p className="text-muted-foreground text-xs leading-relaxed">
-            The Permission Matrix provides a high-level overview of CRUD access across all system
-            resources. Click a cell to modify granular permissions for a specific role and resource
-            pair.
+            The Permission Matrix provides a high-level overview of CRUD access
+            across all system resources. Click a cell to modify granular
+            permissions for a specific role and resource pair.
           </p>
         </div>
 

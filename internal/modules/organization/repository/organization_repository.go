@@ -3,21 +3,30 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	txpkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 // organizationRepository implements OrganizationRepository interface.
 type organizationRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	redis *redis.Client
 }
 
 // NewOrganizationRepository creates a new instance of OrganizationRepository.
-func NewOrganizationRepository(db *gorm.DB) OrganizationRepository {
-	return &organizationRepository{db: db}
+// An optional Redis client can be passed to enable cache invalidation for organization status.
+func NewOrganizationRepository(db *gorm.DB, redisClients ...*redis.Client) OrganizationRepository {
+	var redisClient *redis.Client
+	if len(redisClients) > 0 {
+		redisClient = redisClients[0]
+	}
+	return &organizationRepository{db: db, redis: redisClient}
 }
 
 // Create creates a new organization with the owner as the first member atomically.
@@ -52,10 +61,34 @@ func (r *organizationRepository) Create(ctx context.Context, org *entity.Organiz
 	})
 }
 
+func (r *organizationRepository) query(ctx context.Context) *gorm.DB {
+	query := r.getDB(ctx).WithContext(ctx)
+	if database.CanAccessDeletedOrganizations(ctx) {
+		return query.Unscoped()
+	}
+	return query.Unscoped().Where("(organizations.deleted_at = 0 OR organizations.deleted_at IS NULL)")
+}
+
+func (r *organizationRepository) getDB(ctx context.Context) *gorm.DB {
+	if txDB, ok := txpkg.DBFromContext(ctx); ok {
+		return txDB
+	}
+	return r.db
+}
+
+func (r *organizationRepository) invalidateOrganizationStatusCache(ctx context.Context, orgID string) {
+	if r.redis == nil {
+		return
+	}
+
+	cacheKey := fmt.Sprintf("nexusos:org_status:%s", orgID)
+	_ = r.redis.Del(ctx, cacheKey).Err()
+}
+
 // FindByID finds an organization by its ID.
 func (r *organizationRepository) FindByID(ctx context.Context, id string) (*entity.Organization, error) {
 	var org entity.Organization
-	err := r.db.WithContext(ctx).
+	err := r.query(ctx).
 		Where("id = ?", id).
 		First(&org).Error
 	if err != nil {
@@ -70,7 +103,7 @@ func (r *organizationRepository) FindByID(ctx context.Context, id string) (*enti
 // FindBySlug finds an organization by its unique slug.
 func (r *organizationRepository) FindBySlug(ctx context.Context, slug string) (*entity.Organization, error) {
 	var org entity.Organization
-	err := r.db.WithContext(ctx).
+	err := r.query(ctx).
 		Where("slug = ?", slug).
 		First(&org).Error
 	if err != nil {
@@ -111,13 +144,45 @@ func (r *organizationRepository) FindUserOrganizations(ctx context.Context, user
 
 // Update updates an organization's details.
 func (r *organizationRepository) Update(ctx context.Context, org *entity.Organization) error {
-	return r.db.WithContext(ctx).
+	return r.getDB(ctx).WithContext(ctx).
 		Save(org).Error
 }
 
 // Delete soft-deletes an organization.
 func (r *organizationRepository) Delete(ctx context.Context, id string) error {
-	return r.db.WithContext(ctx).
+	if err := r.getDB(ctx).WithContext(ctx).
 		Where("id = ?", id).
-		Delete(&entity.Organization{}).Error
+		Delete(&entity.Organization{}).Error; err != nil {
+		return err
+	}
+
+	r.invalidateOrganizationStatusCache(ctx, id)
+	return nil
+}
+
+// Restore clears the soft-delete marker for an organization.
+func (r *organizationRepository) Restore(ctx context.Context, id string) error {
+	if err := r.getDB(ctx).WithContext(ctx).
+		Unscoped().
+		Model(&entity.Organization{}).
+		Where("id = ?", id).
+		Update("deleted_at", 0).Error; err != nil {
+		return err
+	}
+
+	r.invalidateOrganizationStatusCache(ctx, id)
+	return nil
+}
+
+// HardDelete permanently removes an organization.
+func (r *organizationRepository) HardDelete(ctx context.Context, id string) error {
+	if err := r.getDB(ctx).WithContext(ctx).
+		Unscoped().
+		Where("id = ?", id).
+		Delete(&entity.Organization{}).Error; err != nil {
+		return err
+	}
+
+	r.invalidateOrganizationStatusCache(ctx, id)
+	return nil
 }

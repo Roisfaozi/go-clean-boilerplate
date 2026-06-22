@@ -72,7 +72,8 @@ export function UploadProgress({
         className={cn(
           "h-4.5 w-4.5 shrink-0",
           config.color,
-          (item.status === "preparing" || item.status === "uploading") && "animate-spin",
+          (item.status === "preparing" || item.status === "uploading") &&
+            "animate-spin",
         )}
       />
 
@@ -104,16 +105,21 @@ export function UploadProgress({
           </div>
         )}
 
-        {item.status === "uploading" && (item.speedBps || item.etaSeconds != null) && (
-          <p className="text-muted-foreground truncate text-[10px]">
-            {[formatSpeed(item.speedBps), formatEta(item.etaSeconds)].filter(Boolean).join(" · ")}
-          </p>
-        )}
+        {item.status === "uploading" &&
+          (item.speedBps || item.etaSeconds != null) && (
+            <p className="text-muted-foreground truncate text-[10px]">
+              {[formatSpeed(item.speedBps), formatEta(item.etaSeconds)]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
 
         {item.status === "error" && (item.errorMessage || item.error) && (
           <p className="text-destructive truncate text-[11px]">
             {item.errorMessage || item.error}
-            {item.retryCount && item.retryCount > 0 ? ` · attempt ${item.retryCount + 1}` : ""}
+            {item.retryCount && item.retryCount > 0
+              ? ` · attempt ${item.retryCount + 1}`
+              : ""}
           </p>
         )}
       </div>
@@ -153,17 +159,19 @@ export function UploadProgress({
             <RotateCcw className="h-3.5 w-3.5" />
           </NexusButton>
         )}
-        {item.status !== "success" && item.status !== "canceled" && onCancel && (
-          <NexusButton
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={onCancel}
-            aria-label={`Cancel ${item.fileName}`}
-          >
-            <X className="text-destructive h-3.5 w-3.5" />
-          </NexusButton>
-        )}
+        {item.status !== "success" &&
+          item.status !== "canceled" &&
+          onCancel && (
+            <NexusButton
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={onCancel}
+              aria-label={`Cancel ${item.fileName}`}
+            >
+              <X className="text-destructive h-3.5 w-3.5" />
+            </NexusButton>
+          )}
       </div>
     </div>
   );

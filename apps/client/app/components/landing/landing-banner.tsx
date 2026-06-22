@@ -23,8 +23,8 @@ export function LandingBanner() {
                 A design system you'll actually love using
               </h3>
               <p className="text-primary-foreground/90 mb-6 max-w-md">
-                Tokens, components, and patterns crafted for consistency across light and dark
-                themes.
+                Tokens, components, and patterns crafted for consistency across
+                light and dark themes.
               </p>
               <div className="inline-flex items-center gap-2 text-sm font-semibold">
                 Explore design tokens
@@ -40,8 +40,12 @@ export function LandingBanner() {
               className="group border-border bg-card hover:border-primary/30 flex-1 overflow-hidden rounded-2xl border p-6 transition-all hover:-translate-y-0.5 hover:shadow-lg"
             >
               <Component className="text-primary mb-3 h-7 w-7" />
-              <h4 className="text-card-foreground mb-1 font-semibold">Components</h4>
-              <p className="text-muted-foreground mb-3 text-sm">90+ ready-to-use components</p>
+              <h4 className="text-card-foreground mb-1 font-semibold">
+                Components
+              </h4>
+              <p className="text-muted-foreground mb-3 text-sm">
+                90+ ready-to-use components
+              </p>
               <div className="text-primary flex items-center gap-1 text-sm font-medium">
                 Browse
                 <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -52,8 +56,12 @@ export function LandingBanner() {
               className="group border-border bg-card hover:border-primary/30 flex-1 overflow-hidden rounded-2xl border p-6 transition-all hover:-translate-y-0.5 hover:shadow-lg"
             >
               <Layers className="text-accent mb-3 h-7 w-7" />
-              <h4 className="text-card-foreground mb-1 font-semibold">Templates</h4>
-              <p className="text-muted-foreground mb-3 text-sm">Auth flows & error pages</p>
+              <h4 className="text-card-foreground mb-1 font-semibold">
+                Templates
+              </h4>
+              <p className="text-muted-foreground mb-3 text-sm">
+                Auth flows & error pages
+              </p>
               <div className="text-primary flex items-center gap-1 text-sm font-medium">
                 View gallery
                 <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />

@@ -1,7 +1,6 @@
 import { useCallback, useState, useRef } from "react";
 import { cn } from "@casbin/ui";
 import { Upload, X, File } from "lucide-react";
-import { NexusButton } from "@casbin/ui";
 
 interface FileUploadProps {
   accept?: string;
@@ -62,7 +61,8 @@ export function FileUpload({
       >
         <Upload className="text-muted-foreground h-8 w-8" />
         <p className="text-body text-muted-foreground">
-          Drag & drop or <span className="text-primary font-medium">browse</span>
+          Drag & drop or{" "}
+          <span className="text-primary font-medium">browse</span>
         </p>
         <p className="text-caption text-muted-foreground">
           Max {(maxSize / 1024 / 1024).toFixed(0)}MB per file

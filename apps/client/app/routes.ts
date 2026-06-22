@@ -1,4 +1,10 @@
-import { type RouteConfig, index, route, layout, prefix } from "@react-router/dev/routes";
+import {
+  type RouteConfig,
+  index,
+  route,
+  layout,
+  prefix,
+} from "@react-router/dev/routes";
 
 export default [
   index("pages/LandingPage.tsx"),
@@ -47,12 +53,11 @@ export default [
     route("organizations", "features/organizations/organizationPage.tsx"),
     route("workspace", "pages/WorkspacePage.tsx"),
     route("projects", "features/projects/projectPage.tsx"),
-    route("access-rights", "features/access-rights/accessRightPage.tsx"),
     route("permissions", "features/permissions/permissionPage.tsx"),
     route("resources", "features/resources/resourcePage.tsx"),
     route("endpoints", "features/endpoints/endpointPage.tsx"),
     route("roles-permissions", "pages/RolesPermissionsPage.tsx"),
-    route("audit-logs", "pages/AuditLogsPage.tsx"),
+    route("audit-logs", "features/audit-logs/auditLogPage.tsx"),
     route("system-health", "pages/SystemHealthPage.tsx"),
     route("system-insights", "pages/SystemInsightsPage.tsx"),
     route("uploads", "pages/UploadsPage.tsx"),
