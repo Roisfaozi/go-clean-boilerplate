@@ -2,44 +2,24 @@ package config
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
-	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role"
-	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
-	userUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/router"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/circuitbreaker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/storage"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tus"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	ws2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
@@ -122,8 +102,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 
 	// ── Runtime Safety Guard ──
-	// Outside local/test/dev, Casbin MUST be enabled and policies MUST be loaded.
-	// This prevents a catastrophic "fail-open" scenario.
 	if isStrictCasbinEnv(cfg.Server.AppEnv) {
 		if globalEnforcer == nil {
 			logger.Fatal("CRITICAL: Casbin is DISABLED outside local/test/dev. Set CASBIN_ENABLED=true. Aborting startup.")
@@ -148,126 +126,38 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 	logger.Infof("Storage provider initialized: %s", cfg.Storage.Driver)
 
-	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
-	organizationRepository := orgRepo.NewOrganizationRepository(dbConnection, redisClient)
+	ssoProviders := initSSOProviders(cfg)
 
-	ssoProviders := make(map[string]sso.Provider)
-	ssoProviders["google"] = sso.NewGoogleProvider(sso.ProviderConfig{
-		ClientID:     cfg.SSO.Google.ClientID,
-		ClientSecret: cfg.SSO.Google.ClientSecret,
-		RedirectURL:  cfg.SSO.Google.RedirectURL,
-		Scopes:       cfg.SSO.Google.Scopes,
-	})
-	ssoProviders["microsoft"] = sso.NewMicrosoftProvider(sso.ProviderConfig{
-		ClientID:     cfg.SSO.Microsoft.ClientID,
-		ClientSecret: cfg.SSO.Microsoft.ClientSecret,
-		RedirectURL:  cfg.SSO.Microsoft.RedirectURL,
-		Scopes:       cfg.SSO.Microsoft.Scopes,
-	})
-	ssoProviders["github"] = sso.NewGitHubProvider(sso.ProviderConfig{
-		ClientID:     cfg.SSO.GitHub.ClientID,
-		ClientSecret: cfg.SSO.GitHub.ClientSecret,
-		RedirectURL:  cfg.SSO.GitHub.RedirectURL,
-		Scopes:       cfg.SSO.GitHub.Scopes,
-	})
-
-	auditModule := audit.NewAuditModule(dbConnection, logger, validate, wsManager, taskDistributor)
-
-	authModule := auth.NewAuthModule(
-		cfg.Security.MaxLoginAttempts,
-		cfg.Security.LockoutDuration,
-		jwtManager,
+	modules := initModules(
+		cfg,
 		dbConnection,
 		redisClient,
 		logger,
 		validate,
-		tm,
 		wsManager,
-		sseManager,
-		enforcer,
-		auditModule,
+		presenceManager,
 		taskDistributor,
-		organizationRepository,
+		tm,
+		jwtManager,
 		ticketManager,
-		cfg.Casbin.DefaultRole,
-		cfg.Casbin.DefaultDomain,
+		enforcer,
+		sseManager,
+		storageProvider,
 		ssoProviders,
 	)
-
-	webhookModule := webhook.NewWebhookModule(dbConnection, logger, validate, taskDistributor)
-
-	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, webhookModule, storageProvider)
-
-	apiKeyModule := api_key.NewApiKeyModule(dbConnection, userModule.UserRepo, redisClient, logger, validate)
-
-	accessModule := access.NewAccessModule(dbConnection, logger, validate)
-
-	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo, userModule.UserRepo, accessModule.AccessRepo, auditModule)
-
-	roleModule := role.NewRoleModule(dbConnection, logger, validate, tm, permissionModule.PermissionUseCase)
-
-	statsModule := stats.NewStatsModule(dbConnection, logger)
-
-	projectModule := project.NewProjectModule(dbConnection, validate)
-
-	organizationModule := organization.NewOrganizationModule(dbConnection, redisClient, taskDistributor, userModule.UserRepo, logger, validate, tm, enforcer, presenceManager, cfg.Server.FrontendBaseURL)
-
 	logger.Info("Application modules initialized.")
 
-	// Real-time Metrics Broadcaster
-	go func() {
-		ticker := time.NewTicker(2 * time.Second)
-		var lastCount uint64
-		for range ticker.C {
-			// Calculate RPS
-			currentCount := middleware.GetTotalRequests()
-			rps := float64(currentCount-lastCount) / 2.0
-			lastCount = currentCount
-
-			// Gather other stats
-			stats, err := statsModule.UseCase.GetSystemInsights(context.Background())
-			if err != nil {
-				continue
-			}
-
-			summary, _ := statsModule.UseCase.GetDashboardSummary(context.Background())
-
-			payload, _ := json.Marshal(map[string]interface{}{
-				"type": "metrics_update",
-				"data": map[string]interface{}{
-					"rps":            rps,
-					"active_users":   wsManager.ClientCount(),
-					"total_users":    summary.TotalUsers,
-					"avg_latency":    stats.AvgLatencyMs,
-					"error_rate":     stats.ErrorRate,
-					"uptime":         stats.Uptime,
-					"cpu_usage":      12.5, // Mock or gather from system
-					"memory_usage":   256,  // MB
-					"active_threads": 42,
-				},
-			})
-			wsManager.BroadcastToChannel("system:metrics", payload)
-
-			// Also prune stale users periodically (every 30s effectively)
-			removed, err := presenceManager.PruneStaleUsers(context.Background(), 1*time.Minute)
-			if err == nil {
-				for orgID, userIDs := range removed {
-					for _, uid := range userIDs {
-						wsManager.PresenceUpdate(orgID, "leave", &ws2.PresenceUser{UserID: uid})
-					}
-				}
-			}
-		}
-	}()
+	// Real-time Metrics Broadcaster & User Presence Pruner
+	startMetricsBroadcaster(wsManager, presenceManager, modules.stats)
 
 	cleanupHandler := handlers.NewCleanupTaskHandler(
-		authModule.TokenRepo,
-		userModule.UserRepo,
-		auditModule.AuditRepo,
+		modules.auth.TokenRepo,
+		modules.user.UserRepo,
+		modules.audit.AuditRepo,
 		logger,
 	)
 
-	webhookHandler := handlers.NewWebhookHandler(webhookModule.Repo, logger)
+	webhookHandler := handlers.NewWebhookHandler(modules.webhook.Repo, logger)
 
 	workerCfg := worker.WorkerConfig{
 		SMTP: worker.SMTPConfig{
@@ -280,51 +170,24 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		},
 	}
 
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler, webhookHandler, auditModule.AuditController.UseCase, auditModule.AuditRepo, workerCfg)
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, logger, cleanupHandler, webhookHandler, modules.audit.AuditController.UseCase, modules.audit.AuditRepo, workerCfg)
 	scheduler := worker.NewScheduler(redisOpt, logger)
 	scheduler.RegisterScheduledTasks()
 
-	authUseCase := authModule.AuthController.AuthUseCase
+	authUseCase := modules.auth.AuthController.AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger, ticketManager)
-	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(apiKeyModule.UseCase, userModule.UserRepo, logger)
+	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(modules.apiKey.UseCase, modules.user.UserRepo, logger)
 	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	tenantMiddleware := middleware.NewTenantMiddleware(
-		organizationModule.OrgRepo,
-		organizationModule.Reader(),
+		modules.organization.OrgRepo,
+		modules.organization.Reader(),
 		logger,
 	)
-	wsController := ws2.NewWebSocketController(logger, wsManager, cfg.CORS.AllowedOrigins, userModule.UserRepo, enforcer)
+	wsController := ws2.NewWebSocketController(logger, wsManager, cfg.CORS.AllowedOrigins, modules.user.UserRepo, enforcer)
 	logger.Info("Middleware initialized.")
 
-	// ---------------------------------------------------------
 	// TUS Initialization
-	// ---------------------------------------------------------
-	tusRegistry := tus.NewRegistry()
-
-	tusRegistry.Register("avatar", &userUseCase.AvatarHook{UserUseCase: userModule.UserUseCase})
-
-	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(),
-		awsconfig.WithRegion(cfg.Storage.S3.Region),
-		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.Storage.S3.AccessKey, cfg.Storage.S3.SecretKey, "")),
-	)
-	if err != nil {
-		logger.Errorf("Failed to load AWS config for TUS: %v", err)
-	}
-
-	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
-		o.UsePathStyle = cfg.Storage.S3.ForcePathStyle
-		if cfg.Storage.S3.Endpoint != "" {
-			o.BaseEndpoint = aws.String(cfg.Storage.S3.Endpoint)
-		}
-	})
-
-	tusHandler, err := tus.NewHandler(tus.Config{
-		StorageDriver: cfg.Storage.Driver,
-		LocalRootPath: cfg.Storage.Local.RootPath,
-		S3Bucket:      cfg.Storage.S3.Bucket,
-		S3Endpoint:    cfg.Storage.S3.Endpoint,
-		BasePath:      cfg.Tus.BasePath,
-	}, tusRegistry, s3Client, logger)
+	tusHandler, err := initTusHandler(cfg, logger, modules.user)
 	if err != nil {
 		logger.Errorf("Failed to init TUS handler: %v", err)
 	} else {
@@ -353,17 +216,17 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	ginRouter := router.SetupRouter(
 		configRouter,
-		authModule,
-		userModule,
-		permissionModule,
-		accessModule,
-		roleModule,
-		organizationModule,
-		auditModule,
-		statsModule,
-		projectModule,
-		apiKeyModule,
-		webhookModule,
+		modules.auth,
+		modules.user,
+		modules.permission,
+		modules.access,
+		modules.role,
+		modules.organization,
+		modules.audit,
+		modules.stats,
+		modules.project,
+		modules.apiKey,
+		modules.webhook,
 		authMiddleware,
 		apiKeyMiddleware,
 		casbinMiddleware,
