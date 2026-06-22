@@ -134,27 +134,27 @@ export default function ProjectsPage() {
   const updateMutation = useUpdateProject();
   const deleteMutation = useDeleteProject();
 
-  const handleCreate = async (values: any) => {
+  const handleCreate = (values: any) => {
     if (!activeOrg) return;
-    await createMutation.mutateAsync({
+    createMutation.mutate({
       ...values,
       organization_id: activeOrg.id,
     });
     setCreateOpen(false);
   };
 
-  const handleUpdate = async (values: any) => {
+  const handleUpdate = (values: any) => {
     if (!editItem) return;
-    await updateMutation.mutateAsync({
+    updateMutation.mutate({
       id: editItem.id,
       data: values,
     });
     setEditItem(null);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deleteItem) return;
-    await deleteMutation.mutateAsync(deleteItem.id);
+    deleteMutation.mutate(deleteItem.id);
     setDeleteItem(null);
   };
 

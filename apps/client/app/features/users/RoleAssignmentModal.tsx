@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -40,7 +40,7 @@ export function RoleAssignmentModal({
   const [selectedRoles, setSelectedRoles] = useState<string[]>(currentRoles);
 
   // Re-sync when currentRoles changes
-  useMemo(() => {
+  useEffect(() => {
     setSelectedRoles(currentRoles);
   }, [currentRoles]);
 
@@ -73,10 +73,18 @@ export function RoleAssignmentModal({
   const handleToggle = async (roleName: string, active: boolean) => {
     if (active) {
       setSelectedRoles((p) => [...p, roleName]);
-      await assignMutation.mutateAsync(roleName);
+      assignMutation.mutate(roleName, {
+        onError: () => {
+          setSelectedRoles((p) => p.filter((r) => r !== roleName));
+        },
+      });
     } else {
       setSelectedRoles((p) => p.filter((r) => r !== roleName));
-      await revokeMutation.mutateAsync(roleName);
+      revokeMutation.mutate(roleName, {
+        onError: () => {
+          setSelectedRoles((p) => [...p, roleName]);
+        },
+      });
     }
   };
 

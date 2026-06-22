@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { useAuditLogs, useExportAuditLogs } from "./auditHooks";
 import {
@@ -12,7 +12,15 @@ import { Download, RefreshCw, Search } from "lucide-react";
 export default function AuditLogsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const limit = 15;
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [search]);
 
   const {
     data: response,
@@ -22,7 +30,7 @@ export default function AuditLogsPage() {
   } = useAuditLogs({
     page,
     limit,
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     sort: "created_at desc",
   });
 

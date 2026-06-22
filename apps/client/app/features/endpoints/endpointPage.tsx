@@ -18,7 +18,7 @@ import {
   useDeleteEndpoint,
 } from "./endpointHooks";
 import { useResources } from "@/features/resources/resourceHooks";
-import type { Endpoint, Resource } from "@/lib/api/types";
+import type { AccessRight, Endpoint } from "@/lib/api/types";
 
 const _mockData: Endpoint[] = [
   {
@@ -227,8 +227,8 @@ export default function EndpointsPage() {
     return [];
   }, [response]);
 
-  const resources: Resource[] = useMemo(() => {
-    if (resourcesResponse?.data) return resourcesResponse.data as Resource[];
+  const resources: AccessRight[] = useMemo(() => {
+    if (resourcesResponse?.data) return resourcesResponse.data as AccessRight[];
     return [];
   }, [resourcesResponse]);
 
@@ -279,8 +279,8 @@ export default function EndpointsPage() {
         fields={fields}
         schema={schema}
         loading={createEndpoint.isPending}
-        onSubmit={async (v) => {
-          await createEndpoint.mutateAsync(v as any);
+        onSubmit={(v) => {
+          createEndpoint.mutate(v as any);
           setCreateOpen(false);
         }}
         submitLabel="Create Endpoint"
@@ -294,9 +294,9 @@ export default function EndpointsPage() {
         schema={schema}
         loading={updateEndpoint.isPending}
         initialValues={editItem || undefined}
-        onSubmit={async (v) => {
+        onSubmit={(v) => {
           if (editItem) {
-            await updateEndpoint.mutateAsync({
+            updateEndpoint.mutate({
               id: editItem.id,
               data: v as any,
             });
@@ -311,9 +311,9 @@ export default function EndpointsPage() {
         resourceName="Endpoint"
         itemName={deleteItem?.name}
         loading={deleteEndpoint.isPending}
-        onConfirm={async () => {
+        onConfirm={() => {
           if (deleteItem) {
-            await deleteEndpoint.mutateAsync(String(deleteItem.id));
+            deleteEndpoint.mutate(String(deleteItem.id));
             setDeleteItem(null);
           }
         }}

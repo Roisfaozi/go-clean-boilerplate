@@ -50,6 +50,17 @@ import {
 } from "./permissionHooks";
 import { RoleInheritanceTree, type RoleNode } from "./role-inheritance-tree";
 
+function findNodeById(nodes: RoleNode[], id: string): RoleNode | null {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    if (node.children) {
+      const found = findNodeById(node.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 // --- Matrix Components ---
 
 function MatrixCell({
@@ -365,7 +376,7 @@ const columns: CrudColumnDef<Permission>[] = [
 
 export default function PermissionsPage() {
   const [activeTab, setActiveTab] = useState("matrix");
-  const [selectedItem, setSelectedItem] = useState<RoleNode | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [_editItem, setEditItem] = useState<Permission | null>(null);
   const [deleteItem, setDeleteItem] = useState<Permission | null>(null);
@@ -388,7 +399,7 @@ export default function PermissionsPage() {
   const deletePermission = useDeletePermission();
 
   const permissions: Permission[] = useMemo(() => {
-    return (Array.isArray(response) ? response : []) as Permission[];
+    return (response?.data || []) as Permission[];
   }, [response]);
 
   const roles = useMemo(
@@ -403,6 +414,11 @@ export default function PermissionsPage() {
     () => (inheritanceResponse?.roles || []) as any[],
     [inheritanceResponse],
   );
+
+  const selectedItem = useMemo(() => {
+    if (!selectedRoleId) return null;
+    return findNodeById(inheritanceTree, selectedRoleId);
+  }, [inheritanceTree, selectedRoleId]);
 
   const isLoading =
     permissionsLoading ||
@@ -480,8 +496,8 @@ export default function PermissionsPage() {
               ) : (
                 <RoleInheritanceTree
                   tree={inheritanceTree}
-                  onSelect={setSelectedItem}
-                  activeId={selectedItem?.id}
+                  onSelect={(role) => setSelectedRoleId(role.id)}
+                  activeId={selectedRoleId || undefined}
                 />
               )}
             </div>

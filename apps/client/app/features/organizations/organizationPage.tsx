@@ -214,8 +214,8 @@ export default function OrganizationsPage() {
         description="Add a new organization."
         fields={createFields}
         schema={createSchema}
-        onSubmit={async (values) => {
-          await createOrg.mutateAsync(values as any);
+        onSubmit={(values) => {
+          createOrg.mutate(values as any);
           setCreateOpen(false);
         }}
         submitLabel="Create"
@@ -229,9 +229,9 @@ export default function OrganizationsPage() {
         fields={editFields}
         schema={editSchema}
         initialValues={editItem || undefined}
-        onSubmit={async (values) => {
+        onSubmit={(values) => {
           if (editItem) {
-            await updateOrg.mutateAsync({
+            updateOrg.mutate({
               id: editItem.id,
               data: values as any,
             });
@@ -246,9 +246,9 @@ export default function OrganizationsPage() {
         onOpenChange={(open) => !open && setDeleteItem(null)}
         resourceName="Organization"
         itemName={deleteItem?.name}
-        onConfirm={async () => {
+        onConfirm={() => {
           if (deleteItem) {
-            await deleteOrg.mutateAsync(String(deleteItem.id));
+            deleteOrg.mutate(String(deleteItem.id));
             setDeleteItem(null);
           }
         }}
