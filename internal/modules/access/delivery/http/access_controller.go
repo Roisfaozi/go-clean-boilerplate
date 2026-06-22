@@ -28,6 +28,10 @@ func NewAccessController(useCase usecase.IAccessUseCase, validate *validator.Val
 	}
 }
 
+func respondAccessNoop(c *gin.Context, message string) {
+	response.Success(c, gin.H{"changed": false, "message": message})
+}
+
 // @Summary      Create access right
 // @Description  Creates a new access right (resource group).
 // @Tags         access-rights
@@ -154,6 +158,10 @@ func (h *AccessController) LinkEndpointToAccessRight(c *gin.Context) {
 
 	err := h.useCase.LinkEndpointToAccessRight(c.Request.Context(), req)
 	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondAccessNoop(c, message)
+			return
+		}
 		if _, ok := err.(validator.ValidationErrors); ok {
 			msg := validation.FormatValidationErrors(err)
 			response.ValidationError(c, exception.ErrValidationError, msg)
@@ -194,6 +202,10 @@ func (h *AccessController) UnlinkEndpointFromAccessRight(c *gin.Context) {
 
 	err := h.useCase.UnlinkEndpointFromAccessRight(c.Request.Context(), req)
 	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondAccessNoop(c, message)
+			return
+		}
 		if _, ok := err.(validator.ValidationErrors); ok {
 			msg := validation.FormatValidationErrors(err)
 			response.ValidationError(c, exception.ErrValidationError, msg)

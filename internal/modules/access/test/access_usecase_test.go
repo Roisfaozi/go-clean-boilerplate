@@ -174,6 +174,7 @@ func TestLinkEndpointToAccessRight(t *testing.T) {
 		ctx := context.Background()
 
 		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
+		deps.Repo.On("GetAccessRightByID", ctx, req.AccessRightID).Return(&entity.AccessRight{ID: req.AccessRightID}, nil).Once()
 		deps.Repo.On("LinkEndpointToAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(nil).Once()
 		err := uc.LinkEndpointToAccessRight(ctx, req)
 		assert.NoError(t, err)
@@ -186,6 +187,7 @@ func TestLinkEndpointToAccessRight(t *testing.T) {
 
 		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
 		repoErr := errors.New("db error")
+		deps.Repo.On("GetAccessRightByID", ctx, req.AccessRightID).Return(&entity.AccessRight{ID: req.AccessRightID}, nil).Once()
 		deps.Repo.On("LinkEndpointToAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(repoErr).Once()
 
 		err := uc.LinkEndpointToAccessRight(ctx, req)
@@ -411,13 +413,17 @@ func TestLinkEndpointToAccessRight_Duplicate(t *testing.T) {
 	}
 
 	// Case: Duplicate link
-	deps.Repo.On("LinkEndpointToAccessRight", mock.Anything, req.AccessRightID, req.EndpointID).
-		Return(errors.New("duplicate entry")) // Simulate DB error
+	deps.Repo.On("GetAccessRightByID", mock.Anything, req.AccessRightID).Return(&entity.AccessRight{
+		ID: req.AccessRightID,
+		Endpoints: []entity.Endpoint{
+			{ID: req.EndpointID},
+		},
+	}, nil)
 
 	err := uc.LinkEndpointToAccessRight(context.Background(), req)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "duplicate")
+	assert.Equal(t, "endpoint already linked to access right", err.Error())
 }
 
 func TestUnlinkEndpointFromAccessRight(t *testing.T) {
@@ -426,6 +432,7 @@ func TestUnlinkEndpointFromAccessRight(t *testing.T) {
 		ctx := context.Background()
 
 		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
+		deps.Repo.On("GetAccessRightByID", ctx, req.AccessRightID).Return(&entity.AccessRight{ID: req.AccessRightID, Endpoints: []entity.Endpoint{{ID: req.EndpointID}}}, nil).Once()
 		deps.Repo.On("UnlinkEndpointFromAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(nil).Once()
 		err := uc.UnlinkEndpointFromAccessRight(ctx, req)
 		assert.NoError(t, err)
@@ -438,11 +445,25 @@ func TestUnlinkEndpointFromAccessRight(t *testing.T) {
 
 		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
 		repoErr := errors.New("db error")
+		deps.Repo.On("GetAccessRightByID", ctx, req.AccessRightID).Return(&entity.AccessRight{ID: req.AccessRightID, Endpoints: []entity.Endpoint{{ID: req.EndpointID}}}, nil).Once()
 		deps.Repo.On("UnlinkEndpointFromAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(repoErr).Once()
 
 		err := uc.UnlinkEndpointFromAccessRight(ctx, req)
 		assert.Error(t, err)
 		assert.Equal(t, repoErr, err)
+		deps.Repo.AssertExpectations(t)
+	})
+
+	t.Run("Noop - Already Unlinked", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
+		deps.Repo.On("GetAccessRightByID", ctx, req.AccessRightID).Return(&entity.AccessRight{ID: req.AccessRightID}, nil).Once()
+
+		err := uc.UnlinkEndpointFromAccessRight(ctx, req)
+		assert.Error(t, err)
+		assert.Equal(t, "endpoint already unlinked from access right", err.Error())
 		deps.Repo.AssertExpectations(t)
 	})
 }

@@ -15,6 +15,27 @@ import (
 	"gorm.io/gorm"
 )
 
+type NoopError struct {
+	Message string
+}
+
+func (e *NoopError) Error() string {
+	return e.Message
+}
+
+func NewNoopError(message string) error {
+	return &NoopError{Message: message}
+}
+
+func IsNoopError(err error) (string, bool) {
+	var noopErr *NoopError
+	if !errors.As(err, &noopErr) {
+		return "", false
+	}
+
+	return noopErr.Message, true
+}
+
 type AccessUseCase struct {
 	repo repository.AccessRepository
 	log  *logrus.Logger
@@ -87,7 +108,20 @@ func (uc *AccessUseCase) CreateEndpoint(ctx context.Context, req model.CreateEnd
 }
 
 func (uc *AccessUseCase) LinkEndpointToAccessRight(ctx context.Context, req model.LinkEndpointRequest) error {
-	err := uc.repo.LinkEndpointToAccessRight(ctx, req.AccessRightID, req.EndpointID)
+	accessRight, err := uc.repo.GetAccessRightByID(ctx, req.AccessRightID)
+	if err != nil {
+		uc.log.WithContext(ctx).WithError(err).Error("Failed to get access right before linking endpoint")
+		return err
+	}
+
+	for _, endpoint := range accessRight.Endpoints {
+		if endpoint.ID == req.EndpointID {
+			uc.log.WithContext(ctx).Warnf("Endpoint %s already linked to access right %s", req.EndpointID, req.AccessRightID)
+			return NewNoopError("endpoint already linked to access right")
+		}
+	}
+
+	err = uc.repo.LinkEndpointToAccessRight(ctx, req.AccessRightID, req.EndpointID)
 	if err != nil {
 		uc.log.WithContext(ctx).WithError(err).Error("Failed to link endpoint to access right in repository")
 		return err
@@ -98,7 +132,23 @@ func (uc *AccessUseCase) LinkEndpointToAccessRight(ctx context.Context, req mode
 }
 
 func (uc *AccessUseCase) UnlinkEndpointFromAccessRight(ctx context.Context, req model.LinkEndpointRequest) error {
-	err := uc.repo.UnlinkEndpointFromAccessRight(ctx, req.AccessRightID, req.EndpointID)
+	accessRight, err := uc.repo.GetAccessRightByID(ctx, req.AccessRightID)
+	if err != nil {
+		uc.log.WithContext(ctx).WithError(err).Error("Failed to get access right before unlinking endpoint")
+		return err
+	}
+
+	for _, endpoint := range accessRight.Endpoints {
+		if endpoint.ID == req.EndpointID {
+			goto unlink
+		}
+	}
+
+	uc.log.WithContext(ctx).Warnf("Endpoint %s already unlinked from access right %s", req.EndpointID, req.AccessRightID)
+	return NewNoopError("endpoint already unlinked from access right")
+
+unlink:
+	err = uc.repo.UnlinkEndpointFromAccessRight(ctx, req.AccessRightID, req.EndpointID)
 	if err != nil {
 		uc.log.WithContext(ctx).WithError(err).Error("Failed to unlink endpoint from access right in repository")
 		return err
