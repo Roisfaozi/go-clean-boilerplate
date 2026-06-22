@@ -1,0 +1,38 @@
+# GitHub Labeler Configuration for Casbin Monorepo
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'internal/**'
+          - 'pkg/**'
+          - 'cmd/**'
+          - 'go.mod'
+          - 'go.sum'
+          - 'Makefile'
+
+frontend:web:
+  - changed-files:
+      - any-glob-to-any-file: 'apps/web/**'
+
+frontend:client:
+  - changed-files:
+      - any-glob-to-any-file: 'apps/client/**'
+
+packages:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/**'
+
+database:
+  - changed-files:
+      - any-glob-to-any-file: 'db/migrations/**'
+
+ci-cd:
+  - changed-files:
+      - any-glob-to-any-file: '.github/workflows/**'
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/package.json'
+          - 'pnpm-lock.yaml'
+          - 'go.mod'
