@@ -80,8 +80,36 @@ func Idempotency(rdb *redis.Client, log *logrus.Logger, ttl time.Duration) gin.H
 				c.Abort()
 				return
 			}
-			// Request is already being processed
-			c.JSON(http.StatusAccepted, gin.H{"message": "request is currently being processed"})
+
+			deadline := time.Now().Add(2 * time.Second)
+			ticker := time.NewTicker(50 * time.Millisecond)
+			defer ticker.Stop()
+
+			for time.Now().Before(deadline) {
+				cachedData, cacheErr := rdb.Get(c.Request.Context(), redisKey).Result()
+				if cacheErr == nil && cachedData != "" {
+					var cachedResp IdempotencyResponse
+					if err := json.Unmarshal([]byte(cachedData), &cachedResp); err == nil {
+						for k, v := range cachedResp.Headers {
+							c.Header(k, v)
+						}
+						c.Header("X-Cache-Lookup", "HIT - Idempotency Replay")
+						c.Data(cachedResp.Status, "application/json", cachedResp.Body)
+						c.Abort()
+						return
+					}
+				}
+
+				select {
+				case <-c.Request.Context().Done():
+					response.Error(c, http.StatusRequestTimeout, errors.New("idempotency wait cancelled"), "request cancelled while waiting for idempotent replay")
+					c.Abort()
+					return
+				case <-ticker.C:
+				}
+			}
+
+			response.Error(c, http.StatusConflict, errors.New("idempotency processing timeout"), "original request still processing")
 			c.Abort()
 			return
 		}

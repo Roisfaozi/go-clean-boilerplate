@@ -39,6 +39,14 @@ func TestIdempotencyMiddleware(t *testing.T) {
 		mock.ExpectGet("idempotency:key-1").RedisNil()
 		mock.ExpectDel("idempotency_lock:key-1").SetVal(1)
 
+		respToCache := IdempotencyResponse{
+			Status:  http.StatusOK,
+			Headers: map[string]string{"Content-Type": "application/json; charset=utf-8"},
+			Body:    []byte(`{"counter":1}`),
+		}
+		cachedBytes, _ := json.Marshal(respToCache)
+		mock.ExpectSet("idempotency:key-1", string(cachedBytes), 10*time.Second).SetVal("OK")
+
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest(http.MethodPost, "/submit", bytes.NewBufferString(bodyStr))
 		req.Header.Set("Idempotency-Key", "key-1")
@@ -62,16 +70,16 @@ func TestIdempotencyMiddleware(t *testing.T) {
 		hasher.Write([]byte(bodyStr))
 		payloadHash := hex.EncodeToString(hasher.Sum(nil))
 
-		mock.ExpectSetNX("idempotency_lock:key-1", payloadHash, 10*time.Second).SetVal(true)
+		mock.ExpectSetNX("idempotency_lock:key-1", payloadHash, 10*time.Second).SetVal(false)
+		mock.ExpectGet("idempotency_lock:key-1").SetVal(payloadHash)
 
 		respToCache := IdempotencyResponse{
 			Status:  http.StatusOK,
-			Headers: map[string]string{"Content-Type": "application/json"},
+			Headers: map[string]string{"Content-Type": "application/json; charset=utf-8"},
 			Body:    []byte(`{"counter":1}`),
 		}
 		cachedBytes, _ := json.Marshal(respToCache)
 		mock.ExpectGet("idempotency:key-1").SetVal(string(cachedBytes))
-		mock.ExpectDel("idempotency_lock:key-1").SetVal(1)
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest(http.MethodPost, "/submit", bytes.NewBufferString(bodyStr))
@@ -81,5 +89,6 @@ func TestIdempotencyMiddleware(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "HIT - Idempotency Replay", w.Header().Get("X-Cache-Lookup"))
+		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
