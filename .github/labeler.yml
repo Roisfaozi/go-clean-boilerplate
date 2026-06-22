@@ -18,6 +18,10 @@ frontend:client:
   - changed-files:
       - any-glob-to-any-file: 'apps/client/**'
 
+packages:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/**'
+
 database:
   - changed-files:
       - any-glob-to-any-file: 'db/migrations/**'
