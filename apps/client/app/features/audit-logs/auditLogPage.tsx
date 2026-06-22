@@ -44,7 +44,7 @@ export default function AuditLogsPage() {
         actor: log.user_id,
         target: `${log.entity}:${log.entity_id}`,
         ip_address: log.ip_address,
-        timestamp: format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss"),
+        timestamp: format(new Date(log.created_at * 1000), "yyyy-MM-dd HH:mm:ss"),
         severity:
           log.action.includes("delete") ||
           log.action.includes("failed") ||
