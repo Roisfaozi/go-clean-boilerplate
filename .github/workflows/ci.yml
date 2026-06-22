@@ -4,8 +4,32 @@ on:
   push:
     branches: ["**"] # Run on all branches
     tags: ["v*"] # Run on version tags
+    paths:
+      - "internal/**"
+      - "pkg/**"
+      - "cmd/**"
+      - "go.mod"
+      - "go.sum"
+      - "Makefile"
+      - "deploy/**"
+      - "docker-compose*.yml"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/cd-staging.yml"
+      - ".github/workflows/cd-production.yml"
   pull_request:
     branches: ["**"] # Run on all PRs
+    paths:
+      - "internal/**"
+      - "pkg/**"
+      - "cmd/**"
+      - "go.mod"
+      - "go.sum"
+      - "Makefile"
+      - "deploy/**"
+      - "docker-compose*.yml"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/cd-staging.yml"
+      - ".github/workflows/cd-production.yml"
 
 jobs:
   lint:

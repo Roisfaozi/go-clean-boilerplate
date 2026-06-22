@@ -3,8 +3,26 @@ name: Frontend CI
 on:
   push:
     branches: ["**"]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "biome.jsonc"
+      - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/frontend-cd.yml"
   pull_request:
     branches: ["**"]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "biome.jsonc"
+      - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/frontend-cd.yml"
 
 jobs:
   quality:
