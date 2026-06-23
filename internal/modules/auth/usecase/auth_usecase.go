@@ -21,6 +21,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/singleflight"
 )
 
 type Service struct {
@@ -38,6 +39,7 @@ type Service struct {
 	ticketManager    ws.TicketManager
 	ssoProviders     map[string]sso.Provider
 	dummyHash        string
+	refreshGroup     singleflight.Group
 }
 
 func NewAuthUsecase(

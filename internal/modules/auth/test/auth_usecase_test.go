@@ -360,6 +360,67 @@ func TestRefreshToken_Success(t *testing.T) {
 	deps.taskDistributor.AssertExpectations(t)
 }
 
+func TestRefreshToken_ConcurrentSameToken_ReusesSingleFlow(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, _ := createTestUser("password123")
+
+	oldRefreshToken, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour)
+	assert.NoError(t, err)
+
+	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: oldRefreshToken}
+	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil).Twice()
+	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil).Once()
+	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{TestRole}, nil).Once()
+	deps.tokenRepo.On("DeleteToken", mock.Anything, user.ID, "session-1").Return(nil).Once()
+	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil).Once()
+
+	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+		return req.UserID == user.ID && req.Action == "LOGOUT" && req.Entity == "Auth" && req.EntityID == "session-1"
+	}), mock.Anything).Return(nil).Once()
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	results := make(chan *model.TokenResponse, 2)
+	errorsCh := make(chan error, 2)
+
+	for i := 0; i < 2; i++ {
+		go func() {
+			defer wg.Done()
+			resp, _, err := authService.RefreshToken(context.Background(), oldRefreshToken)
+			results <- resp
+			errorsCh <- err
+		}()
+	}
+
+	wg.Wait()
+	close(results)
+	close(errorsCh)
+
+	var firstResponse *model.TokenResponse
+	for resp := range results {
+		if firstResponse == nil {
+			firstResponse = resp
+			continue
+		}
+		assert.NotNil(t, resp)
+		assert.NotEmpty(t, resp.AccessToken)
+		assert.NotEmpty(t, resp.RefreshToken)
+		assert.Equal(t, firstResponse.AccessToken, resp.AccessToken)
+		assert.Equal(t, firstResponse.RefreshToken, resp.RefreshToken)
+	}
+
+	for err := range errorsCh {
+		assert.NoError(t, err)
+	}
+
+	deps.tokenRepo.AssertExpectations(t)
+	deps.userRepo.AssertExpectations(t)
+	deps.authz.AssertExpectations(t)
+	deps.taskDistributor.AssertExpectations(t)
+	assert.NotNil(t, firstResponse)
+	assert.NotEmpty(t, firstResponse.AccessToken)
+}
+
 func TestRefreshToken_EnforcerError(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")

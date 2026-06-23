@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -183,53 +185,72 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 }
 
 func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model.TokenResponse, string, error) {
-	claims, err := s.ValidateRefreshToken(refreshToken)
-	if err != nil {
-		return nil, "", err
-	}
-
-	user, err := s.userRepo.FindByID(ctx, claims.UserID)
-	if err != nil {
-		telemetry.UserLoginsTotal.WithLabelValues("failed").Inc()
-		return nil, "", err
-	}
-
-	if user.Status != entity.UserStatusActive {
-		return nil, "", ErrAccountSuspended
-	}
-
-	var userRole string
-	if s.authz != nil {
-		roles, err := s.authz.GetRolesForUser(ctx, user.ID, "")
+	refreshKey := sha256.Sum256([]byte(refreshToken))
+	result, err, _ := s.refreshGroup.Do(hex.EncodeToString(refreshKey[:]), func() (interface{}, error) {
+		claims, err := s.ValidateRefreshToken(refreshToken)
 		if err != nil {
-			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during refresh token")
-			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
+			return nil, err
 		}
-		if len(roles) > 0 {
-			userRole = roles[0]
+
+		user, err := s.userRepo.FindByID(ctx, claims.UserID)
+		if err != nil {
+			telemetry.UserLoginsTotal.WithLabelValues("failed").Inc()
+			return nil, err
 		}
-	}
 
-	if err := s.RevokeToken(ctx, claims.UserID, claims.SessionID); err != nil {
-		s.log.WithContext(ctx).WithError(err).Warn("Failed to revoke old session during refresh")
-	}
+		if user.Status != entity.UserStatusActive {
+			return nil, ErrAccountSuspended
+		}
 
-	newAccessToken, newRefreshToken, _, err := s.generateAndStoreTokenPair(ctx, model.UserSessionContext{
-		UserID:   user.ID,
-		Role:     userRole,
-		Username: user.Username,
+		var userRole string
+		if s.authz != nil {
+			roles, err := s.authz.GetRolesForUser(ctx, user.ID, "")
+			if err != nil {
+				s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during refresh token")
+				return nil, fmt.Errorf("failed to get user roles: %w", err)
+			}
+			if len(roles) > 0 {
+				userRole = roles[0]
+			}
+		}
+
+		if err := s.RevokeToken(ctx, claims.UserID, claims.SessionID); err != nil {
+			s.log.WithContext(ctx).WithError(err).Warn("Failed to revoke old session during refresh")
+		}
+
+		newAccessToken, newRefreshToken, _, err := s.generateAndStoreTokenPair(ctx, model.UserSessionContext{
+			UserID:   user.ID,
+			Role:     userRole,
+			Username: user.Username,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return &refreshResult{
+			tokenResponse: &model.TokenResponse{
+				AccessToken:  newAccessToken,
+				TokenType:    "Bearer",
+				RefreshToken: newRefreshToken,
+			},
+			refreshToken: newRefreshToken,
+		}, nil
 	})
 	if err != nil {
 		return nil, "", err
 	}
 
-	tokenResponse := &model.TokenResponse{
-		AccessToken:  newAccessToken,
-		TokenType:    "Bearer",
-		RefreshToken: newRefreshToken,
+	refreshResult, ok := result.(*refreshResult)
+	if !ok || refreshResult == nil {
+		return nil, "", fmt.Errorf("failed to complete token refresh")
 	}
 
-	return tokenResponse, newRefreshToken, nil
+	return refreshResult.tokenResponse, refreshResult.refreshToken, nil
+}
+
+type refreshResult struct {
+	tokenResponse *model.TokenResponse
+	refreshToken  string
 }
 
 func (s *Service) ValidateAccessToken(tokenString string) (*jwt.Claims, error) {
