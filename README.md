@@ -146,22 +146,136 @@ SERVER_TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12  # IPs of your LB/Ingress
 
 1.  **Clone & Configure**:
     ```bash
-    git clone https://github.com/Roisfaozi/go-clean-boilerplate.git
-    cd go-clean-boilerplate
-    cp .env.example .env
+    git clone <your-repo-url>
+    cd Casbin
+    cp .env.example .env.local
     ```
-2.  **Start Infrastructure**:
+2.  **Recommended Branch Model**:
+    - `main` = production-ready
+    - `staging` = release candidate / pre-release integration
+    - `dev` = daily integration branch
+3.  **Create Worktree For Daily Development**:
     ```bash
-    docker-compose up -d
+    make wt-new feat/my-feature
     ```
-3.  **Run Migrations & Seeding**:
+    Notes:
+    - branch name can be passed directly after `wt-new`
+    - base branch defaults to current checked out branch
+    - use second positional arg to override base branch, for example `make wt-new feat/my-feature staging`
+    - default worktree root is `.worktrees/` inside repo
+    - each worktree gets its own `.env.local`
+    - if you prefer sibling folders, override `WORKTREE_ROOT`
+4.  **Start Infrastructure**:
     ```bash
-    make migrate-up
+    make dev-up
     ```
-4.  **Run Application**:
+    Auto behavior:
+    - initializes `.env.local` when missing
+    - syncs missing keys from `.env.example`
+    - uses worktree-specific compose project name and ports
+5.  **Run Migrations & Seeding**:
+    ```bash
+    make migrate-up-local
+    make seed-up
+    ```
+6.  **Run Application**:
     ```bash
     make run
     ```
+
+### Legacy Non-Worktree Flow
+
+If you want old single-checkout flow:
+
+```bash
+cp .env.example .env.local
+make docker-dev
+make migrate-up
+make run
+```
+
+---
+
+## 🌿 Worktree Development Flow
+
+This repo supports worktree-based parallel development.
+
+Primary use cases:
+
+- split frontend and backend/API work into separate branches
+- run multiple feature streams from `dev`
+- isolate docker ports and local env per branch
+- avoid branch switching churn in one checkout
+
+### Default Behavior
+
+- default worktree root is `.worktrees/` inside repo
+- each worktree gets branch-specific `.env.local`
+- compose project name is unique per worktree
+- local ports are derived per worktree slug
+- `wt-new`, `wt-enter`, `dev-up`, and `dev-status` auto-manage env setup
+
+### Command Reference
+
+| Command                       | Function                                                 | Main Use                                                      |
+| :---------------------------- | :------------------------------------------------------- | :------------------------------------------------------------ |
+| `make wt-new feat/x [base]`   | Create new git worktree and bootstrap env                | Start new feature stream from current branch or explicit base |
+| `make wt-list`                | List all git worktrees                                   | Inspect active worktrees                                      |
+| `make wt-path BRANCH=feat/x`  | Print worktree path for branch                           | Quick path lookup                                             |
+| `make wt-enter BRANCH=feat/x` | Ensure env for target worktree and print path            | Re-open existing worktree safely                              |
+| `make wt-rm BRANCH=feat/x`    | Stop local stack if needed and remove worktree           | Clean finished feature stream                                 |
+| `make wt-prune`               | Prune stale worktree metadata                            | Cleanup broken or removed entries                             |
+| `make env-init`               | Create `.env.local` and assign isolated ports            | Bootstrap env in current worktree                             |
+| `make env-sync`               | Append missing keys from `.env.example`                  | Keep local env aligned after template changes                 |
+| `make dev-up`                 | Start docker compose stack for current worktree          | Daily local development start                                 |
+| `make dev-down`               | Stop docker compose stack for current worktree           | Stop only current branch stack                                |
+| `make dev-reset`              | Stop stack and remove local volumes                      | Reset local DB/cache state                                    |
+| `make dev-status`             | Show branch, compose project, ports, and container state | Debug local worktree environment                              |
+| `make migrate-up-local`       | Run DB migrations against current `.env.local`           | Prepare schema for current worktree                           |
+| `make migrate-down-local`     | Roll back one migration against current `.env.local`     | Local rollback                                                |
+| `make test-local`             | Run narrow local tests                                   | Fast loop in current worktree                                 |
+| `make doctor`                 | Check git, docker, pnpm, go, and env state               | Validate development readiness                                |
+
+### Example Parallel Streams
+
+- `feat/frontend-dashboard`
+  - focus: `apps/web`, `apps/client`, `packages/*`
+- `feat/auth-hardening`
+  - focus: auth middleware, session, tenant resolution, Casbin
+- `feat/api-boundary`
+  - focus: protected routes, API contracts, shared consumers
+
+### Example Daily Flow
+
+```bash
+make wt-new feat/frontend-dashboard
+cd "$(make wt-path BRANCH=feat/frontend-dashboard)"
+make dev-up
+make migrate-up-local
+make test-local
+```
+
+Override base branch:
+
+```bash
+make wt-new feat/auth-hardening staging
+cd "$(make wt-path BRANCH=feat/auth-hardening)"
+make dev-up
+```
+
+For existing worktree:
+
+```bash
+make wt-enter BRANCH=feat/frontend-dashboard
+cd .worktrees/feat-frontend-dashboard
+make dev-up
+```
+
+To use sibling worktree root instead of `.worktrees/`:
+
+```bash
+make wt-new feat/frontend-dashboard WORKTREE_ROOT=../Casbin-worktrees
+```
 
 ---
 

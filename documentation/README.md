@@ -28,6 +28,7 @@ Source of truth for developer docs in repo.
 
 - `documentation/guides/GETTING_STARTED.md`
 - `documentation/guides/DEVELOPER_FLOW.md`
+- `documentation/guides/WORKTREE_FLOW.md`
 - `documentation/guides/TESTING.md`
 - `documentation/guides/API_USAGE.md`
 - `documentation/guides/API_ACCESS_WORKFLOW.md`
