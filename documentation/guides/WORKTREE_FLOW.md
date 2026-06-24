@@ -44,7 +44,7 @@ Default root behavior:
 
 Example parallel streams:
 
-- `feat/frontend-dashboard`
+- `feat/web-surface`
   - focus: `apps/web`, `apps/client`, `packages/*`
 - `feat/auth-hardening`
   - focus: auth middleware, tenant resolution, Casbin rules
@@ -58,15 +58,15 @@ This split reduces conflicts and keeps review scope smaller.
 From main repo checkout on `dev`:
 
 ```bash
-make wt-new feat/frontend-dashboard
+make wt-new feat/web-surface
 make wt-new feat/auth-hardening
 ```
 
 Then move into each worktree and initialize local env:
 
 ```bash
-make wt-new feat/frontend-dashboard
-cd .worktrees/feat-frontend-dashboard
+make wt-new feat/web-surface
+cd .worktrees/feat-web-surface
 make dev-up
 ```
 
@@ -88,13 +88,13 @@ cd .worktrees/feat-auth-hardening
 For existing worktrees, ensure env and local file state with:
 
 ```bash
-make wt-enter BRANCH=feat/frontend-dashboard
+make wt-enter feat/web-surface
 ```
 
 To jump into worktree directly from current shell:
 
 ```bash
-cd "$(make wt-path BRANCH=feat/frontend-dashboard)"
+cd "$(make wt-path feat/web-surface)"
 ```
 
 ## 5. Daily Commands
@@ -137,7 +137,7 @@ make dev-down
 When feature work is merged or no longer needed:
 
 ```bash
-make wt-rm BRANCH=feat/frontend-dashboard
+make wt-rm feat/web-surface
 ```
 
 Current behavior:

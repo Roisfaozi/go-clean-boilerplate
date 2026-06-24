@@ -42,8 +42,8 @@ Useful targets:
 
 - `make wt-new feat/name`
 - `make wt-list`
-- `make wt-path BRANCH=feat/name`
-- `make wt-rm BRANCH=feat/name`
+- `make wt-path feat/name`
+- `make wt-rm feat/name`
 - `make wt-prune`
 - `make env-init`
 - `make env-sync`

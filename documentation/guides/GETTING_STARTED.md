@@ -85,7 +85,7 @@ For more detailed parallel stream guidance, read:
 To ensure env for an existing worktree and print its path:
 
 ```bash
-make wt-enter BRANCH=feat/my-feature
+make wt-enter feat/my-feature
 ```
 
 ### Step 2.3: Start Infrastructure Services
