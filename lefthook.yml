@@ -20,8 +20,10 @@ pre-commit:
 
     # ─── VALIDATION ───
     typecheck:
+      glob: '**/*.{js,ts,jsx,tsx,json,css}'
       run: pnpm turbo run typecheck
 
     # Temporarily disabled lint in pre-commit due to existing baseline errors
     lint:
+      glob: '**/*.{js,ts,jsx,tsx,json,css}'
       run: pnpm lint

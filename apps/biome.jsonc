@@ -4,15 +4,21 @@
   "extends": ["../biome.jsonc"],
   "linter": {
     "rules": {
-      "recommended": false
-    }
+      "recommended": false,
+    },
   },
   "files": {
     "includes": [
+      "./**/*.{json,js,ts,jsx,tsx,css}",
       "./**/src/**/*.{ts,tsx,js,jsx}",
       "./**/app/**/*.{ts,tsx,js,jsx}",
       "!**/.next/**",
-      "!**/.react-router/**"
-    ]
-  }
+      "!**/.react-router/**",
+    ],
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true,
+    },
+  },
 }
