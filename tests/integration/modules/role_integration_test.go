@@ -17,6 +17,7 @@ import (
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -320,7 +321,7 @@ func TestRoleIntegration_Delete_WithActiveUsers_DocumentsBehavior(t *testing.T) 
 	require.NoError(t, err, "Role deletion should succeed even when users are assigned")
 
 	err = roleUC.Delete(context.Background(), created.ID)
-	assert.Error(t, err, "Role already deleted — second delete should return not-found")
+	assert.ErrorIs(t, err, exception.ErrNotFound, "Role already deleted — second delete should return not-found")
 
 	rolesAfter, _ := env.Enforcer.GetRolesForUser("user:fake-active-user", "global")
 	roleStillInCasbin := false
