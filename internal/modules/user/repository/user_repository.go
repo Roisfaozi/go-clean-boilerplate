@@ -101,9 +101,13 @@ func (r *userRepositoryData) FindByToken(ctx context.Context, token string) (*en
 }
 
 func (r *userRepositoryData) Delete(ctx context.Context, id string) error {
-	if err := r.getDB(ctx).Delete(&entity.User{}, "id = ?", id).Error; err != nil {
+	result := r.getDB(ctx).Delete(&entity.User{}, "id = ?", id)
+	if err := result.Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("failed to delete user")
 		return err
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("user not found")
 	}
 	return nil
 }

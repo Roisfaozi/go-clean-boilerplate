@@ -406,7 +406,7 @@ func TestRoleHandler_Update_ValidationError(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 	assert.Contains(t, w.Body.String(), "validation error")
-	mockUseCase.AssertNotCalled(t, "Update", mock.Anything, mock.Anything, mock.Anything)
+	mockUseCase.AssertNotCalled(t, "Update")
 }
 
 func TestRoleHandler_GetRolesDynamic_ValidationError(t *testing.T) {
@@ -426,5 +426,5 @@ func TestRoleHandler_GetRolesDynamic_ValidationError(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-	mockUseCase.AssertNotCalled(t, "GetAllRolesDynamic", mock.Anything, mock.Anything)
+	mockUseCase.AssertNotCalled(t, "GetAllRolesDynamic")
 }

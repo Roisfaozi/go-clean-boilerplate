@@ -457,10 +457,13 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 
 	user, err := u.Repo.FindByID(ctx, request.ID)
 	if err != nil {
-		if err.Error() == "user not found" {
-			return nil
+		if err.Error() == "user not found" || err == exception.ErrNotFound {
+			return exception.ErrNotFound
 		}
 		return err
+	}
+	if user == nil {
+		return exception.ErrNotFound
 	}
 
 	return u.DB.WithinTransaction(ctx, func(txCtx context.Context) error {

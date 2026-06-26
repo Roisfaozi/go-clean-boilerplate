@@ -214,6 +214,15 @@ func TestUserRepository_Delete(t *testing.T) {
 	assert.True(t, deletedAt > 0, "DeletedAt should be > 0")
 }
 
+func TestUserRepository_Delete_NotFound(t *testing.T) {
+	repo, _ := setupUserRepo(t)
+	ctx := context.Background()
+
+	err := repo.Delete(ctx, "non-existent-user-id")
+	require.Error(t, err)
+	assert.Equal(t, "user not found", err.Error())
+}
+
 func TestUserRepository_FindAll(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()

@@ -516,11 +516,11 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 
 	t.Run("Error - User Not Found", func(t *testing.T) {
 		deps, uc := setupUserTest()
-		deps.Repo.On("FindByID", mock.Anything, deleteReq.ID).Return(nil, errors.New("user not found"))
+		deps.Repo.On("FindByID", mock.Anything, deleteReq.ID).Return(nil, exception.ErrNotFound)
 
 		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
 
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		deps.Repo.AssertExpectations(t)
 		deps.AuditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
 	})
