@@ -390,3 +390,41 @@ func TestRoleHandler_HandleError_Variants(t *testing.T) {
 		assert.Contains(t, w.Body.String(), tt.expectedBodyContains)  
 	}
 }
+
+func TestRoleHandler_Update_ValidationError(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	roleID := "test-uuid"
+	updateRequest := model.UpdateRoleRequest{Description: ""} // Invalid description (required)
+	requestBody, _ := json.Marshal(updateRequest)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPut, "/api/v1/roles/"+roleID, bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	assert.Contains(t, w.Body.String(), "validation error")
+	mockUseCase.AssertNotCalled(t, "Update", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestRoleHandler_GetRolesDynamic_ValidationError(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	dynamicFilter := &querybuilder.DynamicFilter{
+		Filter: map[string]querybuilder.Filter{
+			"Name": {Type: "invalid_type", From: "test"}, // "invalid_type" violates "oneof" constraint
+		},
+	}
+	requestBody, _ := json.Marshal(dynamicFilter)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/roles/search", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	mockUseCase.AssertNotCalled(t, "GetAllRolesDynamic", mock.Anything, mock.Anything)
+}
