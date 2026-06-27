@@ -369,7 +369,9 @@ func TestRefreshToken_ConcurrentSameToken_ReusesSingleFlow(t *testing.T) {
 
 	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: oldRefreshToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil).Twice()
-	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil).Once()
+	deps.userRepo.On("FindByID", mock.Anything, user.ID).Run(func(args mock.Arguments) {
+		time.Sleep(50 * time.Millisecond)
+	}).Return(user, nil).Once()
 	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{TestRole}, nil).Once()
 	deps.tokenRepo.On("DeleteToken", mock.Anything, user.ID, "session-1").Return(nil).Once()
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil).Once()
