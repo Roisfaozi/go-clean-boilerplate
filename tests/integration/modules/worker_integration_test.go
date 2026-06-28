@@ -445,7 +445,7 @@ func TestWorkerIntegration_ProcessorStartShutdown(t *testing.T) {
 	// Start in goroutine
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- processor.Start()
+		err := processor.Start(); if err != nil { errCh <- err }
 	}()
 
 	// Let it run briefly

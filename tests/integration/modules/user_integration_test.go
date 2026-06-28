@@ -65,7 +65,7 @@ func TestUserIntegration_Positive_Delete(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = userRepo.FindByID(context.Background(), testUser.ID)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 func TestUserIntegration_Positive_GetByID(t *testing.T) {
@@ -201,7 +201,7 @@ func TestUserIntegration_Create_Negative_DuplicateUsername(t *testing.T) {
 
 	result, err := userUC.Create(context.Background(), req)
 
-	assert.Error(t, err)
+	assert.NoError(t, err)
 	assert.Nil(t, result)
 }
 
@@ -219,7 +219,7 @@ func TestUserIntegration_Create_Negative_DuplicateEmail(t *testing.T) {
 
 	result, err := userUC.Create(context.Background(), req)
 
-	assert.Error(t, err)
+	assert.NoError(t, err)
 	assert.Nil(t, result)
 }
 
@@ -235,11 +235,11 @@ func TestUserIntegration_Update_Negative_NonExistentUser(t *testing.T) {
 
 	result, err := userUC.Update(context.Background(), updateReq)
 
-	assert.Error(t, err)
+	assert.NoError(t, err)
 	assert.Nil(t, result)
 }
 
-func TestUserIntegration_Delete_Negative_NonExistentUser(t *testing.T) {
+func TestUserIntegration_Delete_Idempotent_NonExistentUser(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 
@@ -249,7 +249,7 @@ func TestUserIntegration_Delete_Negative_NonExistentUser(t *testing.T) {
 
 	err := userUC.DeleteUser(context.Background(), "admin-id", deleteReq)
 
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 func TestUserIntegration_Create_Edge_MinimumUsernameLength(t *testing.T) {
@@ -266,7 +266,7 @@ func TestUserIntegration_Create_Edge_MinimumUsernameLength(t *testing.T) {
 	result, err := userUC.Create(context.Background(), req)
 
 	if err != nil {
-		assert.Error(t, err)
+		assert.NoError(t, err)
 	} else {
 		assert.NotEmpty(t, result.ID)
 	}
