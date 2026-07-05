@@ -1,0 +1,11 @@
+--- internal/modules/user/usecase/user_usecase.go
++++ internal/modules/user/usecase/user_usecase.go
+@@ -458,9 +458,6 @@
+
+	user, err := u.Repo.FindByID(ctx, request.ID)
+	if err != nil {
+-		if err.Error() == "user not found" {
+-			return exception.ErrNotFound
+-		}
+		return err
+	}

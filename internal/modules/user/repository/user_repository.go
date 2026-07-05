@@ -8,6 +8,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	querybuilder2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/sirupsen/logrus"
@@ -68,7 +69,7 @@ func (r *userRepositoryData) FindByID(ctx context.Context, id string) (*entity.U
 	var user entity.User
 	if err := r.getDB(ctx).First(&user, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("user not found")
+			return nil, exception.ErrNotFound
 		}
 		r.log.WithContext(ctx).WithError(err).Error("failed to find user by ID")
 		return nil, err

@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 
-	"errors"
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
@@ -458,9 +457,6 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 
 	user, err := u.Repo.FindByID(ctx, request.ID)
 	if err != nil {
-		if errors.Is(err, exception.ErrNotFound) || err.Error() == "user not found" {
-			return exception.ErrNotFound
-		}
 		return err
 	}
 
