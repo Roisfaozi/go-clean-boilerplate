@@ -520,7 +520,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 
 		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
 
-		assert.NoError(t, err)
+		assert.Error(t, err)
 		deps.Repo.AssertExpectations(t)
 		deps.AuditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
 	})
