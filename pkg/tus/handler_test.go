@@ -4,102 +4,421 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"testing"
+	"time"
+    "bytes"
+    "sync"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/tus/tusd/v2/pkg/handler"
+	"github.com/stretchr/testify/require"
+	tushandler "github.com/tus/tusd/v2/pkg/handler"
 )
 
-type fakeTerminatableStore struct {
-	upload *fakeTerminatableUpload
-	getErr error
+// mockStore is a basic mock for handler.DataStore
+type mockStore struct {
+	tushandler.DataStore
+	UseInCalled bool
 }
 
-func (s *fakeTerminatableStore) NewUpload(ctx context.Context, info handler.FileInfo) (handler.Upload, error) {
-	return s.upload, nil
+func (m *mockStore) UseIn(c *tushandler.StoreComposer) {
+	m.UseInCalled = true
+	c.UseCore(m)
 }
 
-func (s *fakeTerminatableStore) GetUpload(ctx context.Context, id string) (handler.Upload, error) {
-	if s.getErr != nil {
-		return nil, s.getErr
+// Ensure mockStore implements terminater if needed
+type terminaterMockStore struct {
+	mockStore
+	TerminateCalled bool
+	TerminateError  error
+	GetUploadError  error
+}
+
+func (m *terminaterMockStore) AsTerminatableUpload(upload tushandler.Upload) tushandler.TerminatableUpload {
+	return &terminatableUploadMock{store: m}
+}
+func (m *terminaterMockStore) GetUpload(ctx context.Context, id string) (tushandler.Upload, error) {
+	if m.GetUploadError != nil {
+		return nil, m.GetUploadError
 	}
-	return s.upload, nil
+	return &uploadMock{}, nil
 }
 
-func (s *fakeTerminatableStore) AsTerminatableUpload(upload handler.Upload) handler.TerminatableUpload {
-	return upload.(handler.TerminatableUpload)
+type terminatableUploadMock struct {
+	store *terminaterMockStore
 }
 
-type fakeCoreStore struct{}
-
-func (s *fakeCoreStore) NewUpload(ctx context.Context, info handler.FileInfo) (handler.Upload, error) {
-	return &fakeTerminatableUpload{}, nil
+func (t *terminatableUploadMock) Terminate(ctx context.Context) error {
+	t.store.TerminateCalled = true
+	return t.store.TerminateError
 }
 
-func (s *fakeCoreStore) GetUpload(ctx context.Context, id string) (handler.Upload, error) {
-	return &fakeTerminatableUpload{}, nil
+type uploadMock struct{
+	tushandler.Upload
 }
 
-type fakeTerminatableUpload struct {
-	terminateErr error
-	terminated   bool
+type mockHook struct {
+	Err error
+    Called bool
+    mu sync.Mutex
+    done chan struct{}
 }
 
-func (u *fakeTerminatableUpload) WriteChunk(ctx context.Context, offset int64, src io.Reader) (int64, error) {
-	return 0, nil
+func (m *mockHook) HandleUpload(ctx context.Context, event UploadEvent) error {
+    m.mu.Lock()
+    defer m.mu.Unlock()
+    m.Called = true
+    if m.done != nil {
+        select {
+        case m.done <- struct{}{}:
+        default:
+        }
+    }
+	return m.Err
 }
 
-func (u *fakeTerminatableUpload) GetInfo(ctx context.Context) (handler.FileInfo, error) {
-	return handler.FileInfo{ID: "upload-1"}, nil
-}
+func TestNewHandler_Success(t *testing.T) {
+	registry := NewRegistry()
+	log := logrus.New()
+	log.SetOutput(io.Discard)
 
-func (u *fakeTerminatableUpload) GetReader(ctx context.Context) (io.ReadCloser, error) {
-	return io.NopCloser(nil), nil
-}
+	t.Run("Local Storage", func(t *testing.T) {
+		tempDir, err := os.MkdirTemp("", "tus-test")
+		require.NoError(t, err)
+		defer os.RemoveAll(tempDir)
 
-func (u *fakeTerminatableUpload) FinishUpload(ctx context.Context) error {
-	return nil
-}
+		cfg := Config{
+			StorageDriver: "local",
+			LocalRootPath: tempDir,
+			BasePath:      "/files/",
+		}
 
-func (u *fakeTerminatableUpload) Terminate(ctx context.Context) error {
-	if u.terminateErr != nil {
-		return u.terminateErr
-	}
-	u.terminated = true
-	return nil
+		h, err := NewHandler(cfg, registry, nil, log)
+		require.NoError(t, err)
+		require.NotNil(t, h)
+	})
+
+    t.Run("Local Storage - Mkdir error", func(t *testing.T) {
+        cfg := Config{
+            StorageDriver: "local",
+            LocalRootPath: "/dev/null/invalid",
+            BasePath:      "/files/",
+        }
+
+        h, err := NewHandler(cfg, registry, nil, log)
+        require.Error(t, err)
+        require.Nil(t, h)
+    })
+
+	t.Run("S3 Storage", func(t *testing.T) {
+		cfg := Config{
+			StorageDriver: "s3",
+			S3Bucket:      "my-bucket",
+			BasePath:      "/files/",
+		}
+
+		h, err := NewHandler(cfg, registry, &s3.Client{}, log)
+		require.NoError(t, err)
+		require.NotNil(t, h)
+	})
 }
 
 func TestCleanupFailedCompletedUpload(t *testing.T) {
-	t.Run("terminates upload when store supports termination", func(t *testing.T) {
-		upload := &fakeTerminatableUpload{}
-		store := &fakeTerminatableStore{upload: upload}
+    log := logrus.New()
+    log.SetOutput(io.Discard)
 
-		cleanupFailedCompletedUpload(context.Background(), store, "upload-1", nil)
+    t.Run("Not Terminatable", func(t *testing.T) {
+        store := &mockStore{}
+        cleanupFailedCompletedUpload(context.Background(), store, "test-id", log)
+    })
 
-		assert.True(t, upload.terminated)
-	})
+    t.Run("GetUpload Error", func(t *testing.T) {
+        store := &terminaterMockStore{
+            GetUploadError: errors.New("get upload error"),
+        }
+        cleanupFailedCompletedUpload(context.Background(), store, "test-id", log)
+        assert.False(t, store.TerminateCalled)
+    })
 
-	t.Run("no panic when store does not support termination", func(t *testing.T) {
-		assert.NotPanics(t, func() {
-			cleanupFailedCompletedUpload(context.Background(), &fakeCoreStore{}, "upload-1", nil)
-		})
-	})
+    t.Run("Terminate Error", func(t *testing.T) {
+        store := &terminaterMockStore{
+            TerminateError: errors.New("terminate error"),
+        }
+        cleanupFailedCompletedUpload(context.Background(), store, "test-id", log)
+        assert.True(t, store.TerminateCalled)
+    })
 
-	t.Run("no panic when upload lookup fails", func(t *testing.T) {
-		store := &fakeTerminatableStore{getErr: errors.New("not found")}
+    t.Run("Success", func(t *testing.T) {
+        store := &terminaterMockStore{}
+        cleanupFailedCompletedUpload(context.Background(), store, "test-id", log)
+        assert.True(t, store.TerminateCalled)
+    })
 
-		assert.NotPanics(t, func() {
-			cleanupFailedCompletedUpload(context.Background(), store, "upload-1", nil)
-		})
-	})
+    t.Run("Nil Logger", func(t *testing.T) {
+        store := &terminaterMockStore{}
+        cleanupFailedCompletedUpload(context.Background(), store, "test-id", nil)
+        assert.True(t, store.TerminateCalled)
+    })
 
-	t.Run("no panic when termination fails", func(t *testing.T) {
-		upload := &fakeTerminatableUpload{terminateErr: errors.New("delete failed")}
-		store := &fakeTerminatableStore{upload: upload}
+    t.Run("Nil Logger Not Terminatable", func(t *testing.T) {
+        store := &mockStore{}
+        cleanupFailedCompletedUpload(context.Background(), store, "test-id", nil)
+    })
 
-		assert.NotPanics(t, func() {
-			cleanupFailedCompletedUpload(context.Background(), store, "upload-1", nil)
-		})
-		assert.False(t, upload.terminated)
-	})
+    t.Run("Nil Logger GetUpload Error", func(t *testing.T) {
+        store := &terminaterMockStore{
+            GetUploadError: errors.New("get upload error"),
+        }
+        cleanupFailedCompletedUpload(context.Background(), store, "test-id", nil)
+        assert.False(t, store.TerminateCalled)
+    })
+
+    t.Run("Nil Logger Terminate Error", func(t *testing.T) {
+        store := &terminaterMockStore{
+            TerminateError: errors.New("terminate error"),
+        }
+        cleanupFailedCompletedUpload(context.Background(), store, "test-id", nil)
+        assert.True(t, store.TerminateCalled)
+    })
+}
+
+func TestBackgroundDispatcher(t *testing.T) {
+    registry := NewRegistry()
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+
+    hook := &mockHook{
+        done: make(chan struct{}, 1),
+    }
+    registry.Register("test-type", hook)
+
+    tempDir, err := os.MkdirTemp("", "tus-test")
+    require.NoError(t, err)
+    defer os.RemoveAll(tempDir)
+
+    cfg := Config{
+        StorageDriver: "local",
+        LocalRootPath: tempDir,
+        BasePath:      "/files/",
+    }
+
+    h, err := NewHandler(cfg, registry, nil, log)
+    require.NoError(t, err)
+    require.NotNil(t, h)
+
+    // Simulate upload event
+    h.CompleteUploads <- tushandler.HookEvent{
+        Upload: tushandler.FileInfo{
+            ID: "test-id",
+            MetaData: map[string]string{
+                "type": "test-type",
+            },
+        },
+    }
+
+    select {
+    case <-hook.done:
+    case <-time.After(1 * time.Second):
+        t.Fatal("timeout waiting for hook")
+    }
+
+    hook.mu.Lock()
+    assert.True(t, hook.Called)
+    hook.mu.Unlock()
+}
+
+func TestBackgroundDispatcher_S3(t *testing.T) {
+    registry := NewRegistry()
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+
+    hook := &mockHook{
+        done: make(chan struct{}, 1),
+    }
+    registry.Register("test-type", hook)
+
+    cfg := Config{
+        StorageDriver: "s3",
+        S3Bucket:      "my-bucket",
+        S3Endpoint:    "http://localhost:9000",
+        BasePath:      "/files/",
+    }
+
+    h, err := NewHandler(cfg, registry, &s3.Client{}, log)
+    require.NoError(t, err)
+    require.NotNil(t, h)
+
+    // Simulate upload event
+    h.CompleteUploads <- tushandler.HookEvent{
+        Upload: tushandler.FileInfo{
+            ID: "test-id",
+            MetaData: map[string]string{
+                "type": "test-type",
+            },
+        },
+    }
+
+    select {
+    case <-hook.done:
+    case <-time.After(1 * time.Second):
+        t.Fatal("timeout waiting for hook")
+    }
+
+    hook.mu.Lock()
+    assert.True(t, hook.Called)
+    hook.mu.Unlock()
+}
+
+func TestBackgroundDispatcher_Error_NilLogger(t *testing.T) {
+    registry := NewRegistry()
+
+    hook := &mockHook{
+        Err: errors.New("hook error"),
+        done: make(chan struct{}, 1),
+    }
+    registry.Register("test-type", hook)
+
+    cfg := Config{
+        StorageDriver: "s3",
+        S3Bucket:      "my-bucket",
+        S3Endpoint:    "http://localhost:9000",
+        BasePath:      "/files/",
+    }
+
+    h, err := NewHandler(cfg, registry, &s3.Client{}, nil)
+    require.NoError(t, err)
+    require.NotNil(t, h)
+
+    // Simulate upload event
+    h.CompleteUploads <- tushandler.HookEvent{
+        Upload: tushandler.FileInfo{
+            ID: "test-id",
+            MetaData: map[string]string{
+                "type": "test-type",
+            },
+        },
+    }
+
+    select {
+    case <-hook.done:
+    case <-time.After(1 * time.Second):
+        t.Fatal("timeout waiting for hook")
+    }
+
+    hook.mu.Lock()
+    assert.True(t, hook.Called)
+    hook.mu.Unlock()
+}
+
+func TestBackgroundDispatcher_Error(t *testing.T) {
+    registry := NewRegistry()
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+
+    hook := &mockHook{
+        Err: errors.New("hook error"),
+        done: make(chan struct{}, 1),
+    }
+    registry.Register("test-type", hook)
+
+    tempDir, err := os.MkdirTemp("", "tus-test")
+    require.NoError(t, err)
+    defer os.RemoveAll(tempDir)
+
+    cfg := Config{
+        StorageDriver: "local",
+        LocalRootPath: tempDir,
+        BasePath:      "/files/",
+    }
+
+    h, err := NewHandler(cfg, registry, nil, log)
+    require.NoError(t, err)
+    require.NotNil(t, h)
+
+    // Simulate upload event
+    h.CompleteUploads <- tushandler.HookEvent{
+        Upload: tushandler.FileInfo{
+            ID: "test-id",
+            MetaData: map[string]string{
+                "type": "test-type",
+            },
+        },
+    }
+
+    select {
+    case <-hook.done:
+    case <-time.After(1 * time.Second):
+        t.Fatal("timeout waiting for hook")
+    }
+
+    hook.mu.Lock()
+    assert.True(t, hook.Called)
+    hook.mu.Unlock()
+}
+
+func TestPreUploadCreateCallback_HTTP(t *testing.T) {
+    registry := NewRegistry()
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+
+    hook := &mockHook{}
+    registry.Register("test-type", hook)
+
+	tempDir, err := os.MkdirTemp("", "tus-test")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+
+	cfg := Config{
+		StorageDriver: "local",
+		LocalRootPath: tempDir,
+		BasePath:      "/files/",
+	}
+
+	h, err := NewHandler(cfg, registry, nil, log)
+	require.NoError(t, err)
+	require.NotNil(t, h)
+
+    mux := http.NewServeMux()
+    mux.Handle("/files/", http.StripPrefix("/files/", h))
+
+    // Inject auth context manually using a wrapper handler
+    authHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        ctx := authcontext.WithUserID(r.Context(), "user-id-123")
+        r = r.WithContext(ctx)
+        mux.ServeHTTP(w, r)
+    })
+
+    req := httptest.NewRequest(http.MethodPost, "/files/", bytes.NewReader(nil))
+    req.Header.Set("Tus-Resumable", "1.0.0")
+    req.Header.Set("Upload-Length", "100")
+    req.Header.Set("Upload-Metadata", "type dGVzdC10eXBl")
+
+    w := httptest.NewRecorder()
+    authHandler.ServeHTTP(w, req)
+
+    assert.Equal(t, http.StatusCreated, w.Code)
+
+    req2 := httptest.NewRequest(http.MethodPost, "/files/", bytes.NewReader(nil))
+    req2.Header.Set("Tus-Resumable", "1.0.0")
+    req2.Header.Set("Upload-Length", "100")
+    req2.Header.Set("Upload-Metadata", "type aW52YWxpZC10eXBl")
+
+    w2 := httptest.NewRecorder()
+    authHandler.ServeHTTP(w2, req2)
+
+    assert.Equal(t, http.StatusBadRequest, w2.Code)
+
+    req3 := httptest.NewRequest(http.MethodPost, "/files/", bytes.NewReader(nil))
+    req3.Header.Set("Tus-Resumable", "1.0.0")
+    req3.Header.Set("Upload-Length", "100")
+
+    w3 := httptest.NewRecorder()
+    mux.ServeHTTP(w3, req3)
+
+    assert.Equal(t, http.StatusUnauthorized, w3.Code)
 }
