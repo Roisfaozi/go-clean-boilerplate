@@ -90,7 +90,7 @@ func TestNewHandler_Success(t *testing.T) {
 	t.Run("Local Storage", func(t *testing.T) {
 		tempDir, err := os.MkdirTemp("", "tus-test")
 		require.NoError(t, err)
-		defer os.RemoveAll(tempDir)
+		defer func() { _ = os.RemoveAll(tempDir) }()
 
 		cfg := Config{
 			StorageDriver: "local",
@@ -199,7 +199,7 @@ func TestBackgroundDispatcher(t *testing.T) {
 
     tempDir, err := os.MkdirTemp("", "tus-test")
     require.NoError(t, err)
-    defer os.RemoveAll(tempDir)
+    defer func() { _ = os.RemoveAll(tempDir) }()
 
     cfg := Config{
         StorageDriver: "local",
@@ -328,7 +328,7 @@ func TestBackgroundDispatcher_Error(t *testing.T) {
 
     tempDir, err := os.MkdirTemp("", "tus-test")
     require.NoError(t, err)
-    defer os.RemoveAll(tempDir)
+    defer func() { _ = os.RemoveAll(tempDir) }()
 
     cfg := Config{
         StorageDriver: "local",
@@ -371,7 +371,7 @@ func TestPreUploadCreateCallback_HTTP(t *testing.T) {
 
 	tempDir, err := os.MkdirTemp("", "tus-test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	cfg := Config{
 		StorageDriver: "local",
