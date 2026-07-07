@@ -1,3 +1,5 @@
+"use client";
+
 // @casbin/ui - Shared UI Component Library
 // Extracted from web-lovable design system
 
@@ -63,7 +65,7 @@ export * from "./switch";
 export * from "./table";
 export * from "./tabs";
 export * from "./textarea";
-export * from "./toaster";
+export { Toaster as LegacyToaster } from "./toaster";
 export * from "./toast";
 export * from "./toggle-group";
 export * from "./toggle";

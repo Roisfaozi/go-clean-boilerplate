@@ -6,6 +6,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
+    "./globals.css": "./src/styles/globals.css",
     ".": "./src/index.ts",
     "./lib/utils": "./src/lib/utils.ts",
     "./*": "./src/*.tsx"
@@ -64,12 +65,17 @@
     "recharts": "^2.15.2",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
+    "tailwindcss": "4.0.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9"
   },
   "devDependencies": {
-    "@types/react": "^18.3.23",
-    "@types/react-dom": "^18.3.7",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
     "typescript": "^5.8.3"
   }
 }
