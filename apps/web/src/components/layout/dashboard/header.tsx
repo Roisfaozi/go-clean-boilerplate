@@ -7,39 +7,39 @@ import { NotificationCenter } from "~/components/dashboard/notification-center";
 import ThemeToggle from "~/components/shared/theme-toggle";
 import LocaleToggler from "~/components/shared/locale-toggler";
 import { UserNav } from "~/components/dashboard/user-nav";
-import { Separator } from "~/components/ui/separator";
+import { Separator } from "@casbin/ui";
 import { PresenceAvatarStack } from "~/components/dashboard/presence-avatar-stack";
-import { cn } from "~/lib/utils";
+import { cn } from "@casbin/utils";
 
 export function DashboardHeader() {
-  return (
-    <header
-      className={cn(
-        "bg-background sticky top-0 z-30 flex items-center gap-4 border-b px-6 transition-all",
-        // Density: Comfort 80px, Compact 56px
-        "h-[var(--navbar-height)]",
-      )}
-    >
-      {/* Left: Search & Trigger */}
-      <div className="flex flex-1 items-center gap-4">
-        <GlobalSearch />
-        <Separator orientation="vertical" className="hidden h-6 md:block" />
-        <DashboardBreadcrumbs />
-      </div>
+	return (
+		<header
+			className={cn(
+				"bg-background sticky top-0 z-30 flex items-center gap-4 border-b px-6 transition-all",
+				// Density: Comfort 80px, Compact 56px
+				"h-[var(--navbar-height)]",
+			)}
+		>
+			{/* Left: Search & Trigger */}
+			<div className="flex flex-1 items-center gap-4">
+				<GlobalSearch />
+				<Separator orientation="vertical" className="hidden h-6 md:block" />
+				<DashboardBreadcrumbs />
+			</div>
 
-      {/* Right: Actions */}
-      <div className="flex items-center gap-3">
-        <PresenceAvatarStack className="hidden lg:flex" />
-        <Separator orientation="vertical" className="hidden h-6 lg:block" />
-        <div className="flex items-center gap-1">
-          <NotificationCenter />
-          <DensitySwitcher />
-          <ThemeToggle />
-          <LocaleToggler />
-        </div>
-        <Separator orientation="vertical" className="h-6" />
-        <UserNav />
-      </div>
-    </header>
-  );
+			{/* Right: Actions */}
+			<div className="flex items-center gap-3">
+				<PresenceAvatarStack className="hidden lg:flex" />
+				<Separator orientation="vertical" className="hidden h-6 lg:block" />
+				<div className="flex items-center gap-1">
+					<NotificationCenter />
+					<DensitySwitcher />
+					<ThemeToggle />
+					<LocaleToggler />
+				</div>
+				<Separator orientation="vertical" className="h-6" />
+				<UserNav />
+			</div>
+		</header>
+	);
 }

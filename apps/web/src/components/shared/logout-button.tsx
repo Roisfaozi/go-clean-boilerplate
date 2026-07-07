@@ -1,30 +1,30 @@
 "use client";
 
 import { LogOutIcon } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "@casbin/ui";
 import { logoutAction } from "~/app/actions/auth";
-import { toast } from "~/hooks/use-toast";
+import { toast } from "@casbin/ui";
 
 export default function LogoutButton({ className }: { className?: string }) {
-  return (
-    <div className={className}>
-      <Button
-        type="button"
-        onClick={async () => {
-          try {
-            await logoutAction();
-          } catch (_error) {
-            toast({
-              title: "Logout failed",
-              variant: "destructive",
-            });
-          }
-        }}
-        variant="destructive"
-      >
-        <LogOutIcon className="mr-2 h-4 w-4" />
-        <span>Log out</span>
-      </Button>
-    </div>
-  );
+	return (
+		<div className={className}>
+			<Button
+				type="button"
+				onClick={async () => {
+					try {
+						await logoutAction();
+					} catch (_error) {
+						toast({
+							title: "Logout failed",
+							variant: "destructive",
+						});
+					}
+				}}
+				variant="destructive"
+			>
+				<LogOutIcon className="mr-2 h-4 w-4" />
+				<span>Log out</span>
+			</Button>
+		</div>
+	);
 }
