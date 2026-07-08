@@ -5,25 +5,25 @@ import { Sidebar } from "~/components/layout/sidebar";
 import { usePresence } from "~/hooks/use-presence";
 
 export function DashboardLayoutClient({
-  children,
+	children,
 }: {
-  children: React.ReactNode;
+	children: React.ReactNode;
 }) {
-  usePresence();
+	usePresence();
 
-  return (
-    <div className="bg-background flex min-h-screen">
-      {/* Sidebar */}
-      <Sidebar className="z-40 hidden md:flex" />
+	return (
+		<div className="bg-background flex min-h-screen">
+			{/* Sidebar */}
+			<Sidebar className="z-40 hidden md:flex" />
 
-      {/* Main Area */}
-      <div className="flex min-h-screen flex-1 flex-col transition-all">
-        <DashboardHeader />
+			{/* Main Area */}
+			<div className="flex min-h-screen flex-1 flex-col transition-all">
+				<DashboardHeader />
 
-        <main className="flex-1 overflow-y-auto p-[var(--layout-padding)]">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
+				<main className="flex-1 overflow-y-auto p-[var(--layout-padding)]">
+					{children}
+				</main>
+			</div>
+		</div>
+	);
 }

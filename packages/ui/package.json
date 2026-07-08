@@ -21,8 +21,9 @@
     "react-dom": "^18 || ^19"
   },
   "dependencies": {
-    "@casbin/utils": "workspace:*",
+    "@base-ui/react": "^1.6.0",
     "@casbin/hooks": "workspace:*",
+    "@casbin/utils": "workspace:*",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",

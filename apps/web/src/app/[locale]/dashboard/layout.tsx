@@ -6,22 +6,22 @@ import { organizationsApi } from "~/lib/api/organizations";
 import { DashboardLayoutClient } from "./layout-client";
 
 export default async function DashboardLayout({
-  children,
+	children,
 }: {
-  children: React.ReactNode;
+	children: React.ReactNode;
 }) {
-  // 1. Fetch organizations on Server (Critical for Navigation/Switcher)
-  let initialOrgs = undefined;
-  try {
-    const resp = await organizationsApi.getMyOrganizations();
-    initialOrgs = resp.data?.organizations;
-  } catch (error) {
-    console.error("Failed to fetch initial orgs on server", error);
-  }
+	// 1. Fetch organizations on Server (Critical for Navigation/Switcher)
+	let initialOrgs = undefined;
+	try {
+		const resp = await organizationsApi.getMyOrganizations();
+		initialOrgs = resp.data?.organizations;
+	} catch (error) {
+		console.error("Failed to fetch initial orgs on server", error);
+	}
 
-  return (
-    <DashboardShellProvider initialData={initialOrgs}>
-      <DashboardLayoutClient>{children}</DashboardLayoutClient>
-    </DashboardShellProvider>
-  );
+	return (
+		<DashboardShellProvider initialData={initialOrgs}>
+			<DashboardLayoutClient>{children}</DashboardLayoutClient>
+		</DashboardShellProvider>
+	);
 }

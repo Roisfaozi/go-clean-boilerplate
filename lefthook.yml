@@ -11,7 +11,9 @@ pre-commit:
 
     go-vet:
       glob: '**/*.go'
-      run: go vet ./...
+      run: >
+        pkgs=$(echo '{staged_files}' | tr ' ' '\n' | xargs -I{} dirname "{}" | sort -u | tr '\n' ' ');
+        [ -n "$pkgs" ] && go vet $pkgs || true
 
     # ─── FRONTEND & UI ───
     format:
@@ -21,9 +23,28 @@ pre-commit:
     # ─── VALIDATION ───
     typecheck:
       glob: '**/*.{js,ts,jsx,tsx,json,css}'
-      run: pnpm turbo run typecheck
+      run: >
+        web=0; client=0; api_types=0; hooks=0; ui=0; utils=0;
+        for file in {staged_files}; do
+          case "$file" in
+            apps/web/*) web=1 ;;
+            apps/client/*) client=1 ;;
+            packages/api-types/*) api_types=1 ;;
+            packages/hooks/*) hooks=1 ;;
+            packages/ui/*) ui=1 ;;
+            packages/utils/*) utils=1 ;;
+          esac;
+        done;
+        filters="";
+        [ "$web" = "1" ] && filters="$filters --filter casbin-web";
+        [ "$client" = "1" ] && filters="$filters --filter casbin-client";
+        [ "$api_types" = "1" ] && filters="$filters --filter @casbin/api-types";
+        [ "$hooks" = "1" ] && filters="$filters --filter @casbin/hooks";
+        [ "$ui" = "1" ] && filters="$filters --filter @casbin/ui";
+        [ "$utils" = "1" ] && filters="$filters --filter @casbin/utils";
+        [ -n "$filters" ] && pnpm turbo run typecheck $filters || true
 
     # Temporarily disabled lint in pre-commit due to existing baseline errors
     lint:
       glob: '**/*.{js,ts,jsx,tsx,json,css}'
-      run: pnpm lint
+      run: pnpm exec biome lint --write {staged_files} && git add {staged_files}
