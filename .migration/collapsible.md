@@ -1,18 +1,19 @@
 # collapsible
 
-2026-07-08, engine, migrated to Base UI.
+2026-07-08, transformation engine. Verdict: migrated collapsible wrapper to Base UI collapsible primitive.
 
 ## Changed
 
-- `packages/ui/src/collapsible.tsx` — replaced `@radix-ui/react-collapsible` with `@base-ui/react/collapsible`. Re-mapped `CollapsibleContent` to `Collapsible.Panel`.
-- Leftover sweep on collapsible wrapper is clean.
+- `packages/ui/src/collapsible.tsx` — replaced `@radix-ui/react-collapsible` with `@base-ui/react/collapsible`. Mapped Root → Root, Trigger → Trigger, Content → Panel.
 
 ## Left alone
+
 None
 
 ## Behavior changes
+
 None
 
 ## Verify by hand
 
-- Click any sidebar group toggle and ensure nested links reveal correctly.
+- Click collapsible trigger, verify expand/collapse.
