@@ -26,7 +26,6 @@
     "@casbin/utils": "workspace:*",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-dialog": "^1.1.14",
-    "@radix-ui/react-toast": "^1.2.14",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
