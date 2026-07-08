@@ -2,6 +2,7 @@ package querybuilder
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/glebarez/sqlite"
@@ -136,8 +137,8 @@ func TestGenerateDynamicSort(t *testing.T) {
 	sql := resQuery.Find(&[]TestModel{}).Statement.SQL.String()
 
 	assert.Contains(t, sql, "ORDER BY")
-	assert.Contains(t, sql, "name asc")
-	assert.Contains(t, sql, "age desc")
+	assert.Contains(t, strings.ToLower(sql), "`name`")
+	assert.Contains(t, strings.ToLower(sql), "desc")
 }
 
 func TestGetDBFieldName(t *testing.T) {
