@@ -186,12 +186,14 @@ const MemoizedUserTableRow = memo(function UserTableRow({
 			{(canUpdate || canDelete) && (
 				<TableCell>
 					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" size="icon" className="h-8 w-8">
-								<Icon name="Ellipsis" className="h-4 w-4" />
-								<span className="sr-only">Open menu</span>
-							</Button>
-						</DropdownMenuTrigger>
+						<DropdownMenuTrigger
+							render={
+								<Button variant="ghost" size="icon" className="h-8 w-8">
+									<Icon name="Ellipsis" className="h-4 w-4" />
+									<span className="sr-only">Open menu</span>
+								</Button>
+							}
+						/>
 						<DropdownMenuContent align="end">
 							{canUpdate && (
 								<DropdownMenuItem onClick={() => onEdit(user)}>

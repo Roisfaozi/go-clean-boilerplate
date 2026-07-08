@@ -195,6 +195,7 @@ export function CrudTable<T extends { id: string | number }>({
 						key={col.id}
 						value={filters[col.id] || "__all__"}
 						onValueChange={(val) => {
+							if (!val) return;
 							setFilters((p) => ({ ...p, [col.id]: val }));
 							setPage(0);
 						}}
@@ -328,15 +329,17 @@ export function CrudTable<T extends { id: string | number }>({
 									{hasActions && (
 										<td className="px-3 py-3">
 											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<NexusButton
-														variant="ghost"
-														size="icon"
-														className="h-8 w-8"
-													>
-														<MoreHorizontal className="h-4 w-4" />
-													</NexusButton>
-												</DropdownMenuTrigger>
+												<DropdownMenuTrigger
+													render={
+														<NexusButton
+															variant="ghost"
+															size="icon"
+															className="h-8 w-8"
+														>
+															<MoreHorizontal className="h-4 w-4" />
+														</NexusButton>
+													}
+												/>
 												<DropdownMenuContent align="end">
 													{onView && (
 														<DropdownMenuItem onClick={() => onView(row)}>

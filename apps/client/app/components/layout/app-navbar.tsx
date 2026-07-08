@@ -102,16 +102,18 @@ export function AppNavbar() {
 				<NotificationBell />
 
 				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<button className="ml-2 focus:outline-none">
-							<Avatar className="h-8 w-8 cursor-pointer ring-offset-2 transition-transform hover:scale-105 active:scale-95">
-								<AvatarImage src={user?.avatar_url} />
-								<AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
-									{userInitial}
-								</AvatarFallback>
-							</Avatar>
-						</button>
-					</DropdownMenuTrigger>
+					<DropdownMenuTrigger
+						render={
+							<button className="ml-2 focus:outline-none">
+								<Avatar className="h-8 w-8 cursor-pointer ring-offset-2 transition-transform hover:scale-105 active:scale-95">
+									<AvatarImage src={user?.avatar_url} />
+									<AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+										{userInitial}
+									</AvatarFallback>
+								</Avatar>
+							</button>
+						}
+					/>
 					<DropdownMenuContent align="end" className="w-56">
 						<DropdownMenuLabel className="font-normal">
 							<div className="flex flex-col space-y-1">

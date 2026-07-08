@@ -27,12 +27,14 @@ export default function LocaleToggler() {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button variant="ghost" size="sm" className="w-9 px-0">
-					<LanguagesIcon className="h-5 w-5" />
-					<span className="sr-only">Change Locale</span>
-				</Button>
-			</DropdownMenuTrigger>
+			<DropdownMenuTrigger
+				render={
+					<Button variant="ghost" size="sm" className="w-9 px-0">
+						<LanguagesIcon className="h-5 w-5" />
+						<span className="sr-only">Change Locale</span>
+					</Button>
+				}
+			/>
 			<DropdownMenuContent align="end">
 				{locales.map((locale) => (
 					<DropdownMenuItem

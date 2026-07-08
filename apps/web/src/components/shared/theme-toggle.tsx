@@ -15,13 +15,15 @@ export default function ThemeToggle() {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button variant="ghost" size="sm" className="w-9 px-0">
-					<Icons.sun className="scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-					<Icons.moon className="absolute scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-					<span className="sr-only">Toggle theme</span>
-				</Button>
-			</DropdownMenuTrigger>
+			<DropdownMenuTrigger
+				render={
+					<Button variant="ghost" size="sm" className="w-9 px-0">
+						<Icons.sun className="scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+						<Icons.moon className="absolute scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+						<span className="sr-only">Toggle theme</span>
+					</Button>
+				}
+			/>
 			<DropdownMenuContent align="end">
 				<DropdownMenuItem onClick={() => setTheme("light")}>
 					<Icons.sun className="mr-2 h-4 w-4" />

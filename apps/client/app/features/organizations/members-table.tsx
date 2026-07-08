@@ -225,15 +225,17 @@ export function MembersTableUI() {
 								</td>
 								<td className="px-4 py-3 text-right">
 									<DropdownMenu>
-										<DropdownMenuTrigger asChild>
-											<NexusButton
-												variant="ghost"
-												size="icon"
-												className="h-8 w-8"
-											>
-												<MoreHorizontal className="h-4 w-4" />
-											</NexusButton>
-										</DropdownMenuTrigger>
+										<DropdownMenuTrigger
+											render={
+												<NexusButton
+													variant="ghost"
+													size="icon"
+													className="h-8 w-8"
+												>
+													<MoreHorizontal className="h-4 w-4" />
+												</NexusButton>
+											}
+										/>
 										<DropdownMenuContent align="end">
 											<DropdownMenuItem>
 												<Mail className="mr-2 h-4 w-4" />
