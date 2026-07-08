@@ -43,9 +43,7 @@ export function AppBreadcrumb() {
 		<Breadcrumb className="mb-4">
 			<BreadcrumbList>
 				<BreadcrumbItem>
-					<BreadcrumbLink asChild>
-						<Link to="/">Dashboard</Link>
-					</BreadcrumbLink>
+					<BreadcrumbLink render={<Link to="/">Dashboard</Link>} />
 				</BreadcrumbItem>
 				{segments.map((seg, i) => {
 					const path = "/" + segments.slice(0, i + 1).join("/");
@@ -59,9 +57,7 @@ export function AppBreadcrumb() {
 								{isLast ? (
 									<BreadcrumbPage>{label}</BreadcrumbPage>
 								) : (
-									<BreadcrumbLink asChild>
-										<Link to={path}>{label}</Link>
-									</BreadcrumbLink>
+									<BreadcrumbLink render={<Link to={path}>{label}</Link>} />
 								)}
 							</BreadcrumbItem>
 						</Fragment>

@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Loader2 } from "lucide-react";
 
@@ -37,7 +38,7 @@ const nexusButtonVariants = cva(
 );
 
 export interface NexusButtonProps
-	extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+	extends useRender.ComponentProps<"button">,
 		VariantProps<typeof nexusButtonVariants> {
 	asChild?: boolean;
 	loading?: boolean;
@@ -49,7 +50,8 @@ const NexusButton = React.forwardRef<HTMLButtonElement, NexusButtonProps>(
 			className,
 			variant,
 			size,
-			asChild = false,
+			asChild,
+			render,
 			loading,
 			children,
 			disabled,
@@ -57,18 +59,27 @@ const NexusButton = React.forwardRef<HTMLButtonElement, NexusButtonProps>(
 		},
 		ref,
 	) => {
-		const Comp = asChild ? Slot : "button";
-		return (
-			<Comp
-				className={cn(nexusButtonVariants({ variant, size, className }))}
-				ref={ref}
-				disabled={disabled || loading}
-				{...props}
-			>
-				{loading && <Loader2 className="h-4 w-4 animate-spin" />}
-				{children}
-			</Comp>
-		);
+		const renderElement =
+			asChild && React.isValidElement(children) ? children : render;
+
+		return useRender({
+			ref,
+			defaultTagName: "button",
+			render: renderElement,
+			props: mergeProps<"button">(
+				{
+					className: cn(nexusButtonVariants({ variant, size, className })),
+					disabled: disabled || loading,
+					children: renderElement ? undefined : (
+						<>
+							{loading && <Loader2 className="h-4 w-4 animate-spin" />}
+							{children}
+						</>
+					),
+				} as React.ComponentProps<"button">,
+				props,
+			),
+		});
 	},
 );
 NexusButton.displayName = "NexusButton";
