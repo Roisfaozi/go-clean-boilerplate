@@ -69,12 +69,14 @@ export default function Navbar({
 
 			{/* Mobile Nav */}
 			<Sheet open={isOpen} onOpenChange={setIsOpen}>
-				<SheetTrigger asChild className="md:hidden">
-					<Button variant="ghost" size="icon">
-						<MenuIcon className="h-5 w-5" />
-						<span className="sr-only">Toggle menu</span>
-					</Button>
-				</SheetTrigger>
+				<SheetTrigger
+					render={
+						<Button variant="ghost" size="icon" className="md:hidden">
+							<MenuIcon className="h-5 w-5" />
+							<span className="sr-only">Toggle menu</span>
+						</Button>
+					}
+				/>
 				<SheetContent side="right">
 					<div className="flex flex-col gap-4 py-4">
 						<Link

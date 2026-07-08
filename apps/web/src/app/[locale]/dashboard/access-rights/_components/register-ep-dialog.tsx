@@ -36,12 +36,14 @@ export function RegisterEpDialog() {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				<Button size="sm">
-					<Icon name="Plus" className="mr-2 h-4 w-4" />
-					Register Endpoint
-				</Button>
-			</DialogTrigger>
+			<DialogTrigger
+				render={
+					<Button size="sm">
+						<Icon name="Plus" className="mr-2 h-4 w-4" />
+						Register Endpoint
+					</Button>
+				}
+			/>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Register API Endpoint</DialogTitle>

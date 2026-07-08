@@ -42,27 +42,33 @@ export function UploadDuplicateDialog() {
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter className="gap-2 sm:gap-2">
-					<AlertDialogCancel asChild>
-						<NexusButton
-							variant="ghost"
-							onClick={() => current && resolve(current.existingId, "skip")}
-						>
-							Skip
-						</NexusButton>
-					</AlertDialogCancel>
+					<AlertDialogCancel
+						render={
+							<NexusButton
+								variant="ghost"
+								onClick={() => current && resolve(current.existingId, "skip")}
+							>
+								Skip
+							</NexusButton>
+						}
+					/>
 					<NexusButton
 						variant="outline"
 						onClick={() => current && resolve(current.existingId, "keep-both")}
 					>
 						Keep both
 					</NexusButton>
-					<AlertDialogAction asChild>
-						<NexusButton
-							onClick={() => current && resolve(current.existingId, "replace")}
-						>
-							Replace
-						</NexusButton>
-					</AlertDialogAction>
+					<AlertDialogAction
+						render={
+							<NexusButton
+								onClick={() =>
+									current && resolve(current.existingId, "replace")
+								}
+							>
+								Replace
+							</NexusButton>
+						}
+					/>
 				</AlertDialogFooter>
 			</AlertDialogContent>
 		</AlertDialog>

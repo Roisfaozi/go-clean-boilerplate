@@ -30,28 +30,30 @@ export function OrganizationSwitcher() {
 	return (
 		<>
 			<Popover open={open} onOpenChange={setOpen}>
-				<PopoverTrigger asChild>
-					<Button
-						variant="outline"
-						role="combobox"
-						aria-expanded={open}
-						aria-label="Select an organization"
-						className={cn(
-							"bg-background/50 border-muted-foreground/20 w-[200px] justify-between backdrop-blur-sm",
-							"[data-density=compact]:w-[40px] [data-density=compact]:justify-center [data-density=compact]:px-0",
-						)}
-					>
-						<div className="flex items-center gap-2 overflow-hidden">
-							<div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-md">
-								<Building2 className="h-4 w-4" />
+				<PopoverTrigger
+					render={
+						<Button
+							variant="outline"
+							role="combobox"
+							aria-expanded={open}
+							aria-label="Select an organization"
+							className={cn(
+								"bg-background/50 border-muted-foreground/20 w-[200px] justify-between backdrop-blur-sm",
+								"[data-density=compact]:w-[40px] [data-density=compact]:justify-center [data-density=compact]:px-0",
+							)}
+						>
+							<div className="flex items-center gap-2 overflow-hidden">
+								<div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-md">
+									<Building2 className="h-4 w-4" />
+								</div>
+								<span className="truncate font-medium [data-density=compact]:hidden">
+									{currentOrganization?.name || "Select Org..."}
+								</span>
 							</div>
-							<span className="truncate font-medium [data-density=compact]:hidden">
-								{currentOrganization?.name || "Select Org..."}
-							</span>
-						</div>
-						<ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50 [data-density=compact]:hidden" />
-					</Button>
-				</PopoverTrigger>
+							<ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50 [data-density=compact]:hidden" />
+						</Button>
+					}
+				/>
 				<PopoverContent className="w-[200px] p-0" align="start">
 					<Command>
 						<CommandList>

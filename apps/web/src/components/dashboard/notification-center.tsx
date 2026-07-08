@@ -48,21 +48,23 @@ export function NotificationCenter() {
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
-				<Button variant="ghost" size="icon" className="relative h-9 w-9">
-					{unreadCount > 0 ? (
-						<>
-							<BellDot className="text-primary h-5 w-5 animate-pulse" />
-							<Badge className="bg-primary absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center p-0 text-[10px]">
-								{unreadCount > 9 ? "9+" : unreadCount}
-							</Badge>
-						</>
-					) : (
-						<Bell className="text-muted-foreground h-5 w-5" />
-					)}
-					<span className="sr-only">Notifications</span>
-				</Button>
-			</PopoverTrigger>
+			<PopoverTrigger
+				render={
+					<Button variant="ghost" size="icon" className="relative h-9 w-9">
+						{unreadCount > 0 ? (
+							<>
+								<BellDot className="text-primary h-5 w-5 animate-pulse" />
+								<Badge className="bg-primary absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center p-0 text-[10px]">
+									{unreadCount > 9 ? "9+" : unreadCount}
+								</Badge>
+							</>
+						) : (
+							<Bell className="text-muted-foreground h-5 w-5" />
+						)}
+						<span className="sr-only">Notifications</span>
+					</Button>
+				}
+			/>
 			<PopoverContent className="w-80 p-0" align="end">
 				<NotificationHeader
 					unreadCount={unreadCount}

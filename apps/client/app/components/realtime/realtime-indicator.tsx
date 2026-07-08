@@ -42,36 +42,38 @@ export function RealtimeIndicator({
 
 	return (
 		<Tooltip>
-			<TooltipTrigger asChild>
-				<span
-					className={cn(
-						"inline-flex cursor-default items-center gap-1.5",
-						className,
-					)}
-				>
-					<span className="relative flex h-2 w-2">
-						{(allConnected || partialConnected) && (
+			<TooltipTrigger
+				render={
+					<span
+						className={cn(
+							"inline-flex cursor-default items-center gap-1.5",
+							className,
+						)}
+					>
+						<span className="relative flex h-2 w-2">
+							{(allConnected || partialConnected) && (
+								<span
+									className={cn(
+										"absolute inset-0 animate-ping rounded-full opacity-75",
+										dotColor,
+									)}
+								/>
+							)}
 							<span
 								className={cn(
-									"absolute inset-0 animate-ping rounded-full opacity-75",
+									"relative inline-flex h-2 w-2 rounded-full",
 									dotColor,
 								)}
 							/>
-						)}
-						<span
-							className={cn(
-								"relative inline-flex h-2 w-2 rounded-full",
-								dotColor,
-							)}
-						/>
-					</span>
-					{showLabel && (
-						<span className={cn("text-caption font-medium", color)}>
-							{label}
 						</span>
-					)}
-				</span>
-			</TooltipTrigger>
+						{showLabel && (
+							<span className={cn("text-caption font-medium", color)}>
+								{label}
+							</span>
+						)}
+					</span>
+				}
+			/>
 			<TooltipContent>{details}</TooltipContent>
 		</Tooltip>
 	);

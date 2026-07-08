@@ -33,9 +33,9 @@ export default function ShowcaseOverlays() {
 			<section className="space-y-4">
 				<h2 className="text-h2 text-foreground">Tooltip</h2>
 				<Tooltip>
-					<TooltipTrigger asChild>
-						<NexusButton variant="outline">Hover me</NexusButton>
-					</TooltipTrigger>
+					<TooltipTrigger
+						render={<NexusButton variant="outline">Hover me</NexusButton>}
+					/>
 					<TooltipContent>Tooltip content</TooltipContent>
 				</Tooltip>
 			</section>

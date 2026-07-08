@@ -73,17 +73,19 @@ export default function CreateProjectModal() {
 	}
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				<Card
-					role="button"
-					className="hover:bg-accent flex flex-col items-center justify-center gap-y-2.5 p-8 text-center"
-				>
-					<Button size="icon" variant="ghost">
-						<Icons.projectPlus className="h-8 w-8" />
-					</Button>
-					<p className="text-xl font-medium">Create a project</p>
-				</Card>
-			</DialogTrigger>
+			<DialogTrigger
+				render={
+					<Card
+						role="button"
+						className="hover:bg-accent flex flex-col items-center justify-center gap-y-2.5 p-8 text-center"
+					>
+						<Button size="icon" variant="ghost">
+							<Icons.projectPlus className="h-8 w-8" />
+						</Button>
+						<p className="text-xl font-medium">Create a project</p>
+					</Card>
+				}
+			/>
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>Create Project</DialogTitle>

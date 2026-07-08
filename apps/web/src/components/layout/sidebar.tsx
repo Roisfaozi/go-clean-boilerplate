@@ -103,31 +103,33 @@ export const Sidebar = memo(function Sidebar({
 						pathname === item.href || pathname.startsWith(`${item.href}/`);
 
 					return (
-						<TooltipProvider key={item.href}>
-							<Tooltip delayDuration={0}>
-								<TooltipTrigger asChild>
-									<Link
-										href={item.href}
-										className={cn(
-											buttonVariants({
-												variant: isActive ? "secondary" : "ghost",
-												size: "default",
-											}),
-											"w-full justify-start overflow-hidden",
-											isActive &&
-												"bg-primary/10 text-primary hover:bg-primary/20",
-											"[data-density=compact]:justify-center [data-density=compact]:px-0",
-										)}
-									>
-										<Icon
-											name={item.iconName as any}
-											className={cn(isActive && "text-primary")}
-										/>
-										<span className="ml-3 truncate [data-density=compact]:hidden">
-											{item.title}
-										</span>
-									</Link>
-								</TooltipTrigger>
+						<TooltipProvider key={item.href} delay={0}>
+							<Tooltip>
+								<TooltipTrigger
+									render={
+										<Link
+											href={item.href}
+											className={cn(
+												buttonVariants({
+													variant: isActive ? "secondary" : "ghost",
+													size: "default",
+												}),
+												"w-full justify-start overflow-hidden",
+												isActive &&
+													"bg-primary/10 text-primary hover:bg-primary/20",
+												"[data-density=compact]:justify-center [data-density=compact]:px-0",
+											)}
+										>
+											<Icon
+												name={item.iconName as any}
+												className={cn(isActive && "text-primary")}
+											/>
+											<span className="ml-3 truncate [data-density=compact]:hidden">
+												{item.title}
+											</span>
+										</Link>
+									}
+								/>
 								<TooltipContent
 									side="right"
 									className="hidden [data-density=compact]:block"

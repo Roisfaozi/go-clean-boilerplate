@@ -47,12 +47,14 @@ export function MemberInviteDialog() {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				<Button size="sm">
-					<Icon name="UserPlus" className="mr-2 h-4 w-4" />
-					Invite Member
-				</Button>
-			</DialogTrigger>
+			<DialogTrigger
+				render={
+					<Button size="sm">
+						<Icon name="UserPlus" className="mr-2 h-4 w-4" />
+						Invite Member
+					</Button>
+				}
+			/>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Invite new member</DialogTitle>

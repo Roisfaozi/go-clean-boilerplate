@@ -36,12 +36,14 @@ export function CreateArDialog() {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				<Button size="sm">
-					<Icon name="Plus" className="mr-2 h-4 w-4" />
-					New Access Right
-				</Button>
-			</DialogTrigger>
+			<DialogTrigger
+				render={
+					<Button size="sm">
+						<Icon name="Plus" className="mr-2 h-4 w-4" />
+						New Access Right
+					</Button>
+				}
+			/>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Create Access Right</DialogTitle>

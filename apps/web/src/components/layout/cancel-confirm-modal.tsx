@@ -21,11 +21,13 @@ export default function CancelConfirmModal({
 }: CancelConfirmModalProps) {
 	return (
 		<AlertDialog>
-			<AlertDialogTrigger asChild>
-				<Button variant="secondary" type="reset" disabled={isDisabled}>
-					Reset
-				</Button>
-			</AlertDialogTrigger>
+			<AlertDialogTrigger
+				render={
+					<Button variant="secondary" type="reset" disabled={isDisabled}>
+						Reset
+					</Button>
+				}
+			/>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>

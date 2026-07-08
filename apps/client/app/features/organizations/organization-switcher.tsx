@@ -47,11 +47,13 @@ export function OrganizationSwitcher({ collapsed }: OrganizationSwitcherProps) {
 	if (collapsed) {
 		return (
 			<Popover open={open} onOpenChange={setOpen}>
-				<PopoverTrigger asChild>
-					<button className="bg-primary/10 text-primary hover:bg-primary/20 mx-auto flex h-10 w-10 items-center justify-center rounded-md text-sm font-bold transition-colors">
-						{current.name.charAt(0)}
-					</button>
-				</PopoverTrigger>
+				<PopoverTrigger
+					render={
+						<button className="bg-primary/10 text-primary hover:bg-primary/20 mx-auto flex h-10 w-10 items-center justify-center rounded-md text-sm font-bold transition-colors">
+							{current.name.charAt(0)}
+						</button>
+					}
+				/>
 				<PopoverContent side="right" align="start" className="w-56 p-1">
 					{mockOrgs.map((org) => (
 						<button
@@ -80,20 +82,22 @@ export function OrganizationSwitcher({ collapsed }: OrganizationSwitcherProps) {
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
-				<button className="hover:bg-sidebar-accent flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors">
-					<div className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm font-bold">
-						{current.name.charAt(0)}
-					</div>
-					<div className="min-w-0 flex-1">
-						<p className="text-sidebar-foreground truncate text-sm font-medium">
-							{current.name}
-						</p>
-						<p className="text-muted-foreground text-[11px]">Organization</p>
-					</div>
-					<ChevronsUpDown className="text-muted-foreground h-4 w-4 shrink-0" />
-				</button>
-			</PopoverTrigger>
+			<PopoverTrigger
+				render={
+					<button className="hover:bg-sidebar-accent flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors">
+						<div className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm font-bold">
+							{current.name.charAt(0)}
+						</div>
+						<div className="min-w-0 flex-1">
+							<p className="text-sidebar-foreground truncate text-sm font-medium">
+								{current.name}
+							</p>
+							<p className="text-muted-foreground text-[11px]">Organization</p>
+						</div>
+						<ChevronsUpDown className="text-muted-foreground h-4 w-4 shrink-0" />
+					</button>
+				}
+			/>
 			<PopoverContent align="start" className="w-60 p-1">
 				<p className="text-muted-foreground px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase">
 					Organizations

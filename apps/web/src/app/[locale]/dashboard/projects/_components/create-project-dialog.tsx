@@ -67,20 +67,22 @@ export function CreateProjectDialog() {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				<Card
-					role="button"
-					className="hover:bg-accent flex flex-col items-center justify-center gap-y-2.5 p-8 text-center transition-colors"
-				>
-					<div className="bg-primary/10 text-primary rounded-full p-3">
-						<Icon name="Plus" className="h-8 w-8" />
-					</div>
-					<p className="text-xl font-semibold">Create a project</p>
-					<p className="text-muted-foreground text-sm">
-						Launch a new environment
-					</p>
-				</Card>
-			</DialogTrigger>
+			<DialogTrigger
+				render={
+					<Card
+						role="button"
+						className="hover:bg-accent flex flex-col items-center justify-center gap-y-2.5 p-8 text-center transition-colors"
+					>
+						<div className="bg-primary/10 text-primary rounded-full p-3">
+							<Icon name="Plus" className="h-8 w-8" />
+						</div>
+						<p className="text-xl font-semibold">Create a project</p>
+						<p className="text-muted-foreground text-sm">
+							Launch a new environment
+						</p>
+					</Card>
+				}
+			/>
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>Create Project</DialogTitle>

@@ -43,36 +43,38 @@ export function PresenceAvatars({
 			<div className="flex -space-x-2">
 				{displayed.map((user) => (
 					<Tooltip key={user.id}>
-						<TooltipTrigger asChild>
-							<div className="relative">
-								{user.avatar ? (
-									<img
-										src={user.avatar}
-										alt={user.name}
+						<TooltipTrigger
+							render={
+								<div className="relative">
+									{user.avatar ? (
+										<img
+											src={user.avatar}
+											alt={user.name}
+											className={cn(
+												"border-background rounded-full border-2 object-cover",
+												sizeMap[size],
+											)}
+										/>
+									) : (
+										<div
+											className={cn(
+												"border-background bg-primary/10 text-primary flex items-center justify-center rounded-full border-2 font-semibold",
+												sizeMap[size],
+											)}
+										>
+											{user.name.charAt(0).toUpperCase()}
+										</div>
+									)}
+									<span
 										className={cn(
-											"border-background rounded-full border-2 object-cover",
-											sizeMap[size],
+											"border-background absolute right-0 bottom-0 rounded-full border-2",
+											dotSize[size],
+											statusColors[user.status],
 										)}
 									/>
-								) : (
-									<div
-										className={cn(
-											"border-background bg-primary/10 text-primary flex items-center justify-center rounded-full border-2 font-semibold",
-											sizeMap[size],
-										)}
-									>
-										{user.name.charAt(0).toUpperCase()}
-									</div>
-								)}
-								<span
-									className={cn(
-										"border-background absolute right-0 bottom-0 rounded-full border-2",
-										dotSize[size],
-										statusColors[user.status],
-									)}
-								/>
-							</div>
-						</TooltipTrigger>
+								</div>
+							}
+						/>
 						<TooltipContent>
 							{user.name} — {user.status}
 						</TooltipContent>

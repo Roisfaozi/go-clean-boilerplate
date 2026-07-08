@@ -30,7 +30,12 @@ import {
 	AlertTriangle,
 } from "lucide-react";
 import { OrganizationSwitcher } from "@/features/organizations/organization-switcher";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@casbin/ui";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@casbin/ui";
 import { PresenceAvatars } from "@/components/realtime/presence-avatars";
 
 interface NavItem {
@@ -209,24 +214,28 @@ function SidebarSection({
 				{section.items.map((item) => {
 					const isActive = currentPath === item.path;
 					return (
-						<Tooltip key={item.path + item.label} delayDuration={0}>
-							<TooltipTrigger asChild>
-								<Link
-									to={item.path}
-									className={cn(
-										"mx-auto flex h-10 w-10 items-center justify-center rounded-md transition-colors duration-150",
-										isActive
-											? "bg-primary/10 text-primary"
-											: "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
-									)}
-								>
-									<item.icon className="h-5 w-5" />
-								</Link>
-							</TooltipTrigger>
-							<TooltipContent side="right" sideOffset={8}>
-								{item.label}
-							</TooltipContent>
-						</Tooltip>
+						<TooltipProvider key={item.path + item.label} delay={0}>
+							<Tooltip>
+								<TooltipTrigger
+									render={
+										<Link
+											to={item.path}
+											className={cn(
+												"mx-auto flex h-10 w-10 items-center justify-center rounded-md transition-colors duration-150",
+												isActive
+													? "bg-primary/10 text-primary"
+													: "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
+											)}
+										>
+											<item.icon className="h-5 w-5" />
+										</Link>
+									}
+								/>
+								<TooltipContent side="right" sideOffset={8}>
+									{item.label}
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
 					);
 				})}
 			</div>

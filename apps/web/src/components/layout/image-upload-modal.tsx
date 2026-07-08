@@ -65,17 +65,19 @@ export default function ImageUploadModal({
 				if (!val) setPreview(null);
 			}}
 		>
-			<DialogTrigger asChild>
-				<Button
-					type="button"
-					variant="outline"
-					size="icon"
-					className="bg-background/80 text-muted-foreground hover:bg-background hover:text-foreground absolute right-0 bottom-0 h-8 w-8 rounded-full shadow-sm backdrop-blur-sm"
-				>
-					<Camera className="h-4 w-4" />
-					<span className="sr-only">Change Picture</span>
-				</Button>
-			</DialogTrigger>
+			<DialogTrigger
+				render={
+					<Button
+						type="button"
+						variant="outline"
+						size="icon"
+						className="bg-background/80 text-muted-foreground hover:bg-background hover:text-foreground absolute right-0 bottom-0 h-8 w-8 rounded-full shadow-sm backdrop-blur-sm"
+					>
+						<Camera className="h-4 w-4" />
+						<span className="sr-only">Change Picture</span>
+					</Button>
+				}
+			/>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>Upload Profile Picture</DialogTitle>

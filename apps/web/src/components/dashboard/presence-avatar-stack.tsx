@@ -32,17 +32,19 @@ export function PresenceAvatarStack({ className }: { className?: string }) {
 			<TooltipProvider>
 				{displayUsers.map((user) => (
 					<Tooltip key={user.user_id}>
-						<TooltipTrigger asChild>
-							<div className="ring-background relative inline-block rounded-full ring-2 transition-transform hover:z-10 hover:scale-110">
-								<Avatar className="h-8 w-8">
-									<AvatarImage src={user.avatar_url} alt={user.name} />
-									<AvatarFallback className="bg-primary/10 text-[10px] font-bold">
-										{(user.name || "U")[0].toUpperCase()}
-									</AvatarFallback>
-								</Avatar>
-								<span className="absolute right-0 bottom-0 block h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-white" />
-							</div>
-						</TooltipTrigger>
+						<TooltipTrigger
+							render={
+								<div className="ring-background relative inline-block rounded-full ring-2 transition-transform hover:z-10 hover:scale-110">
+									<Avatar className="h-8 w-8">
+										<AvatarImage src={user.avatar_url} alt={user.name} />
+										<AvatarFallback className="bg-primary/10 text-[10px] font-bold">
+											{(user.name || "U")[0].toUpperCase()}
+										</AvatarFallback>
+									</Avatar>
+									<span className="absolute right-0 bottom-0 block h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-white" />
+								</div>
+							}
+						/>
 						<TooltipContent>
 							<div className="flex flex-col gap-1">
 								<p className="text-xs font-semibold">
@@ -58,11 +60,13 @@ export function PresenceAvatarStack({ className }: { className?: string }) {
 
 				{remainingCount > 0 && (
 					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="bg-muted ring-background flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold ring-2 hover:z-10">
-								+{remainingCount}
-							</div>
-						</TooltipTrigger>
+						<TooltipTrigger
+							render={
+								<div className="bg-muted ring-background flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold ring-2 hover:z-10">
+									+{remainingCount}
+								</div>
+							}
+						/>
 						<TooltipContent>
 							<p className="text-xs">{remainingCount} more online</p>
 						</TooltipContent>

@@ -146,27 +146,29 @@ const MatrixCell = memo(function MatrixCell({
 			className={`border-r last:border-r-0 ${isCompact ? "px-1 py-1" : "px-2 py-2"} text-center`}
 		>
 			<div className="flex items-center justify-center">
-				<TooltipProvider delayDuration={100}>
+				<TooltipProvider delay={100}>
 					<Tooltip>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={() => openDialog(roleName, resourceName, crud)}
-								className="group/cell hover:ring-primary/40 flex cursor-pointer items-center gap-[2px] rounded-md p-1.5 transition-all hover:scale-110 hover:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
-								disabled={roleName === "role:superadmin"}
-							>
-								{flags.map((enabled, i) => (
-									<div
-										key={CRUD_LABELS[i]}
-										className={`h-5 w-2.5 rounded-[2px] transition-colors ${
-											enabled
-												? "bg-primary shadow-sm"
-												: "bg-muted-foreground/15"
-										}`}
-									/>
-								))}
-							</button>
-						</TooltipTrigger>
+						<TooltipTrigger
+							render={
+								<button
+									type="button"
+									onClick={() => openDialog(roleName, resourceName, crud)}
+									className="group/cell hover:ring-primary/40 flex cursor-pointer items-center gap-[2px] rounded-md p-1.5 transition-all hover:scale-110 hover:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
+									disabled={roleName === "role:superadmin"}
+								>
+									{flags.map((enabled, i) => (
+										<div
+											key={CRUD_LABELS[i]}
+											className={`h-5 w-2.5 rounded-[2px] transition-colors ${
+												enabled
+													? "bg-primary shadow-sm"
+													: "bg-muted-foreground/15"
+											}`}
+										/>
+									))}
+								</button>
+							}
+						/>
 						<TooltipContent side="top" className="text-[10px]">
 							<div className="mb-1 font-semibold tracking-wider uppercase">
 								{resourceName}

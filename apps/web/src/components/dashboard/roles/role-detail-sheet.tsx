@@ -181,12 +181,14 @@ export function RoleDetailSheet({
 							</h3>
 
 							<Popover>
-								<PopoverTrigger asChild>
-									<Button size="sm" variant="outline" className="h-8">
-										<Icon name="UserPlus" className="mr-2 h-4 w-4" />
-										Add Member
-									</Button>
-								</PopoverTrigger>
+								<PopoverTrigger
+									render={
+										<Button size="sm" variant="outline" className="h-8">
+											<Icon name="UserPlus" className="mr-2 h-4 w-4" />
+											Add Member
+										</Button>
+									}
+								/>
 								<PopoverContent className="w-[300px] p-0" align="end">
 									<Command shouldFilter={false}>
 										<CommandInput

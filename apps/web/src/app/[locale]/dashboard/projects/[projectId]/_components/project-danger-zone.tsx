@@ -39,11 +39,13 @@ export function ProjectDangerZone() {
 				</p>
 
 				<AlertDialog>
-					<AlertDialogTrigger asChild>
-						<Button variant="destructive" disabled={isLoading}>
-							Delete Project
-						</Button>
-					</AlertDialogTrigger>
+					<AlertDialogTrigger
+						render={
+							<Button variant="destructive" disabled={isLoading}>
+								Delete Project
+							</Button>
+						}
+					/>
 					<AlertDialogContent>
 						<AlertDialogHeader>
 							<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -54,14 +56,19 @@ export function ProjectDangerZone() {
 						</AlertDialogHeader>
 						<AlertDialogFooter>
 							<AlertDialogCancel>Cancel</AlertDialogCancel>
-							<AlertDialogAction asChild>
-								<Button variant="destructive" onClick={deleteProject}>
-									{isLoading && (
-										<Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-									)}
-									Yes, Delete Project
-								</Button>
-							</AlertDialogAction>
+							<AlertDialogAction
+								render={
+									<Button variant="destructive" onClick={deleteProject}>
+										{isLoading && (
+											<Icon
+												name="Loader"
+												className="mr-2 h-4 w-4 animate-spin"
+											/>
+										)}
+										Yes, Delete Project
+									</Button>
+								}
+							/>
 						</AlertDialogFooter>
 					</AlertDialogContent>
 				</AlertDialog>

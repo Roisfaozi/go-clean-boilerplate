@@ -44,12 +44,14 @@ export function InviteMemberModal({ onInvite }: InviteMemberModalProps) {
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger asChild>
-				<NexusButton size="sm">
-					<Plus className="mr-1.5 h-4 w-4" />
-					Invite Member
-				</NexusButton>
-			</DialogTrigger>
+			<DialogTrigger
+				render={
+					<NexusButton size="sm">
+						<Plus className="mr-1.5 h-4 w-4" />
+						Invite Member
+					</NexusButton>
+				}
+			/>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>Invite Member</DialogTitle>

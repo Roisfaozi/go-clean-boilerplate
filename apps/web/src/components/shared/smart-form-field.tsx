@@ -89,25 +89,27 @@ export const SmartFormField = React.forwardRef<
 						<div className="absolute top-1/2 right-3 -translate-y-1/2">
 							<TooltipProvider>
 								<Tooltip>
-									<TooltipTrigger asChild>
-										<button
-											type="button"
-											onClick={onAiClick}
-											disabled={isLoadingAi || props.disabled}
-											className={cn(
-												"hover:bg-accent flex items-center justify-center rounded-sm transition-all",
-												isLoadingAi
-													? "animate-pulse text-violet-500"
-													: "text-muted-foreground hover:text-violet-500",
-											)}
-										>
-											<Icon
-												name={(isLoadingAi ? "Loader2" : "Sparkles") as any}
-												size="sm"
-												className={cn(isLoadingAi && "animate-spin")}
-											/>
-										</button>
-									</TooltipTrigger>
+									<TooltipTrigger
+										render={
+											<button
+												type="button"
+												onClick={onAiClick}
+												disabled={isLoadingAi || props.disabled}
+												className={cn(
+													"hover:bg-accent flex items-center justify-center rounded-sm transition-all",
+													isLoadingAi
+														? "animate-pulse text-violet-500"
+														: "text-muted-foreground hover:text-violet-500",
+												)}
+											>
+												<Icon
+													name={(isLoadingAi ? "Loader2" : "Sparkles") as any}
+													size="sm"
+													className={cn(isLoadingAi && "animate-spin")}
+												/>
+											</button>
+										}
+									/>
 									<TooltipContent>
 										<p>Auto-fill with AI</p>
 									</TooltipContent>
