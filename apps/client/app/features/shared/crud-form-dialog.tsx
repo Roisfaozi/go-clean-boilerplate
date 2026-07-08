@@ -147,7 +147,7 @@ export function CrudFormDialog({
 								) : field.type === "select" ? (
 									<Select
 										value={values[field.name] || ""}
-										onValueChange={(val) => setValue(field.name, val)}
+										onValueChange={(val) => val && setValue(field.name, val)}
 										disabled={isLoading || field.disabled}
 									>
 										<SelectTrigger>

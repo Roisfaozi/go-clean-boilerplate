@@ -227,7 +227,7 @@ export function UserDialog({
 									<FormItem>
 										<FormLabel>Status</FormLabel>
 										<Select
-											onValueChange={field.onChange}
+											onValueChange={(val) => val && field.onChange(val)}
 											defaultValue={field.value}
 										>
 											<FormControl>

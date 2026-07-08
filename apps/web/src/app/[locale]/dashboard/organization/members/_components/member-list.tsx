@@ -88,7 +88,7 @@ const MemoizedMemberTableRow = memo(function MemberTableRow({
 			<TableCell>
 				<Select
 					defaultValue={member.role_id}
-					onValueChange={(val) => updateMemberRole(member.user_id, val)}
+					onValueChange={(val) => val && updateMemberRole(member.user_id, val)}
 				>
 					<SelectTrigger className="h-8 w-[140px] text-xs">
 						<SelectValue />

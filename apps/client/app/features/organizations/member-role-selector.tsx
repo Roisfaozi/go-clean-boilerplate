@@ -26,7 +26,11 @@ export function MemberRoleSelector({
 	disabled,
 }: MemberRoleSelectorProps) {
 	return (
-		<Select value={value} onValueChange={onChange} disabled={disabled}>
+		<Select
+			value={value}
+			onValueChange={(nextValue) => nextValue && onChange(nextValue)}
+			disabled={disabled}
+		>
 			<SelectTrigger className="h-8 w-[120px] text-xs">
 				<SelectValue />
 			</SelectTrigger>

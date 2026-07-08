@@ -76,7 +76,10 @@ export function MemberInviteDialog() {
 					</div>
 					<div className="grid gap-2">
 						<Label htmlFor="role">Initial Role</Label>
-						<Select value={roleId} onValueChange={setRoleId}>
+						<Select
+							value={roleId}
+							onValueChange={(val) => val && setRoleId(val)}
+						>
 							<SelectTrigger id="role">
 								<SelectValue placeholder="Select a role" />
 							</SelectTrigger>

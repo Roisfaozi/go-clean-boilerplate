@@ -40,7 +40,7 @@ export function PreferencesSettingsCard() {
 					</div>
 					<Select
 						value={settings.theme || "system"}
-						onValueChange={(v) => updateSetting("theme", v)}
+						onValueChange={(v) => v && updateSetting("theme", v)}
 					>
 						<SelectTrigger className="w-[180px]">
 							<SelectValue placeholder="Select theme" />
