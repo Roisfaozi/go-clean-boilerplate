@@ -18,7 +18,7 @@ export default function FAQ() {
 					</p>
 				</div>
 
-				<Accordion type="single" collapsible className="w-full">
+				<Accordion className="w-full">
 					<AccordionItem value="item-1">
 						<AccordionTrigger>Is it Next.js 15 or 16?</AccordionTrigger>
 						<AccordionContent>

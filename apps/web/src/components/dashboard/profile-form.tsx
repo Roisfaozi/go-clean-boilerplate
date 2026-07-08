@@ -98,18 +98,17 @@ export function ProfileForm({ user }: ProfileFormProps) {
 							<Button
 								variant="outline"
 								type="button"
+								nativeButton={false}
+								render={<span />}
 								size="sm"
 								className="cursor-pointer"
-								asChild
 							>
-								<span>
-									{isUploading ? (
-										<Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-									) : (
-										<Icon name="Upload" className="mr-2 h-4 w-4" />
-									)}
-									Change Avatar
-								</span>
+								{isUploading ? (
+									<Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
+								) : (
+									<Icon name="Upload" className="mr-2 h-4 w-4" />
+								)}
+								Change Avatar
 							</Button>
 						</label>
 					</div>

@@ -46,7 +46,7 @@ export function AccessRightsList() {
 
 	return (
 		<div className="bg-card rounded-md border">
-			<Accordion type="multiple" className="w-full">
+			<Accordion multiple className="w-full">
 				{accessRights.map((ar) => (
 					<AccessRightItem
 						key={ar.id}
@@ -99,7 +99,7 @@ function AccessRightItem({
 			</div>
 			<AccordionContent className="pb-6">
 				<div className="bg-muted/30 rounded-lg border p-4">
-					<Accordion type="multiple" className="w-full border-none">
+					<Accordion multiple className="w-full border-none">
 						{Object.entries(groupedEndpoints)
 							.sort(([a], [b]) => a.localeCompare(b))
 							.map(([groupName, eps]) => (
