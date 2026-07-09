@@ -136,12 +136,8 @@ func TestGenerateDynamicSort(t *testing.T) {
 	sql := resQuery.Find(&[]TestModel{}).Statement.SQL.String()
 
 	assert.Contains(t, sql, "ORDER BY")
-	// clause.OrderByColumn outputs exactly the column name without 'asc' if desc is false
-	// or with 'DESC' if desc is true, separated by commas if multiple.
-	// For sqlite dialect this turns into `ORDER BY `name`,`age` DESC`.
-	// For general string checks, let's just make sure both columns are mentioned
-	assert.Contains(t, sql, "`name`")
-	assert.Contains(t, sql, "`age` DESC")
+	assert.Contains(t, sql, "name asc")
+	assert.Contains(t, sql, "age desc")
 }
 
 func TestGetDBFieldName(t *testing.T) {
