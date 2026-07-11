@@ -3,6 +3,7 @@ package usecase
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -172,7 +173,7 @@ func (u *userUseCaseImpl) GetUserByID(ctx context.Context, id string) (*model.Us
 
 	user, err := u.Repo.FindByID(ctx, id)
 	if err != nil {
-		if err.Error() == "user not found" || err.Error() == "record not found" {
+		if errors.Is(err, exception.ErrNotFound) || err.Error() == "user not found" || err.Error() == "record not found" {
 			return nil, exception.ErrNotFound
 		}
 		return nil, err
@@ -457,7 +458,7 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 
 	user, err := u.Repo.FindByID(ctx, request.ID)
 	if err != nil {
-		if err.Error() == "user not found" || err.Error() == "record not found" {
+		if errors.Is(err, exception.ErrNotFound) || err.Error() == "user not found" || err.Error() == "record not found" {
 			return exception.ErrNotFound
 		}
 		return err
