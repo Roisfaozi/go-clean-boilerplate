@@ -446,7 +446,7 @@ func (ac *AuthController) SSOLogin(c *gin.Context) {
 	provider := c.Param("provider")
 	state, err := generateSSOState()
 	if err != nil {
-		response.InternalServerError(c, err, "failed to generate SSO state")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to generate SSO state")
 		return
 	}
 

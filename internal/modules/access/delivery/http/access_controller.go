@@ -237,7 +237,7 @@ func (h *AccessController) DeleteAccessRight(c *gin.Context) {
 		if errors.Is(err, exception.ErrNotFound) {
 			response.NotFound(c, err, "Access right not found")
 		} else {
-			response.InternalServerError(c, err, "Failed to delete access right")
+			response.InternalServerError(c, exception.ErrInternalServer, "Failed to delete access right")
 		}
 		return
 	}
@@ -262,7 +262,7 @@ func (h *AccessController) DeleteEndpoint(c *gin.Context) {
 		if errors.Is(err, exception.ErrNotFound) {
 			response.NotFound(c, err, "Endpoint not found")
 		} else {
-			response.InternalServerError(c, err, "Failed to delete endpoint")
+			response.InternalServerError(c, exception.ErrInternalServer, "Failed to delete endpoint")
 		}
 		return
 	}
@@ -296,7 +296,7 @@ func (h *AccessController) GetEndpointsDynamic(c *gin.Context) {
 	endpoints, total, err := h.useCase.GetEndpointsDynamic(ctx, &filter)
 	if err != nil {
 		h.log.WithError(err).Error("failed to get endpoints dynamically")
-		response.InternalServerError(c, err, "failed to retrieve endpoints")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to retrieve endpoints")
 		return
 	}
 
@@ -334,7 +334,7 @@ func (h *AccessController) GetAccessRightsDynamic(c *gin.Context) {
 	accessRights, total, err := h.useCase.GetAccessRightsDynamic(ctx, &filter)
 	if err != nil {
 		h.log.WithError(err).Error("failed to get access rights dynamically")
-		response.InternalServerError(c, err, "failed to retrieve access rights")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to retrieve access rights")
 		return
 	}
 

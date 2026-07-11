@@ -60,7 +60,7 @@ func (h *ApiKeyController) Create(c *gin.Context) {
 
 	res, err := h.useCase.Create(c.Request.Context(), userID, orgID, &req)
 	if err != nil {
-		response.InternalServerError(c, err, "failed to create api key")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to create api key")
 		return
 	}
 
@@ -85,7 +85,7 @@ func (h *ApiKeyController) List(c *gin.Context) {
 
 	res, err := h.useCase.List(c.Request.Context(), orgID)
 	if err != nil {
-		response.InternalServerError(c, err, "failed to list api keys")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to list api keys")
 		return
 	}
 

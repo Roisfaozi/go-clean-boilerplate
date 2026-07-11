@@ -74,7 +74,7 @@ func (ctrl *OrganizationController) CreateOrganization(c *gin.Context) {
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to create organization")
-		response.InternalServerError(c, err, "failed to create organization")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to create organization")
 		return
 	}
 
@@ -109,7 +109,7 @@ func (ctrl *OrganizationController) GetOrganization(c *gin.Context) {
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to get organization")
-		response.InternalServerError(c, err, "failed to get organization")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to get organization")
 		return
 	}
 
@@ -144,7 +144,7 @@ func (ctrl *OrganizationController) GetOrganizationBySlug(c *gin.Context) {
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to get organization by slug")
-		response.InternalServerError(c, err, "failed to get organization")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to get organization")
 		return
 	}
 
@@ -200,7 +200,7 @@ func (ctrl *OrganizationController) UpdateOrganization(c *gin.Context) {
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to update organization")
-		response.InternalServerError(c, err, "failed to update organization")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to update organization")
 		return
 	}
 
@@ -240,7 +240,7 @@ func (ctrl *OrganizationController) DeleteOrganization(c *gin.Context) {
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to delete organization")
-		response.InternalServerError(c, err, "failed to delete organization")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to delete organization")
 		return
 	}
 
@@ -270,7 +270,7 @@ func (ctrl *OrganizationController) RestoreOrganization(c *gin.Context) {
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to restore organization")
-		response.InternalServerError(c, err, "failed to restore organization")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to restore organization")
 		return
 	}
 
@@ -304,7 +304,7 @@ func (ctrl *OrganizationController) HardDeleteOrganization(c *gin.Context) {
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to hard delete organization")
-		response.InternalServerError(c, err, "failed to hard delete organization")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to hard delete organization")
 		return
 	}
 
@@ -331,7 +331,7 @@ func (ctrl *OrganizationController) GetMyOrganizations(c *gin.Context) {
 	result, err := ctrl.OrgUseCase.GetUserOrganizations(c.Request.Context(), userID.(string))
 	if err != nil {
 		ctrl.Log.WithError(err).Error("Failed to get user organizations")
-		response.InternalServerError(c, err, "failed to get organizations")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to get organizations")
 		return
 	}
 
@@ -423,7 +423,7 @@ func (ctrl *OrganizationController) InviteMember(c *gin.Context) {
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to invite member")
-		response.InternalServerError(c, err, "failed to invite member")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to invite member")
 		return
 	}
 
@@ -463,7 +463,7 @@ func (ctrl *OrganizationController) GetMembers(c *gin.Context) {
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to get members")
-		response.InternalServerError(c, err, "failed to get members")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to get members")
 		return
 	}
 
@@ -520,7 +520,7 @@ func (ctrl *OrganizationController) UpdateMemberRole(c *gin.Context) {
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to update member")
-		response.InternalServerError(c, err, "failed to update member")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to update member")
 		return
 	}
 
@@ -562,7 +562,7 @@ func (ctrl *OrganizationController) RemoveMember(c *gin.Context) {
 			return
 		}
 		ctrl.Log.WithError(err).Error("Failed to remove member")
-		response.InternalServerError(c, err, "failed to remove member")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to remove member")
 		return
 	}
 
@@ -586,7 +586,7 @@ func (ctrl *OrganizationController) GetPresence(c *gin.Context) {
 	result, err := ctrl.MemberUseCase.GetPresence(c.Request.Context(), orgID)
 	if err != nil {
 		ctrl.Log.WithError(err).Error("Failed to get presence")
-		response.InternalServerError(c, err, "failed to get presence")
+		response.InternalServerError(c, exception.ErrInternalServer, "failed to get presence")
 		return
 	}
 

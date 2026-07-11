@@ -61,7 +61,7 @@ func (h *AuditController) GetLogsDynamic(c *gin.Context) {
 
 	logs, total, err := h.UseCase.GetLogsDynamic(c.Request.Context(), &filter)
 	if err != nil {
-		response.InternalServerError(c, err, "Failed to fetch logs")
+		response.InternalServerError(c, exception.ErrInternalServer, "Failed to fetch logs")
 		return
 	}
 
@@ -97,7 +97,7 @@ func (h *AuditController) Export(c *gin.Context) {
 	header := []string{"ID", "UserID", "Action", "Entity", "EntityID", "OldValues", "NewValues", "IPAddress", "UserAgent", "CreatedAt"}
 	if err := writer.Write(header); err != nil {
 		h.Log.WithError(err).Error("Failed to write CSV header")
-		response.InternalServerError(c, err, "Failed to generate CSV")
+		response.InternalServerError(c, exception.ErrInternalServer, "Failed to generate CSV")
 		return
 	}
 	writer.Flush()
@@ -161,7 +161,7 @@ func (h *AuditController) ExportAsync(c *gin.Context) {
 	err := h.UseCase.ExportLogsAsync(c.Request.Context(), userID, orgID, fromDate, toDate, "csv")
 	if err != nil {
 		h.Log.WithError(err).Error("Failed to initiate async export")
-		response.InternalServerError(c, err, "Failed to initiate export")
+		response.InternalServerError(c, exception.ErrInternalServer, "Failed to initiate export")
 		return
 	}
 
