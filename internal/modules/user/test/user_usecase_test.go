@@ -92,7 +92,7 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 
 	result, err := uc.Create(context.Background(), testReq)
 
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 	assert.NotNil(t, result)
 	deps.Repo.AssertExpectations(t)
 	deps.Enforcer.AssertExpectations(t)
@@ -206,7 +206,7 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 
 		result, err := uc.GetUserByID(context.Background(), "test123")
 
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		assert.NotNil(t, result)
 		assert.Equal(t, "test123", result.ID)
 
@@ -264,7 +264,7 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 
 		result, total, err := uc.GetAllUsers(context.Background(), req)
 
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		assert.Len(t, result, 2)
 		assert.Equal(t, int64(2), total)
 		assert.Equal(t, "user1", result[0].ID)
@@ -280,7 +280,7 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 
 		result, total, err := uc.GetAllUsers(context.Background(), req)
 
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		assert.Empty(t, result)
 		assert.Equal(t, int64(0), total)
 
@@ -314,7 +314,7 @@ func TestUserUseCase_Current(t *testing.T) {
 
 		result, err := uc.Current(context.Background(), testReq)
 
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		assert.NotNil(t, result)
 		assert.Equal(t, "current-user", result.ID)
 		deps.Repo.AssertExpectations(t)
@@ -357,7 +357,7 @@ func TestUserUseCase_Update(t *testing.T) {
 
 		result, err := uc.Update(context.Background(), request)
 
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		assert.NotNil(t, result)
 		assert.Equal(t, "user123", result.ID)
 		assert.Equal(t, "Updated User", result.Name)
@@ -382,7 +382,7 @@ func TestUserUseCase_Update(t *testing.T) {
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
 		_, err := uc.Update(context.Background(), request)
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 	})
 
 	t.Run("Error - Username Conflict", func(t *testing.T) {
@@ -415,7 +415,7 @@ func TestUserUseCase_Update(t *testing.T) {
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
 		_, err := uc.Update(context.Background(), request)
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 	})
 
 	t.Run("Update - Conflict", func(t *testing.T) {
@@ -520,7 +520,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 
 		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
 
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		deps.Repo.AssertExpectations(t)
 		deps.AuditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
 	})
@@ -638,7 +638,7 @@ func TestUserUseCase_GetAllUsersDynamic(t *testing.T) {
 
 		result, total, err := uc.GetAllUsersDynamic(context.Background(), filter)
 
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		assert.Len(t, result, 2)
 		assert.Equal(t, int64(2), total)
 		assert.Equal(t, "user1", result[0].ID)
@@ -686,7 +686,7 @@ func TestUserUseCase_UpdateStatus(t *testing.T) {
 		})).Return(nil)
 
 		err := uc.UpdateStatus(context.Background(), userID, status)
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		deps.Repo.AssertExpectations(t)
 		deps.AuditUC.AssertExpectations(t)
 	})
@@ -707,7 +707,7 @@ func TestUserUseCase_UpdateStatus(t *testing.T) {
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
 		err := uc.UpdateStatus(context.Background(), userID, status)
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		deps.Repo.AssertExpectations(t)
 		deps.AuthUC.AssertExpectations(t)
 		deps.AuditUC.AssertExpectations(t)
@@ -781,7 +781,7 @@ func TestUserUseCase_UpdateAvatar(t *testing.T) {
 
 		result, err := uc.UpdateAvatar(context.Background(), userID, file, filename, contentType)
 
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		assert.NotNil(t, result)
 		assert.Equal(t, expectedURL, result.AvatarURL)
 		deps.Repo.AssertExpectations(t)
@@ -829,7 +829,7 @@ func TestUserUseCase_HardDeleteSoftDeletedUsers(t *testing.T) {
 		deps.Repo.On("HardDeleteSoftDeletedUsers", mock.Anything, retentionDays).Return(nil)
 
 		err := uc.HardDeleteSoftDeletedUsers(context.Background(), retentionDays)
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 	})
 
 	t.Run("Error", func(t *testing.T) {
@@ -871,7 +871,7 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 
 	result, err := uc.Create(context.Background(), testReq)
 
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 	assert.NotNil(t, result)
 	assert.Equal(t, expectedName, result.Name)
 	deps.Repo.AssertExpectations(t)
@@ -908,7 +908,7 @@ func TestUserUseCase_Update_Sanitization(t *testing.T) {
 
 	_, err := uc.Update(context.Background(), request)
 
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 	deps.Repo.AssertExpectations(t)
 }
 
@@ -990,7 +990,7 @@ func TestUserUseCase_UpdateAvatar_Success(t *testing.T) {
 	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
 
 	// Assert
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 	assert.NotNil(t, result)
 	assert.Equal(t, uploadedURL, result.AvatarURL)
 	deps.Repo.AssertExpectations(t)
@@ -1016,7 +1016,7 @@ func TestUserUseCase_GetAvatarUrl_Success(t *testing.T) {
 
 	result, err := uc.GetAvatarUrl(ctx, userID)
 
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 	assert.Equal(t, fullURL, result)
 }
 
@@ -1058,7 +1058,7 @@ func TestUserUseCase_UpdateAvatar_Success_ReplaceExisting(t *testing.T) {
 	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
 
 	// Assert
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 	assert.NotNil(t, result)
 	assert.Equal(t, newAvatarURL, result.AvatarURL)
 	assert.NotEqual(t, oldAvatarURL, result.AvatarURL)
@@ -1344,7 +1344,7 @@ func TestUserUseCase_UpdateAvatar_Security(t *testing.T) {
 				assert.Error(t, err)
 				assert.Equal(t, tt.errExpected, err)
 			} else {
-				assert.NoError(t, err)
+				assert.ErrorIs(t, err, exception.ErrNotFound)
 			}
 		})
 	}
@@ -1405,7 +1405,7 @@ func TestUserUseCase_HardDeleteSoftDeletedUsers_Success(t *testing.T) {
 	err := uc.HardDeleteSoftDeletedUsers(ctx, retentionDays)
 
 	// Assert
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 	deps.Repo.AssertExpectations(t)
 }
 
@@ -1422,7 +1422,7 @@ func TestUserUseCase_HardDeleteSoftDeletedUsers_NoRecordsToDelete(t *testing.T) 
 	err := uc.HardDeleteSoftDeletedUsers(ctx, retentionDays)
 
 	// Assert
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 	deps.Repo.AssertExpectations(t)
 }
 
@@ -1451,7 +1451,7 @@ func TestUserUseCase_SetAvatarURL_Success(t *testing.T) {
 
 	err := uc.SetAvatarURL(ctx, userID, url)
 
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 	deps.Repo.AssertExpectations(t)
 	deps.AuditUC.AssertExpectations(t)
 }
@@ -1651,7 +1651,7 @@ func TestUserUseCase_HardDeleteSoftDeletedUsers_ZeroRetentionDays(t *testing.T) 
 	err := uc.HardDeleteSoftDeletedUsers(ctx, retentionDays)
 
 	// Assert
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 	deps.Repo.AssertExpectations(t)
 }
 
@@ -1700,7 +1700,7 @@ func TestUserUseCase_Update_Security_UsernameSanitization(t *testing.T) {
 	_, err := uc.Update(context.Background(), request)
 
 	// Assert
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 	deps.Repo.AssertExpectations(t)
 }
 
