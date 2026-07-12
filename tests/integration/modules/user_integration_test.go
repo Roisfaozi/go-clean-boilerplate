@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	auditRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository"
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
@@ -23,6 +22,7 @@ import (
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
@@ -534,7 +534,6 @@ func TestUserRepository_Integration(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, users, 1)
 		assert.Equal(t, user.ID, users[0].ID)
-
 
 	})
 
