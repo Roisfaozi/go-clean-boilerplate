@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter) (*gorm.DB, error) {
@@ -77,7 +78,7 @@ func GenerateDynamicSort(db *gorm.DB, model interface{}, filter *DynamicFilter) 
 		if strings.ToLower(sort.Sort) == "desc" {
 			order = "desc"
 		}
-		db = db.Order(fmt.Sprintf("%s %s", dbFieldName, order))
+		db = db.Order(clause.OrderByColumn{Column: clause.Column{Name: dbFieldName}, Desc: order == "desc"})
 	}
 
 	return db, nil
