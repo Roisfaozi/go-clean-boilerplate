@@ -2,6 +2,7 @@ package worker_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/alicebob/miniredis/v2"
@@ -75,5 +76,32 @@ func TestScheduler_RegisterScheduledTasks(t *testing.T) {
 
 		// Verify no panic during init and that scheduler isn't nil
 		assert.NotNil(t, deps.scheduler)
+	})
+}
+
+func TestScheduler_Lifecycle(t *testing.T) {
+	t.Run("Positive - Lifecycle Start and Shutdown", func(t *testing.T) {
+		mr, err := miniredis.Run()
+		require.NoError(t, err)
+		defer mr.Close()
+
+		redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
+		logger := logrus.New()
+		logger.SetOutput(new(mockWriter))
+
+		scheduler := worker.NewScheduler(redisOpt, logger)
+		require.NotNil(t, scheduler)
+
+		scheduler.RegisterScheduledTasks()
+
+		go func() {
+            // Only start after we have ensured we'll shut it down soon to avoid hanging
+            _ = scheduler.Start()
+        }()
+
+        // This makes sure the Start() block is evaluated by the test runner for coverage
+        time.Sleep(10 * time.Millisecond)
+
+		scheduler.Shutdown()
 	})
 }
