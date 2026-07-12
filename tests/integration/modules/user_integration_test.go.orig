@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	auditRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository"
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	authModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
