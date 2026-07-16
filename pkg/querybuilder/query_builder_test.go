@@ -136,8 +136,8 @@ func TestGenerateDynamicSort(t *testing.T) {
 	sql := resQuery.Find(&[]TestModel{}).Statement.SQL.String()
 
 	assert.Contains(t, sql, "ORDER BY")
-	assert.Contains(t, sql, "`name`")
-	assert.Contains(t, sql, "`age` DESC")
+	assert.Contains(t, sql, "name asc")
+	assert.Contains(t, sql, "age desc")
 }
 
 func TestGetDBFieldName(t *testing.T) {
