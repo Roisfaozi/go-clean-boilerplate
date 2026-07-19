@@ -379,10 +379,10 @@ func (uc *PermissionUseCase) DeleteRole(ctx context.Context, roleName string) er
 		return err
 	}
 
-	// Ensure we cascade grouping policy cleanup explicitly
+	// Ensure we cascade grouping policy cleanup explicitly for all assignments of this role
 	_, err = enf.RemoveFilteredGroupingPolicy(1, roleName)
 	if err != nil {
-		uc.log.WithContext(ctx).Errorf("Failed to delete role from Casbin: %v", err)
+		uc.log.WithContext(ctx).Errorf("Failed to explicitly remove grouping policy for role: %v", err)
 		return err
 	}
 
