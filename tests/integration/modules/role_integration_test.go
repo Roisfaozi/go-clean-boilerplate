@@ -329,5 +329,5 @@ func TestRoleIntegration_Delete_WithActiveUsers_DocumentsBehavior(t *testing.T) 
 			roleStillInCasbin = true
 		}
 	}
-	t.Logf("KNOWN GAP: Casbin grouping still contains deleted role '%s': %v — cleanup not cascaded by usecase.Delete", created.Name, roleStillInCasbin)
+	assert.False(t, roleStillInCasbin, "Role should be completely removed from Casbin grouping policies")
 }
