@@ -19,6 +19,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
@@ -249,7 +250,7 @@ func TestUserIntegration_Delete_Negative_NonExistentUser(t *testing.T) {
 
 	err := userUC.DeleteUser(context.Background(), "admin-id", deleteReq)
 
-	assert.Error(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 }
 
 func TestUserIntegration_Create_Edge_MinimumUsernameLength(t *testing.T) {
@@ -533,7 +534,6 @@ func TestUserRepository_Integration(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, users, 1)
 		assert.Equal(t, user.ID, users[0].ID)
-
 
 	})
 
