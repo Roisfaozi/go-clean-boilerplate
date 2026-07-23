@@ -24,7 +24,7 @@ type TusController struct{}
 // @Success      201  {string}  string "Created (Location header contains upload URL)"
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Router       /upload/files/ [post]
-func (ctrl *TusController) TusUpload(c *gin.Context) {}
+func (ctrl *TusController) TusUpload(c *gin.Context) { _ = c }
 
 // TusPatch godoc
 // @Summary      Upload File Chunk
@@ -39,7 +39,7 @@ func (ctrl *TusController) TusUpload(c *gin.Context) {}
 // @Success      204  {string}  string "No Content"
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Router       /upload/files/{id} [patch]
-func (ctrl *TusController) TusPatch(c *gin.Context) {}
+func (ctrl *TusController) TusPatch(c *gin.Context) { _ = c }
 
 // TusHead godoc
 // @Summary      Get Upload Status
@@ -51,7 +51,7 @@ func (ctrl *TusController) TusPatch(c *gin.Context) {}
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Upload not found"
 // @Router       /upload/files/{id} [head]
-func (ctrl *TusController) TusHead(c *gin.Context) {}
+func (ctrl *TusController) TusHead(c *gin.Context) { _ = c }
 
 // TusDelete godoc
 // @Summary      Cancel Upload
@@ -64,4 +64,4 @@ func (ctrl *TusController) TusHead(c *gin.Context) {}
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      404  {object}  response.SwaggerErrorResponseWrapper "Upload not found"
 // @Router       /upload/files/{id} [delete]
-func (ctrl *TusController) TusDelete(c *gin.Context) {}
+func (ctrl *TusController) TusDelete(c *gin.Context) { _ = c }

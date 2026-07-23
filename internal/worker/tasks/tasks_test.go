@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/stretchr/testify/assert"
 )
@@ -53,4 +54,63 @@ func TestPruneAuditLogsPayload(t *testing.T) {
 	err = json.Unmarshal(data, &decoded)
 	assert.NoError(t, err)
 	assert.Equal(t, payload.RetentionDays, decoded.RetentionDays)
+}
+
+func TestNewAuditOutboxSyncTask(t *testing.T) {
+	task := tasks.NewAuditOutboxSyncTask()
+	assert.NotNil(t, task)
+	assert.Equal(t, tasks.TypeAuditOutboxSync, task.Type())
+	assert.Nil(t, task.Payload())
+}
+
+func TestNewAuditLogCreateTask(t *testing.T) {
+	payload := auditModel.CreateAuditLogRequest{
+		UserID:    "user-123",
+		Action:    "CREATE",
+		Entity:    "User",
+	}
+
+	task, err := tasks.NewAuditLogCreateTask(payload)
+	assert.NoError(t, err)
+	assert.NotNil(t, task)
+	assert.Equal(t, tasks.TypeAuditLogCreate, task.Type())
+
+	var decoded auditModel.CreateAuditLogRequest
+	err = json.Unmarshal(task.Payload(), &decoded)
+	assert.NoError(t, err)
+	assert.Equal(t, payload.UserID, decoded.UserID)
+}
+
+func TestNewAuditLogExportTask(t *testing.T) {
+	payload := auditModel.AuditLogExportPayload{
+		UserID: "user-123",
+		Format: "csv",
+	}
+
+	task, err := tasks.NewAuditLogExportTask(payload)
+	assert.NoError(t, err)
+	assert.NotNil(t, task)
+	assert.Equal(t, tasks.TypeAuditLogExport, task.Type())
+
+	var decoded auditModel.AuditLogExportPayload
+	err = json.Unmarshal(task.Payload(), &decoded)
+	assert.NoError(t, err)
+	assert.Equal(t, payload.UserID, decoded.UserID)
+}
+
+func TestNewWebhookTriggerTask(t *testing.T) {
+	payload := tasks.WebhookTriggerPayload{
+		WebhookID: "webhook-123",
+		EventType: "user.created",
+	}
+
+	task, err := tasks.NewWebhookTriggerTask(payload)
+	assert.NoError(t, err)
+	assert.NotNil(t, task)
+	assert.Equal(t, tasks.TypeWebhookTrigger, task.Type())
+
+	var decoded tasks.WebhookTriggerPayload
+	err = json.Unmarshal(task.Payload(), &decoded)
+	assert.NoError(t, err)
+	assert.Equal(t, payload.WebhookID, decoded.WebhookID)
 }
