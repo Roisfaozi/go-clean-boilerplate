@@ -121,7 +121,7 @@ func (c *Client) WritePump() {
 			if !ok {
 				// The Manager closed the Send channel.
 				if err := c.Conn.WriteMessage(websocket.CloseMessage, []byte{}); err != nil {
-					c.Log.Errorf("Client %s: Write CloseMessage failed: %v", c.ID, err)
+					c.Log.Warnf("Client %s: Write CloseMessage failed: %v", c.ID, err)
 				}
 				return
 			}
