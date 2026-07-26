@@ -460,7 +460,7 @@ func TestWorkerIntegration_ProcessorStartShutdown(t *testing.T) {
 		if err != nil {
 			t.Logf("Processor returned: %v (expected during shutdown)", err)
 		}
-	case <-time.After(3 * time.Second):
-		t.Log("Processor shutdown completed")
+	case <-time.After(5 * time.Second):
+		t.Log("Processor shutdown completed (timeout)")
 	}
 }
