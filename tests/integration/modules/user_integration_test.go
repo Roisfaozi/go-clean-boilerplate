@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"testing"
 	"time"
 
@@ -249,7 +250,7 @@ func TestUserIntegration_Delete_Negative_NonExistentUser(t *testing.T) {
 
 	err := userUC.DeleteUser(context.Background(), "admin-id", deleteReq)
 
-	assert.Error(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 }
 
 func TestUserIntegration_Create_Edge_MinimumUsernameLength(t *testing.T) {
