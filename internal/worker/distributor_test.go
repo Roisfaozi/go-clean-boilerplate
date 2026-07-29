@@ -237,3 +237,15 @@ func TestRedisTaskDistributor_DistributeTaskAuditLogExport(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestRedisTaskDistributor_JSONMarshalErrors(t *testing.T) {
+	deps, cleanup := setupDistributorTest(t)
+	defer cleanup()
+
+	// 1. AuditLog
+	payloadAudit := model.CreateAuditLogRequest{
+		OldValues: make(chan int),
+	}
+	err := deps.distributor.DistributeTaskAuditLog(context.Background(), payloadAudit)
+	assert.Error(t, err)
+}

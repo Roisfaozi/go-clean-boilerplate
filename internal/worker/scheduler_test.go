@@ -1,6 +1,8 @@
 package worker_test
 
 import (
+	"time"
+
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
@@ -76,4 +78,21 @@ func TestScheduler_RegisterScheduledTasks(t *testing.T) {
 		// Verify no panic during init and that scheduler isn't nil
 		assert.NotNil(t, deps.scheduler)
 	})
+}
+
+
+func TestScheduler_StartShutdown(t *testing.T) {
+	deps, cleanup := setupSchedulerTest(t)
+	defer cleanup()
+
+	go func() {
+		_ = deps.scheduler.Start()
+	}()
+
+	// Since we do not have a robust synchronization mechanism to wait for Start,
+	// and we encountered timeouts when trying to do WaitGroup, we will use a small timeout to let it start and cover the start method.
+	time.Sleep(50 * time.Millisecond)
+
+	// Shutdown the scheduler
+	deps.scheduler.Shutdown()
 }
