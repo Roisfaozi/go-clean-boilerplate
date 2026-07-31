@@ -292,9 +292,6 @@ func TestNewHandler_BackgroundDispatcher_Negative_NilLogError(t *testing.T) {
 }
 
 // Helper types to mock tus handler for callback tests
-type fakeContext struct {
-	context.Context
-}
 
 // Adding some dummy code to make it cover PreUploadCreateCallback,
 // wait, we can't easily trigger it. We could parse the callback out if it wasn't unexported.
@@ -366,13 +363,7 @@ func TestNewHandler_ConfigError(t *testing.T) {
 // Let's create an extended store that overrides `UseIn` and explicitly panics or doesn't set Core,
 // wait, if we don't set Core, `handler.NewHandler` will return an error.
 
-type badExtendedStore struct {
-	fakeCoreStore
-}
 
-func (s *badExtendedStore) UseIn(c *handler.StoreComposer) {
-	// Intentionally don't set UseCore so handler.NewHandler fails
-}
 
 func TestNewHandler_TusdConfigError(t *testing.T) {
 	// We can't inject store directly since NewHandler creates it based on StorageDriver.
@@ -383,9 +374,6 @@ func TestNewHandler_TusdConfigError(t *testing.T) {
 }
 
 // Add dummy interface for UseIn that returns false in type assertion
-type simpleStore struct {
-	handler.DataStore
-}
 
 // simpleStore does not implement interface{ UseIn(*handler.StoreComposer) }
 
