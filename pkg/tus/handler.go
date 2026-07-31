@@ -20,6 +20,21 @@ type Config struct {
 	BasePath      string
 }
 
+func PreUploadCreateCallback(registry *Registry) func(hook handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error) {
+	return func(hook handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error) {
+		resp, changes, err := BindAuthenticatedMetadata(hook)
+		if err != nil {
+			return resp, changes, err
+		}
+
+		if resp, _, err := ValidateUploadMetadata(changes.MetaData, registry); err != nil {
+			return resp, handler.FileInfoChanges{}, err
+		}
+
+		return resp, changes, nil
+	}
+}
+
 func NewHandler(cfg Config, registry *Registry, s3Client *s3.Client, log *logrus.Logger) (*handler.Handler, error) {
 	var store handler.DataStore
 	if cfg.StorageDriver == "s3" {
@@ -45,21 +60,10 @@ func NewHandler(cfg Config, registry *Registry, s3Client *s3.Client, log *logrus
 
 	// Create Handler with Notifications Enabled
 	tusHandler, err := handler.NewHandler(handler.Config{
-		BasePath:              cfg.BasePath,
-		StoreComposer:         composer,
-		NotifyCompleteUploads: true,
-		PreUploadCreateCallback: func(hook handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error) {
-			resp, changes, err := BindAuthenticatedMetadata(hook)
-			if err != nil {
-				return resp, changes, err
-			}
-
-			if resp, _, err := ValidateUploadMetadata(changes.MetaData, registry); err != nil {
-				return resp, handler.FileInfoChanges{}, err
-			}
-
-			return resp, changes, nil
-		},
+		BasePath:                cfg.BasePath,
+		StoreComposer:           composer,
+		NotifyCompleteUploads:   true,
+		PreUploadCreateCallback: PreUploadCreateCallback(registry),
 	})
 	if err != nil {
 		return nil, err

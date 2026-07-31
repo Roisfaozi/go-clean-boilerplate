@@ -17,7 +17,7 @@ func (m *MockHook) HandleUpload(ctx context.Context, event UploadEvent) error {
 	return nil
 }
 
-func TestRegistry_RegisterAndGet(t *testing.T) {
+func TestRegistry_Positive_RegisterAndGet(t *testing.T) {
 	// Positive Case
 	registry := NewRegistry()
 	hook := &MockHook{}
@@ -30,7 +30,7 @@ func TestRegistry_RegisterAndGet(t *testing.T) {
 	assert.Equal(t, hook, retrieved)
 }
 
-func TestRegistry_GetNonExistent(t *testing.T) {
+func TestRegistry_Negative_GetNonExistent(t *testing.T) {
 	// Negative Case
 	registry := NewRegistry()
 	retrieved := registry.Get("non-existent")
@@ -39,7 +39,7 @@ func TestRegistry_GetNonExistent(t *testing.T) {
 	assert.False(t, registry.Has("non-existent"))
 }
 
-func TestRegistry_HasRegisteredType(t *testing.T) {
+func TestRegistry_Positive_HasRegisteredType(t *testing.T) {
 	registry := NewRegistry()
 	hook := &MockHook{}
 
@@ -48,7 +48,7 @@ func TestRegistry_HasRegisteredType(t *testing.T) {
 	assert.True(t, registry.Has("avatar"))
 }
 
-func TestRegistry_OverwriteHook(t *testing.T) {
+func TestRegistry_Edge_OverwriteHook(t *testing.T) {
 	// Edge Case
 	registry := NewRegistry()
 	hook1 := &MockHook{}
@@ -62,7 +62,7 @@ func TestRegistry_OverwriteHook(t *testing.T) {
 	assert.Equal(t, hook2, retrieved)
 }
 
-func TestRegistry_EmptyType(t *testing.T) {
+func TestRegistry_Edge_EmptyType(t *testing.T) {
 	// Edge Case
 	registry := NewRegistry()
 	hook := &MockHook{}
@@ -71,7 +71,7 @@ func TestRegistry_EmptyType(t *testing.T) {
 	assert.Equal(t, hook, registry.Get(""))
 }
 
-func TestRegistry_TypeInjection(t *testing.T) {
+func TestRegistry_Vulnerability_TypeInjection(t *testing.T) {
 	// Security Case: Ensure special characters don't crash the registry (standard map behavior)
 	registry := NewRegistry()
 	hook := &MockHook{}

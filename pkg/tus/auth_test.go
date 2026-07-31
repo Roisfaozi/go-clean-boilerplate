@@ -10,7 +10,7 @@ import (
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 )
 
-func TestBindAuthenticatedMetadata_OverridesClientUserID(t *testing.T) {
+func TestBindAuthenticatedMetadata_Positive_OverridesClientUserID(t *testing.T) {
 	ctx := authcontext.WithUserID(context.Background(), "user-123")
 
 	_, changes, err := BindAuthenticatedMetadata(tusd.HookEvent{
@@ -29,7 +29,7 @@ func TestBindAuthenticatedMetadata_OverridesClientUserID(t *testing.T) {
 	assert.Equal(t, "avatar", changes.MetaData["type"])
 }
 
-func TestBindAuthenticatedMetadata_RejectsMissingUserContext(t *testing.T) {
+func TestBindAuthenticatedMetadata_Negative_RejectsMissingUserContext(t *testing.T) {
 	_, _, err := BindAuthenticatedMetadata(tusd.HookEvent{
 		Context: context.Background(),
 		Upload: tusd.FileInfo{
@@ -41,7 +41,7 @@ func TestBindAuthenticatedMetadata_RejectsMissingUserContext(t *testing.T) {
 	assert.Contains(t, err.Error(), "ERR_UNAUTHORIZED_UPLOAD")
 }
 
-func TestValidateUploadMetadata_AllowsRegisteredType(t *testing.T) {
+func TestValidateUploadMetadata_Positive_AllowsRegisteredType(t *testing.T) {
 	registry := NewRegistry()
 	registry.Register("avatar", &MockHook{})
 
@@ -50,7 +50,7 @@ func TestValidateUploadMetadata_AllowsRegisteredType(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestValidateUploadMetadata_RejectsMissingType(t *testing.T) {
+func TestValidateUploadMetadata_Negative_RejectsMissingType(t *testing.T) {
 	registry := NewRegistry()
 	registry.Register("avatar", &MockHook{})
 
@@ -60,7 +60,7 @@ func TestValidateUploadMetadata_RejectsMissingType(t *testing.T) {
 	assert.Contains(t, err.Error(), "ERR_UPLOAD_TYPE_REQUIRED")
 }
 
-func TestValidateUploadMetadata_RejectsUnknownType(t *testing.T) {
+func TestValidateUploadMetadata_Negative_RejectsUnknownType(t *testing.T) {
 	registry := NewRegistry()
 	registry.Register("avatar", &MockHook{})
 
