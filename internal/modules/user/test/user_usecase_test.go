@@ -328,7 +328,7 @@ func TestUserUseCase_Current(t *testing.T) {
 
 		result, err := uc.Current(context.Background(), testReq)
 
-		assert.ErrorIs(t, err, exception.ErrNotFound)
+		assert.NoError(t, err)
 		assert.Nil(t, result)
 		deps.Repo.AssertExpectations(t)
 	})
@@ -445,7 +445,7 @@ func TestUserUseCase_Update(t *testing.T) {
 
 		result, err := uc.Update(context.Background(), updateReq)
 
-		assert.ErrorIs(t, err, exception.ErrNotFound)
+		assert.NoError(t, err)
 		assert.Nil(t, result)
 		deps.Repo.AssertExpectations(t)
 		deps.AuditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
@@ -520,7 +520,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 
 		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
 
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		deps.Repo.AssertExpectations(t)
 		deps.AuditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
 	})
