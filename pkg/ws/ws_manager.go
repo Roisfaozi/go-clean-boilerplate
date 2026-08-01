@@ -169,10 +169,12 @@ func (m *WebSocketManager) handleRegister(client *Client) {
 			}
 		}
 
+		isFirstConnection := !m.hasOtherConnectionLocked(client)
+
 		if err := m.presence.SetUserOnline(context.Background(), client.OrgID, client.UserID, userData); err != nil {
 			m.log.WithError(err).Error("Failed to set user online in presence manager")
-		} else {
-			// Broadcast Join Event
+		} else if isFirstConnection {
+			// Broadcast Join Event only if it's the first connection for this user
 			m.PresenceUpdate(client.OrgID, "join", userData)
 		}
 	}

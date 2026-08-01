@@ -277,6 +277,9 @@ func TestPresenceE2E_IsolationAndEvents(t *testing.T) {
 
 	require.NoError(t, connA3.Close())
 
+	// We wait slightly after closing A3 to ensure message is correctly processed.
+	time.Sleep(200 * time.Millisecond)
+
 	connA.SetReadDeadline(time.Now().Add(1 * time.Second))
 
 	// Closing A3 must not emit leave because A and A2 are still online for the same user/org.
