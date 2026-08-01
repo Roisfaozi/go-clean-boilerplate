@@ -47,19 +47,8 @@ func NewHandler(cfg Config, registry *Registry, s3Client *s3.Client, log *logrus
 	tusHandler, err := handler.NewHandler(handler.Config{
 		BasePath:              cfg.BasePath,
 		StoreComposer:         composer,
-		NotifyCompleteUploads: true,
-		PreUploadCreateCallback: func(hook handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error) {
-			resp, changes, err := BindAuthenticatedMetadata(hook)
-			if err != nil {
-				return resp, changes, err
-			}
-
-			if resp, _, err := ValidateUploadMetadata(changes.MetaData, registry); err != nil {
-				return resp, handler.FileInfoChanges{}, err
-			}
-
-			return resp, changes, nil
-		},
+		NotifyCompleteUploads:   true,
+		PreUploadCreateCallback: preUploadCreateCallback(registry),
 	})
 	if err != nil {
 		return nil, err
@@ -127,5 +116,20 @@ func cleanupFailedCompletedUpload(ctx context.Context, store handler.DataStore, 
 
 	if log != nil {
 		log.Warnf("Terminated completed upload %s after hook failure", uploadID)
+	}
+}
+
+func preUploadCreateCallback(registry *Registry) func(hook handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error) {
+	return func(hook handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error) {
+		resp, changes, err := BindAuthenticatedMetadata(hook)
+		if err != nil {
+			return resp, changes, err
+		}
+
+		if resp, _, err := ValidateUploadMetadata(changes.MetaData, registry); err != nil {
+			return resp, handler.FileInfoChanges{}, err
+		}
+
+		return resp, changes, nil
 	}
 }

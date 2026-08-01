@@ -110,3 +110,20 @@ func TestNewConfig_StorageDrivers(t *testing.T) {
 	assert.Equal(t, "local", cfg.Storage.Driver)
 	assert.Equal(t, "./uploads", cfg.Storage.Local.RootPath)
 }
+
+func TestNewConfig_InvalidEnvVariables(t *testing.T) {
+	setupTestEnv(t)
+	// Setting an invalid duration to fail viper unmarshal
+	t.Setenv("JWT_ACCESS_DURATION", "invalid_duration")
+	_, err := NewConfig()
+	assert.Error(t, err)
+}
+
+func TestNewConfig_ValidationFailed(t *testing.T) {
+	setupTestEnv(t)
+	// Make sure MYSQL_USER is missing to fail validate
+	t.Setenv("MYSQL_USER", "")
+	_, err := NewConfig()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "config validation failed")
+}

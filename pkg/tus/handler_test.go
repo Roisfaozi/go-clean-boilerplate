@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"testing"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -102,4 +103,130 @@ func TestCleanupFailedCompletedUpload(t *testing.T) {
 		})
 		assert.False(t, upload.terminated)
 	})
+}
+
+func TestNewHandler(t *testing.T) {
+	registry := NewRegistry()
+
+	cfg := Config{
+		StorageDriver: "local",
+		LocalRootPath: t.TempDir(),
+		BasePath:      "/files/",
+	}
+
+	h, err := NewHandler(cfg, registry, nil, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, h)
+}
+
+type mockHook struct {
+	err error
+}
+func (m *mockHook) HandleUpload(ctx context.Context, event UploadEvent) error {
+	return m.err
+}
+
+func TestNewHandler_S3(t *testing.T) {
+	registry := NewRegistry()
+	cfg := Config{
+		StorageDriver: "s3",
+		S3Bucket:      "my-bucket",
+		S3Endpoint:    "http://localhost:9000",
+		BasePath:      "/files/",
+	}
+	h, err := NewHandler(cfg, registry, nil, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, h)
+}
+
+func TestNewHandler_MkdirError(t *testing.T) {
+	registry := NewRegistry()
+	cfg := Config{
+		StorageDriver: "local",
+		LocalRootPath: "\x00invalidpath", // Inject null byte for MkdirAll failure
+		BasePath:      "/files/",
+	}
+	h, err := NewHandler(cfg, registry, nil, nil)
+	assert.Error(t, err)
+	assert.Nil(t, h)
+}
+
+func TestNewHandler_PreUploadCreateCallback(t *testing.T) {
+	registry := NewRegistry()
+	cfg := Config{
+		StorageDriver: "local",
+		LocalRootPath: t.TempDir(),
+		BasePath:      "/files/",
+	}
+
+	h, err := NewHandler(cfg, registry, nil, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, h)
+
+	// Access the unexported config of h... wait, h.Config is unexported as noted in memory.
+	// But we can trigger the callback by simulating an upload create if we can access the underlying handler,
+	// or we can refactor the code to expose the callback.
+	// Actually, "To improve unit test coverage for deeply nested or anonymous callback functions (e.g., config callbacks in handler.NewHandler), refactor the code to extract the closure into a standalone, testable function that returns the callback."
+}
+
+func TestPreUploadCreateCallback(t *testing.T) {
+	registry := NewRegistry()
+	callback := preUploadCreateCallback(registry)
+
+	// Assuming BindAuthenticatedMetadata fails or ValidateUploadMetadata fails or succeeds
+	// It relies on hook, we can mock it
+	req := handler.HTTPRequest{
+		Header: map[string][]string{},
+	}
+	hook := handler.HookEvent{
+		HTTPRequest: req,
+		Context:     context.Background(),
+	}
+	_, _, err := callback(hook)
+	assert.Error(t, err) // auth check may fail
+}
+
+func TestPreUploadCreateCallback_Success(t *testing.T) {
+	registry := NewRegistry()
+	registry.Register("mock_type", &mockHook{})
+	callback := preUploadCreateCallback(registry)
+
+	req := handler.HTTPRequest{
+		Header: map[string][]string{},
+	}
+	ctx := authcontext.WithUserID(context.Background(), "user-123")
+
+	hook := handler.HookEvent{
+		HTTPRequest: req,
+		Context:     ctx,
+		Upload: handler.FileInfo{
+			MetaData: handler.MetaData{
+				"type": "mock_type",
+			},
+		},
+	}
+	_, _, err := callback(hook)
+	assert.NoError(t, err)
+}
+
+func TestPreUploadCreateCallback_ValidateFail(t *testing.T) {
+	registry := NewRegistry()
+	callback := preUploadCreateCallback(registry)
+
+	req := handler.HTTPRequest{
+		Header: map[string][]string{},
+	}
+	ctx := authcontext.WithUserID(context.Background(), "user-123")
+
+	hook := handler.HookEvent{
+		HTTPRequest: req,
+		Context:     ctx,
+		Upload: handler.FileInfo{
+			MetaData: handler.MetaData{
+				"type": "unsupported_type",
+			},
+		},
+	}
+	_, _, err := callback(hook)
+	assert.Error(t, err)
 }

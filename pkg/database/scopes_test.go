@@ -137,3 +137,95 @@ func ptrInt64(v int64) *int64 {
 // - Scope injection (WHERE organization_id = ?)
 // - Data isolation between tenants
 // - Super Admin bypass mode
+
+// TestOrganizationScope_QueryGeneration tests that OrganizationScope behaves properly and generates expected queries
+func TestOrganizationScope_QueryGeneration(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+		DryRun: true,
+	})
+	require.NoError(t, err)
+
+	tests := []struct {
+		name          string
+		ctx           context.Context
+		expectedQuery string
+		expectedVars  []interface{}
+	}{
+		{
+			name:          "Valid org_id applies filter",
+			ctx:           context.WithValue(context.Background(), OrganizationIDKey, "org-123"),
+			expectedQuery: "SELECT * FROM `scope_test_resources` WHERE organization_id = ? OR organization_id IS NULL",
+			expectedVars:  []interface{}{"org-123"},
+		},
+		{
+			name:          "Empty context bypasses filter",
+			ctx:           context.Background(),
+			expectedQuery: "SELECT * FROM `scope_test_resources`",
+			expectedVars:  nil,
+		},
+		{
+			name:          "Empty string org_id bypasses filter",
+			ctx:           context.WithValue(context.Background(), OrganizationIDKey, ""),
+			expectedQuery: "SELECT * FROM `scope_test_resources`",
+			expectedVars:  nil,
+		},
+		{
+			name:          "Wrong type org_id bypasses filter",
+			ctx:           context.WithValue(context.Background(), OrganizationIDKey, 123),
+			expectedQuery: "SELECT * FROM `scope_test_resources`",
+			expectedVars:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stmt := db.WithContext(tt.ctx).
+				Scopes(OrganizationScope(tt.ctx)).
+				Find(&scopeTestResource{}).Statement
+
+			assert.Equal(t, tt.expectedQuery, stmt.SQL.String())
+			assert.Equal(t, tt.expectedVars, stmt.Vars)
+		})
+	}
+}
+
+func TestOrganizationVisibilityScope_BypassWhenAllowed(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+		DryRun: true,
+	})
+	require.NoError(t, err)
+
+	ctx := SetAllowDeletedOrganizations(context.Background(), true)
+
+	stmt := db.WithContext(ctx).
+		Scopes(OrganizationVisibilityScope(ctx, "test_table.org_id")).
+		Find(&scopeTestResource{}).Statement
+
+	assert.Equal(t, "SELECT * FROM `scope_test_resources`", stmt.SQL.String())
+	assert.Empty(t, stmt.Vars)
+}
+
+func TestOrganizationVisibilityScope_BypassWhenEmptyColumn(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+		DryRun: true,
+	})
+	require.NoError(t, err)
+
+	stmt := db.WithContext(context.Background()).
+		Scopes(OrganizationVisibilityScope(context.Background(), "")).
+		Find(&scopeTestResource{}).Statement
+
+	assert.Equal(t, "SELECT * FROM `scope_test_resources`", stmt.SQL.String())
+	assert.Empty(t, stmt.Vars)
+}
+
+func TestSetAllowDeletedOrganizations(t *testing.T) {
+	ctx := context.Background()
+	newCtx := SetAllowDeletedOrganizations(ctx, true)
+
+	assert.True(t, CanAccessDeletedOrganizations(newCtx))
+	assert.False(t, CanAccessDeletedOrganizations(ctx))
+
+	falseCtx := SetAllowDeletedOrganizations(ctx, false)
+	assert.False(t, CanAccessDeletedOrganizations(falseCtx))
+}
