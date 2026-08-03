@@ -81,12 +81,12 @@ export const Sidebar = memo(function Sidebar({
 		<aside
 			className={cn(
 				"bg-background flex flex-col border-r transition-all duration-300",
-				"sticky top-0 h-screen w-[var(--sidebar-width)]",
+				"sticky top-0 h-screen w-sidebar-width",
 				className,
 			)}
 		>
 			{/* Header / Logo + Switcher */}
-			<div className="flex h-[var(--navbar-height)] items-center gap-2 border-b px-3">
+			<div className="flex h-navbar items-center gap-2 border-b px-3">
 				<Link
 					href="/"
 					className="flex shrink-0 items-center gap-2 overflow-hidden"

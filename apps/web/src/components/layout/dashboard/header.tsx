@@ -17,7 +17,7 @@ export function DashboardHeader() {
 			className={cn(
 				"bg-background sticky top-0 z-30 flex items-center gap-4 border-b px-6 transition-all",
 				// Density: Comfort 80px, Compact 56px
-				"h-[var(--navbar-height)]",
+				"h-navbar",
 			)}
 		>
 			{/* Left: Search & Trigger */}

@@ -20,7 +20,7 @@ export function DashboardLayoutClient({
 			<div className="flex min-h-screen flex-1 flex-col transition-all">
 				<DashboardHeader />
 
-				<main className="flex-1 overflow-y-auto p-[var(--layout-padding)]">
+				<main className="flex-1 overflow-y-auto p-layout">
 					{children}
 				</main>
 			</div>

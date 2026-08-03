@@ -24,10 +24,10 @@ const nexusButtonVariants = cva(
 				link: "text-primary underline-offset-4 hover:underline",
 			},
 			size: {
-				default: "h-btn px-[var(--button-padding-x)] text-body",
+				default: "h-btn px-btn-padding-x text-body",
 				sm: "h-8 px-3 text-small",
 				lg: "h-12 px-8 text-body-lg",
-				icon: "h-btn w-[var(--button-height)]",
+				icon: "h-btn w-btn",
 			},
 		},
 		defaultVariants: {

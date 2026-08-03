@@ -50,7 +50,7 @@ export function DataTable<T extends Record<string, unknown>>({
 							<th
 								key={col.key}
 								className={cn(
-									"h-table-row text-muted-foreground px-[var(--table-cell-padding)] text-left font-medium",
+									"h-table-row text-muted-foreground px-table-cell-padding text-left font-medium",
 									col.sortable &&
 										"hover:text-foreground cursor-pointer select-none",
 									col.className,
@@ -100,7 +100,7 @@ export function DataTable<T extends Record<string, unknown>>({
 									<td
 										key={col.key}
 										className={cn(
-											"h-table-row px-[var(--table-cell-padding)]",
+											"h-table-row px-table-cell-padding",
 											col.className,
 										)}
 									>

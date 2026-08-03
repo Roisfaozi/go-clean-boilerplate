@@ -52,7 +52,7 @@ const CommandInput = React.forwardRef<
 			ref={ref}
 			className={cn(
 				"placeholder:text-muted-foreground flex w-full bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
-				"h-[var(--input-height)]",
+				"h-input",
 				className,
 			)}
 			{...props}

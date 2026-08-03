@@ -184,7 +184,7 @@ export function DataTableAdvanced<T extends { id: string | number }>({
 							{columns.map((col) => (
 								<th
 									key={col.id}
-									className="text-caption text-muted-foreground px-[var(--table-cell-padding)] py-3 text-left font-semibold"
+									className="text-caption text-muted-foreground px-table-cell-padding py-3 text-left font-semibold"
 									style={{ width: col.width, minWidth: col.minWidth }}
 								>
 									{col.sortable ? (
@@ -232,7 +232,7 @@ export function DataTableAdvanced<T extends { id: string | number }>({
 									{columns.map((col) => (
 										<td
 											key={col.id}
-											className="text-body px-[var(--table-cell-padding)] py-3"
+											className="text-body px-table-cell-padding py-3"
 										>
 											{col.cell
 												? col.cell(row)
