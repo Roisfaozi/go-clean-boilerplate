@@ -36,10 +36,7 @@ function ThemeInitializer({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		document.documentElement.classList.toggle("dark", theme === "dark");
-		document.documentElement.classList.toggle(
-			"density-compact",
-			density === "compact",
-		);
+		document.documentElement.dataset.density = density;
 	}, [theme, density]);
 
 	return <>{children}</>;

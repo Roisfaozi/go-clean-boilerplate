@@ -33,10 +33,7 @@ export const useUIStore = create<UIState>()(
 				set({ theme });
 			},
 			setDensity: (density) => {
-				document.documentElement.classList.toggle(
-					"density-compact",
-					density === "compact",
-				);
+				document.documentElement.dataset.density = density;
 				set({ density });
 			},
 			setSidebarSectionOpen: (key, open) =>
