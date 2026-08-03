@@ -1,4 +1,5 @@
 @import "@casbin/ui/globals.css";
+@source "../../../../packages/ui/src";
 
 /* Custom Components & Utilities specific to apps/web */
 @layer components {

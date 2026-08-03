@@ -4,10 +4,10 @@
   "extends": ["../biome.jsonc"],
   "linter": {
     "rules": {
-      "recommended": false
-    }
+      "recommended": false,
+    },
   },
   "files": {
-    "includes": ["./**/src/**/*.{ts,tsx,js,jsx}"]
-  }
+    "includes": ["./**/src/**/*.{ts,tsx,js,jsx}"],
+  },
 }

@@ -1,8 +1,10 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@casbin/ui";
-import { Button } from "@casbin/ui";
 import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+	Button,
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuGroup,
@@ -12,12 +14,12 @@ import {
 	DropdownMenuShortcut,
 	DropdownMenuTrigger,
 } from "@casbin/ui";
+import { useRouter } from "next/navigation";
+import { memo, useCallback } from "react";
+import { toast } from "sonner";
 import { Icon } from "~/components/shared/icon";
 import { authApi } from "~/lib/api/auth";
-import { useRouter } from "next/navigation";
 import { useAuthStore } from "~/stores/use-auth-store";
-import { toast } from "sonner";
-import { memo, useCallback } from "react";
 
 export const UserNav = memo(function UserNav() {
 	const router = useRouter();
@@ -34,7 +36,7 @@ export const UserNav = memo(function UserNav() {
 			toast.error("Logout failed");
 		}
 	}, [logout, router]);
-
+	console.log("log user from usernag", user);
 	if (!user) return null;
 
 	return (

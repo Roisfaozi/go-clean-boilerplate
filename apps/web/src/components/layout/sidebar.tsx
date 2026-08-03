@@ -1,19 +1,19 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { buttonVariants } from "@casbin/ui";
 import {
+	buttonVariants,
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@casbin/ui";
 import { cn } from "@casbin/utils";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { memo } from "react";
+import { useDashboardShell } from "~/app/[locale]/dashboard/_components/dashboard-shell-context";
 import { OrganizationSwitcher } from "../dashboard/organization-switcher";
 import { Icon } from "../shared/icon";
-import { useDashboardShell } from "~/app/[locale]/dashboard/_components/dashboard-shell-context";
-import { memo } from "react";
 
 // Define Navigation Items (Could be moved to a separate config file)
 const navItems = [
