@@ -12,7 +12,7 @@ export function DashboardStats() {
 	}
 
 	return (
-		<div className="grid grid-cols-1 gap-[var(--spacing-gap)] md:grid-cols-2 lg:grid-cols-4">
+		<div className="grid grid-cols-1 gap-gap md:grid-cols-2 lg:grid-cols-4">
 			<KPICard
 				title="Total Users"
 				value={isLoading ? "..." : stats.users.toLocaleString()}

@@ -25,7 +25,7 @@ const SelectTrigger = React.forwardRef<
 		render={getRender(asChild, children)}
 		className={cn(
 			"border-input bg-background ring-offset-background focus:ring-ring data-placeholder:text-muted-foreground flex w-full items-center justify-between border px-3 py-2 text-sm focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
-			"h-input rounded-[var(--radius-md)] text-[var(--font-size-base)]",
+			"h-input rounded-md text-body",
 			className,
 		)}
 		{...props}

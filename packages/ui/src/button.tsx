@@ -25,11 +25,10 @@ const buttonVariants = cva(
 					"border border-primary bg-primary/5 text-primary hover:bg-primary/10",
 			},
 			size: {
-				default:
-					"h-btn px-btn-padding-x rounded-[var(--radius-md)] text-[var(--font-size-base)]",
+				default: "h-btn px-btn-padding-x rounded-md text-body",
 				sm: "h-8 px-3 rounded-sm text-xs",
 				lg: "h-11 px-8 rounded-xl text-base",
-				icon: "h-btn w-btn rounded-[var(--radius-md)]",
+				icon: "h-btn w-btn rounded-md",
 			},
 		},
 		defaultVariants: {

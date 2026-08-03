@@ -33,10 +33,9 @@ export function KPICard({
 				"bg-card text-card-foreground",
 				// Comfort Mode Styles
 				!isCompact &&
-					"rounded-[var(--radius-xl)] border-transparent p-6 shadow-md hover:shadow-lg",
+					"rounded-xl border-transparent p-6 shadow-md hover:shadow-lg",
 				// Compact Mode Styles
-				isCompact &&
-					"border-border rounded-[var(--radius-md)] border p-3 shadow-none",
+				isCompact && "border-border rounded-md border p-3 shadow-none",
 			)}
 		>
 			<div

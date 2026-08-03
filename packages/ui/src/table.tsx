@@ -9,7 +9,7 @@ const Table = React.forwardRef<
 	<div className="relative w-full overflow-auto">
 		<table
 			ref={ref}
-			className={cn("hyper-grid-table text-[var(--font-size-base)]", className)}
+			className={cn("hyper-grid-table text-body", className)}
 			{...props}
 		/>
 	</div>

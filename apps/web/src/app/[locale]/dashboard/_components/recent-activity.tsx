@@ -64,7 +64,7 @@ export function RecentActivity() {
 				</Link>
 			</div>
 
-			<div className="bg-card text-card-foreground overflow-hidden rounded-[var(--radius-lg)] border shadow-sm">
+			<div className="bg-card text-card-foreground overflow-hidden rounded-lg border shadow-sm">
 				<Table>
 					<TableHeader>
 						<TableRow>

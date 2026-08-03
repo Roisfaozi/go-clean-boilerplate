@@ -9,7 +9,7 @@ const NexusInput = React.forwardRef<
 		<input
 			type={type}
 			className={cn(
-				"h-input border-border bg-background text-body ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring duration-normal flex w-full rounded-md border px-[var(--input-padding-x)] py-[var(--input-padding-y)] transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+				"h-input border-border bg-background text-body ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring duration-normal flex w-full rounded-md border px-input-padding-x py-input-padding-y transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
 				className,
 			)}
 			ref={ref}

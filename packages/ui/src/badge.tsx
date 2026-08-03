@@ -29,7 +29,7 @@ const badgeVariants = cva(
 			density: {
 				comfort: "rounded-full",
 				compact: "rounded-sm",
-				auto: "rounded-[var(--radius-sm)]", // Use dynamic radius
+				auto: "rounded-sm", // Use dynamic radius
 			},
 		},
 		defaultVariants: {

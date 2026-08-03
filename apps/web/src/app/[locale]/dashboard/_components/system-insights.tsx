@@ -8,9 +8,9 @@ export function SystemInsights() {
 	const { insights, isLoading } = useDashboard();
 
 	return (
-		<div className="grid grid-cols-1 gap-[var(--spacing-gap)] lg:grid-cols-2">
+		<div className="grid grid-cols-1 gap-gap lg:grid-cols-2">
 			<ActivityChart />
-			<div className="bg-card text-card-foreground rounded-[var(--radius-lg)] border p-6 shadow-sm">
+			<div className="bg-card text-card-foreground rounded-lg border p-6 shadow-sm">
 				<div className="mb-4 flex items-center justify-between">
 					<h2 className="text-primary text-lg font-semibold tracking-tight">
 						System Insights

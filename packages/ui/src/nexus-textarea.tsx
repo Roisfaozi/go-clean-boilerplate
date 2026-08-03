@@ -8,7 +8,7 @@ const NexusTextarea = React.forwardRef<
 	return (
 		<textarea
 			className={cn(
-				"border-border bg-background text-body ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring duration-normal flex min-h-[80px] w-full rounded-md border px-[var(--input-padding-x)] py-[var(--input-padding-y)] transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+				"border-border bg-background text-body ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring duration-normal flex min-h-[80px] w-full rounded-md border px-input-padding-x py-input-padding-y transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
 				className,
 			)}
 			ref={ref}
