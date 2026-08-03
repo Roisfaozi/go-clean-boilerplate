@@ -87,6 +87,7 @@
   --spacing-btn: var(--button-height);
   --spacing-input: var(--input-height);
   --spacing-table-row: var(--table-row-height);
+  --spacing-navbar: var(--navbar-height);
 
   --duration-instant: 0ms;
   --duration-fast: 100ms;
