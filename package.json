@@ -1,7 +1,7 @@
 {
   "name": "casbin-monorepo",
   "private": true,
-  "packageManager": "pnpm@10.8.0",
+  "packageManager": "pnpm@11.20.0",
   "scripts": {
     "dev:web": "pnpm --filter casbin-web dev",
     "dev:client": "pnpm --filter casbin-client dev",

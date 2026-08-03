@@ -16,25 +16,27 @@ const AUTH_PATHS = [
 ];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-	const { setUser, logout } = useAuthStore();
+	const { hasHydrated, setUser, logout } = useAuthStore();
 	const { setPermissions, clearPermissions } = usePermissionStore();
 	const pathname = usePathname();
 
 	const isAuthPage = AUTH_PATHS.some((p) => pathname?.includes(p));
 
 	useEffect(() => {
-		if (isAuthPage) return;
+		if (!hasHydrated || isAuthPage) return;
+
+		let cancelled = false;
 
 		async function syncAuth() {
 			try {
 				const userResp = await authApi.getCurrentUser();
-				if (userResp.user) {
-					setUser(userResp.user);
+				const user = userResp?.data?.user;
+				if (user) {
+					if (cancelled) return;
+					setUser(user);
 
-					const permsResp = await accessApi.getPermissionsForRole(
-						userResp.user.role,
-					);
-					if (permsResp.data) {
+					const permsResp = await accessApi.getPermissionsForRole(user.role);
+					if (!cancelled && permsResp.data) {
 						setPermissions(permsResp.data);
 					}
 				} else {
@@ -49,7 +51,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		}
 
 		syncAuth();
-	}, [isAuthPage, setUser, logout, setPermissions, clearPermissions]);
+
+		return () => {
+			cancelled = true;
+		};
+	}, [hasHydrated, isAuthPage, setUser, logout, setPermissions, clearPermissions]);
 
 	return <>{children}</>;
 }

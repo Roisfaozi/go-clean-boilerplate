@@ -44,7 +44,7 @@ export const authApi = {
 	 * (penting untuk public pages seperti landing page).
 	 */
 	getCurrentUser: () => {
-		return api.silentGet<{ user: any }>("/auth/me");
+		return api.silentGet<{ data: { user: any } }>("/auth/me");
 	},
 
 	resendVerification: () => {

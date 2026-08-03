@@ -8,7 +8,6 @@ import { authApi } from "~/lib/api/auth";
 import { useAuthStore } from "~/stores/use-auth-store";
 import { usePermissionStore } from "~/stores/use-permission-store";
 
-/** Halaman auth: tidak perlu sync sama sekali */
 const AUTH_PATHS = [
 	"/login",
 	"/register",
@@ -16,54 +15,78 @@ const AUTH_PATHS = [
 	"/reset-password",
 ];
 
-/** Halaman publik: coba sync tapi JANGAN redirect jika gagal */
-const PUBLIC_PATHS = ["/", "/about", "/changelog", "/pricing"];
+const getLoginPath = (pathname: string) => {
+	const localeMatch = pathname.match(/^\/([a-z]{2})(?:\/|$)/);
+	const localePrefix = localeMatch ? `/${localeMatch[1]}` : "";
+	const returnTo = encodeURIComponent(pathname);
+	return `${localePrefix}/login?returnTo=${returnTo}`;
+};
+
+const hardLogout = async (pathname: string) => {
+	await fetch("/api/auth/logout", {
+		method: "POST",
+		credentials: "include",
+	}).catch(() => undefined);
+
+	if (pathname.includes("/dashboard")) {
+		window.location.href = getLoginPath(pathname);
+	}
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-	const { setUser, logout } = useAuthStore();
+	const { hasHydrated, setUser, logout } = useAuthStore();
 	const { setPermissions, clearPermissions } = usePermissionStore();
-	const pathname = usePathname();
+	const pathname = usePathname() ?? "/";
 
-	const isAuthPage = AUTH_PATHS.some((p) => pathname?.includes(p));
-	const _isPublicPage =
-		PUBLIC_PATHS.some((p) => pathname === p || pathname?.startsWith(p + "/")) ||
-		(!pathname?.includes("/dashboard") && !isAuthPage);
+	const isAuthPage = AUTH_PATHS.some((path) => pathname.includes(path));
 
 	useEffect(() => {
-		// Di halaman auth, tidak perlu sync
-		if (isAuthPage) return;
+		if (!hasHydrated || isAuthPage) return;
+
+		let cancelled = false;
 
 		async function syncAuth() {
 			try {
 				const userResp = await authApi.getCurrentUser();
-				if (userResp.user) {
-					setUser(userResp.user);
+				const user = userResp?.data?.user;
 
-					const permsResp = await accessApi.getPermissionsForRole(
-						userResp.user.role,
-					);
-					if (permsResp.data) {
-						setPermissions(permsResp.data);
-					}
-				} else {
-					// Tidak ada user: hapus state lokal
+				if (!user) {
 					logout();
 					clearPermissions();
-					// Redirect ke login hanya dari area dashboard
-					// (redirect dari public page ditangani oleh proxy.ts middleware)
+					await hardLogout(pathname);
+					return;
+				}
+
+				if (cancelled) return;
+				setUser(user);
+
+				const permsResp = await accessApi.getPermissionsForRole(user.role);
+				if (!cancelled && permsResp.data) {
+					setPermissions(permsResp.data);
 				}
 			} catch (error) {
-				// Jika gagal (misal: 401 dari public page), bersihkan state saja
-				// tanpa redirect — redirect dari public pages hanya terjadi jika
-				// user secara aktif mencoba akses area yang protected (/dashboard)
+				if (cancelled) return;
 				console.log("Auth Error", error);
 				logout();
 				clearPermissions();
+				await hardLogout(pathname);
 			}
 		}
 
 		syncAuth();
-	}, [isAuthPage, setUser, logout, setPermissions, clearPermissions]);
+
+		return () => {
+			cancelled = true;
+		};
+	}, [
+		hasHydrated,
+		isAuthPage,
+		pathname,
+		setUser,
+		logout,
+		setPermissions,
+		clearPermissions,
+	]);
 
 	return <>{children}</>;
 }
