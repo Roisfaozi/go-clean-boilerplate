@@ -8,6 +8,7 @@ type AuditLog struct {
 	ID             string                `gorm:"primaryKey;type:varchar(36)"`
 	OrganizationID *string               `gorm:"index:idx_audit_org_deleted;index;type:varchar(36)"`
 	UserID         string                `gorm:"index:idx_audit_user_deleted;index;type:varchar(36);not null"`
+	UserName       string                `gorm:"size:100;not null"`
 	Action         string                `gorm:"size:50;not null"`
 	Entity         string                `gorm:"size:50;not null"`
 	EntityID       string                `gorm:"size:100;not null"`
