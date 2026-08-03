@@ -67,6 +67,7 @@ const BentoCard = ({
 		>
 			<Button
 				variant="ghost"
+				nativeButton={false}
 				render={<a href={href} />}
 				size="sm"
 				className="pointer-events-auto"
