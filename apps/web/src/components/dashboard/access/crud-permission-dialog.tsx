@@ -109,7 +109,7 @@ export function CRUDPermissionDialog({
 							<Checkbox
 								checked={permissions[item.key]}
 								onCheckedChange={() => handleToggle(item.key)}
-								className="data-[state=checked]:bg-primary"
+								className="data-checked:bg-primary"
 							/>
 							<div className="flex-1 space-y-0.5">
 								<div className="flex items-center gap-2">

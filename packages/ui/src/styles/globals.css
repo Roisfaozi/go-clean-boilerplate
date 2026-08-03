@@ -38,6 +38,36 @@
 
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
+  --color-surface: hsl(var(--surface));
+  --color-surface-hover: hsl(var(--surface-hover));
+  --color-border-strong: hsl(var(--border-strong));
+  --color-primary-hover: hsl(var(--primary-hover));
+  --color-secondary-hover: hsl(var(--secondary-hover));
+  --color-danger: hsl(var(--danger));
+  --color-danger-foreground: hsl(var(--danger-foreground));
+
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  /* Typography */
+  --text-display: 36px;
+  --text-h1: 24px;
+  --text-h2: 20px;
+  --text-h3: 18px;
+  --text-h4: 16px;
+  --text-body-lg: 16px;
+  --text-body: 14px;
+  --text-body-compact: 13px;
+  --text-small: 13px;
+  --text-small-compact: 12px;
+  --text-caption: 12px;
+  --text-caption-compact: 11px;
 
   /* Semantic Extended */
   --color-success: hsl(var(--success));
@@ -50,14 +80,24 @@
   --color-info-subtle: var(--info-subtle);
 
   /* Density & Layout Tokens */
+  --spacing-layout: var(--layout-padding);
+  --spacing-card: var(--card-padding);
+  --spacing-card-pad: var(--card-padding);
+  --spacing-gap: var(--component-gap);
+  --spacing-btn: var(--button-height);
+  --spacing-input: var(--input-height);
+  --spacing-table-row: var(--table-row-height);
+
+  --duration-instant: 0ms;
+  --duration-fast: 100ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
-
-  --spacing-layout: var(--layout-padding);
-  --spacing-card: var(--card-padding);
-  --spacing-gap: var(--component-gap);
 
   --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.1);
@@ -89,10 +129,10 @@
   }
   @keyframes accordion-down {
     from { height: 0; }
-    to { height: var(--radix-accordion-content-height); }
+    to { height: var(--accordion-panel-height); }
   }
   @keyframes accordion-up {
-    from { height: var(--radix-accordion-content-height); }
+    from { height: var(--accordion-panel-height); }
     to { height: 0; }
   }
   @keyframes caret-blink {
@@ -126,6 +166,23 @@
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 243 75% 59%;
+
+    --surface: 210 40% 98%;
+    --surface-hover: 210 40% 96%;
+    --border-strong: 214 32% 85%;
+    --primary-hover: 243 75% 52%;
+    --secondary-hover: 173 80% 34%;
+    --danger: 0 84% 60%;
+    --danger-foreground: 0 0% 100%;
+
+    --sidebar: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
 
     --success: 160 84% 39%;
     --success-subtle: rgba(16, 185, 129, 0.1);
@@ -173,6 +230,23 @@
     --border: 217 33% 17%;
     --input: 217 33% 17%;
     --ring: 235 89% 74%;
+
+    --surface: 222 47% 7%;
+    --surface-hover: 217 33% 17%;
+    --border-strong: 217 33% 25%;
+    --primary-hover: 235 89% 68%;
+    --secondary-hover: 168 76% 44%;
+    --danger: 0 84% 60%;
+    --danger-foreground: 0 0% 100%;
+
+    --sidebar: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
 
     --success: 160 84% 60%;
     --success-subtle: rgba(16, 185, 129, 0.15);

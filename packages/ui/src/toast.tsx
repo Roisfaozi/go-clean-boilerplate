@@ -27,7 +27,7 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = "ToastViewport";
 
 const toastVariants = cva(
-	"group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden border p-6 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-(--radix-toast-swipe-end-x) data-[swipe=move]:translate-x-(--radix-toast-swipe-move-x) data-[swipe=move]:transition-none data-open:animate-in data-closed:animate-out data-[swipe=end]:animate-out data-closed:fade-out-80 data-closed:slide-out-to-right-full data-open:slide-in-from-top-full sm:data-open:slide-in-from-bottom-full rounded-[var(--radius-lg)]",
+	"group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden border p-6 pr-8 shadow-lg transition-all data-open:animate-in data-closed:animate-out data-closed:fade-out-80 data-closed:slide-out-to-right-full data-open:slide-in-from-top-full sm:data-open:slide-in-from-bottom-full rounded-[var(--radius-lg)]",
 	{
 		variants: {
 			variant: {
@@ -53,7 +53,10 @@ const Toast = React.forwardRef<
 	React.ComponentProps<typeof ToastPrimitive.Root> &
 		VariantProps<typeof toastVariants>
 >(({ className, variant, toast, ...props }, ref) => {
-	const resolvedVariant = variant ?? (toast.type as VariantProps<typeof toastVariants>["variant"]) ?? "default";
+	const resolvedVariant =
+		variant ??
+		(toast.type as VariantProps<typeof toastVariants>["variant"]) ??
+		"default";
 	return (
 		<ToastPrimitive.Root
 			ref={ref}
