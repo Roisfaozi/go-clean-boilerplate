@@ -10,6 +10,7 @@ import (
 	orgModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
 	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	orgUsecase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
+	roleRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	e2eSetup "github.com/Roisfaozi/go-clean-boilerplate/tests/e2e/setup"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -60,7 +61,8 @@ func TestOrganizationUseCase_CreateOrganization_PersistsCompletePolicies(t *test
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	organizations := orgRepo.NewOrganizationRepository(env.DB)
 	members := orgRepo.NewOrganizationMemberRepository(env.DB)
-	uc := orgUsecase.NewOrganizationUseCase(env.Logger, tm, organizations, members, nil, env.Enforcer)
+	roles := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	uc := orgUsecase.NewOrganizationUseCase(env.Logger, tm, organizations, members, nil, env.Enforcer, roles)
 
 	resp, err := uc.CreateOrganization(context.Background(), user.ID, &orgModel.CreateOrganizationRequest{
 		Name: "Regression Org",

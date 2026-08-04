@@ -81,7 +81,7 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 		if err != nil {
 			return err
 		}
-		if request.RoleID == DefaultOwnerRoleID && !actorIsOwner {
+		if request.RoleID == DefaultOwnerRoleName && !actorIsOwner {
 			return exception.ErrForbidden
 		}
 
@@ -233,7 +233,7 @@ func (uc *organizationMemberUseCase) UpdateMember(ctx context.Context, orgID, us
 		if org.OwnerID == userID {
 			return exception.ErrForbidden
 		}
-		if request.RoleID == DefaultOwnerRoleID && !actorIsOwner {
+		if request.RoleID == DefaultOwnerRoleName && !actorIsOwner {
 			return exception.ErrForbidden
 		}
 
@@ -469,7 +469,7 @@ func (uc *organizationMemberUseCase) authorizeMemberManagement(ctx context.Conte
 	if err != nil {
 		return nil, "", false, exception.ErrInternalServer
 	}
-	if roleID != adminRoleID && roleID != DefaultOwnerRoleID {
+	if roleID != adminRoleID && roleID != DefaultOwnerRoleName {
 		return nil, "", false, exception.ErrForbidden
 	}
 

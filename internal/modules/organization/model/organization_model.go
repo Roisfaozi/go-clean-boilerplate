@@ -26,7 +26,7 @@ type UserOrganizationsResponse struct {
 
 type CreateOrganizationRequest struct {
 	Name string `json:"name" binding:"required,min=3,max=100" validate:"xss"`
-	Slug string `json:"slug" binding:"omitempty,min=3,max=100" validate:"slug"`
+	Slug string `json:"slug" binding:"omitempty,min=3,max=100" validate:"omitempty,slug"`
 }
 
 func (r *CreateOrganizationRequest) Sanitize() {

@@ -12,6 +12,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
 	permissionMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
+	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
+	roleMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	txMock "github.com/Roisfaozi/go-clean-boilerplate/pkg/tx/mocks"
 	"github.com/sirupsen/logrus"
@@ -25,6 +27,7 @@ type organizationTestDeps struct {
 	OrgReader  *mocks.MockIOrganizationReader
 	TM         *mocking.MockWithTransactionManager
 	Enforcer   *permissionMocks.MockIEnforcer
+	RoleRepo   *roleMocks.MockRoleRepository
 }
 
 func setupOrganizationTest() (*organizationTestDeps, usecase.OrganizationUseCase) {
@@ -35,6 +38,7 @@ func setupOrganizationTest() (*organizationTestDeps, usecase.OrganizationUseCase
 		OrgReader:  new(mocks.MockIOrganizationReader),
 		TM:         new(mocking.MockWithTransactionManager),
 		Enforcer:   mockEnforcer,
+		RoleRepo:   new(roleMocks.MockRoleRepository),
 	}
 
 	log := logrus.New()
@@ -44,8 +48,12 @@ func setupOrganizationTest() (*organizationTestDeps, usecase.OrganizationUseCase
 	mockEnforcer.On("WithContext", mock.Anything).Maybe().Return(mockEnforcer)
 	mockEnforcer.On("LoadPolicy").Maybe().Return(nil)
 	deps.OrgReader.On("InvalidateOrganizationCache", mock.Anything, mock.Anything).Maybe().Return(nil)
+	deps.RoleRepo.On("FindByName", mock.Anything, usecase.DefaultOwnerRoleName).Maybe().Return(&roleEntity.Role{
+		ID:   "owner-role-id",
+		Name: usecase.DefaultOwnerRoleName,
+	}, nil)
 
-	uc := usecase.NewOrganizationUseCase(log, deps.TM, deps.OrgRepo, deps.MemberRepo, deps.OrgReader, deps.Enforcer)
+	uc := usecase.NewOrganizationUseCase(log, deps.TM, deps.OrgRepo, deps.MemberRepo, deps.OrgReader, deps.Enforcer, deps.RoleRepo)
 
 	return deps, uc
 }
@@ -65,7 +73,7 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 		deps.OrgRepo.On("SlugExists", ctx, req.Slug).Return(false, nil)
 		deps.OrgRepo.On("Create", ctx, mock.MatchedBy(func(org *entity.Organization) bool {
 			return org.Name == req.Name && org.Slug == req.Slug && org.OwnerID == userID
-		}), usecase.DefaultOwnerRoleID).Return(nil)
+		}), "owner-role-id").Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("GetFilteredPolicy", 0, []string{"role:admin", "global"}).Return([][]string{
 			{"role:admin", "global", "/api/v1/projects", "POST"},
@@ -80,10 +88,10 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 			return len(params) == 4 && params[0] == "role:user" && params[2] == "/api/v1/projects" && params[3] == "GET"
 		})).Return(true, nil)
 		deps.Enforcer.On("AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
-			return len(params) == 3 && params[0] == usecase.DefaultOwnerRoleID && params[1] == "role:admin"
+			return len(params) == 3 && params[0] == usecase.DefaultOwnerRoleName && params[1] == "role:admin"
 		})).Return(true, nil)
 		deps.Enforcer.On("AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
-			return len(params) == 3 && params[1] == usecase.DefaultOwnerRoleID
+			return len(params) == 3 && params[1] == usecase.DefaultOwnerRoleName
 		})).Return(true, nil)
 
 		res, err := uc.CreateOrganization(ctx, userID, req)
@@ -93,6 +101,30 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 		assert.Equal(t, req.Name, res.Name)
 		deps.OrgRepo.AssertExpectations(t)
 		deps.Enforcer.AssertExpectations(t)
+	})
+
+	t.Run("Success - Generates Slug", func(t *testing.T) {
+		deps, uc := setupOrganizationTest()
+		ctx := context.Background()
+		req := &model.CreateOrganizationRequest{Name: "Acme Corp"}
+
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(ctx)
+		}).Return(nil)
+		deps.OrgRepo.On("SlugExists", ctx, "acme-corp").Return(false, nil)
+		deps.OrgRepo.On("Create", ctx, mock.MatchedBy(func(org *entity.Organization) bool {
+			return org.Slug == "acme-corp"
+		}), "owner-role-id").Return(nil)
+		deps.Enforcer.On("GetFilteredPolicy", 0, []string{"role:admin", "global"}).Return([][]string{}, nil)
+		deps.Enforcer.On("GetFilteredPolicy", 0, []string{"role:user", "global"}).Return([][]string{}, nil)
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
+
+		res, err := uc.CreateOrganization(ctx, "user-123", req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "acme-corp", res.Slug)
+		assert.Equal(t, "acme-corp", req.Slug)
 	})
 
 	t.Run("Error - Slug Exists", func(t *testing.T) {
@@ -173,10 +205,10 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 			return len(params) == 4 && params[0] == "role:user" && params[2] == "/api/v1/projects" && params[3] == "GET"
 		})).Return(true, nil)
 		deps.Enforcer.On("AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
-			return len(params) == 3 && params[0] == usecase.DefaultOwnerRoleID && params[1] == "role:admin"
+			return len(params) == 3 && params[0] == usecase.DefaultOwnerRoleName && params[1] == "role:admin"
 		})).Return(true, nil)
 		deps.Enforcer.On("AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
-			return len(params) == 3 && params[0] == "u1" && params[1] == usecase.DefaultOwnerRoleID
+			return len(params) == 3 && params[0] == "u1" && params[1] == usecase.DefaultOwnerRoleName
 		})).Return(false, errors.New("casbin error"))
 
 		_, err := uc.CreateOrganization(ctx, "u1", req)
@@ -557,7 +589,7 @@ func TestCreateOrganization_XSS(t *testing.T) {
 	orgRepo.On("SlugExists", ctx, "acme-xss").Return(false, nil)
 	orgRepo.On("Create", ctx, mock.MatchedBy(func(org *entity.Organization) bool {
 		return org.Name == request.Name // verifying raw persistence
-	}), usecase.DefaultOwnerRoleID).Return(nil)
+	}), "owner-role-id").Return(nil)
 
 	enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
 
@@ -649,6 +681,7 @@ func setupOrganizationUseCase() (*mocks.MockOrganizationRepository, *mocks.MockO
 	memberRepo := new(mocks.MockOrganizationMemberRepository)
 	tm := new(txMock.MockTransactionManager)
 	enforcer := new(permissionMocks.MockIEnforcer)
+	roleRepo := new(roleMocks.MockRoleRepository)
 
 	// Default behavior for enforcer with context to return itself
 	enforcer.On("WithContext", mock.Anything).Maybe().Return(enforcer)
@@ -657,8 +690,12 @@ func setupOrganizationUseCase() (*mocks.MockOrganizationRepository, *mocks.MockO
 	enforcer.On("AddPolicy", mock.Anything).Maybe().Return(true, nil)
 	enforcer.On("AddGroupingPolicy", mock.Anything).Maybe().Return(true, nil)
 	enforcer.On("LoadPolicy").Maybe().Return(nil)
+	roleRepo.On("FindByName", mock.Anything, usecase.DefaultOwnerRoleName).Return(&roleEntity.Role{
+		ID:   "owner-role-id",
+		Name: usecase.DefaultOwnerRoleName,
+	}, nil)
 
-	uc := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, nil, enforcer)
+	uc := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, nil, enforcer, roleRepo)
 	return orgRepo, memberRepo, tm, enforcer, uc
 }
 
@@ -683,7 +720,7 @@ func TestCreateOrganization_Success(t *testing.T) {
 	}).Return(nil)
 
 	orgRepo.On("SlugExists", ctx, "acme-corp").Return(false, nil)
-	orgRepo.On("Create", ctx, mock.AnythingOfType("*entity.Organization"), usecase.DefaultOwnerRoleID).Return(nil)
+	orgRepo.On("Create", ctx, mock.AnythingOfType("*entity.Organization"), "owner-role-id").Return(nil)
 	enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
 
 	// Execute

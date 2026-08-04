@@ -88,6 +88,21 @@ func TestOrganizationController_CreateOrganization(t *testing.T) {
 		assert.Equal(t, http.StatusCreated, w.Code)
 	})
 
+	t.Run("Success Without Slug", func(t *testing.T) {
+		deps := setupControllerTest()
+		req := model.CreateOrganizationRequest{Name: "Org Without Slug"}
+		res := &model.OrganizationResponse{ID: "org-1", Name: req.Name, Slug: "org-without-slug"}
+
+		deps.OrgUseCase.On("CreateOrganization", mock.Anything, "user-123", &req).Return(res, nil)
+
+		body, _ := json.Marshal(req)
+		w := httptest.NewRecorder()
+		reqHTTP, _ := http.NewRequest("POST", "/organizations", bytes.NewBuffer(body))
+		deps.Router.ServeHTTP(w, reqHTTP)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+	})
+
 	t.Run("Conflict", func(t *testing.T) {
 		deps := setupControllerTest()
 		req := model.CreateOrganizationRequest{Name: "Org 1", Slug: "org-1"}

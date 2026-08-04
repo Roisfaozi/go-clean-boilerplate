@@ -5,6 +5,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	roleRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
@@ -36,6 +37,7 @@ func NewOrganizationModule(
 	enforcer permissionUseCase.IEnforcer,
 	presenceReader usecase.PresenceReader,
 	frontendBaseURL string,
+	roleRepository roleRepo.RoleRepository,
 ) *OrganizationModule {
 	// Create repositories
 	orgRepo := repository.NewOrganizationRepository(db, redisClient)
@@ -46,7 +48,7 @@ func NewOrganizationModule(
 	orgReader := usecase.NewCachedOrgReader(memberRepo, redisClient, log)
 
 	// Create use cases
-	orgUseCase := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, orgReader, enforcer)
+	orgUseCase := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, orgReader, enforcer, roleRepository)
 	memberUseCase := usecase.NewOrganizationMemberUseCase(log, tm, memberRepo, orgRepo, invitationRepo, userRepo, taskDistributor, enforcer, presenceReader, orgReader, frontendBaseURL)
 
 	// Create controller
