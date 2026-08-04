@@ -1,13 +1,8 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { Icon } from "~/components/shared/icon";
-import { Button } from "@casbin/ui";
-import { Card } from "@casbin/ui";
 import {
+	Button,
+	Card,
 	Dialog,
 	DialogContent,
 	DialogDescription,
@@ -15,20 +10,23 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@casbin/ui";
-import {
 	Form,
 	FormControl,
 	FormField,
 	FormItem,
 	FormLabel,
 	FormMessage,
+	Input,
 } from "@casbin/ui";
-import { Input } from "@casbin/ui";
-import { toast } from "sonner";
-import { useProjects } from "./projects-context";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "next-safe-action/hooks";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
+import { Icon } from "~/components/shared/icon";
 import { createProjectAction } from "../action";
+import { useProjects } from "./projects-context";
 
 const projectSchema = z.object({
 	name: z.string().min(1, { message: "Please enter a project name." }),
@@ -68,6 +66,7 @@ export function CreateProjectDialog() {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger
+				nativeButton
 				render={
 					<Card
 						role="button"

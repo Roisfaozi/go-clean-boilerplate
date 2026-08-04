@@ -23,34 +23,26 @@ export function proxy(request: NextRequest) {
 		localeMatch && locales.includes(localeMatch[1]) ? localeMatch[1] : null;
 	const localePrefix = detectedLocale ? `/${detectedLocale}` : "";
 
-	// 1. Protect /dashboard routes
+	// 1. Protect /dashboard routes (fast path: missing cookie)
 	const isDashboardPath =
 		pathname.startsWith(`${localePrefix}/dashboard`) ||
 		pathname.startsWith("/dashboard");
-	const isAuthPath =
-		pathname.match(/^\/([a-z]{2})\/(login|register)(?:\/|$)/) ||
-		pathname.startsWith("/login") ||
-		pathname.startsWith("/register");
 
-	if (isDashboardPath) {
-		if (!token) {
-			const returnTo = encodeURIComponent(pathname + search);
-			const loginUrl = new URL(
-				`${localePrefix}/login?returnTo=${returnTo}`,
-				request.url,
-			);
-			return NextResponse.redirect(loginUrl);
-		}
-	}
-
-	// 2. Redirect logged-in users away from auth pages
-	if (isAuthPath && token) {
-		return NextResponse.redirect(
-			new URL(`${localePrefix}/dashboard`, request.url),
+	if (isDashboardPath && !token) {
+		const returnTo = encodeURIComponent(pathname + search);
+		const loginUrl = new URL(
+			`${localePrefix}/login?returnTo=${returnTo}`,
+			request.url,
 		);
+		return NextResponse.redirect(loginUrl);
 	}
 
-	// 3. Handle Internationalization
+	// NOTE: we do NOT bounce logged-in users away from auth pages here.
+	// Cookie-presence is not proof of a valid session (tokens can be expired),
+	// and bouncing here created an infinite /login <-> /dashboard redirect loop.
+	// Auth pages validate the real session server-side (see (auth)/login/page.tsx).
+
+	// 2. Handle Internationalization
 	return I18nMiddleware(request);
 }
 

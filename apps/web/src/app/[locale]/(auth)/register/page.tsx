@@ -1,8 +1,23 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import RegisterForm from "~/components/auth/register-form";
 import { AuthLayoutShell } from "~/components/auth/auth-layout-shell";
+import { getCurrentSession } from "~/lib/server/auth/session";
 
-export default function Register() {
+const locales = ["en", "fr"];
+
+export default async function Register({
+	params,
+}: {
+	params: Promise<{ locale: string }>;
+}) {
+	const { locale } = await params;
+	const { session } = await getCurrentSession();
+	if (session) {
+		const detectedLocale = locale && locales.includes(locale) ? locale : "en";
+		redirect(`/${detectedLocale}/dashboard`);
+	}
+
 	return (
 		<AuthLayoutShell
 			title="Create an account"
