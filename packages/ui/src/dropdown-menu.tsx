@@ -214,12 +214,16 @@ const DropdownMenuRadioItem = React.forwardRef<
 DropdownMenuRadioItem.displayName = "DropdownMenuRadioItem";
 
 const DropdownMenuLabel = React.forwardRef<
-	React.ElementRef<typeof DropdownMenuPrimitive.GroupLabel>,
-	React.ComponentProps<typeof DropdownMenuPrimitive.GroupLabel> & {
+	HTMLDivElement,
+	React.HTMLAttributes<HTMLDivElement> & {
 		inset?: boolean;
 	}
 >(({ className, inset, ...props }, ref) => (
-	<DropdownMenuPrimitive.GroupLabel
+	// Base UI v1.6's Menu.GroupLabel requires an ancestor <Menu.Group> or
+	// <Menu.RadioGroup> (it reads MenuGroupContext and throws otherwise).
+	// Consumers render <DropdownMenuLabel> standalone inside content, so use
+	// a plain label div instead of the group-scoped primitive.
+	<div
 		ref={ref}
 		className={cn(
 			"px-2 py-1.5 text-sm font-semibold",
