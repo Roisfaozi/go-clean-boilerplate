@@ -40,7 +40,7 @@ func TestUserRepository_GetByOrganization(t *testing.T) {
 			AddRow("user-1", "user1@example.com", "user1").
 			AddRow("user-2", "user2@example.com", "user2")
 
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE users.id IN (SELECT organization_members.user_id FROM "organization_members" WHERE organization_members.organization_id = $1 AND (organization_members.deleted_at = 0 OR organization_members.deleted_at IS NULL)) AND "users"."deleted_at" = $2`)).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE users.id IN (SELECT organization_members.user_id FROM "organization_members" WHERE organization_members.organization_id = $1) AND "users"."deleted_at" = $2`)).
 			WithArgs(orgID, 0).
 			WillReturnRows(rows)
 
@@ -57,7 +57,7 @@ func TestUserRepository_GetByOrganization(t *testing.T) {
 	t.Run("DBError", func(t *testing.T) {
 		orgID := "org-1"
 
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE users.id IN (SELECT organization_members.user_id FROM "organization_members" WHERE organization_members.organization_id = $1 AND (organization_members.deleted_at = 0 OR organization_members.deleted_at IS NULL)) AND "users"."deleted_at" = $2`)).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE users.id IN (SELECT organization_members.user_id FROM "organization_members" WHERE organization_members.organization_id = $1) AND "users"."deleted_at" = $2`)).
 			WithArgs(orgID, 0).
 			WillReturnError(gorm.ErrInvalidDB)
 

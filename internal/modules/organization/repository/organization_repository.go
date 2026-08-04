@@ -118,7 +118,7 @@ func (r *organizationRepository) FindBySlug(ctx context.Context, slug string) (*
 // SlugExists checks if a slug is already taken.
 func (r *organizationRepository) SlugExists(ctx context.Context, slug string) (bool, error) {
 	var count int64
-	err := r.db.WithContext(ctx).
+	err := r.getDB(ctx).WithContext(ctx).
 		Model(&entity.Organization{}).
 		Where("slug = ?", slug).
 		Count(&count).Error
@@ -131,7 +131,7 @@ func (r *organizationRepository) SlugExists(ctx context.Context, slug string) (b
 // FindUserOrganizations finds all organizations a user is a member of.
 func (r *organizationRepository) FindUserOrganizations(ctx context.Context, userID string) ([]*entity.Organization, error) {
 	var orgs []*entity.Organization
-	err := r.db.WithContext(ctx).
+	err := r.getDB(ctx).WithContext(ctx).
 		Joins("INNER JOIN organization_members ON organization_members.organization_id = organizations.id").
 		Where("organization_members.user_id = ?", userID).
 		Where("organization_members.status = ?", entity.MemberStatusActive).
