@@ -65,13 +65,16 @@ func seedRoles(db *gorm.DB) {
 		{Name: "role:superadmin", Description: "Full Access", OrganizationID: ptrString("global")},
 		{Name: "role:admin", Description: "Org Administrator", OrganizationID: ptrString("global")},
 		{Name: "role:user", Description: "Org User", OrganizationID: ptrString("global")},
+		{ID: "role:org-owner", Name: "role:org-owner", Description: "Organization Owner", OrganizationID: ptrString("global")},
 	}
 
 	for _, r := range roles {
 		var count int64
 		db.Model(&roleEntity.Role{}).Where("name = ?", r.Name).Count(&count)
 		if count == 0 {
-			r.ID = uuid.NewString()
+			if r.ID == "" {
+				r.ID = uuid.NewString()
+			}
 			r.CreatedAt = time.Now().UnixMilli()
 			r.UpdatedAt = time.Now().UnixMilli()
 			db.Create(&r)
