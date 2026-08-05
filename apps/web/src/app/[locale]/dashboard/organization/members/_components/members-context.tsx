@@ -42,7 +42,13 @@ export function MembersProvider({ children }: { children: ReactNode }) {
 				rolesApi.getAll(),
 			]);
 			if (membersResp.data) setMembers(membersResp.data);
-			if (rolesResp.data) setRoles(rolesResp.data);
+			if (rolesResp.data) {
+				setRoles(
+					rolesResp.data.filter(
+						(r) => r.organization_id === currentOrganization.id,
+					),
+				);
+			}
 		} catch (error) {
 			console.error("Failed to fetch data", error);
 			toast.error("Failed to load members");

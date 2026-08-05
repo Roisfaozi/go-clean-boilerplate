@@ -4,6 +4,7 @@ export interface Role {
 	id: string;
 	name: string;
 	description: string;
+	organization_id?: string;
 }
 
 export interface RoleListResponse {
