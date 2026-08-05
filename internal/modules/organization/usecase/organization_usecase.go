@@ -245,13 +245,13 @@ func (uc *organizationUseCase) authorizeOrganizationManagement(ctx context.Conte
 		return nil, exception.ErrForbidden
 	}
 
-	roleID, err := uc.MemberRepo.GetMemberRole(ctx, orgID, actorUserID)
+	roleName, err := uc.MemberRepo.GetMemberRoleName(ctx, orgID, actorUserID)
 	if err != nil {
 		uc.Log.WithContext(ctx).Errorf("Failed to get actor organization role: %v", err)
 		return nil, exception.ErrInternalServer
 	}
 
-	if roleID != adminRoleID && roleID != DefaultOwnerRoleName {
+	if roleName != adminRoleID && roleName != DefaultOwnerRoleName {
 		return nil, exception.ErrForbidden
 	}
 

@@ -135,7 +135,7 @@ func (r *organizationMemberRepository) GetMemberRoleName(ctx context.Context, or
 		Table("organization_members").
 		Select("roles.name").
 		Joins("JOIN roles ON organization_members.role_id = roles.id").
-		Where("organization_members.organization_id = ? AND organization_members.user_id = ? AND organization_members.status = ?", orgID, userID, entity.MemberStatusActive).
+		Where("organization_members.organization_id = ? AND organization_members.user_id = ?", orgID, userID).
 		Row().
 		Scan(&roleName)
 

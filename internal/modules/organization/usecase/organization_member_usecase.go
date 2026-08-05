@@ -86,14 +86,6 @@ func (uc *organizationMemberUseCase) resolveOrganizationRole(ctx context.Context
 		return role, nil
 	}
 
-	// Fallback check for DefaultOwnerRoleName if roleID passed matches owner role name or ID
-	if roleID == DefaultOwnerRoleName {
-		ownerRole, findErr := uc.roleRepo.FindByName(ctx, DefaultOwnerRoleName)
-		if findErr == nil && ownerRole != nil {
-			return ownerRole, nil
-		}
-	}
-
 	return nil, exception.ErrBadRequest
 }
 
@@ -103,11 +95,11 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 	var targetUserID string
 
 	err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
-		org, _, actorIsOwner, err := uc.authorizeMemberManagement(txCtx, orgID)
+		org, _, _, err := uc.authorizeMemberManagement(txCtx, orgID)
 		if err != nil {
 			return err
 		}
-		if request.RoleID == DefaultOwnerRoleName && !actorIsOwner {
+		if request.RoleID == DefaultOwnerRoleName {
 			return exception.ErrForbidden
 		}
 
@@ -246,7 +238,7 @@ func (uc *organizationMemberUseCase) UpdateMember(ctx context.Context, orgID, us
 	var result *model.MemberResponse
 
 	err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
-		org, _, actorIsOwner, err := uc.authorizeMemberManagement(txCtx, orgID)
+		org, _, _, err := uc.authorizeMemberManagement(txCtx, orgID)
 		if err != nil {
 			return err
 		}
@@ -263,7 +255,7 @@ func (uc *organizationMemberUseCase) UpdateMember(ctx context.Context, orgID, us
 		if org.OwnerID == userID {
 			return exception.ErrForbidden
 		}
-		if request.RoleID == DefaultOwnerRoleName && !actorIsOwner {
+		if request.RoleID == DefaultOwnerRoleName {
 			return exception.ErrForbidden
 		}
 
@@ -392,8 +384,8 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 		// 5. Resolve role to get role.Name for Casbin and role.ID for DB
 		role, err := uc.resolveOrganizationRole(txCtx, invitation.OrganizationID, invitation.RoleID)
 		if err != nil {
-			uc.log.WithContext(txCtx).Errorf("Failed to resolve organization role for invitation: %v", err)
-			return exception.ErrInternalServer
+			uc.log.WithContext(txCtx).Warnf("Failed to resolve organization role %s for invitation: %v", invitation.RoleID, err)
+			return exception.ErrUnauthorized
 		}
 
 		memberStatus, err := uc.memberRepo.GetMemberStatus(txCtx, invitation.OrganizationID, user.ID)
@@ -406,6 +398,12 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 			if err := uc.memberRepo.UpdateMemberStatus(txCtx, invitation.OrganizationID, user.ID, entity.MemberStatusActive); err != nil {
 				return err
 			}
+			if uc.enforcer != nil {
+				if _, err := uc.enforcer.WithContext(txCtx).AddGroupingPolicy(user.ID, role.Name, invitation.OrganizationID); err != nil {
+					uc.log.WithError(err).Error("Failed to add Casbin grouping policy on accept")
+					return exception.ErrInternalServer
+				}
+			}
 		case "":
 			member := &entity.OrganizationMember{
 				ID:             uuid.New().String(),
@@ -417,18 +415,16 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 			if err := uc.memberRepo.AddMember(txCtx, member); err != nil {
 				return err
 			}
-		}
-		// If already active, do nothing (idempotent).
-		orgID = invitation.OrganizationID
-		userID = user.ID
-
-		// Add Casbin Grouping Policy for new active member using role.Name
-		if uc.enforcer != nil {
-			if _, err := uc.enforcer.WithContext(txCtx).AddGroupingPolicy(user.ID, role.Name, invitation.OrganizationID); err != nil {
-				uc.log.WithError(err).Error("Failed to add Casbin grouping policy on accept")
-				return exception.ErrInternalServer
+			if uc.enforcer != nil {
+				if _, err := uc.enforcer.WithContext(txCtx).AddGroupingPolicy(user.ID, role.Name, invitation.OrganizationID); err != nil {
+					uc.log.WithError(err).Error("Failed to add Casbin grouping policy on accept")
+					return exception.ErrInternalServer
+				}
 			}
 		}
+		// If already active, do not add duplicate policy, just clean up token.
+		orgID = invitation.OrganizationID
+		userID = user.ID
 
 		// 6. Delete Invitation
 		if err := uc.invitationRepo.Delete(txCtx, invitation.ID); err != nil {
@@ -454,13 +450,13 @@ func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, us
 			return err
 		}
 
-		// Check if member exists
-		isMember, err := uc.memberRepo.CheckMembership(txCtx, orgID, userID)
+		// Check if member exists and lock row
+		member, err := uc.memberRepo.FindMemberForUpdate(txCtx, orgID, userID)
 		if err != nil {
 			return err
 		}
-		if !isMember {
-			return nil
+		if member == nil {
+			return exception.ErrNotFound
 		}
 
 		// Prevent removing owner
@@ -468,7 +464,10 @@ func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, us
 			return exception.ErrForbidden
 		}
 
-		oldRoleName, _ := uc.memberRepo.GetMemberRoleName(txCtx, orgID, userID)
+		oldRoleName, err := uc.memberRepo.GetMemberRoleName(txCtx, orgID, userID)
+		if err != nil && oldRoleName == "" {
+			oldRoleName = member.RoleID
+		}
 
 		// Remove Casbin grouping policy
 		if uc.enforcer != nil {
@@ -516,11 +515,11 @@ func (uc *organizationMemberUseCase) authorizeMemberManagement(ctx context.Conte
 		return nil, "", false, exception.ErrForbidden
 	}
 
-	roleID, err := uc.memberRepo.GetMemberRole(ctx, orgID, actorUserID)
+	roleName, err := uc.memberRepo.GetMemberRoleName(ctx, orgID, actorUserID)
 	if err != nil {
 		return nil, "", false, exception.ErrInternalServer
 	}
-	if roleID != adminRoleID && roleID != DefaultOwnerRoleName {
+	if roleName != adminRoleID && roleName != DefaultOwnerRoleName {
 		return nil, "", false, exception.ErrForbidden
 	}
 

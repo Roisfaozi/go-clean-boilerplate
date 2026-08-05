@@ -584,7 +584,7 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, "member-1").Return(true, nil)
-		deps.MemberRepo.On("GetMemberRole", ctx, orgID, "member-1").Return("role:user", nil)
+		deps.MemberRepo.On("GetMemberRoleName", ctx, orgID, "member-1").Return("role:user", nil)
 
 		_, err := uc.UpdateMember(ctx, orgID, userID, &model.UpdateMemberRequest{Status: entity.MemberStatusSuspended})
 		require.ErrorIs(t, err, exception.ErrForbidden)
@@ -606,7 +606,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 		})
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
+		deps.MemberRepo.On("FindMemberForUpdate", ctx, orgID, userID).Return(&entity.OrganizationMember{OrganizationID: orgID, UserID: userID, RoleID: "role:member"}, nil)
 		deps.MemberRepo.On("GetMemberRoleName", ctx, orgID, userID).Return("role:member", nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
@@ -631,10 +631,10 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 		})
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(false, nil)
+		deps.MemberRepo.On("FindMemberForUpdate", ctx, orgID, userID).Return(nil, nil)
 
 		err := uc.RemoveMember(ctx, orgID, userID)
-		require.NoError(t, err)
+		require.ErrorIs(t, err, exception.ErrNotFound)
 	})
 
 	t.Run("Forbidden - Remove Owner", func(t *testing.T) {
@@ -644,6 +644,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 		orgID := "org-1"
 		userID := "owner"
 		org := &entity.Organization{ID: orgID, OwnerID: userID}
+		member := &entity.OrganizationMember{OrganizationID: orgID, UserID: userID}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -651,7 +652,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 		}).Return(exception.ErrForbidden)
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
+		deps.MemberRepo.On("FindMemberForUpdate", ctx, orgID, userID).Return(member, nil)
 
 		err := uc.RemoveMember(ctx, orgID, userID)
 		require.ErrorIs(t, err, exception.ErrForbidden)
@@ -671,7 +672,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 		}).Return(exception.ErrInternalServer)
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(false, errors.New("db error"))
+		deps.MemberRepo.On("FindMemberForUpdate", ctx, orgID, userID).Return(nil, errors.New("db error"))
 
 		err := uc.RemoveMember(ctx, orgID, userID)
 		require.ErrorIs(t, err, exception.ErrInternalServer)
@@ -709,8 +710,8 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 			_ = fn(ctx)
 		}).Return(exception.ErrInternalServer)
 
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
+		deps.MemberRepo.On("FindMemberForUpdate", ctx, orgID, userID).Return(&entity.OrganizationMember{OrganizationID: orgID, UserID: userID, RoleID: "role:member"}, nil)
 		deps.MemberRepo.On("GetMemberRoleName", ctx, orgID, userID).Return("role:member", nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
@@ -735,7 +736,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, orgID, "member-1").Return(true, nil)
-		deps.MemberRepo.On("GetMemberRole", ctx, orgID, "member-1").Return("role:user", nil)
+		deps.MemberRepo.On("GetMemberRoleName", ctx, orgID, "member-1").Return("role:user", nil)
 
 		err := uc.RemoveMember(ctx, orgID, userID)
 		require.ErrorIs(t, err, exception.ErrForbidden)

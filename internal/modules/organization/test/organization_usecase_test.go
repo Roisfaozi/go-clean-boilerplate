@@ -429,7 +429,7 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 
 		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(existingOrg, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, "org-1", "user-2").Return(true, nil)
-		deps.MemberRepo.On("GetMemberRole", ctx, "org-1", "user-2").Return("role:user", nil)
+		deps.MemberRepo.On("GetMemberRoleName", ctx, "org-1", "user-2").Return("role:user", nil)
 
 		_, err := uc.UpdateOrganization(ctx, "org-1", &model.UpdateOrganizationRequest{Name: "Blocked"})
 		assert.ErrorIs(t, err, exception.ErrForbidden)
