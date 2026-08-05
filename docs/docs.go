@@ -6023,6 +6023,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "organization_id": {
+                    "type": "string"
                 }
             }
         },

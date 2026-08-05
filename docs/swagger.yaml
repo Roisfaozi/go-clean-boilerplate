@@ -612,6 +612,8 @@ definitions:
         type: string
       name:
         type: string
+      organization_id:
+        type: string
     type: object
   github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.UpdateRoleRequest:
     properties:
