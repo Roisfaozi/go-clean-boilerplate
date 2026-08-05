@@ -1469,6 +1469,22 @@ func (_mock *MockIPermissionUseCase) DeleteRole(ctx context.Context, roleName st
 	return r0
 }
 
+func (_mock *MockIPermissionUseCase) DeleteRoleInOrg(ctx context.Context, roleName, orgID string) error {
+	ret := _mock.Called(ctx, roleName, orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteRoleInOrg")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = returnFunc(ctx, roleName, orgID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
 // MockIPermissionUseCase_DeleteRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteRole'
 type MockIPermissionUseCase_DeleteRole_Call struct {
 	*mock.Call

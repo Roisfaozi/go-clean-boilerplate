@@ -41,6 +41,7 @@ type IPermissionUseCase interface {
 	AssignAccessRight(ctx context.Context, req model.AssignAccessRightRequest) error
 	RevokeAccessRight(ctx context.Context, req model.AssignAccessRightRequest) error
 	DeleteRole(ctx context.Context, roleName string) error
+	DeleteRoleInOrg(ctx context.Context, roleName, orgID string) error
 }
 
 type NoopError struct {
@@ -376,6 +377,27 @@ func (uc *PermissionUseCase) DeleteRole(ctx context.Context, roleName string) er
 	_, err := enf.DeleteRole(roleName)
 	if err != nil {
 		uc.log.WithContext(ctx).Errorf("Failed to delete role from Casbin: %v", err)
+		return err
+	}
+
+	if _, inTx := tx.DBFromContext(ctx); !inTx {
+		return uc.ReloadPolicy(ctx)
+	}
+
+	return nil
+}
+
+func (uc *PermissionUseCase) DeleteRoleInOrg(ctx context.Context, roleName, orgID string) error {
+	uc.log.WithContext(ctx).Infof("Cleaning up Casbin policies for role '%s' in org '%s'", roleName, orgID)
+	enf := uc.enforcer.WithContext(ctx)
+
+	if _, err := enf.RemoveFilteredGroupingPolicy(1, roleName, orgID); err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to delete grouping policies for role '%s' in org '%s': %v", roleName, orgID, err)
+		return err
+	}
+
+	if _, err := enf.RemoveFilteredPolicy(0, roleName, orgID); err != nil {
+		uc.log.WithContext(ctx).Errorf("Failed to delete permission policies for role '%s' in org '%s': %v", roleName, orgID, err)
 		return err
 	}
 

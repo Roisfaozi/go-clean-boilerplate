@@ -166,9 +166,16 @@ func (uc *roleUseCase) Delete(ctx context.Context, id string) error {
 		}
 
 		// Clean up Casbin policies for this role
-		if err := uc.PermissionUseCase.DeleteRole(txCtx, role.Name); err != nil {
-			uc.Log.WithContext(txCtx).Errorf("Failed to clean up Casbin policies for role %s: %v", role.Name, err)
-			return exception.ErrInternalServer
+		if role.OrganizationID != nil && *role.OrganizationID != "" {
+			if err := uc.PermissionUseCase.DeleteRoleInOrg(txCtx, role.Name, *role.OrganizationID); err != nil {
+				uc.Log.WithContext(txCtx).Errorf("Failed to clean up Casbin policies for role %s in org %s: %v", role.Name, *role.OrganizationID, err)
+				return exception.ErrInternalServer
+			}
+		} else {
+			if err := uc.PermissionUseCase.DeleteRole(txCtx, role.Name); err != nil {
+				uc.Log.WithContext(txCtx).Errorf("Failed to clean up Casbin policies for role %s: %v", role.Name, err)
+				return exception.ErrInternalServer
+			}
 		}
 
 		return nil
