@@ -1156,6 +1156,48 @@ func (_c *MockOrganizationMemberRepository_UpdateMemberStatus_Call) RunAndReturn
 	return _c
 }
 
+func (_mock *MockOrganizationMemberRepository) FindMemberForUpdate(ctx context.Context, orgID string, userID string) (*entity.OrganizationMember, error) {
+	ret := _mock.Called(ctx, orgID, userID)
+
+	var r0 *entity.OrganizationMember
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *entity.OrganizationMember); ok {
+		r0 = rf(ctx, orgID, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.OrganizationMember)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, orgID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+func (_mock *MockOrganizationMemberRepository) GetMemberRoleName(ctx context.Context, orgID string, userID string) (string, error) {
+	ret := _mock.Called(ctx, orgID, userID)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) string); ok {
+		r0 = rf(ctx, orgID, userID)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, orgID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // NewMockInvitationRepository creates a new instance of MockInvitationRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockInvitationRepository(t interface {

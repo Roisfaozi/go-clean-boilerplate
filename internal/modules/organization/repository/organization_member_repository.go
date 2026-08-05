@@ -7,6 +7,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	txpkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // organizationMemberRepository implements OrganizationMemberRepository interface.
@@ -109,4 +110,37 @@ func (r *organizationMemberRepository) GetMemberRole(ctx context.Context, orgID,
 		return "", err
 	}
 	return member.RoleID, nil
+}
+
+// FindMemberForUpdate finds a member with FOR UPDATE lock.
+func (r *organizationMemberRepository) FindMemberForUpdate(ctx context.Context, orgID, userID string) (*entity.OrganizationMember, error) {
+	var member entity.OrganizationMember
+	err := r.getDB(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("organization_id = ? AND user_id = ?", orgID, userID).
+		First(&member).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &member, nil
+}
+
+// GetMemberRoleName resolves and returns the role name of a member.
+func (r *organizationMemberRepository) GetMemberRoleName(ctx context.Context, orgID, userID string) (string, error) {
+	var roleName string
+	err := r.getDB(ctx).
+		Table("organization_members").
+		Select("roles.name").
+		Joins("JOIN roles ON organization_members.role_id = roles.id").
+		Where("organization_members.organization_id = ? AND organization_members.user_id = ? AND organization_members.status = ?", orgID, userID, entity.MemberStatusActive).
+		Row().
+		Scan(&roleName)
+
+	if err != nil {
+		return "", err
+	}
+	return roleName, nil
 }

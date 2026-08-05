@@ -62,6 +62,14 @@ func (m *MockMemberRepository) FindMembers(ctx context.Context, orgID string) ([
 	return nil, nil
 }
 
+func (m *MockMemberRepository) FindMemberForUpdate(ctx context.Context, orgID, userID string) (*entity.OrganizationMember, error) {
+	return nil, nil
+}
+
+func (m *MockMemberRepository) GetMemberRoleName(ctx context.Context, orgID, userID string) (string, error) {
+	return "", nil
+}
+
 func newTestLogger() *logrus.Logger {
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
