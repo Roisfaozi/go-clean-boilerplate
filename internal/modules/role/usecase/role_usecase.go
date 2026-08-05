@@ -9,6 +9,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model/converter"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
@@ -42,9 +43,21 @@ func NewRoleUseCase(
 	}
 }
 
+var reservedRoleNames = map[string]bool{
+	"role:user":       true,
+	"role:admin":      true,
+	"role:superadmin": true,
+	"role:org-owner":  true,
+}
+
 func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequest) (*model.RoleResponse, error) {
 	var response *model.RoleResponse
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if reservedRoleNames[request.Name] {
+			uc.Log.WithContext(txCtx).Warnf("Attempt to create reserved role name %s blocked", request.Name)
+			return exception.ErrBadRequest
+		}
+
 		_, err := uc.RoleRepository.FindByName(txCtx, request.Name)
 		if err == nil {
 			uc.Log.WithContext(txCtx).Warnf("Role with name %s already exists", request.Name)
@@ -65,6 +78,10 @@ func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequ
 			ID:          newID.String(),
 			Name:        request.Name,
 			Description: request.Description,
+		}
+
+		if orgID := database.GetOrganizationID(txCtx); orgID != "" {
+			newRole.OrganizationID = &orgID
 		}
 
 		if err := uc.RoleRepository.Create(txCtx, newRole); err != nil {

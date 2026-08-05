@@ -48,6 +48,17 @@ func (r *roleRepository) FindByID(ctx context.Context, id string) (*entity.Role,
 	return &role, nil
 }
 
+func (r *roleRepository) FindOrganizationRoleByID(ctx context.Context, organizationID, roleID string) (*entity.Role, error) {
+	var role entity.Role
+	if err := r.getDB(ctx).
+		Scopes(database.OrganizationVisibilityScope(ctx, "roles.organization_id")).
+		Where("id = ? AND organization_id = ?", roleID, organizationID).
+		First(&role).Error; err != nil {
+		return nil, err
+	}
+	return &role, nil
+}
+
 func (r *roleRepository) FindByName(ctx context.Context, name string) (*entity.Role, error) {
 	var role entity.Role
 	if err := r.getDB(ctx).
