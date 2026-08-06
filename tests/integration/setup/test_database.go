@@ -3,6 +3,11 @@ package setup
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
@@ -19,6 +24,104 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+const migrationsDir = "../../../db/migrations"
+
+// migrationFiles returns the sorted absolute paths of migration files of the
+// given direction ("up" or "down"), optionally capped at maxVersion (>0).
+func migrationFiles(t *testing.T, maxVersion int, direction string) []string {
+	entries, err := os.ReadDir(migrationsDir)
+	require.NoError(t, err)
+
+	suffix := "." + direction + ".sql"
+	var paths []string
+	for _, e := range entries {
+		name := e.Name()
+		if !strings.HasSuffix(name, suffix) {
+			continue
+		}
+		var version int
+		_, err := fmt.Sscanf(name, "%d_", &version)
+		if err != nil || version == 0 {
+			continue
+		}
+		if maxVersion > 0 && version > maxVersion {
+			continue
+		}
+		paths = append(paths, filepath.Join(migrationsDir, name))
+	}
+	sort.Strings(paths)
+	return paths
+}
+
+// FreshMigrationDB creates a dedicated database on the same MySQL server for
+// applying raw SQL migrations in isolation from the shared schema.
+func FreshMigrationDB(t *testing.T, name string) *gorm.DB {
+	require.NotNil(t, globalDB, "shared DB must be initialized first")
+
+	// The testcontainers MySQL module mirrors the password to MYSQL_ROOT_PASSWORD,
+	// so root uses the same password as the app user.
+	rootDSN := strings.Replace(strings.SplitN(mysqlAddr, "?", 2)[0], "test:test@tcp", "root:test@tcp", 1)
+	rootDB, err := connectWithRetry(rootDSN, 5)
+	require.NoError(t, err)
+
+	require.NoError(t, rootDB.Exec("DROP DATABASE IF EXISTS `"+name+"`").Error)
+	require.NoError(t, rootDB.Exec("CREATE DATABASE `"+name+"`").Error)
+	require.NoError(t, rootDB.Exec("GRANT ALL PRIVILEGES ON `"+name+"`.* TO 'test'@'%'").Error)
+	require.NoError(t, rootDB.Exec("FLUSH PRIVILEGES").Error)
+
+	sqlDB, err := rootDB.DB()
+	require.NoError(t, err)
+	_ = sqlDB.Close()
+
+	base := strings.SplitN(mysqlAddr, "?", 2)[0]
+	base = strings.TrimSuffix(base, "test_db")
+	dsn := base + name + "?parseTime=true&multiStatements=true&charset=utf8mb4"
+
+	db, err := connectWithRetry(dsn, 5)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		sqlDB, _ := db.DB()
+		if sqlDB != nil {
+			_ = sqlDB.Close()
+		}
+		rootDB, err := connectWithRetry(rootDSN, 3)
+		if err == nil {
+			_ = rootDB.Exec("DROP DATABASE IF EXISTS `" + name + "`").Error
+			sqlDB, _ := rootDB.DB()
+			if sqlDB != nil {
+				_ = sqlDB.Close()
+			}
+		}
+	})
+
+	return db
+}
+
+// ApplyMigrationsUpTo applies every up migration with version <= maxVersion.
+func ApplyMigrationsUpTo(t *testing.T, db *gorm.DB, maxVersion int) {
+	for _, f := range migrationFiles(t, maxVersion, "up") {
+		content, err := os.ReadFile(f)
+		require.NoError(t, err)
+		require.NoError(t, db.Exec(string(content)).Error, "failed to apply migration %s", f)
+	}
+}
+
+// ApplyMigrationFile applies exactly one migration file (direction: "up"/"down").
+func ApplyMigrationFile(t *testing.T, db *gorm.DB, version int, direction string) {
+	for _, f := range migrationFiles(t, 0, direction) {
+		var v int
+		if _, err := fmt.Sscanf(filepath.Base(f), "%d_", &v); err != nil || v != version {
+			continue
+		}
+		content, err := os.ReadFile(f)
+		require.NoError(t, err)
+		require.NoError(t, db.Exec(string(content)).Error, "failed to apply migration %s", f)
+		return
+	}
+	require.FailNow(t, "migration file %06d.%s.sql not found", version, direction)
+}
 
 func RunMigrations(t *testing.T, db *gorm.DB) {
 	err := db.AutoMigrate(
