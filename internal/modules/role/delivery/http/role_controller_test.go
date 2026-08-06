@@ -48,6 +48,11 @@ func setupRoleTestRouter(uc usecase.RoleUseCase) *gin.Engine {
 		apiV1.PUT("/roles/:id", handler.Update)
 		apiV1.DELETE("/roles/:id", handler.Delete)
 		apiV1.POST("/roles/search", handler.GetRolesDynamic)
+
+		apiV1.POST("/organizations/:id/roles", handler.CreateOrganizationRole)
+		apiV1.GET("/organizations/:id/roles", handler.GetOrganizationRoles)
+		apiV1.PUT("/organizations/:id/roles/:roleId", handler.UpdateOrganizationRole)
+		apiV1.DELETE("/organizations/:id/roles/:roleId", handler.DeleteOrganizationRole)
 	}
 	return router
 }
@@ -389,4 +394,355 @@ func TestRoleHandler_HandleError_Variants(t *testing.T) {
 		assert.Equal(t, tt.expectedCode, w.Code, "Expected code %d for error %v", tt.expectedCode, tt.err)
 		assert.Contains(t, w.Body.String(), tt.expectedBodyContains)  
 	}
+}
+
+func TestRoleHandler_CreateOrganizationRole_Success(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+	createRequest := model.CreateRoleRequest{Name: "custom_role", Description: "Custom role"}
+	requestBody, _ := json.Marshal(createRequest)
+
+	mockUseCase.On("CreateForOrganization", mock.Anything, orgID, &createRequest).Return(&model.RoleResponse{ID: "role-1", Name: "custom_role"}, nil)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/organizations/"+orgID+"/roles", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_CreateOrganizationRole_InvalidBody(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/organizations/"+orgID+"/roles", bytes.NewBufferString("invalid json"))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	mockUseCase.AssertNotCalled(t, "CreateForOrganization", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestRoleHandler_CreateOrganizationRole_ValidationFail(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+	createRequest := model.CreateRoleRequest{Name: "", Description: "No name"} // invalid
+	requestBody, _ := json.Marshal(createRequest)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/organizations/"+orgID+"/roles", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	mockUseCase.AssertNotCalled(t, "CreateForOrganization", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestRoleHandler_CreateOrganizationRole_MissingOrgID(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+
+	createRequest := model.CreateRoleRequest{Name: "custom_role"}
+	requestBody, _ := json.Marshal(createRequest)
+
+	// In the test router setup, if we hit a path without id, it might hit a different route.
+	// But let's simulate the router matching with an empty orgID or direct invocation if needed.
+	// We can test this by making a request to an endpoint where ID is somehow empty.
+	// Gin's router usually doesn't allow empty param in path `/organizations//roles`, so it returns 404.
+	// Alternatively, we can mock `GetOrganizationIDFromContext`.
+	// The implementation checks: `orgID := c.Param("id")`. If it's an empty string, it fails.
+	// Let's just create a custom route to test this specific logic.
+
+	gin.SetMode(gin.TestMode)
+	testRouter := gin.New()
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v)
+	handler := roleHttp.NewRoleController(mockUseCase, logrus.New(), v)
+
+	// Create a route that doesn't provide the 'id' param
+	testRouter.POST("/organizations/empty-id/roles", func(c *gin.Context) {
+		// Override id param to empty string
+		c.Params = []gin.Param{{Key: "id", Value: ""}}
+		handler.CreateOrganizationRole(c)
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/organizations/empty-id/roles", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	testRouter.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "organization context required")
+	mockUseCase.AssertNotCalled(t, "CreateForOrganization", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestRoleHandler_CreateOrganizationRole_XSS(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+	createRequest := model.CreateRoleRequest{Name: "<script>alert(1)</script>"}
+	requestBody, _ := json.Marshal(createRequest)
+
+	sanitizedRequest := model.CreateRoleRequest{Name: "&lt;script&gt;alert(1)&lt;/script&gt;"}
+	mockUseCase.On("CreateForOrganization", mock.Anything, orgID, &sanitizedRequest).Return(&model.RoleResponse{ID: "role-1", Name: "&lt;script&gt;alert(1)&lt;/script&gt;"}, nil)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/organizations/"+orgID+"/roles", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_CreateOrganizationRole_UseCaseError(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+	createRequest := model.CreateRoleRequest{Name: "custom_role"}
+	requestBody, _ := json.Marshal(createRequest)
+
+	mockUseCase.On("CreateForOrganization", mock.Anything, orgID, &createRequest).Return(nil, exception.ErrConflict)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/organizations/"+orgID+"/roles", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusConflict, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_GetOrganizationRoles_Success(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+	expectedRoles := []model.RoleResponse{
+		{ID: "role-1", Name: "custom_role_1"},
+		{ID: "role-2", Name: "custom_role_2"},
+	}
+	mockUseCase.On("GetOrganizationRoles", mock.Anything, orgID).Return(expectedRoles, nil)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/organizations/"+orgID+"/roles", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var responseBody response.WebResponseSuccess[[]model.RoleResponse]
+	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+	assert.NoError(t, err)
+	assert.Len(t, responseBody.Data, 2)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_GetOrganizationRoles_MissingOrgID(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+
+	gin.SetMode(gin.TestMode)
+	testRouter := gin.New()
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v)
+	handler := roleHttp.NewRoleController(mockUseCase, logrus.New(), v)
+
+	testRouter.GET("/organizations/empty-id/roles", func(c *gin.Context) {
+		c.Params = []gin.Param{{Key: "id", Value: ""}}
+		handler.GetOrganizationRoles(c)
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/organizations/empty-id/roles", nil)
+	testRouter.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "organization context required")
+	mockUseCase.AssertNotCalled(t, "GetOrganizationRoles", mock.Anything, mock.Anything)
+}
+
+func TestRoleHandler_GetOrganizationRoles_UseCaseError(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+	mockUseCase.On("GetOrganizationRoles", mock.Anything, orgID).Return(nil, errors.New("db error"))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/organizations/"+orgID+"/roles", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_UpdateOrganizationRole_Success(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+	roleID := "role-1"
+	updateRequest := model.UpdateRoleRequest{Description: "Updated desc"}
+	requestBody, _ := json.Marshal(updateRequest)
+
+	mockUseCase.On("UpdateForOrganization", mock.Anything, orgID, roleID, &updateRequest).Return(&model.RoleResponse{ID: roleID, Name: "custom_role", Description: "Updated desc"}, nil)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPut, "/api/v1/organizations/"+orgID+"/roles/"+roleID, bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_UpdateOrganizationRole_InvalidBody(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+	roleID := "role-1"
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPut, "/api/v1/organizations/"+orgID+"/roles/"+roleID, bytes.NewBufferString("invalid json"))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	mockUseCase.AssertNotCalled(t, "UpdateForOrganization", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestRoleHandler_UpdateOrganizationRole_MissingIDs(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+
+	gin.SetMode(gin.TestMode)
+	testRouter := gin.New()
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v)
+	handler := roleHttp.NewRoleController(mockUseCase, logrus.New(), v)
+
+	testRouter.PUT("/organizations/empty/roles/empty", func(c *gin.Context) {
+		// Test missing orgID
+		c.Params = []gin.Param{{Key: "id", Value: ""}, {Key: "roleId", Value: "role-1"}}
+		handler.UpdateOrganizationRole(c)
+	})
+
+	updateRequest := model.UpdateRoleRequest{Description: "Updated desc"}
+	requestBody, _ := json.Marshal(updateRequest)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPut, "/organizations/empty/roles/empty", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	testRouter.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "organization and role ID required")
+	mockUseCase.AssertNotCalled(t, "UpdateForOrganization", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestRoleHandler_UpdateOrganizationRole_XSS(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+	roleID := "role-1"
+	updateRequest := model.UpdateRoleRequest{Description: "<script>alert(1)</script>"}
+	requestBody, _ := json.Marshal(updateRequest)
+
+	sanitizedRequest := model.UpdateRoleRequest{Description: "&lt;script&gt;alert(1)&lt;/script&gt;"}
+	mockUseCase.On("UpdateForOrganization", mock.Anything, orgID, roleID, &sanitizedRequest).Return(&model.RoleResponse{ID: roleID, Name: "custom_role", Description: "&lt;script&gt;alert(1)&lt;/script&gt;"}, nil)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPut, "/api/v1/organizations/"+orgID+"/roles/"+roleID, bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_UpdateOrganizationRole_UseCaseError(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+	roleID := "role-1"
+	updateRequest := model.UpdateRoleRequest{Description: "Updated desc"}
+	requestBody, _ := json.Marshal(updateRequest)
+
+	mockUseCase.On("UpdateForOrganization", mock.Anything, orgID, roleID, &updateRequest).Return(nil, exception.ErrNotFound)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPut, "/api/v1/organizations/"+orgID+"/roles/"+roleID, bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_DeleteOrganizationRole_Success(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+	roleID := "role-1"
+
+	mockUseCase.On("DeleteForOrganization", mock.Anything, orgID, roleID).Return(nil)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/organizations/"+orgID+"/roles/"+roleID, nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestRoleHandler_DeleteOrganizationRole_MissingIDs(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+
+	gin.SetMode(gin.TestMode)
+	testRouter := gin.New()
+	v := validator.New()
+	_ = validation.RegisterCustomValidations(v)
+	handler := roleHttp.NewRoleController(mockUseCase, logrus.New(), v)
+
+	testRouter.DELETE("/organizations/empty/roles/empty", func(c *gin.Context) {
+		// Test missing orgID
+		c.Params = []gin.Param{{Key: "id", Value: ""}, {Key: "roleId", Value: "role-1"}}
+		handler.DeleteOrganizationRole(c)
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodDelete, "/organizations/empty/roles/empty", nil)
+	testRouter.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "organization and role ID required")
+	mockUseCase.AssertNotCalled(t, "DeleteForOrganization", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestRoleHandler_DeleteOrganizationRole_UseCaseError(t *testing.T) {
+	mockUseCase := new(mocks.MockRoleUseCase)
+	router := setupRoleTestRouter(mockUseCase)
+
+	orgID := "org-123"
+	roleID := "superadmin-uuid" // assume we can't delete this
+	mockUseCase.On("DeleteForOrganization", mock.Anything, orgID, roleID).Return(exception.ErrForbidden)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/organizations/"+orgID+"/roles/"+roleID, nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	mockUseCase.AssertExpectations(t)
 }
