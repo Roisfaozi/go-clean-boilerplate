@@ -267,9 +267,10 @@ func (uc *organizationMemberUseCase) UpdateMember(ctx context.Context, orgID, us
 			}
 		}
 
-		oldRoleName, _ := uc.memberRepo.GetMemberRoleName(txCtx, orgID, userID)
-		if oldRoleName == "" {
-			oldRoleName = member.RoleID
+		oldRoleName, err := uc.memberRepo.GetMemberRoleName(txCtx, orgID, userID)
+		if err != nil {
+			uc.log.WithContext(txCtx).Errorf("Failed to resolve member role name for user %s: %v", userID, err)
+			return exception.ErrInternalServer
 		}
 
 		// Update role if provided
@@ -465,8 +466,9 @@ func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, us
 		}
 
 		oldRoleName, err := uc.memberRepo.GetMemberRoleName(txCtx, orgID, userID)
-		if err != nil && oldRoleName == "" {
-			oldRoleName = member.RoleID
+		if err != nil {
+			uc.log.WithContext(txCtx).Errorf("Failed to resolve member role name for removal of user %s: %v", userID, err)
+			return exception.ErrInternalServer
 		}
 
 		// Remove Casbin grouping policy
@@ -544,9 +546,14 @@ func (uc *organizationMemberUseCase) reloadPolicyAfterCommit(ctx context.Context
 	if uc.enforcer == nil {
 		return
 	}
-	if err := uc.enforcer.LoadPolicy(); err != nil {
-		uc.log.WithContext(ctx).WithError(err).Warn("Failed to reload Casbin policy after member operation")
+	var err error
+	for attempts := 0; attempts < 3; attempts++ {
+		if err = uc.enforcer.LoadPolicy(); err == nil {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
+	uc.log.WithContext(ctx).WithError(err).Error("Failed to reload Casbin policy after member operation after retries")
 }
 
 func (uc *organizationMemberUseCase) invalidateMembershipCache(ctx context.Context, orgID, userID string) {
