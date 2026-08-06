@@ -34,6 +34,9 @@ func (r *roleRepository) Create(ctx context.Context, role *entity.Role) error {
 	return r.getDB(ctx).Create(role).Error
 }
 
+// Update persists the mutable fields of a role. Only description is writable
+// through the API (see model.UpdateRoleRequest); name and organization_id are
+// immutable because Casbin policies key off role.Name.
 func (r *roleRepository) Update(ctx context.Context, role *entity.Role) error {
 	return r.getDB(ctx).Model(&entity.Role{}).Where("id = ?", role.ID).
 		Updates(map[string]interface{}{"description": role.Description}).Error
