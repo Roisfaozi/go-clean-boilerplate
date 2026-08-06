@@ -489,41 +489,50 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 	cleanID := "019b9150-304e-79d0-aa16-4a2b44347a08"
 	deleteReq := &model.DeleteUserRequest{ID: cleanID}
 
-	t.Run("Success - User Deleted", func(t *testing.T) {
-		deps, uc := setupUserTest()
-		deps.Repo.On("FindByID", mock.Anything, deleteReq.ID).Return(&entity.User{ID: deleteReq.ID, Username: "deletedUser"}, nil)
+	lookupTests := []struct {
+		name        string
+		user        *entity.User
+		findErr     error
+		expectedErr error
+	}{
+		{
+			name: "Success - User Deleted",
+			user: &entity.User{ID: deleteReq.ID, Username: "deletedUser"},
+		},
+		{
+			name:        "Error - User Not Found",
+			findErr:     errors.New("user not found"),
+			expectedErr: exception.ErrNotFound,
+		},
+	}
 
-		// Mock Transaction
-		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
-			return fn(ctx)
+	for _, tt := range lookupTests {
+		t.Run(tt.name, func(t *testing.T) {
+			deps, uc := setupUserTest()
+			deps.Repo.On("FindByID", mock.Anything, deleteReq.ID).Return(tt.user, tt.findErr)
+
+			if tt.findErr == nil {
+				deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
+					return fn(ctx)
+				})
+				deps.Repo.On("Delete", mock.Anything, deleteReq.ID).Return(nil)
+				deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
+				deps.Enforcer.On("GetRolesForUser", deleteReq.ID, mock.Anything).Return([]string{"role:user"}, nil)
+				deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
+				deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
+			}
+
+			err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+				deps.AuditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
+			} else {
+				assert.NoError(t, err)
+				deps.AuditUC.AssertExpectations(t)
+			}
+			deps.Repo.AssertExpectations(t)
 		})
-
-		deps.Repo.On("Delete", mock.Anything, deleteReq.ID).Return(nil)
-
-		// Expect Backup Roles
-		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, mock.Anything).Return([]string{"role:user"}, nil)
-
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
-		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
-
-		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
-
-		assert.NoError(t, err)
-		deps.Repo.AssertExpectations(t)
-		deps.AuditUC.AssertExpectations(t)
-	})
-
-	t.Run("Error - User Not Found", func(t *testing.T) {
-		deps, uc := setupUserTest()
-		deps.Repo.On("FindByID", mock.Anything, deleteReq.ID).Return(nil, errors.New("user not found"))
-
-		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
-
-		assert.NoError(t, err)
-		deps.Repo.AssertExpectations(t)
-		deps.AuditUC.AssertNotCalled(t, "LogActivity", mock.Anything, mock.Anything)
-	})
+	}
 
 	t.Run("Error - SQL Injection Attempt", func(t *testing.T) {
 		_, uc := setupUserTest()

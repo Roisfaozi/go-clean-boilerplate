@@ -134,6 +134,10 @@ func (uc *AccessUseCase) LinkEndpointToAccessRight(ctx context.Context, req mode
 func (uc *AccessUseCase) UnlinkEndpointFromAccessRight(ctx context.Context, req model.LinkEndpointRequest) error {
 	accessRight, err := uc.repo.GetAccessRightByID(ctx, req.AccessRightID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			uc.log.WithContext(ctx).Warnf("Access right with ID %s not found for unlinking; treating as success", req.AccessRightID)
+			return nil
+		}
 		uc.log.WithContext(ctx).WithError(err).Error("Failed to get access right before unlinking endpoint")
 		return err
 	}
@@ -163,8 +167,8 @@ func (uc *AccessUseCase) DeleteAccessRight(ctx context.Context, id string) error
 	_, err := uc.repo.GetAccessRightByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			uc.log.WithContext(ctx).Warnf("Access right with ID %s already absent; treating delete as success", id)
-			return nil
+			uc.log.WithContext(ctx).Warnf("Access right with ID %s not found for deletion", id)
+			return exception.ErrNotFound
 		}
 		uc.log.WithContext(ctx).WithError(err).Errorf("Failed to find access right with ID %s: %v", id, err)
 		return exception.ErrInternalServer

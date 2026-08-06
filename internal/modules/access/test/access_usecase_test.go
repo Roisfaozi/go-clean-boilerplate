@@ -200,26 +200,44 @@ func TestLinkEndpointToAccessRight(t *testing.T) {
 func TestDeleteAccessRight(t *testing.T) {
 	id := "1"
 
-	t.Run("Success - Delete Access Right", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+	tests := []struct {
+		name         string
+		findResult   *entity.AccessRight
+		findErr      error
+		expectDelete bool
+		expectedErr  error
+	}{
+		{
+			name:         "Success - Delete Access Right",
+			findResult:   &entity.AccessRight{ID: id},
+			expectDelete: true,
+		},
+		{
+			name:        "Error - Not Found",
+			findErr:     gorm.ErrRecordNotFound,
+			expectedErr: exception.ErrNotFound,
+		},
+	}
 
-		deps.Repo.On("GetAccessRightByID", ctx, id).Return(&entity.AccessRight{ID: id}, nil).Once()
-		deps.Repo.On("DeleteAccessRight", ctx, id).Return(nil).Once()
-		err := uc.DeleteAccessRight(ctx, id)
-		assert.NoError(t, err)
-		deps.Repo.AssertExpectations(t)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			deps, uc := setupAccessTest()
+			ctx := context.Background()
 
-	t.Run("Error - Not Found", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+			deps.Repo.On("GetAccessRightByID", ctx, id).Return(tt.findResult, tt.findErr).Once()
+			if tt.expectDelete {
+				deps.Repo.On("DeleteAccessRight", ctx, id).Return(nil).Once()
+			}
 
-		deps.Repo.On("GetAccessRightByID", ctx, id).Return(nil, gorm.ErrRecordNotFound).Once()
-		err := uc.DeleteAccessRight(ctx, id)
-		assert.NoError(t, err)
-		deps.Repo.AssertExpectations(t)
-	})
+			err := uc.DeleteAccessRight(ctx, id)
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+			deps.Repo.AssertExpectations(t)
+		})
+	}
 }
 
 func TestDeleteEndpoint(t *testing.T) {
