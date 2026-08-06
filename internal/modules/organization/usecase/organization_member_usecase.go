@@ -150,11 +150,12 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 			Status:         entity.MemberStatusInvited,
 		}
 
-		if existingStatus == "" {
+		switch existingStatus {
+		case "":
 			if err := uc.memberRepo.AddMember(txCtx, member); err != nil {
 				return err
 			}
-		} else if existingStatus == entity.MemberStatusInvited {
+		case entity.MemberStatusInvited:
 			if err := uc.memberRepo.UpdateMemberRole(txCtx, orgID, targetUser.ID, targetRole.ID); err != nil {
 				return err
 			}
