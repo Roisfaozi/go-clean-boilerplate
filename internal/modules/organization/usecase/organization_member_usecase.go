@@ -522,7 +522,7 @@ func (uc *organizationMemberUseCase) authorizeMemberManagement(ctx context.Conte
 	if err != nil {
 		return nil, "", false, exception.ErrInternalServer
 	}
-	if roleName != adminRoleID && roleName != DefaultOwnerRoleName {
+	if roleName != adminRoleName && roleName != DefaultOwnerRoleName {
 		return nil, "", false, exception.ErrForbidden
 	}
 

@@ -19,10 +19,10 @@ import (
 
 const (
 	DefaultOwnerRoleName = "role:org-owner"
-	adminRoleID          = "role:admin"
-	defaultUserRoleID    = "role:user"
+	adminRoleName        = "role:admin"
+	defaultUserRoleName  = "role:user"
 	globalDomain         = "global"
-	superAdminRoleID     = "role:superadmin"
+	superAdminRoleName   = "role:superadmin"
 )
 
 type organizationUseCase struct {
@@ -132,7 +132,7 @@ func (uc *organizationUseCase) CreateOrganization(ctx context.Context, userID st
 }
 
 func (uc *organizationUseCase) bootstrapOrganizationPolicies(enf permissionUseCase.IEnforcer, orgID string) error {
-	defaultRoles := []string{adminRoleID, defaultUserRoleID}
+	defaultRoles := []string{adminRoleName, defaultUserRoleName}
 
 	for _, roleID := range defaultRoles {
 		policies, err := enf.GetFilteredPolicy(0, roleID, globalDomain)
@@ -151,7 +151,7 @@ func (uc *organizationUseCase) bootstrapOrganizationPolicies(enf permissionUseCa
 		}
 	}
 
-	if _, err := enf.AddGroupingPolicy(DefaultOwnerRoleName, adminRoleID, orgID); err != nil {
+	if _, err := enf.AddGroupingPolicy(DefaultOwnerRoleName, adminRoleName, orgID); err != nil {
 		return err
 	}
 
@@ -251,7 +251,7 @@ func (uc *organizationUseCase) authorizeOrganizationManagement(ctx context.Conte
 		return nil, exception.ErrInternalServer
 	}
 
-	if roleName != adminRoleID && roleName != DefaultOwnerRoleName {
+	if roleName != adminRoleName && roleName != DefaultOwnerRoleName {
 		return nil, exception.ErrForbidden
 	}
 
@@ -313,7 +313,7 @@ func (uc *organizationUseCase) DeleteOrganization(ctx context.Context, id string
 // RestoreOrganization restores a soft-deleted organization.
 func (uc *organizationUseCase) RestoreOrganization(ctx context.Context, id string) (*model.OrganizationResponse, error) {
 	role, ok := actorRoleFromContext(ctx)
-	if !ok || role != superAdminRoleID {
+	if !ok || role != superAdminRoleName {
 		return nil, exception.ErrForbidden
 	}
 
@@ -361,7 +361,7 @@ func (uc *organizationUseCase) RestoreOrganization(ctx context.Context, id strin
 // HardDeleteOrganization permanently deletes an already soft-deleted organization.
 func (uc *organizationUseCase) HardDeleteOrganization(ctx context.Context, id string) error {
 	role, ok := actorRoleFromContext(ctx)
-	if !ok || role != superAdminRoleID {
+	if !ok || role != superAdminRoleName {
 		return exception.ErrForbidden
 	}
 
