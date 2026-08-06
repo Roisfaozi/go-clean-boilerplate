@@ -23,9 +23,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestOrganizationRoleEndpoints_ScopeIsolation(t *testing.T) {
-	env := setup.SetupIntegrationEnvironment(t)
-	defer env.Cleanup()
+type orgRoleEndpointFixture struct {
+	roleUC roleUseCase.RoleUseCase
+	rRepo  roleRepo.RoleRepository
+	orgAID string
+	orgBID string
+}
+
+func newOrgRoleEndpointFixture(t *testing.T, env *setup.TestEnvironment, slugPrefix string) *orgRoleEndpointFixture {
+	t.Helper()
 
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
@@ -39,74 +45,299 @@ func TestOrganizationRoleEndpoints_ScopeIsolation(t *testing.T) {
 	rUC := roleUseCase.NewRoleUseCase(env.Logger, tm, rRepo, pUC)
 	orgUC := orgUsecase.NewOrganizationUseCase(env.Logger, tm, oRepo, mRepo, oReader, env.Enforcer, rRepo)
 
-	ownerA := setup.CreateTestUser(t, env.DB, "epOwnerA", "epownera@example.com", "Password123!")
-	ownerB := setup.CreateTestUser(t, env.DB, "epOwnerB", "epownerb@example.com", "Password123!")
+	ownerA := setup.CreateTestUser(t, env.DB, slugPrefix+"OwnerA", slugPrefix+"ownera@example.com", "Password123!")
+	ownerB := setup.CreateTestUser(t, env.DB, slugPrefix+"OwnerB", slugPrefix+"ownerb@example.com", "Password123!")
 
-	orgA, err := orgUC.CreateOrganization(context.Background(), ownerA.ID, &orgModel.CreateOrganizationRequest{Name: "EP Org A", Slug: "ep-org-a"})
-	require.NoError(t, err)
-	orgB, err := orgUC.CreateOrganization(context.Background(), ownerB.ID, &orgModel.CreateOrganizationRequest{Name: "EP Org B", Slug: "ep-org-b"})
-	require.NoError(t, err)
-
-	ctx := context.Background()
-
-	// CREATE: role tercipta dengan organization_id yang benar
-	created, err := rUC.CreateForOrganization(ctx, orgA.ID, &roleModel.CreateRoleRequest{
-		Name:        "ep_editor",
-		Description: "Editor",
+	orgA, err := orgUC.CreateOrganization(context.Background(), ownerA.ID, &orgModel.CreateOrganizationRequest{
+		Name: slugPrefix + " Org A", Slug: slugPrefix + "-org-a",
 	})
 	require.NoError(t, err)
-	require.NotNil(t, created.OrganizationID)
-	assert.Equal(t, orgA.ID, *created.OrganizationID)
-
-	// CREATE: nama sama boleh dipakai di organisasi berbeda (unique per org)
-	createdB, err := rUC.CreateForOrganization(ctx, orgB.ID, &roleModel.CreateRoleRequest{
-		Name:        "ep_editor",
-		Description: "Editor B",
+	orgB, err := orgUC.CreateOrganization(context.Background(), ownerB.ID, &orgModel.CreateOrganizationRequest{
+		Name: slugPrefix + " Org B", Slug: slugPrefix + "-org-b",
 	})
-	require.NoError(t, err, "nama role sama harus boleh di organisasi berbeda")
-
-	// CREATE: reserved name ditolak
-	_, err = rUC.CreateForOrganization(ctx, orgA.ID, &roleModel.CreateRoleRequest{Name: "role:admin"})
-	require.ErrorIs(t, err, exception.ErrBadRequest)
-
-	// CREATE: orgID kosong ditolak
-	_, err = rUC.CreateForOrganization(ctx, "", &roleModel.CreateRoleRequest{Name: "no_org"})
-	require.ErrorIs(t, err, exception.ErrBadRequest)
-
-	// LIST: hanya role milik org sendiri
-	listA, err := rUC.GetOrganizationRoles(ctx, orgA.ID)
 	require.NoError(t, err)
-	for _, r := range listA {
-		require.NotNil(t, r.OrganizationID)
-		assert.Equal(t, orgA.ID, *r.OrganizationID, "list tidak boleh bocor lintas tenant")
+
+	return &orgRoleEndpointFixture{roleUC: rUC, rRepo: rRepo, orgAID: orgA.ID, orgBID: orgB.ID}
+}
+
+func TestOrganizationRoleEndpoints_Create(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	f := newOrgRoleEndpointFixture(t, env, "epcreate")
+
+	tests := []struct {
+		name        string
+		orgID       string
+		request     *roleModel.CreateRoleRequest
+		expectedErr error
+		assertRole  func(t *testing.T, resp *roleModel.RoleResponse)
+	}{
+		{
+			name:  "creates role scoped to the organization",
+			orgID: f.orgAID,
+			request: &roleModel.CreateRoleRequest{
+				Name: "ep_editor", Description: "Editor",
+			},
+			assertRole: func(t *testing.T, resp *roleModel.RoleResponse) {
+				require.NotNil(t, resp.OrganizationID)
+				assert.Equal(t, f.orgAID, *resp.OrganizationID)
+			},
+		},
+		{
+			name:  "allows same role name in a different organization",
+			orgID: f.orgBID,
+			request: &roleModel.CreateRoleRequest{
+				Name: "ep_editor", Description: "Editor B",
+			},
+			assertRole: func(t *testing.T, resp *roleModel.RoleResponse) {
+				require.NotNil(t, resp.OrganizationID)
+				assert.Equal(t, f.orgBID, *resp.OrganizationID)
+			},
+		},
+		{
+			name:        "rejects duplicate role name within the same organization",
+			orgID:       f.orgAID,
+			request:     &roleModel.CreateRoleRequest{Name: "ep_editor", Description: "dup"},
+			expectedErr: exception.ErrConflict,
+		},
+		{
+			name:        "rejects reserved role name",
+			orgID:       f.orgAID,
+			request:     &roleModel.CreateRoleRequest{Name: "role:admin"},
+			expectedErr: exception.ErrBadRequest,
+		},
+		{
+			name:        "rejects empty organization id",
+			orgID:       "",
+			request:     &roleModel.CreateRoleRequest{Name: "no_org"},
+			expectedErr: exception.ErrBadRequest,
+		},
 	}
 
-	// UPDATE cross-tenant HARUS ditolak
-	_, err = rUC.UpdateForOrganization(ctx, orgA.ID, createdB.ID, &roleModel.UpdateRoleRequest{
-		Description: "hijacked",
-	})
-	require.ErrorIs(t, err, exception.ErrNotFound, "org A tidak boleh mengubah role org B")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := f.roleUC.CreateForOrganization(context.Background(), tt.orgID, tt.request)
 
-	// pastikan data org B tidak berubah
-	stillB, err := rRepo.FindOrganizationRoleByID(ctx, orgB.ID, createdB.ID)
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			if tt.assertRole != nil {
+				tt.assertRole(t, resp)
+			}
+		})
+	}
+}
+
+func TestOrganizationRoleEndpoints_ListScoping(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	f := newOrgRoleEndpointFixture(t, env, "eplist")
+
+	_, err := f.roleUC.CreateForOrganization(context.Background(), f.orgAID, &roleModel.CreateRoleRequest{Name: "list_a"})
 	require.NoError(t, err)
-	assert.Equal(t, "Editor B", stillB.Description)
+	_, err = f.roleUC.CreateForOrganization(context.Background(), f.orgBID, &roleModel.CreateRoleRequest{Name: "list_b"})
+	require.NoError(t, err)
 
-	// UPDATE own-tenant berhasil
-	updated, err := rUC.UpdateForOrganization(ctx, orgA.ID, created.ID, &roleModel.UpdateRoleRequest{
-		Description: "Editor Updated",
+	tests := []struct {
+		name          string
+		orgID         string
+		expectedErr   error
+		mustContain   string
+		mustNotContai string
+	}{
+		{
+			name:          "lists only roles owned by organization A",
+			orgID:         f.orgAID,
+			mustContain:   "list_a",
+			mustNotContai: "list_b",
+		},
+		{
+			name:          "lists only roles owned by organization B",
+			orgID:         f.orgBID,
+			mustContain:   "list_b",
+			mustNotContai: "list_a",
+		},
+		{
+			name:        "rejects empty organization id",
+			orgID:       "",
+			expectedErr: exception.ErrBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			roles, err := f.roleUC.GetOrganizationRoles(context.Background(), tt.orgID)
+
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
+				return
+			}
+
+			require.NoError(t, err)
+
+			names := make([]string, 0, len(roles))
+			for _, r := range roles {
+				require.NotNil(t, r.OrganizationID, "organization role must carry organization_id")
+				assert.Equal(t, tt.orgID, *r.OrganizationID, "listing must not leak roles across tenants")
+				names = append(names, r.Name)
+			}
+
+			assert.Contains(t, names, tt.mustContain)
+			assert.NotContains(t, names, tt.mustNotContai)
+		})
+	}
+}
+
+func TestOrganizationRoleEndpoints_UpdateScopeIsolation(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	f := newOrgRoleEndpointFixture(t, env, "epupdate")
+
+	roleA, err := f.roleUC.CreateForOrganization(context.Background(), f.orgAID, &roleModel.CreateRoleRequest{
+		Name: "upd_role", Description: "Original A",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, "Editor Updated", updated.Description)
+	roleB, err := f.roleUC.CreateForOrganization(context.Background(), f.orgBID, &roleModel.CreateRoleRequest{
+		Name: "upd_role", Description: "Original B",
+	})
+	require.NoError(t, err)
 
-	// DELETE cross-tenant HARUS ditolak
-	err = rUC.DeleteForOrganization(ctx, orgA.ID, createdB.ID)
-	require.ErrorIs(t, err, exception.ErrNotFound, "org A tidak boleh menghapus role org B")
+	tests := []struct {
+		name                string
+		orgID               string
+		roleID              string
+		description         string
+		expectedErr         error
+		unchangedRoleID     string
+		unchangedRoleOrgID  string
+		unchangedRoleDetail string
+	}{
+		{
+			name:                "cross-tenant update is rejected and leaves data untouched",
+			orgID:               f.orgAID,
+			roleID:              roleB.ID,
+			description:         "hijacked",
+			expectedErr:         exception.ErrNotFound,
+			unchangedRoleID:     roleB.ID,
+			unchangedRoleOrgID:  f.orgBID,
+			unchangedRoleDetail: "Original B",
+		},
+		{
+			name:        "update of unknown role id is rejected",
+			orgID:       f.orgAID,
+			roleID:      "00000000-0000-0000-0000-000000000000",
+			description: "ghost",
+			expectedErr: exception.ErrNotFound,
+		},
+		{
+			name:        "rejects empty organization id",
+			orgID:       "",
+			roleID:      roleA.ID,
+			description: "no org",
+			expectedErr: exception.ErrBadRequest,
+		},
+		{
+			name:        "rejects empty role id",
+			orgID:       f.orgAID,
+			roleID:      "",
+			description: "no role",
+			expectedErr: exception.ErrBadRequest,
+		},
+		{
+			name:        "own-tenant update succeeds",
+			orgID:       f.orgAID,
+			roleID:      roleA.ID,
+			description: "Editor Updated",
+		},
+	}
 
-	// DELETE own-tenant berhasil
-	require.NoError(t, rUC.DeleteForOrganization(ctx, orgA.ID, created.ID))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := f.roleUC.UpdateForOrganization(context.Background(), tt.orgID, tt.roleID, &roleModel.UpdateRoleRequest{
+				Description: tt.description,
+			})
 
-	// role org B tetap ada setelah delete milik org A
-	_, err = rRepo.FindOrganizationRoleByID(ctx, orgB.ID, createdB.ID)
-	require.NoError(t, err, "role org B harus tetap utuh")
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
+
+				if tt.unchangedRoleID != "" {
+					untouched, findErr := f.rRepo.FindOrganizationRoleByID(context.Background(), tt.unchangedRoleOrgID, tt.unchangedRoleID)
+					require.NoError(t, findErr)
+					assert.Equal(t, tt.unchangedRoleDetail, untouched.Description, "target tenant data must stay untouched")
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			assert.Equal(t, tt.description, resp.Description)
+		})
+	}
+}
+
+func TestOrganizationRoleEndpoints_DeleteScopeIsolation(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	f := newOrgRoleEndpointFixture(t, env, "epdelete")
+
+	roleA, err := f.roleUC.CreateForOrganization(context.Background(), f.orgAID, &roleModel.CreateRoleRequest{Name: "del_role"})
+	require.NoError(t, err)
+	roleB, err := f.roleUC.CreateForOrganization(context.Background(), f.orgBID, &roleModel.CreateRoleRequest{Name: "del_role"})
+	require.NoError(t, err)
+
+	tests := []struct {
+		name           string
+		orgID          string
+		roleID         string
+		expectedErr    error
+		survivorOrgID  string
+		survivorRoleID string
+	}{
+		{
+			name:           "cross-tenant delete is rejected and role survives",
+			orgID:          f.orgAID,
+			roleID:         roleB.ID,
+			expectedErr:    exception.ErrNotFound,
+			survivorOrgID:  f.orgBID,
+			survivorRoleID: roleB.ID,
+		},
+		{
+			name:        "delete of unknown role id is rejected",
+			orgID:       f.orgAID,
+			roleID:      "00000000-0000-0000-0000-000000000000",
+			expectedErr: exception.ErrNotFound,
+		},
+		{
+			name:           "own-tenant delete succeeds and other tenant role survives",
+			orgID:          f.orgAID,
+			roleID:         roleA.ID,
+			survivorOrgID:  f.orgBID,
+			survivorRoleID: roleB.ID,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := f.roleUC.DeleteForOrganization(context.Background(), tt.orgID, tt.roleID)
+
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+
+			if tt.survivorRoleID != "" {
+				_, findErr := f.rRepo.FindOrganizationRoleByID(context.Background(), tt.survivorOrgID, tt.survivorRoleID)
+				require.NoError(t, findErr, "role of the other tenant must remain intact")
+			}
+		})
+	}
 }

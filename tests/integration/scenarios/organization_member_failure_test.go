@@ -47,153 +47,220 @@ func (e *txBoundFailOnAdd) AddGroupingPolicy(params ...interface{}) (bool, error
 	return false, errors.New("simulated casbin failure")
 }
 
-// TestUpdateMember_CasbinFailure_RollsBackDB verifies that when the Casbin
-// grouping policy update fails, the whole operation (including the DB role
-// change) is rolled back.
+type memberFailureFixture struct {
+	memberUC   orgUsecase.OrganizationMemberUseCase
+	mRepo      orgRepo.OrganizationMemberRepository
+	uRepo      userRepo.UserRepository
+	orgID      string
+	ownerID    string
+	role1      *roleEntity.Role
+	role2      *roleEntity.Role
+	env        *setup.TestEnvironment
+	actorCtx   context.Context
+	enforcerUC permissionUC.IEnforcer
+}
+
+func newMemberFailureFixture(t *testing.T, env *setup.TestEnvironment, prefix string, enforcer permissionUC.IEnforcer) *memberFailureFixture {
+	t.Helper()
+
+	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
+	iRepo := orgRepo.NewInvitationRepository(env.DB)
+	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
+	oReader := orgUsecase.NewCachedOrgReader(mRepo, env.Redis, env.Logger)
+
+	owner := setup.CreateTestUser(t, env.DB, prefix+"Owner", prefix+"owner@example.com", "Password123!")
+
+	orgUC := orgUsecase.NewOrganizationUseCase(env.Logger, tm, oRepo, mRepo, oReader, env.Enforcer, rRepo)
+	orgResp, err := orgUC.CreateOrganization(context.Background(), owner.ID, &orgModel.CreateOrganizationRequest{
+		Name: prefix + " Org",
+		Slug: prefix + "-org",
+	})
+	require.NoError(t, err)
+
+	role1 := &roleEntity.Role{ID: uuid.NewString(), Name: prefix + "_role_1", OrganizationID: &orgResp.ID}
+	role2 := &roleEntity.Role{ID: uuid.NewString(), Name: prefix + "_role_2", OrganizationID: &orgResp.ID}
+	require.NoError(t, rRepo.Create(context.Background(), role1))
+	require.NoError(t, rRepo.Create(context.Background(), role2))
+
+	memberUC := orgUsecase.NewOrganizationMemberUseCase(
+		env.Logger, tm, mRepo, oRepo, iRepo, uRepo, nil, enforcer, nil, oReader, "http://localhost:3000", rRepo,
+	)
+
+	actorCtx := orgUsecase.WithActorUserID(context.Background(), owner.ID)
+	actorCtx = database.SetOrganizationContext(actorCtx, orgResp.ID)
+
+	return &memberFailureFixture{
+		memberUC:   memberUC,
+		mRepo:      mRepo,
+		uRepo:      uRepo,
+		orgID:      orgResp.ID,
+		ownerID:    owner.ID,
+		role1:      role1,
+		role2:      role2,
+		env:        env,
+		actorCtx:   actorCtx,
+		enforcerUC: enforcer,
+	}
+}
+
+func (f *memberFailureFixture) countGroupingPolicies(t *testing.T, userID string, roleName string) int64 {
+	t.Helper()
+
+	query := f.env.DB.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v2 = ?", "g", userID, f.orgID)
+	if roleName != "" {
+		query = query.Where("v1 = ?", roleName)
+	}
+
+	var count int64
+	require.NoError(t, query.Count(&count).Error)
+	return count
+}
+
+// TestUpdateMember_CasbinFailure_RollsBackDB verifies that a Casbin grouping
+// policy failure rolls back the member role change in the database.
 func TestUpdateMember_CasbinFailure_RollsBackDB(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
-	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
-	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
-	iRepo := orgRepo.NewInvitationRepository(env.DB)
-	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	oReader := orgUsecase.NewCachedOrgReader(mRepo, env.Redis, env.Logger)
+	f := newMemberFailureFixture(t, env, "rollback", &failOnAddEnforcer{IEnforcer: env.Enforcer})
 
-	owner := setup.CreateTestUser(t, env.DB, "rollbackOwner", "rollbackowner@example.com", "Password123!")
-
-	orgUC := orgUsecase.NewOrganizationUseCase(env.Logger, tm, oRepo, mRepo, oReader, env.Enforcer, rRepo)
-	orgResp, err := orgUC.CreateOrganization(context.Background(), owner.ID, &orgModel.CreateOrganizationRequest{
-		Name: "Rollback Org",
-		Slug: "rollback-org",
-	})
-	require.NoError(t, err)
-	orgID := orgResp.ID
-
-	role1 := &roleEntity.Role{ID: uuid.NewString(), Name: "role_1", OrganizationID: &orgID}
-	role2 := &roleEntity.Role{ID: uuid.NewString(), Name: "role_2", OrganizationID: &orgID}
-	require.NoError(t, rRepo.Create(context.Background(), role1))
-	require.NoError(t, rRepo.Create(context.Background(), role2))
-
-	memberUser := setup.CreateTestUser(t, env.DB, "rollbackMember", "rollbackmember@example.com", "password")
-	require.NoError(t, mRepo.AddMember(context.Background(), &orgEntity.OrganizationMember{
+	member := setup.CreateTestUser(t, env.DB, "rollbackMember", "rollbackmember@example.com", "Password123!")
+	require.NoError(t, f.mRepo.AddMember(context.Background(), &orgEntity.OrganizationMember{
 		ID:             uuid.NewString(),
-		OrganizationID: orgID,
-		UserID:         memberUser.ID,
-		RoleID:         role1.ID,
+		OrganizationID: f.orgID,
+		UserID:         member.ID,
+		RoleID:         f.role1.ID,
 		Status:         orgEntity.MemberStatusActive,
 	}))
-	_, err = env.Enforcer.AddGroupingPolicy(memberUser.ID, role1.Name, orgID)
+	_, err := env.Enforcer.AddGroupingPolicy(member.ID, f.role1.Name, f.orgID)
 	require.NoError(t, err)
 
-	failing := &failOnAddEnforcer{IEnforcer: env.Enforcer}
-	memberUC := orgUsecase.NewOrganizationMemberUseCase(
-		env.Logger, tm, mRepo, oRepo, iRepo, uRepo, nil, failing, nil, oReader, "http://localhost:3000", rRepo,
-	)
+	tests := []struct {
+		name              string
+		request           *orgModel.UpdateMemberRequest
+		expectError       bool
+		expectedRoleID    string
+		expectedPolicy    string
+		expectedPolicyNum int64
+	}{
+		{
+			name:              "casbin add failure rolls back role change and keeps old policy",
+			request:           &orgModel.UpdateMemberRequest{RoleID: f.role2.ID},
+			expectError:       true,
+			expectedRoleID:    f.role1.ID,
+			expectedPolicy:    f.role1.Name,
+			expectedPolicyNum: 1,
+		},
+		{
+			name:              "new role policy is never persisted after rollback",
+			request:           &orgModel.UpdateMemberRequest{RoleID: f.role2.ID},
+			expectError:       true,
+			expectedRoleID:    f.role1.ID,
+			expectedPolicy:    f.role2.Name,
+			expectedPolicyNum: 0,
+		},
+	}
 
-	actorCtx := orgUsecase.WithActorUserID(context.Background(), owner.ID)
-	actorCtx = database.SetOrganizationContext(actorCtx, orgID)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := f.memberUC.UpdateMember(f.actorCtx, f.orgID, member.ID, tt.request)
 
-	_, err = memberUC.UpdateMember(actorCtx, orgID, memberUser.ID, &orgModel.UpdateMemberRequest{RoleID: role2.ID})
-	require.Error(t, err, "update must fail when Casbin add grouping policy fails")
+			if tt.expectError {
+				require.Error(t, err, "update must fail when Casbin add grouping policy fails")
+			} else {
+				require.NoError(t, err)
+			}
 
-	roleInDB, err := mRepo.GetMemberRole(context.Background(), orgID, memberUser.ID)
-	require.NoError(t, err)
-	assert.Equal(t, role1.ID, roleInDB, "DB role must roll back to old role when Casbin fails")
+			roleInDB, err := f.mRepo.GetMemberRole(context.Background(), f.orgID, member.ID)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedRoleID, roleInDB, "DB role must roll back when Casbin fails")
 
-	var casbinCount int64
-	err = env.DB.Table("casbin_rule").
-		Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "g", memberUser.ID, role1.Name, orgID).
-		Count(&casbinCount).Error
-	require.NoError(t, err)
-	assert.Equal(t, int64(1), casbinCount, "old grouping policy must remain after rollback")
+			assert.Equal(t, tt.expectedPolicyNum, f.countGroupingPolicies(t, member.ID, tt.expectedPolicy))
+		})
+	}
 }
 
-// TestAcceptInvitation_ActiveMember_NoDuplicatePolicy verifies that accepting a
-// stale/second invitation for an already-active member does not add a second
-// Casbin grouping policy and cleans up the stale token.
+// TestAcceptInvitation_ActiveMember_NoDuplicatePolicy verifies invitation accept
+// behaviour for invited versus already-active members.
 func TestAcceptInvitation_ActiveMember_NoDuplicatePolicy(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
-	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
-	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
-	iRepo := orgRepo.NewInvitationRepository(env.DB)
-	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	oReader := orgUsecase.NewCachedOrgReader(mRepo, env.Redis, env.Logger)
-
-	ownerUser := setup.CreateTestUser(t, env.DB, "activeOwner", "activeowner@example.com", "password")
-
-	orgUC := orgUsecase.NewOrganizationUseCase(env.Logger, tm, oRepo, mRepo, oReader, env.Enforcer, rRepo)
-	orgResp, err := orgUC.CreateOrganization(context.Background(), ownerUser.ID, &orgModel.CreateOrganizationRequest{
-		Name: "Stale Invite Org",
-		Slug: "stale-invite-org",
-	})
-	require.NoError(t, err)
-	orgID := orgResp.ID
-
-	role1 := &roleEntity.Role{ID: uuid.NewString(), Name: "role_1", OrganizationID: &orgID}
-	role2 := &roleEntity.Role{ID: uuid.NewString(), Name: "role_2", OrganizationID: &orgID}
-	require.NoError(t, rRepo.Create(context.Background(), role1))
-	require.NoError(t, rRepo.Create(context.Background(), role2))
-
-	memberUC := orgUsecase.NewOrganizationMemberUseCase(
-		env.Logger, tm, mRepo, oRepo, iRepo, uRepo, nil, env.Enforcer, nil, oReader, "http://localhost:3000", rRepo,
-	)
+	f := newMemberFailureFixture(t, env, "staleinvite", env.Enforcer)
 
 	inviteEmail := "activemember@example.com"
-	inviteCtx := orgUsecase.WithActorUserID(context.Background(), ownerUser.ID)
-	inviteCtx = database.SetOrganizationContext(inviteCtx, orgID)
-
-	// 1. Invite with role1 and accept -> member becomes active with one policy
-	_, err = memberUC.InviteMember(inviteCtx, orgID, &orgModel.InviteMemberRequest{Email: inviteEmail, RoleID: role1.ID})
+	_, err := f.memberUC.InviteMember(f.actorCtx, f.orgID, &orgModel.InviteMemberRequest{
+		Email:  inviteEmail,
+		RoleID: f.role1.ID,
+	})
 	require.NoError(t, err)
 
 	var firstToken orgEntity.InvitationToken
-	require.NoError(t, env.DB.Where("organization_id = ? AND email = ?", orgID, inviteEmail).First(&firstToken).Error)
-	require.NoError(t, memberUC.AcceptInvitation(context.Background(), &orgModel.AcceptInvitationRequest{
-		Token:    firstToken.Token,
-		Password: "Password123!",
-		Name:     "Active Member",
-	}))
+	require.NoError(t, env.DB.Where("organization_id = ? AND email = ?", f.orgID, inviteEmail).First(&firstToken).Error)
 
-	user, err := uRepo.FindByEmail(context.Background(), inviteEmail)
-	require.NoError(t, err)
-
-	roleInDB, err := mRepo.GetMemberRole(context.Background(), orgID, user.ID)
-	require.NoError(t, err)
-	assert.Equal(t, role1.ID, roleInDB)
-
-	// 2. Create a stale second invitation token with role2 for the same user
 	staleToken := "stale_token_" + uuid.NewString()
-	require.NoError(t, env.DB.Create(&orgEntity.InvitationToken{
-		ID:             uuid.NewString(),
-		OrganizationID: orgID,
-		Email:          inviteEmail,
-		Token:          staleToken,
-		RoleID:         role2.ID,
-		ExpiresAt:      time.Now().Add(48 * time.Hour).UnixMilli(),
-		CreatedAt:      time.Now().UnixMilli(),
-	}).Error)
 
-	// 3. Accept stale token -> must succeed without adding a second policy
-	require.NoError(t, memberUC.AcceptInvitation(context.Background(), &orgModel.AcceptInvitationRequest{Token: staleToken}))
+	tests := []struct {
+		name              string
+		seedStaleToken    bool
+		request           *orgModel.AcceptInvitationRequest
+		expectedRoleID    string
+		expectedPolicyNum int64
+		consumedToken     string
+	}{
+		{
+			name: "first accept activates member with a single policy",
+			request: &orgModel.AcceptInvitationRequest{
+				Token:    firstToken.Token,
+				Password: "Password123!",
+				Name:     "Active Member",
+			},
+			expectedRoleID:    f.role1.ID,
+			expectedPolicyNum: 1,
+			consumedToken:     firstToken.Token,
+		},
+		{
+			name:              "stale accept on active member adds no duplicate policy",
+			seedStaleToken:    true,
+			request:           &orgModel.AcceptInvitationRequest{Token: staleToken},
+			expectedRoleID:    f.role1.ID,
+			expectedPolicyNum: 1,
+			consumedToken:     staleToken,
+		},
+	}
 
-	var casbinCount int64
-	require.NoError(t, env.DB.Table("casbin_rule").
-		Where("ptype = ? AND v0 = ? AND v2 = ?", "g", user.ID, orgID).
-		Count(&casbinCount).Error)
-	assert.Equal(t, int64(1), casbinCount, "active member must not get a second grouping policy")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.seedStaleToken {
+				require.NoError(t, env.DB.Create(&orgEntity.InvitationToken{
+					ID:             uuid.NewString(),
+					OrganizationID: f.orgID,
+					Email:          inviteEmail,
+					Token:          staleToken,
+					RoleID:         f.role2.ID,
+					ExpiresAt:      time.Now().Add(48 * time.Hour).UnixMilli(),
+					CreatedAt:      time.Now().UnixMilli(),
+				}).Error)
+			}
 
-	roleInDB, err = mRepo.GetMemberRole(context.Background(), orgID, user.ID)
-	require.NoError(t, err)
-	assert.Equal(t, role1.ID, roleInDB, "member DB role must not change on stale token accept")
+			require.NoError(t, f.memberUC.AcceptInvitation(context.Background(), tt.request))
 
-	var tokenCount int64
-	require.NoError(t, env.DB.Table("invitation_tokens").Where("token = ?", staleToken).Count(&tokenCount).Error)
-	assert.Equal(t, int64(0), tokenCount, "stale token must be cleaned up")
+			user, err := f.uRepo.FindByEmail(context.Background(), inviteEmail)
+			require.NoError(t, err)
+
+			roleInDB, err := f.mRepo.GetMemberRole(context.Background(), f.orgID, user.ID)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedRoleID, roleInDB, "member DB role must not change on stale accept")
+
+			assert.Equal(t, tt.expectedPolicyNum, f.countGroupingPolicies(t, user.ID, ""),
+				"active member must not receive a duplicate grouping policy")
+
+			var tokenCount int64
+			require.NoError(t, env.DB.Table("invitation_tokens").Where("token = ?", tt.consumedToken).Count(&tokenCount).Error)
+			assert.Equal(t, int64(0), tokenCount, "consumed token must be cleaned up")
+		})
+	}
 }
