@@ -71,15 +71,15 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 	db.FirstOrCreate(&globalOrgRecord, orgEntity.Organization{ID: globalOrg})
 
 	roles := []roleEntity.Role{
-		{ID: "role:superadmin", Name: "role:superadmin", OrganizationID: &globalOrg, Description: "Super Administrator role"},
-		{ID: "role:admin", Name: "role:admin", OrganizationID: &globalOrg, Description: "Administrator role"},
-		{ID: "role:user", Name: "role:user", OrganizationID: &globalOrg, Description: "Regular user role"},
-		{ID: "role:org-owner", Name: "role:org-owner", OrganizationID: &globalOrg, Description: "Organization owner role"},
-		{ID: "role:moderator", Name: "role:moderator", OrganizationID: &globalOrg, Description: "Moderator role"},
+		{ID: uuid.NewString(), Name: "role:superadmin", OrganizationID: &globalOrg, Description: "Super Administrator role"},
+		{ID: uuid.NewString(), Name: "role:admin", OrganizationID: &globalOrg, Description: "Administrator role"},
+		{ID: uuid.NewString(), Name: "role:user", OrganizationID: &globalOrg, Description: "Regular user role"},
+		{ID: uuid.NewString(), Name: "role:org-owner", OrganizationID: &globalOrg, Description: "Organization owner role"},
+		{ID: uuid.NewString(), Name: "role:moderator", OrganizationID: &globalOrg, Description: "Moderator role"},
 	}
 
 	for _, role := range roles {
-		db.FirstOrCreate(&role, roleEntity.Role{ID: role.ID})
+		db.FirstOrCreate(&role, roleEntity.Role{Name: role.Name})
 	}
 
 	policies := [][]string{
@@ -100,6 +100,11 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 		{"role:admin", "global", "/api/v1/organizations/:id/members/:userId", "PATCH"},
 		{"role:admin", "global", "/api/v1/organizations/:id/members/:userId", "DELETE"},
 		{"role:admin", "global", "/api/v1/organizations/:id/presence", "GET"},
+		{"role:admin", "global", "/api/v1/organizations/:id/roles", "GET"},
+		{"role:admin", "global", "/api/v1/organizations/:id/roles", "POST"},
+		{"role:admin", "global", "/api/v1/organizations/:id/roles/:roleId", "PUT"},
+		{"role:admin", "global", "/api/v1/organizations/:id/roles/:roleId", "DELETE"},
+		{"role:user", "global", "/api/v1/organizations/:id/roles", "GET"},
 		{"role:admin", "global", "/api/v1/projects", "GET"},
 		{"role:admin", "global", "/api/v1/projects/:id", "GET"},
 		{"role:admin", "global", "/api/v1/projects", "POST"},
@@ -122,6 +127,13 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 	for _, p := range policies {
 		db.Exec("INSERT IGNORE INTO casbin_rule (ptype, v0, v1, v2, v3) VALUES (?, ?, ?, ?, ?)", "p", p[0], p[1], p[2], p[3])
 	}
+}
+
+func RoleIDByName(t *testing.T, db *gorm.DB, name string) string {
+	var r roleEntity.Role
+	err := db.Where("name = ?", name).First(&r).Error
+	require.NoError(t, err)
+	return r.ID
 }
 
 func CleanupDatabase(t *testing.T, db *gorm.DB) {
