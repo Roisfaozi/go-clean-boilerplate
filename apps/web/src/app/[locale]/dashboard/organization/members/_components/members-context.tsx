@@ -9,7 +9,7 @@ import {
 	useEffect,
 } from "react";
 import { type Member, organizationsApi } from "~/lib/api/organizations";
-import { type Role, rolesApi } from "~/lib/api/roles";
+import { type Role, organizationRolesApi } from "~/lib/api/roles";
 import { useOrganizationStore } from "~/stores/use-organization-store";
 import { toast } from "sonner";
 
@@ -39,16 +39,10 @@ export function MembersProvider({ children }: { children: ReactNode }) {
 		try {
 			const [membersResp, rolesResp] = await Promise.all([
 				organizationsApi.getMembers(currentOrganization.id),
-				rolesApi.getAll(),
+				organizationRolesApi.list(currentOrganization.id),
 			]);
 			if (membersResp.data) setMembers(membersResp.data);
-			if (rolesResp.data) {
-				setRoles(
-					rolesResp.data.filter(
-						(r) => r.organization_id === currentOrganization.id,
-					),
-				);
-			}
+			if (rolesResp.data) setRoles(rolesResp.data);
 		} catch (error) {
 			console.error("Failed to fetch data", error);
 			toast.error("Failed to load members");

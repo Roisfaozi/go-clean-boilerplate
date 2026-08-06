@@ -26,6 +26,24 @@ export interface SearchRoleFilter {
 	sort?: { colId: string; sort: "asc" | "desc" }[];
 }
 
+export const organizationRolesApi = {
+	list: (orgId: string) => {
+		return api.get<{ data: Role[] }>(`/organizations/${orgId}/roles`);
+	},
+	create: (orgId: string, data: { name: string; description: string }) => {
+		return api.post<{ data: Role }>(`/organizations/${orgId}/roles`, data);
+	},
+	update: (orgId: string, roleId: string, data: { description: string }) => {
+		return api.put<{ data: Role }>(
+			`/organizations/${orgId}/roles/${roleId}`,
+			data,
+		);
+	},
+	delete: (orgId: string, roleId: string) => {
+		return api.delete(`/organizations/${orgId}/roles/${roleId}`);
+	},
+};
+
 export const rolesApi = {
 	// Get all roles
 	getAll: () => {
