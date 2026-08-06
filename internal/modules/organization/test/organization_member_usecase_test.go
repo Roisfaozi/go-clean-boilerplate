@@ -87,6 +87,9 @@ func setupDefaultRoleMocks(deps *memberTestDeps) {
 	deps.RoleRepo.On("FindByName", mock.Anything, mock.Anything).Maybe().Return(func(ctx context.Context, name string) *roleEntity.Role {
 		return &roleEntity.Role{ID: name, Name: name}
 	}, nil)
+	deps.RoleRepo.On("FindByNameInScope", mock.Anything, mock.Anything, mock.Anything).Maybe().Return(func(ctx context.Context, name string, orgID *string) *roleEntity.Role {
+		return &roleEntity.Role{ID: name, Name: name}
+	}, nil)
 }
 
 func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {

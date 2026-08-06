@@ -311,6 +311,62 @@ func (_mock *MockRoleRepository) FindOrganizationRoleByID(ctx context.Context, o
 	return r0, r1
 }
 
+func (_mock *MockRoleRepository) FindByNameInScope(ctx context.Context, name string, orgID *string) (*entity.Role, error) {
+	ret := _mock.Called(ctx, name, orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindByNameInScope")
+	}
+
+	var r0 *entity.Role
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *string) (*entity.Role, error)); ok {
+		return returnFunc(ctx, name, orgID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *string) *entity.Role); ok {
+		r0 = returnFunc(ctx, name, orgID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.Role)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, *string) error); ok {
+		r1 = returnFunc(ctx, name, orgID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+func (_mock *MockRoleRepository) FindOrganizationRoles(ctx context.Context, organizationID string) ([]*entity.Role, error) {
+	ret := _mock.Called(ctx, organizationID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindOrganizationRoles")
+	}
+
+	var r0 []*entity.Role
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]*entity.Role, error)); ok {
+		return returnFunc(ctx, organizationID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []*entity.Role); ok {
+		r0 = returnFunc(ctx, organizationID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*entity.Role)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, organizationID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // FindByID provides a mock function for the type MockRoleRepository
 func (_mock *MockRoleRepository) FindByID(ctx context.Context, id string) (*entity.Role, error) {
 	ret := _mock.Called(ctx, id)

@@ -59,11 +59,38 @@ func (r *roleRepository) FindOrganizationRoleByID(ctx context.Context, organizat
 	return &role, nil
 }
 
+func (r *roleRepository) FindOrganizationRoles(ctx context.Context, organizationID string) ([]*entity.Role, error) {
+	var roles []*entity.Role
+	if err := r.getDB(ctx).
+		Scopes(database.OrganizationVisibilityScope(ctx, "roles.organization_id")).
+		Where("organization_id = ?", organizationID).
+		Find(&roles).Error; err != nil {
+		return nil, err
+	}
+	return roles, nil
+}
+
 func (r *roleRepository) FindByName(ctx context.Context, name string) (*entity.Role, error) {
 	var role entity.Role
 	if err := r.getDB(ctx).
 		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "roles.organization_id")).
 		First(&role, "name = ?", name).Error; err != nil {
+		return nil, err
+	}
+	return &role, nil
+}
+
+func (r *roleRepository) FindByNameInScope(ctx context.Context, name string, orgID *string) (*entity.Role, error) {
+	var role entity.Role
+	q := r.getDB(ctx).
+		Scopes(database.OrganizationVisibilityScope(ctx, "roles.organization_id")).
+		Where("name = ?", name)
+	if orgID == nil || *orgID == "" {
+		q = q.Where("organization_id IS NULL")
+	} else {
+		q = q.Where("organization_id = ?", *orgID)
+	}
+	if err := q.First(&role).Error; err != nil {
 		return nil, err
 	}
 	return &role, nil
