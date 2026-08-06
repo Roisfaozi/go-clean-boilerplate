@@ -189,6 +189,37 @@ func (uc *roleUseCase) Update(ctx context.Context, id string, request *model.Upd
 	return response, err
 }
 
+func (uc *roleUseCase) UpdateForOrganization(ctx context.Context, orgID, roleID string, request *model.UpdateRoleRequest) (*model.RoleResponse, error) {
+	if orgID == "" || roleID == "" {
+		return nil, exception.ErrBadRequest
+	}
+
+	var response *model.RoleResponse
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		role, err := uc.RoleRepository.FindOrganizationRoleByID(txCtx, orgID, roleID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				uc.Log.WithContext(txCtx).Warnf("Role %s not found in organization %s for update", roleID, orgID)
+				return exception.ErrNotFound
+			}
+			uc.Log.WithContext(txCtx).Errorf("Failed to find organization role by id: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		role.Description = request.Description
+
+		if err := uc.RoleRepository.Update(txCtx, role); err != nil {
+			uc.Log.WithContext(txCtx).Errorf("Failed to update organization role: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		response = converter.RoleToResponse(role)
+		return nil
+	})
+
+	return response, err
+}
+
 func (uc *roleUseCase) GetAll(ctx context.Context) ([]model.RoleResponse, error) {
 	var roles []*entity.Role
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {

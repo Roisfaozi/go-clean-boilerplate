@@ -392,6 +392,34 @@ func (_mock *MockRoleUseCase) Update(ctx context.Context, id string, request *mo
 	return r0, r1
 }
 
+// UpdateForOrganization provides a mock function for the type MockRoleUseCase
+func (_mock *MockRoleUseCase) UpdateForOrganization(ctx context.Context, orgID string, roleID string, request *model.UpdateRoleRequest) (*model.RoleResponse, error) {
+	ret := _mock.Called(ctx, orgID, roleID, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateForOrganization")
+	}
+
+	var r0 *model.RoleResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *model.UpdateRoleRequest) (*model.RoleResponse, error)); ok {
+		return returnFunc(ctx, orgID, roleID, request)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *model.UpdateRoleRequest) *model.RoleResponse); ok {
+		r0 = returnFunc(ctx, orgID, roleID, request)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.RoleResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, *model.UpdateRoleRequest) error); ok {
+		r1 = returnFunc(ctx, orgID, roleID, request)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
 // MockRoleUseCase_Update_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Update'
 type MockRoleUseCase_Update_Call struct {
 	*mock.Call

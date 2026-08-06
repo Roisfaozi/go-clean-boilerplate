@@ -292,9 +292,18 @@ func (h *RoleController) GetOrganizationRoles(c *gin.Context) {
 // @Failure      500      {object}  response.SwaggerErrorResponseWrapper
 // @Router       /organizations/{id}/roles/{roleId} [put]
 func (h *RoleController) UpdateOrganizationRole(c *gin.Context) {
+	orgID, ok := middleware.GetOrganizationIDFromContext(c)
+	if !ok || orgID == "" {
+		orgID = c.Param("id")
+	}
 	roleID := c.Param("roleId")
-	var req model.UpdateRoleRequest
 
+	if orgID == "" || roleID == "" {
+		response.BadRequest(c, exception.ErrBadRequest, "organization and role ID required")
+		return
+	}
+
+	var req model.UpdateRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
@@ -308,7 +317,7 @@ func (h *RoleController) UpdateOrganizationRole(c *gin.Context) {
 		return
 	}
 
-	role, err := h.RoleUseCase.Update(c.Request.Context(), roleID, &req)
+	role, err := h.RoleUseCase.UpdateForOrganization(c.Request.Context(), orgID, roleID, &req)
 	if err != nil {
 		h.handleError(c, err, "failed to update organization role")
 		return
