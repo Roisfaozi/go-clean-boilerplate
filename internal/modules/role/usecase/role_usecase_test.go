@@ -21,8 +21,8 @@ import (
 )
 
 type roleTestDeps struct {
-	Repo        *mocks.MockRoleRepository
-	TM          *mocking.MockWithTransactionManager
+	Repo         *mocks.MockRoleRepository
+	TM           *mocking.MockWithTransactionManager
 	PermissionUC *permMocks.MockIPermissionUseCase
 }
 
@@ -51,7 +51,7 @@ func TestRoleUseCase_Create(t *testing.T) {
 		ctx := context.Background()
 		req := &model.CreateRoleRequest{Name: "NewRole", Description: "Desc"}
 
-		deps.Repo.On("FindByName", ctx, "NewRole").Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindByNameInScope", ctx, "NewRole", (*string)(nil)).Return(nil, gorm.ErrRecordNotFound)
 		deps.Repo.On("Create", ctx, mock.AnythingOfType("*entity.Role")).Return(nil)
 
 		res, err := uc.Create(ctx, req)
@@ -65,7 +65,7 @@ func TestRoleUseCase_Create(t *testing.T) {
 		ctx := context.Background()
 		req := &model.CreateRoleRequest{Name: "ExistingRole", Description: "Desc"}
 
-		deps.Repo.On("FindByName", ctx, "ExistingRole").Return(&entity.Role{}, nil)
+		deps.Repo.On("FindByNameInScope", ctx, "ExistingRole", (*string)(nil)).Return(&entity.Role{}, nil)
 
 		res, err := uc.Create(ctx, req)
 		assert.ErrorIs(t, err, exception.ErrConflict)
@@ -77,7 +77,7 @@ func TestRoleUseCase_Create(t *testing.T) {
 		ctx := context.Background()
 		req := &model.CreateRoleRequest{Name: "Role", Description: "Desc"}
 
-		deps.Repo.On("FindByName", ctx, "Role").Return(nil, errors.New("db error"))
+		deps.Repo.On("FindByNameInScope", ctx, "Role", (*string)(nil)).Return(nil, errors.New("db error"))
 
 		res, err := uc.Create(ctx, req)
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
@@ -89,7 +89,7 @@ func TestRoleUseCase_Create(t *testing.T) {
 		ctx := context.Background()
 		req := &model.CreateRoleRequest{Name: "Role", Description: "Desc"}
 
-		deps.Repo.On("FindByName", ctx, "Role").Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindByNameInScope", ctx, "Role", (*string)(nil)).Return(nil, gorm.ErrRecordNotFound)
 		deps.Repo.On("Create", ctx, mock.AnythingOfType("*entity.Role")).Return(errors.New("db error"))
 
 		res, err := uc.Create(ctx, req)

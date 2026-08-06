@@ -51,6 +51,22 @@ var reservedRoleNames = map[string]bool{
 }
 
 func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequest) (*model.RoleResponse, error) {
+	orgID := database.GetOrganizationID(ctx)
+	var orgIDPtr *string
+	if orgID != "" {
+		orgIDPtr = &orgID
+	}
+	return uc.create(ctx, request, orgIDPtr)
+}
+
+func (uc *roleUseCase) CreateForOrganization(ctx context.Context, orgID string, request *model.CreateRoleRequest) (*model.RoleResponse, error) {
+	if orgID == "" {
+		return nil, exception.ErrBadRequest
+	}
+	return uc.create(ctx, request, &orgID)
+}
+
+func (uc *roleUseCase) create(ctx context.Context, request *model.CreateRoleRequest, orgID *string) (*model.RoleResponse, error) {
 	var response *model.RoleResponse
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		if reservedRoleNames[request.Name] {
@@ -58,13 +74,13 @@ func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequ
 			return exception.ErrBadRequest
 		}
 
-		_, err := uc.RoleRepository.FindByName(txCtx, request.Name)
-		if err == nil {
-			uc.Log.WithContext(txCtx).Warnf("Role with name %s already exists", request.Name)
+		existing, err := uc.RoleRepository.FindByNameInScope(txCtx, request.Name, orgID)
+		if err == nil && existing != nil {
+			uc.Log.WithContext(txCtx).Warnf("Role with name %s already exists in scope", request.Name)
 			return exception.ErrConflict
 		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			uc.Log.WithContext(txCtx).Errorf("Failed to find role by name: %v", err)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			uc.Log.WithContext(txCtx).Errorf("Failed to find role by name in scope: %v", err)
 			return exception.ErrInternalServer
 		}
 
@@ -75,13 +91,10 @@ func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequ
 		}
 
 		newRole := &entity.Role{
-			ID:          newID.String(),
-			Name:        request.Name,
-			Description: request.Description,
-		}
-
-		if orgID := database.GetOrganizationID(txCtx); orgID != "" {
-			newRole.OrganizationID = &orgID
+			ID:             newID.String(),
+			Name:           request.Name,
+			Description:    request.Description,
+			OrganizationID: orgID,
 		}
 
 		if err := uc.RoleRepository.Create(txCtx, newRole); err != nil {
@@ -94,6 +107,59 @@ func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequ
 	})
 
 	return response, err
+}
+
+func (uc *roleUseCase) GetOrganizationRoles(ctx context.Context, orgID string) ([]model.RoleResponse, error) {
+	if orgID == "" {
+		return nil, exception.ErrBadRequest
+	}
+
+	var roles []*entity.Role
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		var err error
+		roles, err = uc.RoleRepository.FindOrganizationRoles(txCtx, orgID)
+		if err != nil {
+			uc.Log.WithContext(txCtx).Errorf("Failed to get organization roles: %v", err)
+			return exception.ErrInternalServer
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return converter.RolesToResponse(roles), nil
+}
+
+func (uc *roleUseCase) DeleteForOrganization(ctx context.Context, orgID, roleID string) error {
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		role, err := uc.RoleRepository.FindOrganizationRoleByID(txCtx, orgID, roleID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return exception.ErrNotFound
+			}
+			return exception.ErrInternalServer
+		}
+
+		if err := uc.RoleRepository.Delete(txCtx, roleID); err != nil {
+			return exception.ErrInternalServer
+		}
+
+		return uc.PermissionUseCase.DeleteRoleInOrg(txCtx, role.Name, orgID)
+	})
+	if err != nil {
+		return err
+	}
+
+	if reloader, ok := uc.PermissionUseCase.(policyReloader); ok {
+		if err := reloader.ReloadPolicy(ctx); err != nil {
+			uc.Log.WithContext(ctx).Errorf("Failed to reload Casbin policy after role deletion: %v", err)
+			return exception.ErrInternalServer
+		}
+	}
+
+	return nil
 }
 
 func (uc *roleUseCase) Update(ctx context.Context, id string, request *model.UpdateRoleRequest) (*model.RoleResponse, error) {

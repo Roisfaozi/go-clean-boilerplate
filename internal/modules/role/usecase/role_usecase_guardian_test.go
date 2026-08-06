@@ -60,7 +60,7 @@ func TestRoleUseCase_Create_Guardian_FindByNameError(t *testing.T) {
 
 	// Mock FindByName to return a generic error (not ErrRecordNotFound)
 	genericErr := errors.New("connection failed")
-	deps.Repo.On("FindByName", mock.Anything, "error_role").Return((*entity.Role)(nil), genericErr)
+	deps.Repo.On("FindByNameInScope", mock.Anything, "error_role", (*string)(nil)).Return((*entity.Role)(nil), genericErr)
 
 	res, err := uc.Create(context.Background(), req)
 
@@ -243,7 +243,7 @@ func TestRoleUseCase_Create_Guardian_FindByNameSuccess(t *testing.T) {
 			return fn(ctx)
 		})
 
-	deps.Repo.On("FindByName", mock.Anything, "success_role").Return(&entity.Role{ID: "existing-id", Name: "success_role"}, nil)
+	deps.Repo.On("FindByNameInScope", mock.Anything, "success_role", (*string)(nil)).Return(&entity.Role{ID: "existing-id", Name: "success_role"}, nil)
 
 	res, err := uc.Create(context.Background(), req)
 

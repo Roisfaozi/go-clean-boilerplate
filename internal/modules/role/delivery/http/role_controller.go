@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
@@ -196,6 +197,131 @@ func (h *RoleController) GetRolesDynamic(c *gin.Context) {
 	}
 
 	response.Success(c, roles)
+}
+
+// CreateOrganizationRole creates a custom role for an organization
+// @Summary      Create organization custom role
+// @Description  Creates a new organization-scoped role.
+// @Tags         organization-roles
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id       path      string                  true  "Organization ID"
+// @Param        request  body      model.CreateRoleRequest true  "Role creation request"
+// @Success      201      {object}  response.SwaggerRoleResponseWrapper
+// @Failure      400      {object}  response.SwaggerErrorResponseWrapper
+// @Failure      409      {object}  response.SwaggerErrorResponseWrapper
+// @Failure      500      {object}  response.SwaggerErrorResponseWrapper
+// @Router       /organizations/{id}/roles [post]
+func (h *RoleController) CreateOrganizationRole(c *gin.Context) {
+	orgID, ok := middleware.GetOrganizationIDFromContext(c)
+	if !ok || orgID == "" {
+		orgID = c.Param("id")
+	}
+	if orgID == "" {
+		response.BadRequest(c, exception.ErrBadRequest, "organization context required")
+		return
+	}
+
+	var req model.CreateRoleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+
+	req.Sanitize()
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
+		return
+	}
+
+	role, err := h.RoleUseCase.CreateForOrganization(c.Request.Context(), orgID, &req)
+	if err != nil {
+		h.handleError(c, err, "failed to create organization role")
+		return
+	}
+
+	response.Created(c, role)
+}
+
+// GetOrganizationRoles lists all custom roles for an organization
+// @Summary      List organization custom roles
+// @Description  Get a list of custom roles belonging to the organization.
+// @Tags         organization-roles
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path      string  true  "Organization ID"
+// @Success      200  {object}  response.SwaggerRoleListResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper
+// @Router       /organizations/{id}/roles [get]
+func (h *RoleController) GetOrganizationRoles(c *gin.Context) {
+	orgID, ok := middleware.GetOrganizationIDFromContext(c)
+	if !ok || orgID == "" {
+		orgID = c.Param("id")
+	}
+	if orgID == "" {
+		response.BadRequest(c, exception.ErrBadRequest, "organization context required")
+		return
+	}
+
+	roles, err := h.RoleUseCase.GetOrganizationRoles(c.Request.Context(), orgID)
+	if err != nil {
+		h.handleError(c, err, "failed to get organization roles")
+		return
+	}
+
+	response.Success(c, roles)
+}
+
+// UpdateOrganizationRole updates a custom role of an organization
+func (h *RoleController) UpdateOrganizationRole(c *gin.Context) {
+	roleID := c.Param("roleId")
+	var req model.UpdateRoleRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+
+	req.Sanitize()
+
+	if err := h.validate.Struct(req); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		response.ValidationError(c, exception.ErrValidationError, msg)
+		return
+	}
+
+	role, err := h.RoleUseCase.Update(c.Request.Context(), roleID, &req)
+	if err != nil {
+		h.handleError(c, err, "failed to update organization role")
+		return
+	}
+
+	response.Success(c, role)
+}
+
+// DeleteOrganizationRole deletes a custom role belonging to an organization
+func (h *RoleController) DeleteOrganizationRole(c *gin.Context) {
+	orgID, ok := middleware.GetOrganizationIDFromContext(c)
+	if !ok || orgID == "" {
+		orgID = c.Param("id")
+	}
+	roleID := c.Param("roleId")
+
+	if orgID == "" || roleID == "" {
+		response.BadRequest(c, exception.ErrBadRequest, "organization and role ID required")
+		return
+	}
+
+	if err := h.RoleUseCase.DeleteForOrganization(c.Request.Context(), orgID, roleID); err != nil {
+		h.handleError(c, err, "failed to delete organization role")
+		return
+	}
+
+	response.Success(c, gin.H{"message": "Role deleted successfully"})
 }
 
 func (h *RoleController) handleError(c *gin.Context, err error, message string) {

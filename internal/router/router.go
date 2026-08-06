@@ -224,6 +224,7 @@ func SetupRouter(
 	}
 	{
 		organizationHttp.RegisterTenantRoutes(tenantAuthorized, organizationModule.OrganizationController, apiKeyMiddleware, idempotencyMiddleware)
+		roleHttp.RegisterTenantRoutes(tenantAuthorized, roleModule.RoleController, apiKeyMiddleware)
 
 		// Project Routes
 		projectGroup := tenantAuthorized.Group("/projects")

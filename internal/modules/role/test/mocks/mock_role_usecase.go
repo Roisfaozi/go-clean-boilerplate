@@ -67,6 +67,76 @@ func (_mock *MockRoleUseCase) Create(ctx context.Context, request *model.CreateR
 	return r0, r1
 }
 
+func (_mock *MockRoleUseCase) CreateForOrganization(ctx context.Context, orgID string, request *model.CreateRoleRequest) (*model.RoleResponse, error) {
+	ret := _mock.Called(ctx, orgID, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateForOrganization")
+	}
+
+	var r0 *model.RoleResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *model.CreateRoleRequest) (*model.RoleResponse, error)); ok {
+		return returnFunc(ctx, orgID, request)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *model.CreateRoleRequest) *model.RoleResponse); ok {
+		r0 = returnFunc(ctx, orgID, request)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.RoleResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, *model.CreateRoleRequest) error); ok {
+		r1 = returnFunc(ctx, orgID, request)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+func (_mock *MockRoleUseCase) GetOrganizationRoles(ctx context.Context, orgID string) ([]model.RoleResponse, error) {
+	ret := _mock.Called(ctx, orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrganizationRoles")
+	}
+
+	var r0 []model.RoleResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]model.RoleResponse, error)); ok {
+		return returnFunc(ctx, orgID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []model.RoleResponse); ok {
+		r0 = returnFunc(ctx, orgID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.RoleResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, orgID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+func (_mock *MockRoleUseCase) DeleteForOrganization(ctx context.Context, orgID, roleID string) error {
+	ret := _mock.Called(ctx, orgID, roleID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteForOrganization")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = returnFunc(ctx, orgID, roleID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
 // MockRoleUseCase_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
 type MockRoleUseCase_Create_Call struct {
 	*mock.Call

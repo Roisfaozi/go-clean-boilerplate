@@ -9,8 +9,11 @@ import (
 
 type RoleUseCase interface {
 	Create(ctx context.Context, request *model.CreateRoleRequest) (*model.RoleResponse, error)
+	CreateForOrganization(ctx context.Context, orgID string, request *model.CreateRoleRequest) (*model.RoleResponse, error)
 	Update(ctx context.Context, id string, request *model.UpdateRoleRequest) (*model.RoleResponse, error)
 	GetAll(ctx context.Context) ([]model.RoleResponse, error)
+	GetOrganizationRoles(ctx context.Context, orgID string) ([]model.RoleResponse, error)
 	GetAllRolesDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]model.RoleResponse, error)
 	Delete(ctx context.Context, id string) error
+	DeleteForOrganization(ctx context.Context, orgID, roleID string) error
 }
