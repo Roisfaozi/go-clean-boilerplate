@@ -7,8 +7,10 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -74,4 +76,51 @@ func TestRoleContract_IDVsName_AcceptInvitation(t *testing.T) {
 	deps.Enforcer.AssertCalled(t, "AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
 		return len(params) == 3 && params[0] == user.ID && params[1] == roleName && params[2] == orgID
 	}))
+}
+
+func TestRoleContract_InviteOwnerRole_Forbidden(t *testing.T) {
+	deps, uc := setupMemberTest()
+	actorID := "owner-1"
+	ctx := usecase.WithActorUserID(context.Background(), actorID)
+	orgID := "org-test-123"
+
+	req := &model.InviteMemberRequest{
+		Email:  "someone@example.com",
+		RoleID: usecase.DefaultOwnerRoleName,
+	}
+
+	deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+
+	deps.OrgRepo.On("FindByID", ctx, orgID).Return(&entity.Organization{ID: orgID, OwnerID: actorID}, nil)
+
+	_, err := uc.InviteMember(ctx, orgID, req)
+	require.ErrorIs(t, err, exception.ErrForbidden)
+}
+
+func TestRoleContract_CrossTenantRole_BadRequest(t *testing.T) {
+	deps, uc := setupMemberTest()
+	actorID := "owner-1"
+	ctx := usecase.WithActorUserID(context.Background(), actorID)
+	orgID := "org-test-123"
+	otherOrgID := "other-org"
+	otherRoleID := "other-role-id"
+
+	req := &model.InviteMemberRequest{
+		Email:  "someone@example.com",
+		RoleID: otherRoleID,
+	}
+
+	deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
+		return fn(ctx)
+	})
+
+	deps.OrgRepo.On("FindByID", ctx, orgID).Return(&entity.Organization{ID: orgID, OwnerID: actorID}, nil)
+	// Role belongs to another organization, so FindOrganizationRoleByID for orgID returns RecordNotFound
+	deps.RoleRepo.On("FindOrganizationRoleByID", mock.Anything, orgID, otherRoleID).Return(nil, exception.ErrNotFound)
+	_ = otherOrgID
+
+	_, err := uc.InviteMember(ctx, orgID, req)
+	require.ErrorIs(t, err, exception.ErrBadRequest)
 }

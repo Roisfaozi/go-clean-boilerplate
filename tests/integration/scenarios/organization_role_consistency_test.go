@@ -151,3 +151,88 @@ func TestOrganizationRoleConsistency_Lifecycle(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), casbinCount)
 }
+
+func TestOrganizationRoleConsistency_ReinviteAndUpdateSuspended(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
+	iRepo := orgRepo.NewInvitationRepository(env.DB)
+	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
+	oReader := orgUsecase.NewCachedOrgReader(mRepo, env.Redis, env.Logger)
+
+	ownerUser := setup.CreateTestUser(t, env.DB, "orgowner2", "orgowner2@example.com", "Password123!")
+
+	orgUC := orgUsecase.NewOrganizationUseCase(
+		env.Logger, tm, oRepo, mRepo, oReader, env.Enforcer, rRepo,
+	)
+
+	orgResp, err := orgUC.CreateOrganization(context.Background(), ownerUser.ID, &orgModel.CreateOrganizationRequest{
+		Name: "Role Reinvite Org",
+		Slug: "role-reinvite-org",
+	})
+	require.NoError(t, err)
+	orgID := orgResp.ID
+
+	// Create 2 custom roles
+	role1ID := uuid.New().String()
+	role1 := &roleEntity.Role{ID: role1ID, Name: "role_1", OrganizationID: &orgID}
+	require.NoError(t, rRepo.Create(context.Background(), role1))
+
+	role2ID := uuid.New().String()
+	role2 := &roleEntity.Role{ID: role2ID, Name: "role_2", OrganizationID: &orgID}
+	require.NoError(t, rRepo.Create(context.Background(), role2))
+
+	memberUC := orgUsecase.NewOrganizationMemberUseCase(
+		env.Logger, tm, mRepo, oRepo, iRepo, uRepo, nil, env.Enforcer, nil, oReader, "http://localhost:3000", rRepo,
+	)
+
+	inviteCtx := orgUsecase.WithActorUserID(context.Background(), ownerUser.ID)
+	inviteCtx = database.SetOrganizationContext(inviteCtx, orgID)
+
+	// 1. Initial Invite
+	inviteEmail := "reinvite@example.com"
+	_, err = memberUC.InviteMember(inviteCtx, orgID, &orgModel.InviteMemberRequest{
+		Email:  inviteEmail,
+		RoleID: role1ID,
+	})
+	require.NoError(t, err)
+
+	// 2. Re-invite with role2 before acceptance (pending reinvite)
+	_, err = memberUC.InviteMember(inviteCtx, orgID, &orgModel.InviteMemberRequest{
+		Email:  inviteEmail,
+		RoleID: role2ID,
+	})
+	require.NoError(t, err)
+
+	// Verify InvitationToken in DB stores role_id = role2ID
+	var invToken orgEntity.InvitationToken
+	err = env.DB.Where("organization_id = ? AND email = ?", orgID, inviteEmail).First(&invToken).Error
+	require.NoError(t, err)
+	assert.Equal(t, role2ID, invToken.RoleID)
+
+	// Accept invitation
+	require.NoError(t, memberUC.AcceptInvitation(context.Background(), &orgModel.AcceptInvitationRequest{
+		Token:    invToken.Token,
+		Password: "Password123!",
+	}))
+
+	user, err := uRepo.FindByEmail(context.Background(), inviteEmail)
+	require.NoError(t, err)
+
+	// 3. Suspend member
+	require.NoError(t, mRepo.UpdateMemberStatus(context.Background(), orgID, user.ID, orgEntity.MemberStatusSuspended))
+
+	// 4. Remove suspended member -> should remove Casbin policy and member row without error
+	require.NoError(t, memberUC.RemoveMember(inviteCtx, orgID, user.ID))
+
+	var casbinCount int64
+	err = env.DB.Table("casbin_rule").
+		Where("ptype = ? AND v0 = ? AND v2 = ?", "g", user.ID, orgID).
+		Count(&casbinCount).Error
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), casbinCount)
+}
