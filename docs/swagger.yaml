@@ -2317,6 +2317,75 @@ paths:
       summary: Get online members
       tags:
       - organizations
+  /organizations/{id}/roles:
+    get:
+      description: Get a list of custom roles belonging to the organization.
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleListResponseWrapper'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: List organization custom roles
+      tags:
+      - organization-roles
+    post:
+      consumes:
+      - application/json
+      description: Creates a new organization-scoped role.
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_internal_modules_role_model.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerRoleResponseWrapper'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_Roisfaozi_go-clean-boilerplate_pkg_response.SwaggerErrorResponseWrapper'
+      security:
+      - BearerAuth: []
+      summary: Create organization custom role
+      tags:
+      - organization-roles
   /organizations/invitations/accept:
     post:
       consumes:

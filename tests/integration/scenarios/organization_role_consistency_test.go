@@ -7,12 +7,15 @@ import (
 	"context"
 	"testing"
 
+	accessRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	orgModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
 	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	orgUsecase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
+	permissionUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	roleRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	roleUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
@@ -144,12 +147,122 @@ func TestOrganizationRoleConsistency_Lifecycle(t *testing.T) {
 	err = memberUC.RemoveMember(inviteCtx, orgID, invitedUser.ID)
 	require.NoError(t, err)
 
-	// Verify Casbin grouping rule removed
 	err = env.DB.Table("casbin_rule").
 		Where("ptype = ? AND v0 = ? AND v2 = ?", "g", invitedUser.ID, orgID).
 		Count(&casbinCount).Error
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), casbinCount)
+}
+
+func TestOrganizationAuth_AdminWithUUIDRoleID_CanManageMembers(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
+	iRepo := orgRepo.NewInvitationRepository(env.DB)
+	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
+	oReader := orgUsecase.NewCachedOrgReader(mRepo, env.Redis, env.Logger)
+
+	ownerUser := setup.CreateTestUser(t, env.DB, "orgowner3", "orgowner3@example.com", "Password123!")
+	adminUser := setup.CreateTestUser(t, env.DB, "orgadmin3", "orgadmin3@example.com", "Password123!")
+
+	orgUC := orgUsecase.NewOrganizationUseCase(
+		env.Logger, tm, oRepo, mRepo, oReader, env.Enforcer, rRepo,
+	)
+
+	orgResp, err := orgUC.CreateOrganization(context.Background(), ownerUser.ID, &orgModel.CreateOrganizationRequest{
+		Name: "UUID Admin Org",
+		Slug: "uuid-admin-org",
+	})
+	require.NoError(t, err)
+	orgID := orgResp.ID
+
+	// Admin role ID is a UUID in production database, role name is "role:admin"
+	adminRoleID := setup.RoleIDByName(t, env.DB, "role:admin")
+
+	// Add adminUser as member with RoleID = adminRoleID (UUID)
+	err = mRepo.AddMember(context.Background(), &orgEntity.OrganizationMember{
+		ID:             uuid.NewString(),
+		OrganizationID: orgID,
+		UserID:         adminUser.ID,
+		RoleID:         adminRoleID,
+		Status:         orgEntity.MemberStatusActive,
+	})
+	require.NoError(t, err)
+	_, err = env.Enforcer.AddGroupingPolicy(adminUser.ID, "role:admin", orgID)
+	require.NoError(t, err)
+
+	memberUC := orgUsecase.NewOrganizationMemberUseCase(
+		env.Logger, tm, mRepo, oRepo, iRepo, uRepo, nil, env.Enforcer, nil, oReader, "http://localhost:3000", rRepo,
+	)
+
+	// Admin user with UUID role_id performs member management (InviteMember)
+	adminCtx := orgUsecase.WithActorUserID(context.Background(), adminUser.ID)
+	adminCtx = database.SetOrganizationContext(adminCtx, orgID)
+
+	customRoleID := uuid.NewString()
+	require.NoError(t, rRepo.Create(context.Background(), &roleEntity.Role{
+		ID: customRoleID, Name: "custom_sub", OrganizationID: &orgID,
+	}))
+
+	_, err = memberUC.InviteMember(adminCtx, orgID, &orgModel.InviteMemberRequest{
+		Email:  "sub_member@example.com",
+		RoleID: customRoleID,
+	})
+	require.NoError(t, err, "Admin user with UUID role_id in DB must be authorized to manage members")
+}
+
+func TestDeleteRole_ScopedToOrganization(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
+	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
+	oReader := orgUsecase.NewCachedOrgReader(mRepo, env.Redis, env.Logger)
+
+	ownerA := setup.CreateTestUser(t, env.DB, "ownerA", "ownerA@example.com", "Password123!")
+	ownerB := setup.CreateTestUser(t, env.DB, "ownerB", "ownerB@example.com", "Password123!")
+
+	orgUC := orgUsecase.NewOrganizationUseCase(env.Logger, tm, oRepo, mRepo, oReader, env.Enforcer, rRepo)
+	roleUC := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	_ = roleUC
+
+	orgA, _ := orgUC.CreateOrganization(context.Background(), ownerA.ID, &orgModel.CreateOrganizationRequest{Name: "Org A", Slug: "org-a"})
+	orgB, _ := orgUC.CreateOrganization(context.Background(), ownerB.ID, &orgModel.CreateOrganizationRequest{Name: "Org B", Slug: "org-b"})
+
+	// Both orgs create a role named "shared_name"
+	roleAID := uuid.NewString()
+	roleA := &roleEntity.Role{ID: roleAID, Name: "shared_name", OrganizationID: &orgA.ID}
+	require.NoError(t, rRepo.Create(context.Background(), roleA))
+
+	roleBID := uuid.NewString()
+	roleB := &roleEntity.Role{ID: roleBID, Name: "shared_name", OrganizationID: &orgB.ID}
+	require.NoError(t, rRepo.Create(context.Background(), roleB))
+
+	userA := setup.CreateTestUser(t, env.DB, "userA", "userA@example.com", "Password123!")
+	userB := setup.CreateTestUser(t, env.DB, "userB", "userB@example.com", "Password123!")
+
+	env.Enforcer.AddGroupingPolicy(userA.ID, "shared_name", orgA.ID)
+	env.Enforcer.AddGroupingPolicy(userB.ID, "shared_name", orgB.ID)
+
+	// Delete custom role from Org A using DeleteForOrganization
+	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
+	usrRepo := userRepo.NewUserRepository(env.DB, env.Logger)
+	pUC := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, usrRepo, aRepo, nil)
+	rUC := roleUseCase.NewRoleUseCase(env.Logger, tm, rRepo, pUC)
+	require.NoError(t, rUC.DeleteForOrganization(context.Background(), orgA.ID, roleAID))
+
+	var countA, countB int64
+	env.DB.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "g", userA.ID, "shared_name", orgA.ID).Count(&countA)
+	env.DB.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "g", userB.ID, "shared_name", orgB.ID).Count(&countB)
+
+	assert.Equal(t, int64(0), countA, "Org A grouping policy should be deleted")
+	assert.Equal(t, int64(1), countB, "Org B grouping policy must remain intact")
 }
 
 func TestOrganizationRoleConsistency_ReinviteAndUpdateSuspended(t *testing.T) {
