@@ -264,6 +264,49 @@ func TestRoleUseCase_Delete(t *testing.T) {
 	})
 }
 
+func TestRoleUseCase_DeleteForOrganization(t *testing.T) {
+	t.Run("Success - Calls DeleteInOrg", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+		orgID := "org-1"
+		roleID := "role-1"
+		role := &entity.Role{ID: roleID, Name: "OrgRole", OrganizationID: &orgID}
+
+		deps.Repo.On("FindOrganizationRoleByID", ctx, orgID, roleID).Return(role, nil)
+		deps.Repo.On("DeleteInOrg", ctx, orgID, roleID).Return(nil)
+		deps.PermissionUC.On("DeleteRoleInOrg", ctx, "OrgRole", orgID).Return(nil)
+
+		err := uc.DeleteForOrganization(ctx, orgID, roleID)
+		assert.NoError(t, err)
+	})
+
+	t.Run("NotFoundInOrg", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+		orgID := "org-1"
+		roleID := "role-1"
+
+		deps.Repo.On("FindOrganizationRoleByID", ctx, orgID, roleID).Return(nil, gorm.ErrRecordNotFound)
+
+		err := uc.DeleteForOrganization(ctx, orgID, roleID)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
+	})
+
+	t.Run("DeleteInOrgRecordNotFound", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+		orgID := "org-1"
+		roleID := "role-1"
+		role := &entity.Role{ID: roleID, Name: "OrgRole", OrganizationID: &orgID}
+
+		deps.Repo.On("FindOrganizationRoleByID", ctx, orgID, roleID).Return(role, nil)
+		deps.Repo.On("DeleteInOrg", ctx, orgID, roleID).Return(gorm.ErrRecordNotFound)
+
+		err := uc.DeleteForOrganization(ctx, orgID, roleID)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
+	})
+}
+
 func TestRoleUseCase_GetAllRolesDynamic(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, uc := setupRoleTest()
