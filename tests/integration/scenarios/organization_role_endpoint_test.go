@@ -393,6 +393,39 @@ func TestRoleRepository_DirectEdgeCases(t *testing.T) {
 				assert.Equal(t, roleB.ID, found.ID)
 			},
 		},
+		{
+			name: "DeleteInOrg refuses role owned by another organization",
+			run: func(t *testing.T) {
+				roleB, err := f.roleUC.CreateForOrganization(context.Background(), f.orgBID, &roleModel.CreateRoleRequest{
+					Name: "guard_role",
+				})
+				require.NoError(t, err)
+
+				err = f.rRepo.DeleteInOrg(context.Background(), f.orgAID, roleB.ID)
+				assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+
+				_, findErr := f.rRepo.FindOrganizationRoleByID(context.Background(), f.orgBID, roleB.ID)
+				require.NoError(t, findErr, "role must survive a cross-tenant delete attempt")
+			},
+		},
+		{
+			name: "DeleteInOrg succeeds for owning organization without org context",
+			run: func(t *testing.T) {
+				role, err := f.roleUC.CreateForOrganization(context.Background(), f.orgAID, &roleModel.CreateRoleRequest{
+					Name: "guard_own",
+				})
+				require.NoError(t, err)
+
+				require.NoError(t, f.rRepo.DeleteInOrg(context.Background(), f.orgAID, role.ID))
+			},
+		},
+		{
+			name: "DeleteInOrg returns not found when role is missing",
+			run: func(t *testing.T) {
+				err := f.rRepo.DeleteInOrg(context.Background(), f.orgAID, "00000000-0000-0000-0000-000000000000")
+				assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+			},
+		},
 	}
 
 	for _, tt := range tests {

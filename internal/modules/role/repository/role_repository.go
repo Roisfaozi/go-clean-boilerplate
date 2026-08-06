@@ -137,8 +137,30 @@ func (r *roleRepository) FindAllDynamic(ctx context.Context, filter *querybuilde
 	return roles, nil
 }
 
+// Delete removes a role by ID without tenant filtering.
+// Callers MUST authorize ownership first (see DeleteInOrg for tenant-scoped deletes).
 func (r *roleRepository) Delete(ctx context.Context, id string) error {
 	res := r.getDB(ctx).Delete(&entity.Role{}, "id = ?", id)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+// DeleteInOrg removes a role only when it belongs to the given organization.
+// The tenant comes from the argument, never from context, so a mismatched or
+// absent org context cannot silently turn this into a no-op.
+func (r *roleRepository) DeleteInOrg(ctx context.Context, orgID, roleID string) error {
+	if orgID == "" || roleID == "" {
+		return gorm.ErrRecordNotFound
+	}
+
+	res := r.getDB(ctx).
+		Where("organization_id = ?", orgID).
+		Delete(&entity.Role{}, "id = ?", roleID)
 	if res.Error != nil {
 		return res.Error
 	}

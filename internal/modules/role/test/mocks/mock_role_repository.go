@@ -153,6 +153,69 @@ func (_c *MockRoleRepository_Delete_Call) RunAndReturn(run func(ctx context.Cont
 	return _c
 }
 
+// DeleteInOrg provides a mock function for the type MockRoleRepository
+func (_mock *MockRoleRepository) DeleteInOrg(ctx context.Context, orgID string, roleID string) error {
+	ret := _mock.Called(ctx, orgID, roleID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteInOrg")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = returnFunc(ctx, orgID, roleID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockRoleRepository_DeleteInOrg_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteInOrg'
+type MockRoleRepository_DeleteInOrg_Call struct {
+	*mock.Call
+}
+
+// DeleteInOrg is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orgID string
+//   - roleID string
+func (_e *MockRoleRepository_Expecter) DeleteInOrg(ctx interface{}, orgID interface{}, roleID interface{}) *MockRoleRepository_DeleteInOrg_Call {
+	return &MockRoleRepository_DeleteInOrg_Call{Call: _e.mock.On("DeleteInOrg", ctx, orgID, roleID)}
+}
+
+func (_c *MockRoleRepository_DeleteInOrg_Call) Run(run func(ctx context.Context, orgID string, roleID string)) *MockRoleRepository_DeleteInOrg_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRoleRepository_DeleteInOrg_Call) Return(err error) *MockRoleRepository_DeleteInOrg_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockRoleRepository_DeleteInOrg_Call) RunAndReturn(run func(ctx context.Context, orgID string, roleID string) error) *MockRoleRepository_DeleteInOrg_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FindAll provides a mock function for the type MockRoleRepository
 func (_mock *MockRoleRepository) FindAll(ctx context.Context) ([]*entity.Role, error) {
 	ret := _mock.Called(ctx)

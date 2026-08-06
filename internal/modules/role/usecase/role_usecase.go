@@ -142,7 +142,7 @@ func (uc *roleUseCase) DeleteForOrganization(ctx context.Context, orgID, roleID 
 			return exception.ErrInternalServer
 		}
 
-		if err := uc.RoleRepository.Delete(txCtx, roleID); err != nil {
+		if err := uc.RoleRepository.DeleteInOrg(txCtx, orgID, roleID); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return exception.ErrNotFound
 			}

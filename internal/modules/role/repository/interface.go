@@ -18,4 +18,5 @@ type RoleRepository interface {
 	Create(ctx context.Context, role *entity.Role) error
 	Update(ctx context.Context, role *entity.Role) error
 	Delete(ctx context.Context, id string) error
+	DeleteInOrg(ctx context.Context, orgID, roleID string) error
 }
