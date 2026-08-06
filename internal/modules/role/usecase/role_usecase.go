@@ -143,6 +143,9 @@ func (uc *roleUseCase) DeleteForOrganization(ctx context.Context, orgID, roleID 
 		}
 
 		if err := uc.RoleRepository.Delete(txCtx, roleID); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return exception.ErrNotFound
+			}
 			return exception.ErrInternalServer
 		}
 
@@ -258,6 +261,9 @@ func (uc *roleUseCase) Delete(ctx context.Context, id string) error {
 		}
 
 		if err := uc.RoleRepository.Delete(txCtx, id); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return exception.ErrNotFound
+			}
 			uc.Log.WithContext(txCtx).Errorf("Failed to delete role: %v", err)
 			return exception.ErrInternalServer
 		}

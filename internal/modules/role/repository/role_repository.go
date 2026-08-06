@@ -35,7 +35,8 @@ func (r *roleRepository) Create(ctx context.Context, role *entity.Role) error {
 }
 
 func (r *roleRepository) Update(ctx context.Context, role *entity.Role) error {
-	return r.getDB(ctx).Model(role).Omit("ID", "Name", "CreatedAt").Updates(role).Error
+	return r.getDB(ctx).Model(&entity.Role{}).Where("id = ?", role.ID).
+		Updates(map[string]interface{}{"description": role.Description}).Error
 }
 
 func (r *roleRepository) FindByID(ctx context.Context, id string) (*entity.Role, error) {
@@ -82,9 +83,7 @@ func (r *roleRepository) FindByName(ctx context.Context, name string) (*entity.R
 
 func (r *roleRepository) FindByNameInScope(ctx context.Context, name string, orgID *string) (*entity.Role, error) {
 	var role entity.Role
-	q := r.getDB(ctx).
-		Scopes(database.OrganizationVisibilityScope(ctx, "roles.organization_id")).
-		Where("name = ?", name)
+	q := r.getDB(ctx).Where("name = ?", name)
 	if orgID == nil || *orgID == "" {
 		q = q.Where("organization_id IS NULL")
 	} else {
@@ -139,7 +138,12 @@ func (r *roleRepository) FindAllDynamic(ctx context.Context, filter *querybuilde
 }
 
 func (r *roleRepository) Delete(ctx context.Context, id string) error {
-	return r.getDB(ctx).
-		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "roles.organization_id")).
-		Delete(&entity.Role{}, "id = ?", id).Error
+	res := r.getDB(ctx).Delete(&entity.Role{}, "id = ?", id)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }

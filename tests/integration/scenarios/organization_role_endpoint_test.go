@@ -16,11 +16,13 @@ import (
 	roleRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	roleUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 type orgRoleEndpointFixture struct {
@@ -256,6 +258,12 @@ func TestOrganizationRoleEndpoints_UpdateScopeIsolation(t *testing.T) {
 			roleID:      roleA.ID,
 			description: "Editor Updated",
 		},
+		{
+			name:        "own-tenant update with empty description persists empty string in DB",
+			orgID:       f.orgAID,
+			roleID:      roleA.ID,
+			description: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -278,6 +286,10 @@ func TestOrganizationRoleEndpoints_UpdateScopeIsolation(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, resp)
 			assert.Equal(t, tt.description, resp.Description)
+
+			persisted, findErr := f.rRepo.FindOrganizationRoleByID(context.Background(), tt.orgID, tt.roleID)
+			require.NoError(t, findErr)
+			assert.Equal(t, tt.description, persisted.Description, "updated description must be persisted in DB")
 		})
 	}
 }
@@ -339,5 +351,51 @@ func TestOrganizationRoleEndpoints_DeleteScopeIsolation(t *testing.T) {
 				require.NoError(t, findErr, "role of the other tenant must remain intact")
 			}
 		})
+	}
+}
+
+func TestRoleRepository_DirectEdgeCases(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	defer env.Cleanup()
+
+	f := newOrgRoleEndpointFixture(t, env, "repoedge")
+
+	roleA, err := f.roleUC.CreateForOrganization(context.Background(), f.orgAID, &roleModel.CreateRoleRequest{
+		Name: "repo_edge_role", Description: "Initial Description",
+	})
+	require.NoError(t, err)
+
+	tests := []struct {
+		name string
+		run  func(t *testing.T)
+	}{
+		{
+			name: "delete without org in context removes role and errors when missing",
+			run: func(t *testing.T) {
+				ctx := context.Background()
+				require.NoError(t, f.rRepo.Delete(ctx, roleA.ID))
+
+				err := f.rRepo.Delete(ctx, roleA.ID)
+				assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+			},
+		},
+		{
+			name: "FindByNameInScope ignores conflicting org in context",
+			run: func(t *testing.T) {
+				roleB, err := f.roleUC.CreateForOrganization(context.Background(), f.orgBID, &roleModel.CreateRoleRequest{
+					Name: "scoped_name",
+				})
+				require.NoError(t, err)
+
+				ctx := database.SetOrganizationContext(context.Background(), f.orgAID)
+				found, err := f.rRepo.FindByNameInScope(ctx, "scoped_name", &f.orgBID)
+				require.NoError(t, err)
+				assert.Equal(t, roleB.ID, found.ID)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, tt.run)
 	}
 }
