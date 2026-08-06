@@ -277,6 +277,20 @@ func (h *RoleController) GetOrganizationRoles(c *gin.Context) {
 }
 
 // UpdateOrganizationRole updates a custom role of an organization
+// @Summary      Update organization custom role
+// @Description  Updates an existing custom role for an organization by role ID.
+// @Tags         organization-roles
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id       path      string                  true  "Organization ID"
+// @Param        roleId   path      string                  true  "Role ID"
+// @Param        request  body      model.UpdateRoleRequest true  "Role update request"
+// @Success      200      {object}  response.SwaggerRoleResponseWrapper
+// @Failure      400      {object}  response.SwaggerErrorResponseWrapper
+// @Failure      404      {object}  response.SwaggerErrorResponseWrapper
+// @Failure      500      {object}  response.SwaggerErrorResponseWrapper
+// @Router       /organizations/{id}/roles/{roleId} [put]
 func (h *RoleController) UpdateOrganizationRole(c *gin.Context) {
 	roleID := c.Param("roleId")
 	var req model.UpdateRoleRequest
@@ -304,6 +318,18 @@ func (h *RoleController) UpdateOrganizationRole(c *gin.Context) {
 }
 
 // DeleteOrganizationRole deletes a custom role belonging to an organization
+// @Summary      Delete organization custom role
+// @Description  Deletes a custom role belonging to an organization.
+// @Tags         organization-roles
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id       path      string  true  "Organization ID"
+// @Param        roleId   path      string  true  "Role ID"
+// @Success      200      {object}  response.SwaggerGeneralResponseWrapper "Role deleted successfully"
+// @Failure      400      {object}  response.SwaggerErrorResponseWrapper
+// @Failure      404      {object}  response.SwaggerErrorResponseWrapper
+// @Failure      500      {object}  response.SwaggerErrorResponseWrapper
+// @Router       /organizations/{id}/roles/{roleId} [delete]
 func (h *RoleController) DeleteOrganizationRole(c *gin.Context) {
 	orgID, ok := middleware.GetOrganizationIDFromContext(c)
 	if !ok || orgID == "" {
