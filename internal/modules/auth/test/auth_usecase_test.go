@@ -52,7 +52,7 @@ type testDependencies struct {
 	validate        *validator.Validate
 	log             *logrus.Logger
 	taskDistributor *mocking.MockTaskDistributor
-	ticketManager   *mock_auth.MockTicketManager
+	ticketManager   *mocking.MockTicketManager
 	ssoProviders    map[string]sso.Provider
 }
 
@@ -61,16 +61,16 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 
 	deps := &testDependencies{
 		jwtManager:      jwtManager,
-		tokenRepo:       new(mock_auth.MockTokenRepository),
-		userRepo:        new(mock_user.MockUserRepository),
-		orgRepo:         new(mock_org.MockOrganizationRepository),
-		tm:              new(mocking.MockWithTransactionManager),
-		publisher:       new(mock_auth.MockNotificationPublisher),
-		authz:           new(mock_auth.MockAuthzManager),
+		tokenRepo:       mock_auth.NewMockTokenRepository(t),
+		userRepo:        mock_user.NewMockUserRepository(t),
+		orgRepo:         mock_org.NewMockOrganizationRepository(t),
+		tm:              mocking.NewMockWithTransactionManager(t),
+		publisher:       mock_auth.NewMockNotificationPublisher(t),
+		authz:           mock_auth.NewMockAuthzManager(t),
 		validate:        validator.New(),
 		log:             logrus.New(),
-		taskDistributor: new(mocking.MockTaskDistributor),
-		ticketManager:   new(mock_auth.MockTicketManager),
+		taskDistributor: mocking.NewMockTaskDistributor(t),
+		ticketManager:   mocking.NewMockTicketManager(t),
 		ssoProviders:    make(map[string]sso.Provider),
 	}
 
@@ -1689,16 +1689,16 @@ func TestLogin_NilEnforcer(t *testing.T) {
 	// Create service with nil enforcer
 	jwtManager := jwt.NewJWTManager("test-access-secret", "test-refresh-secret", 15*time.Minute, 24*time.Hour)
 
-	tokenRepo := new(mock_auth.MockTokenRepository)
-	userRepo := new(mock_user.MockUserRepository)
-	orgRepo := new(mock_org.MockOrganizationRepository)
-	tm := new(mocking.MockWithTransactionManager)
-	taskDistributor := new(mocking.MockTaskDistributor)
+	tokenRepo := mock_auth.NewMockTokenRepository(t)
+	userRepo := mock_user.NewMockUserRepository(t)
+	orgRepo := mock_org.NewMockOrganizationRepository(t)
+	tm := mocking.NewMockWithTransactionManager(t)
+	taskDistributor := mocking.NewMockTaskDistributor(t)
 
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 
-	mockPublisher := new(mock_auth.MockNotificationPublisher)
+	mockPublisher := mock_auth.NewMockNotificationPublisher(t)
 	mockPublisher.On("PublishUserLoggedIn", mock.Anything, mock.Anything, mock.Anything).Return()
 
 	authService := usecase.NewAuthUsecase(
@@ -1713,7 +1713,7 @@ func TestLogin_NilEnforcer(t *testing.T) {
 		mockPublisher,
 		nil, // NIL AUTHZ
 		taskDistributor,
-		new(mock_auth.MockTicketManager),
+		mocking.NewMockTicketManager(t),
 		nil,
 	)
 
@@ -1746,16 +1746,17 @@ func TestLogin_NilEnforcer(t *testing.T) {
 func TestLogin_NilAuditUC(t *testing.T) {
 	jwtManager := jwt.NewJWTManager("test-access-secret", "test-refresh-secret", 15*time.Minute, 24*time.Hour)
 
-	tokenRepo := new(mock_auth.MockTokenRepository)
-	userRepo := new(mock_user.MockUserRepository)
-	orgRepo := new(mock_org.MockOrganizationRepository)
-	tm := new(mocking.MockWithTransactionManager)
-	authz := new(mock_auth.MockAuthzManager)
+	tokenRepo := mock_auth.NewMockTokenRepository(t)
+	userRepo := mock_user.NewMockUserRepository(t)
+	orgRepo := mock_org.NewMockOrganizationRepository(t)
+	tm := mocking.NewMockWithTransactionManager(t)
+	taskDistributor := mocking.NewMockTaskDistributor(t)
+	taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything).Return(nil)
 
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 
-	mockPublisher := new(mock_auth.MockNotificationPublisher)
+	mockPublisher := mock_auth.NewMockNotificationPublisher(t)
 	mockPublisher.On("PublishUserLoggedIn", mock.Anything, mock.Anything, mock.Anything).Return()
 
 	authService := usecase.NewAuthUsecase(
@@ -1768,9 +1769,9 @@ func TestLogin_NilAuditUC(t *testing.T) {
 		tm,
 		log,
 		mockPublisher,
-		authz,
-		nil, // NIL TASK DISTRIBUTOR
-		new(mock_auth.MockTicketManager),
+		nil, // NIL AUTHZ
+		taskDistributor,
+		mocking.NewMockTicketManager(t),
 		nil,
 	)
 
@@ -1786,7 +1787,6 @@ func TestLogin_NilAuditUC(t *testing.T) {
 		}).Return(nil)
 
 	userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
-	authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{"role:user"}, nil)
 	tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
@@ -2608,7 +2608,7 @@ func TestAuthUseCase_ForgotPassword_Edge_EmailDistributorFailure(t *testing.T) {
 func TestAuthUseCase_GetSSORedirectURL_Success(t *testing.T) {
 	uc, deps := setupTest(t)
 
-	ssoProvider := new(mock_auth.MockSSOProvider)
+	ssoProvider := mock_auth.NewMockProvider(t)
 	ssoProvider.On("GetLoginURL", "test-state").Return("http://sso-login-url")
 
 	deps.ssoProviders["github"] = ssoProvider
@@ -2643,7 +2643,7 @@ func TestAuthUseCase_HandleSSOCallback_ProviderNotFound(t *testing.T) {
 func TestAuthUseCase_HandleSSOCallback_ExchangeCodeError(t *testing.T) {
 	uc, deps := setupTest(t)
 
-	ssoProvider := new(mock_auth.MockSSOProvider)
+	ssoProvider := mock_auth.NewMockProvider(t)
 	ssoProvider.On("ExchangeCode", mock.Anything, "test-code").Return(nil, errors.New("exchange error"))
 	deps.ssoProviders["github"] = ssoProvider
 
@@ -2660,7 +2660,7 @@ func TestAuthUseCase_HandleSSOCallback_GetUserInfoError(t *testing.T) {
 
 	token := &oauth2.Token{AccessToken: "token"}
 
-	ssoProvider := new(mock_auth.MockSSOProvider)
+	ssoProvider := mock_auth.NewMockProvider(t)
 	ssoProvider.On("ExchangeCode", mock.Anything, "test-code").Return(token, nil)
 	ssoProvider.On("GetUserInfo", mock.Anything, token).Return(nil, errors.New("user info error"))
 
@@ -2680,7 +2680,7 @@ func TestAuthUseCase_HandleSSOCallback_ExistingSSOIdentity_Success(t *testing.T)
 	token := &oauth2.Token{AccessToken: "token"}
 	userInfo := &sso.UserInfo{Email: "test@example.com", ProviderID: "12345", Name: "Test User"}
 
-	ssoProvider := new(mock_auth.MockSSOProvider)
+	ssoProvider := mock_auth.NewMockProvider(t)
 	ssoProvider.On("ExchangeCode", mock.Anything, "test-code").Return(token, nil)
 	ssoProvider.On("GetUserInfo", mock.Anything, token).Return(userInfo, nil)
 	deps.ssoProviders["github"] = ssoProvider
@@ -2711,7 +2711,7 @@ func TestAuthUseCase_HandleSSOCallback_ExistingEmail_LinkIdentity(t *testing.T) 
 	token := &oauth2.Token{AccessToken: "token"}
 	userInfo := &sso.UserInfo{Email: "test@example.com", ProviderID: "12345", Name: "Test User"}
 
-	ssoProvider := new(mock_auth.MockSSOProvider)
+	ssoProvider := mock_auth.NewMockProvider(t)
 	ssoProvider.On("ExchangeCode", mock.Anything, "test-code").Return(token, nil)
 	ssoProvider.On("GetUserInfo", mock.Anything, token).Return(userInfo, nil)
 	deps.ssoProviders["github"] = ssoProvider
@@ -2725,7 +2725,6 @@ func TestAuthUseCase_HandleSSOCallback_ExistingEmail_LinkIdentity(t *testing.T) 
 
 	deps.authz.On("GetRolesForUser", mock.Anything, TestUserID, "").Return([]string{"user"}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-	deps.tokenRepo.On("StoreSession", mock.Anything, TestUserID, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, usr.Email).Return(nil)
 	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything).Return(nil)
 
@@ -2744,7 +2743,7 @@ func TestAuthUseCase_HandleSSOCallback_NewUser_AutoProvision(t *testing.T) {
 	token := &oauth2.Token{AccessToken: "token"}
 	userInfo := &sso.UserInfo{Email: "new@example.com", ProviderID: "12345", Name: "New User"}
 
-	ssoProvider := new(mock_auth.MockSSOProvider)
+	ssoProvider := mock_auth.NewMockProvider(t)
 	ssoProvider.On("ExchangeCode", mock.Anything, "test-code").Return(token, nil)
 	ssoProvider.On("GetUserInfo", mock.Anything, token).Return(userInfo, nil)
 	deps.ssoProviders["github"] = ssoProvider

@@ -39,19 +39,19 @@ type memberTestDeps struct {
 	RoleRepo        *roleMocks.MockRoleRepository
 }
 
-func setupMemberTest() (*memberTestDeps, usecase.OrganizationMemberUseCase) {
+func setupMemberTest(t *testing.T) (*memberTestDeps, usecase.OrganizationMemberUseCase) {
 	mockEnforcer := new(permissionMocks.MockIEnforcer)
-	roleRepo := new(roleMocks.MockRoleRepository)
+	roleRepo := roleMocks.NewMockRoleRepository(t)
 	deps := &memberTestDeps{
-		MemberRepo:      new(mocks.MockOrganizationMemberRepository),
-		OrgRepo:         new(mocks.MockOrganizationRepository),
-		InvitationRepo:  new(mocks.MockInvitationRepository),
-		UserRepo:        new(userMocks.MockUserRepository),
-		TaskDistributor: new(mocking.MockTaskDistributor),
+		MemberRepo:      mocks.NewMockOrganizationMemberRepository(t),
+		OrgRepo:         mocks.NewMockOrganizationRepository(t),
+		InvitationRepo:  mocks.NewMockInvitationRepository(t),
+		UserRepo:        userMocks.NewMockUserRepository(t),
+		TaskDistributor: mocking.NewMockTaskDistributor(t),
 		Enforcer:        mockEnforcer,
-		Presence:        new(mocks.MockPresenceReader),
-		OrgReader:       new(mocks.MockIOrganizationReader),
-		TM:              new(mocking.MockWithTransactionManager),
+		Presence:        mocks.NewMockPresenceReader(t),
+		OrgReader:       mocks.NewMockIOrganizationReader(t),
+		TM:              mocking.NewMockWithTransactionManager(t),
 		RoleRepo:        roleRepo,
 	}
 
@@ -94,7 +94,7 @@ func setupDefaultRoleMocks(deps *memberTestDeps) {
 
 func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 	t.Run("Success - Existing User", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		actorID := "owner-1"
 		ctx := usecase.WithActorUserID(context.Background(), actorID)
@@ -109,7 +109,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(user, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, user.ID).Return(false, nil)
+		deps.MemberRepo.On("CheckMembership", ctx, orgID, user.ID).Return(false, nil).Maybe()
 		deps.MemberRepo.On("GetMemberStatus", ctx, orgID, user.ID).Return("", nil)
 		deps.MemberRepo.On("AddMember", ctx, mock.MatchedBy(func(m *entity.OrganizationMember) bool {
 			return m.UserID == user.ID && m.OrganizationID == orgID && m.Status == entity.MemberStatusInvited
@@ -129,7 +129,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 	})
 
 	t.Run("Success - Shadow User", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		actorID := "owner-1"
 		ctx := usecase.WithActorUserID(context.Background(), actorID)
@@ -147,7 +147,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 			return u.Email == req.Email && u.Status == "invited"
 		})).Return(nil)
 
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, mock.AnythingOfType("string")).Return(false, nil)
+		deps.MemberRepo.On("CheckMembership", ctx, orgID, mock.AnythingOfType("string")).Return(false, nil).Maybe()
 		deps.MemberRepo.On("GetMemberStatus", ctx, orgID, mock.AnythingOfType("string")).Return("", nil)
 		deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(nil)
 		deps.InvitationRepo.On("DeleteByEmailAndOrg", ctx, req.Email, orgID).Return(nil)
@@ -161,7 +161,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 	})
 
 	t.Run("Already Member", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		actorID := "owner-1"
 		ctx := usecase.WithActorUserID(context.Background(), actorID)
@@ -183,7 +183,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 	})
 
 	t.Run("Org Not Found", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		actorID := "owner-1"
 		ctx := usecase.WithActorUserID(context.Background(), actorID)
@@ -201,12 +201,13 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 	})
 
 	t.Run("User Repo Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		req := &model.InviteMemberRequest{Email: "user@example.com"}
-		org := &entity.Organization{ID: orgID}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -221,12 +222,13 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 	})
 
 	t.Run("Shadow User Create Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		req := &model.InviteMemberRequest{Email: "shadow@example.com"}
-		org := &entity.Organization{ID: orgID}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -254,12 +256,13 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 	})
 
 	t.Run("Membership Check Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		req := &model.InviteMemberRequest{Email: "user@example.com"}
-		org := &entity.Organization{ID: orgID}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 		user := &userEntity.User{ID: "user-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -276,12 +279,13 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 	})
 
 	t.Run("Get Member Status Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		req := &model.InviteMemberRequest{Email: "user@example.com"}
-		org := &entity.Organization{ID: orgID}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 		user := &userEntity.User{ID: "user-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -291,7 +295,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(user, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, user.ID).Return(false, nil)
+		deps.MemberRepo.On("CheckMembership", ctx, orgID, user.ID).Return(false, nil).Maybe()
 		deps.MemberRepo.On("GetMemberStatus", ctx, orgID, user.ID).Return("", errors.New("db error"))
 
 		_, err := uc.InviteMember(ctx, orgID, req)
@@ -299,12 +303,13 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 	})
 
 	t.Run("Add Member Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		req := &model.InviteMemberRequest{Email: "user@example.com"}
-		org := &entity.Organization{ID: orgID}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 		user := &userEntity.User{ID: "user-1"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -314,7 +319,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(user, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, user.ID).Return(false, nil)
+		deps.MemberRepo.On("CheckMembership", ctx, orgID, user.ID).Return(false, nil).Maybe()
 		deps.MemberRepo.On("GetMemberStatus", ctx, orgID, user.ID).Return("", nil)
 		deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(errors.New("db error"))
 
@@ -323,12 +328,13 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 	})
 
 	t.Run("Invitation Cleanup Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		req := &model.InviteMemberRequest{Email: "user@example.com"}
-		org := &entity.Organization{ID: orgID}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 		user := &userEntity.User{ID: "user-1", Email: req.Email}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -338,7 +344,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(user, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, user.ID).Return(false, nil)
+		deps.MemberRepo.On("CheckMembership", ctx, orgID, user.ID).Return(false, nil).Maybe()
 		deps.MemberRepo.On("GetMemberStatus", ctx, orgID, user.ID).Return("", nil)
 		deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(nil)
 		deps.InvitationRepo.On("DeleteByEmailAndOrg", ctx, req.Email, orgID).Return(errors.New("db error"))
@@ -348,12 +354,13 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 	})
 
 	t.Run("Invitation Create Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		req := &model.InviteMemberRequest{Email: "user@example.com"}
-		org := &entity.Organization{ID: orgID}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 		user := &userEntity.User{ID: "user-1", Email: req.Email}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -363,7 +370,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
 		deps.UserRepo.On("FindByEmail", ctx, req.Email).Return(user, nil)
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, user.ID).Return(false, nil)
+		deps.MemberRepo.On("CheckMembership", ctx, orgID, user.ID).Return(false, nil).Maybe()
 		deps.MemberRepo.On("GetMemberStatus", ctx, orgID, user.ID).Return("", nil)
 		deps.MemberRepo.On("AddMember", ctx, mock.Anything).Return(nil)
 		deps.InvitationRepo.On("DeleteByEmailAndOrg", ctx, req.Email, orgID).Return(nil)
@@ -376,7 +383,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 
 func TestOrganizationMemberUseCase_GetMembers(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		actorID := "owner-1"
 		ctx := usecase.WithActorUserID(context.Background(), actorID)
@@ -398,7 +405,7 @@ func TestOrganizationMemberUseCase_GetMembers(t *testing.T) {
 
 func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 	t.Run("Success - Update Role", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		actorID := "owner-1"
 		ctx := usecase.WithActorUserID(context.Background(), actorID)
@@ -418,10 +425,10 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, userID, "new-role").Return(nil)
 
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
-		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
-		deps.MemberRepo.On("FindMembers", ctx, orgID).Return([]*entity.OrganizationMember{{UserID: userID, RoleID: "new-role"}}, nil)
+		deps.MemberRepo.On("FindMembers", mock.Anything, orgID).Return([]*entity.OrganizationMember{{UserID: userID, RoleID: "new-role"}}, nil)
 
 		res, err := uc.UpdateMember(ctx, orgID, userID, req)
 		require.NoError(t, err)
@@ -430,12 +437,13 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		userID := "user-1"
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -450,12 +458,13 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 	})
 
 	t.Run("Check Membership Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		userID := "user-1"
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -470,13 +479,14 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 	})
 
 	t.Run("Update Member Role Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		userID := "user-1"
 		req := &model.UpdateMemberRequest{RoleID: "new-role"}
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 		member := &entity.OrganizationMember{OrganizationID: orgID, UserID: userID, RoleID: "old-role"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -494,13 +504,14 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 	})
 
 	t.Run("Update Member Status Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		userID := "user-1"
 		req := &model.UpdateMemberRequest{Status: "inactive"}
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 		member := &entity.OrganizationMember{OrganizationID: orgID, UserID: userID, RoleID: "old-role"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -518,13 +529,14 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 	})
 
 	t.Run("Enforcer Add Grouping Policy Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		userID := "user-1"
 		req := &model.UpdateMemberRequest{RoleID: "new-role"}
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 		member := &entity.OrganizationMember{OrganizationID: orgID, UserID: userID, RoleID: "old-role"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -537,21 +549,22 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		deps.MemberRepo.On("GetMemberRoleName", ctx, orgID, userID).Return("old-role", nil)
 		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, userID, "new-role").Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
-		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(false, errors.New("casbin error"))
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(false, errors.New("casbin error"))
 
 		_, err := uc.UpdateMember(ctx, orgID, userID, req)
 		require.ErrorIs(t, err, exception.ErrInternalServer)
 	})
 
 	t.Run("Find Members Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		userID := "user-1"
 		req := &model.UpdateMemberRequest{RoleID: "new-role"}
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 		member := &entity.OrganizationMember{OrganizationID: orgID, UserID: userID, RoleID: "old-role"}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -564,8 +577,8 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 		deps.MemberRepo.On("GetMemberRoleName", ctx, orgID, userID).Return("old-role", nil)
 		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, userID, "new-role").Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
-		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 		deps.MemberRepo.On("FindMembers", ctx, orgID).Return(nil, errors.New("db error"))
 
 		_, err := uc.UpdateMember(ctx, orgID, userID, req)
@@ -573,7 +586,7 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 	})
 
 	t.Run("Forbidden - Non admin actor cannot update owner via actor context", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := usecase.WithActorUserID(context.Background(), "member-1")
 		orgID := "org-1"
@@ -596,7 +609,7 @@ func TestOrganizationMemberUseCase_UpdateMember(t *testing.T) {
 
 func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		actorID := "owner-1"
 		ctx := usecase.WithActorUserID(context.Background(), actorID)
@@ -612,7 +625,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 		deps.MemberRepo.On("FindMemberForUpdate", ctx, orgID, userID).Return(&entity.OrganizationMember{OrganizationID: orgID, UserID: userID, RoleID: "role:member"}, nil)
 		deps.MemberRepo.On("GetMemberRoleName", ctx, orgID, userID).Return("role:member", nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 		deps.MemberRepo.On("RemoveMember", ctx, orgID, userID).Return(nil)
 
 		err := uc.RemoveMember(ctx, orgID, userID)
@@ -621,7 +634,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 	})
 
 	t.Run("No-op - Member Already Gone", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		actorID := "owner-1"
 		ctx := usecase.WithActorUserID(context.Background(), actorID)
@@ -641,11 +654,12 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 	})
 
 	t.Run("Forbidden - Remove Owner", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
-		userID := "owner"
+		userID := "owner-1"
 		org := &entity.Organization{ID: orgID, OwnerID: userID}
 		member := &entity.OrganizationMember{OrganizationID: orgID, UserID: userID}
 
@@ -662,12 +676,13 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 	})
 
 	t.Run("Check Membership Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		userID := "user-1"
-		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -682,9 +697,10 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 	})
 
 	t.Run("Org Find Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		userID := "user-1"
 
@@ -693,7 +709,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 			_ = fn(ctx)
 		}).Return(exception.ErrInternalServer)
 
-		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil)
+		deps.MemberRepo.On("CheckMembership", ctx, orgID, userID).Return(true, nil).Maybe()
 		deps.OrgRepo.On("FindByID", ctx, orgID).Return(nil, errors.New("db error"))
 
 		err := uc.RemoveMember(ctx, orgID, userID)
@@ -701,12 +717,13 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 	})
 
 	t.Run("Remove Member Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
-		ctx := context.Background()
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
 		orgID := "org-1"
 		userID := "user-1"
-		org := &entity.Organization{ID: orgID, OwnerID: "other"}
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 			fn := args.Get(1).(func(context.Context) error)
@@ -717,7 +734,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 		deps.MemberRepo.On("FindMemberForUpdate", ctx, orgID, userID).Return(&entity.OrganizationMember{OrganizationID: orgID, UserID: userID, RoleID: "role:member"}, nil)
 		deps.MemberRepo.On("GetMemberRoleName", ctx, orgID, userID).Return("role:member", nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 		deps.MemberRepo.On("RemoveMember", ctx, orgID, userID).Return(errors.New("db error"))
 
 		err := uc.RemoveMember(ctx, orgID, userID)
@@ -725,7 +742,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 	})
 
 	t.Run("Forbidden - actor context role is not manager", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := usecase.WithActorUserID(context.Background(), "member-1")
 		orgID := "org-1"
@@ -748,7 +765,7 @@ func TestOrganizationMemberUseCase_RemoveMember(t *testing.T) {
 
 func TestOrganizationMemberUseCase_GetPresence(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		orgID := "org-1"
@@ -764,7 +781,7 @@ func TestOrganizationMemberUseCase_GetPresence(t *testing.T) {
 
 func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 	t.Run("Success - Activate New User", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "token", Password: "pass", Name: "Name"}
@@ -783,7 +800,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 		deps.MemberRepo.On("GetMemberStatus", ctx, inv.OrganizationID, user.ID).Return(entity.MemberStatusInvited, nil)
 		deps.MemberRepo.On("UpdateMemberStatus", ctx, inv.OrganizationID, user.ID, entity.MemberStatusActive).Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 		deps.InvitationRepo.On("Delete", ctx, inv.ID).Return(nil)
 
 		err := uc.AcceptInvitation(ctx, req)
@@ -792,7 +809,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("Invalid Token", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "invalid"}
@@ -809,7 +826,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("Invitation Expired", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "expired"}
@@ -830,7 +847,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("User Repo Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "token"}
@@ -852,7 +869,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("User Not Found", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "token"}
@@ -874,7 +891,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("Shadow User Missing Password", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "token", Password: ""}
@@ -896,7 +913,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("User Update Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "token", Password: "pass"}
@@ -920,7 +937,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("Get Member Status Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "token", Password: "pass"}
@@ -945,7 +962,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("Update Member Status Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "token", Password: "pass"}
@@ -971,7 +988,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("Add Member (No Status) Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "token", Password: "pass"}
@@ -999,7 +1016,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("Enforcer Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "token", Password: "pass"}
@@ -1020,14 +1037,14 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 		deps.MemberRepo.On("GetMemberStatus", ctx, inv.OrganizationID, user.ID).Return(entity.MemberStatusInvited, nil)
 		deps.MemberRepo.On("UpdateMemberStatus", ctx, inv.OrganizationID, user.ID, entity.MemberStatusActive).Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(false, errors.New("casbin error"))
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(false, errors.New("casbin error"))
 
 		err := uc.AcceptInvitation(ctx, req)
 		require.ErrorIs(t, err, exception.ErrInternalServer)
 	})
 
 	t.Run("Invitation Delete Error", func(t *testing.T) {
-		deps, uc := setupMemberTest()
+		deps, uc := setupMemberTest(t)
 		setupDefaultRoleMocks(deps)
 		ctx := context.Background()
 		req := &model.AcceptInvitationRequest{Token: "token", Password: "pass"}
@@ -1048,7 +1065,7 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 		deps.MemberRepo.On("GetMemberStatus", ctx, inv.OrganizationID, user.ID).Return(entity.MemberStatusInvited, nil)
 		deps.MemberRepo.On("UpdateMemberStatus", ctx, inv.OrganizationID, user.ID, entity.MemberStatusActive).Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 		deps.InvitationRepo.On("Delete", ctx, inv.ID).Return(errors.New("db error"))
 
 		err := uc.AcceptInvitation(ctx, req)
