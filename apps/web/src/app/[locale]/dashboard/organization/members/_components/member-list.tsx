@@ -1,8 +1,16 @@
 "use client";
 
-import { useMembers } from "./members-context";
-import { useOrganizationStore } from "~/stores/use-organization-store";
 import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+	Badge,
+	Button,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
 	Table,
 	TableBody,
 	TableCell,
@@ -10,19 +18,11 @@ import {
 	TableHeader,
 	TableRow,
 } from "@casbin/ui";
-import { Avatar, AvatarFallback, AvatarImage } from "@casbin/ui";
-import { Badge } from "@casbin/ui";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@casbin/ui";
-import { Button } from "@casbin/ui";
+import { memo } from "react";
 import { Icon } from "~/components/shared/icon";
 import type { Member } from "~/lib/api/organizations";
-import { memo } from "react";
+import { useOrganizationStore } from "~/stores/use-organization-store";
+import { useMembers } from "./members-context";
 
 export function MemberTable() {
 	const { members, isLoading } = useMembers();
@@ -62,7 +62,6 @@ const MemoizedMemberTableRow = memo(function MemberTableRow({
 }) {
 	const { currentOrganization } = useOrganizationStore();
 	const { roles, updateMemberRole, removeMember } = useMembers();
-
 	if (!currentOrganization) return null;
 
 	return (
@@ -94,11 +93,12 @@ const MemoizedMemberTableRow = memo(function MemberTableRow({
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
-						{roles.map((role) => (
-							<SelectItem key={role.id} value={role.id} className="text-xs">
-								{role.name}
-							</SelectItem>
-						))}
+						{roles &&
+							roles.map((role) => (
+								<SelectItem key={role.id} value={role.id} className="text-xs">
+									{role.name}
+								</SelectItem>
+							))}
 					</SelectContent>
 				</Select>
 			</TableCell>
