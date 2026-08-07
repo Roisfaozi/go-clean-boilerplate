@@ -66,7 +66,7 @@ export function CreateProjectDialog() {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger
-				nativeButton
+				nativeButton={false}
 				render={
 					<Card
 						role="button"

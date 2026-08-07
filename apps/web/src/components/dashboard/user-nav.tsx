@@ -36,7 +36,6 @@ export const UserNav = memo(function UserNav() {
 			toast.error("Logout failed");
 		}
 	}, [logout, router]);
-	console.log("log user from usernag", user);
 	if (!user) return null;
 
 	return (
