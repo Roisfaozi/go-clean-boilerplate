@@ -12,7 +12,7 @@ pre-commit:
     go-vet:
       glob: '**/*.go'
       run: >
-        pkgs=$(echo '{staged_files}' | tr ' ' '\n' | xargs -I{} dirname "{}" | sort -u | tr '\n' ' ');
+        pkgs=$(echo '{staged_files}' | tr ' ' '\n' | xargs -I{} dirname "./{}" | sort -u | paste -sd ' ' -);
         [ -n "$pkgs" ] && go vet $pkgs || true
 
     # ─── FRONTEND & UI ───
