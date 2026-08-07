@@ -53,7 +53,7 @@ func RateLimitMiddlewareRedis(redisClient *redis.Client, log *logrus.Logger, lim
 		var key string
 
 		if limitType == LimiterTypeUser {
-			userID, exists := c.Get("userID")
+			userID, exists := c.Get("user_id")
 			if !exists {
 				// Fallback to IP if userID not found (e.g. auth failed)
 				identifier = c.ClientIP()
