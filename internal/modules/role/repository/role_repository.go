@@ -67,7 +67,7 @@ func (r *roleRepository) FindOrganizationRoles(ctx context.Context, organization
 	var roles []*entity.Role
 	if err := r.getDB(ctx).
 		Scopes(database.OrganizationVisibilityScope(ctx, "roles.organization_id")).
-		Where("organization_id = ?", organizationID).
+		Where("organization_id = ? OR organization_id IS NULL", organizationID).
 		Find(&roles).Error; err != nil {
 		return nil, err
 	}
