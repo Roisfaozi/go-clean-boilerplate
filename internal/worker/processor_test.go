@@ -7,7 +7,6 @@ import (
 	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
-	workerMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/worker/test/mocks"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
@@ -19,7 +18,7 @@ type processorTestDeps struct {
 	processor worker.TaskProcessor
 	mockRedis *miniredis.Miniredis
 	auditUC   *auditMocks.MockAuditUseCase
-	auditRepo *workerMocks.MockAuditRepository
+	auditRepo *auditMocks.MockAuditRepository
 }
 
 func setupProcessorTest(t *testing.T) (*processorTestDeps, func()) {
@@ -33,8 +32,8 @@ func setupProcessorTest(t *testing.T) (*processorTestDeps, func()) {
 	logger := logrus.New()
 	logger.SetOutput(new(mockWriter))
 
-	auditUC := new(auditMocks.MockAuditUseCase)
-	auditRepo := new(workerMocks.MockAuditRepository)
+	auditUC := auditMocks.NewMockAuditUseCase(t)
+	auditRepo := auditMocks.NewMockAuditRepository(t)
 
 	cfg := worker.WorkerConfig{
 		SMTP: worker.SMTPConfig{
@@ -70,6 +69,7 @@ func setupProcessorTest(t *testing.T) (*processorTestDeps, func()) {
 }
 
 type mockWriter struct{}
+
 func (m *mockWriter) Write(p []byte) (n int, err error) { return len(p), nil }
 
 func TestRedisTaskProcessor_Lifecycle(t *testing.T) {

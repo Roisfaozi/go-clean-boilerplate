@@ -86,7 +86,7 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 
 	deps.Repo.On("Create", mock.Anything, mock.AnythingOfType("*entity.User")).Return(nil)
 	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-	deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 	deps.Webhook.On("Trigger", mock.Anything, mock.Anything).Return(nil).Maybe()
 
@@ -162,8 +162,8 @@ func TestUserUseCase_Create_AuditError(t *testing.T) {
 
 	deps.Repo.On("Create", mock.Anything, mock.Anything).Return(nil)
 	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-	deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
-	deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
+	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit error"))
 
 	_, err := uc.Create(context.Background(), req)
@@ -186,7 +186,7 @@ func TestUserUseCase_Create_EnforcerError(t *testing.T) {
 
 	deps.Repo.On("Create", mock.Anything, mock.Anything).Return(nil)
 	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-	deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(false, errors.New("casbin error"))
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(false, errors.New("casbin error"))
 
 	result, err := uc.Create(context.Background(), req)
 
@@ -518,7 +518,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 				deps.Repo.On("Delete", mock.Anything, deleteReq.ID).Return(nil)
 				deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 				deps.Enforcer.On("GetRolesForUser", deleteReq.ID, mock.Anything).Return([]string{"role:user"}, nil)
-				deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
+				deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 				deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 			}
 
@@ -582,11 +582,11 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, mock.Anything).Return([]string{"role:user", "role:admin"}, nil)
 
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit fail"))
 
 		// Expect Compensation: Restore Roles
-		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
 		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
 
@@ -611,13 +611,13 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 		// Expect Backup Roles
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 		deps.Enforcer.On("GetRolesForUser", deleteReq.ID, mock.Anything).Return([]string{"role:user"}, nil)
-		deps.Enforcer.On("RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything).Return(true, nil)
+		deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
 		// Audit fails
 		deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(errors.New("audit fail"))
 
 		// Compensation fails
-		deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(false, errors.New("casbin restore error"))
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(false, errors.New("casbin restore error"))
 
 		err := uc.DeleteUser(context.Background(), actorUserID, deleteReq)
 
@@ -874,7 +874,7 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 	})).Return(nil)
 
 	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-	deps.Enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
+	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 	deps.Webhook.On("Trigger", mock.Anything, mock.Anything).Return(nil).Maybe()
 

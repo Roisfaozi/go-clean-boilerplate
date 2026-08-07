@@ -19,7 +19,7 @@ import (
 // - DB stores role.ID
 // - Casbin grouping policy receives role.Name (not role.ID)
 func TestRoleContract_IDVsName_AcceptInvitation(t *testing.T) {
-	deps, uc := setupMemberTest()
+	deps, uc := setupMemberTest(t)
 	ctx := context.Background()
 
 	roleUUID := "018f3a5b-7c9d-7000-8000-111111111111"
@@ -66,20 +66,16 @@ func TestRoleContract_IDVsName_AcceptInvitation(t *testing.T) {
 
 	deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
 	// Casbin MUST be called with roleName ("custom_manager"), NOT roleUUID ("018f3a5b-...")
-	deps.Enforcer.On("AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
-		return len(params) == 3 && params[0] == user.ID && params[1] == roleName && params[2] == orgID
-	})).Return(true, nil)
+	deps.Enforcer.On("AddGroupingPolicy", user.ID, roleName, orgID).Return(true, nil)
 	deps.InvitationRepo.On("Delete", ctx, inv.ID).Return(nil)
 
 	err := uc.AcceptInvitation(ctx, req)
 	require.NoError(t, err)
-	deps.Enforcer.AssertCalled(t, "AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
-		return len(params) == 3 && params[0] == user.ID && params[1] == roleName && params[2] == orgID
-	}))
+	deps.Enforcer.AssertCalled(t, "AddGroupingPolicy", user.ID, roleName, orgID)
 }
 
 func TestRoleContract_InviteOwnerRole_Forbidden(t *testing.T) {
-	deps, uc := setupMemberTest()
+	deps, uc := setupMemberTest(t)
 	actorID := "owner-1"
 	ctx := usecase.WithActorUserID(context.Background(), actorID)
 	orgID := "org-test-123"
@@ -100,7 +96,7 @@ func TestRoleContract_InviteOwnerRole_Forbidden(t *testing.T) {
 }
 
 func TestRoleContract_CrossTenantRole_BadRequest(t *testing.T) {
-	deps, uc := setupMemberTest()
+	deps, uc := setupMemberTest(t)
 	actorID := "owner-1"
 	ctx := usecase.WithActorUserID(context.Background(), actorID)
 	orgID := "org-test-123"
