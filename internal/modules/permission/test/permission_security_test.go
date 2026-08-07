@@ -10,6 +10,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -312,4 +313,17 @@ func TestConcurrentBatchPermissionCheck(t *testing.T) {
 
 	wg.Wait()
 	assert.Equal(t, int32(numGoroutines), successCount)
+}
+
+func TestPrivilegeEscalation_NonSuperAdmin_Denied(t *testing.T) {
+	deps, uc := setupPermissionTest()
+
+	ctx := context.Background()
+	err := uc.AssignRoleToUser(ctx, "user-123", "role:superadmin", "")
+	assert.Error(t, err)
+
+	deps.Enforcer.On("GetRolesForUser", "actor-user", "global").Return([]string{"role:user"}, nil)
+	ctxWithActor := authcontext.WithUserID(ctx, "actor-user")
+	err = uc.GrantPermissionToRole(ctxWithActor, "role:user", "*", "*", "global")
+	assert.Error(t, err)
 }

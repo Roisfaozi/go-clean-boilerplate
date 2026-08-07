@@ -181,7 +181,7 @@ func (h *PermissionController) GetAllPermissions(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, filterPoliciesByDomain(permissions, resolveDomain(c, "")))
+	response.Success(c, filterPoliciesByDomain(c, permissions, resolveDomain(c, "")))
 }
 
 // GetPermissionsForRole godoc
@@ -209,7 +209,7 @@ func (h *PermissionController) GetPermissionsForRole(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, filterPoliciesByDomain(permissions, resolveDomain(c, "")))
+	response.Success(c, filterPoliciesByDomain(c, permissions, resolveDomain(c, "")))
 }
 
 // GetUsersForRole godoc
@@ -243,14 +243,26 @@ func (h *PermissionController) GetUsersForRole(c *gin.Context) {
 	response.Success(c, users)
 }
 
-func filterPoliciesByDomain(policies [][]string, domain string) [][]string {
-	if domain == "" || domain == "global" {
+func filterPoliciesByDomain(c *gin.Context, policies [][]string, domain string) [][]string {
+	userRole, _ := c.Get("user_role")
+	isSuperAdmin := userRole == "role:superadmin"
+
+	if (domain == "" || domain == "global") && isSuperAdmin {
 		return policies
+	}
+
+	targetDomain := domain
+	if targetDomain == "" || targetDomain == "global" {
+		if orgID, ok := c.Get("organization_id"); ok {
+			if idStr, isStr := orgID.(string); isStr && idStr != "" {
+				targetDomain = idStr
+			}
+		}
 	}
 
 	filtered := make([][]string, 0, len(policies))
 	for _, policy := range policies {
-		if len(policy) > 1 && policy[1] == domain {
+		if len(policy) > 1 && policy[1] == targetDomain {
 			filtered = append(filtered, policy)
 		}
 	}
@@ -431,7 +443,7 @@ func (h *PermissionController) GetParentRoles(c *gin.Context) {
 		return
 	}
 
-	domain := c.Query("domain")
+	domain := resolveDomain(c, c.Query("domain"))
 
 	parents, err := h.useCase.GetParentRoles(c.Request.Context(), role, domain)
 	if err != nil {
@@ -538,7 +550,7 @@ func (h *PermissionController) GetInheritanceTree(c *gin.Context) {
 // @Router       /permissions/roles/{role}/access-rights [get]
 func (h *PermissionController) GetRoleAccessRights(c *gin.Context) {
 	role := c.Param("role")
-	domain := c.DefaultQuery("domain", "global")
+	domain := resolveDomain(c, c.Query("domain"))
 
 	result, err := h.useCase.GetRoleAccessRights(c.Request.Context(), role, domain)
 	if err != nil {

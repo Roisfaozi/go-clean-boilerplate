@@ -10,6 +10,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/sirupsen/logrus"
@@ -119,6 +120,9 @@ func (uc *PermissionUseCase) AddParentRole(ctx context.Context, childRole, paren
 	if domain == "" {
 		domain = "global"
 	}
+	if err := uc.assertActorMayGrant(ctx, parentRole, domain); err != nil {
+		return err
+	}
 	uc.log.WithContext(ctx).Infof("Adding inheritance: role '%s' inherits from '%s' in domain '%s'", childRole, parentRole, domain)
 
 	if _, err := uc.RoleRepo.FindByName(ctx, childRole); err != nil {
@@ -171,7 +175,10 @@ func (uc *PermissionUseCase) GetParentRoles(ctx context.Context, role, domain st
 
 func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role, domain string) error {
 	if domain == "" {
-		domain = "global"
+		return exception.ErrBadRequest
+	}
+	if err := uc.assertActorMayGrant(ctx, role, domain); err != nil {
+		return err
 	}
 	uc.log.WithContext(ctx).Infof("Attempting to assign role '%s' to user '%s' in domain '%s'", role, userID, domain)
 
@@ -262,6 +269,13 @@ func (uc *PermissionUseCase) RevokeRoleFromUser(ctx context.Context, userID, rol
 func (uc *PermissionUseCase) GrantPermissionToRole(ctx context.Context, role, path, method, domain string) error {
 	if domain == "" {
 		domain = "global"
+	}
+	if (path == "*" || method == "*") && role != "role:superadmin" {
+		if err := uc.assertActorMayGrant(ctx, "role:superadmin", domain); err != nil {
+			return exception.ErrForbidden
+		}
+	} else if err := uc.assertActorMayGrant(ctx, role, domain); err != nil {
+		return err
 	}
 	uc.log.WithContext(ctx).Infof("Attempting to grant permission to role '%s' in domain '%s'", role, domain)
 
@@ -412,6 +426,48 @@ func (uc *PermissionUseCase) ReloadPolicy(ctx context.Context) error {
 	if err := uc.enforcer.LoadPolicy(); err != nil {
 		uc.log.WithContext(ctx).Errorf("Failed to reload Casbin policy: %v", err)
 		return err
+	}
+
+	return nil
+}
+
+func (uc *PermissionUseCase) assertActorMayGrant(ctx context.Context, targetRole, domain string) error {
+	actorID, ok := authcontext.UserIDFromContext(ctx)
+	if !ok || actorID == "" {
+		return nil // Non-user / system context permitted
+	}
+
+	actorRoles, err := uc.enforcer.WithContext(ctx).GetRolesForUser(actorID, domain)
+	if err != nil {
+		return exception.ErrInternalServer
+	}
+
+	isSuperAdmin := false
+	for _, r := range actorRoles {
+		if r == "role:superadmin" {
+			isSuperAdmin = true
+			break
+		}
+	}
+
+	if isSuperAdmin {
+		return nil
+	}
+
+	if targetRole == "role:superadmin" {
+		return exception.ErrForbidden
+	}
+
+	hasRole := false
+	for _, r := range actorRoles {
+		if r == targetRole {
+			hasRole = true
+			break
+		}
+	}
+
+	if !hasRole {
+		return exception.ErrForbidden
 	}
 
 	return nil
