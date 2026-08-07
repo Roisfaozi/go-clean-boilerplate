@@ -94,7 +94,13 @@ func (m *APIKeyMiddleware) RequireScopeAuto() gin.HandlerFunc {
 
 		requiredScope, ok := requiredScopeFromRequest(c.Request.URL.Path, c.Request.Method)
 		if !ok {
-			c.Next()
+			m.Log.WithFields(logrus.Fields{
+				"path":   c.Request.URL.Path,
+				"method": c.Request.Method,
+			}).Warn("API Key scope enforcement failed: undeterminable required scope")
+
+			response.Forbidden(c, errors.New("api key scope required"), "forbidden")
+			c.Abort()
 			return
 		}
 

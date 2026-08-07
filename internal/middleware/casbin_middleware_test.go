@@ -218,3 +218,19 @@ func TestCasbinMiddleware_WithInvalidOrganizationContext(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	mockEnforcer.AssertExpectations(t)
 }
+
+func TestCasbinMiddleware_NilEnforcer_Forbidden(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/protected", nil)
+	c.Request = req
+
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+
+	mw := middleware.CasbinMiddleware(nil, logger)
+	mw(c)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
