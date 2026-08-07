@@ -17,6 +17,7 @@ type AppConfig struct {
 	Redis          RedisConfig          `mapstructure:"redis"`
 	JWT            JWTConfig            `mapstructure:"jwt"`
 	Security       SecurityConfig       `mapstructure:"security"`
+	Cookie         CookieConfig         `mapstructure:"cookie"`
 	Log            LoggerConfig         `mapstructure:"log"`
 	WebSocket      WebSocketConfig      `mapstructure:"websocket"`
 	Casbin         CasbinConfig         `mapstructure:"casbin"`
@@ -151,6 +152,12 @@ type RedisConfig struct {
 	WriteTimeout time.Duration `mapstructure:"write_timeout"`
 }
 
+type CookieConfig struct {
+	Domain   string `mapstructure:"domain"`
+	SameSite string `mapstructure:"same_site" validate:"omitempty,oneof=lax strict none"`
+	Secure   *bool  `mapstructure:"secure"`
+}
+
 type JWTConfig struct {
 	AccessTokenSecret    string        `mapstructure:"access_secret" validate:"required,min=32"`
 	RefreshTokenSecret   string        `mapstructure:"refresh_secret" validate:"required,min=32"`
@@ -195,6 +202,8 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("jwt.refresh_duration", "24h")
 	v.SetDefault("security.max_login_attempts", 5)
 	v.SetDefault("security.lockout_duration", "30m")
+	v.SetDefault("cookie.same_site", "lax")
+	v.SetDefault("cookie.domain", "")
 	v.SetDefault("casbin.enabled", true)
 	v.SetDefault("casbin.model", "internal/config/casbin_model.conf")
 	v.SetDefault("casbin.default_role", "role:user")

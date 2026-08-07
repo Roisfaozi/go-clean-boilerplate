@@ -7,6 +7,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -42,6 +43,12 @@ func main() {
 
 	if cfg.JWT.AccessTokenSecret == "" || cfg.JWT.RefreshTokenSecret == "" {
 		log.Fatal("JWT secrets are not set. Please check your .env file or environment variables.")
+	}
+
+	if strings.EqualFold(cfg.Cookie.SameSite, "none") {
+		if cfg.Cookie.Secure == nil || !*cfg.Cookie.Secure {
+			log.Fatal("COOKIE_SAME_SITE=none requires COOKIE_SECURE=true (browser rejects SameSite=None without Secure)")
+		}
 	}
 
 	app, err := config.NewApplication(cfg)

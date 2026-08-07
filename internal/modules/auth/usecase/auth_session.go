@@ -232,6 +232,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 				AccessToken:  newAccessToken,
 				TokenType:    "Bearer",
 				RefreshToken: newRefreshToken,
+				ExpiresIn:    int64(s.jwtManager.GetAccessTokenDuration().Seconds()),
 			},
 			refreshToken: newRefreshToken,
 		}, nil
@@ -385,4 +386,8 @@ func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
 		Username:  user.Username,
 	})
 	return refreshToken, err
+}
+
+func (s *Service) GetRefreshTokenDuration() time.Duration {
+	return s.jwtManager.GetRefreshTokenDuration()
 }

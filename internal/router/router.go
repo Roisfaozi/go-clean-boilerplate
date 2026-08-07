@@ -169,7 +169,7 @@ func SetupRouter(
 		}
 
 		// Other Auth Routes (Standard Public Limit)
-		authGroup.POST("/refresh", idempotencyMiddleware, authModule.AuthController.RefreshToken)
+		authGroup.POST("/refresh", middleware.CSRFMiddleware(logger), idempotencyMiddleware, authModule.AuthController.RefreshToken)
 		authGroup.POST("/forgot-password", idempotencyMiddleware, authModule.AuthController.ForgotPassword)
 		authGroup.POST("/reset-password", idempotencyMiddleware, authModule.AuthController.ResetPassword)
 		authGroup.POST("/verify-email", idempotencyMiddleware, authModule.AuthController.VerifyEmail)
@@ -182,6 +182,7 @@ func SetupRouter(
 	}
 
 	authenticated := apiV1.Group("")
+	authenticated.Use(middleware.CSRFMiddleware(logger))
 	authenticated.Use(apiKeyMiddleware.Authenticate())
 	authenticated.Use(authMiddleware.ValidateToken())
 	authenticated.Use(apiKeyMiddleware.RequireScopeAuto())

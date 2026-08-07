@@ -10,6 +10,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth"
+	authHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization"
 	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission"
@@ -118,6 +119,11 @@ func initModules(
 		cfg.Casbin.DefaultRole,
 		cfg.Casbin.DefaultDomain,
 		ssoProviders,
+		authHttp.CookieConfig{
+			Domain:   cfg.Cookie.Domain,
+			SameSite: cfg.Cookie.SameSite,
+			Secure:   cfg.Cookie.Secure,
+		},
 	)
 
 	webhookModule := webhook.NewWebhookModule(dbConnection, logger, validate, taskDistributor)
