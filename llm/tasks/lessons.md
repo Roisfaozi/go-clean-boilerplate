@@ -30,3 +30,13 @@
 - Proxy behavior in `apps/web` and `apps/client` is part of the real API contract surface and should be audited with backend route changes.
 - Existing `documentation/llm/*` docs are helpful, but live code remains authoritative when there is drift.
 - `documentation/api/AI_STREAMING_CONTRACT.md` currently reads as supporting/planned contract documentation, not confirmed live backend routing.
+
+## Mockery & Testing Migration Lessons
+
+- **Mockery v2.53.6 Configuration**: Default output writes 1 file per interface (`mock_{{.InterfaceName}}.go`). Specifying `filename:` in `.mockery.yml` per-package causes interfaces to overwrite each other. CLI `--filename` combined with a config file applies globally and overwrites all generated mocks into a single file.
+- **Variadic Method Signature in Mocks**: Mockery v2.53.6 generates variadic parameters (`params ...interface{}` or `domain ...string`) as individual arguments, requiring test expectations to pass positional arguments (`"arg1", "arg2"`) rather than slices (`[]interface{}{"arg1", "arg2"}`).
+- **False-Positive Unit Tests**:
+  - `organization_member_usecase_test.go`: Tests without `usecase.WithActorUserID(ctx, actorID)` failed early inside `authorizeMemberManagement` with `ErrForbidden`, bypassing intended test logic and masking missing mock setups.
+  - `audit_usecase_test.go`: `CreateAuditLogRequest{UserID: "u1"}` failed mandatory field validation (`Action`/`Entity`), returning validation errors before reaching repository layer.
+  - `auth_usecase_test.go`: `HandleSSOCallback` uses `StoreToken`, not `StoreSession`. Registering expectations on uncalled methods with `NewMockX(t)` triggers test cleanup failures.
+
