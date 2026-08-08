@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
@@ -72,6 +74,33 @@ func (h *AuthController) setAuthCookie(c *gin.Context, name, value string, maxAg
 	})
 }
 
+func (h *AuthController) setCsrfCookie(c *gin.Context, maxAge int) {
+	csrfToken := uuid.NewString()
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "csrf_token",
+		Value:    csrfToken,
+		Path:     "/",
+		Domain:   h.cookieCfg.Domain,
+		MaxAge:   maxAge,
+		HttpOnly: false,
+		Secure:   h.resolveSecure(c),
+		SameSite: h.sameSite(),
+	})
+}
+
+func (h *AuthController) clearCsrfCookie(c *gin.Context) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "csrf_token",
+		Value:    "",
+		Path:     "/",
+		Domain:   h.cookieCfg.Domain,
+		MaxAge:   -1,
+		HttpOnly: false,
+		Secure:   h.resolveSecure(c),
+		SameSite: h.sameSite(),
+	})
+}
+
 func (h *AuthController) clearAuthCookie(c *gin.Context, name string) {
 	h.setAuthCookie(c, name, "", -1)
 }
@@ -118,6 +147,7 @@ func (h *AuthController) Login(c *gin.Context) {
 	h.setAuthCookie(c, "refresh_token", refreshToken, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 	// Set access token in HttpOnly cookie (short lived)
 	h.setAuthCookie(c, "access_token", res.AccessToken, int(res.ExpiresIn))
+	h.setCsrfCookie(c, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 
 	response.Success(c, res)
 }
@@ -148,6 +178,7 @@ func (h *AuthController) RefreshToken(c *gin.Context) {
 
 	h.setAuthCookie(c, "refresh_token", newRefreshToken, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 	h.setAuthCookie(c, "access_token", res.AccessToken, int(res.ExpiresIn))
+	h.setCsrfCookie(c, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 	response.Success(c, res)
 }
 
@@ -179,6 +210,7 @@ func (h *AuthController) Logout(c *gin.Context) {
 
 	h.clearAuthCookie(c, "refresh_token")
 	h.clearAuthCookie(c, "access_token")
+	h.clearCsrfCookie(c)
 	response.Success(c, gin.H{"message": "logged out successfully"})
 }
 
@@ -354,6 +386,7 @@ func (h *AuthController) Register(c *gin.Context) {
 	// Set refresh token in HttpOnly cookie
 	h.setAuthCookie(c, "refresh_token", refreshToken, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 	h.setAuthCookie(c, "access_token", res.AccessToken, int(res.ExpiresIn))
+	h.setCsrfCookie(c, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 
 	response.Created(c, res)
 }
@@ -540,6 +573,7 @@ func (ac *AuthController) SSOCallback(c *gin.Context) {
 
 	ac.setAuthCookie(c, "refresh_token", refreshToken, int(ac.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 	ac.setAuthCookie(c, "access_token", res.AccessToken, int(res.ExpiresIn))
+	ac.setCsrfCookie(c, int(ac.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 
 	response.Success(c, res)
 }

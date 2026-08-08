@@ -214,6 +214,7 @@ func SetupRouter(
 	}
 
 	tenantAuthorized := apiV1.Group("")
+	tenantAuthorized.Use(middleware.CSRFMiddleware(logger))
 	tenantAuthorized.Use(apiKeyMiddleware.Authenticate())
 	tenantAuthorized.Use(authMiddleware.ValidateToken())
 	tenantAuthorized.Use(apiKeyMiddleware.RequireScopeAuto())
@@ -241,6 +242,7 @@ func SetupRouter(
 	}
 
 	authorized := apiV1.Group("")
+	authorized.Use(middleware.CSRFMiddleware(logger))
 	authorized.Use(apiKeyMiddleware.Authenticate())
 	authorized.Use(authMiddleware.ValidateToken())
 	authorized.Use(apiKeyMiddleware.RequireScopes("admin:manage"))
