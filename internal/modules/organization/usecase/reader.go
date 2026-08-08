@@ -107,8 +107,8 @@ func (r *CachedOrgReader) GetMemberRole(ctx context.Context, orgID, userID strin
 		r.log.WithError(err).Warn("Redis error during role check, falling back to DB")
 	}
 
-	// 2. Cache miss - query database using GetMemberRole
-	memberRole, err := r.memberRepo.GetMemberRole(ctx, orgID, userID)
+	// 2. Cache miss - query database using GetMemberRoleName
+	memberRole, err := r.memberRepo.GetMemberRoleName(ctx, orgID, userID)
 	if err != nil {
 		return "", err
 	}

@@ -183,7 +183,7 @@ func TestCachedOrgReader_GetMemberRole_CacheMiss(t *testing.T) {
 	// Arrange
 	db, mockClient := redismock.NewClientMock()
 	mockRepo := mocks.NewMockOrganizationMemberRepository(t)
-	mockRepo.On("GetMemberRole", mock.Anything, "org-123", "user-456").Return("member", nil)
+	mockRepo.On("GetMemberRoleName", mock.Anything, "org-123", "user-456").Return("member", nil)
 	log := newTestLogger()
 
 	reader := usecase.NewCachedOrgReader(mockRepo, db, log)
