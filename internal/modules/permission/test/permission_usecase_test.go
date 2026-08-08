@@ -16,6 +16,7 @@ import (
 	roleMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test/mocks"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/glebarez/sqlite"
@@ -53,6 +54,8 @@ func setupPermissionTest() (*permissionTestDeps, usecase.IPermissionUseCase) {
 
 func TestAssignRoleToUser_Success(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
 	userID, roleName := "user123", "editor"
 
@@ -65,7 +68,7 @@ func TestAssignRoleToUser_Success(t *testing.T) {
 	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
-	err := uc.AssignRoleToUser(context.Background(), userID, roleName, "global")
+	err := uc.AssignRoleToUser(ctx, userID, roleName, "global")
 
 	assert.NoError(t, err)
 	deps.UserRepo.AssertExpectations(t)
@@ -75,12 +78,14 @@ func TestAssignRoleToUser_Success(t *testing.T) {
 
 func TestAssignRoleToUser_UserNotFound(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
 	userID, roleName := "user123", "editor"
 
 	deps.UserRepo.On("FindByID", mock.Anything, userID).Return(nil, gorm.ErrRecordNotFound)
 
-	err := uc.AssignRoleToUser(context.Background(), userID, roleName, "global")
+	err := uc.AssignRoleToUser(ctx, userID, roleName, "global")
 
 	assert.Error(t, err)
 	assert.Equal(t, exception.ErrNotFound, err)
@@ -91,11 +96,13 @@ func TestAssignRoleToUser_UserNotFound(t *testing.T) {
 
 func TestAssignRoleToUser_UserRepoError(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	userID, roleName := "user123", "editor"
 
 	deps.UserRepo.On("FindByID", mock.Anything, userID).Return(nil, errors.New("db error"))
 
-	err := uc.AssignRoleToUser(context.Background(), userID, roleName, "global")
+	err := uc.AssignRoleToUser(ctx, userID, roleName, "global")
 
 	assert.Error(t, err)
 	assert.Equal(t, exception.ErrInternalServer, err)
@@ -103,6 +110,8 @@ func TestAssignRoleToUser_UserRepoError(t *testing.T) {
 
 func TestAssignRoleToUser_RoleNotFound(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
 	userID, roleName := "user123", "non_existent_role"
 
@@ -112,7 +121,7 @@ func TestAssignRoleToUser_RoleNotFound(t *testing.T) {
 	// Mock RoleRepo Fail
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(nil, gorm.ErrRecordNotFound)
 
-	err := uc.AssignRoleToUser(context.Background(), userID, roleName, "global")
+	err := uc.AssignRoleToUser(ctx, userID, roleName, "global")
 
 	assert.Error(t, err)
 	assert.Equal(t, exception.ErrBadRequest, err)
@@ -121,12 +130,14 @@ func TestAssignRoleToUser_RoleNotFound(t *testing.T) {
 
 func TestAssignRoleToUser_RoleRepoError(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	userID, roleName := "user123", "editor"
 
 	deps.UserRepo.On("FindByID", mock.Anything, userID).Return(&userEntity.User{ID: userID}, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(nil, errors.New("db error"))
 
-	err := uc.AssignRoleToUser(context.Background(), userID, roleName, "global")
+	err := uc.AssignRoleToUser(ctx, userID, roleName, "global")
 
 	assert.Error(t, err)
 	assert.Equal(t, exception.ErrInternalServer, err)
@@ -134,6 +145,8 @@ func TestAssignRoleToUser_RoleRepoError(t *testing.T) {
 
 func TestAssignRoleToUser_EnforcerRemoveError(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	userID, roleName := "user123", "editor"
 
 	deps.UserRepo.On("FindByID", mock.Anything, userID).Return(&userEntity.User{ID: userID}, nil)
@@ -141,7 +154,7 @@ func TestAssignRoleToUser_EnforcerRemoveError(t *testing.T) {
 
 	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, mock.Anything, mock.Anything).Return(false, errors.New("casbin error"))
 
-	err := uc.AssignRoleToUser(context.Background(), userID, roleName, "global")
+	err := uc.AssignRoleToUser(ctx, userID, roleName, "global")
 
 	assert.Error(t, err)
 	assert.Equal(t, exception.ErrInternalServer, err)
@@ -149,6 +162,8 @@ func TestAssignRoleToUser_EnforcerRemoveError(t *testing.T) {
 
 func TestAssignRoleToUser_EnforcerAddError(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	userID, roleName := "user123", "editor"
 
 	deps.UserRepo.On("FindByID", mock.Anything, userID).Return(&userEntity.User{ID: userID}, nil)
@@ -157,7 +172,7 @@ func TestAssignRoleToUser_EnforcerAddError(t *testing.T) {
 	deps.Enforcer.On("RemoveFilteredGroupingPolicy", 0, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(false, errors.New("casbin error"))
 
-	err := uc.AssignRoleToUser(context.Background(), userID, roleName, "global")
+	err := uc.AssignRoleToUser(ctx, userID, roleName, "global")
 
 	assert.Error(t, err)
 	assert.Equal(t, errors.New("casbin error"), err)
@@ -175,12 +190,14 @@ func TestAssignRoleToUser_EmptyInput(t *testing.T) {
 
 func TestGrantPermissionToRole_Success(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
 	role, path, method := "editor", "/api/v1/articles", "POST"
 	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(&roleEntity.Role{Name: role}, nil)
 	deps.Enforcer.On("AddPolicy", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
-	err := uc.GrantPermissionToRole(context.Background(), role, path, method, "global")
+	err := uc.GrantPermissionToRole(ctx, role, path, method, "global")
 
 	assert.NoError(t, err)
 	deps.RoleRepo.AssertExpectations(t)
@@ -189,11 +206,13 @@ func TestGrantPermissionToRole_Success(t *testing.T) {
 
 func TestGrantPermissionToRole_RoleNotFound(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
 	role, path, method := "non_existent_role", "/api/v1/articles", "POST"
 	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(nil, gorm.ErrRecordNotFound)
 
-	err := uc.GrantPermissionToRole(context.Background(), role, path, method, "global")
+	err := uc.GrantPermissionToRole(ctx, role, path, method, "global")
 
 	assert.Error(t, err)
 	assert.Equal(t, exception.ErrBadRequest, err)
@@ -202,34 +221,40 @@ func TestGrantPermissionToRole_RoleNotFound(t *testing.T) {
 
 func TestGrantPermissionToRole_RoleRepoError(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	role, path, method := "role", "/path", "POST"
 
 	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(nil, errors.New("db error"))
 
-	err := uc.GrantPermissionToRole(context.Background(), role, path, method, "global")
+	err := uc.GrantPermissionToRole(ctx, role, path, method, "global")
 	assert.Error(t, err)
 	assert.Equal(t, exception.ErrInternalServer, err)
 }
 
 func TestGrantPermissionToRole_EnforcerError(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	role, path, method := "role", "/path", "POST"
 
 	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(&roleEntity.Role{Name: role}, nil)
 	deps.Enforcer.On("AddPolicy", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(false, errors.New("casbin error"))
 
-	err := uc.GrantPermissionToRole(context.Background(), role, path, method, "global")
+	err := uc.GrantPermissionToRole(ctx, role, path, method, "global")
 	assert.Error(t, err)
 	assert.Equal(t, errors.New("casbin error"), err)
 }
 
 func TestGrantPermissionToRole_AlreadyExists(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	role, path, method := "editor", "/api/v1/articles", "POST"
 	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(&roleEntity.Role{Name: role}, nil)
 	deps.Enforcer.On("AddPolicy", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(false, nil)
 
-	err := uc.GrantPermissionToRole(context.Background(), role, path, method, "global")
+	err := uc.GrantPermissionToRole(ctx, role, path, method, "global")
 	assert.NoError(t, err)
 }
 
@@ -641,51 +666,61 @@ func TestRevokeRoleFromUser_Guardian_RoleNotAssigned(t *testing.T) {
 
 func TestAddParentRole_Guardian_Success(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	child, parent := "editor", "viewer"
 
 	deps.RoleRepo.On("FindByName", mock.Anything, child).Return(&roleEntity.Role{Name: child}, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, parent).Return(&roleEntity.Role{Name: parent}, nil)
 	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
-	err := uc.AddParentRole(context.Background(), child, parent, "global")
+	err := uc.AddParentRole(ctx, child, parent, "global")
 	assert.NoError(t, err)
 }
 
 func TestAddParentRole_Guardian_ChildRoleNotFound(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	deps.RoleRepo.On("FindByName", mock.Anything, "child").Return(nil, errors.New("not found"))
 
-	err := uc.AddParentRole(context.Background(), "child", "parent", "global")
+	err := uc.AddParentRole(ctx, "child", "parent", "global")
 	assert.ErrorIs(t, err, exception.ErrBadRequest)
 }
 
 func TestAddParentRole_Guardian_ParentRoleNotFound(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	deps.RoleRepo.On("FindByName", mock.Anything, "child").Return(&roleEntity.Role{Name: "child"}, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, "parent").Return(nil, errors.New("not found"))
 
-	err := uc.AddParentRole(context.Background(), "child", "parent", "global")
+	err := uc.AddParentRole(ctx, "child", "parent", "global")
 	assert.ErrorIs(t, err, exception.ErrBadRequest)
 }
 
 func TestAddParentRole_Guardian_SelfInheritance(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	deps.RoleRepo.On("FindByName", mock.Anything, "role").Return(&roleEntity.Role{Name: "role"}, nil)
 
-	err := uc.AddParentRole(context.Background(), "role", "role", "global")
+	err := uc.AddParentRole(ctx, "role", "role", "global")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot inherit from itself")
 }
 
 func TestAddParentRole_Guardian_EnforcerError(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	child, parent := "editor", "viewer"
 
 	deps.RoleRepo.On("FindByName", mock.Anything, child).Return(&roleEntity.Role{Name: child}, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, parent).Return(&roleEntity.Role{Name: parent}, nil)
 	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(false, errors.New("casbin fail"))
 
-	err := uc.AddParentRole(context.Background(), child, parent, "global")
+	err := uc.AddParentRole(ctx, child, parent, "global")
 	assert.Error(t, err)
 	assert.Equal(t, "casbin fail", err.Error())
 }
@@ -724,12 +759,14 @@ func TestRemoveParentRole_Guardian_RelationshipNotFound(t *testing.T) {
 
 func TestAddParentRole_Guardian_AlreadyExists(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	child, parent := "editor", "viewer"
 	deps.RoleRepo.On("FindByName", mock.Anything, child).Return(&roleEntity.Role{Name: child}, nil)
 	deps.RoleRepo.On("FindByName", mock.Anything, parent).Return(&roleEntity.Role{Name: parent}, nil)
 	deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(false, nil)
 
-	err := uc.AddParentRole(context.Background(), child, parent, "global")
+	err := uc.AddParentRole(ctx, child, parent, "global")
 	assert.NoError(t, err)
 }
 
@@ -758,43 +795,51 @@ func TestGetParentRoles_Guardian_EnforcerError(t *testing.T) {
 
 func TestPermissionUseCase_Edge_MaxStringLength(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	longString := strings.Repeat("a", 1000)
 
 	deps.RoleRepo.On("FindByName", mock.Anything, longString).Return(nil, errors.New("record not found"))
 
-	err := uc.GrantPermissionToRole(context.Background(), longString, longString, "GET", "global")
+	err := uc.GrantPermissionToRole(ctx, longString, longString, "GET", "global")
 	assert.Error(t, err)
 	assert.Equal(t, exception.ErrInternalServer, err)
 }
 
 func TestPermissionUseCase_Vulnerability_SQLInjectionInRole(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	sqliRole := "admin' OR '1'='1"
 
 	deps.RoleRepo.On("FindByName", mock.Anything, sqliRole).Return(nil, errors.New("record not found"))
 
-	err := uc.GrantPermissionToRole(context.Background(), sqliRole, "/path", "GET", "global")
+	err := uc.GrantPermissionToRole(ctx, sqliRole, "/path", "GET", "global")
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, exception.ErrInternalServer) || errors.Is(err, exception.ErrBadRequest))
 }
 
 func TestPermissionUseCase_Negative_AssignRoleToUser_EmptyUser(t *testing.T) {
-	_, uc := setupPermissionTest()
+	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
-	err := uc.AssignRoleToUser(context.Background(), "", "role", "global")
+	err := uc.AssignRoleToUser(ctx, "", "role", "global")
 	assert.Error(t, err)
 	assert.True(t, strings.Contains(err.Error(), "required") || strings.Contains(err.Error(), "empty"))
 }
 
 func TestPermissionUseCase_Negative_GrantPermissionToRole_SpecialChars(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 	role := "admin"
 	path := "/api/v1/resource/!@#$%^&*()"
 
 	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(&roleEntity.Role{Name: role}, nil)
 	deps.Enforcer.On("AddPolicy", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
-	err := uc.GrantPermissionToRole(context.Background(), role, path, "GET", "global")
+	err := uc.GrantPermissionToRole(ctx, role, path, "GET", "global")
 	assert.NoError(t, err)
 
 	deps.RoleRepo.AssertExpectations(t)

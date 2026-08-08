@@ -434,7 +434,7 @@ func (uc *PermissionUseCase) ReloadPolicy(ctx context.Context) error {
 func (uc *PermissionUseCase) assertActorMayGrant(ctx context.Context, targetRole, domain string) error {
 	actorID, ok := authcontext.UserIDFromContext(ctx)
 	if !ok || actorID == "" {
-		return nil // Non-user / system context permitted
+		return exception.ErrForbidden // Fail closed: no authenticated actor, no grant
 	}
 
 	actorRoles, err := uc.enforcer.WithContext(ctx).GetRolesForUser(actorID, domain)

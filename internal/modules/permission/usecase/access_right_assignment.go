@@ -55,6 +55,10 @@ func (uc *PermissionUseCase) AssignAccessRight(ctx context.Context, req model.As
 		req.Domain = "global"
 	}
 
+	if err := uc.assertActorMayGrant(ctx, req.Role, req.Domain); err != nil {
+		return err
+	}
+
 	ar, err := uc.AccessRepo.GetAccessRightByID(ctx, req.AccessRightID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, exception.ErrNotFound) {

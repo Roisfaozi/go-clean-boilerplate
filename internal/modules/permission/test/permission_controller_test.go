@@ -23,6 +23,10 @@ import (
 func setupPermissionTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set("user_id", "test-user-id")
+		c.Next()
+	})
 	return router
 }
 
@@ -150,6 +154,7 @@ func TestPermissionController_AssignRole(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
+	c.Set("user_id", "u1")
 
 	req := model.AssignRoleRequest{
 		UserID: "u1",
@@ -159,7 +164,7 @@ func TestPermissionController_AssignRole(t *testing.T) {
 	body, _ := json.Marshal(req)
 	c.Request, _ = http.NewRequest("POST", "/permission/assign-role", bytes.NewBuffer(body))
 
-	mockUC.On("AssignRoleToUser", c.Request.Context(), "u1", "role:admin", "global").Return(nil)
+	mockUC.On("AssignRoleToUser", mock.Anything, "u1", "role:admin", "global").Return(nil)
 
 	controller.AssignRole(c)
 

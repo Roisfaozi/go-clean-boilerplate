@@ -1,11 +1,13 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
@@ -46,6 +48,20 @@ func resolveDomain(c *gin.Context, requestedDomain string) string {
 	return requestedDomain
 }
 
+// actorContext derives the authenticated actor from the request context and
+// propagates it into the usecase context so privilege guards can evaluate it.
+func actorContext(c *gin.Context) (context.Context, bool) {
+	actorVal, exists := c.Get("user_id")
+	if !exists || actorVal == nil {
+		return nil, false
+	}
+	actorID, ok := actorVal.(string)
+	if !ok || actorID == "" {
+		return nil, false
+	}
+	return authcontext.WithUserID(c.Request.Context(), actorID), true
+}
+
 // AssignRole godoc
 // @Summary      Assign role to user
 // @Description  Assigns a role to a specified user (Casbin). Defaults to 'global' domain.
@@ -75,7 +91,13 @@ func (h *PermissionController) AssignRole(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.AssignRoleToUser(c.Request.Context(), req.UserID, req.Role, resolveDomain(c, req.Domain))
+	ctx, ok := actorContext(c)
+	if !ok {
+		response.Unauthorized(c, errors.New("missing user id"), "user not authenticated")
+		return
+	}
+
+	err := h.useCase.AssignRoleToUser(ctx, req.UserID, req.Role, resolveDomain(c, req.Domain))
 	if err != nil {
 		response.HandleError(c, err, "failed to assign role")
 		return
@@ -151,7 +173,13 @@ func (h *PermissionController) GrantPermission(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.GrantPermissionToRole(c.Request.Context(), req.Role, req.Path, req.Method, resolveDomain(c, req.Domain))
+	ctx, ok := actorContext(c)
+	if !ok {
+		response.Unauthorized(c, errors.New("missing user id"), "user not authenticated")
+		return
+	}
+
+	err := h.useCase.GrantPermissionToRole(ctx, req.Role, req.Path, req.Method, resolveDomain(c, req.Domain))
 	if err != nil {
 		if message, ok := usecase.IsNoopError(err); ok {
 			respondPermissionNoop(c, message)
@@ -373,7 +401,13 @@ func (h *PermissionController) AddRoleInheritance(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.AddParentRole(c.Request.Context(), req.ChildRole, req.ParentRole, resolveDomain(c, req.Domain))
+	ctx, ok := actorContext(c)
+	if !ok {
+		response.Unauthorized(c, errors.New("missing user id"), "user not authenticated")
+		return
+	}
+
+	err := h.useCase.AddParentRole(ctx, req.ChildRole, req.ParentRole, resolveDomain(c, req.Domain))
 	if err != nil {
 		response.HandleError(c, err, "failed to add role inheritance")
 		return
@@ -588,7 +622,12 @@ func (h *PermissionController) AssignAccessRight(c *gin.Context) {
 	}
 
 	req.Domain = resolveDomain(c, req.Domain)
-	if err := h.useCase.AssignAccessRight(c.Request.Context(), req); err != nil {
+	ctx, ok := actorContext(c)
+	if !ok {
+		response.Unauthorized(c, errors.New("missing user id"), "user not authenticated")
+		return
+	}
+	if err := h.useCase.AssignAccessRight(ctx, req); err != nil {
 		if message, ok := usecase.IsNoopError(err); ok {
 			respondPermissionNoop(c, message)
 			return

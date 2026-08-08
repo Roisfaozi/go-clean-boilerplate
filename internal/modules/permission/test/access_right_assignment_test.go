@@ -7,6 +7,7 @@ import (
 
 	accessEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -82,6 +83,8 @@ func TestGetRoleAccessRights_RepoError(t *testing.T) {
 
 func TestAssignAccessRight_Success(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
 	ar := &accessEntity.AccessRight{
 		ID:   "ar1",
@@ -106,13 +109,15 @@ func TestAssignAccessRight_Success(t *testing.T) {
 
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
-	err := uc.AssignAccessRight(context.Background(), req)
+	err := uc.AssignAccessRight(ctx, req)
 
 	assert.NoError(t, err)
 }
 
 func TestAssignAccessRight_NotFound(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
 	deps.AccessRepo.On("GetAccessRightByID", mock.Anything, "ar1").Return(nil, exception.ErrNotFound)
 
@@ -121,7 +126,7 @@ func TestAssignAccessRight_NotFound(t *testing.T) {
 		Role:          "admin",
 	}
 
-	err := uc.AssignAccessRight(context.Background(), req)
+	err := uc.AssignAccessRight(ctx, req)
 
 	assert.Error(t, err)
 	assert.Equal(t, "access right 'ar1' not found", err.Error())
@@ -129,6 +134,8 @@ func TestAssignAccessRight_NotFound(t *testing.T) {
 }
 func TestAssignAccessRight_NoEndpoints(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
 	ar := &accessEntity.AccessRight{
 		ID:        "ar1",
@@ -143,7 +150,7 @@ func TestAssignAccessRight_NoEndpoints(t *testing.T) {
 		Role:          "admin",
 	}
 
-	err := uc.AssignAccessRight(context.Background(), req)
+	err := uc.AssignAccessRight(ctx, req)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no endpoints configured")
