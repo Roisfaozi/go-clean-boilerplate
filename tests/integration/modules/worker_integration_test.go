@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
+	workerMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
 	authMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	userMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
-	workerMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/worker/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
