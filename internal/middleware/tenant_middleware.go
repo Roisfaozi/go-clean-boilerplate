@@ -70,30 +70,28 @@ func (m *TenantMiddleware) RequireOrganization() gin.HandlerFunc {
 			return
 		}
 
+		isMember, err := m.Reader.ValidateMembership(c.Request.Context(), orgID, userID)
+		if err != nil {
+			m.Log.WithError(err).Error("Failed to validate membership")
+			response.InternalServerError(c, err, "internal server error")
+			c.Abort()
+			return
+		}
+
+		if !isMember && !allowDeleted {
+			response.Forbidden(c, errors.New("user is not a member of this organization"), "access denied")
+			c.Abort()
+			return
+		}
+
 		role := ""
-		if allowDeleted {
-			role = superAdminRole
-		} else {
-			// Check membership using cached reader
-			isMember, err := m.Reader.ValidateMembership(c.Request.Context(), orgID, userID)
-			if err != nil {
-				m.Log.WithError(err).Error("Failed to validate membership")
-				response.InternalServerError(c, err, "internal server error")
-				c.Abort()
-				return
-			}
-
-			if !isMember {
-				response.Forbidden(c, errors.New("user is not a member of this organization"), "access denied")
-				c.Abort()
-				return
-			}
-
-			// Get member role for context
+		if isMember {
 			role, err = m.Reader.GetMemberRole(c.Request.Context(), orgID, userID)
 			if err != nil {
 				m.Log.WithError(err).Warn("Failed to get member role, proceeding without role context")
 			}
+		} else if allowDeleted {
+			role = superAdminRole
 		}
 
 		m.applyOrganizationContext(c, orgID, role, allowDeleted, org != nil && org.DeletedAt != 0)
@@ -160,9 +158,12 @@ func (m *TenantMiddleware) OptionalOrganization() gin.HandlerFunc {
 // Must be used after RequireOrganization middleware.
 func (m *TenantMiddleware) RequireOrgRole(allowedRoles ...string) gin.HandlerFunc {
 	roleHierarchy := map[string]int{
-		"owner":  3,
-		"admin":  2,
-		"member": 1,
+		"owner":       3,
+		"role:owner":  3,
+		"admin":       2,
+		"role:admin":  2,
+		"member":      1,
+		"role:member": 1,
 	}
 
 	return func(c *gin.Context) {
@@ -173,9 +174,17 @@ func (m *TenantMiddleware) RequireOrgRole(allowedRoles ...string) gin.HandlerFun
 			return
 		}
 
-		userLevel := roleHierarchy[role]
+		userLevel, hasUserLevel := roleHierarchy[role]
+		if !hasUserLevel {
+			userLevel = 0
+		}
+
 		for _, allowedRole := range allowedRoles {
-			if roleHierarchy[allowedRole] <= userLevel {
+			allowedLevel, ok := roleHierarchy[allowedRole]
+			if !ok {
+				continue
+			}
+			if userLevel > 0 && allowedLevel <= userLevel {
 				c.Next()
 				return
 			}

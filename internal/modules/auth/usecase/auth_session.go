@@ -11,6 +11,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/google/uuid"
@@ -81,6 +82,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 			attempts, incrErr := s.tokenRepo.IncrementLoginAttempts(txCtx, request.Username)
 			if incrErr != nil {
 				s.log.WithContext(txCtx).WithError(incrErr).Error("Failed to increment login attempts")
+				return exception.ErrInternalServer
 			}
 
 			if attempts >= s.maxLoginAttempts {

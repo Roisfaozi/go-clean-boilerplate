@@ -14,6 +14,7 @@ import (
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
@@ -76,7 +77,10 @@ func NewAuthUsecase(
 		ssoProviders:          ssoProviders,
 	}
 
-	hash, _ := pkg.HashPassword("dummy")
+	hash, err := pkg.HashPassword("dummy")
+	if err != nil {
+		hash = "$2a$12$e8pS13uFjWp1wK5N.oH0x.7GZ4SgVp8O1iH6U8a/4k9e/12345678"
+	}
 	s.dummyHash = hash
 
 	return s
@@ -84,10 +88,10 @@ func NewAuthUsecase(
 
 func (s *Service) Register(ctx context.Context, request model.RegisterRequest) (*model.LoginResponse, string, error) {
 	if existing, _ := s.userRepo.FindByUsername(ctx, request.Username); existing != nil {
-		return nil, "", fmt.Errorf("username already exists")
+		return nil, "", exception.ErrConflict
 	}
 	if existing, _ := s.userRepo.FindByEmail(ctx, request.Email); existing != nil {
-		return nil, "", fmt.Errorf("email already exists")
+		return nil, "", exception.ErrConflict
 	}
 
 	hashedPassword, err := pkg.HashPassword(request.Password)
