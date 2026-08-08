@@ -14,10 +14,10 @@ import (
 
 	authMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	userMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
+	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
-	workerMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/worker/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
@@ -90,7 +90,7 @@ func TestWorkerIntegration_CleanupExpiredTokens(t *testing.T) {
 
 	authRepo := new(authMocks.MockTokenRepository)
 	userRepo := new(userMocks.MockUserRepository)
-	auditRepo := new(workerMocks.MockAuditRepository)
+	auditRepo := new(auditMocks.MockAuditRepository)
 
 	authRepo.On("DeleteExpiredResetTokens", mock.Anything).Return(nil).Once()
 
@@ -129,7 +129,7 @@ func TestWorkerIntegration_CleanupSoftDeletedUsers(t *testing.T) {
 
 	authRepo := new(authMocks.MockTokenRepository)
 	userRepo := new(userMocks.MockUserRepository)
-	auditRepo := new(workerMocks.MockAuditRepository)
+	auditRepo := new(auditMocks.MockAuditRepository)
 
 	userRepo.On("HardDeleteSoftDeletedUsers", mock.Anything, 30).Return(nil).Once()
 
@@ -170,7 +170,7 @@ func TestWorkerIntegration_PruneAuditLogs(t *testing.T) {
 
 	authRepo := new(authMocks.MockTokenRepository)
 	userRepo := new(userMocks.MockUserRepository)
-	auditRepo := new(workerMocks.MockAuditRepository)
+	auditRepo := new(auditMocks.MockAuditRepository)
 
 	auditRepo.On("DeleteLogsOlderThan", mock.Anything, mock.MatchedBy(func(cutoff int64) bool {
 		expected := time.Now().AddDate(0, 0, -180).UnixMilli()
@@ -424,7 +424,7 @@ func TestWorkerIntegration_ProcessorStartShutdown(t *testing.T) {
 	// Create mock repositories
 	authRepo := new(authMocks.MockTokenRepository)
 	userRepo := new(userMocks.MockUserRepository)
-	auditRepo := new(workerMocks.MockAuditRepository)
+	auditRepo := new(auditMocks.MockAuditRepository)
 
 	cleanupHandler := handlers.NewCleanupTaskHandler(authRepo, userRepo, auditRepo, log)
 
