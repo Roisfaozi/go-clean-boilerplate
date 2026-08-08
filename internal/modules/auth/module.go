@@ -33,6 +33,7 @@ type AuthModule struct {
 func NewAuthModule(
 	maxLoginAttempts int,
 	lockoutDuration time.Duration,
+	maxConcurrentSessions int,
 	jwtManager *jwt.JWTManager,
 	db *gorm.DB,
 	redisClient *redis.Client,
@@ -60,6 +61,7 @@ func NewAuthModule(
 	authUseCase := usecase.NewAuthUsecase(
 		maxLoginAttempts,
 		lockoutDuration,
+		maxConcurrentSessions,
 		jwtManager,
 		tokenRepo,
 		userRepository,

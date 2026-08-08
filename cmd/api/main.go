@@ -45,6 +45,10 @@ func main() {
 		log.Fatal("JWT secrets are not set. Please check your .env file or environment variables.")
 	}
 
+	if cfg.JWT.AccessTokenSecret == cfg.JWT.RefreshTokenSecret {
+		log.Fatal("JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different.")
+	}
+
 	if strings.EqualFold(cfg.Cookie.SameSite, "none") {
 		if cfg.Cookie.Secure == nil || !*cfg.Cookie.Secure {
 			log.Fatal("COOKIE_SAME_SITE=none requires COOKIE_SECURE=true (browser rejects SameSite=None without Secure)")

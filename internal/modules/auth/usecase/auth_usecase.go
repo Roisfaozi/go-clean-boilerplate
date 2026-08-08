@@ -25,26 +25,28 @@ import (
 )
 
 type Service struct {
-	maxLoginAttempts int
-	lockoutDuration  time.Duration
-	jwtManager       *jwt.JWTManager
-	tokenRepo        repository.TokenRepository
-	userRepo         userRepository.UserRepository
-	orgRepo          orgRepo.OrganizationRepository
-	tm               tx.WithTransactionManager
-	log              *logrus.Logger
-	publisher        repository.NotificationPublisher
-	authz            repository.AuthzManager
-	taskDistributor  worker.TaskDistributor
-	ticketManager    ws.TicketManager
-	ssoProviders     map[string]sso.Provider
-	dummyHash        string
-	refreshGroup     singleflight.Group
+	maxLoginAttempts      int
+	lockoutDuration       time.Duration
+	maxConcurrentSessions int
+	jwtManager            *jwt.JWTManager
+	tokenRepo             repository.TokenRepository
+	userRepo              userRepository.UserRepository
+	orgRepo               orgRepo.OrganizationRepository
+	tm                    tx.WithTransactionManager
+	log                   *logrus.Logger
+	publisher             repository.NotificationPublisher
+	authz                 repository.AuthzManager
+	taskDistributor       worker.TaskDistributor
+	ticketManager         ws.TicketManager
+	ssoProviders          map[string]sso.Provider
+	dummyHash             string
+	refreshGroup          singleflight.Group
 }
 
 func NewAuthUsecase(
 	maxLoginAttempts int,
 	lockoutDuration time.Duration,
+	maxConcurrentSessions int,
 	jwtManager *jwt.JWTManager,
 	tokenRepo repository.TokenRepository,
 	userRepo userRepository.UserRepository,
@@ -58,19 +60,20 @@ func NewAuthUsecase(
 	ssoProviders map[string]sso.Provider,
 ) AuthUseCase {
 	s := &Service{
-		maxLoginAttempts: maxLoginAttempts,
-		lockoutDuration:  lockoutDuration,
-		jwtManager:       jwtManager,
-		tokenRepo:        tokenRepo,
-		userRepo:         userRepo,
-		orgRepo:          orgRepo,
-		tm:               tm,
-		log:              log,
-		publisher:        publisher,
-		authz:            authz,
-		taskDistributor:  taskDistributor,
-		ticketManager:    ticketManager,
-		ssoProviders:     ssoProviders,
+		maxLoginAttempts:      maxLoginAttempts,
+		lockoutDuration:       lockoutDuration,
+		maxConcurrentSessions: maxConcurrentSessions,
+		jwtManager:            jwtManager,
+		tokenRepo:             tokenRepo,
+		userRepo:              userRepo,
+		orgRepo:               orgRepo,
+		tm:                    tm,
+		log:                   log,
+		publisher:             publisher,
+		authz:                 authz,
+		taskDistributor:       taskDistributor,
+		ticketManager:         ticketManager,
+		ssoProviders:          ssoProviders,
 	}
 
 	hash, _ := pkg.HashPassword("dummy")

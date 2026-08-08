@@ -103,6 +103,7 @@ func initModules(
 	authModule := auth.NewAuthModule(
 		cfg.Security.MaxLoginAttempts,
 		cfg.Security.LockoutDuration,
+		cfg.Security.MaxConcurrentSessions,
 		jwtManager,
 		dbConnection,
 		redisClient,

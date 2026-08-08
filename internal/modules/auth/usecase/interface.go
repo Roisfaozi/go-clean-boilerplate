@@ -20,6 +20,7 @@ var (
 	ErrAlreadyVerified          = exception.ErrBadRequest
 	ErrAccountSuspended         = exception.ErrForbidden
 	ErrAccountLocked            = exception.ErrForbidden
+	ErrTooManySessions          = exception.ErrTooManyRequests
 )
 
 type AuthUseCase interface {

@@ -13,6 +13,7 @@ type Claims struct {
 	Role      string `json:"role"`
 	Username  string `json:"username"`
 	OrgID     string `json:"org_id,omitempty"`
+	TokenType string `json:"typ,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -41,12 +42,12 @@ func NewJWTManager(accessSecret, refreshSecret string, accessDuration, refreshDu
 }
 
 func (m *JWTManager) GenerateTokenPair(ctx UserContext) (string, string, error) {
-	accessToken, err := m.generateToken(ctx, m.accessTokenSecret, m.accessTokenDuration)
+	accessToken, err := m.generateToken(ctx, m.accessTokenSecret, m.accessTokenDuration, "access")
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	refreshToken, err := m.generateToken(ctx, m.refreshTokenSecret, m.refreshTokenDuration)
+	refreshToken, err := m.generateToken(ctx, m.refreshTokenSecret, m.refreshTokenDuration, "refresh")
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -54,7 +55,7 @@ func (m *JWTManager) GenerateTokenPair(ctx UserContext) (string, string, error) 
 	return accessToken, refreshToken, nil
 }
 
-func (m *JWTManager) generateToken(ctx UserContext, secret string, expiresIn time.Duration) (string, error) {
+func (m *JWTManager) generateToken(ctx UserContext, secret string, expiresIn time.Duration, tokenType string) (string, error) {
 	now := time.Now()
 	claims := &Claims{
 		UserID:    ctx.UserID,
@@ -62,6 +63,7 @@ func (m *JWTManager) generateToken(ctx UserContext, secret string, expiresIn tim
 		Role:      ctx.Role,
 		Username:  ctx.Username,
 		OrgID:     ctx.OrgID,
+		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   ctx.UserID,
 			ExpiresAt: jwt.NewNumericDate(now.Add(expiresIn)),
@@ -76,21 +78,40 @@ func (m *JWTManager) generateToken(ctx UserContext, secret string, expiresIn tim
 }
 
 func (m *JWTManager) ValidateAccessToken(tokenString string) (*Claims, error) {
-	return m.validateToken(tokenString, m.accessTokenSecret)
+	claims, err := m.validateToken(tokenString, m.accessTokenSecret)
+	if err != nil {
+		return nil, err
+	}
+	if claims.TokenType != "" && claims.TokenType != "access" {
+		return nil, fmt.Errorf("token type mismatch: expected access token")
+	}
+	return claims, nil
 }
 
 func (m *JWTManager) ValidateRefreshToken(tokenString string) (*Claims, error) {
-	return m.validateToken(tokenString, m.refreshTokenSecret)
+	claims, err := m.validateToken(tokenString, m.refreshTokenSecret)
+	if err != nil {
+		return nil, err
+	}
+	if claims.TokenType != "" && claims.TokenType != "refresh" {
+		return nil, fmt.Errorf("token type mismatch: expected refresh token")
+	}
+	return claims, nil
 }
 
 func (m *JWTManager) validateToken(tokenString, secret string) (*Claims, error) {
 	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(secret), nil
-	})
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return []byte(secret), nil
+		},
+		jwt.WithValidMethods([]string{"HS256"}),
+	)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse token: %w", err)
@@ -112,12 +133,17 @@ func (m *JWTManager) GetAccessTokenDuration() time.Duration {
 }
 
 func GenerateTestToken(userID, sessionID, role, username, orgID, secret string, expiry time.Duration) (string, error) {
+	return GenerateTestTokenWithType(userID, sessionID, role, username, orgID, secret, expiry, "")
+}
+
+func GenerateTestTokenWithType(userID, sessionID, role, username, orgID, secret string, expiry time.Duration, tokenType string) (string, error) {
 	claims := &Claims{
 		UserID:    userID,
 		SessionID: sessionID,
 		Role:      role,
 		Username:  username,
 		OrgID:     orgID,
+		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        sessionID,
 			Subject:   userID,

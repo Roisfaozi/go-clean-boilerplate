@@ -16,6 +16,11 @@ import (
 	"github.com/google/uuid"
 )
 
+func hashToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
 func (s *Service) generateAndStoreTokenPair(ctx context.Context, userContext model.UserSessionContext) (string, string, string, error) {
 	uid, err := uuid.NewV7()
 	if err != nil {
@@ -38,8 +43,8 @@ func (s *Service) generateAndStoreTokenPair(ctx context.Context, userContext mod
 	session := &model.Auth{
 		ID:           sessionID,
 		UserID:       userContext.UserID,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		AccessToken:  hashToken(accessToken),
+		RefreshToken: hashToken(refreshToken),
 		CreatedAt:    now,
 		UpdatedAt:    now,
 		ExpiresAt:    now.Add(s.jwtManager.GetRefreshTokenDuration()),
@@ -113,6 +118,17 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	if err != nil {
 		telemetry.UserLoginsTotal.WithLabelValues("failed").Inc()
 		return nil, "", err
+	}
+
+	if s.maxConcurrentSessions > 0 {
+		count, err := s.tokenRepo.CountActiveSessions(ctx, user.ID)
+		if err != nil {
+			s.log.WithContext(ctx).WithError(err).Error("Failed to count user active sessions")
+			return nil, "", fmt.Errorf("failed to check active sessions: %w", err)
+		}
+		if count >= s.maxConcurrentSessions {
+			return nil, "", ErrTooManySessions
+		}
 	}
 
 	var userRole string
@@ -215,7 +231,8 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 		}
 
 		if err := s.RevokeToken(ctx, claims.UserID, claims.SessionID); err != nil {
-			s.log.WithContext(ctx).WithError(err).Warn("Failed to revoke old session during refresh")
+			s.log.WithContext(ctx).WithError(err).Error("Failed to revoke old session during refresh")
+			return nil, fmt.Errorf("failed to revoke old session during refresh: %w", err)
 		}
 
 		newAccessToken, newRefreshToken, _, err := s.generateAndStoreTokenPair(ctx, model.UserSessionContext{
@@ -280,8 +297,9 @@ func (s *Service) validateSession(claims *jwt.Claims, tokenString string) (*jwt.
 		return nil, ErrTokenRevoked
 	}
 
-	isAccessToken := savedSession.AccessToken == tokenString
-	isRefreshToken := savedSession.RefreshToken == tokenString
+	tokenHash := hashToken(tokenString)
+	isAccessToken := savedSession.AccessToken == tokenHash
+	isRefreshToken := savedSession.RefreshToken == tokenHash
 	if !isAccessToken && !isRefreshToken {
 		return nil, ErrTokenRevoked
 	}

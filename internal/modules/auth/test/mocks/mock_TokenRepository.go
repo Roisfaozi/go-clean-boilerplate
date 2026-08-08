@@ -26,6 +26,63 @@ func (_m *MockTokenRepository) EXPECT() *MockTokenRepository_Expecter {
 	return &MockTokenRepository_Expecter{mock: &_m.Mock}
 }
 
+// CountActiveSessions provides a mock function with given fields: ctx, userID
+func (_m *MockTokenRepository) CountActiveSessions(ctx context.Context, userID string) (int, error) {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CountActiveSessions")
+	}
+
+	var r0 int
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (int, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) int); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockTokenRepository_CountActiveSessions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CountActiveSessions'
+type MockTokenRepository_CountActiveSessions_Call struct {
+	*mock.Call
+}
+
+// CountActiveSessions is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+func (_e *MockTokenRepository_Expecter) CountActiveSessions(ctx interface{}, userID interface{}) *MockTokenRepository_CountActiveSessions_Call {
+	return &MockTokenRepository_CountActiveSessions_Call{Call: _e.mock.On("CountActiveSessions", ctx, userID)}
+}
+
+func (_c *MockTokenRepository_CountActiveSessions_Call) Run(run func(ctx context.Context, userID string)) *MockTokenRepository_CountActiveSessions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockTokenRepository_CountActiveSessions_Call) Return(_a0 int, _a1 error) *MockTokenRepository_CountActiveSessions_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockTokenRepository_CountActiveSessions_Call) RunAndReturn(run func(context.Context, string) (int, error)) *MockTokenRepository_CountActiveSessions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteByEmail provides a mock function with given fields: ctx, email
 func (_m *MockTokenRepository) DeleteByEmail(ctx context.Context, email string) error {
 	ret := _m.Called(ctx, email)

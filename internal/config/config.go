@@ -93,8 +93,9 @@ type ServerConfig struct {
 }
 
 type SecurityConfig struct {
-	MaxLoginAttempts int           `mapstructure:"max_login_attempts"`
-	LockoutDuration  time.Duration `mapstructure:"lockout_duration"`
+	MaxLoginAttempts      int           `mapstructure:"max_login_attempts"`
+	LockoutDuration       time.Duration `mapstructure:"lockout_duration"`
+	MaxConcurrentSessions int           `mapstructure:"max_concurrent_sessions"`
 }
 
 type MetricsConfig struct {
@@ -202,6 +203,7 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("jwt.refresh_duration", "24h")
 	v.SetDefault("security.max_login_attempts", 5)
 	v.SetDefault("security.lockout_duration", "30m")
+	v.SetDefault("security.max_concurrent_sessions", 3)
 	v.SetDefault("cookie.same_site", "lax")
 	v.SetDefault("cookie.domain", "")
 	v.SetDefault("casbin.enabled", true)

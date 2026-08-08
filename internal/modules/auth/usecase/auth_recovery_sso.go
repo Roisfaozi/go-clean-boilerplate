@@ -36,7 +36,7 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     email,
-		Token:     token,
+		Token:     hashToken(token),
 		ExpiresAt: time.Now().Add(15 * time.Minute),
 	}
 
@@ -71,7 +71,7 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 }
 
 func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
-	resetToken, err := s.tokenRepo.FindByToken(ctx, token)
+	resetToken, err := s.tokenRepo.FindByToken(ctx, hashToken(token))
 	if err != nil {
 		return ErrInvalidResetToken
 	}

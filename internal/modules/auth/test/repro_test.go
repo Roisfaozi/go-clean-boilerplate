@@ -22,6 +22,7 @@ func TestRepro(t *testing.T) {
 	_ = usecase.NewAuthUsecase(
 		5,
 		30*time.Minute,
+		3,
 		jwtManager,
 		mock_auth.NewMockTokenRepository(t),
 		mock_user.NewMockUserRepository(t),

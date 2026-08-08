@@ -2,6 +2,8 @@ package test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"io"
 	"strings"
@@ -75,10 +77,12 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 	}
 
 	deps.log.SetOutput(io.Discard)
+	deps.tokenRepo.On("CountActiveSessions", mock.Anything, mock.Anything).Return(0, nil).Maybe()
 
 	authService := usecase.NewAuthUsecase(
 		5,
 		30*time.Minute,
+		3,
 		deps.jwtManager,
 		deps.tokenRepo,
 		deps.userRepo,
@@ -148,6 +152,27 @@ func TestLogin_Success(t *testing.T) {
 	deps.tokenRepo.AssertExpectations(t)
 	deps.publisher.AssertExpectations(t)
 	deps.taskDistributor.AssertExpectations(t)
+}
+
+func TestLogin_Failure_MaxConcurrentSessionsExceeded(t *testing.T) {
+	authService, deps := setupTest(t)
+	user, password := createTestUser("password123")
+	loginReq := model.LoginRequest{Username: user.Username, Password: password}
+
+	deps.tokenRepo.ExpectedCalls = nil
+	deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
+	deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil)
+	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+		Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(context.Background())
+		}).Return(nil)
+	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
+	deps.tokenRepo.On("CountActiveSessions", mock.Anything, user.ID).Return(3, nil)
+
+	_, _, err := authService.Login(context.Background(), loginReq)
+
+	assert.ErrorIs(t, err, usecase.ErrTooManySessions)
 }
 
 func TestLogin_Failure_UserNotFound(t *testing.T) {
@@ -285,6 +310,7 @@ func TestLogin_Security_BruteForceProtection(t *testing.T) {
 	authService := usecase.NewAuthUsecase(
 		maxAttempts,
 		lockoutDuration,
+		3,
 		deps.jwtManager,
 		deps.tokenRepo,
 		deps.userRepo,
@@ -333,10 +359,13 @@ func TestRefreshToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	oldRefreshToken, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour)
+	oldRefreshToken, err := jwt.GenerateTestTokenWithType(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour, "refresh")
 	assert.NoError(t, err)
 
-	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: oldRefreshToken}
+	sum := sha256.Sum256([]byte(oldRefreshToken))
+	hashedOldRefreshToken := hex.EncodeToString(sum[:])
+
+	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: hashedOldRefreshToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
 	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{TestRole}, nil)
@@ -364,10 +393,13 @@ func TestRefreshToken_ConcurrentSameToken_ReusesSingleFlow(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	oldRefreshToken, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour)
+	oldRefreshToken, err := jwt.GenerateTestTokenWithType(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour, "refresh")
 	assert.NoError(t, err)
 
-	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: oldRefreshToken}
+	sum := sha256.Sum256([]byte(oldRefreshToken))
+	hashedOldRefreshToken := hex.EncodeToString(sum[:])
+
+	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: hashedOldRefreshToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil).Twice()
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil).Once()
 	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{TestRole}, nil).Once()
@@ -425,10 +457,13 @@ func TestRefreshToken_EnforcerError(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	oldRefreshToken, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour)
+	oldRefreshToken, err := jwt.GenerateTestTokenWithType(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour, "refresh")
 	assert.NoError(t, err)
 
-	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: oldRefreshToken}
+	sum := sha256.Sum256([]byte(oldRefreshToken))
+	hashedOldRefreshToken := hex.EncodeToString(sum[:])
+
+	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: hashedOldRefreshToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
 	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{}, errors.New("casbin error"))
@@ -452,10 +487,13 @@ func TestRefreshToken_Failure_UserNotFound(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	refreshToken, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour)
+	refreshToken, err := jwt.GenerateTestTokenWithType(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour, "refresh")
 	assert.NoError(t, err)
 
-	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: refreshToken}
+	sum := sha256.Sum256([]byte(refreshToken))
+	hashedRefreshToken := hex.EncodeToString(sum[:])
+
+	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: hashedRefreshToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(nil, gorm.ErrRecordNotFound)
 
@@ -470,10 +508,13 @@ func TestValidateAccessToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	token, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, "", TestAccessSecret, 15*time.Minute)
+	token, err := jwt.GenerateTestTokenWithType(user.ID, "session-1", TestRole, user.Username, "", TestAccessSecret, 15*time.Minute, "access")
 	assert.NoError(t, err)
 
-	session := &model.Auth{ID: "session-1", UserID: user.ID, AccessToken: token}
+	sum := sha256.Sum256([]byte(token))
+	hashedToken := hex.EncodeToString(sum[:])
+
+	session := &model.Auth{ID: "session-1", UserID: user.ID, AccessToken: hashedToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
 
 	claims, err := authService.ValidateAccessToken(token)
@@ -758,10 +799,13 @@ func TestRefreshToken_Failure_UserSuspended(t *testing.T) {
 	user, _ := createTestUser("password123")
 	user.Status = entity.UserStatusBanned
 
-	token, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour)
+	token, err := jwt.GenerateTestTokenWithType(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour, "refresh")
 	assert.NoError(t, err)
 
-	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: token}
+	sum := sha256.Sum256([]byte(token))
+	hashedToken := hex.EncodeToString(sum[:])
+
+	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: hashedToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
 
@@ -813,7 +857,7 @@ func TestResetPassword_Success(t *testing.T) {
 		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}
 
-	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+	deps.tokenRepo.On("FindByToken", mock.Anything, mock.Anything).Return(resetToken, nil)
 	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -845,7 +889,7 @@ func TestResetPassword_Failure_TransactionError(t *testing.T) {
 		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}
 
-	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+	deps.tokenRepo.On("FindByToken", mock.Anything, mock.Anything).Return(resetToken, nil)
 	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
 
 	dbErr := errors.New("update failed")
@@ -869,7 +913,7 @@ func TestResetPassword_Failure_InvalidToken(t *testing.T) {
 	authService, deps := setupTest(t)
 	token := "invalid-token"
 
-	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(nil, errors.New("token not found"))
+	deps.tokenRepo.On("FindByToken", mock.Anything, mock.Anything).Return(nil, errors.New("token not found"))
 
 	err := authService.ResetPassword(context.Background(), token, "new-password")
 
@@ -887,7 +931,7 @@ func TestResetPassword_Failure_ExpiredToken(t *testing.T) {
 		ExpiresAt: time.Now().Add(-1 * time.Hour),
 	}
 
-	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+	deps.tokenRepo.On("FindByToken", mock.Anything, mock.Anything).Return(resetToken, nil)
 	deps.tokenRepo.On("DeleteByEmail", mock.Anything, resetToken.Email).Return(nil)
 
 	err := authService.ResetPassword(context.Background(), token, "new-password")
@@ -906,7 +950,7 @@ func TestResetPassword_Failure_UserDeleted(t *testing.T) {
 		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}
 
-	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+	deps.tokenRepo.On("FindByToken", mock.Anything, mock.Anything).Return(resetToken, nil)
 	deps.userRepo.On("FindByEmail", mock.Anything, resetToken.Email).Return(nil, errors.New("user not found"))
 
 	err := authService.ResetPassword(context.Background(), token, "new-password")
@@ -926,7 +970,7 @@ func TestResetPassword_AuditError(t *testing.T) {
 		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}
 
-	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+	deps.tokenRepo.On("FindByToken", mock.Anything, mock.Anything).Return(resetToken, nil)
 	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 		Run(func(args mock.Arguments) {
@@ -947,10 +991,13 @@ func TestValidateRefreshToken_Success(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	token, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour)
+	token, err := jwt.GenerateTestTokenWithType(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour, "refresh")
 	assert.NoError(t, err)
 
-	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: token}
+	sum := sha256.Sum256([]byte(token))
+	hashedToken := hex.EncodeToString(sum[:])
+
+	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: hashedToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
 
 	claims, err := authService.ValidateRefreshToken(token)
@@ -979,7 +1026,7 @@ func TestValidateRefreshToken_Failure_Revoked(t *testing.T) {
 	authService, deps := setupTest(t)
 	user, _ := createTestUser("password123")
 
-	token, err := jwt.GenerateTestToken(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour)
+	token, err := jwt.GenerateTestTokenWithType(user.ID, "session-1", TestRole, user.Username, "", TestRefreshSecret, 24*time.Hour, "refresh")
 	assert.NoError(t, err)
 
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(nil, nil)
@@ -1006,6 +1053,7 @@ func TestLogin_Success_NoRoles(t *testing.T) {
 			_ = fn(context.Background())
 		}).Return(nil)
 	deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
+	deps.tokenRepo.On("CountActiveSessions", mock.Anything, user.ID).Return(0, nil)
 
 	deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{}, nil)
 	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
@@ -1469,14 +1517,17 @@ func TestRefreshToken_SessionCleanupFailure(t *testing.T) {
 	sessionID := "session-to-refresh"
 
 	// Generate a valid refresh token
-	refreshToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "", "test-refresh-secret", 24*time.Hour)
+	refreshToken, err := jwt.GenerateTestTokenWithType(user.ID, sessionID, "role:user", user.Username, "", "test-refresh-secret", 24*time.Hour, "refresh")
 	assert.NoError(t, err)
+
+	sum := sha256.Sum256([]byte(refreshToken))
+	hashedRefreshToken := hex.EncodeToString(sum[:])
 
 	// Mock session valid (for ValidateRefreshToken -> validateSession)
 	savedSession := &model.Auth{
 		ID:           sessionID,
 		UserID:       user.ID,
-		RefreshToken: refreshToken,
+		RefreshToken: hashedRefreshToken,
 		AccessToken:  "old-access-token",
 	}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, sessionID).Return(savedSession, nil)
@@ -1496,15 +1547,12 @@ func TestRefreshToken_SessionCleanupFailure(t *testing.T) {
 	// 2. FORCE ERROR: Old session deletion fails
 	deps.tokenRepo.On("DeleteToken", mock.Anything, user.ID, sessionID).Return(errors.New("redis connection lost"))
 
-	// But new session should still be created (generateAndStoreTokenPair)
-	deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
-
 	tokenResp, newRefreshToken, err := authService.RefreshToken(context.Background(), refreshToken)
 
-	// Should succeed despite cleanup failure (graceful degradation)
-	assert.NoError(t, err)
-	assert.NotNil(t, tokenResp)
-	assert.NotEmpty(t, newRefreshToken)
+	// Revocation failure is a hard error
+	assert.Error(t, err)
+	assert.Nil(t, tokenResp)
+	assert.Empty(t, newRefreshToken)
 }
 
 // TestRefreshToken_OrphanedSession tests behavior with expired but not-yet-deleted session.
@@ -1534,7 +1582,7 @@ func TestValidateAccessToken_ReplayAttack_SameTokenAfterRefresh(t *testing.T) {
 	sessionID := "session-1"
 
 	// Generate old access token
-	oldAccessToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "", "test-access-secret", 15*time.Minute)
+	oldAccessToken, err := jwt.GenerateTestTokenWithType(user.ID, sessionID, "role:user", user.Username, "", "test-access-secret", 15*time.Minute, "access")
 	assert.NoError(t, err)
 
 	// After refresh, stored token is NEW, but attacker uses OLD token
@@ -1560,7 +1608,7 @@ func TestValidateRefreshToken_ReplayAttack_SameTokenAfterRefresh(t *testing.T) {
 	sessionID := "session-1"
 
 	// Generate old refresh token
-	oldRefreshToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "", "test-refresh-secret", 24*time.Hour)
+	oldRefreshToken, err := jwt.GenerateTestTokenWithType(user.ID, sessionID, "role:user", user.Username, "", "test-refresh-secret", 24*time.Hour, "refresh")
 	assert.NoError(t, err)
 
 	// After refresh, stored token is NEW
@@ -1644,14 +1692,17 @@ func TestValidateAccessToken_Concurrent_MultipleGoroutines(t *testing.T) {
 	numConcurrent := 20
 
 	// Generate valid access token
-	accessToken, err := jwt.GenerateTestToken(user.ID, sessionID, "role:user", user.Username, "", "test-access-secret", 15*time.Minute)
+	accessToken, err := jwt.GenerateTestTokenWithType(user.ID, sessionID, "role:user", user.Username, "", "test-access-secret", 15*time.Minute, "access")
 	assert.NoError(t, err)
+
+	sum := sha256.Sum256([]byte(accessToken))
+	hashedAccessToken := hex.EncodeToString(sum[:])
 
 	// Mock valid session
 	validSession := &model.Auth{
 		ID:           sessionID,
 		UserID:       user.ID,
-		AccessToken:  accessToken,
+		AccessToken:  hashedAccessToken,
 		RefreshToken: "refresh-token",
 	}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, sessionID).Return(validSession, nil)
@@ -1704,6 +1755,7 @@ func TestLogin_NilEnforcer(t *testing.T) {
 	authService := usecase.NewAuthUsecase(
 		5,
 		30*time.Minute,
+		3,
 		jwtManager,
 		tokenRepo,
 		userRepo,
@@ -1729,6 +1781,7 @@ func TestLogin_NilEnforcer(t *testing.T) {
 		}).Return(nil)
 
 	userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
+	tokenRepo.On("CountActiveSessions", mock.Anything, user.ID).Return(0, nil)
 	tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 	taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -1762,6 +1815,7 @@ func TestLogin_NilAuditUC(t *testing.T) {
 	authService := usecase.NewAuthUsecase(
 		5,
 		30*time.Minute,
+		3,
 		jwtManager,
 		tokenRepo,
 		userRepo,
@@ -1787,6 +1841,7 @@ func TestLogin_NilAuditUC(t *testing.T) {
 		}).Return(nil)
 
 	userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
+	tokenRepo.On("CountActiveSessions", mock.Anything, user.ID).Return(0, nil)
 	tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil)
 	orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
 
@@ -2572,7 +2627,7 @@ func TestAuthUseCase_ResetPassword_Edge_LongPassword(t *testing.T) {
 	// Password longer than 72 bytes causes bcrypt to fail
 	longPassword := strings.Repeat("a", 73)
 
-	deps.tokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+	deps.tokenRepo.On("FindByToken", mock.Anything, mock.Anything).Return(resetToken, nil)
 	deps.userRepo.On("FindByEmail", mock.Anything, resetToken.Email).Return(&entity.User{Email: resetToken.Email}, nil)
 
 	err := authService.ResetPassword(context.Background(), token, longPassword)
