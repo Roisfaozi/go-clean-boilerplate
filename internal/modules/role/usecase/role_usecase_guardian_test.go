@@ -41,13 +41,6 @@ func setupGuardianRoleTest() (*guardianRoleTestDeps, usecase.RoleUseCase) {
 }
 
 // Simple io.Discard equivalent for logrus
-type discardWriter struct{}
-
-func (w discardWriter) Write(p []byte) (n int, err error) {
-	return len(p), nil
-}
-
-var ioDiscard = discardWriter{}
 
 func TestRoleUseCase_Create_Guardian_FindByNameError(t *testing.T) {
 	deps, uc := setupGuardianRoleTest()
