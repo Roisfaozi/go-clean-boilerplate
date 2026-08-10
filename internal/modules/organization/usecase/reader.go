@@ -20,8 +20,8 @@ const (
 	CacheKeyMembership = "org:member:%s:%s"
 
 	// CacheKeyMemberRole is the Redis key format for member role
-	// Format: org:role:{orgID}:{userID}
-	CacheKeyMemberRole = "org:role:%s:%s"
+	// Format: org:role:v2:{orgID}:{userID}
+	CacheKeyMemberRole = "org:role:v2:%s:%s"
 
 	// CacheValueNotMember indicates user is not a member (negative cache)
 	CacheValueNotMember = "0"

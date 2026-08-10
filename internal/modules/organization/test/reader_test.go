@@ -165,7 +165,7 @@ func TestCachedOrgReader_GetMemberRole_CacheHit(t *testing.T) {
 	ctx := context.Background()
 	orgID := "org-123"
 	userID := "user-456"
-	roleKey := "org:role:org-123:user-456"
+	roleKey := "org:role:v2:org-123:user-456"
 
 	// Mock Redis GET returning cached role
 	mockClient.ExpectGet(roleKey).SetVal("admin")
@@ -191,7 +191,7 @@ func TestCachedOrgReader_GetMemberRole_CacheMiss(t *testing.T) {
 	ctx := context.Background()
 	orgID := "org-123"
 	userID := "user-456"
-	roleKey := "org:role:org-123:user-456"
+	roleKey := "org:role:v2:org-123:user-456"
 
 	// Mock Redis cache miss, then SET
 	mockClient.ExpectGet(roleKey).RedisNil()
@@ -218,7 +218,7 @@ func TestCachedOrgReader_InvalidateMembershipCache(t *testing.T) {
 	orgID := "org-123"
 	userID := "user-456"
 	membershipKey := "org:member:org-123:user-456"
-	roleKey := "org:role:org-123:user-456"
+	roleKey := "org:role:v2:org-123:user-456"
 
 	// Mock Redis pipeline DEL
 	mockClient.ExpectDel(membershipKey).SetVal(1)
