@@ -4,8 +4,11 @@
 package api
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/entity"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
@@ -107,16 +110,20 @@ func TestAuthE2E_ForgotPasswordFlow(t *testing.T) {
 	resp = client.POST("/api/v1/auth/forgot-password", forgotReq)
 	assert.Equal(t, 200, resp.StatusCode)
 
-	// 3. Get Token from DB (Backdoor for testing only)
-	var resetToken entity.PasswordResetToken
-	err := server.DB.Where("email = ?", email).First(&resetToken).Error
+	// 3. Seed known raw reset token for testing
+	rawToken := "e2e-reset-token-123"
+	sum := sha256.Sum256([]byte(rawToken))
+	hashedToken := hex.EncodeToString(sum[:])
+	server.DB.Where("email = ?", email).Delete(&entity.PasswordResetToken{})
+	err := server.DB.Create(&entity.PasswordResetToken{
+		Email: email, Token: hashedToken, ExpiresAt: time.Now().Add(24 * time.Hour),
+	}).Error
 	require.NoError(t, err)
-	require.NotEmpty(t, resetToken.Token)
 
 	// 4. Reset Password
 	newPassword := "brandNewPass2026!"
 	resetReq := map[string]interface{}{
-		"token":        resetToken.Token,
+		"token":        rawToken,
 		"new_password": newPassword,
 	}
 	resp = client.POST("/api/v1/auth/reset-password", resetReq)
@@ -282,16 +289,22 @@ func TestSecurityE2E_TokenRotation(t *testing.T) {
 
 	cookies := resp.Cookies()
 	var refreshToken1 *http.Cookie
+	var csrfToken *http.Cookie
 	for _, c := range cookies {
 		if c.Name == "refresh_token" {
 			refreshToken1 = c
-			break
+		}
+		if c.Name == "csrf_token" {
+			csrfToken = c
 		}
 	}
 	require.NotNil(t, refreshToken1, "Refresh token cookie not found")
+	require.NotNil(t, csrfToken, "CSRF token cookie not found")
 
 	req, _ := http.NewRequest("POST", server.BaseURL+"/api/v1/auth/refresh", nil)
 	req.AddCookie(refreshToken1)
+	req.AddCookie(csrfToken)
+	req.Header.Set("X-CSRF-Token", csrfToken.Value)
 
 	clientWithCookie := &http.Client{}
 	respRotate, err := clientWithCookie.Do(req)
@@ -302,17 +315,26 @@ func TestSecurityE2E_TokenRotation(t *testing.T) {
 
 	cookies2 := respRotate.Cookies()
 	var refreshToken2 *http.Cookie
+	var csrfToken2 *http.Cookie
 	for _, c := range cookies2 {
 		if c.Name == "refresh_token" {
 			refreshToken2 = c
-			break
+		}
+		if c.Name == "csrf_token" {
+			csrfToken2 = c
 		}
 	}
 	require.NotNil(t, refreshToken2)
 	assert.NotEqual(t, refreshToken1.Value, refreshToken2.Value)
 
+	if csrfToken2 == nil {
+		csrfToken2 = csrfToken
+	}
+
 	reqReuse, _ := http.NewRequest("POST", server.BaseURL+"/api/v1/auth/refresh", nil)
 	reqReuse.AddCookie(refreshToken1)
+	reqReuse.AddCookie(csrfToken2)
+	reqReuse.Header.Set("X-CSRF-Token", csrfToken2.Value)
 
 	respReuse, err := clientWithCookie.Do(reqReuse)
 	require.NoError(t, err)

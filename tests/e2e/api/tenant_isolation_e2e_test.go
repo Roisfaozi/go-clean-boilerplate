@@ -482,9 +482,9 @@ func TestCrossTenantIsolation_PermissionManagement(t *testing.T) {
 	orgBID := uuid.New().String()
 
 	// Grant Casbin policies for User A to manage permissions
-	roleA := uuid.New().String()
+	roleA := "PermAdmin"
 	server.DB.Create(&roleEntity.Role{
-		ID: roleA, Name: "PermAdmin", OrganizationID: &orgA.Data.ID,
+		ID: uuid.New().String(), Name: roleA, OrganizationID: &orgA.Data.ID,
 	})
 	_, _ = server.Enforcer.AddGroupingPolicy(userA.ID, roleA, orgA.Data.ID)
 	// Give permission to grant permissions (POST /api/v1/permissions/grant)
