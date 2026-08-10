@@ -28,20 +28,10 @@ import * as z from "zod";
 import { Icon } from "~/components/shared/icon";
 import { useWebhooks } from "./webhooks-context";
 
-const EVENT_PRESETS = [
-	"user.created",
-	"user.updated",
-	"user.deleted",
-	"project.created",
-	"project.updated",
-	"project.deleted",
-	"organization.created",
-	"organization.updated",
-	"member.invited",
-	"member.removed",
-	"role.created",
-	"role.deleted",
-];
+// Events the backend currently emits. Other event names may be typed
+// manually for future compatibility, but they will only fire once the
+// backend registers a trigger for them.
+const EVENT_PRESETS = ["user.created"];
 
 const webhookSchema = z.object({
 	name: z.string().min(3, { message: "Name must be at least 3 characters." }),
@@ -202,6 +192,11 @@ export function CreateWebhookDialog() {
 											</button>
 										))}
 									</div>
+									<p className="text-muted-foreground mt-1.5 text-xs">
+										Comma-separated event types. The backend currently emits
+										only the event shown above; other names are accepted but
+										will not fire until a trigger is registered.
+									</p>
 									<FormMessage />
 								</FormItem>
 							)}
