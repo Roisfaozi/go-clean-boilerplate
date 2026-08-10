@@ -29,18 +29,18 @@ import { Icon } from "~/components/shared/icon";
 import type { ApiKeyCreated } from "~/lib/api/api-keys";
 import { useApiKeys } from "./api-keys-context";
 
+// Scopes the backend actually enforces for API keys (tenantAuthorized and
+// authorized route groups in internal/router/router.go). Scopes for
+// user/permission/access-right/endpoint/audit are not offered here because
+// those routes are JWT-only or require admin:manage instead.
 const API_KEY_SCOPES: { resource: string; actions: string[] }[] = [
 	{ resource: "org", actions: ["view", "manage"] },
 	{ resource: "project", actions: ["view", "manage"] },
-	{ resource: "user", actions: ["view", "create", "update", "delete"] },
 	{ resource: "role", actions: ["view", "manage"] },
 	{ resource: "member", actions: ["manage"] },
 	{ resource: "presence", actions: ["view"] },
-	{ resource: "permission", actions: ["view", "manage"] },
-	{ resource: "access-right", actions: ["view", "manage"] },
-	{ resource: "endpoint", actions: ["view", "manage"] },
-	{ resource: "webhook", actions: ["view", "manage"] },
-	{ resource: "audit", actions: ["view", "export"] },
+	{ resource: "webhook", actions: ["manage"] },
+	{ resource: "admin", actions: ["manage"] },
 ];
 
 const apiKeySchema = z.object({
@@ -242,6 +242,11 @@ export function CreateApiKeyDialog() {
 											protected endpoints.
 										</p>
 									)}
+									<p className="text-muted-foreground mt-1.5 text-xs">
+										admin:manage unlocks admin endpoints (permissions, audit,
+										access rights, users, organizations). Member and presence
+										endpoints also require org:view.
+									</p>
 								</div>
 								<DialogFooter className="pt-4">
 									<Button type="submit" className="w-full">
