@@ -58,6 +58,16 @@ const navItems = [
 		iconName: "Key" as const,
 	},
 	{
+		title: "API Keys",
+		href: "/dashboard/api-keys",
+		iconName: "KeyRound" as const,
+	},
+	{
+		title: "Webhooks",
+		href: "/dashboard/webhooks",
+		iconName: "Webhook" as const,
+	},
+	{
 		title: "Audit Logs",
 		href: "/dashboard/audit",
 		iconName: "FileText" as const,
