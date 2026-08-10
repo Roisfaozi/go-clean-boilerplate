@@ -24,7 +24,7 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=UTC",
 		cfg.Mysql.User,
 		cfg.Mysql.Password,
 		cfg.Mysql.Host,
