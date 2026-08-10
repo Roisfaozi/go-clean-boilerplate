@@ -110,15 +110,23 @@ func TestAuthE2E_ForgotPasswordFlow(t *testing.T) {
 	resp = client.POST("/api/v1/auth/forgot-password", forgotReq)
 	assert.Equal(t, 200, resp.StatusCode)
 
-	// 3. Seed known raw reset token for testing
+	// 3. Assert the flow persisted a hashed reset token (issuance path)
+	var resetToken entity.PasswordResetToken
+	err := server.DB.Where("email = ?", email).First(&resetToken).Error
+	require.NoError(t, err, "forgot-password must persist a reset token")
+	require.Len(t, resetToken.Token, 64, "stored token must be a sha256 hex hash, not the raw token")
+
+	// 4. Seed known raw reset token (raw token is only delivered via email)
 	rawToken := "e2e-reset-token-123"
 	sum := sha256.Sum256([]byte(rawToken))
 	hashedToken := hex.EncodeToString(sum[:])
 	server.DB.Where("email = ?", email).Delete(&entity.PasswordResetToken{})
-	err := server.DB.Create(&entity.PasswordResetToken{
-		Email: email, Token: hashedToken, ExpiresAt: time.Now().Add(24 * time.Hour),
+	err = server.DB.Create(&entity.PasswordResetToken{
+		Email: email, Token: hashedToken, ExpiresAt: time.Now().Add(15 * time.Minute),
 	}).Error
 	require.NoError(t, err)
+
+	// 5. Reset Password
 
 	// 4. Reset Password
 	newPassword := "brandNewPass2026!"
@@ -129,7 +137,7 @@ func TestAuthE2E_ForgotPasswordFlow(t *testing.T) {
 	resp = client.POST("/api/v1/auth/reset-password", resetReq)
 	assert.Equal(t, 200, resp.StatusCode)
 
-	// 5. Login with NEW password
+	// 6. Login with NEW password
 	loginReq := map[string]interface{}{
 		"username": username,
 		"password": newPassword,
@@ -137,7 +145,7 @@ func TestAuthE2E_ForgotPasswordFlow(t *testing.T) {
 	resp = client.POST("/api/v1/auth/login", loginReq)
 	assert.Equal(t, 200, resp.StatusCode)
 
-	// 6. Login with OLD password should FAIL
+	// 7. Login with OLD password should FAIL
 	oldLoginReq := map[string]interface{}{
 		"username": username,
 		"password": "oldPassword123",
@@ -326,10 +334,8 @@ func TestSecurityE2E_TokenRotation(t *testing.T) {
 	}
 	require.NotNil(t, refreshToken2)
 	assert.NotEqual(t, refreshToken1.Value, refreshToken2.Value)
-
-	if csrfToken2 == nil {
-		csrfToken2 = csrfToken
-	}
+	require.NotNil(t, csrfToken2, "refresh must issue a new csrf_token cookie")
+	assert.NotEqual(t, csrfToken.Value, csrfToken2.Value, "csrf_token must rotate on refresh")
 
 	reqReuse, _ := http.NewRequest("POST", server.BaseURL+"/api/v1/auth/refresh", nil)
 	reqReuse.AddCookie(refreshToken1)

@@ -705,8 +705,8 @@ func TestPermissionE2E_CSRFProtection(t *testing.T) {
 	err = server.Enforcer.SavePolicy()
 	require.NoError(t, err)
 
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Editor"})
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Viewer"})
+	require.NoError(t, server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Editor"}).Error)
+	require.NoError(t, server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Viewer"}).Error)
 
 	resp := client.POST("/api/v1/auth/login", map[string]any{
 		"username": user.Username,
