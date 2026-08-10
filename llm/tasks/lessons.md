@@ -40,3 +40,12 @@
   - `audit_usecase_test.go`: `CreateAuditLogRequest{UserID: "u1"}` failed mandatory field validation (`Action`/`Entity`), returning validation errors before reaching repository layer.
   - `auth_usecase_test.go`: `HandleSSOCallback` uses `StoreToken`, not `StoreSession`. Registering expectations on uncalled methods with `NewMockX(t)` triggers test cleanup failures.
 
+
+## API Key Scope Enforcement (verified against internal/router/router.go + internal/middleware/api_key_middleware.go)
+
+- Only two route groups accept API-key auth: `tenantAuthorized` and `authorized`. The `authenticated` group is JWT-only (`RequireUserSession` rejects API keys), so scopes like `user:*`, `stats:*`, `permission:*` unlock nothing for API keys.
+- `authorized` group requires `admin:manage` for API keys (`RequireScopes("admin:manage")` at group level) — permission, access-right, audit, user-admin, and org-admin endpoints are gated by `admin:manage`, not by resource-scoped scopes.
+- `tenantAuthorized` combines `RequireScopeAuto()` (derives `resource:view|create|update|delete` from pathParts[2], e.g. `/api/v1/webhooks` → `webhook:view`) with explicit `RequireScopes(...)`; a key must satisfy BOTH. `manage` covers every action on the same resource (`hasRequiredScope`).
+- Effective UI-relevant scope set for API keys: `org:view|manage`, `project:view|manage`, `role:view|manage`, `member:manage`, `presence:view`, `webhook:manage`, `admin:manage`. Member/presence endpoints additionally require `org:view` (auto-scope from `/organizations/...`).
+- Only `user.created` is emitted as a webhook event in the backend (`internal/modules/user/usecase/user_usecase.go:149-160`); UI event presets beyond it do not fire until triggers are registered.
+- Web frontend tests now run via Vitest in `apps/web` (`pnpm --filter casbin-web test`); `vitest.config.ts` is excluded from the app tsconfig because `@vitejs/plugin-react` uses an exports map that `moduleResolution: "node"` cannot resolve.
