@@ -91,10 +91,9 @@ export const accessApi = {
 	},
 
 	revokeRole: (userId: string, role: string, domain?: string) => {
-		return api.post("/permissions/revoke-role", {
-			user_id: userId,
-			role,
-			domain,
+		return api.delete("/permissions/revoke-role", {
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ user_id: userId, role, domain }),
 		});
 	},
 
@@ -113,7 +112,10 @@ export const accessApi = {
 		method: string,
 		domain?: string,
 	) => {
-		return api.post("/permissions/revoke", { role, path, method, domain });
+		return api.delete("/permissions/revoke", {
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ role, path, method, domain }),
+		});
 	},
 
 	checkBatch: (items: { resource: string; action: string }[]) => {
@@ -134,7 +136,7 @@ export const accessApi = {
 	},
 
 	getParentRoles: (role: string) => {
-		return api.get<{ data: string[] }>(`/permissions/parents/${role}`);
+		return api.get<{ data: string[] }>(`/permissions/${role}/parents`);
 	},
 
 	addInheritance: (childRole: string, parentRole: string, domain?: string) => {
