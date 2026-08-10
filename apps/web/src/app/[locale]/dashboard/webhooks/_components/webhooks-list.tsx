@@ -19,6 +19,7 @@ import {
 	Switch,
 } from "@casbin/ui";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Icon } from "~/components/shared/icon";
 import type { Webhook, WebhookLog } from "~/lib/api/webhooks";
 import { useWebhooks } from "./webhooks-context";
@@ -27,16 +28,21 @@ function formatTime(millis: number) {
 	return new Date(millis).toLocaleString();
 }
 
-function WebhookLogs({ webhookId }: { webhookId: string }) {
+export function WebhookLogs({ webhookId }: { webhookId: string }) {
 	const { getWebhookLogs } = useWebhooks();
 	const [logs, setLogs] = useState<WebhookLog[] | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState(false);
 
 	async function loadLogs() {
 		if (logs !== null) return;
 		setLoading(true);
+		setError(false);
 		try {
 			setLogs(await getWebhookLogs(webhookId));
+		} catch (_error) {
+			setError(true);
+			toast.error("Failed to load delivery logs");
 		} finally {
 			setLoading(false);
 		}
@@ -47,7 +53,24 @@ function WebhookLogs({ webhookId }: { webhookId: string }) {
 			{loading && (
 				<p className="text-muted-foreground text-sm">Loading logs...</p>
 			)}
-			{!loading && logs !== null && logs.length === 0 && (
+			{!loading && error && (
+				<div className="flex items-center gap-2">
+					<p className="text-destructive text-sm">
+						Failed to load delivery logs.
+					</p>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => {
+							setError(false);
+							loadLogs();
+						}}
+					>
+						Retry
+					</Button>
+				</div>
+			)}
+			{!loading && !error && logs !== null && logs.length === 0 && (
 				<p className="text-muted-foreground text-sm italic">
 					No deliveries yet.
 				</p>
@@ -85,7 +108,7 @@ function WebhookLogs({ webhookId }: { webhookId: string }) {
 						)}
 					</div>
 				))}
-			{logs === null && !loading && (
+			{logs === null && !loading && !error && (
 				<Button variant="outline" size="sm" onClick={loadLogs}>
 					Load delivery logs
 				</Button>
