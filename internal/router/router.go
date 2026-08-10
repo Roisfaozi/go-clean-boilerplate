@@ -182,9 +182,9 @@ func SetupRouter(
 	}
 
 	authenticated := apiV1.Group("")
-	authenticated.Use(middleware.CSRFMiddleware(logger))
 	authenticated.Use(apiKeyMiddleware.Authenticate())
 	authenticated.Use(authMiddleware.ValidateToken())
+	authenticated.Use(middleware.CSRFMiddleware(logger))
 	authenticated.Use(apiKeyMiddleware.RequireScopeAuto())
 	authenticated.Use(apiKeyMiddleware.RequireUserSession())
 	authenticated.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
@@ -214,9 +214,9 @@ func SetupRouter(
 	}
 
 	tenantAuthorized := apiV1.Group("")
-	tenantAuthorized.Use(middleware.CSRFMiddleware(logger))
 	tenantAuthorized.Use(apiKeyMiddleware.Authenticate())
 	tenantAuthorized.Use(authMiddleware.ValidateToken())
+	tenantAuthorized.Use(middleware.CSRFMiddleware(logger))
 	tenantAuthorized.Use(apiKeyMiddleware.RequireScopeAuto())
 	tenantAuthorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	tenantAuthorized.Use(tenantMiddleware.RequireOrganization())
@@ -242,9 +242,9 @@ func SetupRouter(
 	}
 
 	authorized := apiV1.Group("")
-	authorized.Use(middleware.CSRFMiddleware(logger))
 	authorized.Use(apiKeyMiddleware.Authenticate())
 	authorized.Use(authMiddleware.ValidateToken())
+	authorized.Use(middleware.CSRFMiddleware(logger))
 	authorized.Use(apiKeyMiddleware.RequireScopes("admin:manage"))
 	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	authorized.Use(tenantMiddleware.OptionalOrganization())
