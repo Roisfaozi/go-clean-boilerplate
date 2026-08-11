@@ -41,9 +41,9 @@ func NewRedisTaskProcessor(
 		redisOpt,
 		asynq.Config{
 			Queues: map[string]int{
-				"critical": 6,
-				"default":  3,
-				"low":      1,
+				queueNameCritical: 6,
+				queueNameDefault:  3,
+				queueNameLow:      1,
 			},
 			ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
 				logger.WithContext(ctx).Errorf("Failed to process task type %s: %v", task.Type(), err)

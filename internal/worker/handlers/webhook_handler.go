@@ -51,17 +51,17 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 
 	timestamp := fmt.Sprintf("%d", start.UnixMilli())
 
-	req, err := http.NewRequestWithContext(ctx, "POST", payload.URL, bytes.NewBuffer([]byte(payload.Payload)))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, payload.URL, bytes.NewBuffer([]byte(payload.Payload)))
 	if err != nil {
 		h.log.WithError(err).Error("Failed to create webhook request")
 		return err
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Webhook-Signature", signature)
-	req.Header.Set("X-Webhook-Event", payload.EventType)
-	req.Header.Set("X-Webhook-ID", payload.WebhookID)
-	req.Header.Set("X-Webhook-Timestamp", timestamp)
+	req.Header.Set(headerContentType, headerValueApplicationJSON)
+	req.Header.Set(headerWebhookSignature, signature)
+	req.Header.Set(headerWebhookEvent, payload.EventType)
+	req.Header.Set(headerWebhookID, payload.WebhookID)
+	req.Header.Set(headerWebhookTimestamp, timestamp)
 
 	resp, err := h.client.Do(req)
 

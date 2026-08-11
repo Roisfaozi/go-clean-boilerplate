@@ -42,10 +42,10 @@ func (h *EmailTaskHandler) ProcessTaskSendEmail(ctx context.Context, task *asynq
 	h.logger.WithContext(ctx).Infof("Sending real email to %s via %s:%d", payload.To, h.cfg.Host, h.cfg.Port)
 
 	m := gomail.NewMessage()
-	m.SetHeader("From", fmt.Sprintf("%s <%s>", h.cfg.FromSender, h.cfg.FromEmail))
-	m.SetHeader("To", payload.To)
-	m.SetHeader("Subject", payload.Subject)
-	m.SetBody("text/html", payload.Body)
+	m.SetHeader(headerEmailFrom, fmt.Sprintf("%s <%s>", h.cfg.FromSender, h.cfg.FromEmail))
+	m.SetHeader(headerEmailTo, payload.To)
+	m.SetHeader(headerEmailSubject, payload.Subject)
+	m.SetBody(headerValueTextHTML, payload.Body)
 
 	d := gomail.NewDialer(h.cfg.Host, h.cfg.Port, h.cfg.Username, h.cfg.Password)
 
