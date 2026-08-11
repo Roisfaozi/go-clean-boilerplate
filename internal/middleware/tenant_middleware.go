@@ -18,8 +18,9 @@ const (
 	// OrgIDHeader is the header name for organization ID
 	OrgIDHeader = "X-Organization-ID"
 	// OrgSlugHeader is the header name for organization slug
-	OrgSlugHeader  = "X-Organization-Slug"
-	superAdminRole = "role:superadmin"
+	OrgSlugHeader       = "X-Organization-Slug"
+	superAdminRole      = "role:superadmin"
+	defaultCasbinDomain = "global"
 )
 
 // TenantMiddleware validates organization membership and sets org context.
@@ -210,7 +211,7 @@ func GetOrganizationIDFromContext(c *gin.Context) (string, bool) {
 
 // GetMemberRoleFromContext extracts member's role from Gin context
 func GetMemberRoleFromContext(c *gin.Context) (string, bool) {
-	role, exists := c.Get("member_role")
+	role, exists := c.Get(contextKeyMemberRole)
 	if !exists {
 		return "", false
 	}

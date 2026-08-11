@@ -48,8 +48,8 @@ func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFu
 		act := c.Request.Method
 
 		// Get organization ID for multi-tenancy (domain in Casbin)
-		dom := "global"
-		if orgID, exists := c.Get("organization_id"); exists {
+		dom := defaultCasbinDomain
+		if orgID, exists := c.Get(contextKeyOrganizationID); exists {
 			if idStr, ok := orgID.(string); ok && idStr != "" {
 				dom = idStr
 			}

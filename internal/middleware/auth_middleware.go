@@ -12,6 +12,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	headerAuthorization = "Authorization"
+	authSchemeBearer    = "bearer"
+	cookieAccessToken   = "access_token"
+)
+
 type AuthMiddleware struct {
 	AuthUseCase   authUsecase.AuthUseCase
 	Log           *logrus.Logger
@@ -34,17 +40,17 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 		}
 
 		token := ""
-		authHeader := c.GetHeader("Authorization")
+		authHeader := c.GetHeader(headerAuthorization)
 		if authHeader != "" {
 			parts := strings.Split(authHeader, " ")
-			if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+			if len(parts) == 2 && strings.ToLower(parts[0]) == authSchemeBearer {
 				token = parts[1]
 			}
 		}
 
 		// Fallback: Check for access_token cookie
 		if token == "" {
-			cookieToken, err := c.Cookie("access_token")
+			cookieToken, err := c.Cookie(cookieAccessToken)
 			if err == nil && cookieToken != "" {
 				token = cookieToken
 			}
@@ -78,10 +84,10 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user_id", claims.UserID)
-		c.Set("session_id", claims.SessionID)
-		c.Set("user_role", claims.Role)
-		c.Set("username", claims.Username)
+		c.Set(contextKeyUserID, claims.UserID)
+		c.Set(contextKeySessionID, claims.SessionID)
+		c.Set(contextKeyUserRole, claims.Role)
+		c.Set(contextKeyUsername, claims.Username)
 		c.Set(authMethodContextKey, authMethodJWT)
 
 		ctx := authcontext.WithUserID(c.Request.Context(), claims.UserID)
@@ -111,10 +117,10 @@ func (m *AuthMiddleware) ValidateWebSocketToken() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user_id", userCtx.UserID)
-		c.Set("session_id", userCtx.SessionID)
-		c.Set("user_role", userCtx.Role)
-		c.Set("username", userCtx.Username)
+		c.Set(contextKeyUserID, userCtx.UserID)
+		c.Set(contextKeySessionID, userCtx.SessionID)
+		c.Set(contextKeyUserRole, userCtx.Role)
+		c.Set(contextKeyUsername, userCtx.Username)
 
 		ctx := authcontext.WithUserID(c.Request.Context(), userCtx.UserID)
 		ctx = authcontext.WithSessionID(ctx, userCtx.SessionID)
@@ -123,7 +129,7 @@ func (m *AuthMiddleware) ValidateWebSocketToken() gin.HandlerFunc {
 
 		// Context from ticket takes precedence.
 		if userCtx.OrganizationID != "" {
-			c.Set("organization_id", userCtx.OrganizationID)
+			c.Set(contextKeyOrganizationID, userCtx.OrganizationID)
 		}
 		c.Request = c.Request.WithContext(ctx)
 
