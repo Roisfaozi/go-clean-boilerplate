@@ -19,7 +19,8 @@ const (
 
 func NewDatabase(cfg *AppConfig, log *logrus.Logger) *gorm.DB {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=%s&loc=%s",
-		cfg.Mysql.User, cfg.Mysql.Password, cfg.Mysql.Host, cfg.Mysql.Port, cfg.Mysql.DBName)
+		cfg.Mysql.User, cfg.Mysql.Password, cfg.Mysql.Host, cfg.Mysql.Port, cfg.Mysql.DBName,
+		defaultDSNCharset, defaultDSNParseTime, defaultDSNLocation)
 
 	newLogger := logger.New(
 		&logrusWriter{Logger: log},
