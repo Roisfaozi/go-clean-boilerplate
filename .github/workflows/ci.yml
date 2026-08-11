@@ -69,6 +69,8 @@ jobs:
         run: go mod download
 
       - name: Run Unit Tests with Coverage
+        env:
+          GOFLAGS: -p=2 -parallel=2
         run: make test-coverage
 
       - name: Upload Unit Coverage
@@ -99,6 +101,7 @@ jobs:
         run: make test-integration
         env:
           DOCKER_HOST: unix:///var/run/docker.sock
+          GOFLAGS: -p=2 -parallel=2
 
   test-e2e:
     name: E2E Tests
@@ -121,6 +124,7 @@ jobs:
         run: make test-e2e
         env:
           DOCKER_HOST: unix:///var/run/docker.sock
+          GOFLAGS: -p=2 -parallel=2
 
   benchmark:
     name: Benchmarks
