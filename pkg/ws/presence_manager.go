@@ -142,9 +142,11 @@ func (m *RedisPresenceManager) PruneStaleUsers(ctx context.Context, timeout time
 		var orgID string
 		_, _ = fmt.Sscanf(keyOrg, "presence:org:%s", &orgID)
 
-		staleIDs, err := m.redisClient.ZRangeByScore(ctx, keyOrg, &redis.ZRangeBy{
-			Min: "-inf",
-			Max: fmt.Sprintf("%d", staleThreshold),
+		staleIDs, err := m.redisClient.ZRangeArgs(ctx, redis.ZRangeArgs{
+			Key:     keyOrg,
+			ByScore: true,
+			Start:   "-inf",
+			Stop:    fmt.Sprintf("%d", staleThreshold),
 		}).Result()
 
 		if err != nil || len(staleIDs) == 0 {
