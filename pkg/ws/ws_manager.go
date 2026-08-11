@@ -71,6 +71,13 @@ type WebSocketConfig struct {
 	RedisPrefix        string
 }
 
+const (
+	defaultRedisBroadcastPrefix  = "ws_broadcast:"
+	presenceEventJoin            = "join"
+	presenceEventLeave           = "leave"
+	websocketEnvelopeTypeMessage = "message"
+)
+
 func NewWebSocketManager(config *WebSocketConfig, log *logrus.Logger, redisClient *redis.Client, presence PresenceManager) *WebSocketManager {
 	return &WebSocketManager{
 		clients:     make(map[*Client]bool),
@@ -123,7 +130,7 @@ func (m *WebSocketManager) listenToRedis() {
 	ctx := context.Background()
 	prefix := m.config.RedisPrefix
 	if prefix == "" {
-		prefix = "ws_broadcast:"
+		prefix = defaultRedisBroadcastPrefix
 	}
 
 	pubsub := m.redisClient.PSubscribe(ctx, prefix+"*")
@@ -173,7 +180,7 @@ func (m *WebSocketManager) handleRegister(client *Client) {
 			m.log.WithError(err).Error("Failed to set user online in presence manager")
 		} else {
 			// Broadcast Join Event
-			m.PresenceUpdate(client.OrgID, "join", userData)
+			m.PresenceUpdate(client.OrgID, presenceEventJoin, userData)
 		}
 	}
 }
@@ -189,7 +196,7 @@ func (m *WebSocketManager) handleUnregister(client *Client) {
 				if err := m.presence.SetUserOffline(context.Background(), client.OrgID, client.UserID); err != nil {
 					m.log.WithError(err).Error("Failed to set user offline in presence manager")
 				} else {
-					m.PresenceUpdate(client.OrgID, "leave", &PresenceUser{UserID: client.UserID})
+					m.PresenceUpdate(client.OrgID, presenceEventLeave, &PresenceUser{UserID: client.UserID})
 				}
 			}
 		}
@@ -234,7 +241,7 @@ func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 		ctx := context.Background()
 		prefix := m.config.RedisPrefix
 		if prefix == "" {
-			prefix = "ws_broadcast:"
+			prefix = defaultRedisBroadcastPrefix
 		}
 
 		err := m.redisClient.Publish(ctx, prefix+msg.Channel, msg.Message).Err()
@@ -251,7 +258,7 @@ func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 
 	// Wrap message in ServerMessage envelope
 	envelope := map[string]interface{}{
-		"type":    "message",
+		"type":    websocketEnvelopeTypeMessage,
 		"channel": msg.Channel,
 		// We try to unmarshal if it looks like JSON, otherwise send as string
 		// But to be safe and generic, we can just send it as raw json.RawMessage if we could,
