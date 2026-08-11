@@ -11,6 +11,62 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	defaultServerPort                    = 8080
+	defaultServerReadTimeout             = "30s"
+	defaultServerWriteTimeout            = "30s"
+	defaultLogLevel                      = "info"
+	defaultMySQLHost                     = "localhost"
+	defaultMySQLPort                     = 3306
+	defaultRedisAddr                     = "localhost:6379"
+	defaultJWTAccessDuration             = "15m"
+	defaultJWTRefreshDuration            = "24h"
+	defaultSecurityMaxLoginAttempts      = 5
+	defaultSecurityLockoutDuration       = "30m"
+	defaultSecurityMaxConcurrentSessions = 3
+	defaultCookieSameSite                = "lax"
+	defaultCookieDomain                  = ""
+	defaultCasbinEnabled                 = true
+	defaultCasbinModel                   = "internal/config/casbin_model.conf"
+	defaultCasbinDefaultRole             = "role:user"
+	defaultCasbinDefaultDomain           = "global"
+	defaultCasbinWatcherEnabled          = false
+	defaultCasbinWatcherChannel          = "/casbin"
+	defaultRateLimitEnabled              = true
+	defaultRateLimitRPS                  = 10.0
+	defaultRateLimitBurst                = 20
+	defaultRateLimitStore                = "memory"
+	defaultSMTPHost                      = "localhost"
+	defaultSMTPPort                      = 1025
+	defaultSMTPUsername                  = ""
+	defaultSMTPPassword                  = ""
+	defaultSMTPFromSender                = "NexusOS Admin"
+	defaultSMTPFromEmail                 = "no-reply@nexusos.dev"
+	defaultCircuitBreakerEnabled         = true
+	defaultCircuitBreakerMaxRequests     = 5
+	defaultCircuitBreakerInterval        = "60s"
+	defaultCircuitBreakerTimeout         = "30s"
+	defaultWebSocketRedisPrefix          = "ws_broadcast:"
+	defaultMetricsEnabled                = true
+	defaultMetricsAuthEnabled            = false
+	defaultStorageDriver                 = "local"
+	defaultStorageLocalRootPath          = "./uploads"
+	defaultStorageLocalBaseURL           = "http://localhost:8080/uploads"
+	defaultStorageS3UseSSL               = true
+	defaultTusBasePath                   = "/api/v1/upload/files/"
+	defaultPprofEnabled                  = false
+	defaultPprofPort                     = 6060
+	defaultTelemetryServiceName          = "go-clean-api"
+	defaultTelemetryCollectorURL         = "localhost:4317"
+	defaultAppEnvDevelopment             = "development"
+	defaultAppEnvLocal                   = "local"
+	defaultAppEnvDev                     = "dev"
+	defaultAppEnvTest                    = "test"
+	defaultAppEnvTesting                 = "testing"
+	storageDriverLocal                   = "local"
+	storageDriverS3                      = "s3"
+)
+
 type AppConfig struct {
 	Server         ServerConfig         `mapstructure:"server"`
 	Mysql          MySqlConfig          `mapstructure:"mysql"`
@@ -192,54 +248,54 @@ func NewConfig() (*AppConfig, error) {
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	v.SetDefault("server.port", 8080)
-	v.SetDefault("server.read_timeout", "30s")
-	v.SetDefault("server.write_timeout", "30s")
-	v.SetDefault("log.level", "info")
-	v.SetDefault("mysql.host", "localhost")
-	v.SetDefault("mysql.port", 3306)
-	v.SetDefault("redis.addr", "localhost:6379")
-	v.SetDefault("jwt.access_duration", "15m")
-	v.SetDefault("jwt.refresh_duration", "24h")
-	v.SetDefault("security.max_login_attempts", 5)
-	v.SetDefault("security.lockout_duration", "30m")
-	v.SetDefault("security.max_concurrent_sessions", 3)
-	v.SetDefault("cookie.same_site", "lax")
-	v.SetDefault("cookie.domain", "")
-	v.SetDefault("casbin.enabled", true)
-	v.SetDefault("casbin.model", "internal/config/casbin_model.conf")
-	v.SetDefault("casbin.default_role", "role:user")
-	v.SetDefault("casbin.default_domain", "global")
-	v.SetDefault("casbin.watcher.enabled", false)
-	v.SetDefault("casbin.watcher.channel", "/casbin")
+	v.SetDefault("server.port", defaultServerPort)
+	v.SetDefault("server.read_timeout", defaultServerReadTimeout)
+	v.SetDefault("server.write_timeout", defaultServerWriteTimeout)
+	v.SetDefault("log.level", defaultLogLevel)
+	v.SetDefault("mysql.host", defaultMySQLHost)
+	v.SetDefault("mysql.port", defaultMySQLPort)
+	v.SetDefault("redis.addr", defaultRedisAddr)
+	v.SetDefault("jwt.access_duration", defaultJWTAccessDuration)
+	v.SetDefault("jwt.refresh_duration", defaultJWTRefreshDuration)
+	v.SetDefault("security.max_login_attempts", defaultSecurityMaxLoginAttempts)
+	v.SetDefault("security.lockout_duration", defaultSecurityLockoutDuration)
+	v.SetDefault("security.max_concurrent_sessions", defaultSecurityMaxConcurrentSessions)
+	v.SetDefault("cookie.same_site", defaultCookieSameSite)
+	v.SetDefault("cookie.domain", defaultCookieDomain)
+	v.SetDefault("casbin.enabled", defaultCasbinEnabled)
+	v.SetDefault("casbin.model", defaultCasbinModel)
+	v.SetDefault("casbin.default_role", defaultCasbinDefaultRole)
+	v.SetDefault("casbin.default_domain", defaultCasbinDefaultDomain)
+	v.SetDefault("casbin.watcher.enabled", defaultCasbinWatcherEnabled)
+	v.SetDefault("casbin.watcher.channel", defaultCasbinWatcherChannel)
 	// v.SetDefault("cors.allowed_origins", "*") // Removed unsafe default
-	v.SetDefault("rate_limit.enabled", true)
-	v.SetDefault("rate_limit.rps", 10.0)
-	v.SetDefault("rate_limit.burst", 20)
-	v.SetDefault("rate_limit.store", "memory")
-	v.SetDefault("smtp.host", "localhost")
-	v.SetDefault("smtp.port", 1025)
-	v.SetDefault("smtp.username", "")
-	v.SetDefault("smtp.password", "")
-	v.SetDefault("smtp.from_sender", "NexusOS Admin")
-	v.SetDefault("smtp.from_email", "no-reply@nexusos.dev")
-	v.SetDefault("circuit_breaker.enabled", true)
-	v.SetDefault("circuit_breaker.max_requests", 5)
-	v.SetDefault("circuit_breaker.interval", "60s")
-	v.SetDefault("circuit_breaker.timeout", "30s")
+	v.SetDefault("rate_limit.enabled", defaultRateLimitEnabled)
+	v.SetDefault("rate_limit.rps", defaultRateLimitRPS)
+	v.SetDefault("rate_limit.burst", defaultRateLimitBurst)
+	v.SetDefault("rate_limit.store", defaultRateLimitStore)
+	v.SetDefault("smtp.host", defaultSMTPHost)
+	v.SetDefault("smtp.port", defaultSMTPPort)
+	v.SetDefault("smtp.username", defaultSMTPUsername)
+	v.SetDefault("smtp.password", defaultSMTPPassword)
+	v.SetDefault("smtp.from_sender", defaultSMTPFromSender)
+	v.SetDefault("smtp.from_email", defaultSMTPFromEmail)
+	v.SetDefault("circuit_breaker.enabled", defaultCircuitBreakerEnabled)
+	v.SetDefault("circuit_breaker.max_requests", defaultCircuitBreakerMaxRequests)
+	v.SetDefault("circuit_breaker.interval", defaultCircuitBreakerInterval)
+	v.SetDefault("circuit_breaker.timeout", defaultCircuitBreakerTimeout)
 	v.SetDefault("websocket.distributed_enabled", false)
-	v.SetDefault("websocket.redis_prefix", "ws_broadcast:")
-	v.SetDefault("metrics.enabled", true)
-	v.SetDefault("metrics.auth_enabled", false)
+	v.SetDefault("websocket.redis_prefix", defaultWebSocketRedisPrefix)
+	v.SetDefault("metrics.enabled", defaultMetricsEnabled)
+	v.SetDefault("metrics.auth_enabled", defaultMetricsAuthEnabled)
 	// v.SetDefault("metrics.username", "admin")      // Removed hardcoded default
 	// v.SetDefault("metrics.password", "metrics123") // Removed hardcoded default
-	v.SetDefault("storage.driver", "local")
-	v.SetDefault("storage.local.root_path", "./uploads")
-	v.SetDefault("storage.local.base_url", "http://localhost:8080/uploads")
-	v.SetDefault("storage.s3.use_ssl", true)
-	v.SetDefault("tus.base_path", "/api/v1/upload/files/")
-	v.SetDefault("pprof.enabled", false)
-	v.SetDefault("pprof.port", 6060)
+	v.SetDefault("storage.driver", defaultStorageDriver)
+	v.SetDefault("storage.local.root_path", defaultStorageLocalRootPath)
+	v.SetDefault("storage.local.base_url", defaultStorageLocalBaseURL)
+	v.SetDefault("storage.s3.use_ssl", defaultStorageS3UseSSL)
+	v.SetDefault("tus.base_path", defaultTusBasePath)
+	v.SetDefault("pprof.enabled", defaultPprofEnabled)
+	v.SetDefault("pprof.port", defaultPprofPort)
 
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {

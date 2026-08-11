@@ -26,6 +26,11 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	defaultPresencePruneInterval = 5 * time.Minute
+	defaultTicketTTL             = 30 * time.Second
+)
+
 type Application struct {
 	Server          *http.Server
 	DB              *gorm.DB
@@ -82,9 +87,9 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		cfg.JWT.RefreshTokenDuration,
 	)
 
-	presenceManager := ws2.NewPresenceManager(redisClient, logger, 5*time.Minute)
+	presenceManager := ws2.NewPresenceManager(redisClient, logger, defaultPresencePruneInterval)
 
-	ticketManager := ws2.NewRedisTicketManager(redisClient, 30*time.Second)
+	ticketManager := ws2.NewRedisTicketManager(redisClient, defaultTicketTTL)
 
 	wsConfig := NewDefaultWebSocketConfig()
 	wsManager := ws2.NewWebSocketManager(wsConfig.ToPkgConfig(), logger, redisClient, presenceManager)
@@ -272,7 +277,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 func isStrictCasbinEnv(appEnv string) bool {
 	switch strings.ToLower(strings.TrimSpace(appEnv)) {
-	case "", "local", "dev", "development", "test", "testing":
+	case "", defaultAppEnvLocal, defaultAppEnvDev, defaultAppEnvDevelopment, defaultAppEnvTest, defaultAppEnvTesting:
 		return false
 	default:
 		return true

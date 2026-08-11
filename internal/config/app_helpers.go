@@ -55,21 +55,29 @@ type appModules struct {
 	organization *organization.OrganizationModule
 }
 
+const (
+	providerGoogle    = "google"
+	providerMicrosoft = "microsoft"
+	providerGitHub    = "github"
+	metricsChannel    = "system:metrics"
+	metricsEventType  = "metrics_update"
+)
+
 func initSSOProviders(cfg *AppConfig) map[string]sso.Provider {
 	ssoProviders := make(map[string]sso.Provider)
-	ssoProviders["google"] = sso.NewGoogleProvider(sso.ProviderConfig{
+	ssoProviders[providerGoogle] = sso.NewGoogleProvider(sso.ProviderConfig{
 		ClientID:     cfg.SSO.Google.ClientID,
 		ClientSecret: cfg.SSO.Google.ClientSecret,
 		RedirectURL:  cfg.SSO.Google.RedirectURL,
 		Scopes:       cfg.SSO.Google.Scopes,
 	})
-	ssoProviders["microsoft"] = sso.NewMicrosoftProvider(sso.ProviderConfig{
+	ssoProviders[providerMicrosoft] = sso.NewMicrosoftProvider(sso.ProviderConfig{
 		ClientID:     cfg.SSO.Microsoft.ClientID,
 		ClientSecret: cfg.SSO.Microsoft.ClientSecret,
 		RedirectURL:  cfg.SSO.Microsoft.RedirectURL,
 		Scopes:       cfg.SSO.Microsoft.Scopes,
 	})
-	ssoProviders["github"] = sso.NewGitHubProvider(sso.ProviderConfig{
+	ssoProviders[providerGitHub] = sso.NewGitHubProvider(sso.ProviderConfig{
 		ClientID:     cfg.SSO.GitHub.ClientID,
 		ClientSecret: cfg.SSO.GitHub.ClientSecret,
 		RedirectURL:  cfg.SSO.GitHub.RedirectURL,
@@ -183,7 +191,7 @@ func startMetricsBroadcaster(
 			summary, _ := statsModule.UseCase.GetDashboardSummary(context.Background())
 
 			payload, _ := json.Marshal(map[string]interface{}{
-				"type": "metrics_update",
+				"type": metricsEventType,
 				"data": map[string]interface{}{
 					"rps":            rps,
 					"active_users":   wsManager.ClientCount(),
@@ -196,10 +204,10 @@ func startMetricsBroadcaster(
 					"active_threads": 42,
 				},
 			})
-			wsManager.BroadcastToChannel("system:metrics", payload)
+			wsManager.BroadcastToChannel(metricsChannel, payload)
 
 			// Also prune stale users periodically (every 30s effectively)
-			removed, err := presenceManager.PruneStaleUsers(context.Background(), 1*time.Minute)
+			removed, err := presenceManager.PruneStaleUsers(context.Background(), defaultPresencePruneInterval)
 			if err == nil {
 				for orgID, userIDs := range removed {
 					for _, uid := range userIDs {

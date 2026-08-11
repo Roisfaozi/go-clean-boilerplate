@@ -45,7 +45,7 @@ func NewLogrus(config *AppConfig) *logrus.Logger {
 
 	logger.SetReportCaller(true)
 
-	if config.Server.AppEnv == "development" {
+	if config.Server.AppEnv == defaultAppEnvDevelopment {
 		logger.SetFormatter(&logrus.TextFormatter{
 			ForceColors:     true,
 			FullTimestamp:   true,
