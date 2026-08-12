@@ -28,28 +28,28 @@ func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter)
 
 		switch condition.Type {
 		case "equals":
-			db = db.Where(fmt.Sprintf("%s = ?", dbFieldName), condition.From)
+			db = db.Where(clause.Eq{Column: dbFieldName, Value: condition.From})
 		case "contains":
-			db = db.Where(fmt.Sprintf("%s LIKE ?", dbFieldName), fmt.Sprintf("%%%v%%", condition.From))
+			db = db.Where(clause.Like{Column: dbFieldName, Value: fmt.Sprintf("%%%v%%", condition.From)})
 		case "in":
 			val := reflect.ValueOf(condition.From)
 			if val.Kind() == reflect.Slice || val.Kind() == reflect.Array {
-				db = db.Where(fmt.Sprintf("%s IN (?)", dbFieldName), condition.From)
+				db = db.Where(clause.Expr{SQL: "? IN (?)", Vars: []interface{}{clause.Column{Name: dbFieldName}, condition.From}})
 			} else {
 				return nil, fmt.Errorf("invalid value for 'in' filter, must be a slice or array")
 			}
 		case "between":
-			db = db.Where(fmt.Sprintf("%s BETWEEN ? AND ?", dbFieldName), condition.From, condition.To)
+			db = db.Where(clause.Expr{SQL: "? BETWEEN ? AND ?", Vars: []interface{}{clause.Column{Name: dbFieldName}, condition.From, condition.To}})
 		case "gt":
-			db = db.Where(fmt.Sprintf("%s > ?", dbFieldName), condition.From)
+			db = db.Where(clause.Gt{Column: dbFieldName, Value: condition.From})
 		case "gte":
-			db = db.Where(fmt.Sprintf("%s >= ?", dbFieldName), condition.From)
+			db = db.Where(clause.Gte{Column: dbFieldName, Value: condition.From})
 		case "lt":
-			db = db.Where(fmt.Sprintf("%s < ?", dbFieldName), condition.From)
+			db = db.Where(clause.Lt{Column: dbFieldName, Value: condition.From})
 		case "lte":
-			db = db.Where(fmt.Sprintf("%s <= ?", dbFieldName), condition.From)
+			db = db.Where(clause.Lte{Column: dbFieldName, Value: condition.From})
 		case "ne":
-			db = db.Where(fmt.Sprintf("%s != ?", dbFieldName), condition.From)
+			db = db.Where(clause.Neq{Column: dbFieldName, Value: condition.From})
 		default:
 			return nil, fmt.Errorf("unsupported filter type: %s", condition.Type)
 		}
