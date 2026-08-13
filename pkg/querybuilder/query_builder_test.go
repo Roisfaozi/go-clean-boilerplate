@@ -47,7 +47,7 @@ func TestGenerateDynamicQuery(t *testing.T) {
 					"Name": {Type: "contains", From: "Test"},
 				},
 			},
-			expectedQuery: "name LIKE",
+			expectedQuery: "`name` LIKE",
 			expectError:   false,
 		},
 		{
@@ -57,7 +57,7 @@ func TestGenerateDynamicQuery(t *testing.T) {
 					"Age": {Type: "between", From: 10, To: 20},
 				},
 			},
-			expectedQuery: "age BETWEEN",
+			expectedQuery: "`age` BETWEEN",
 			expectError:   false,
 		},
 		{
@@ -67,7 +67,7 @@ func TestGenerateDynamicQuery(t *testing.T) {
 					"Age": {Type: "in", From: []int{1, 2, 3}},
 				},
 			},
-			expectedQuery: "age IN",
+			expectedQuery: "`age` IN",
 			expectError:   false,
 		},
 		{
@@ -114,7 +114,7 @@ func TestGenerateDynamicQuery_NoSoftDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	sql := resQuery.Find(&[]TestModelNoDelete{}).Statement.SQL.String()
-	assert.Contains(t, sql, "name =")
+	assert.Contains(t, sql, "`name` =")
 	assert.NotContains(t, sql, "deleted_at", "Should not include soft delete check for model without DeletedAt")
 }
 
