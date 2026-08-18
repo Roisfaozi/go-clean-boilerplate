@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
@@ -192,7 +194,7 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 		payload := &tasks.SendEmailPayload{
 			To:      targetUser.Email,
 			Subject: "Invitation to join organization",
-			Body:    "You have been invited to join " + org.Name + ". Click here to accept: " + uc.frontendBaseURL + "/accept-invite?token=" + tokenString,
+			Body:    "You have been invited to join " + org.Name + ". Click here to accept: " + strings.TrimRight(uc.frontendBaseURL, "/") + "/invite/" + url.PathEscape(tokenString),
 		}
 
 		if uc.taskDistributor != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -117,7 +118,7 @@ func TestOrganizationMemberUseCase_InviteMember(t *testing.T) {
 		deps.InvitationRepo.On("DeleteByEmailAndOrg", ctx, req.Email, orgID).Return(nil)
 		deps.InvitationRepo.On("Create", ctx, mock.Anything).Return(nil)
 		deps.TaskDistributor.On("DistributeTaskSendEmail", ctx, mock.MatchedBy(func(p *tasks.SendEmailPayload) bool {
-			return p.To == req.Email
+			return p.To == req.Email && strings.Contains(p.Body, "/invite/")
 		})).Return(nil)
 
 		res, err := uc.InviteMember(ctx, orgID, req)
