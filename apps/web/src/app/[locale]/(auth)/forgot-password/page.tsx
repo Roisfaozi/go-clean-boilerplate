@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { Button } from "@casbin/ui";
-import { Input } from "@casbin/ui";
-import { Label } from "@casbin/ui";
 import { Icon } from "~/components/shared/icon";
 import { AuthLayoutShell } from "~/components/auth/auth-layout-shell";
+import { ForgotPasswordForm } from "~/components/auth/forgot-password-form";
 
 export default function ForgotPassword() {
 	return (
@@ -22,20 +20,7 @@ export default function ForgotPassword() {
 				</Link>
 			}
 		>
-			<div className="grid gap-4">
-				<div className="grid gap-2">
-					<Label htmlFor="email">Email</Label>
-					<Input
-						id="email"
-						placeholder="name@example.com"
-						type="email"
-						autoCapitalize="none"
-						autoComplete="email"
-						autoCorrect="off"
-					/>
-				</div>
-				<Button className="mt-2 w-full">Send Reset Link</Button>
-			</div>
+			<ForgotPasswordForm />
 		</AuthLayoutShell>
 	);
 }
