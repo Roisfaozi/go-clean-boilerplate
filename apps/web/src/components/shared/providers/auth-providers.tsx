@@ -55,7 +55,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [hasHydrated, isAuthPage, setUser, logout, setPermissions, clearPermissions]);
+	}, [
+		hasHydrated,
+		isAuthPage,
+		setUser,
+		logout,
+		setPermissions,
+		clearPermissions,
+	]);
 
 	return <>{children}</>;
 }

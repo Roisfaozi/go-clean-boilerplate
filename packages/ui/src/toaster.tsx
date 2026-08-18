@@ -27,7 +27,9 @@ function ToastList() {
 							<ToastDescription>{toast.description}</ToastDescription>
 						)}
 					</div>
-					{toast.actionProps && <ToastActionFromProps props={toast.actionProps} />}
+					{toast.actionProps && (
+						<ToastActionFromProps props={toast.actionProps} />
+					)}
 					<ToastClose />
 				</Toast>
 			))}

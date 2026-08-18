@@ -38,7 +38,9 @@ const toast = (({ variant, action, onOpenChange, open, ...props }: Toast) => {
 	const id = toastManager.add({
 		...props,
 		type: variant,
-		actionProps: action?.props as React.ComponentPropsWithoutRef<"button"> | undefined,
+		actionProps: action?.props as
+			| React.ComponentPropsWithoutRef<"button">
+			| undefined,
 		onClose: () => {
 			onOpenChange?.(false);
 		},

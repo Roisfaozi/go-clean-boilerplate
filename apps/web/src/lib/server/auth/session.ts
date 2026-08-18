@@ -85,7 +85,9 @@ export const requireAuth = async (locale = "en") => {
 	const { session, user } = await getCurrentSession();
 
 	if (!session || !user) {
-		redirect(`/${locale}/login?returnTo=${encodeURIComponent(`/${locale}/dashboard`)}`);
+		redirect(
+			`/${locale}/login?returnTo=${encodeURIComponent(`/${locale}/dashboard`)}`,
+		);
 	}
 
 	return { session, user };
