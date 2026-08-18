@@ -15,7 +15,6 @@ const (
 	defaultServerPort                    = 8080
 	defaultServerReadTimeout             = "30s"
 	defaultServerWriteTimeout            = "30s"
-	defaultServerFrontendBaseURL         = "http://localhost:3000"
 	defaultLogLevel                      = "info"
 	defaultMySQLHost                     = "localhost"
 	defaultMySQLPort                     = 3306
@@ -240,6 +239,17 @@ type WatcherConfig struct {
 	Channel string `mapstructure:"channel"`
 }
 
+// envOnlyKeys lists configuration keys that have no default and therefore need
+// an explicit environment binding. Without this, viper leaves them empty even
+// when the matching variable is set.
+var envOnlyKeys = []string{
+	"server.frontend_base_url",
+	"cookie.secure",
+	"redis.dial_timeout",
+	"redis.read_timeout",
+	"redis.write_timeout",
+}
+
 func NewConfig() (*AppConfig, error) {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, reading configuration from environment variables")
@@ -249,10 +259,17 @@ func NewConfig() (*AppConfig, error) {
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
+	// viper's AutomaticEnv only resolves keys it already knows about (defaults,
+	// config file, or explicit binds). Any field that is populated purely by
+	// Unmarshal would be silently dropped, so every default-less key that must
+	// come from the environment is bound here explicitly.
+	for _, key := range envOnlyKeys {
+		_ = v.BindEnv(key)
+	}
+
 	v.SetDefault("server.port", defaultServerPort)
 	v.SetDefault("server.read_timeout", defaultServerReadTimeout)
 	v.SetDefault("server.write_timeout", defaultServerWriteTimeout)
-	v.SetDefault("server.frontend_base_url", defaultServerFrontendBaseURL)
 	v.SetDefault("log.level", defaultLogLevel)
 	v.SetDefault("mysql.host", defaultMySQLHost)
 	v.SetDefault("mysql.port", defaultMySQLPort)

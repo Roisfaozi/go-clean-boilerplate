@@ -37,7 +37,7 @@ func TestNewConfig_DefaultValues(t *testing.T) {
 	assert.Equal(t, true, cfg.RateLimit.Enabled)
 	assert.Equal(t, "memory", cfg.RateLimit.Store)
 	assert.Equal(t, "local", cfg.Storage.Driver)
-	assert.Equal(t, "http://localhost:3000", cfg.Server.FrontendBaseURL)
+	assert.Empty(t, cfg.Server.FrontendBaseURL)
 }
 
 func TestNewConfig_FrontendBaseURLOverride(t *testing.T) {
@@ -119,4 +119,26 @@ func TestNewConfig_StorageDrivers(t *testing.T) {
 
 	assert.Equal(t, "local", cfg.Storage.Driver)
 	assert.Equal(t, "./uploads", cfg.Storage.Local.RootPath)
+}
+
+// TestNewConfig_EnvOnlyKeysAreBound guards the whole class of bugs where a
+// config field has no default and is therefore silently dropped by viper even
+// though the environment variable is set.
+func TestNewConfig_EnvOnlyKeysAreBound(t *testing.T) {
+	setupTestEnv(t)
+	t.Setenv("SERVER_FRONTEND_BASE_URL", "https://app.example.com")
+	t.Setenv("COOKIE_SECURE", "true")
+	t.Setenv("REDIS_DIAL_TIMEOUT", "7s")
+	t.Setenv("REDIS_READ_TIMEOUT", "8s")
+	t.Setenv("REDIS_WRITE_TIMEOUT", "9s")
+
+	cfg, err := NewConfig()
+	require.NoError(t, err)
+
+	assert.Equal(t, "https://app.example.com", cfg.Server.FrontendBaseURL)
+	require.NotNil(t, cfg.Cookie.Secure, "COOKIE_SECURE was dropped by viper")
+	assert.True(t, *cfg.Cookie.Secure)
+	assert.Equal(t, 7*time.Second, cfg.Redis.DialTimeout)
+	assert.Equal(t, 8*time.Second, cfg.Redis.ReadTimeout)
+	assert.Equal(t, 9*time.Second, cfg.Redis.WriteTimeout)
 }
