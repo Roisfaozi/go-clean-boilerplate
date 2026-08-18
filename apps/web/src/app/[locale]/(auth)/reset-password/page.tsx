@@ -1,9 +1,14 @@
-import { Button } from "@casbin/ui";
-import { Input } from "@casbin/ui";
-import { Label } from "@casbin/ui";
 import { AuthLayoutShell } from "~/components/auth/auth-layout-shell";
+import { ResetPasswordForm } from "~/components/auth/reset-password-form";
 
-export default function ResetPassword() {
+export default async function ResetPassword({
+	searchParams,
+}: {
+	searchParams: Promise<{ token?: string | string[] }>;
+}) {
+	const { token: rawToken } = await searchParams;
+	const token = Array.isArray(rawToken) ? rawToken[0] : rawToken;
+
 	return (
 		<AuthLayoutShell
 			title="Reset password"
@@ -11,27 +16,7 @@ export default function ResetPassword() {
 			brandingTitle="Almost there!"
 			brandingDescription="Once you update your password, you'll be able to sign in and access your workspace."
 		>
-			<div className="grid gap-4">
-				<div className="grid gap-2">
-					<Label htmlFor="password">New Password</Label>
-					<Input
-						id="password"
-						placeholder="••••••••"
-						type="password"
-						autoComplete="new-password"
-					/>
-				</div>
-				<div className="grid gap-2">
-					<Label htmlFor="confirmPassword">Confirm New Password</Label>
-					<Input
-						id="confirmPassword"
-						placeholder="••••••••"
-						type="password"
-						autoComplete="new-password"
-					/>
-				</div>
-				<Button className="mt-2 w-full">Update Password</Button>
-			</div>
+			<ResetPasswordForm token={token} />
 		</AuthLayoutShell>
 	);
 }
