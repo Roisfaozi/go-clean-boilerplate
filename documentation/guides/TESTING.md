@@ -79,3 +79,49 @@ When you modify an interface, you MUST regenerate mocks:
 ```bash
 make mocks
 ```
+
+---
+
+## 🧪 6. Frontend Testing (apps/web)
+
+`apps/web` uses **Vitest** with Testing Library in a jsdom environment.
+
+```bash
+pnpm --filter casbin-web test
+```
+
+| Path | Role |
+|---|---|
+| `apps/web/vitest.config.ts` | jsdom env, `~` alias, `src/**/*.test.{ts,tsx}` |
+| `apps/web/src/test/setup.ts` | cleanup + jsdom shims (`matchMedia`, `ResizeObserver`, `scrollIntoView`) |
+
+`vitest.config.ts` is excluded from the app `tsconfig.json` because
+`@vitejs/plugin-react` ships an exports map that `moduleResolution: "node"`
+cannot resolve.
+
+### Conventions
+
+- Tests sit next to the component they cover.
+- Mock the API module, not `fetch`, so payload mapping stays asserted.
+- Use `vi.hoisted` for mock state referenced inside a `vi.mock` factory.
+- When mocking a module you also import values from, spread `importOriginal()`
+  so schemas and helpers survive.
+- Add `beforeEach(() => vi.clearAllMocks())`; call history leaks between tests
+  otherwise.
+- Jest-DOM matchers are not installed. Assert with plain values
+  (`expect(el.value).toBe(...)`, `expect(queryBy...).toBeNull()`).
+
+### Known gap
+
+Vitest covers contexts, forms, and dialog logic. There is **no browser E2E** for
+`apps/web`; Playwright exists only in `apps/client`. Full-page flows still need
+manual verification.
+
+### Full gate
+
+```bash
+pnpm --filter casbin-web test
+pnpm --filter casbin-web typecheck
+pnpm exec biome lint apps/web
+pnpm --filter casbin-web build
+```
