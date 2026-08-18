@@ -40,6 +40,7 @@ type Service struct {
 	taskDistributor       worker.TaskDistributor
 	ticketManager         ws.TicketManager
 	ssoProviders          map[string]sso.Provider
+	frontendBaseURL       string
 	dummyHash             string
 	refreshGroup          singleflight.Group
 }
@@ -59,6 +60,7 @@ func NewAuthUsecase(
 	taskDistributor worker.TaskDistributor,
 	ticketManager ws.TicketManager,
 	ssoProviders map[string]sso.Provider,
+	frontendBaseURL string,
 ) AuthUseCase {
 	s := &Service{
 		maxLoginAttempts:      maxLoginAttempts,
@@ -75,6 +77,7 @@ func NewAuthUsecase(
 		taskDistributor:       taskDistributor,
 		ticketManager:         ticketManager,
 		ssoProviders:          ssoProviders,
+		frontendBaseURL:       frontendBaseURL,
 	}
 
 	hash, err := pkg.HashPassword("dummy")

@@ -15,6 +15,7 @@ const (
 	defaultServerPort                    = 8080
 	defaultServerReadTimeout             = "30s"
 	defaultServerWriteTimeout            = "30s"
+	defaultServerFrontendBaseURL         = "http://localhost:3000"
 	defaultLogLevel                      = "info"
 	defaultMySQLHost                     = "localhost"
 	defaultMySQLPort                     = 3306
@@ -251,6 +252,7 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("server.port", defaultServerPort)
 	v.SetDefault("server.read_timeout", defaultServerReadTimeout)
 	v.SetDefault("server.write_timeout", defaultServerWriteTimeout)
+	v.SetDefault("server.frontend_base_url", defaultServerFrontendBaseURL)
 	v.SetDefault("log.level", defaultLogLevel)
 	v.SetDefault("mysql.host", defaultMySQLHost)
 	v.SetDefault("mysql.port", defaultMySQLPort)

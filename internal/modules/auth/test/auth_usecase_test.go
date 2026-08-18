@@ -41,6 +41,7 @@ const (
 	TestUserID        = "user-test-id"
 	TestUsername      = "testuser"
 	TestRole          = "role:user"
+	TestFrontendURL   = "https://app.example.com"
 )
 
 type testDependencies struct {
@@ -94,6 +95,7 @@ func setupTest(t *testing.T) (usecase.AuthUseCase, *testDependencies) {
 		deps.taskDistributor,
 		deps.ticketManager,
 		deps.ssoProviders,
+		TestFrontendURL,
 	)
 
 	return authService, deps
@@ -322,6 +324,7 @@ func TestLogin_Security_BruteForceProtection(t *testing.T) {
 		deps.taskDistributor,
 		deps.ticketManager,
 		nil,
+		TestFrontendURL,
 	)
 
 	user, _ := createTestUser("password123")
@@ -722,7 +725,9 @@ func TestForgotPassword_Success(t *testing.T) {
 	deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
 	deps.tokenRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.PasswordResetToken")).Return(nil)
 	deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.MatchedBy(func(payload *tasks.SendEmailPayload) bool {
-		return payload.To == user.Email && payload.Subject == "Password Reset Request"
+		return payload.To == user.Email &&
+			payload.Subject == "Password Reset Request" &&
+			strings.Contains(payload.Body, TestFrontendURL+"/reset-password?token=")
 	}), mock.Anything).Return(nil)
 
 	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
@@ -1080,7 +1085,9 @@ func TestRequestVerification_Success(t *testing.T) {
 	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
 	deps.tokenRepo.On("SaveVerificationToken", mock.Anything, mock.AnythingOfType("*entity.EmailVerificationToken")).Return(nil)
 	deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.MatchedBy(func(payload *tasks.SendEmailPayload) bool {
-		return payload.To == user.Email && payload.Subject == "Verify Your Email Address"
+		return payload.To == user.Email &&
+			payload.Subject == "Verify Your Email Address" &&
+			strings.Contains(payload.Body, TestFrontendURL+"/verify-email?token=")
 	}), mock.Anything).Return(nil)
 
 	deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
@@ -1767,6 +1774,7 @@ func TestLogin_NilEnforcer(t *testing.T) {
 		taskDistributor,
 		mocking.NewMockTicketManager(t),
 		nil,
+		TestFrontendURL,
 	)
 
 	user, password := createTestUser("password123")
@@ -1827,6 +1835,7 @@ func TestLogin_NilAuditUC(t *testing.T) {
 		taskDistributor,
 		mocking.NewMockTicketManager(t),
 		nil,
+		TestFrontendURL,
 	)
 
 	user, password := createTestUser("password123")

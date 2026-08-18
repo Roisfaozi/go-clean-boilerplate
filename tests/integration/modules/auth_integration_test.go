@@ -84,6 +84,7 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 		taskDistributor,
 		ticketManager,
 		make(map[string]sso.Provider),
+		"http://localhost:3000",
 	)
 }
 

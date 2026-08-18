@@ -37,6 +37,16 @@ func TestNewConfig_DefaultValues(t *testing.T) {
 	assert.Equal(t, true, cfg.RateLimit.Enabled)
 	assert.Equal(t, "memory", cfg.RateLimit.Store)
 	assert.Equal(t, "local", cfg.Storage.Driver)
+	assert.Equal(t, "http://localhost:3000", cfg.Server.FrontendBaseURL)
+}
+
+func TestNewConfig_FrontendBaseURLOverride(t *testing.T) {
+	setupTestEnv(t)
+	t.Setenv("SERVER_FRONTEND_BASE_URL", "https://app.example.com")
+
+	cfg, err := NewConfig()
+	require.NoError(t, err)
+	assert.Equal(t, "https://app.example.com", cfg.Server.FrontendBaseURL)
 }
 
 func TestNewConfig_JWTDurations(t *testing.T) {

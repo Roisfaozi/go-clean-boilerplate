@@ -50,6 +50,7 @@ func NewAuthModule(
 	defaultRole string,
 	defaultDomain string,
 	ssoProviders map[string]sso.Provider,
+	frontendBaseURL string,
 	cookieCfg http.CookieConfig,
 ) *AuthModule {
 	tokenRepo := repository.NewTokenRepositoryRedis(redisClient, log, db, &util.RealClock{})
@@ -73,6 +74,7 @@ func NewAuthModule(
 		taskDistributor,
 		ticketManager,
 		ssoProviders,
+		frontendBaseURL,
 	)
 	authController := http.NewAuthController(authUseCase, log, validate, cookieCfg)
 

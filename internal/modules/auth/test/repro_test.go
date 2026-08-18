@@ -34,5 +34,6 @@ func TestRepro(t *testing.T) {
 		mocking.NewMockTaskDistributor(t),
 		mocking.NewMockTicketManager(t),
 		nil,
+		"http://localhost:3000",
 	)
 }

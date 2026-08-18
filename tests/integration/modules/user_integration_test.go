@@ -42,7 +42,7 @@ func setupUserIntegration(env *setup.TestEnvironment) usecase.UserUseCase {
 
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
 	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, 3, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, 3, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider), "http://localhost:3000")
 
 	return usecase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil, nil)
 }
@@ -137,7 +137,7 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 
 	orgRepo := orgRepository.NewOrganizationRepository(env.DB)
 	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, 3, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, 3, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider), "http://localhost:3000")
 
 	loginReq := authModel.LoginRequest{Username: user.Username, Password: password}
 	loginResp, _, err := authUC.Login(context.Background(), loginReq)

@@ -128,6 +128,7 @@ func initModules(
 		cfg.Casbin.DefaultRole,
 		cfg.Casbin.DefaultDomain,
 		ssoProviders,
+		cfg.Server.FrontendBaseURL,
 		authHttp.CookieConfig{
 			Domain:   cfg.Cookie.Domain,
 			SameSite: cfg.Cookie.SameSite,

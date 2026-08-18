@@ -50,7 +50,7 @@ func TestScenario_RealTime_LoginBroadcast(t *testing.T) {
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	publisher := delivery.NewEventPublisher(wsManager, nil, env.Logger)
 	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, 3, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, publisher, authz, nil, nil, make(map[string]sso.Provider))
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, 3, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, publisher, authz, nil, nil, make(map[string]sso.Provider), "http://localhost:3000")
 
 	// 1. Create Organization
 	orgID := "test-org-123"

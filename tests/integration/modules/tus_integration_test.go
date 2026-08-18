@@ -56,7 +56,7 @@ func setupTUSDeps(t *testing.T, env *setup.TestEnvironment, s3Client *s3.Client,
 	// Minimal Adapters for integration test
 	authz := authRepository.NewCasbinAdapter(env.Enforcer, "role:user", "global")
 
-	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, 3, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
+	authUC := authUseCase.NewAuthUsecase(5, 30*time.Minute, 3, jwtManager, tokenRepo, userRepo, orgRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider), "http://localhost:3000")
 
 	uc := userUseCase.NewUserUseCase(tm, env.Logger, userRepo, env.Enforcer, auditUC, authUC, nil, nil)
 

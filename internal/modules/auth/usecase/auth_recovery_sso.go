@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
@@ -46,10 +48,11 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 	}
 
 	if s.taskDistributor != nil {
+		resetURL := strings.TrimRight(s.frontendBaseURL, "/") + "/reset-password?token=" + url.QueryEscape(token)
 		taskPayload := &tasks.SendEmailPayload{
 			To:      email,
 			Subject: "Password Reset Request",
-			Body:    fmt.Sprintf("Your password reset token is: %s. It expires in 15 minutes.", token),
+			Body:    fmt.Sprintf("Reset your password using this link: %s. It expires in 15 minutes.", resetURL),
 		}
 		if err := s.taskDistributor.DistributeTaskSendEmail(ctx, taskPayload); err != nil {
 			s.log.WithContext(ctx).WithError(err).Error("Failed to enqueue email task")
@@ -148,10 +151,11 @@ func (s *Service) RequestVerification(ctx context.Context, userID string) error 
 	}
 
 	if s.taskDistributor != nil {
+		verificationURL := strings.TrimRight(s.frontendBaseURL, "/") + "/verify-email?token=" + url.QueryEscape(token)
 		taskPayload := &tasks.SendEmailPayload{
 			To:      user.Email,
 			Subject: "Verify Your Email Address",
-			Body:    fmt.Sprintf("Please verify your email by using this token: %s. It expires in 24 hours.", token),
+			Body:    fmt.Sprintf("Verify your email using this link: %s. It expires in 24 hours.", verificationURL),
 		}
 		if err := s.taskDistributor.DistributeTaskSendEmail(ctx, taskPayload); err != nil {
 			s.log.WithContext(ctx).WithError(err).Error("Failed to enqueue verification email task")
