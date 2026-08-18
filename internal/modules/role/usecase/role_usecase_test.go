@@ -335,3 +335,155 @@ func TestRoleUseCase_GetAllRolesDynamic(t *testing.T) {
 		assert.Nil(t, res)
 	})
 }
+
+func TestRoleUseCase_CreateForOrganization(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+		req := &model.CreateRoleRequest{Name: "OrgRole", Description: "Desc"}
+		orgID := "org-1"
+
+		deps.Repo.On("FindByNameInScope", ctx, "OrgRole", &orgID).Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("Create", ctx, mock.AnythingOfType("*entity.Role")).Return(nil)
+
+		res, err := uc.CreateForOrganization(ctx, orgID, req)
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+		assert.Equal(t, "OrgRole", res.Name)
+	})
+
+	t.Run("EmptyOrgID", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+		req := &model.CreateRoleRequest{Name: "OrgRole", Description: "Desc"}
+
+		res, err := uc.CreateForOrganization(ctx, "", req)
+		assert.ErrorIs(t, err, exception.ErrBadRequest)
+		assert.Nil(t, res)
+
+		deps.Repo.AssertNotCalled(t, "FindByNameInScope", mock.Anything, mock.Anything, mock.Anything)
+		deps.Repo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+	})
+}
+
+func TestRoleUseCase_GetOrganizationRoles(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+		orgID := "org-1"
+
+		roles := []*entity.Role{
+			{ID: "1", Name: "Role1", OrganizationID: &orgID},
+			{ID: "2", Name: "Role2", OrganizationID: &orgID},
+		}
+		deps.Repo.On("FindOrganizationRoles", ctx, orgID).Return(roles, nil)
+
+		res, err := uc.GetOrganizationRoles(ctx, orgID)
+		assert.NoError(t, err)
+		assert.Len(t, res, 2)
+	})
+
+	t.Run("EmptyOrgID", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+
+		res, err := uc.GetOrganizationRoles(ctx, "")
+		assert.ErrorIs(t, err, exception.ErrBadRequest)
+		assert.Nil(t, res)
+
+		deps.Repo.AssertNotCalled(t, "FindOrganizationRoles", mock.Anything, mock.Anything)
+	})
+
+	t.Run("DBError", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+		orgID := "org-1"
+
+		deps.Repo.On("FindOrganizationRoles", ctx, orgID).Return(nil, errors.New("db error"))
+
+		res, err := uc.GetOrganizationRoles(ctx, orgID)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		assert.Nil(t, res)
+	})
+}
+
+func TestRoleUseCase_UpdateForOrganization(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+		req := &model.UpdateRoleRequest{Description: "NewOrgDesc"}
+		orgID := "org-1"
+		roleID := "role-1"
+
+		role := &entity.Role{ID: roleID, Name: "OrgRole", Description: "OldDesc", OrganizationID: &orgID}
+		deps.Repo.On("FindOrganizationRoleByID", ctx, orgID, roleID).Return(role, nil)
+		deps.Repo.On("Update", ctx, mock.MatchedBy(func(r *entity.Role) bool {
+			return r.Description == "NewOrgDesc"
+		})).Return(nil)
+
+		res, err := uc.UpdateForOrganization(ctx, orgID, roleID, req)
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+		assert.Equal(t, "NewOrgDesc", res.Description)
+	})
+
+	t.Run("InvalidInputs", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+		req := &model.UpdateRoleRequest{Description: "NewOrgDesc"}
+
+		res, err := uc.UpdateForOrganization(ctx, "", "role-1", req)
+		assert.ErrorIs(t, err, exception.ErrBadRequest)
+		assert.Nil(t, res)
+
+		res, err = uc.UpdateForOrganization(ctx, "org-1", "", req)
+		assert.ErrorIs(t, err, exception.ErrBadRequest)
+		assert.Nil(t, res)
+
+		deps.Repo.AssertNotCalled(t, "FindOrganizationRoleByID", mock.Anything, mock.Anything, mock.Anything)
+	})
+
+	t.Run("NotFound", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+		req := &model.UpdateRoleRequest{Description: "NewOrgDesc"}
+		orgID := "org-1"
+		roleID := "role-1"
+
+		deps.Repo.On("FindOrganizationRoleByID", ctx, orgID, roleID).Return(nil, gorm.ErrRecordNotFound)
+
+		res, err := uc.UpdateForOrganization(ctx, orgID, roleID, req)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
+		assert.Nil(t, res)
+	})
+
+	t.Run("DBErrorFind", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+		req := &model.UpdateRoleRequest{Description: "NewOrgDesc"}
+		orgID := "org-1"
+		roleID := "role-1"
+
+		deps.Repo.On("FindOrganizationRoleByID", ctx, orgID, roleID).Return(nil, errors.New("db error"))
+
+		res, err := uc.UpdateForOrganization(ctx, orgID, roleID, req)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		assert.Nil(t, res)
+	})
+
+	t.Run("DBErrorUpdate", func(t *testing.T) {
+		deps, uc := setupRoleTest()
+		ctx := context.Background()
+		req := &model.UpdateRoleRequest{Description: "NewOrgDesc"}
+		orgID := "org-1"
+		roleID := "role-1"
+
+		role := &entity.Role{ID: roleID, Name: "OrgRole", OrganizationID: &orgID}
+		deps.Repo.On("FindOrganizationRoleByID", ctx, orgID, roleID).Return(role, nil)
+		deps.Repo.On("Update", ctx, mock.AnythingOfType("*entity.Role")).Return(errors.New("db error"))
+
+		res, err := uc.UpdateForOrganization(ctx, orgID, roleID, req)
+		assert.ErrorIs(t, err, exception.ErrInternalServer)
+		assert.Nil(t, res)
+	})
+}
