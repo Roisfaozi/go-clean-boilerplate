@@ -32,16 +32,17 @@ const (
 )
 
 type Application struct {
-	Server          *http.Server
-	DB              *gorm.DB
-	Redis           *redis.Client
-	Log             *logrus.Logger
-	Enforcer        permission.IEnforcer
-	TaskDistributor worker.TaskDistributor
-	TaskProcessor   worker.TaskProcessor
-	Scheduler       *worker.Scheduler
-	TracerShutdown  func(context.Context) error
-	StorageProvider storage.Provider
+	Server            *http.Server
+	DB                *gorm.DB
+	Redis             *redis.Client
+	Log               *logrus.Logger
+	Enforcer          permission.IEnforcer
+	TaskDistributor   worker.TaskDistributor
+	TaskProcessor     worker.TaskProcessor
+	Scheduler         *worker.Scheduler
+	TracerShutdown    func(context.Context) error
+	StorageProvider   storage.Provider
+	BroadcasterCancel context.CancelFunc
 }
 
 func NewApplication(cfg *AppConfig) (*Application, error) {
@@ -57,11 +58,17 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	var tracerShutdown func(context.Context) error
 	if cfg.Telemetry.Enabled {
 		var err error
-		tracerShutdown, err = telemetry.InitTracer(cfg.Telemetry.ServiceName, cfg.Telemetry.CollectorURL)
+		tracerShutdown, err = telemetry.InitTracer(telemetry.Config{
+			ServiceName:  cfg.Telemetry.ServiceName,
+			CollectorURL: cfg.Telemetry.CollectorURL,
+			Insecure:     cfg.Telemetry.Insecure,
+			SampleRatio:  cfg.Telemetry.SampleRatio,
+		})
 		if err != nil {
 			logger.Errorf("Failed to initialize OTEL: %v", err)
 		} else {
-			logger.Infof("OTEL initialized for service: %s", cfg.Telemetry.ServiceName)
+			logger.Infof("OTEL initialized for service: %s (insecure: %v, sample_ratio: %.2f)",
+				cfg.Telemetry.ServiceName, cfg.Telemetry.Insecure, cfg.Telemetry.SampleRatio)
 		}
 	}
 
@@ -153,7 +160,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	logger.Info("Application modules initialized.")
 
 	// Real-time Metrics Broadcaster & User Presence Pruner
-	startMetricsBroadcaster(wsManager, presenceManager, modules.stats)
+	broadcasterCtx, broadcasterCancel := context.WithCancel(context.Background())
+	startMetricsBroadcaster(broadcasterCtx, wsManager, presenceManager, modules.stats)
 
 	cleanupHandler := handlers.NewCleanupTaskHandler(
 		modules.auth.TokenRepo,
@@ -260,16 +268,17 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}()
 
 	app := &Application{
-		Server:          httpServer,
-		DB:              dbConnection,
-		Redis:           redisClient,
-		Log:             logger,
-		Enforcer:        enforcer,
-		TaskDistributor: taskDistributor,
-		TaskProcessor:   taskProcessor,
-		Scheduler:       scheduler,
-		TracerShutdown:  tracerShutdown,
-		StorageProvider: storageProvider,
+		Server:            httpServer,
+		DB:                dbConnection,
+		Redis:             redisClient,
+		Log:               logger,
+		Enforcer:          enforcer,
+		TaskDistributor:   taskDistributor,
+		TaskProcessor:     taskProcessor,
+		Scheduler:         scheduler,
+		TracerShutdown:    tracerShutdown,
+		StorageProvider:   storageProvider,
+		BroadcasterCancel: broadcasterCancel,
 	}
 
 	return app, nil
@@ -285,6 +294,11 @@ func isStrictCasbinEnv(appEnv string) bool {
 }
 
 func (app *Application) Shutdown(ctx context.Context) error {
+	if app.BroadcasterCancel != nil {
+		app.Log.Info("Stopping Real-time Metrics Broadcaster & Presence Pruner...")
+		app.BroadcasterCancel()
+	}
+
 	app.Log.Info("Shutting down HTTP server...")
 	if err := app.Server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("server forced to shutdown: %w", err)

@@ -82,21 +82,11 @@ type AppConfig struct {
 	RateLimit      RateLimitConfig      `mapstructure:"rate_limit"`
 	SMTP           SMTPConfig           `mapstructure:"smtp"`
 	Storage        StorageConfig        `mapstructure:"storage"`
-	Metrics        struct {
-		Enabled     bool   `env:"METRICS_ENABLED" envDefault:"false"`
-		AuthEnabled bool   `env:"METRICS_AUTH_ENABLED" envDefault:"false"`
-		Username    string `env:"METRICS_USER"`
-		Password    string `env:"METRICS_PASS"`
-	}
-
-	Telemetry struct {
-		Enabled      bool   `env:"OTEL_ENABLED" envDefault:"false"`
-		ServiceName  string `env:"OTEL_SERVICE_NAME" envDefault:"go-clean-api"`
-		CollectorURL string `env:"OTEL_COLLECTOR_URL" envDefault:"localhost:4317"`
-	}
-	Tus   TusConfig   `mapstructure:"tus"`
-	Pprof PprofConfig `mapstructure:"pprof"`
-	SSO   SSOConfig   `mapstructure:"sso"`
+	Metrics        MetricsConfig        `mapstructure:"metrics"`
+	Telemetry      TelemetryConfig      `mapstructure:"otel"`
+	Tus            TusConfig            `mapstructure:"tus"`
+	Pprof          PprofConfig          `mapstructure:"pprof"`
+	SSO            SSOConfig            `mapstructure:"sso"`
 }
 
 type SSOConfig struct {
@@ -159,6 +149,14 @@ type MetricsConfig struct {
 	AuthEnabled bool   `mapstructure:"auth_enabled"`
 	Username    string `mapstructure:"username"`
 	Password    string `mapstructure:"password"`
+}
+
+type TelemetryConfig struct {
+	Enabled      bool    `mapstructure:"enabled"`
+	ServiceName  string  `mapstructure:"service_name"`
+	CollectorURL string  `mapstructure:"collector_url"`
+	Insecure     bool    `mapstructure:"insecure"`
+	SampleRatio  float64 `mapstructure:"sample_ratio"`
 }
 
 type RateLimitConfig struct {
@@ -308,6 +306,11 @@ func NewConfig() (*AppConfig, error) {
 	v.SetDefault("metrics.auth_enabled", defaultMetricsAuthEnabled)
 	// v.SetDefault("metrics.username", "admin")      // Removed hardcoded default
 	// v.SetDefault("metrics.password", "metrics123") // Removed hardcoded default
+	v.SetDefault("otel.enabled", false)
+	v.SetDefault("otel.service_name", defaultTelemetryServiceName)
+	v.SetDefault("otel.collector_url", defaultTelemetryCollectorURL)
+	v.SetDefault("otel.insecure", true)
+	v.SetDefault("otel.sample_ratio", 1.0)
 	v.SetDefault("storage.driver", defaultStorageDriver)
 	v.SetDefault("storage.local.root_path", defaultStorageLocalRootPath)
 	v.SetDefault("storage.local.base_url", defaultStorageLocalBaseURL)
@@ -404,6 +407,12 @@ func NewConfig() (*AppConfig, error) {
 	cfg.Metrics.Username = v.GetString("metrics.username")
 	cfg.Metrics.Password = v.GetString("metrics.password")
 
+	cfg.Telemetry.Enabled = v.GetBool("otel.enabled")
+	cfg.Telemetry.ServiceName = v.GetString("otel.service_name")
+	cfg.Telemetry.CollectorURL = v.GetString("otel.collector_url")
+	cfg.Telemetry.Insecure = v.GetBool("otel.insecure")
+	cfg.Telemetry.SampleRatio = v.GetFloat64("otel.sample_ratio")
+
 	if corsStr := v.GetString("cors.allowed_origins"); corsStr != "" && len(cfg.CORS.AllowedOrigins) == 0 {
 		origins := strings.Split(corsStr, ",")
 		for i := range origins {
@@ -415,6 +424,10 @@ func NewConfig() (*AppConfig, error) {
 	validate := validator.New()
 	if err := validate.Struct(&cfg); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
+	if isStrictCasbinEnv(cfg.Server.AppEnv) && cfg.Metrics.Enabled && !cfg.Metrics.AuthEnabled {
+		return nil, fmt.Errorf("metrics auth must be enabled outside local/test/dev environment")
 	}
 
 	if cfg.Metrics.AuthEnabled {

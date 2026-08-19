@@ -91,6 +91,53 @@ func TestNewConfig_MetricsAuthValidation(t *testing.T) {
 	assert.Contains(t, err.Error(), "metrics auth is enabled but username or password is missing")
 }
 
+func TestNewConfig_StrictEnvironmentRequiresMetricsAuth(t *testing.T) {
+	setupTestEnv(t)
+	t.Setenv("SERVER_APP_ENV", "production")
+	t.Setenv("METRICS_ENABLED", "true")
+	t.Setenv("METRICS_AUTH_ENABLED", "false")
+
+	_, err := NewConfig()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "metrics auth must be enabled outside local/test/dev environment")
+}
+
+func TestNewConfig_MetricsCredentialsEnvBinding(t *testing.T) {
+	setupTestEnv(t)
+	t.Setenv("METRICS_AUTH_ENABLED", "true")
+	t.Setenv("METRICS_USERNAME", "prometheus")
+	t.Setenv("METRICS_PASSWORD", "secret")
+
+	cfg, err := NewConfig()
+	require.NoError(t, err)
+	assert.True(t, cfg.Metrics.AuthEnabled)
+	assert.Equal(t, "prometheus", cfg.Metrics.Username)
+	assert.Equal(t, "secret", cfg.Metrics.Password)
+}
+
+func TestNewConfig_TelemetryDefaults(t *testing.T) {
+	setupTestEnv(t)
+
+	cfg, err := NewConfig()
+	require.NoError(t, err)
+	assert.False(t, cfg.Telemetry.Enabled)
+	assert.Equal(t, "go-clean-api", cfg.Telemetry.ServiceName)
+	assert.Equal(t, "localhost:4317", cfg.Telemetry.CollectorURL)
+}
+
+func TestNewConfig_TelemetryEnvBinding(t *testing.T) {
+	setupTestEnv(t)
+	t.Setenv("OTEL_ENABLED", "true")
+	t.Setenv("OTEL_SERVICE_NAME", "casbin-api")
+	t.Setenv("OTEL_COLLECTOR_URL", "jaeger:4317")
+
+	cfg, err := NewConfig()
+	require.NoError(t, err)
+	assert.True(t, cfg.Telemetry.Enabled)
+	assert.Equal(t, "casbin-api", cfg.Telemetry.ServiceName)
+	assert.Equal(t, "jaeger:4317", cfg.Telemetry.CollectorURL)
+}
+
 func TestNewConfig_TrustedProxiesParsing(t *testing.T) {
 	setupTestEnv(t)
 	t.Setenv("SERVER_TRUSTED_PROXIES", "10.0.0.1, 10.0.0.2, 192.168.1.1")
