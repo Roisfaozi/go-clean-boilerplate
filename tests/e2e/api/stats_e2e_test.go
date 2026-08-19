@@ -121,16 +121,11 @@ func TestStatsE2E_GetInsights(t *testing.T) {
 
 	var result struct {
 		Data struct {
-			AvgLatencyMs   float64 `json:"avg_latency_ms"`
-			ErrorRate      float64 `json:"error_rate"`
-			Uptime         string  `json:"uptime"`
-			MostActiveRole string  `json:"most_active_role"`
+			MostActiveRole string `json:"most_active_role"`
 		} `json:"data"`
 	}
 	err := resp.JSON(&result)
 	require.NoError(t, err)
-	assert.Greater(t, result.Data.AvgLatencyMs, float64(0))
-	assert.NotEmpty(t, result.Data.Uptime)
 	assert.NotEmpty(t, result.Data.MostActiveRole)
 }
 

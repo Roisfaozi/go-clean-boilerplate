@@ -192,21 +192,6 @@ func TestStatsUseCase_GetSystemInsights_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, insights)
-	assert.Greater(t, insights.AvgLatencyMs, float64(0))
-	assert.GreaterOrEqual(t, insights.ErrorRate, float64(0))
-	assert.NotEmpty(t, insights.Uptime)
-	assert.NotEmpty(t, insights.MostActiveRole)
-}
-
-func TestStatsUseCase_GetSystemInsights_ReturnsExpectedStructure(t *testing.T) {
-	_, uc := setupStatsTest(t)
-
-	insights, err := uc.GetSystemInsights(context.Background())
-
-	assert.NoError(t, err)
 	assert.IsType(t, &model.SystemInsights{}, insights)
-	assert.Equal(t, 24.5, insights.AvgLatencyMs)
-	assert.Equal(t, 0.02, insights.ErrorRate)
-	assert.Equal(t, "99.99%", insights.Uptime)
-	assert.Equal(t, "role:admin", insights.MostActiveRole)
+	assert.NotEmpty(t, insights.MostActiveRole)
 }

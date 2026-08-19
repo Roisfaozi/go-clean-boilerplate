@@ -170,49 +170,69 @@ func initModules(
 }
 
 func startMetricsBroadcaster(
+	ctx context.Context,
 	wsManager *ws2.WebSocketManager,
 	presenceManager ws2.PresenceManager,
 	statsModule *stats.StatsModule,
 ) {
+	// Goroutine 1: Metrics Broadcaster (2s tick)
 	go func() {
 		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+
 		var lastCount uint64
-		for range ticker.C {
-			// Calculate RPS
-			currentCount := middleware.GetTotalRequests()
-			rps := float64(currentCount-lastCount) / 2.0
-			lastCount = currentCount
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				currentCount := middleware.GetTotalRequests()
+				rps := float64(currentCount-lastCount) / 2.0
+				lastCount = currentCount
 
-			// Gather other stats
-			sysStats, err := statsModule.UseCase.GetSystemInsights(context.Background())
-			if err != nil {
-				continue
+				reqCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+				sysStats, err := statsModule.UseCase.GetSystemInsights(reqCtx)
+				summary, _ := statsModule.UseCase.GetDashboardSummary(reqCtx)
+				cancel()
+
+				if err != nil || summary == nil {
+					continue
+				}
+
+				payload, _ := json.Marshal(map[string]interface{}{
+					"type": metricsEventType,
+					"data": map[string]interface{}{
+						"scope":            "instance",
+						"rps":              rps,
+						"active_users":     wsManager.ClientCount(),
+						"total_users":      summary.TotalUsers,
+						"most_active_role": sysStats.MostActiveRole,
+					},
+				})
+				wsManager.BroadcastToChannel(metricsChannel, payload)
 			}
+		}
+	}()
 
-			summary, _ := statsModule.UseCase.GetDashboardSummary(context.Background())
+	// Goroutine 2: Presence Pruner (5m tick)
+	go func() {
+		ticker := time.NewTicker(defaultPresencePruneInterval)
+		defer ticker.Stop()
 
-			payload, _ := json.Marshal(map[string]interface{}{
-				"type": metricsEventType,
-				"data": map[string]interface{}{
-					"rps":            rps,
-					"active_users":   wsManager.ClientCount(),
-					"total_users":    summary.TotalUsers,
-					"avg_latency":    sysStats.AvgLatencyMs,
-					"error_rate":     sysStats.ErrorRate,
-					"uptime":         sysStats.Uptime,
-					"cpu_usage":      12.5, // Mock or gather from system
-					"memory_usage":   256,  // MB
-					"active_threads": 42,
-				},
-			})
-			wsManager.BroadcastToChannel(metricsChannel, payload)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+				removed, err := presenceManager.PruneStaleUsers(reqCtx, defaultPresencePruneInterval)
+				cancel()
 
-			// Also prune stale users periodically (every 30s effectively)
-			removed, err := presenceManager.PruneStaleUsers(context.Background(), defaultPresencePruneInterval)
-			if err == nil {
-				for orgID, userIDs := range removed {
-					for _, uid := range userIDs {
-						wsManager.PresenceUpdate(orgID, "leave", &ws2.PresenceUser{UserID: uid})
+				if err == nil {
+					for orgID, userIDs := range removed {
+						for _, uid := range userIDs {
+							wsManager.PresenceUpdate(orgID, "leave", &ws2.PresenceUser{UserID: uid})
+						}
 					}
 				}
 			}
