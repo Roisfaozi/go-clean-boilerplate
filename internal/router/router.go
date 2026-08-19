@@ -87,7 +87,6 @@ func SetupRouter(
 		router.Use(otelgin.Middleware(cfg.OTEL.ServiceName))
 	}
 
-	router.Use(gin.Recovery())
 	router.Use(middleware.RequestIDMiddleware())
 
 	if cfg.MetricsEnabled {
