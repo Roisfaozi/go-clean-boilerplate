@@ -260,12 +260,24 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 		return nil, "", err
 	}
 
-	refreshResult, ok := result.(*refreshResult)
-	if !ok || refreshResult == nil {
+	res, ok := result.(*refreshResult)
+	if !ok || res == nil {
 		return nil, "", fmt.Errorf("failed to complete token refresh")
 	}
 
-	return refreshResult.tokenResponse, refreshResult.refreshToken, nil
+	if res.tokenResponse == nil {
+		return nil, "", fmt.Errorf("failed to complete token refresh")
+	}
+
+	// Deep copy to prevent concurrent map/struct write issues since the result is shared by singleflight
+	tokenResponse := &model.TokenResponse{
+		AccessToken:  res.tokenResponse.AccessToken,
+		TokenType:    res.tokenResponse.TokenType,
+		RefreshToken: res.tokenResponse.RefreshToken,
+		ExpiresIn:    res.tokenResponse.ExpiresIn,
+	}
+
+	return tokenResponse, res.refreshToken, nil
 }
 
 type refreshResult struct {
