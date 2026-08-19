@@ -51,7 +51,8 @@ export async function ALL(
 			if (
 				key.toLowerCase() === "set-cookie" ||
 				key.toLowerCase() === "content-type" ||
-				key.toLowerCase() === "cache-control"
+				key.toLowerCase() === "cache-control" ||
+				key.toLowerCase() === "x-request-id"
 			) {
 				responseHeaders.append(key, value);
 			}
