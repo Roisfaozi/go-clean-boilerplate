@@ -49,3 +49,24 @@
 - Effective UI-relevant scope set for API keys: `org:view|manage`, `project:view|manage`, `role:view|manage`, `member:manage`, `presence:view`, `webhook:manage`, `admin:manage`. Member/presence endpoints additionally require `org:view` (auto-scope from `/organizations/...`).
 - Only `user.created` is emitted as a webhook event in the backend (`internal/modules/user/usecase/user_usecase.go:149-160`); UI event presets beyond it do not fire until triggers are registered.
 - Web frontend tests now run via Vitest in `apps/web` (`pnpm --filter casbin-web test`); `vitest.config.ts` is excluded from the app tsconfig because `@vitejs/plugin-react` uses an exports map that `moduleResolution: "node"` cannot resolve.
+
+## Observability Configuration Lessons
+
+- Viper `AutomaticEnv()` does not make arbitrary environment-only keys visible
+  to `Unmarshal`; keys must be registered through defaults, config, flags, or
+  explicit `BindEnv`, or assigned through explicit `v.Get*` calls. This is why
+  `envOnlyKeys` exists in `internal/config/config.go`.
+- `env:` and `envDefault:` tags on `AppConfig` fields are inactive in this
+  repository because configuration is loaded by Viper and no environment-tag
+  parser dependency is present. Effective environment names come from Viper
+  key paths plus the `.` to `_` replacer.
+- OTEL config uses documented `OTEL_*` names, so its Viper namespace must be
+  `otel.*`; using the struct field name `telemetry.*` would map to the wrong
+  environment variables.
+- Metrics, tracing, and dashboard stats are three separate runtime surfaces:
+  Prometheus metrics may be real while authenticated dashboard stats still use
+  placeholder values. Audits must inspect producers and both frontend
+  consumers, not infer correctness from the existence of `/metrics`.
+- Context-aware Logrus hooks only enrich entries created with
+  `WithContext(ctx)`, and typed context keys from different packages do not
+  match even when their string values look similar.
