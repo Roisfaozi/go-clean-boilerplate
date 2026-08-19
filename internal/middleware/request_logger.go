@@ -29,13 +29,18 @@ func RequestLogger(log *logrus.Logger) gin.HandlerFunc {
 			dataLength = 0
 		}
 
-		// Use WithContext(c.Request.Context()) to automatically pick up the request_id via TraceContextHook
+		route := c.FullPath()
+		if route == "" {
+			route = "unknown"
+		}
+
+		// Use WithContext(c.Request.Context()) to automatically pick up request_id, user_id, trace_id, span_id via TraceContextHook
 		entry := log.WithContext(c.Request.Context()).WithFields(logrus.Fields{
 			"type":        "http_request",
 			"method":      method,
 			"path":        path,
+			"route":       route,
 			"status":      statusCode,
-			"latency_ns":  latency.Nanoseconds(),
 			"latency_ms":  float64(latency.Nanoseconds()) / 1e6,
 			"client_ip":   clientIP,
 			"user_agent":  userAgent,

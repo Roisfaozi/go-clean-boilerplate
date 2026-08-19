@@ -363,11 +363,26 @@ build:
 
 # --- TESTING ---
 
+define run_go_test
+	@set -o pipefail; \
+	output=$$(mktemp); \
+	$(GO_VERIFY_PREFIX) $(GOTEST) $(1) >$$output 2>&1; \
+	status=$$?; \
+	if [ $$status -eq 0 ]; then \
+		echo "PASS"; \
+	else \
+		echo "FAIL"; \
+		awk '/^=== RUN / || /^--- FAIL: / || /^FAIL([[:space:]]|$$)/ || /^panic: / {print}' "$$output"; \
+	fi; \
+	rm -f "$$output"; \
+	exit $$status
+endef
+
 # Run unit tests only (exclude integration and e2e folders)
 .PHONY: test
 test:
 	@echo "Running unit tests (internal and pkg)..."
-	$(GOTEST) -v ./internal/... ./pkg/...
+	$(call run_go_test,-p 1 -parallel 1 -count=1 -v ./internal/... ./pkg/...) 
 
 .PHONY: test-unit
 test-unit: test
@@ -376,38 +391,70 @@ test-unit: test
 .PHONY: test-integration
 test-integration:
 	@echo "Running integration tests..."
-	$(GOTEST) -v ./tests/integration/... -tags=integration -p 1 -timeout=10m
+	$(call run_go_test,-p 1 -parallel 1 -count=1 -v ./tests/integration/... -tags=integration -timeout=10m)
 
 # Run E2E tests (requires Docker)
 .PHONY: test-e2e
 test-e2e:
 	@echo "Running E2E tests..."
-	$(GOTEST) -v ./tests/e2e/... -tags=e2e -p 1 -timeout=15m
+	$(call run_go_test,-p 1 -parallel 1 -count=1 -v ./tests/e2e/... -tags=e2e -timeout=15m)
 
 # Run all tests (unit + integration + e2e)
 .PHONY: test-all
-test-all: test test-integration test-e2e
+test-all:
+	@set +e; \
+	$(MAKE) test; status1=$$?; \
+	$(MAKE) test-integration; status2=$$?; \
+	$(MAKE) test-e2e; status3=$$?; \
+	if [ $$status1 -eq 0 ] && [ $$status2 -eq 0 ] && [ $$status3 -eq 0 ]; then \
+		echo "OVERALL: PASS"; \
+	else \
+		echo "OVERALL: FAIL"; \
+	fi; \
+	exit 0
 
 # Run unit tests with coverage
 .PHONY: test-coverage
 test-coverage:
 	@echo "Running unit tests coverage..."
-	$(GOTEST) -coverprofile=coverage_unit.out -covermode=atomic -v ./internal/... ./pkg/...
-	$(GOCMD) tool cover -html=coverage_unit.out -o coverage_unit.html
-	@echo "Unit test coverage report: coverage_unit.html"
+	@set -o pipefail; \
+	output=$$(mktemp); \
+	$(GO_VERIFY_PREFIX) $(GOTEST) -p 1 -parallel 1 -count=1 -coverprofile=coverage_unit.out -covermode=atomic -v ./internal/... ./pkg/... >$$output 2>&1; \
+	status=$$?; \
+	if [ $$status -eq 0 ]; then \
+		$(GOCMD) tool cover -html=coverage_unit.out -o coverage_unit.html; \
+		echo "PASS"; \
+		echo "Unit test coverage report: coverage_unit.html"; \
+	else \
+		echo "FAIL"; \
+		awk '/^=== RUN / || /^--- FAIL: / || /^FAIL([[:space:]]|$$)/ || /^panic: / {print}' "$$output"; \
+	fi; \
+	rm -f "$$output"; \
+	exit $$status
 
 # Run all tests with coverage (Sequential to avoid singleton DB race conditions)
 .PHONY: test-coverage-all
 test-coverage-all:
 	@echo "Running all tests coverage..."
-	$(GOTEST) -p 1 -coverprofile=coverage_all.out -covermode=atomic -v ./... -tags=integration,e2e -timeout=20m
-	$(GOCMD) tool cover -html=coverage_all.out -o coverage_all.html
-	@echo "Full coverage report: coverage_all.html"
+	@set -o pipefail; \
+	output=$$(mktemp); \
+	$(GO_VERIFY_PREFIX) $(GOTEST) -p 1 -parallel 1 -count=1 -coverprofile=coverage_all.out -covermode=atomic -v ./... -tags=integration,e2e -timeout=20m >$$output 2>&1; \
+	status=$$?; \
+	if [ $$status -eq 0 ]; then \
+		$(GOCMD) tool cover -html=coverage_all.out -o coverage_all.html; \
+		echo "PASS"; \
+		echo "Full coverage report: coverage_all.html"; \
+	else \
+		echo "FAIL"; \
+		awk '/^=== RUN / || /^--- FAIL: / || /^FAIL([[:space:]]|$$)/ || /^panic: / {print}' "$$output"; \
+	fi; \
+	rm -f "$$output"; \
+	exit $$status
 
 # Run tests with race detector
 .PHONY: test-race
 test-race:
-	$(GOTEST) -race -v ./...
+	$(call run_go_test,-race -v ./...)
 
 # Clean test cache
 .PHONY: test-clean

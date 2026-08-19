@@ -5,8 +5,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var (
+	OrganizationBaseRoutes = "/organizations"
+	
+)
+
 func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *OrganizationController, idempotencyMiddleware gin.HandlerFunc) {
-	orgGroup := router.Group("/organizations")
+	orgGroup := router.Group(OrganizationBaseRoutes)
 	{
 		// Create new organization
 		if idempotencyMiddleware != nil {
@@ -22,7 +27,7 @@ func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *Organizati
 
 // RegisterPublicRoutes registers routes that do not require authentication or tenant context
 func RegisterPublicRoutes(router *gin.RouterGroup, controller *OrganizationController, idempotencyMiddleware gin.HandlerFunc) {
-	orgGroup := router.Group("/organizations")
+	orgGroup := router.Group(OrganizationBaseRoutes)
 	{
 		if idempotencyMiddleware != nil {
 			orgGroup.POST("/invitations/accept", idempotencyMiddleware, controller.AcceptInvitation)
@@ -35,7 +40,7 @@ func RegisterPublicRoutes(router *gin.RouterGroup, controller *OrganizationContr
 // RegisterTenantRoutes registers routes that require tenant context
 // These routes use TenantMiddleware to set organization context
 func RegisterTenantRoutes(router *gin.RouterGroup, controller *OrganizationController, apiKeyMiddleware *middleware.APIKeyMiddleware, idempotencyMiddleware gin.HandlerFunc) {
-	orgGroup := router.Group("/organizations")
+	orgGroup := router.Group(OrganizationBaseRoutes)
 	{
 		orgGroup.GET("/:id", apiKeyMiddleware.RequireScopes("org:view", "org:manage"), controller.GetOrganization)
 		orgGroup.GET("/slug/:slug", apiKeyMiddleware.RequireScopes("org:view", "org:manage"), controller.GetOrganizationBySlug)
@@ -69,7 +74,7 @@ func RegisterTenantRoutes(router *gin.RouterGroup, controller *OrganizationContr
 
 // RegisterAdminRoutes registers privileged organization routes intended for superadmin flows.
 func RegisterAdminRoutes(router *gin.RouterGroup, controller *OrganizationController, apiKeyMiddleware *middleware.APIKeyMiddleware) {
-	orgGroup := router.Group("/organizations")
+	orgGroup := router.Group(OrganizationBaseRoutes)
 	{
 		orgGroup.POST("/:id/restore", apiKeyMiddleware.RequireUserSession(), controller.RestoreOrganization)
 		orgGroup.DELETE("/:id/hard", apiKeyMiddleware.RequireUserSession(), controller.HardDeleteOrganization)
