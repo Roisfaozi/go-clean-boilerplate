@@ -129,7 +129,6 @@ export default function DashboardPage() {
 
 	// Real-time RPS history for sparklines
 	const rpsHistory = history.map((h) => h.rps);
-	const _latencyHistory = history.map((h) => h.latency);
 
 	return (
 		<div className="space-y-6">
@@ -304,56 +303,41 @@ export default function DashboardPage() {
 							label="Real-time RPS"
 							value={`${metrics?.rps.toFixed(1) || "0.0"}`}
 							status={(metrics?.rps || 0) < 50 ? "good" : "warning"}
-							description="Requests per second"
+							description="Instance requests per second"
 						/>
 						<InsightMetric
-							label="Avg Latency"
-							value={`${metrics?.avg_latency.toFixed(0) || insightsData.avg_latency_ms}ms`}
-							status={(metrics?.avg_latency || 0) < 100 ? "good" : "warning"}
-							description="Response time p95"
+							label="Active Connections"
+							value={`${metrics?.active_users || 0}`}
+							status="good"
+							description="Live WebSocket clients"
 						/>
 						<InsightMetric
-							label="Error Rate"
-							value={`${metrics?.error_rate || insightsData.error_rate}%`}
-							status={(metrics?.error_rate || 0) < 0.5 ? "good" : "critical"}
-							description="Last 24 hours"
-						/>
-						<InsightMetric
-							label="Uptime"
-							value={`${metrics?.uptime || insightsData.uptime_percent}%`}
-							status={(metrics?.uptime || 0) > 99.9 ? "good" : "warning"}
-							description="30-day rolling"
+							label="Most Active Role"
+							value={metrics?.most_active_role || insightsData.most_active_role}
+							status="good"
+							description="Audit log classification"
 						/>
 					</div>
 
 					{/* Mini performance gauges */}
-					<div className="mt-4 grid grid-cols-3 gap-3">
-						<div className="space-y-1 text-center">
-							<div className="bg-success/10 inline-flex h-10 w-10 items-center justify-center rounded-full">
-								<Zap className="text-success h-4 w-4" />
-							</div>
-							<p className="text-caption text-foreground font-medium">
-								{insightsData.avg_latency_ms}ms
-							</p>
-							<p className="text-caption text-muted-foreground">Latency</p>
-						</div>
-						<div className="space-y-1 text-center">
-							<div className="bg-danger/10 inline-flex h-10 w-10 items-center justify-center rounded-full">
-								<AlertTriangle className="text-danger h-4 w-4" />
-							</div>
-							<p className="text-caption text-foreground font-medium">
-								{insightsData.error_rate}%
-							</p>
-							<p className="text-caption text-muted-foreground">Errors</p>
-						</div>
+					<div className="mt-4 grid grid-cols-2 gap-3">
 						<div className="space-y-1 text-center">
 							<div className="bg-primary/10 inline-flex h-10 w-10 items-center justify-center rounded-full">
-								<Clock className="text-primary h-4 w-4" />
+								<Zap className="text-primary h-4 w-4" />
 							</div>
 							<p className="text-caption text-foreground font-medium">
-								{insightsData.uptime_percent}%
+								{metrics?.rps.toFixed(1) || "0.0"}
 							</p>
-							<p className="text-caption text-muted-foreground">Uptime</p>
+							<p className="text-caption text-muted-foreground">RPS</p>
+						</div>
+						<div className="space-y-1 text-center">
+							<div className="bg-success/10 inline-flex h-10 w-10 items-center justify-center rounded-full">
+								<Activity className="text-success h-4 w-4" />
+							</div>
+							<p className="text-caption text-foreground font-medium">
+								{metrics?.active_users || 0}
+							</p>
+							<p className="text-caption text-muted-foreground">Active WS</p>
 						</div>
 					</div>
 				</AnalyticsCard>

@@ -159,9 +159,6 @@ export interface ActivityMetric {
 }
 
 export interface SystemInsight {
-	avg_latency_ms: number;
-	error_rate: number;
-	uptime_percent: number;
 	most_active_role: string;
 }
 
@@ -314,8 +311,5 @@ export const activityMetricSchema = z.object({
 });
 
 export const systemInsightSchema = z.object({
-	avg_latency_ms: z.number(),
-	error_rate: z.number(),
-	uptime_percent: z.number(),
 	most_active_role: z.string(),
 });

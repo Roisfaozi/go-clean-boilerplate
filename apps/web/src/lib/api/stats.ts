@@ -18,9 +18,6 @@ export interface DashboardActivity {
 }
 
 export interface SystemInsights {
-	avg_latency_ms: number;
-	error_rate: number;
-	uptime: string;
 	most_active_role: string;
 }
 

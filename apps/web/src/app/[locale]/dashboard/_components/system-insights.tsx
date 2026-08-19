@@ -5,7 +5,7 @@ import { Badge } from "@casbin/ui";
 import { ActivityChart } from "~/components/dashboard/activity-chart";
 
 export function SystemInsights() {
-	const { insights, isLoading } = useDashboard();
+	const { insights } = useDashboard();
 
 	return (
 		<div className="grid grid-cols-1 gap-gap lg:grid-cols-2">
@@ -16,36 +16,16 @@ export function SystemInsights() {
 						System Insights
 					</h2>
 					<Badge variant="outline" className="bg-primary/5">
-						Experimental
+						Live
 					</Badge>
 				</div>
 				<div className="space-y-4">
 					<div className="bg-muted/30 rounded-lg border border-dashed p-4">
 						<p className="text-muted-foreground text-sm leading-relaxed italic">
 							{insights
-								? `User engagement is stable. Most active role currently: ${insights.most_active_role}.`
-								: "Analyzing system performance and user engagement patterns..."}
+								? `User engagement is active. Most active role in audit log: ${insights.most_active_role}.`
+								: "Analyzing audit activity patterns..."}
 						</p>
-					</div>
-					<div className="grid grid-cols-2 gap-4">
-						<div className="rounded-md border p-3">
-							<span className="text-muted-foreground text-[10px] font-bold uppercase">
-								Latency
-							</span>
-							<div className="font-mono text-xl">
-								{isLoading ? "..." : `${insights?.avg_latency_ms || 0}ms`}
-							</div>
-						</div>
-						<div className="rounded-md border p-3">
-							<span className="text-muted-foreground text-[10px] font-bold uppercase">
-								Errors
-							</span>
-							<div className="font-mono text-xl text-emerald-500">
-								{isLoading
-									? "..."
-									: `${((insights?.error_rate || 0) * 100).toFixed(1)}%`}
-							</div>
-						</div>
 					</div>
 				</div>
 			</div>

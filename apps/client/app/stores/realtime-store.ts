@@ -226,20 +226,16 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
 
 /* ═══════ Metrics Store ═══════ */
 export interface SystemMetrics {
+	scope?: string;
 	rps: number;
 	active_users: number;
 	total_users: number;
-	avg_latency: number;
-	error_rate: number;
-	uptime: number;
-	cpu_usage: number;
-	memory_usage: number;
-	active_threads: number;
+	most_active_role?: string;
 }
 
 interface MetricsState {
 	metrics: SystemMetrics | null;
-	history: { time: string; rps: number; latency: number }[];
+	history: { time: string; rps: number }[];
 	updateMetrics: (m: SystemMetrics) => void;
 }
 
@@ -252,10 +248,7 @@ export const useMetricsStore = create<MetricsState>((set) => ({
 				hour: "2-digit",
 				minute: "2-digit",
 			});
-			const newHistory = [
-				...s.history,
-				{ time: now, rps: m.rps, latency: m.avg_latency },
-			].slice(-20);
+			const newHistory = [...s.history, { time: now, rps: m.rps }].slice(-20);
 			return { metrics: m, history: newHistory };
 		}),
 }));
