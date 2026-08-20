@@ -106,7 +106,9 @@ Guide for choosing the right verification layer, understanding infra assumptions
 
 ## Mock and fixture rules
 
-- regenerate mocks with `make mocks` when interfaces change
+- unit tests requiring interface mocks MUST use mockery-generated mocks (`NewMockX(t)`); manual hand-written mock structs are prohibited (exceptions: Casbin `IEnforcer` and stdlib/third-party stubs in `pkg/`)
+- regenerate mocks with `make mocks` (or `mockery`) whenever interfaces change
+- variadic method expectations in mockery v2.53.6 (`Enforce`, `AddPolicy`, `AddGroupingPolicy`, `RemoveFilteredGroupingPolicy`) MUST pass positional arguments (`"arg1", "arg2"`), NOT slice wrappers (`[]interface{}{...}`)
 - keep unit tests isolated with mocks or local test doubles
 - use integration containers for DB/Redis behavior instead of over-mocking persistence semantics
 - keep auth or tenant fixtures close to scenario tests so route-group differences stay readable

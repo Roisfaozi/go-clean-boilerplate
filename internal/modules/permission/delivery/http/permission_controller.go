@@ -1,17 +1,23 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
+
+func respondPermissionNoop(c *gin.Context, message string) {
+	response.Success(c, gin.H{"changed": false, "message": message})
+}
 
 type PermissionController struct {
 	useCase  usecase.IPermissionUseCase
@@ -40,6 +46,20 @@ func resolveDomain(c *gin.Context, requestedDomain string) string {
 		return "global"
 	}
 	return requestedDomain
+}
+
+// actorContext derives the authenticated actor from the request context and
+// propagates it into the usecase context so privilege guards can evaluate it.
+func actorContext(c *gin.Context) (context.Context, bool) {
+	actorVal, exists := c.Get("user_id")
+	if !exists || actorVal == nil {
+		return nil, false
+	}
+	actorID, ok := actorVal.(string)
+	if !ok || actorID == "" {
+		return nil, false
+	}
+	return authcontext.WithUserID(c.Request.Context(), actorID), true
 }
 
 // AssignRole godoc
@@ -71,7 +91,13 @@ func (h *PermissionController) AssignRole(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.AssignRoleToUser(c.Request.Context(), req.UserID, req.Role, resolveDomain(c, req.Domain))
+	ctx, ok := actorContext(c)
+	if !ok {
+		response.Unauthorized(c, errors.New("missing user id"), "user not authenticated")
+		return
+	}
+
+	err := h.useCase.AssignRoleToUser(ctx, req.UserID, req.Role, resolveDomain(c, req.Domain))
 	if err != nil {
 		response.HandleError(c, err, "failed to assign role")
 		return
@@ -109,6 +135,10 @@ func (h *PermissionController) RevokeRole(c *gin.Context) {
 
 	err := h.useCase.RevokeRoleFromUser(c.Request.Context(), req.UserID, req.Role, resolveDomain(c, req.Domain))
 	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoop(c, message)
+			return
+		}
 		response.HandleError(c, err, "failed to revoke role")
 		return
 	}
@@ -143,8 +173,18 @@ func (h *PermissionController) GrantPermission(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.GrantPermissionToRole(c.Request.Context(), req.Role, req.Path, req.Method, resolveDomain(c, req.Domain))
+	ctx, ok := actorContext(c)
+	if !ok {
+		response.Unauthorized(c, errors.New("missing user id"), "user not authenticated")
+		return
+	}
+
+	err := h.useCase.GrantPermissionToRole(ctx, req.Role, req.Path, req.Method, resolveDomain(c, req.Domain))
 	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoop(c, message)
+			return
+		}
 		response.HandleError(c, err, "failed to grant permission")
 		return
 	}
@@ -169,7 +209,7 @@ func (h *PermissionController) GetAllPermissions(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, filterPoliciesByDomain(permissions, resolveDomain(c, "")))
+	response.Success(c, filterPoliciesByDomain(c, permissions, resolveDomain(c, "")))
 }
 
 // GetPermissionsForRole godoc
@@ -197,7 +237,7 @@ func (h *PermissionController) GetPermissionsForRole(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, filterPoliciesByDomain(permissions, resolveDomain(c, "")))
+	response.Success(c, filterPoliciesByDomain(c, permissions, resolveDomain(c, "")))
 }
 
 // GetUsersForRole godoc
@@ -231,14 +271,26 @@ func (h *PermissionController) GetUsersForRole(c *gin.Context) {
 	response.Success(c, users)
 }
 
-func filterPoliciesByDomain(policies [][]string, domain string) [][]string {
-	if domain == "" || domain == "global" {
+func filterPoliciesByDomain(c *gin.Context, policies [][]string, domain string) [][]string {
+	userRole, _ := c.Get("user_role")
+	isSuperAdmin := userRole == "role:superadmin"
+
+	if (domain == "" || domain == "global") && isSuperAdmin {
 		return policies
+	}
+
+	targetDomain := domain
+	if targetDomain == "" || targetDomain == "global" {
+		if orgID, ok := c.Get("organization_id"); ok {
+			if idStr, isStr := orgID.(string); isStr && idStr != "" {
+				targetDomain = idStr
+			}
+		}
 	}
 
 	filtered := make([][]string, 0, len(policies))
 	for _, policy := range policies {
-		if len(policy) > 1 && policy[1] == domain {
+		if len(policy) > 1 && policy[1] == targetDomain {
 			filtered = append(filtered, policy)
 		}
 	}
@@ -311,6 +363,10 @@ func (h *PermissionController) RevokePermission(c *gin.Context) {
 
 	err := h.useCase.RevokePermissionFromRole(c.Request.Context(), req.Role, req.Path, req.Method, resolveDomain(c, req.Domain))
 	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoop(c, message)
+			return
+		}
 		response.HandleError(c, err, "failed to revoke permission")
 		return
 	}
@@ -345,7 +401,13 @@ func (h *PermissionController) AddRoleInheritance(c *gin.Context) {
 		return
 	}
 
-	err := h.useCase.AddParentRole(c.Request.Context(), req.ChildRole, req.ParentRole, resolveDomain(c, req.Domain))
+	ctx, ok := actorContext(c)
+	if !ok {
+		response.Unauthorized(c, errors.New("missing user id"), "user not authenticated")
+		return
+	}
+
+	err := h.useCase.AddParentRole(ctx, req.ChildRole, req.ParentRole, resolveDomain(c, req.Domain))
 	if err != nil {
 		response.HandleError(c, err, "failed to add role inheritance")
 		return
@@ -384,6 +446,10 @@ func (h *PermissionController) RemoveRoleInheritance(c *gin.Context) {
 
 	err := h.useCase.RemoveParentRole(c.Request.Context(), req.ChildRole, req.ParentRole, resolveDomain(c, req.Domain))
 	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoop(c, message)
+			return
+		}
 		response.HandleError(c, err, "failed to remove role inheritance")
 		return
 	}
@@ -411,7 +477,7 @@ func (h *PermissionController) GetParentRoles(c *gin.Context) {
 		return
 	}
 
-	domain := c.Query("domain")
+	domain := resolveDomain(c, c.Query("domain"))
 
 	parents, err := h.useCase.GetParentRoles(c.Request.Context(), role, domain)
 	if err != nil {
@@ -518,7 +584,7 @@ func (h *PermissionController) GetInheritanceTree(c *gin.Context) {
 // @Router       /permissions/roles/{role}/access-rights [get]
 func (h *PermissionController) GetRoleAccessRights(c *gin.Context) {
 	role := c.Param("role")
-	domain := c.DefaultQuery("domain", "global")
+	domain := resolveDomain(c, c.Query("domain"))
 
 	result, err := h.useCase.GetRoleAccessRights(c.Request.Context(), role, domain)
 	if err != nil {
@@ -556,7 +622,16 @@ func (h *PermissionController) AssignAccessRight(c *gin.Context) {
 	}
 
 	req.Domain = resolveDomain(c, req.Domain)
-	if err := h.useCase.AssignAccessRight(c.Request.Context(), req); err != nil {
+	ctx, ok := actorContext(c)
+	if !ok {
+		response.Unauthorized(c, errors.New("missing user id"), "user not authenticated")
+		return
+	}
+	if err := h.useCase.AssignAccessRight(ctx, req); err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoop(c, message)
+			return
+		}
 		response.HandleError(c, err, "failed to assign access right")
 		return
 	}
@@ -592,6 +667,10 @@ func (h *PermissionController) RevokeAccessRight(c *gin.Context) {
 
 	req.Domain = resolveDomain(c, req.Domain)
 	if err := h.useCase.RevokeAccessRight(c.Request.Context(), req); err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoop(c, message)
+			return
+		}
 		response.HandleError(c, err, "failed to revoke access right")
 		return
 	}

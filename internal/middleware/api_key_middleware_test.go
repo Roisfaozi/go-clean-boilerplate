@@ -355,6 +355,26 @@ func TestAPIKeyMiddleware_Authenticate(t *testing.T) {
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
+
+	t.Run("Require Scope Auto denies API key request when required scope cannot be determined", func(t *testing.T) {
+		r := gin.New()
+		r.Use(func(c *gin.Context) {
+			c.Set("auth_method", "api_key")
+			c.Set("api_key_scopes", []string{"*"})
+			c.Next()
+		})
+		r.Use(mw.RequireScopeAuto())
+		r.GET("/health", func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
+
+		req, _ := http.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
 }
 
 func TestScopeFromMethod(t *testing.T) {

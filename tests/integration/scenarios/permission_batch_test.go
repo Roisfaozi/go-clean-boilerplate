@@ -14,6 +14,7 @@ import (
 	roleRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	roleUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
@@ -38,13 +39,17 @@ func TestScenario_PermissionBatchCheck(t *testing.T) {
 	_, err := roleService.Create(ctx, &roleModel.CreateRoleRequest{Name: roleName})
 	require.NoError(t, err)
 
+	actorID := "sa-actor-id"
+	_, _ = env.Enforcer.AddGroupingPolicy(actorID, "role:superadmin", "global")
+	saCtx := authcontext.WithUserID(context.Background(), actorID)
+
 	user := setup.CreateTestUser(t, env.DB, "editor_user", "editor@batch.com", "pass")
-	err = permService.AssignRoleToUser(ctx, user.ID, roleName, "global")
+	err = permService.AssignRoleToUser(saCtx, user.ID, roleName, "global")
 	require.NoError(t, err)
 
-	err = permService.GrantPermissionToRole(ctx, roleName, "/articles", "READ", "global")
+	err = permService.GrantPermissionToRole(saCtx, roleName, "/articles", "READ", "global")
 	require.NoError(t, err)
-	err = permService.GrantPermissionToRole(ctx, roleName, "/articles", "WRITE", "global")
+	err = permService.GrantPermissionToRole(saCtx, roleName, "/articles", "WRITE", "global")
 	require.NoError(t, err)
 
 	items := []permissionModel.PermissionCheckItem{

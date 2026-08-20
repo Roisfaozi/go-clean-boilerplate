@@ -14,6 +14,7 @@ import (
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
@@ -21,28 +22,33 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/singleflight"
 )
 
 type Service struct {
-	maxLoginAttempts int
-	lockoutDuration  time.Duration
-	jwtManager       *jwt.JWTManager
-	tokenRepo        repository.TokenRepository
-	userRepo         userRepository.UserRepository
-	orgRepo          orgRepo.OrganizationRepository
-	tm               tx.WithTransactionManager
-	log              *logrus.Logger
-	publisher        repository.NotificationPublisher
-	authz            repository.AuthzManager
-	taskDistributor  worker.TaskDistributor
-	ticketManager    ws.TicketManager
-	ssoProviders     map[string]sso.Provider
-	dummyHash        string
+	maxLoginAttempts      int
+	lockoutDuration       time.Duration
+	maxConcurrentSessions int
+	jwtManager            *jwt.JWTManager
+	tokenRepo             repository.TokenRepository
+	userRepo              userRepository.UserRepository
+	orgRepo               orgRepo.OrganizationRepository
+	tm                    tx.WithTransactionManager
+	log                   *logrus.Logger
+	publisher             repository.NotificationPublisher
+	authz                 repository.AuthzManager
+	taskDistributor       worker.TaskDistributor
+	ticketManager         ws.TicketManager
+	ssoProviders          map[string]sso.Provider
+	frontendBaseURL       string
+	dummyHash             string
+	refreshGroup          singleflight.Group
 }
 
 func NewAuthUsecase(
 	maxLoginAttempts int,
 	lockoutDuration time.Duration,
+	maxConcurrentSessions int,
 	jwtManager *jwt.JWTManager,
 	tokenRepo repository.TokenRepository,
 	userRepo userRepository.UserRepository,
@@ -54,24 +60,30 @@ func NewAuthUsecase(
 	taskDistributor worker.TaskDistributor,
 	ticketManager ws.TicketManager,
 	ssoProviders map[string]sso.Provider,
+	frontendBaseURL string,
 ) AuthUseCase {
 	s := &Service{
-		maxLoginAttempts: maxLoginAttempts,
-		lockoutDuration:  lockoutDuration,
-		jwtManager:       jwtManager,
-		tokenRepo:        tokenRepo,
-		userRepo:         userRepo,
-		orgRepo:          orgRepo,
-		tm:               tm,
-		log:              log,
-		publisher:        publisher,
-		authz:            authz,
-		taskDistributor:  taskDistributor,
-		ticketManager:    ticketManager,
-		ssoProviders:     ssoProviders,
+		maxLoginAttempts:      maxLoginAttempts,
+		lockoutDuration:       lockoutDuration,
+		maxConcurrentSessions: maxConcurrentSessions,
+		jwtManager:            jwtManager,
+		tokenRepo:             tokenRepo,
+		userRepo:              userRepo,
+		orgRepo:               orgRepo,
+		tm:                    tm,
+		log:                   log,
+		publisher:             publisher,
+		authz:                 authz,
+		taskDistributor:       taskDistributor,
+		ticketManager:         ticketManager,
+		ssoProviders:          ssoProviders,
+		frontendBaseURL:       frontendBaseURL,
 	}
 
-	hash, _ := pkg.HashPassword("dummy")
+	hash, err := pkg.HashPassword("dummy")
+	if err != nil {
+		hash = "$2a$12$e8pS13uFjWp1wK5N.oH0x.7GZ4SgVp8O1iH6U8a/4k9e/12345678"
+	}
 	s.dummyHash = hash
 
 	return s
@@ -79,10 +91,10 @@ func NewAuthUsecase(
 
 func (s *Service) Register(ctx context.Context, request model.RegisterRequest) (*model.LoginResponse, string, error) {
 	if existing, _ := s.userRepo.FindByUsername(ctx, request.Username); existing != nil {
-		return nil, "", fmt.Errorf("username already exists")
+		return nil, "", exception.ErrConflict
 	}
 	if existing, _ := s.userRepo.FindByEmail(ctx, request.Email); existing != nil {
-		return nil, "", fmt.Errorf("email already exists")
+		return nil, "", exception.ErrConflict
 	}
 
 	hashedPassword, err := pkg.HashPassword(request.Password)

@@ -9,6 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const redisRESP2Protocol = 2
+
 type silentLogger struct{}
 
 func (l silentLogger) Printf(ctx context.Context, format string, v ...interface{}) {}
@@ -28,7 +30,7 @@ func NewRedisConfig(cfg *AppConfig, log *logrus.Logger) *redis.Client {
 		ReadTimeout:  cfg.Redis.ReadTimeout,
 		WriteTimeout: cfg.Redis.WriteTimeout,
 		// Force RESP2 for compatibility across various environments and versions
-		Protocol:        2,
+		Protocol:        redisRESP2Protocol,
 		DisableIdentity: true,
 	})
 

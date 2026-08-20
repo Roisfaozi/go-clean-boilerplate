@@ -11,6 +11,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type mockWriter struct{}
+
+func (m *mockWriter) Write(p []byte) (n int, err error) {
+	return len(p), nil
+}
+
 type schedulerTestDeps struct {
 	scheduler *worker.Scheduler
 	mockRedis *miniredis.Miniredis

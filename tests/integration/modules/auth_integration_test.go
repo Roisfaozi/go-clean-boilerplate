@@ -5,6 +5,8 @@ package modules
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"testing"
@@ -70,6 +72,7 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 	return usecase.NewAuthUsecase(
 		5,              // MaxLoginAttempts
 		30*time.Minute, // LockoutDuration
+		3,              // MaxConcurrentSessions
 		jwtManager,
 		tokenRepo,
 		userRepo,
@@ -81,6 +84,7 @@ func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWT
 		taskDistributor,
 		ticketManager,
 		make(map[string]sso.Provider),
+		"http://localhost:3000",
 	)
 }
 
@@ -269,8 +273,10 @@ func TestAuthIntegration_PasswordRecovery(t *testing.T) {
 		testUser := setup.CreateTestUser(t, env.DB, "resetuser", email, "oldpass")
 
 		resetToken := "secret-token-unique-123"
+		sum := sha256.Sum256([]byte(resetToken))
+		hashedToken := hex.EncodeToString(sum[:])
 		err := env.DB.Create(&authEntity.PasswordResetToken{
-			Email: email, Token: resetToken, ExpiresAt: time.Now().Add(time.Hour),
+			Email: email, Token: hashedToken, ExpiresAt: time.Now().Add(time.Hour),
 		}).Error
 		require.NoError(t, err)
 

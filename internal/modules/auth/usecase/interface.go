@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
@@ -19,6 +20,7 @@ var (
 	ErrAlreadyVerified          = exception.ErrBadRequest
 	ErrAccountSuspended         = exception.ErrForbidden
 	ErrAccountLocked            = exception.ErrForbidden
+	ErrTooManySessions          = exception.ErrTooManyRequests
 )
 
 type AuthUseCase interface {
@@ -49,4 +51,6 @@ type AuthUseCase interface {
 	// SSO
 	GetSSORedirectURL(ctx context.Context, provider string, state string) (string, error)
 	HandleSSOCallback(ctx context.Context, provider string, code string) (*model.LoginResponse, string, error)
+
+	GetRefreshTokenDuration() time.Duration
 }

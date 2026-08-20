@@ -22,6 +22,7 @@ import (
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	userUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
@@ -46,7 +47,7 @@ func TestScenario_AdminSecurity_AccountSuspension(t *testing.T) {
 
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, 3, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider), "http://localhost:3000")
 
 	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, env.Enforcer, auditService, authService, nil, nil)
 
@@ -91,11 +92,15 @@ func TestScenario_AdminSecurity_RBAC_Lifecycle(t *testing.T) {
 	require.NoError(t, err)
 
 	path, method := "/api/v1/articles", "POST"
-	err = permService.GrantPermissionToRole(context.Background(), roleName, path, method, "global")
+	actorID := "sa-actor-id"
+	_, _ = env.Enforcer.AddGroupingPolicy(actorID, "role:superadmin", "global")
+	saCtx := authcontext.WithUserID(context.Background(), actorID)
+
+	err = permService.GrantPermissionToRole(saCtx, roleName, path, method, "global")
 	require.NoError(t, err)
 
 	user := setup.CreateTestUser(t, env.DB, "editor_user", "editor@test.com", "pass")
-	err = permService.AssignRoleToUser(context.Background(), user.ID, roleName, "global")
+	err = permService.AssignRoleToUser(saCtx, user.ID, roleName, "global")
 	require.NoError(t, err)
 
 	ok, err := env.Enforcer.Enforce(roleName, "global", path, method)

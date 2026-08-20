@@ -19,10 +19,14 @@ import "github.com/gin-gonic/gin"
 // Parameters:
 //   - router: the *gin.RouterGroup to add routes to
 //   - handler: the *AccessController to handle requests
-func RegisterAccessRoutes(router *gin.RouterGroup, controller *AccessController) {
+func RegisterAccessRoutes(router *gin.RouterGroup, controller *AccessController, idempotencyMiddleware gin.HandlerFunc) {
 	accessGroup := router.Group("/access-rights")
 	{
-		accessGroup.POST("", controller.CreateAccessRight)
+		if idempotencyMiddleware != nil {
+			accessGroup.POST("", idempotencyMiddleware, controller.CreateAccessRight)
+		} else {
+			accessGroup.POST("", controller.CreateAccessRight)
+		}
 		accessGroup.GET("", controller.GetAllAccessRights)
 		accessGroup.POST("/search", controller.GetAccessRightsDynamic)
 		accessGroup.DELETE("/:id", controller.DeleteAccessRight)
@@ -32,7 +36,11 @@ func RegisterAccessRoutes(router *gin.RouterGroup, controller *AccessController)
 
 	endpointGroup := router.Group("/endpoints")
 	{
-		endpointGroup.POST("", controller.CreateEndpoint)
+		if idempotencyMiddleware != nil {
+			endpointGroup.POST("", idempotencyMiddleware, controller.CreateEndpoint)
+		} else {
+			endpointGroup.POST("", controller.CreateEndpoint)
+		}
 		endpointGroup.POST("/search", controller.GetEndpointsDynamic)
 		endpointGroup.DELETE("/:id", controller.DeleteEndpoint)
 	}

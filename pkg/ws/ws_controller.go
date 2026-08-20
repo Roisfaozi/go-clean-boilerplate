@@ -16,6 +16,12 @@ type CasbinEnforcer interface {
 	GetRolesForUser(name string, domain ...string) ([]string, error)
 }
 
+const (
+	defaultOrgID         = "global"
+	defaultUserRole      = "member"
+	presenceStatusOnline = "online"
+)
+
 type WebSocketController struct {
 	log      *logrus.Logger
 	manager  Manager
@@ -83,7 +89,7 @@ func (c *WebSocketController) HandleWebSocket(ctx *gin.Context) {
 	}
 
 	orgIDVal, exists := ctx.Get("organization_id")
-	orgID := "global"
+	orgID := defaultOrgID
 	if exists && orgIDVal != nil && orgIDVal != "" {
 		orgID = orgIDVal.(string)
 	}
@@ -93,7 +99,7 @@ func (c *WebSocketController) HandleWebSocket(ctx *gin.Context) {
 	if userID != "" && c.userRepo != nil {
 		user, err := c.userRepo.FindByID(context.Background(), userID)
 		if err == nil && user != nil {
-			role := "member"
+			role := defaultUserRole
 			if c.enforcer != nil {
 				roles, _ := c.enforcer.GetRolesForUser(userID, orgID)
 				if len(roles) > 0 {
@@ -105,7 +111,7 @@ func (c *WebSocketController) HandleWebSocket(ctx *gin.Context) {
 				Name:      user.Name,
 				AvatarURL: user.AvatarURL,
 				Role:      role,
-				Status:    "online",
+				Status:    presenceStatusOnline,
 			}
 		}
 	}

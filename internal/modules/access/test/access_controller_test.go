@@ -11,6 +11,7 @@ import (
 	accessHandler "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
@@ -331,6 +332,29 @@ func TestAccessHandler_LinkEndpointToAccessRight_UseCaseError(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestAccessHandler_LinkEndpointToAccessRight_Noop(t *testing.T) {
+	mockUseCase := new(mocks.MockIAccessUseCase)
+	handler := newTestAccessController(mockUseCase)
+	router := setupAccessTestRouter()
+	router.POST("/access-rights/link", handler.LinkEndpointToAccessRight)
+
+	reqBody := model.LinkEndpointRequest{
+		AccessRightID: "1",
+		EndpointID:    "1",
+	}
+	mockUseCase.On("LinkEndpointToAccessRight", mock.Anything, reqBody).Return(usecase.NewNoopError("endpoint already linked to access right"))
+
+	bodyBytes, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
 	mockUseCase.AssertExpectations(t)
 }
 

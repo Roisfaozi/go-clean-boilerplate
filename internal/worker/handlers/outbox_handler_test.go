@@ -17,7 +17,7 @@ func TestOutboxTaskHandler_ProcessAuditOutbox_Robustness(t *testing.T) {
 	logger := logrus.New() // Note: assuming logrus is available in package scope or I'll import it
 
 	t.Run("Success Path - Moves entry to main log and deletes from outbox", func(t *testing.T) {
-		mockRepo := new(mocks.MockAuditRepository)
+		mockRepo := mocks.NewMockAuditRepository(t)
 		handler := NewOutboxTaskHandler(mockRepo, logger)
 		ctx := context.Background()
 
@@ -47,7 +47,7 @@ func TestOutboxTaskHandler_ProcessAuditOutbox_Robustness(t *testing.T) {
 	})
 
 	t.Run("Failure Path - Update status to failed when main log creation fails", func(t *testing.T) {
-		mockRepo := new(mocks.MockAuditRepository)
+		mockRepo := mocks.NewMockAuditRepository(t)
 		handler := NewOutboxTaskHandler(mockRepo, logger)
 		ctx := context.Background()
 
@@ -74,7 +74,7 @@ func TestOutboxTaskHandler_ProcessAuditOutbox_Robustness(t *testing.T) {
 	})
 
 	t.Run("Delete Failure - Marks moved entry completed to avoid duplicate replay", func(t *testing.T) {
-		mockRepo := new(mocks.MockAuditRepository)
+		mockRepo := mocks.NewMockAuditRepository(t)
 		handler := NewOutboxTaskHandler(mockRepo, logger)
 		ctx := context.Background()
 
@@ -95,7 +95,7 @@ func TestOutboxTaskHandler_ProcessAuditOutbox_Robustness(t *testing.T) {
 	})
 
 	t.Run("Empty Outbox - Does nothing gracefully", func(t *testing.T) {
-		mockRepo := new(mocks.MockAuditRepository)
+		mockRepo := mocks.NewMockAuditRepository(t)
 		handler := NewOutboxTaskHandler(mockRepo, logger)
 		ctx := context.Background()
 

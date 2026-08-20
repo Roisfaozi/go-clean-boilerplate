@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	authHandler "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
@@ -30,7 +31,8 @@ func newTestAuthController(mockUseCase *mocks.MockAuthUseCase) *authHandler.Auth
 	log.SetLevel(logrus.PanicLevel)
 	v := validator.New()
 	_ = validation.RegisterCustomValidations(v)
-	return authHandler.NewAuthController(mockUseCase, log, v)
+	mockUseCase.On("GetRefreshTokenDuration").Return(24 * time.Hour).Maybe()
+	return authHandler.NewAuthController(mockUseCase, log, v, authHandler.CookieConfig{SameSite: "lax"})
 }
 
 func TestAuthHandler_Login_Success(t *testing.T) {

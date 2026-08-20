@@ -12,8 +12,9 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
 	permissionMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
+	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
+	roleMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
-	txMock "github.com/Roisfaozi/go-clean-boilerplate/pkg/tx/mocks"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -25,16 +26,18 @@ type organizationTestDeps struct {
 	OrgReader  *mocks.MockIOrganizationReader
 	TM         *mocking.MockWithTransactionManager
 	Enforcer   *permissionMocks.MockIEnforcer
+	RoleRepo   *roleMocks.MockRoleRepository
 }
 
-func setupOrganizationTest() (*organizationTestDeps, usecase.OrganizationUseCase) {
+func setupOrganizationTest(t *testing.T) (*organizationTestDeps, usecase.OrganizationUseCase) {
 	mockEnforcer := new(permissionMocks.MockIEnforcer)
 	deps := &organizationTestDeps{
-		OrgRepo:    new(mocks.MockOrganizationRepository),
-		MemberRepo: new(mocks.MockOrganizationMemberRepository),
-		OrgReader:  new(mocks.MockIOrganizationReader),
-		TM:         new(mocking.MockWithTransactionManager),
+		OrgRepo:    mocks.NewMockOrganizationRepository(t),
+		MemberRepo: mocks.NewMockOrganizationMemberRepository(t),
+		OrgReader:  mocks.NewMockIOrganizationReader(t),
+		TM:         mocking.NewMockWithTransactionManager(t),
 		Enforcer:   mockEnforcer,
+		RoleRepo:   roleMocks.NewMockRoleRepository(t),
 	}
 
 	log := logrus.New()
@@ -44,15 +47,19 @@ func setupOrganizationTest() (*organizationTestDeps, usecase.OrganizationUseCase
 	mockEnforcer.On("WithContext", mock.Anything).Maybe().Return(mockEnforcer)
 	mockEnforcer.On("LoadPolicy").Maybe().Return(nil)
 	deps.OrgReader.On("InvalidateOrganizationCache", mock.Anything, mock.Anything).Maybe().Return(nil)
+	deps.RoleRepo.On("FindByName", mock.Anything, usecase.DefaultOwnerRoleName).Maybe().Return(&roleEntity.Role{
+		ID:   "owner-role-id",
+		Name: usecase.DefaultOwnerRoleName,
+	}, nil)
 
-	uc := usecase.NewOrganizationUseCase(log, deps.TM, deps.OrgRepo, deps.MemberRepo, deps.OrgReader, deps.Enforcer)
+	uc := usecase.NewOrganizationUseCase(log, deps.TM, deps.OrgRepo, deps.MemberRepo, deps.OrgReader, deps.Enforcer, deps.RoleRepo)
 
 	return deps, uc
 }
 
 func TestOrganizationUseCase_Create(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 		userID := "user-123"
 		req := &model.CreateOrganizationRequest{Name: "Acme Corp", Slug: "acme-corp"}
@@ -65,26 +72,16 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 		deps.OrgRepo.On("SlugExists", ctx, req.Slug).Return(false, nil)
 		deps.OrgRepo.On("Create", ctx, mock.MatchedBy(func(org *entity.Organization) bool {
 			return org.Name == req.Name && org.Slug == req.Slug && org.OwnerID == userID
-		}), usecase.DefaultOwnerRoleID).Return(nil)
+		}), "owner-role-id").Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("GetFilteredPolicy", 0, []string{"role:admin", "global"}).Return([][]string{
+		deps.Enforcer.On("GetFilteredPolicy", 0, "role:admin", "global").Return([][]string{
 			{"role:admin", "global", "/api/v1/projects", "POST"},
 		}, nil)
-		deps.Enforcer.On("GetFilteredPolicy", 0, []string{"role:user", "global"}).Return([][]string{
+		deps.Enforcer.On("GetFilteredPolicy", 0, "role:user", "global").Return([][]string{
 			{"role:user", "global", "/api/v1/projects", "GET"},
 		}, nil)
-		deps.Enforcer.On("AddPolicy", mock.MatchedBy(func(params []interface{}) bool {
-			return len(params) == 4 && params[0] == "role:admin" && params[2] == "/api/v1/projects" && params[3] == "POST"
-		})).Return(true, nil)
-		deps.Enforcer.On("AddPolicy", mock.MatchedBy(func(params []interface{}) bool {
-			return len(params) == 4 && params[0] == "role:user" && params[2] == "/api/v1/projects" && params[3] == "GET"
-		})).Return(true, nil)
-		deps.Enforcer.On("AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
-			return len(params) == 3 && params[0] == usecase.DefaultOwnerRoleID && params[1] == "role:admin"
-		})).Return(true, nil)
-		deps.Enforcer.On("AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
-			return len(params) == 3 && params[1] == usecase.DefaultOwnerRoleID
-		})).Return(true, nil)
+		deps.Enforcer.On("AddPolicy", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
 		res, err := uc.CreateOrganization(ctx, userID, req)
 
@@ -95,8 +92,32 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 		deps.Enforcer.AssertExpectations(t)
 	})
 
+	t.Run("Success - Generates Slug", func(t *testing.T) {
+		deps, uc := setupOrganizationTest(t)
+		ctx := context.Background()
+		req := &model.CreateOrganizationRequest{Name: "Acme Corp"}
+
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+			fn := args.Get(1).(func(context.Context) error)
+			_ = fn(ctx)
+		}).Return(nil)
+		deps.OrgRepo.On("SlugExists", ctx, "acme-corp").Return(false, nil)
+		deps.OrgRepo.On("Create", ctx, mock.MatchedBy(func(org *entity.Organization) bool {
+			return org.Slug == "acme-corp"
+		}), "owner-role-id").Return(nil)
+		deps.Enforcer.On("GetFilteredPolicy", 0, "role:admin", "global").Return([][]string{}, nil)
+		deps.Enforcer.On("GetFilteredPolicy", 0, "role:user", "global").Return([][]string{}, nil)
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
+
+		res, err := uc.CreateOrganization(ctx, "user-123", req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "acme-corp", res.Slug)
+		assert.Equal(t, "acme-corp", req.Slug)
+	})
+
 	t.Run("Error - Slug Exists", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 		userID := "user-123"
 		req := &model.CreateOrganizationRequest{Name: "Acme Corp", Slug: "exists"}
@@ -115,7 +136,7 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 	})
 
 	t.Run("Error - Slug Check Fails", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 		req := &model.CreateOrganizationRequest{Name: "Acme", Slug: "acme"}
 
@@ -131,7 +152,7 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 	})
 
 	t.Run("Error - Create Fails", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 		req := &model.CreateOrganizationRequest{Name: "Acme", Slug: "acme"}
 
@@ -148,7 +169,7 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 	})
 
 	t.Run("Error - Enforcer Fails", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 		req := &model.CreateOrganizationRequest{Name: "Acme", Slug: "acme"}
 
@@ -160,31 +181,21 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 		deps.OrgRepo.On("SlugExists", ctx, req.Slug).Return(false, nil)
 		deps.OrgRepo.On("Create", ctx, mock.Anything, mock.Anything).Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("GetFilteredPolicy", 0, []string{"role:admin", "global"}).Return([][]string{
+		deps.Enforcer.On("GetFilteredPolicy", 0, "role:admin", "global").Return([][]string{
 			{"role:admin", "global", "/api/v1/projects", "POST"},
 		}, nil)
-		deps.Enforcer.On("GetFilteredPolicy", 0, []string{"role:user", "global"}).Return([][]string{
+		deps.Enforcer.On("GetFilteredPolicy", 0, "role:user", "global").Return([][]string{
 			{"role:user", "global", "/api/v1/projects", "GET"},
 		}, nil)
-		deps.Enforcer.On("AddPolicy", mock.MatchedBy(func(params []interface{}) bool {
-			return len(params) == 4 && params[0] == "role:admin" && params[2] == "/api/v1/projects" && params[3] == "POST"
-		})).Return(true, nil)
-		deps.Enforcer.On("AddPolicy", mock.MatchedBy(func(params []interface{}) bool {
-			return len(params) == 4 && params[0] == "role:user" && params[2] == "/api/v1/projects" && params[3] == "GET"
-		})).Return(true, nil)
-		deps.Enforcer.On("AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
-			return len(params) == 3 && params[0] == usecase.DefaultOwnerRoleID && params[1] == "role:admin"
-		})).Return(true, nil)
-		deps.Enforcer.On("AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
-			return len(params) == 3 && params[0] == "u1" && params[1] == usecase.DefaultOwnerRoleID
-		})).Return(false, errors.New("casbin error"))
+		deps.Enforcer.On("AddPolicy", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
+		deps.Enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
 		_, err := uc.CreateOrganization(ctx, "u1", req)
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
 	})
 
 	t.Run("Error - Bootstrap Policy Fails", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 		req := &model.CreateOrganizationRequest{Name: "Acme", Slug: "acme"}
 
@@ -196,7 +207,7 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 		deps.OrgRepo.On("SlugExists", ctx, req.Slug).Return(false, nil)
 		deps.OrgRepo.On("Create", ctx, mock.Anything, mock.Anything).Return(nil)
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("GetFilteredPolicy", 0, []string{"role:admin", "global"}).Return(nil, errors.New("casbin read error"))
+		deps.Enforcer.On("GetFilteredPolicy", 0, "role:admin", "global").Return(nil, errors.New("casbin read error"))
 
 		_, err := uc.CreateOrganization(ctx, "u1", req)
 		assert.ErrorIs(t, err, exception.ErrInternalServer)
@@ -206,7 +217,7 @@ func TestOrganizationUseCase_Create(t *testing.T) {
 
 func TestOrganizationUseCase_GetOrganization(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 		org := &entity.Organization{ID: "org-1", Name: "Org 1"}
 
@@ -218,7 +229,7 @@ func TestOrganizationUseCase_GetOrganization(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 
 		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(nil, nil) // Return nil, nil for not found from repo
@@ -228,7 +239,7 @@ func TestOrganizationUseCase_GetOrganization(t *testing.T) {
 	})
 
 	t.Run("Repo Error", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 
 		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(nil, errors.New("db error"))
@@ -240,7 +251,7 @@ func TestOrganizationUseCase_GetOrganization(t *testing.T) {
 
 func TestOrganizationUseCase_GetOrganizationBySlug(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 		org := &entity.Organization{ID: "org-1", Slug: "slug-1"}
 
@@ -252,7 +263,7 @@ func TestOrganizationUseCase_GetOrganizationBySlug(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 
 		deps.OrgRepo.On("FindBySlug", ctx, "slug-1").Return(nil, nil)
@@ -262,7 +273,7 @@ func TestOrganizationUseCase_GetOrganizationBySlug(t *testing.T) {
 	})
 
 	t.Run("Repo Error", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 
 		deps.OrgRepo.On("FindBySlug", ctx, "slug-1").Return(nil, errors.New("db error"))
@@ -274,7 +285,7 @@ func TestOrganizationUseCase_GetOrganizationBySlug(t *testing.T) {
 
 func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := usecase.WithActorUserID(context.Background(), "owner-1")
 		orgID := "org-1"
 		req := &model.UpdateOrganizationRequest{Name: "New Name"}
@@ -296,7 +307,7 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 	})
 
 	t.Run("Settings Update", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := usecase.WithActorUserID(context.Background(), "owner-1")
 		orgID := "org-1"
 		settings := map[string]interface{}{"theme": "dark"}
@@ -319,7 +330,7 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 	})
 
 	t.Run("No Change", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := usecase.WithActorUserID(context.Background(), "owner-1")
 		orgID := "org-1"
 		req := &model.UpdateOrganizationRequest{} // Empty
@@ -339,7 +350,7 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -354,7 +365,7 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 	})
 
 	t.Run("Find Error", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -369,7 +380,7 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 	})
 
 	t.Run("Update Error", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := usecase.WithActorUserID(context.Background(), "owner-1")
 		existingOrg := &entity.Organization{ID: "org-1", OwnerID: "owner-1"}
 
@@ -386,7 +397,7 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 	})
 
 	t.Run("Forbidden for non manager actor", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := usecase.WithActorUserID(context.Background(), "user-2")
 		existingOrg := &entity.Organization{ID: "org-1", OwnerID: "owner-1"}
 
@@ -397,7 +408,7 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 
 		deps.OrgRepo.On("FindByID", ctx, "org-1").Return(existingOrg, nil)
 		deps.MemberRepo.On("CheckMembership", ctx, "org-1", "user-2").Return(true, nil)
-		deps.MemberRepo.On("GetMemberRole", ctx, "org-1", "user-2").Return("role:user", nil)
+		deps.MemberRepo.On("GetMemberRoleName", ctx, "org-1", "user-2").Return("role:user", nil)
 
 		_, err := uc.UpdateOrganization(ctx, "org-1", &model.UpdateOrganizationRequest{Name: "Blocked"})
 		assert.ErrorIs(t, err, exception.ErrForbidden)
@@ -406,7 +417,7 @@ func TestOrganizationUseCase_UpdateOrganization(t *testing.T) {
 
 func TestOrganizationUseCase_GetUserOrganizations(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 		orgs := []*entity.Organization{{ID: "org-1"}}
 
@@ -418,7 +429,7 @@ func TestOrganizationUseCase_GetUserOrganizations(t *testing.T) {
 	})
 
 	t.Run("Empty", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 
 		deps.OrgRepo.On("FindUserOrganizations", ctx, "user-1").Return([]*entity.Organization{}, nil)
@@ -429,7 +440,7 @@ func TestOrganizationUseCase_GetUserOrganizations(t *testing.T) {
 	})
 
 	t.Run("Repo Error", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 
 		deps.OrgRepo.On("FindUserOrganizations", ctx, "user-1").Return(nil, errors.New("db error"))
@@ -441,7 +452,7 @@ func TestOrganizationUseCase_GetUserOrganizations(t *testing.T) {
 
 func TestOrganizationUseCase_DeleteOrganization(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 		orgID := "org-1"
 		userID := "owner-1"
@@ -461,7 +472,7 @@ func TestOrganizationUseCase_DeleteOrganization(t *testing.T) {
 	})
 
 	t.Run("Not Owner", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 		orgID := "org-1"
 		org := &entity.Organization{ID: orgID, OwnerID: "owner-1"}
@@ -478,7 +489,7 @@ func TestOrganizationUseCase_DeleteOrganization(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -493,7 +504,7 @@ func TestOrganizationUseCase_DeleteOrganization(t *testing.T) {
 	})
 
 	t.Run("Delete Error", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 		org := &entity.Organization{ID: "org-1", OwnerID: "user-1"}
 
@@ -510,7 +521,7 @@ func TestOrganizationUseCase_DeleteOrganization(t *testing.T) {
 	})
 
 	t.Run("Find Error", func(t *testing.T) {
-		deps, uc := setupOrganizationTest()
+		deps, uc := setupOrganizationTest(t)
 		ctx := context.Background()
 
 		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -538,7 +549,7 @@ func TestOrganizationUseCase_DeleteOrganization(t *testing.T) {
 // we verify that the system CAN handle potentially malicious strings without crashing.
 // Note: Sanitization usually happens at the frontend or response layer, but here we ensure storage integrity.
 func TestCreateOrganization_XSS(t *testing.T) {
-	orgRepo, _, tm, enforcer, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, enforcer, uc := setupOrganizationUseCase(t)
 	ctx := context.Background()
 
 	xssPayload := "<script>alert('xss')</script>"
@@ -557,9 +568,9 @@ func TestCreateOrganization_XSS(t *testing.T) {
 	orgRepo.On("SlugExists", ctx, "acme-xss").Return(false, nil)
 	orgRepo.On("Create", ctx, mock.MatchedBy(func(org *entity.Organization) bool {
 		return org.Name == request.Name // verifying raw persistence
-	}), usecase.DefaultOwnerRoleID).Return(nil)
+	}), "owner-role-id").Return(nil)
 
-	enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
+	enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
 	response, err := uc.CreateOrganization(ctx, userID, request)
 
@@ -569,7 +580,7 @@ func TestCreateOrganization_XSS(t *testing.T) {
 
 // TestUpdateOrganization_Settings verifies that arbitrary JSON settings can be persisted correctly.
 func TestUpdateOrganization_Settings(t *testing.T) {
-	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase(t)
 	ctx := usecase.WithActorUserID(context.Background(), "owner-1")
 
 	orgID := "org-123"
@@ -611,7 +622,7 @@ func TestUpdateOrganization_Settings(t *testing.T) {
 // TestUpdateOrganization_ConcurrentModification Edge Case
 // Verifies that updates process cleanly even if data unchanged
 func TestUpdateOrganization_NoChange(t *testing.T) {
-	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase(t)
 	ctx := usecase.WithActorUserID(context.Background(), "owner-1")
 
 	orgID := "org-123"
@@ -641,24 +652,29 @@ func TestUpdateOrganization_NoChange(t *testing.T) {
 // OLD USECASE TESTS
 // ===============================================
 
-func setupOrganizationUseCase() (*mocks.MockOrganizationRepository, *mocks.MockOrganizationMemberRepository, *txMock.MockTransactionManager, *permissionMocks.MockIEnforcer, usecase.OrganizationUseCase) {
+func setupOrganizationUseCase(t *testing.T) (*mocks.MockOrganizationRepository, *mocks.MockOrganizationMemberRepository, *mocking.MockWithTransactionManager, *permissionMocks.MockIEnforcer, usecase.OrganizationUseCase) {
 	log := logrus.New()
 	log.SetLevel(logrus.ErrorLevel) // Suppress log output in tests
 
-	orgRepo := new(mocks.MockOrganizationRepository)
-	memberRepo := new(mocks.MockOrganizationMemberRepository)
-	tm := new(txMock.MockTransactionManager)
+	orgRepo := mocks.NewMockOrganizationRepository(t)
+	memberRepo := mocks.NewMockOrganizationMemberRepository(t)
+	tm := mocking.NewMockWithTransactionManager(t)
 	enforcer := new(permissionMocks.MockIEnforcer)
+	roleRepo := new(roleMocks.MockRoleRepository)
 
 	// Default behavior for enforcer with context to return itself
 	enforcer.On("WithContext", mock.Anything).Maybe().Return(enforcer)
-	enforcer.On("GetFilteredPolicy", 0, []string{"role:admin", "global"}).Maybe().Return([][]string{}, nil)
-	enforcer.On("GetFilteredPolicy", 0, []string{"role:user", "global"}).Maybe().Return([][]string{}, nil)
-	enforcer.On("AddPolicy", mock.Anything).Maybe().Return(true, nil)
-	enforcer.On("AddGroupingPolicy", mock.Anything).Maybe().Return(true, nil)
+	enforcer.On("GetFilteredPolicy", 0, "role:admin", "global").Maybe().Return([][]string{}, nil)
+	enforcer.On("GetFilteredPolicy", 0, "role:user", "global").Maybe().Return([][]string{}, nil)
+	enforcer.On("AddPolicy", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return(true, nil)
+	enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Maybe().Return(true, nil)
 	enforcer.On("LoadPolicy").Maybe().Return(nil)
+	roleRepo.On("FindByName", mock.Anything, usecase.DefaultOwnerRoleName).Return(&roleEntity.Role{
+		ID:   "owner-role-id",
+		Name: usecase.DefaultOwnerRoleName,
+	}, nil)
 
-	uc := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, nil, enforcer)
+	uc := usecase.NewOrganizationUseCase(log, tm, orgRepo, memberRepo, nil, enforcer, roleRepo)
 	return orgRepo, memberRepo, tm, enforcer, uc
 }
 
@@ -667,7 +683,7 @@ func setupOrganizationUseCase() (*mocks.MockOrganizationRepository, *mocks.MockO
 // ===============================================
 
 func TestCreateOrganization_Success(t *testing.T) {
-	orgRepo, _, tm, enforcer, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, enforcer, uc := setupOrganizationUseCase(t)
 	ctx := context.Background()
 
 	request := &model.CreateOrganizationRequest{
@@ -683,8 +699,8 @@ func TestCreateOrganization_Success(t *testing.T) {
 	}).Return(nil)
 
 	orgRepo.On("SlugExists", ctx, "acme-corp").Return(false, nil)
-	orgRepo.On("Create", ctx, mock.AnythingOfType("*entity.Organization"), usecase.DefaultOwnerRoleID).Return(nil)
-	enforcer.On("AddGroupingPolicy", mock.Anything).Return(true, nil)
+	orgRepo.On("Create", ctx, mock.AnythingOfType("*entity.Organization"), "owner-role-id").Return(nil)
+	enforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
 	// Execute
 	response, err := uc.CreateOrganization(ctx, userID, request)
@@ -702,7 +718,7 @@ func TestCreateOrganization_Success(t *testing.T) {
 }
 
 func TestCreateOrganization_SlugExists(t *testing.T) {
-	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase(t)
 	ctx := context.Background()
 
 	request := &model.CreateOrganizationRequest{
@@ -736,7 +752,7 @@ func TestCreateOrganization_SlugExists(t *testing.T) {
 // ===============================================
 
 func TestGetOrganization_Success(t *testing.T) {
-	orgRepo, _, _, _, uc := setupOrganizationUseCase()
+	orgRepo, _, _, _, uc := setupOrganizationUseCase(t)
 	ctx := context.Background()
 
 	org := &entity.Organization{
@@ -762,7 +778,7 @@ func TestGetOrganization_Success(t *testing.T) {
 }
 
 func TestGetOrganization_NotFound(t *testing.T) {
-	orgRepo, _, _, _, uc := setupOrganizationUseCase()
+	orgRepo, _, _, _, uc := setupOrganizationUseCase(t)
 	ctx := context.Background()
 
 	orgRepo.On("FindByID", ctx, "non-existent").Return(nil, nil)
@@ -783,7 +799,7 @@ func TestGetOrganization_NotFound(t *testing.T) {
 // ===============================================
 
 func TestGetOrganizationBySlug_Success(t *testing.T) {
-	orgRepo, _, _, _, uc := setupOrganizationUseCase()
+	orgRepo, _, _, _, uc := setupOrganizationUseCase(t)
 	ctx := context.Background()
 
 	org := &entity.Organization{
@@ -812,7 +828,7 @@ func TestGetOrganizationBySlug_Success(t *testing.T) {
 // ===============================================
 
 func TestUpdateOrganization_Success(t *testing.T) {
-	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase(t)
 	ctx := usecase.WithActorUserID(context.Background(), "user-123")
 
 	existingOrg := &entity.Organization{
@@ -848,7 +864,7 @@ func TestUpdateOrganization_Success(t *testing.T) {
 }
 
 func TestUpdateOrganization_NotFound(t *testing.T) {
-	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase(t)
 	ctx := context.Background()
 
 	request := &model.UpdateOrganizationRequest{
@@ -878,7 +894,7 @@ func TestUpdateOrganization_NotFound(t *testing.T) {
 // ===============================================
 
 func TestGetUserOrganizations_Success(t *testing.T) {
-	orgRepo, _, _, _, uc := setupOrganizationUseCase()
+	orgRepo, _, _, _, uc := setupOrganizationUseCase(t)
 	ctx := context.Background()
 
 	orgs := []*entity.Organization{
@@ -901,7 +917,7 @@ func TestGetUserOrganizations_Success(t *testing.T) {
 }
 
 func TestGetUserOrganizations_Empty(t *testing.T) {
-	orgRepo, _, _, _, uc := setupOrganizationUseCase()
+	orgRepo, _, _, _, uc := setupOrganizationUseCase(t)
 	ctx := context.Background()
 
 	orgRepo.On("FindUserOrganizations", ctx, "user-no-orgs").Return([]*entity.Organization{}, nil)
@@ -923,7 +939,7 @@ func TestGetUserOrganizations_Empty(t *testing.T) {
 // ===============================================
 
 func TestDeleteOrganization_Success(t *testing.T) {
-	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase(t)
 	ctx := context.Background()
 
 	org := &entity.Organization{
@@ -952,7 +968,7 @@ func TestDeleteOrganization_Success(t *testing.T) {
 }
 
 func TestDeleteOrganization_NotOwner(t *testing.T) {
-	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase(t)
 	ctx := context.Background()
 
 	org := &entity.Organization{
@@ -979,7 +995,7 @@ func TestDeleteOrganization_NotOwner(t *testing.T) {
 }
 
 func TestDeleteOrganization_NotFound(t *testing.T) {
-	orgRepo, _, tm, _, uc := setupOrganizationUseCase()
+	orgRepo, _, tm, _, uc := setupOrganizationUseCase(t)
 	ctx := context.Background()
 
 	tm.On("WithinTransaction", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {

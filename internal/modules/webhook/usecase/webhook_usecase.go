@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/model"
@@ -12,6 +13,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type webhookUseCase struct {
@@ -94,6 +96,16 @@ func (u *webhookUseCase) Update(ctx context.Context, id string, organizationID s
 }
 
 func (u *webhookUseCase) Delete(ctx context.Context, id string, organizationID string) error {
+	webhook, err := u.repo.FindByID(ctx, id, organizationID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return err
+	}
+	if webhook == nil {
+		return nil
+	}
 	return u.repo.Delete(ctx, id, organizationID)
 }
 

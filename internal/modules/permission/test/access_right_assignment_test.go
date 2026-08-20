@@ -7,6 +7,7 @@ import (
 
 	accessEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -43,13 +44,13 @@ func TestGetRoleAccessRights_Success(t *testing.T) {
 
 	deps.AccessRepo.On("GetAccessRights", mock.Anything).Return(accessRights, nil)
 
-	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/roles", "GET"}).Return(true, nil)
-	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/roles", "POST"}).Return(true, nil)
+	deps.Enforcer.On("Enforce", "admin", "global", "/api/roles", "GET").Return(true, nil)
+	deps.Enforcer.On("Enforce", "admin", "global", "/api/roles", "POST").Return(true, nil)
 
-	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/users", "GET"}).Return(true, nil)
-	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/users/:id", "DELETE"}).Return(false, nil)
+	deps.Enforcer.On("Enforce", "admin", "global", "/api/users", "GET").Return(true, nil)
+	deps.Enforcer.On("Enforce", "admin", "global", "/api/users/:id", "DELETE").Return(false, nil)
 
-	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/stats", "GET"}).Return(false, nil)
+	deps.Enforcer.On("Enforce", "admin", "global", "/api/stats", "GET").Return(false, nil)
 
 	res, err := uc.GetRoleAccessRights(context.Background(), "admin", "")
 
@@ -82,6 +83,8 @@ func TestGetRoleAccessRights_RepoError(t *testing.T) {
 
 func TestAssignAccessRight_Success(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
 	ar := &accessEntity.AccessRight{
 		ID:   "ar1",
@@ -95,9 +98,9 @@ func TestAssignAccessRight_Success(t *testing.T) {
 	deps.AccessRepo.On("GetAccessRightByID", mock.Anything, "ar1").Return(ar, nil)
 
 	// One already granted, one not granted
-	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/roles", "GET"}).Return(true, nil)
-	deps.Enforcer.On("Enforce", []interface{}{"admin", "global", "/api/roles", "POST"}).Return(false, nil)
-	deps.Enforcer.On("AddPolicy", []interface{}{"admin", "global", "/api/roles", "POST"}).Return(true, nil)
+	deps.Enforcer.On("Enforce", "admin", "global", "/api/roles", "GET").Return(true, nil)
+	deps.Enforcer.On("Enforce", "admin", "global", "/api/roles", "POST").Return(false, nil)
+	deps.Enforcer.On("AddPolicy", "admin", "global", "/api/roles", "POST").Return(true, nil)
 
 	req := model.AssignAccessRightRequest{
 		AccessRightID: "ar1",
@@ -106,13 +109,15 @@ func TestAssignAccessRight_Success(t *testing.T) {
 
 	deps.AuditUC.On("LogActivity", mock.Anything, mock.Anything).Return(nil)
 
-	err := uc.AssignAccessRight(context.Background(), req)
+	err := uc.AssignAccessRight(ctx, req)
 
 	assert.NoError(t, err)
 }
 
 func TestAssignAccessRight_NotFound(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
 	deps.AccessRepo.On("GetAccessRightByID", mock.Anything, "ar1").Return(nil, exception.ErrNotFound)
 
@@ -121,14 +126,16 @@ func TestAssignAccessRight_NotFound(t *testing.T) {
 		Role:          "admin",
 	}
 
-	err := uc.AssignAccessRight(context.Background(), req)
+	err := uc.AssignAccessRight(ctx, req)
 
 	assert.Error(t, err)
-	assert.Equal(t, exception.ErrNotFound, err)
-}
+	assert.Equal(t, "access right 'ar1' not found", err.Error())
 
+}
 func TestAssignAccessRight_NoEndpoints(t *testing.T) {
 	deps, uc := setupPermissionTest()
+	deps.Enforcer.On("GetRolesForUser", "admin-user", "global").Return([]string{"role:superadmin"}, nil)
+	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
 	ar := &accessEntity.AccessRight{
 		ID:        "ar1",
@@ -143,7 +150,7 @@ func TestAssignAccessRight_NoEndpoints(t *testing.T) {
 		Role:          "admin",
 	}
 
-	err := uc.AssignAccessRight(context.Background(), req)
+	err := uc.AssignAccessRight(ctx, req)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no endpoints configured")
@@ -163,8 +170,8 @@ func TestRevokeAccessRight_Success(t *testing.T) {
 
 	deps.AccessRepo.On("GetAccessRightByID", mock.Anything, "ar1").Return(ar, nil)
 
-	deps.Enforcer.On("RemovePolicy", []interface{}{"admin", "global", "/api/roles", "GET"}).Return(true, nil)
-	deps.Enforcer.On("RemovePolicy", []interface{}{"admin", "global", "/api/roles", "POST"}).Return(true, nil)
+	deps.Enforcer.On("RemovePolicy", "admin", "global", "/api/roles", "GET").Return(true, nil)
+	deps.Enforcer.On("RemovePolicy", "admin", "global", "/api/roles", "POST").Return(true, nil)
 
 	req := model.AssignAccessRightRequest{
 		AccessRightID: "ar1",
@@ -191,5 +198,5 @@ func TestRevokeAccessRight_NotFound(t *testing.T) {
 	err := uc.RevokeAccessRight(context.Background(), req)
 
 	assert.Error(t, err)
-	assert.Equal(t, exception.ErrNotFound, err)
+	assert.Equal(t, "access right 'ar1' not found", err.Error())
 }

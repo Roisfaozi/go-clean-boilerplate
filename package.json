@@ -1,7 +1,7 @@
 {
   "name": "casbin-monorepo",
   "private": true,
-  "packageManager": "pnpm@10.8.0",
+  "packageManager": "pnpm@11.20.0",
   "scripts": {
     "dev:web": "pnpm --filter casbin-web dev",
     "dev:client": "pnpm --filter casbin-client dev",
@@ -15,6 +15,7 @@
     "go:test-e2e": "make test-e2e",
     "go:docs": "make docs",
     "format": "biome format --write .",
+    "clean": "bash scripts/clean.sh",
     "prepare": "lefthook install"
   },
   "devDependencies": {

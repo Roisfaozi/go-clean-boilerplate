@@ -2,6 +2,7 @@ package router
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
@@ -86,7 +87,6 @@ func SetupRouter(
 		router.Use(otelgin.Middleware(cfg.OTEL.ServiceName))
 	}
 
-	router.Use(gin.Recovery())
 	router.Use(middleware.RequestIDMiddleware())
 
 	if cfg.MetricsEnabled {
@@ -112,6 +112,7 @@ func SetupRouter(
 
 	// Rate Limiter Definition
 	var publicLimiter, criticalLimiter, authLimiter gin.HandlerFunc
+	var idempotencyMiddleware gin.HandlerFunc
 
 	if cfg.RateLimitEnabled {
 		if cfg.RateLimitStore == "redis" {
@@ -127,6 +128,12 @@ func SetupRouter(
 			router.Use(middleware.RateLimitMiddlewareMemory(cfg.RateLimitRPS, cfg.RateLimitBurst))
 			logger.Info("Rate Limiter enabled: Memory store")
 		}
+	}
+
+	if redisClient != nil {
+		idempotencyMiddleware = middleware.Idempotency(redisClient, logger, 24*time.Hour)
+	} else {
+		idempotencyMiddleware = func(c *gin.Context) { c.Next() }
 	}
 
 	apiV1 := router.Group("/api/v1")
@@ -161,21 +168,22 @@ func SetupRouter(
 		}
 
 		// Other Auth Routes (Standard Public Limit)
-		authGroup.POST("/refresh", authModule.AuthController.RefreshToken)
-		authGroup.POST("/forgot-password", authModule.AuthController.ForgotPassword)
-		authGroup.POST("/reset-password", authModule.AuthController.ResetPassword)
-		authGroup.POST("/verify-email", authModule.AuthController.VerifyEmail)
-		authGroup.POST("/register", authModule.AuthController.Register)
+		authGroup.POST("/refresh", middleware.CSRFMiddleware(logger), idempotencyMiddleware, authModule.AuthController.RefreshToken)
+		authGroup.POST("/forgot-password", idempotencyMiddleware, authModule.AuthController.ForgotPassword)
+		authGroup.POST("/reset-password", idempotencyMiddleware, authModule.AuthController.ResetPassword)
+		authGroup.POST("/verify-email", idempotencyMiddleware, authModule.AuthController.VerifyEmail)
+		authGroup.POST("/register", idempotencyMiddleware, authModule.AuthController.Register)
 		authGroup.GET("/sso/:provider", authModule.AuthController.SSOLogin)
 		authGroup.GET("/sso/:provider/callback", authModule.AuthController.SSOCallback)
 
 		userHttp.RegisterPublicRoutes(public, userModule.UserController)
-		organizationHttp.RegisterPublicRoutes(public, organizationModule.OrganizationController)
+		organizationHttp.RegisterPublicRoutes(public, organizationModule.OrganizationController, idempotencyMiddleware)
 	}
 
 	authenticated := apiV1.Group("")
 	authenticated.Use(apiKeyMiddleware.Authenticate())
 	authenticated.Use(authMiddleware.ValidateToken())
+	authenticated.Use(middleware.CSRFMiddleware(logger))
 	authenticated.Use(apiKeyMiddleware.RequireScopeAuto())
 	authenticated.Use(apiKeyMiddleware.RequireUserSession())
 	authenticated.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
@@ -186,8 +194,8 @@ func SetupRouter(
 		// Manually register auth routes that need authentication
 		authGroup := authenticated.Group("/auth")
 		authGroup.POST("/logout", authModule.AuthController.Logout)
-		authGroup.POST("/ticket", authModule.AuthController.GetTicket)
-		authGroup.POST("/resend-verification", authModule.AuthController.ResendVerification)
+		authGroup.POST("/ticket", idempotencyMiddleware, authModule.AuthController.GetTicket)
+		authGroup.POST("/resend-verification", idempotencyMiddleware, authModule.AuthController.ResendVerification)
 		authGroup.GET("/me", authModule.AuthController.Me)
 
 		// Stats Routes
@@ -199,14 +207,15 @@ func SetupRouter(
 		}
 
 		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
-		organizationHttp.RegisterAuthenticatedRoutes(authenticated, organizationModule.OrganizationController)
+		organizationHttp.RegisterAuthenticatedRoutes(authenticated, organizationModule.OrganizationController, idempotencyMiddleware)
 		permissionHttp.RegisterBatchCheckRoute(authenticated, permissionModule.PermissionController)
-		api_keyHttp.RegisterApiKeyRoutes(authenticated, apiKeyModule.Controller, authMiddleware, tenantMiddleware)
+		api_keyHttp.RegisterApiKeyRoutes(authenticated, apiKeyModule.Controller, authMiddleware, tenantMiddleware, idempotencyMiddleware)
 	}
 
 	tenantAuthorized := apiV1.Group("")
 	tenantAuthorized.Use(apiKeyMiddleware.Authenticate())
 	tenantAuthorized.Use(authMiddleware.ValidateToken())
+	tenantAuthorized.Use(middleware.CSRFMiddleware(logger))
 	tenantAuthorized.Use(apiKeyMiddleware.RequireScopeAuto())
 	tenantAuthorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	tenantAuthorized.Use(tenantMiddleware.RequireOrganization())
@@ -215,24 +224,26 @@ func SetupRouter(
 		tenantAuthorized.Use(authLimiter)
 	}
 	{
-		organizationHttp.RegisterTenantRoutes(tenantAuthorized, organizationModule.OrganizationController, apiKeyMiddleware)
+		organizationHttp.RegisterTenantRoutes(tenantAuthorized, organizationModule.OrganizationController, apiKeyMiddleware, idempotencyMiddleware)
+		roleHttp.RegisterTenantRoutes(tenantAuthorized, roleModule.RoleController, apiKeyMiddleware)
 
 		// Project Routes
 		projectGroup := tenantAuthorized.Group("/projects")
 		{
-			projectGroup.POST("", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Create)
+			projectGroup.POST("", idempotencyMiddleware, apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Create)
 			projectGroup.GET("", apiKeyMiddleware.RequireScopes("project:view", "project:manage"), projectModule.ProjectController.GetAll)
 			projectGroup.GET("/:id", apiKeyMiddleware.RequireScopes("project:view", "project:manage"), projectModule.ProjectController.GetByID)
-			projectGroup.PUT("/:id", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Update)
+			projectGroup.PUT("/:id", idempotencyMiddleware, apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Update)
 			projectGroup.DELETE("/:id", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Delete)
 		}
 
-		webhookHttp.RegisterWebhookRoutes(tenantAuthorized, webhookModule.Controller, apiKeyMiddleware)
+		webhookHttp.RegisterWebhookRoutes(tenantAuthorized, webhookModule.Controller, apiKeyMiddleware, idempotencyMiddleware)
 	}
 
 	authorized := apiV1.Group("")
 	authorized.Use(apiKeyMiddleware.Authenticate())
 	authorized.Use(authMiddleware.ValidateToken())
+	authorized.Use(middleware.CSRFMiddleware(logger))
 	authorized.Use(apiKeyMiddleware.RequireScopes("admin:manage"))
 	authorized.Use(middleware.UserStatusMiddleware(userModule.UserRepo, logger))
 	authorized.Use(tenantMiddleware.OptionalOrganization())
@@ -243,7 +254,7 @@ func SetupRouter(
 	{
 		organizationHttp.RegisterAdminRoutes(authorized, organizationModule.OrganizationController, apiKeyMiddleware)
 		permissionHttp.RegisterPermissionRoutes(authorized, permissionModule.PermissionController)
-		accessHttp.RegisterAccessRoutes(authorized.Group("", tenantMiddleware.OptionalOrganization()), accessModule.AccessController)
+		accessHttp.RegisterAccessRoutes(authorized.Group("", tenantMiddleware.OptionalOrganization()), accessModule.AccessController, idempotencyMiddleware)
 		roleHttp.RegisterAuthorizedRoutes(authorized, roleModule.RoleController)
 		userHttp.RegisterAuthorizedRoutes(authorized, userModule.UserController)
 		auditHttp.RegisterAuthorizedRoutes(authorized, auditModule.AuditController)

@@ -61,6 +61,12 @@ type OrganizationMemberRepository interface {
 	// FindMembers finds all members of an organization.
 	FindMembers(ctx context.Context, orgID string) ([]*entity.OrganizationMember, error)
 
-	// GetMemberRole returns the role of a user in an organization.
+	// FindMemberForUpdate finds a member with row lock FOR UPDATE.
+	FindMemberForUpdate(ctx context.Context, orgID, userID string) (*entity.OrganizationMember, error)
+
+	// GetMemberRole returns the role ID of a user in an organization.
 	GetMemberRole(ctx context.Context, orgID, userID string) (string, error)
+
+	// GetMemberRoleName returns the resolved role name of a user in an organization.
+	GetMemberRoleName(ctx context.Context, orgID, userID string) (string, error)
 }

@@ -19,7 +19,7 @@ import (
 )
 
 func TestWebhookHandler_ProcessTaskWebhookTrigger(t *testing.T) {
-	repo := new(mocks.MockWebhookRepository)
+	repo := mocks.NewMockWebhookRepository(t)
 	log := logrus.New()
 	handler := NewWebhookHandler(repo, log)
 	handler.client = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
@@ -53,7 +53,7 @@ func TestWebhookHandler_ProcessTaskWebhookTrigger(t *testing.T) {
 
 func TestWebhookHandler_ProcessTaskWebhookTrigger_FailureLogPersistence(t *testing.T) {
 	t.Run("network error returns log persistence failure", func(t *testing.T) {
-		repo := new(mocks.MockWebhookRepository)
+		repo := mocks.NewMockWebhookRepository(t)
 		log := logrus.New()
 		handler := NewWebhookHandler(repo, log)
 		handler.client = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
@@ -84,7 +84,7 @@ func TestWebhookHandler_ProcessTaskWebhookTrigger_FailureLogPersistence(t *testi
 	})
 
 	t.Run("server error includes log persistence failure", func(t *testing.T) {
-		repo := new(mocks.MockWebhookRepository)
+		repo := mocks.NewMockWebhookRepository(t)
 		log := logrus.New()
 		handler := NewWebhookHandler(repo, log)
 		handler.client = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {

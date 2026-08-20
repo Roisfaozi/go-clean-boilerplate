@@ -410,6 +410,10 @@ func (ctrl *OrganizationController) InviteMember(c *gin.Context) {
 	ctx := usecase.WithActorUserID(c.Request.Context(), userID.(string))
 	result, err := ctrl.MemberUseCase.InviteMember(ctx, orgID, &request)
 	if err != nil {
+		if err == exception.ErrBadRequest {
+			response.BadRequest(c, err, "invalid or non-existent organization role")
+			return
+		}
 		if err == exception.ErrNotFound {
 			response.NotFound(c, err, "organization not found")
 			return
@@ -511,6 +515,10 @@ func (ctrl *OrganizationController) UpdateMemberRole(c *gin.Context) {
 	ctx := usecase.WithActorUserID(c.Request.Context(), actorUserID.(string))
 	result, err := ctrl.MemberUseCase.UpdateMember(ctx, orgID, userID, &request)
 	if err != nil {
+		if err == exception.ErrBadRequest {
+			response.BadRequest(c, err, "invalid or non-existent organization role")
+			return
+		}
 		if err == exception.ErrNotFound {
 			response.NotFound(c, err, "member not found")
 			return

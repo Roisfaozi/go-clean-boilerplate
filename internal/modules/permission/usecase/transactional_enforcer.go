@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
-	"github.com/casbin/casbin/v2"
+	"github.com/casbin/casbin/v3"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 )
 
@@ -25,12 +25,12 @@ func (e *transactionalEnforcer) getEnforcer(ctx context.Context) IEnforcer {
 	if txDB, ok := tx.DBFromContext(ctx); ok {
 		adapter, err := gormadapter.NewAdapterByDB(txDB)
 		if err != nil {
-			return e
+			return &failingEnforcer{err: err}
 		}
 
 		enforcer, err := casbin.NewEnforcer(e.casbinModel, adapter)
 		if err != nil {
-			return e
+			return &failingEnforcer{err: err}
 		}
 		enforcer.EnableAutoSave(true)
 
@@ -180,4 +180,76 @@ func (e *transientEnforcer) SavePolicy() error {
 
 func (e *transientEnforcer) LoadPolicy() error {
 	return e.inner.LoadPolicy()
+}
+
+type failingEnforcer struct {
+	err error
+}
+
+func (e *failingEnforcer) WithContext(ctx context.Context) IEnforcer {
+	return e
+}
+
+func (e *failingEnforcer) AddGroupingPolicy(params ...interface{}) (bool, error) {
+	return false, e.err
+}
+
+func (e *failingEnforcer) AddPolicy(params ...interface{}) (bool, error) {
+	return false, e.err
+}
+
+func (e *failingEnforcer) HasGroupingPolicy(params ...interface{}) (bool, error) {
+	return false, e.err
+}
+
+func (e *failingEnforcer) HasPolicy(params ...interface{}) (bool, error) {
+	return false, e.err
+}
+
+func (e *failingEnforcer) RemovePolicy(params ...interface{}) (bool, error) {
+	return false, e.err
+}
+
+func (e *failingEnforcer) GetPolicy() ([][]string, error) {
+	return nil, e.err
+}
+
+func (e *failingEnforcer) GetFilteredPolicy(fieldIndex int, fieldValues ...string) ([][]string, error) {
+	return nil, e.err
+}
+
+func (e *failingEnforcer) UpdatePolicy(oldRule []string, newRule []string) (bool, error) {
+	return false, e.err
+}
+
+func (e *failingEnforcer) GetRolesForUser(name string, domain ...string) ([]string, error) {
+	return nil, e.err
+}
+
+func (e *failingEnforcer) RemoveFilteredGroupingPolicy(fieldIndex int, fieldValues ...string) (bool, error) {
+	return false, e.err
+}
+
+func (e *failingEnforcer) Enforce(params ...interface{}) (bool, error) {
+	return false, e.err
+}
+
+func (e *failingEnforcer) GetUsersForRole(name string, domain ...string) ([]string, error) {
+	return nil, e.err
+}
+
+func (e *failingEnforcer) RemoveFilteredPolicy(fieldIndex int, fieldValues ...string) (bool, error) {
+	return false, e.err
+}
+
+func (e *failingEnforcer) DeleteRole(role string) (bool, error) {
+	return false, e.err
+}
+
+func (e *failingEnforcer) SavePolicy() error {
+	return e.err
+}
+
+func (e *failingEnforcer) LoadPolicy() error {
+	return e.err
 }

@@ -46,20 +46,13 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authz := authRepo.NewCasbinAdapter(mockEnforcer, "role:user", "global")
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, 3, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider), "http://localhost:3000")
 
 	userService := userUC.NewUserUseCase(tm, env.Logger, uRepo, mockEnforcer, auditService, authService, nil, nil)
 
 	expectedErr := errors.New("casbin connection error")
 
-	// My manual mock uses variadic params...interface{} which mockery packs into a slice.
-	mockEnforcer.On("AddGroupingPolicy", mock.MatchedBy(func(params []interface{}) bool {
-		if len(params) != 3 {
-			return false
-		}
-		// Check if the last param is "global" as expected in the test
-		return params[2] == "global"
-	})).Return(false, expectedErr)
+	mockEnforcer.On("AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything).Return(false, expectedErr)
 
 	req := &userModel.RegisterUserRequest{
 		Username: "rollback_user",

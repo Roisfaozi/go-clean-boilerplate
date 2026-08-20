@@ -136,10 +136,10 @@ func TestMultiTenancyE2E_MemberFlow(t *testing.T) {
 	// especially since changes happened in other transactions/handlers
 	_ = server.Enforcer.LoadPolicy()
 
-	ok, _ := server.Enforcer.HasGroupingPolicy(newUser.ID, memberRoleID, orgID)
+	ok, _ := server.Enforcer.HasGroupingPolicy(newUser.ID, "Viewer", orgID)
 	assert.True(t, ok, "Casbin grouping policy should exist for (user, role, org)")
 
-	_, err = server.Enforcer.AddPolicy(memberRoleID, orgID, "/api/v1/organizations/:id", "GET")
+	_, err = server.Enforcer.AddPolicy("Viewer", orgID, "/api/v1/organizations/:id", "GET")
 	require.NoError(t, err)
 
 	// 9. Login as New Member

@@ -51,4 +51,10 @@ func TestEmailTaskHandler_ProcessTaskSendEmail(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to unmarshal task payload")
 	})
+
+	t.Run("MaskEmail Helper", func(t *testing.T) {
+		assert.Equal(t, "al***@example.com", handlers.MaskEmail("alice@example.com"))
+		assert.Equal(t, "***@domain.com", handlers.MaskEmail("a@domain.com"))
+		assert.Equal(t, "***", handlers.MaskEmail("invalidemail"))
+	})
 }

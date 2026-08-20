@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
@@ -24,21 +25,21 @@ import (
 
 type auditTestDeps struct {
 	Repo        *mocks.MockAuditRepository
-	MockWS      *mocks.MockWebSocketManager
+	MockWS      *mocking.MockManager
 	Distributor *mocks.MockTaskDistributor
 }
 
-func setupAuditTest() (*auditTestDeps, usecase.AuditUseCase) {
+func setupAuditTest(t *testing.T) (*auditTestDeps, usecase.AuditUseCase) {
 	deps := &auditTestDeps{
-		Repo:        new(mocks.MockAuditRepository),
-		MockWS:      new(mocks.MockWebSocketManager),
-		Distributor: new(mocks.MockTaskDistributor),
+		Repo:        mocks.NewMockAuditRepository(t),
+		MockWS:      mocking.NewMockManager(t),
+		Distributor: mocks.NewMockTaskDistributor(t),
 	}
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
 
 	// Default mock behavior
-	deps.MockWS.On("BroadcastToChannel", mock.Anything, mock.Anything).Return()
+	deps.MockWS.On("BroadcastToChannel", mock.Anything, mock.Anything).Return().Maybe()
 
 	uc := usecase.NewAuditUseCase(deps.Repo, logger, deps.MockWS, deps.Distributor)
 	return deps, uc
@@ -46,7 +47,7 @@ func setupAuditTest() (*auditTestDeps, usecase.AuditUseCase) {
 
 func TestLogActivity(t *testing.T) {
 	t.Run("Success - Positive Case", func(t *testing.T) {
-		deps, uc := setupAuditTest()
+		deps, uc := setupAuditTest(t)
 		req := model.CreateAuditLogRequest{
 			UserID: "u1", Action: "CREATE", Entity: "User", EntityID: "u2",
 			OldValues: map[string]string{"foo": "bar"},
@@ -63,7 +64,7 @@ func TestLogActivity(t *testing.T) {
 	})
 
 	t.Run("Transactional Path - Write to Outbox", func(t *testing.T) {
-		deps, uc := setupAuditTest()
+		deps, uc := setupAuditTest(t)
 		req := model.CreateAuditLogRequest{
 			UserID: "u1", Action: "UPDATE", Entity: "Profile", EntityID: "u1",
 		}
@@ -91,7 +92,7 @@ func TestLogActivity(t *testing.T) {
 	})
 
 	t.Run("Organization Context - Captures OrgID", func(t *testing.T) {
-		deps, uc := setupAuditTest()
+		deps, uc := setupAuditTest(t)
 		orgID := "org-999"
 		ctx := database.SetOrganizationContext(context.Background(), orgID)
 		req := model.CreateAuditLogRequest{
@@ -108,7 +109,7 @@ func TestLogActivity(t *testing.T) {
 	})
 
 	t.Run("Edge - Nil JSON Values", func(t *testing.T) {
-		deps, uc := setupAuditTest()
+		deps, uc := setupAuditTest(t)
 		req := model.CreateAuditLogRequest{
 			UserID: "u1", Action: "DELETE", Entity: "User", EntityID: "u2",
 			OldValues: nil, // Edge case: Nil value
@@ -125,8 +126,8 @@ func TestLogActivity(t *testing.T) {
 	})
 
 	t.Run("Negative - Repo Error", func(t *testing.T) {
-		deps, uc := setupAuditTest()
-		req := model.CreateAuditLogRequest{UserID: "u1"}
+		deps, uc := setupAuditTest(t)
+		req := model.CreateAuditLogRequest{UserID: "u1", Action: "CREATE", Entity: "User"}
 		deps.Repo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error"))
 
 		err := uc.LogActivity(context.Background(), req)
@@ -136,7 +137,7 @@ func TestLogActivity(t *testing.T) {
 
 func TestGetLogsDynamic(t *testing.T) {
 	t.Run("Success - Positive Case", func(t *testing.T) {
-		deps, uc := setupAuditTest()
+		deps, uc := setupAuditTest(t)
 		now := time.Now().UnixMilli()
 		entities := []*entity.AuditLog{
 			{ID: "1", UserID: "u1", OldValues: `{"a":1}`, NewValues: `{"a":2}`, CreatedAt: now},
@@ -157,7 +158,7 @@ func TestGetLogsDynamic(t *testing.T) {
 	})
 
 	t.Run("Edge - Malformed JSON in DB", func(t *testing.T) {
-		deps, uc := setupAuditTest()
+		deps, uc := setupAuditTest(t)
 		// Scenario where DB data is corrupted or not valid JSON
 		entities := []*entity.AuditLog{
 			{ID: "1", UserID: "u1", OldValues: `{broken_json`, NewValues: `null`},
@@ -175,7 +176,7 @@ func TestGetLogsDynamic(t *testing.T) {
 	})
 
 	t.Run("Negative - Repo Error", func(t *testing.T) {
-		deps, uc := setupAuditTest()
+		deps, uc := setupAuditTest(t)
 		deps.Repo.On("FindAllDynamic", mock.Anything, mock.Anything).Return(nil, int64(0), errors.New("db fail"))
 
 		res, total, err := uc.GetLogsDynamic(context.Background(), nil)

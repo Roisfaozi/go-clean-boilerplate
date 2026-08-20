@@ -5,12 +5,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterApiKeyRoutes(r *gin.RouterGroup, controller *ApiKeyController, authMiddleware *middleware.AuthMiddleware, tenantMiddleware *middleware.TenantMiddleware) {
+func RegisterApiKeyRoutes(r *gin.RouterGroup, controller *ApiKeyController, authMiddleware *middleware.AuthMiddleware, tenantMiddleware *middleware.TenantMiddleware, idempotencyMiddleware gin.HandlerFunc) {
 	apiKeys := r.Group("/api-keys")
 	apiKeys.Use(authMiddleware.ValidateToken())
 	apiKeys.Use(tenantMiddleware.RequireOrganization())
 	{
-		apiKeys.POST("", controller.Create)
+		if idempotencyMiddleware != nil {
+			apiKeys.POST("", idempotencyMiddleware, controller.Create)
+		} else {
+			apiKeys.POST("", controller.Create)
+		}
 		apiKeys.GET("", controller.List)
 		apiKeys.DELETE("/:id", controller.Revoke)
 	}

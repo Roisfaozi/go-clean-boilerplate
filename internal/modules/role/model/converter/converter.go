@@ -7,9 +7,10 @@ import (
 
 func RoleToResponse(role *entity.Role) *model.RoleResponse {
 	return &model.RoleResponse{
-		ID:          role.ID,
-		Name:        role.Name,
-		Description: role.Description,
+		ID:             role.ID,
+		Name:           role.Name,
+		Description:    role.Description,
+		OrganizationID: role.OrganizationID,
 	}
 }
 

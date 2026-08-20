@@ -13,6 +13,7 @@ type TokenRepository interface {
 	GetToken(ctx context.Context, userID, sessionID string) (*model.Auth, error)
 	DeleteToken(ctx context.Context, userID, sessionID string) error
 	GetUserSessions(ctx context.Context, userID string) ([]*model.Auth, error)
+	CountActiveSessions(ctx context.Context, userID string) (int, error)
 	RevokeAllSessions(ctx context.Context, userID string) error
 	Save(ctx context.Context, token *entity.PasswordResetToken) error
 	FindByToken(ctx context.Context, token string) (*entity.PasswordResetToken, error)

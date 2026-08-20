@@ -637,3 +637,71 @@ func TestTokenRepository_DeleteVerificationTokenByEmail_Error(t *testing.T) {
 	err := repo.DeleteVerificationTokenByEmail(context.Background(), "verify@example.com")
 	assert.Error(t, err)
 }
+
+func TestTokenRepository_CountActiveSessions(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	log := logrus.New()
+
+	repo := repository.NewTokenRepositoryRedis(db, log, nil, &util.RealClock{})
+
+	ctx := context.Background()
+	userID := "user123"
+
+	t.Run("Success", func(t *testing.T) {
+		indexKey := getSessionIndexKey(userID)
+
+		mock.ExpectSMembers(indexKey).SetVal([]string{"session1", "session2"})
+		mock.ExpectGet("session1").SetVal(`{"access_token": "token1"}`)
+		mock.ExpectGet("session2").SetVal(`{"access_token": "token2"}`)
+
+		count, err := repo.CountActiveSessions(ctx, userID)
+		assert.NoError(t, err)
+		assert.Equal(t, 2, count)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Error GetUserSessions", func(t *testing.T) {
+		indexKey := getSessionIndexKey(userID)
+		mock.ExpectSMembers(indexKey).SetErr(errors.New("redis error"))
+
+		count, err := repo.CountActiveSessions(ctx, userID)
+		assert.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), "failed to get user sessions")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+func TestTokenRepository_CountActiveSessions_EdgeAndVuln(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	log := logrus.New()
+
+	repo := repository.NewTokenRepositoryRedis(db, log, nil, &util.RealClock{})
+
+	ctx := context.Background()
+
+	t.Run("Edge Case - Empty User ID", func(t *testing.T) {
+		userID := ""
+		indexKey := getSessionIndexKey(userID)
+
+		mock.ExpectSMembers(indexKey).SetVal([]string{})
+
+		count, err := repo.CountActiveSessions(ctx, userID)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, count)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Vulnerability Case - Malformed User ID (Potential NoSQLi)", func(t *testing.T) {
+		// Verify that special characters in User ID don't break the Redis command
+		userID := "user123*&^%$#@!"
+		indexKey := getSessionIndexKey(userID)
+
+		mock.ExpectSMembers(indexKey).SetVal([]string{})
+
+		count, err := repo.CountActiveSessions(ctx, userID)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, count)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}

@@ -11,6 +11,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	roleRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,6 +24,12 @@ func setupPermissionIntegration(env *setup.TestEnvironment) usecase.IPermissionU
 	return usecase.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo, nil)
 }
 
+func superadminCtx(env *setup.TestEnvironment) context.Context {
+	actorID := "sa-actor-id"
+	_, _ = env.Enforcer.AddGroupingPolicy(actorID, "role:superadmin", "global")
+	return authcontext.WithUserID(context.Background(), actorID)
+}
+
 func TestPermissionIntegration_AssignRoleToUser(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
@@ -32,7 +39,7 @@ func TestPermissionIntegration_AssignRoleToUser(t *testing.T) {
 	roleName := "admin"
 	setup.CreateTestRole(t, env.DB, roleName)
 
-	err := permUC.AssignRoleToUser(context.Background(), user.ID, roleName, "global")
+	err := permUC.AssignRoleToUser(superadminCtx(env), user.ID, roleName, "global")
 	assert.NoError(t, err)
 
 	roles, err := env.Enforcer.GetRolesForUser(user.ID, "global")
@@ -48,7 +55,7 @@ func TestPermissionIntegration_GrantPermission(t *testing.T) {
 	roleName := "editor"
 	setup.CreateTestRole(t, env.DB, roleName)
 
-	err := permUC.GrantPermissionToRole(context.Background(), roleName, "/api/v1/articles", "POST", "global")
+	err := permUC.GrantPermissionToRole(superadminCtx(env), roleName, "/api/v1/articles", "POST", "global")
 	assert.NoError(t, err)
 
 	ok, _ := env.Enforcer.Enforce(roleName, "global", "/api/v1/articles", "POST")
@@ -122,7 +129,7 @@ func TestPermissionIntegration_FullLifecycle(t *testing.T) {
 	roleName := "lifecycle_role"
 	setup.CreateTestRole(t, env.DB, roleName)
 
-	err := permUC.GrantPermissionToRole(context.Background(), roleName, "/api/v1/data", "GET", "global")
+	err := permUC.GrantPermissionToRole(superadminCtx(env), roleName, "/api/v1/data", "GET", "global")
 	require.NoError(t, err)
 
 	oldP := []string{roleName, "global", "/api/v1/data", "GET"}
@@ -142,7 +149,7 @@ func TestPermissionIntegration_Negative_GrantNonExistentRole(t *testing.T) {
 	defer env.Cleanup()
 
 	permUC := setupPermissionIntegration(env)
-	err := permUC.GrantPermissionToRole(context.Background(), "non_existent_role", "/any", "GET", "global")
+	err := permUC.GrantPermissionToRole(superadminCtx(env), "non_existent_role", "/any", "GET", "global")
 	assert.Error(t, err)
 }
 
@@ -153,7 +160,7 @@ func TestPermissionIntegration_Negative_AssignRoleToNonExistentUser(t *testing.T
 	permUC := setupPermissionIntegration(env)
 	setup.CreateTestRole(t, env.DB, "valid_role")
 
-	err := permUC.AssignRoleToUser(context.Background(), "non-existent-user-id", "valid_role", "global")
+	err := permUC.AssignRoleToUser(superadminCtx(env), "non-existent-user-id", "valid_role", "global")
 
 	assert.Error(t, err)
 }

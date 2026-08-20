@@ -36,6 +36,15 @@ type ServerMessage struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
+const (
+	messageTypeSubscribe         = "subscribe"
+	messageTypeUnsubscribe       = "unsubscribe"
+	messageTypePresenceHeartbeat = "presence_heartbeat"
+	messageTypeMessage           = "message"
+	serverMessageTypeInfo        = "info"
+	serverMessageTypeError       = "error"
+)
+
 var (
 	newline = []byte{'\n'}
 	space   = []byte{' '}
@@ -175,13 +184,13 @@ func (c *Client) handleMessage(message []byte) {
 	}
 
 	switch clientMsg.Type {
-	case "subscribe":
+	case messageTypeSubscribe:
 		c.Manager.SubscribeToChannel(c, clientMsg.Channel)
 		c.sendInfo(clientMsg.Channel, fmt.Sprintf("Subscribed to channel: %s", clientMsg.Channel))
-	case "unsubscribe":
+	case messageTypeUnsubscribe:
 		c.Manager.UnsubscribeFromChannel(c, clientMsg.Channel)
 		c.sendInfo(clientMsg.Channel, fmt.Sprintf("Unsubscribed from channel: %s", clientMsg.Channel))
-	case "presence_heartbeat":
+	case messageTypePresenceHeartbeat:
 		if c.UserID != "" && c.OrgID != "" {
 			pm := c.Manager.GetPresenceManager()
 			if pm != nil {
@@ -190,7 +199,7 @@ func (c *Client) handleMessage(message []byte) {
 				}
 			}
 		}
-	case "message":
+	case messageTypeMessage:
 		c.Log.Infof("Client %s sent message to channel %s: %s", c.ID, clientMsg.Channel, clientMsg.Data)
 		// For now, we only handle subscribe/unsubscribe/info. Actual message broadcast is handled by manager.
 		// If client sends "message" type, we can broadcast it here directly or via manager.
@@ -203,7 +212,7 @@ func (c *Client) handleMessage(message []byte) {
 
 func (c *Client) sendInfo(channel, data string) {
 	msg := ServerMessage{
-		Type:    "info",
+		Type:    serverMessageTypeInfo,
 		Channel: channel,
 		Data:    data,
 	}
@@ -212,7 +221,7 @@ func (c *Client) sendInfo(channel, data string) {
 
 func (c *Client) sendError(data string) {
 	msg := ServerMessage{
-		Type: "error",
+		Type: serverMessageTypeError,
 		Data: data,
 	}
 	c.sendJSON(msg)

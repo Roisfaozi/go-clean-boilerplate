@@ -6,6 +6,13 @@ import (
 	wsPkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 )
 
+const (
+	defaultWebSocketWriteWait            = 10 * time.Second
+	defaultWebSocketPongWait             = 60 * time.Second
+	defaultWebSocketPingPeriod           = (defaultWebSocketPongWait * 9) / 10
+	defaultWebSocketMaxMessageSize int64 = 512 * 1024
+)
+
 type WebSocketConfig struct {
 	WriteWait          time.Duration `mapstructure:"write_wait"`
 	PongWait           time.Duration `mapstructure:"pong_wait"`
@@ -16,14 +23,13 @@ type WebSocketConfig struct {
 }
 
 func NewDefaultWebSocketConfig() *WebSocketConfig {
-	pongWait := 60 * time.Second
 	return &WebSocketConfig{
-		WriteWait:          10 * time.Second,
-		PongWait:           pongWait,
-		PingPeriod:         (pongWait * 9) / 10,
-		MaxMessageSize:     512 * 1024,
+		WriteWait:          defaultWebSocketWriteWait,
+		PongWait:           defaultWebSocketPongWait,
+		PingPeriod:         defaultWebSocketPingPeriod,
+		MaxMessageSize:     defaultWebSocketMaxMessageSize,
 		DistributedEnabled: false,
-		RedisPrefix:        "ws_broadcast:",
+		RedisPrefix:        defaultWebSocketRedisPrefix,
 	}
 }
 

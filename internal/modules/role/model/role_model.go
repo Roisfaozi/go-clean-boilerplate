@@ -5,9 +5,10 @@ import (
 )
 
 type RoleResponse struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+	ID             string  `json:"id"`
+	Name           string  `json:"name"`
+	Description    string  `json:"description,omitempty"`
+	OrganizationID *string `json:"organization_id,omitempty"`
 }
 
 type CreateRoleRequest struct {

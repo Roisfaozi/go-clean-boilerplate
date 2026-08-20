@@ -2,29 +2,36 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface User {
-  id: string;
-  name: string;
-  email: string;
-  username: string;
-  role: string;
-  avatar_url?: string;
+	id: string;
+	name: string;
+	email: string;
+	username: string;
+	role: string;
+	avatar_url?: string;
 }
 
 interface AuthState {
-  user: User | null;
-  setUser: (user: User | null) => void;
-  logout: () => void;
+	user: User | null;
+	hasHydrated: boolean;
+	setUser: (user: User | null) => void;
+	setHasHydrated: (hydrated: boolean) => void;
+	logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      setUser: (user) => set({ user }),
-      logout: () => set({ user: null }),
-    }),
-    {
-      name: "nexus-auth-storage",
-    },
-  ),
+	persist(
+		(set) => ({
+			user: null,
+			hasHydrated: false,
+			setUser: (user) => set({ user }),
+			setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
+			logout: () => set({ user: null }),
+		}),
+		{
+			name: "nexus-auth-storage",
+			onRehydrateStorage: () => (state) => {
+				state?.setHasHydrated(true);
+			},
+		},
+	),
 );

@@ -24,6 +24,7 @@ type Auth struct {
 	ID           string    `json:"id"`
 	UserID       string    `json:"user_id"`
 	SessionID    string    `json:"session_id"`
+	FamilyID     string    `json:"family_id,omitempty"`
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token"`
 	ExpiresAt    time.Time `json:"expires_at"`

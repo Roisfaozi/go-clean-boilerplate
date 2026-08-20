@@ -7,11 +7,11 @@ import (
 	"io"
 	"testing"
 
+	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	authMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	userMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
-	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/test/mocks"
 	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -21,14 +21,14 @@ import (
 type cleanupTestDeps struct {
 	AuthRepo  *authMocks.MockTokenRepository
 	UserRepo  *userMocks.MockUserRepository
-	AuditRepo *mocks.MockAuditRepository
+	AuditRepo *auditMocks.MockAuditRepository
 	Handler   *handlers.CleanupTaskHandler
 }
 
-func setupCleanupHandlerTest() *cleanupTestDeps {
-	authRepo := new(authMocks.MockTokenRepository)
-	userRepo := new(userMocks.MockUserRepository)
-	auditRepo := new(mocks.MockAuditRepository)
+func setupCleanupHandlerTest(t *testing.T) *cleanupTestDeps {
+	authRepo := authMocks.NewMockTokenRepository(t)
+	userRepo := userMocks.NewMockUserRepository(t)
+	auditRepo := auditMocks.NewMockAuditRepository(t)
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
 
@@ -44,7 +44,7 @@ func setupCleanupHandlerTest() *cleanupTestDeps {
 
 func TestProcessCleanupExpiredTokens(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		deps := setupCleanupHandlerTest()
+		deps := setupCleanupHandlerTest(t)
 		task := asynq.NewTask(tasks.TypeCleanupExpiredTokens, nil)
 
 		deps.AuthRepo.On("DeleteExpiredResetTokens", mock.Anything).Return(nil)
@@ -55,7 +55,7 @@ func TestProcessCleanupExpiredTokens(t *testing.T) {
 	})
 
 	t.Run("Failure", func(t *testing.T) {
-		deps := setupCleanupHandlerTest()
+		deps := setupCleanupHandlerTest(t)
 		task := asynq.NewTask(tasks.TypeCleanupExpiredTokens, nil)
 
 		deps.AuthRepo.On("DeleteExpiredResetTokens", mock.Anything).Return(errors.New("db error"))
@@ -68,7 +68,7 @@ func TestProcessCleanupExpiredTokens(t *testing.T) {
 
 func TestProcessCleanupSoftDeletedEntities(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		deps := setupCleanupHandlerTest()
+		deps := setupCleanupHandlerTest(t)
 		payload := tasks.CleanupSoftDeletedEntitiesPayload{RetentionDays: 30}
 		jsonPayload, _ := json.Marshal(payload)
 		task := asynq.NewTask(tasks.TypeCleanupSoftDeletedEntities, jsonPayload)
@@ -81,7 +81,7 @@ func TestProcessCleanupSoftDeletedEntities(t *testing.T) {
 	})
 
 	t.Run("Unmarshal Error", func(t *testing.T) {
-		deps := setupCleanupHandlerTest()
+		deps := setupCleanupHandlerTest(t)
 		task := asynq.NewTask(tasks.TypeCleanupSoftDeletedEntities, []byte("invalid json"))
 
 		err := deps.Handler.ProcessCleanupSoftDeletedEntities(context.Background(), task)
@@ -89,7 +89,7 @@ func TestProcessCleanupSoftDeletedEntities(t *testing.T) {
 	})
 
 	t.Run("Repo Error", func(t *testing.T) {
-		deps := setupCleanupHandlerTest()
+		deps := setupCleanupHandlerTest(t)
 		payload := tasks.CleanupSoftDeletedEntitiesPayload{RetentionDays: 30}
 		jsonPayload, _ := json.Marshal(payload)
 		task := asynq.NewTask(tasks.TypeCleanupSoftDeletedEntities, jsonPayload)
@@ -104,7 +104,7 @@ func TestProcessCleanupSoftDeletedEntities(t *testing.T) {
 
 func TestProcessPruneAuditLogs(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		deps := setupCleanupHandlerTest()
+		deps := setupCleanupHandlerTest(t)
 		payload := tasks.PruneAuditLogsPayload{RetentionDays: 180}
 		jsonPayload, _ := json.Marshal(payload)
 		task := asynq.NewTask(tasks.TypePruneAuditLogs, jsonPayload)
@@ -121,7 +121,7 @@ func TestProcessPruneAuditLogs(t *testing.T) {
 	})
 
 	t.Run("Unmarshal Error", func(t *testing.T) {
-		deps := setupCleanupHandlerTest()
+		deps := setupCleanupHandlerTest(t)
 		task := asynq.NewTask(tasks.TypePruneAuditLogs, []byte("invalid json"))
 
 		err := deps.Handler.ProcessPruneAuditLogs(context.Background(), task)
@@ -129,7 +129,7 @@ func TestProcessPruneAuditLogs(t *testing.T) {
 	})
 
 	t.Run("Repo Error", func(t *testing.T) {
-		deps := setupCleanupHandlerTest()
+		deps := setupCleanupHandlerTest(t)
 		payload := tasks.PruneAuditLogsPayload{RetentionDays: 180}
 		jsonPayload, _ := json.Marshal(payload)
 		task := asynq.NewTask(tasks.TypePruneAuditLogs, jsonPayload)

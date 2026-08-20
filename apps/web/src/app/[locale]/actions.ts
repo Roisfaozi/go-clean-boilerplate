@@ -6,9 +6,9 @@ import { authActionClient } from "~/lib/client/safe-action";
 import { logoutAction } from "../actions/auth";
 
 export const logout = authActionClient
-  .metadata({ actionName: "logout" })
-  .action(async () => {
-    await logoutAction();
-    revalidatePath("/");
-    return redirect("/login");
-  });
+	.metadata({ actionName: "logout" })
+	.action(async () => {
+		await logoutAction();
+		revalidatePath("/");
+		return redirect("/login");
+	});

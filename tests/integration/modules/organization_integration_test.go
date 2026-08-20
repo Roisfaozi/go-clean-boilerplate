@@ -336,6 +336,43 @@ func TestOrganizationMemberRepository_CheckMembership(t *testing.T) {
 	assert.False(t, isMember, "Non-existent member should not be found")
 }
 
+func TestOrganizationMemberRepository_HardDeleteAllowsReAdd(t *testing.T) {
+	env := setup.SetupIntegrationEnvironment(t)
+	if env == nil {
+		return
+	}
+
+	memberRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
+	user := setup.CreateTestUser(t, env.DB, "harddelete", "harddelete@test.com", "password123")
+	org := &orgEntity.Organization{
+		ID:      uuid.New().String(),
+		Name:    "Hard Delete Org",
+		Slug:    "hard-delete-" + uuid.New().String()[:8],
+		OwnerID: user.ID,
+		Status:  orgEntity.OrgStatusActive,
+	}
+	require.NoError(t, env.DB.Create(org).Error)
+
+	member := &orgEntity.OrganizationMember{
+		ID:             uuid.New().String(),
+		OrganizationID: org.ID,
+		UserID:         user.ID,
+		RoleID:         "role:user",
+		Status:         orgEntity.MemberStatusActive,
+	}
+	require.NoError(t, memberRepo.AddMember(context.Background(), member))
+	require.NoError(t, memberRepo.RemoveMember(context.Background(), org.ID, user.ID))
+
+	var count int64
+	require.NoError(t, env.DB.Unscoped().Model(&orgEntity.OrganizationMember{}).
+		Where("organization_id = ? AND user_id = ?", org.ID, user.ID).
+		Count(&count).Error)
+	assert.Zero(t, count)
+
+	member.ID = uuid.New().String()
+	require.NoError(t, memberRepo.AddMember(context.Background(), member))
+}
+
 // TestOrganizationRepository_FindUserOrganizations tests finding orgs for a user
 func TestOrganizationRepository_FindUserOrganizations(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)

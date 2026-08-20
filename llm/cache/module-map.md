@@ -16,13 +16,14 @@ This file is for fast ownership decisions before deep code reads.
 ## Primary source of truth
 
 1. `internal/config/app.go`
+2. `internal/config/app_helpers.go`
 2. `internal/router/router.go`
 3. `internal/modules/*/module.go`
 4. relevant `llm/cache/*` domain files
 
 ## Composition-root facts
 
-`internal/config/app.go` is real dependency graph.
+`internal/config/app.go` plus `internal/config/app_helpers.go` is real dependency graph.
 
 It wires:
 

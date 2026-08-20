@@ -3,10 +3,12 @@ package worker
 import (
 	"context"
 	"sync"
+	"time"
 
 	auditUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/handlers"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
 )
@@ -41,9 +43,9 @@ func NewRedisTaskProcessor(
 		redisOpt,
 		asynq.Config{
 			Queues: map[string]int{
-				"critical": 6,
-				"default":  3,
-				"low":      1,
+				queueNameCritical: 6,
+				queueNameDefault:  3,
+				queueNameLow:      1,
 			},
 			ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
 				logger.WithContext(ctx).Errorf("Failed to process task type %s: %v", task.Type(), err)
@@ -84,25 +86,29 @@ func (processor *RedisTaskProcessor) Start() error {
 		FromEmail:  processor.cfg.SMTP.FromEmail,
 	}
 
+	registerInstrumented := func(taskType string, fn func(context.Context, *asynq.Task) error) {
+		mux.HandleFunc(taskType, InstrumentTaskHandler(taskType, fn))
+	}
+
 	emailHandler := handlers.NewEmailTaskHandler(processor.logger, smtpCfg)
-	mux.HandleFunc(tasks.TypeSendEmail, emailHandler.ProcessTaskSendEmail)
+	registerInstrumented(tasks.TypeSendEmail, emailHandler.ProcessTaskSendEmail)
 
 	auditHandler := handlers.NewAuditTaskHandler(processor.logger, processor.auditUC)
-	mux.HandleFunc(tasks.TypeAuditLogCreate, auditHandler.ProcessTaskAuditLog)
-	mux.HandleFunc(tasks.TypeAuditLogExport, auditHandler.ProcessTaskAuditLogExport)
+	registerInstrumented(tasks.TypeAuditLogCreate, auditHandler.ProcessTaskAuditLog)
+	registerInstrumented(tasks.TypeAuditLogExport, auditHandler.ProcessTaskAuditLogExport)
 
 	outboxHandler := handlers.NewOutboxTaskHandler(processor.auditRepo, processor.logger)
-	mux.HandleFunc(tasks.TypeAuditOutboxSync, outboxHandler.ProcessAuditOutbox)
+	registerInstrumented(tasks.TypeAuditOutboxSync, outboxHandler.ProcessAuditOutbox)
 
 	if processor.webhookHandler != nil {
-		mux.HandleFunc(tasks.TypeWebhookTrigger, processor.webhookHandler.ProcessTaskWebhookTrigger)
+		registerInstrumented(tasks.TypeWebhookTrigger, processor.webhookHandler.ProcessTaskWebhookTrigger)
 	}
 
 	// Register Cleanup Handlers
 	if processor.cleanupHandler != nil {
-		mux.HandleFunc(tasks.TypeCleanupExpiredTokens, processor.cleanupHandler.ProcessCleanupExpiredTokens)
-		mux.HandleFunc(tasks.TypeCleanupSoftDeletedEntities, processor.cleanupHandler.ProcessCleanupSoftDeletedEntities)
-		mux.HandleFunc(tasks.TypePruneAuditLogs, processor.cleanupHandler.ProcessPruneAuditLogs)
+		registerInstrumented(tasks.TypeCleanupExpiredTokens, processor.cleanupHandler.ProcessCleanupExpiredTokens)
+		registerInstrumented(tasks.TypeCleanupSoftDeletedEntities, processor.cleanupHandler.ProcessCleanupSoftDeletedEntities)
+		registerInstrumented(tasks.TypePruneAuditLogs, processor.cleanupHandler.ProcessPruneAuditLogs)
 	}
 
 	if err := processor.server.Start(mux); err != nil {
@@ -125,6 +131,24 @@ func (processor *RedisTaskProcessor) Shutdown() {
 	processor.mu.Unlock()
 
 	processor.server.Shutdown()
+}
+
+func InstrumentTaskHandler(taskType string, fn func(context.Context, *asynq.Task) error) func(context.Context, *asynq.Task) error {
+	return func(ctx context.Context, task *asynq.Task) error {
+		start := time.Now()
+		err := fn(ctx, task)
+		duration := time.Since(start).Seconds()
+
+		status := "success"
+		if err != nil {
+			status = "failed"
+		}
+
+		telemetry.WorkerTasksTotal.WithLabelValues(taskType, status).Inc()
+		telemetry.WorkerTaskDuration.WithLabelValues(taskType, status).Observe(duration)
+
+		return err
+	}
 }
 
 type AsynqLogger struct {

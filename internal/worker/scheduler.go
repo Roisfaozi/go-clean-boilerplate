@@ -15,7 +15,7 @@ type Scheduler struct {
 }
 
 func NewScheduler(redisOpt asynq.RedisClientOpt, logger *logrus.Logger) *Scheduler {
-	location, _ := time.LoadLocation("Asia/Jakarta") // Adjust timezone as needed
+	location, _ := time.LoadLocation(schedulerLocationName)
 
 	scheduler := asynq.NewScheduler(
 		redisOpt,
@@ -35,7 +35,7 @@ func NewScheduler(redisOpt asynq.RedisClientOpt, logger *logrus.Logger) *Schedul
 func (s *Scheduler) RegisterScheduledTasks() {
 	// 1. Cleanup Expired Reset Tokens
 	// Run every 6 hours
-	if _, err := s.scheduler.Register("@every 6h", asynq.NewTask(tasks.TypeCleanupExpiredTokens, nil)); err != nil {
+	if _, err := s.scheduler.Register(cleanupScheduleEvery6h, asynq.NewTask(tasks.TypeCleanupExpiredTokens, nil)); err != nil {
 		s.logger.Errorf("Failed to register task %s: %v", tasks.TypeCleanupExpiredTokens, err)
 	}
 
@@ -43,7 +43,7 @@ func (s *Scheduler) RegisterScheduledTasks() {
 	// Run daily at 03:00 AM
 	// Retention: 30 days
 	payloadUser, _ := json.Marshal(tasks.CleanupSoftDeletedEntitiesPayload{RetentionDays: 30})
-	if _, err := s.scheduler.Register("0 3 * * *", asynq.NewTask(tasks.TypeCleanupSoftDeletedEntities, payloadUser)); err != nil {
+	if _, err := s.scheduler.Register(cleanupScheduleDaily3am, asynq.NewTask(tasks.TypeCleanupSoftDeletedEntities, payloadUser)); err != nil {
 		s.logger.Errorf("Failed to register task %s: %v", tasks.TypeCleanupSoftDeletedEntities, err)
 	}
 
@@ -51,13 +51,13 @@ func (s *Scheduler) RegisterScheduledTasks() {
 	// Run weekly (Sunday at 04:00 AM)
 	// Retention: 180 days (6 months)
 	payloadAudit, _ := json.Marshal(tasks.PruneAuditLogsPayload{RetentionDays: 180})
-	if _, err := s.scheduler.Register("0 4 * * 0", asynq.NewTask(tasks.TypePruneAuditLogs, payloadAudit)); err != nil {
+	if _, err := s.scheduler.Register(pruneAuditScheduleWeekly4am, asynq.NewTask(tasks.TypePruneAuditLogs, payloadAudit)); err != nil {
 		s.logger.Errorf("Failed to register task %s: %v", tasks.TypePruneAuditLogs, err)
 	}
 
 	// 4. Audit Outbox Sync
 	// Run every 5 seconds (Reduced from 30s for better dev/test feedback)
-	if _, err := s.scheduler.Register("@every 5s", tasks.NewAuditOutboxSyncTask()); err != nil {
+	if _, err := s.scheduler.Register(outboxSyncScheduleEvery5s, tasks.NewAuditOutboxSyncTask()); err != nil {
 		s.logger.Errorf("Failed to register task %s: %v", tasks.TypeAuditOutboxSync, err)
 	}
 

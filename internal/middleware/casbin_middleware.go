@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"errors"
+	"net/http"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
@@ -17,14 +18,17 @@ type CasbinEnforcer interface {
 // CasbinMiddleware creates a middleware for role-based authorization using Casbin.
 // This middleware must be placed AFTER the JWT AuthMiddleware.
 func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFunc {
-	if enforcer == nil && gin.Mode() == gin.ReleaseMode {
-		log.Error("CRITICAL SECURITY ERROR: Casbin enforcer is nil in release mode. Set CASBIN_ENABLED=true to run in production safely.")
-		panic("Casbin authorization cannot be disabled in production mode.")
+	if enforcer == nil {
+		log.Error("CRITICAL SECURITY ERROR: Casbin enforcer is nil. Set CASBIN_ENABLED=true.")
+		if gin.Mode() == gin.ReleaseMode {
+			panic("Casbin authorization cannot be disabled in production mode.")
+		}
 	}
 
 	return func(c *gin.Context) {
 		if enforcer == nil {
-			c.Next()
+			response.ErrorResponse(c, http.StatusForbidden, errors.New("authorization unavailable"), "forbidden")
+			c.Abort()
 			return
 		}
 
@@ -44,8 +48,8 @@ func CasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) gin.HandlerFu
 		act := c.Request.Method
 
 		// Get organization ID for multi-tenancy (domain in Casbin)
-		dom := "global"
-		if orgID, exists := c.Get("organization_id"); exists {
+		dom := defaultCasbinDomain
+		if orgID, exists := c.Get(contextKeyOrganizationID); exists {
 			if idStr, ok := orgID.(string); ok && idStr != "" {
 				dom = idStr
 			}

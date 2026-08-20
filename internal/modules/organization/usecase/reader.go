@@ -20,8 +20,8 @@ const (
 	CacheKeyMembership = "org:member:%s:%s"
 
 	// CacheKeyMemberRole is the Redis key format for member role
-	// Format: org:role:{orgID}:{userID}
-	CacheKeyMemberRole = "org:role:%s:%s"
+	// Format: org:role:v2:{orgID}:{userID}
+	CacheKeyMemberRole = "org:role:v2:%s:%s"
 
 	// CacheValueNotMember indicates user is not a member (negative cache)
 	CacheValueNotMember = "0"
@@ -107,8 +107,8 @@ func (r *CachedOrgReader) GetMemberRole(ctx context.Context, orgID, userID strin
 		r.log.WithError(err).Warn("Redis error during role check, falling back to DB")
 	}
 
-	// 2. Cache miss - query database using GetMemberRole
-	memberRole, err := r.memberRepo.GetMemberRole(ctx, orgID, userID)
+	// 2. Cache miss - query database using GetMemberRoleName
+	memberRole, err := r.memberRepo.GetMemberRoleName(ctx, orgID, userID)
 	if err != nil {
 		return "", err
 	}
