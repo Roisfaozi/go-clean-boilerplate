@@ -58,3 +58,8 @@ func DBFromContext(ctx context.Context) (*gorm.DB, bool) {
 	db, ok := ctx.Value(txKey{}).(*gorm.DB)
 	return db, ok
 }
+
+// ContextWithDB injects the database instance into the context
+func ContextWithDB(ctx context.Context, db *gorm.DB) context.Context {
+	return context.WithValue(ctx, txKey{}, db)
+}

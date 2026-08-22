@@ -10,6 +10,7 @@ import (
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
@@ -223,5 +224,170 @@ func TestRoleRepository_ErrorPath(t *testing.T) {
 
 	// Delete
 	err = repo.Delete(ctx, "role-2")
+	assert.Error(t, err)
+}
+
+func TestRoleRepository_FindOrganizationRoleByID(t *testing.T) {
+	repo, db := setupRoleRepo(t)
+	ctx := context.Background()
+	orgID := "org-1"
+	roleID := "role-org-1"
+
+	// Create test org
+	err := db.Create(&orgEntity.Organization{ID: orgID, Name: "Test Org 1", Slug: "org-1"}).Error
+	require.NoError(t, err)
+
+	role := &entity.Role{
+		ID:             roleID,
+		Name:           "OrgAdmin",
+		Description:    "Org Admin",
+		OrganizationID: &orgID,
+	}
+	err = repo.Create(ctx, role)
+	require.NoError(t, err)
+
+	found, err := repo.FindOrganizationRoleByID(ctx, orgID, roleID)
+	require.NoError(t, err)
+	assert.Equal(t, role.Name, found.Name)
+
+	// Not found test
+	_, err = repo.FindOrganizationRoleByID(ctx, "other-org", roleID)
+	assert.Error(t, err)
+}
+
+func TestRoleRepository_FindOrganizationRoles(t *testing.T) {
+	repo, db := setupRoleRepo(t)
+	ctx := context.Background()
+	orgID := "org-2"
+
+	// Create test org
+	err := db.Create(&orgEntity.Organization{ID: orgID, Name: "Test Org 2", Slug: "org-2"}).Error
+	require.NoError(t, err)
+
+	roles := []entity.Role{
+		{ID: "role-org-2-a", Name: "RoleA", OrganizationID: &orgID},
+		{ID: "role-org-2-b", Name: "RoleB", OrganizationID: &orgID},
+		{ID: "role-global", Name: "RoleGlobal", OrganizationID: nil}, // Should also be found because of "OR organization_id IS NULL"
+	}
+	db.Create(&roles)
+
+	found, err := repo.FindOrganizationRoles(ctx, orgID)
+	require.NoError(t, err)
+	assert.Len(t, found, 3)
+
+	names := []string{}
+	for _, r := range found {
+		names = append(names, r.Name)
+	}
+	assert.ElementsMatch(t, []string{"RoleA", "RoleB", "RoleGlobal"}, names)
+}
+
+func TestRoleRepository_FindByNameInScope(t *testing.T) {
+	repo, db := setupRoleRepo(t)
+	ctx := context.Background()
+	orgID := "org-3"
+	otherOrgID := "org-4"
+
+	// Create test orgs
+	err := db.Create(&orgEntity.Organization{ID: orgID, Name: "Test Org 3", Slug: "org-3"}).Error
+	require.NoError(t, err)
+	err = db.Create(&orgEntity.Organization{ID: otherOrgID, Name: "Test Org 4", Slug: "org-4"}).Error
+	require.NoError(t, err)
+
+	roles := []entity.Role{
+		{ID: "role-scoped", Name: "ScopedRole", OrganizationID: &orgID},
+		{ID: "role-global-scoped", Name: "GlobalRole", OrganizationID: nil},
+	}
+	db.Create(&roles)
+
+	// Test found in org
+	found, err := repo.FindByNameInScope(ctx, "ScopedRole", &orgID)
+	require.NoError(t, err)
+	assert.Equal(t, "role-scoped", found.ID)
+
+	// Test found global
+	emptyOrg := ""
+	foundGlobal, err := repo.FindByNameInScope(ctx, "GlobalRole", &emptyOrg)
+	require.NoError(t, err)
+	assert.Equal(t, "role-global-scoped", foundGlobal.ID)
+
+	// Test not found in wrong org
+	_, err = repo.FindByNameInScope(ctx, "ScopedRole", &otherOrgID)
+	assert.Error(t, err)
+}
+
+func TestRoleRepository_DeleteInOrg(t *testing.T) {
+	repo, db := setupRoleRepo(t)
+	ctx := context.Background()
+	orgID := "org-5"
+	roleID := "role-org-5"
+
+	// Create test org
+	err := db.Create(&orgEntity.Organization{ID: orgID, Name: "Test Org 5", Slug: "org-5"}).Error
+	require.NoError(t, err)
+
+	role := &entity.Role{
+		ID:             roleID,
+		Name:           "RoleToDelete",
+		OrganizationID: &orgID,
+	}
+	err = repo.Create(ctx, role)
+	require.NoError(t, err)
+
+	// Delete missing orgID
+	err = repo.DeleteInOrg(ctx, "", roleID)
+	assert.Error(t, err)
+	assert.Equal(t, gorm.ErrRecordNotFound, err)
+
+	// Delete wrong org
+	err = repo.DeleteInOrg(ctx, "other-org", roleID)
+	assert.Error(t, err)
+
+	// Delete success
+	err = repo.DeleteInOrg(ctx, orgID, roleID)
+	require.NoError(t, err)
+
+	// Verify
+	var count int64
+	db.Model(&entity.Role{}).Where("id = ?", roleID).Count(&count)
+	assert.Equal(t, int64(0), count)
+}
+
+func TestRoleRepository_GetDBWithTx(t *testing.T) {
+	repo, db := setupRoleRepo(t)
+	ctx := context.Background()
+
+	// Inject transaction db into context
+	txDB := db.Session(&gorm.Session{})
+	ctxWithTx := tx.ContextWithDB(ctx, txDB)
+
+	// Should still work without errors
+	role := &entity.Role{
+		ID:   "role-tx",
+		Name: "TxRole",
+	}
+	err := repo.Create(ctxWithTx, role)
+	require.NoError(t, err)
+}
+
+func TestRoleRepository_AdditionalErrorPath(t *testing.T) {
+	repo, db := setupRoleRepo(t)
+	ctx := context.Background()
+	orgID := "org-err"
+
+	// Close db to force error
+	sqlDB, _ := db.DB()
+	_ = sqlDB.Close()
+
+	_, err := repo.FindOrganizationRoleByID(ctx, orgID, "role-err")
+	assert.Error(t, err)
+
+	_, err = repo.FindOrganizationRoles(ctx, orgID)
+	assert.Error(t, err)
+
+	_, err = repo.FindByNameInScope(ctx, "err-role", &orgID)
+	assert.Error(t, err)
+
+	err = repo.DeleteInOrg(ctx, orgID, "role-err")
 	assert.Error(t, err)
 }
