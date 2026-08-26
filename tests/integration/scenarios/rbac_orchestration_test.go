@@ -15,6 +15,7 @@ import (
 	roleRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	roleUC "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
@@ -59,11 +60,15 @@ func TestScenario_RBAC_Orchestration(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = permService.GrantPermissionToRole(ctx, roleName, endpoint.Path, endpoint.Method, "global")
+	actorID := "sa-actor-id"
+	_, _ = env.Enforcer.AddGroupingPolicy(actorID, "role:superadmin", "global")
+	saCtx := authcontext.WithUserID(context.Background(), actorID)
+
+	err = permService.GrantPermissionToRole(saCtx, roleName, endpoint.Path, endpoint.Method, "global")
 	require.NoError(t, err)
 
 	user := setup.CreateTestUser(t, env.DB, "analyst_user", "analyst@test.com", "pass")
-	err = permService.AssignRoleToUser(ctx, user.ID, roleName, "global")
+	err = permService.AssignRoleToUser(saCtx, user.ID, roleName, "global")
 	require.NoError(t, err)
 
 	ok, err := env.Enforcer.Enforce(user.ID, "global", endpoint.Path, endpoint.Method)

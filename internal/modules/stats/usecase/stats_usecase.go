@@ -92,12 +92,27 @@ func (u *statsUseCase) GetDashboardActivity(ctx context.Context, days int) (*mod
 }
 
 func (u *statsUseCase) GetSystemInsights(ctx context.Context) (*model.SystemInsights, error) {
-	// For now, return some plausible but real-ish data
-	// In a real system, these would come from Prometheus or specialized metrics tables
+	var result struct {
+		Role string
+	}
+
+	query := u.db.WithContext(ctx).Table("organization_members om").
+		Select("r.name as role, COUNT(*) as total").
+		Joins("JOIN roles r ON r.id = om.role_id").
+		Group("r.name").
+		Order("total DESC").
+		Limit(1)
+
+	if orgID := database.GetOrganizationID(ctx); orgID != "" {
+		query = query.Where("om.organization_id = ?", orgID)
+	}
+
+	mostActive := "none"
+	if err := query.Scan(&result).Error; err == nil && result.Role != "" {
+		mostActive = result.Role
+	}
+
 	return &model.SystemInsights{
-		AvgLatencyMs:   24.5,
-		ErrorRate:      0.02,
-		Uptime:         "99.99%",
-		MostActiveRole: "role:admin",
+		MostActiveRole: mostActive,
 	}, nil
 }

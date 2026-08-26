@@ -100,3 +100,54 @@ func TestTrustedProxies(t *testing.T) {
 		assert.Equal(t, "1.2.3.4", w.Body.String())
 	})
 }
+
+func TestMetricsEndpointAuth(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("Metrics Auth Disabled Allows Access", func(t *testing.T) {
+		cfg := RouterConfig{
+			MetricsEnabled: true,
+			MetricsAuth:    false,
+		}
+		r := createTestRouter(cfg)
+
+		req, _ := http.NewRequest("GET", "/metrics", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("Metrics Auth Enabled Rejects Unauthenticated", func(t *testing.T) {
+		cfg := RouterConfig{
+			MetricsEnabled: true,
+			MetricsAuth:    true,
+			MetricsUser:    "prom",
+			MetricsPass:    "secret",
+		}
+		r := createTestRouter(cfg)
+
+		req, _ := http.NewRequest("GET", "/metrics", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("Metrics Auth Enabled Accepts Valid Basic Auth", func(t *testing.T) {
+		cfg := RouterConfig{
+			MetricsEnabled: true,
+			MetricsAuth:    true,
+			MetricsUser:    "prom",
+			MetricsPass:    "secret",
+		}
+		r := createTestRouter(cfg)
+
+		req, _ := http.NewRequest("GET", "/metrics", nil)
+		req.SetBasicAuth("prom", "secret")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+}

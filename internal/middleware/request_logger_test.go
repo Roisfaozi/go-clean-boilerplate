@@ -167,10 +167,10 @@ func TestRequestLogger_LogsLatency(t *testing.T) {
 	err := json.Unmarshal(logBuffer.Bytes(), &logEntry)
 	assert.NoError(t, err)
 
-	// Should have latency fields
-	assert.Contains(t, logEntry, "latency_ns")
+	// Should have latency and route fields
+	assert.Contains(t, logEntry, "route")
 	assert.Contains(t, logEntry, "latency_ms")
-	assert.Greater(t, logEntry["latency_ns"], float64(0))
+	assert.Greater(t, logEntry["latency_ms"], float64(0))
 }
 
 func TestRequestLogger_LogsDataLength(t *testing.T) {

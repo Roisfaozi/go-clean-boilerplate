@@ -2,11 +2,13 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"gorm.io/gorm"
 )
 
 func (uc *PermissionUseCase) GetRoleAccessRights(ctx context.Context, role, domain string) ([]model.RoleAccessRightStatus, error) {
@@ -53,9 +55,16 @@ func (uc *PermissionUseCase) AssignAccessRight(ctx context.Context, req model.As
 		req.Domain = "global"
 	}
 
+	if err := uc.assertActorMayGrant(ctx, req.Role, req.Domain); err != nil {
+		return err
+	}
+
 	ar, err := uc.AccessRepo.GetAccessRightByID(ctx, req.AccessRightID)
 	if err != nil {
-		return exception.ErrNotFound
+		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, exception.ErrNotFound) {
+			return NewNoopError(fmt.Sprintf("access right '%s' not found", req.AccessRightID))
+		}
+		return exception.ErrInternalServer
 	}
 	if len(ar.Endpoints) == 0 {
 		return fmt.Errorf("access right '%s' has no endpoints configured", ar.Name)
@@ -92,7 +101,10 @@ func (uc *PermissionUseCase) RevokeAccessRight(ctx context.Context, req model.As
 
 	ar, err := uc.AccessRepo.GetAccessRightByID(ctx, req.AccessRightID)
 	if err != nil {
-		return exception.ErrNotFound
+		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, exception.ErrNotFound) {
+			return NewNoopError(fmt.Sprintf("access right '%s' not found", req.AccessRightID))
+		}
+		return exception.ErrInternalServer
 	}
 
 	enf := uc.enforcer.WithContext(ctx)

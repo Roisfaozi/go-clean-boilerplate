@@ -11,12 +11,69 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	defaultServerPort                    = 8080
+	defaultServerReadTimeout             = "30s"
+	defaultServerWriteTimeout            = "30s"
+	defaultLogLevel                      = "info"
+	defaultMySQLHost                     = "localhost"
+	defaultMySQLPort                     = 3306
+	defaultRedisAddr                     = "localhost:6379"
+	defaultJWTAccessDuration             = "15m"
+	defaultJWTRefreshDuration            = "24h"
+	defaultSecurityMaxLoginAttempts      = 5
+	defaultSecurityLockoutDuration       = "30m"
+	defaultSecurityMaxConcurrentSessions = 3
+	defaultCookieSameSite                = "lax"
+	defaultCookieDomain                  = ""
+	defaultCasbinEnabled                 = true
+	defaultCasbinModel                   = "internal/config/casbin_model.conf"
+	defaultCasbinDefaultRole             = "role:user"
+	defaultCasbinDefaultDomain           = "global"
+	defaultCasbinWatcherEnabled          = false
+	defaultCasbinWatcherChannel          = "/casbin"
+	defaultRateLimitEnabled              = true
+	defaultRateLimitRPS                  = 10.0
+	defaultRateLimitBurst                = 20
+	defaultRateLimitStore                = "memory"
+	defaultSMTPHost                      = "localhost"
+	defaultSMTPPort                      = 1025
+	defaultSMTPUsername                  = ""
+	defaultSMTPPassword                  = ""
+	defaultSMTPFromSender                = "NexusOS Admin"
+	defaultSMTPFromEmail                 = "no-reply@nexusos.dev"
+	defaultCircuitBreakerEnabled         = true
+	defaultCircuitBreakerMaxRequests     = 5
+	defaultCircuitBreakerInterval        = "60s"
+	defaultCircuitBreakerTimeout         = "30s"
+	defaultWebSocketRedisPrefix          = "ws_broadcast:"
+	defaultMetricsEnabled                = true
+	defaultMetricsAuthEnabled            = false
+	defaultStorageDriver                 = "local"
+	defaultStorageLocalRootPath          = "./uploads"
+	defaultStorageLocalBaseURL           = "http://localhost:8080/uploads"
+	defaultStorageS3UseSSL               = true
+	defaultTusBasePath                   = "/api/v1/upload/files/"
+	defaultPprofEnabled                  = false
+	defaultPprofPort                     = 6060
+	defaultTelemetryServiceName          = "go-clean-api"
+	defaultTelemetryCollectorURL         = "localhost:4317"
+	defaultAppEnvDevelopment             = "development"
+	defaultAppEnvLocal                   = "local"
+	defaultAppEnvDev                     = "dev"
+	defaultAppEnvTest                    = "test"
+	defaultAppEnvTesting                 = "testing"
+	storageDriverLocal                   = "local"
+	storageDriverS3                      = "s3"
+)
+
 type AppConfig struct {
 	Server         ServerConfig         `mapstructure:"server"`
 	Mysql          MySqlConfig          `mapstructure:"mysql"`
 	Redis          RedisConfig          `mapstructure:"redis"`
 	JWT            JWTConfig            `mapstructure:"jwt"`
 	Security       SecurityConfig       `mapstructure:"security"`
+	Cookie         CookieConfig         `mapstructure:"cookie"`
 	Log            LoggerConfig         `mapstructure:"log"`
 	WebSocket      WebSocketConfig      `mapstructure:"websocket"`
 	Casbin         CasbinConfig         `mapstructure:"casbin"`
@@ -25,21 +82,11 @@ type AppConfig struct {
 	RateLimit      RateLimitConfig      `mapstructure:"rate_limit"`
 	SMTP           SMTPConfig           `mapstructure:"smtp"`
 	Storage        StorageConfig        `mapstructure:"storage"`
-	Metrics        struct {
-		Enabled     bool   `env:"METRICS_ENABLED" envDefault:"false"`
-		AuthEnabled bool   `env:"METRICS_AUTH_ENABLED" envDefault:"false"`
-		Username    string `env:"METRICS_USER"`
-		Password    string `env:"METRICS_PASS"`
-	}
-
-	Telemetry struct {
-		Enabled      bool   `env:"OTEL_ENABLED" envDefault:"false"`
-		ServiceName  string `env:"OTEL_SERVICE_NAME" envDefault:"go-clean-api"`
-		CollectorURL string `env:"OTEL_COLLECTOR_URL" envDefault:"localhost:4317"`
-	}
-	Tus   TusConfig   `mapstructure:"tus"`
-	Pprof PprofConfig `mapstructure:"pprof"`
-	SSO   SSOConfig   `mapstructure:"sso"`
+	Metrics        MetricsConfig        `mapstructure:"metrics"`
+	Telemetry      TelemetryConfig      `mapstructure:"otel"`
+	Tus            TusConfig            `mapstructure:"tus"`
+	Pprof          PprofConfig          `mapstructure:"pprof"`
+	SSO            SSOConfig            `mapstructure:"sso"`
 }
 
 type SSOConfig struct {
@@ -92,8 +139,9 @@ type ServerConfig struct {
 }
 
 type SecurityConfig struct {
-	MaxLoginAttempts int           `mapstructure:"max_login_attempts"`
-	LockoutDuration  time.Duration `mapstructure:"lockout_duration"`
+	MaxLoginAttempts      int           `mapstructure:"max_login_attempts"`
+	LockoutDuration       time.Duration `mapstructure:"lockout_duration"`
+	MaxConcurrentSessions int           `mapstructure:"max_concurrent_sessions"`
 }
 
 type MetricsConfig struct {
@@ -101,6 +149,14 @@ type MetricsConfig struct {
 	AuthEnabled bool   `mapstructure:"auth_enabled"`
 	Username    string `mapstructure:"username"`
 	Password    string `mapstructure:"password"`
+}
+
+type TelemetryConfig struct {
+	Enabled      bool    `mapstructure:"enabled"`
+	ServiceName  string  `mapstructure:"service_name"`
+	CollectorURL string  `mapstructure:"collector_url"`
+	Insecure     bool    `mapstructure:"insecure"`
+	SampleRatio  float64 `mapstructure:"sample_ratio"`
 }
 
 type RateLimitConfig struct {
@@ -151,6 +207,12 @@ type RedisConfig struct {
 	WriteTimeout time.Duration `mapstructure:"write_timeout"`
 }
 
+type CookieConfig struct {
+	Domain   string `mapstructure:"domain"`
+	SameSite string `mapstructure:"same_site" validate:"omitempty,oneof=lax strict none"`
+	Secure   *bool  `mapstructure:"secure"`
+}
+
 type JWTConfig struct {
 	AccessTokenSecret    string        `mapstructure:"access_secret" validate:"required,min=32"`
 	RefreshTokenSecret   string        `mapstructure:"refresh_secret" validate:"required,min=32"`
@@ -175,6 +237,17 @@ type WatcherConfig struct {
 	Channel string `mapstructure:"channel"`
 }
 
+// envOnlyKeys lists configuration keys that have no default and therefore need
+// an explicit environment binding. Without this, viper leaves them empty even
+// when the matching variable is set.
+var envOnlyKeys = []string{
+	"server.frontend_base_url",
+	"cookie.secure",
+	"redis.dial_timeout",
+	"redis.read_timeout",
+	"redis.write_timeout",
+}
+
 func NewConfig() (*AppConfig, error) {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, reading configuration from environment variables")
@@ -184,51 +257,67 @@ func NewConfig() (*AppConfig, error) {
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	v.SetDefault("server.port", 8080)
-	v.SetDefault("server.read_timeout", "30s")
-	v.SetDefault("server.write_timeout", "30s")
-	v.SetDefault("log.level", "info")
-	v.SetDefault("mysql.host", "localhost")
-	v.SetDefault("mysql.port", 3306)
-	v.SetDefault("redis.addr", "localhost:6379")
-	v.SetDefault("jwt.access_duration", "15m")
-	v.SetDefault("jwt.refresh_duration", "24h")
-	v.SetDefault("security.max_login_attempts", 5)
-	v.SetDefault("security.lockout_duration", "30m")
-	v.SetDefault("casbin.enabled", true)
-	v.SetDefault("casbin.model", "internal/config/casbin_model.conf")
-	v.SetDefault("casbin.default_role", "role:user")
-	v.SetDefault("casbin.default_domain", "global")
-	v.SetDefault("casbin.watcher.enabled", false)
-	v.SetDefault("casbin.watcher.channel", "/casbin")
+	// viper's AutomaticEnv only resolves keys it already knows about (defaults,
+	// config file, or explicit binds). Any field that is populated purely by
+	// Unmarshal would be silently dropped, so every default-less key that must
+	// come from the environment is bound here explicitly.
+	for _, key := range envOnlyKeys {
+		_ = v.BindEnv(key)
+	}
+
+	v.SetDefault("server.port", defaultServerPort)
+	v.SetDefault("server.read_timeout", defaultServerReadTimeout)
+	v.SetDefault("server.write_timeout", defaultServerWriteTimeout)
+	v.SetDefault("log.level", defaultLogLevel)
+	v.SetDefault("mysql.host", defaultMySQLHost)
+	v.SetDefault("mysql.port", defaultMySQLPort)
+	v.SetDefault("redis.addr", defaultRedisAddr)
+	v.SetDefault("jwt.access_duration", defaultJWTAccessDuration)
+	v.SetDefault("jwt.refresh_duration", defaultJWTRefreshDuration)
+	v.SetDefault("security.max_login_attempts", defaultSecurityMaxLoginAttempts)
+	v.SetDefault("security.lockout_duration", defaultSecurityLockoutDuration)
+	v.SetDefault("security.max_concurrent_sessions", defaultSecurityMaxConcurrentSessions)
+	v.SetDefault("cookie.same_site", defaultCookieSameSite)
+	v.SetDefault("cookie.domain", defaultCookieDomain)
+	v.SetDefault("casbin.enabled", defaultCasbinEnabled)
+	v.SetDefault("casbin.model", defaultCasbinModel)
+	v.SetDefault("casbin.default_role", defaultCasbinDefaultRole)
+	v.SetDefault("casbin.default_domain", defaultCasbinDefaultDomain)
+	v.SetDefault("casbin.watcher.enabled", defaultCasbinWatcherEnabled)
+	v.SetDefault("casbin.watcher.channel", defaultCasbinWatcherChannel)
 	// v.SetDefault("cors.allowed_origins", "*") // Removed unsafe default
-	v.SetDefault("rate_limit.enabled", true)
-	v.SetDefault("rate_limit.rps", 10.0)
-	v.SetDefault("rate_limit.burst", 20)
-	v.SetDefault("rate_limit.store", "memory")
-	v.SetDefault("smtp.host", "localhost")
-	v.SetDefault("smtp.port", 1025)
-	v.SetDefault("smtp.username", "")
-	v.SetDefault("smtp.password", "")
-	v.SetDefault("smtp.from_sender", "NexusOS Admin")
-	v.SetDefault("smtp.from_email", "no-reply@nexusos.dev")
-	v.SetDefault("circuit_breaker.enabled", true)
-	v.SetDefault("circuit_breaker.max_requests", 5)
-	v.SetDefault("circuit_breaker.interval", "60s")
-	v.SetDefault("circuit_breaker.timeout", "30s")
+	v.SetDefault("rate_limit.enabled", defaultRateLimitEnabled)
+	v.SetDefault("rate_limit.rps", defaultRateLimitRPS)
+	v.SetDefault("rate_limit.burst", defaultRateLimitBurst)
+	v.SetDefault("rate_limit.store", defaultRateLimitStore)
+	v.SetDefault("smtp.host", defaultSMTPHost)
+	v.SetDefault("smtp.port", defaultSMTPPort)
+	v.SetDefault("smtp.username", defaultSMTPUsername)
+	v.SetDefault("smtp.password", defaultSMTPPassword)
+	v.SetDefault("smtp.from_sender", defaultSMTPFromSender)
+	v.SetDefault("smtp.from_email", defaultSMTPFromEmail)
+	v.SetDefault("circuit_breaker.enabled", defaultCircuitBreakerEnabled)
+	v.SetDefault("circuit_breaker.max_requests", defaultCircuitBreakerMaxRequests)
+	v.SetDefault("circuit_breaker.interval", defaultCircuitBreakerInterval)
+	v.SetDefault("circuit_breaker.timeout", defaultCircuitBreakerTimeout)
 	v.SetDefault("websocket.distributed_enabled", false)
-	v.SetDefault("websocket.redis_prefix", "ws_broadcast:")
-	v.SetDefault("metrics.enabled", true)
-	v.SetDefault("metrics.auth_enabled", false)
+	v.SetDefault("websocket.redis_prefix", defaultWebSocketRedisPrefix)
+	v.SetDefault("metrics.enabled", defaultMetricsEnabled)
+	v.SetDefault("metrics.auth_enabled", defaultMetricsAuthEnabled)
 	// v.SetDefault("metrics.username", "admin")      // Removed hardcoded default
 	// v.SetDefault("metrics.password", "metrics123") // Removed hardcoded default
-	v.SetDefault("storage.driver", "local")
-	v.SetDefault("storage.local.root_path", "./uploads")
-	v.SetDefault("storage.local.base_url", "http://localhost:8080/uploads")
-	v.SetDefault("storage.s3.use_ssl", true)
-	v.SetDefault("tus.base_path", "/api/v1/upload/files/")
-	v.SetDefault("pprof.enabled", false)
-	v.SetDefault("pprof.port", 6060)
+	v.SetDefault("otel.enabled", false)
+	v.SetDefault("otel.service_name", defaultTelemetryServiceName)
+	v.SetDefault("otel.collector_url", defaultTelemetryCollectorURL)
+	v.SetDefault("otel.insecure", true)
+	v.SetDefault("otel.sample_ratio", 1.0)
+	v.SetDefault("storage.driver", defaultStorageDriver)
+	v.SetDefault("storage.local.root_path", defaultStorageLocalRootPath)
+	v.SetDefault("storage.local.base_url", defaultStorageLocalBaseURL)
+	v.SetDefault("storage.s3.use_ssl", defaultStorageS3UseSSL)
+	v.SetDefault("tus.base_path", defaultTusBasePath)
+	v.SetDefault("pprof.enabled", defaultPprofEnabled)
+	v.SetDefault("pprof.port", defaultPprofPort)
 
 	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
@@ -318,6 +407,12 @@ func NewConfig() (*AppConfig, error) {
 	cfg.Metrics.Username = v.GetString("metrics.username")
 	cfg.Metrics.Password = v.GetString("metrics.password")
 
+	cfg.Telemetry.Enabled = v.GetBool("otel.enabled")
+	cfg.Telemetry.ServiceName = v.GetString("otel.service_name")
+	cfg.Telemetry.CollectorURL = v.GetString("otel.collector_url")
+	cfg.Telemetry.Insecure = v.GetBool("otel.insecure")
+	cfg.Telemetry.SampleRatio = v.GetFloat64("otel.sample_ratio")
+
 	if corsStr := v.GetString("cors.allowed_origins"); corsStr != "" && len(cfg.CORS.AllowedOrigins) == 0 {
 		origins := strings.Split(corsStr, ",")
 		for i := range origins {
@@ -329,6 +424,10 @@ func NewConfig() (*AppConfig, error) {
 	validate := validator.New()
 	if err := validate.Struct(&cfg); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
+	if isStrictCasbinEnv(cfg.Server.AppEnv) && cfg.Metrics.Enabled && !cfg.Metrics.AuthEnabled {
+		return nil, fmt.Errorf("metrics auth must be enabled outside local/test/dev environment")
 	}
 
 	if cfg.Metrics.AuthEnabled {

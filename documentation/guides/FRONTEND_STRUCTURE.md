@@ -332,3 +332,44 @@ NEXT_PUBLIC_APP_NAME="Go Clean Dashboard"
 5. [ ] Create API client layer
 6. [ ] Implement auth middleware
 7. [ ] Build Landing Page (Phase 0)
+
+---
+
+## Auth Pages (apps/web)
+
+Route group `(auth)` under `src/app/[locale]/`:
+
+| Route | File | Purpose |
+|---|---|---|
+| `/login` | `(auth)/login/page.tsx` | Server shell + `login-form.tsx` |
+| `/register` | `(auth)/register/page.tsx` | Server shell + `register-form.tsx` |
+| `/forgot-password` | `(auth)/forgot-password/page.tsx` | Requests a reset link |
+| `/reset-password` | `(auth)/reset-password/page.tsx` | Reads `?token=`, sets new password |
+| `/verify-email` | `(auth)/verify-email/page.tsx` | Reads `?token=`, verifies on mount |
+| `/invite/[token]` | `(auth)/invite/[token]/page.tsx` | Accepts an organization invitation |
+| `/accept-invite` | `(auth)/accept-invite/page.tsx` | Compatibility redirect to `/invite/[token]` |
+
+### Page/form split
+
+Pages stay **server components** that read `searchParams` and render a client
+form component from `src/components/auth/`. This keeps `AuthLayoutShell` and
+prerendering intact instead of turning whole routes client-only:
+
+- `forgot-password-form.tsx` — shows an enumeration-safe "check your inbox"
+  state, since the backend always returns success.
+- `reset-password-form.tsx` — renders an invalid-link state when the token is
+  missing; redirects to `/login` after success.
+- `verify-email-status.tsx` — states: processing, success, invalid, failed with
+  retry. Verification is de-duplicated by token so React Strict Mode's double
+  effect cannot spend a single-use token twice.
+
+### `/accept-invite`
+
+Older invitation emails pointed at `/accept-invite?token=`, a page that never
+existed. The route now exists purely as a redirect to
+`/{locale}/invite/{token}` (or `/login` when the token is absent), so previously
+sent links keep working while only one real form is maintained.
+
+Token placement differs on purpose: invitations use a path param because the
+page is a form bound to one invitation, while reset/verify use a query param
+because they are single-shot actions.

@@ -9,47 +9,60 @@ import { useAuthStore } from "~/stores/use-auth-store";
 import { usePermissionStore } from "~/stores/use-permission-store";
 
 const AUTH_PATHS = [
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
+	"/login",
+	"/register",
+	"/forgot-password",
+	"/reset-password",
 ];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { setUser, logout } = useAuthStore();
-  const { setPermissions, clearPermissions } = usePermissionStore();
-  const pathname = usePathname();
+	const { hasHydrated, setUser, logout } = useAuthStore();
+	const { setPermissions, clearPermissions } = usePermissionStore();
+	const pathname = usePathname();
 
-  const isAuthPage = AUTH_PATHS.some((p) => pathname?.includes(p));
+	const isAuthPage = AUTH_PATHS.some((p) => pathname?.includes(p));
 
-  useEffect(() => {
-    if (isAuthPage) return;
+	useEffect(() => {
+		if (!hasHydrated || isAuthPage) return;
 
-    async function syncAuth() {
-      try {
-        const userResp = await authApi.getCurrentUser();
-        if (userResp.user) {
-          setUser(userResp.user);
+		let cancelled = false;
 
-          const permsResp = await accessApi.getPermissionsForRole(
-            userResp.user.role,
-          );
-          if (permsResp.data) {
-            setPermissions(permsResp.data);
-          }
-        } else {
-          logout();
-          clearPermissions();
-        }
-      } catch (error) {
-        console.error("Auth sync failed:", error);
-        logout();
-        clearPermissions();
-      }
-    }
+		async function syncAuth() {
+			try {
+				const userResp = await authApi.getCurrentUser();
+				const user = userResp?.data?.user;
+				if (user) {
+					if (cancelled) return;
+					setUser(user);
 
-    syncAuth();
-  }, [isAuthPage, setUser, logout, setPermissions, clearPermissions]);
+					const permsResp = await accessApi.getPermissionsForRole(user.role);
+					if (!cancelled && permsResp.data) {
+						setPermissions(permsResp.data);
+					}
+				} else {
+					logout();
+					clearPermissions();
+				}
+			} catch (error) {
+				console.error("Auth sync failed:", error);
+				logout();
+				clearPermissions();
+			}
+		}
 
-  return <>{children}</>;
+		syncAuth();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [
+		hasHydrated,
+		isAuthPage,
+		setUser,
+		logout,
+		setPermissions,
+		clearPermissions,
+	]);
+
+	return <>{children}</>;
 }

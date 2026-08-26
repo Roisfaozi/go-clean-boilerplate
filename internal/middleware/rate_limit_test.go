@@ -245,7 +245,7 @@ func TestRateLimitRedis_UserTypeLimiter(t *testing.T) {
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		c.Set("userID", "user123")
+		c.Set("user_id", "user123")
 		c.Next()
 	})
 	r.Use(RateLimitMiddlewareRedis(db, logger, LimiterTypeUser, 10, 60*time.Second))

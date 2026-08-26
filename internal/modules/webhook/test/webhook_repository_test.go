@@ -35,7 +35,7 @@ func setupWebhookRepoTest(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, repository.W
 	return gormDB, mock, repo
 }
 
-const webhookVisibilityClause = "((webhooks.organization_id IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = webhooks.organization_id AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0)))"
+const webhookVisibilityClause = "((`webhooks`.`organization_id` IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = `webhooks`.`organization_id` AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0)))"
 
 func TestWebhookRepository_Create(t *testing.T) {
 	_, mock, repo := setupWebhookRepoTest(t)

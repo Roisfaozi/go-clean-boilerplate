@@ -1,4 +1,4 @@
-name: CI (Integration & Quality)
+name: Backend CI (Integration & Quality)
 
 on:
   push:
@@ -37,12 +37,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25.5"
+          go-version: "1.25.8"
           cache: true
 
       - name: Run Linter
@@ -57,22 +57,24 @@ jobs:
     needs: lint
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25.5"
+          go-version: "1.25.8"
           cache: true
 
       - name: Install dependencies
         run: go mod download
 
       - name: Run Unit Tests with Coverage
+        env:
+          GOFLAGS: -p=2 -parallel=2
         run: make test-coverage
 
       - name: Upload Unit Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-unit
           path: coverage_unit.html
@@ -84,12 +86,12 @@ jobs:
     needs: lint
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25.5"
+          go-version: "1.25.8"
           cache: true
 
       - name: Install dependencies
@@ -99,6 +101,7 @@ jobs:
         run: make test-integration
         env:
           DOCKER_HOST: unix:///var/run/docker.sock
+          GOFLAGS: -p=2 -parallel=2
 
   test-e2e:
     name: E2E Tests
@@ -106,12 +109,12 @@ jobs:
     needs: lint
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25.5"
+          go-version: "1.25.8"
           cache: true
 
       - name: Install dependencies
@@ -121,6 +124,7 @@ jobs:
         run: make test-e2e
         env:
           DOCKER_HOST: unix:///var/run/docker.sock
+          GOFLAGS: -p=2 -parallel=2
 
   benchmark:
     name: Benchmarks
@@ -128,12 +132,12 @@ jobs:
     needs: lint
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25.5"
+          go-version: "1.25.8"
           cache: true
 
       - name: Install dependencies
@@ -148,12 +152,12 @@ jobs:
     needs: lint
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25.5"
+          go-version: "1.25.8"
           cache: true
 
       - name: Dry Run Build

@@ -8,17 +8,17 @@ import Testimonials from "~/components/landing/testimonials";
 import Header from "~/components/layout/header";
 
 export default async function Home() {
-  return (
-    <>
-      <Header />
+	return (
+		<>
+			<Header />
 
-      <Hero />
-      <TechStack />
-      <Features />
-      <Testimonials />
-      <Pricing />
-      <FAQ />
-      <OpenSource />
-    </>
-  );
+			<Hero />
+			<TechStack />
+			<Features />
+			<Testimonials />
+			<Pricing />
+			<FAQ />
+			<OpenSource />
+		</>
+	);
 }

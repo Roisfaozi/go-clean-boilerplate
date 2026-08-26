@@ -33,6 +33,7 @@ type AuthModule struct {
 func NewAuthModule(
 	maxLoginAttempts int,
 	lockoutDuration time.Duration,
+	maxConcurrentSessions int,
 	jwtManager *jwt.JWTManager,
 	db *gorm.DB,
 	redisClient *redis.Client,
@@ -49,6 +50,8 @@ func NewAuthModule(
 	defaultRole string,
 	defaultDomain string,
 	ssoProviders map[string]sso.Provider,
+	frontendBaseURL string,
+	cookieCfg http.CookieConfig,
 ) *AuthModule {
 	tokenRepo := repository.NewTokenRepositoryRedis(redisClient, log, db, &util.RealClock{})
 	userRepository := userRepo.NewUserRepository(db, log)
@@ -59,6 +62,7 @@ func NewAuthModule(
 	authUseCase := usecase.NewAuthUsecase(
 		maxLoginAttempts,
 		lockoutDuration,
+		maxConcurrentSessions,
 		jwtManager,
 		tokenRepo,
 		userRepository,
@@ -70,8 +74,9 @@ func NewAuthModule(
 		taskDistributor,
 		ticketManager,
 		ssoProviders,
+		frontendBaseURL,
 	)
-	authController := http.NewAuthController(authUseCase, log, validate)
+	authController := http.NewAuthController(authUseCase, log, validate, cookieCfg)
 
 	return &AuthModule{
 		AuthController: authController,

@@ -18,8 +18,5 @@ type DashboardActivity struct {
 }
 
 type SystemInsights struct {
-	AvgLatencyMs   float64 `json:"avg_latency_ms"`
-	ErrorRate      float64 `json:"error_rate"`
-	Uptime         string  `json:"uptime"`
-	MostActiveRole string  `json:"most_active_role"`
+	MostActiveRole string `json:"most_active_role"`
 }

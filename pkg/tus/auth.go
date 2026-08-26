@@ -8,7 +8,11 @@ import (
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 )
 
-const authenticatedUserIDMetadataKey = "authenticated_user_id"
+const (
+	authenticatedUserIDMetadataKey = "authenticated_user_id"
+	metadataKeyUserID              = "user_id"
+	metadataKeyType                = "type"
+)
 
 func BindAuthenticatedMetadata(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 	userID, ok := authcontext.UserIDFromContext(hook.Context)
@@ -25,14 +29,14 @@ func BindAuthenticatedMetadata(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.Fil
 		meta[key] = value
 	}
 
-	meta["user_id"] = userID
+	meta[metadataKeyUserID] = userID
 	meta[authenticatedUserIDMetadataKey] = userID
 
 	return tusd.HTTPResponse{}, tusd.FileInfoChanges{MetaData: meta}, nil
 }
 
 func ValidateUploadMetadata(meta tusd.MetaData, registry *Registry) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
-	uploadType := meta["type"]
+	uploadType := meta[metadataKeyType]
 	if uploadType == "" {
 		return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusd.NewError(
 			"ERR_UPLOAD_TYPE_REQUIRED",

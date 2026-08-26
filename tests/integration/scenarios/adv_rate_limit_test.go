@@ -70,7 +70,7 @@ func TestScenario_AdvancedRateLimit_Tiers(t *testing.T) {
 		// Mock Auth Middleware
 		userID := c.GetHeader("X-User-ID")
 		if userID != "" {
-			c.Set("userID", userID)
+			c.Set("user_id", userID)
 		}
 		c.Next()
 	}, authLimiter, func(c *gin.Context) {

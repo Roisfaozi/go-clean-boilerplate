@@ -9,6 +9,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model/converter"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
@@ -42,16 +43,44 @@ func NewRoleUseCase(
 	}
 }
 
+var reservedRoleNames = map[string]bool{
+	"role:user":       true,
+	"role:admin":      true,
+	"role:superadmin": true,
+	"role:org-owner":  true,
+}
+
 func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequest) (*model.RoleResponse, error) {
+	orgID := database.GetOrganizationID(ctx)
+	var orgIDPtr *string
+	if orgID != "" {
+		orgIDPtr = &orgID
+	}
+	return uc.create(ctx, request, orgIDPtr)
+}
+
+func (uc *roleUseCase) CreateForOrganization(ctx context.Context, orgID string, request *model.CreateRoleRequest) (*model.RoleResponse, error) {
+	if orgID == "" {
+		return nil, exception.ErrBadRequest
+	}
+	return uc.create(ctx, request, &orgID)
+}
+
+func (uc *roleUseCase) create(ctx context.Context, request *model.CreateRoleRequest, orgID *string) (*model.RoleResponse, error) {
 	var response *model.RoleResponse
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
-		_, err := uc.RoleRepository.FindByName(txCtx, request.Name)
-		if err == nil {
-			uc.Log.WithContext(txCtx).Warnf("Role with name %s already exists", request.Name)
+		if reservedRoleNames[request.Name] {
+			uc.Log.WithContext(txCtx).Warnf("Attempt to create reserved role name %s blocked", request.Name)
+			return exception.ErrBadRequest
+		}
+
+		existing, err := uc.RoleRepository.FindByNameInScope(txCtx, request.Name, orgID)
+		if err == nil && existing != nil {
+			uc.Log.WithContext(txCtx).Warnf("Role with name %s already exists in scope", request.Name)
 			return exception.ErrConflict
 		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			uc.Log.WithContext(txCtx).Errorf("Failed to find role by name: %v", err)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			uc.Log.WithContext(txCtx).Errorf("Failed to find role by name in scope: %v", err)
 			return exception.ErrInternalServer
 		}
 
@@ -62,9 +91,10 @@ func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequ
 		}
 
 		newRole := &entity.Role{
-			ID:          newID.String(),
-			Name:        request.Name,
-			Description: request.Description,
+			ID:             newID.String(),
+			Name:           request.Name,
+			Description:    request.Description,
+			OrganizationID: orgID,
 		}
 
 		if err := uc.RoleRepository.Create(txCtx, newRole); err != nil {
@@ -77,6 +107,62 @@ func (uc *roleUseCase) Create(ctx context.Context, request *model.CreateRoleRequ
 	})
 
 	return response, err
+}
+
+func (uc *roleUseCase) GetOrganizationRoles(ctx context.Context, orgID string) ([]model.RoleResponse, error) {
+	if orgID == "" {
+		return nil, exception.ErrBadRequest
+	}
+
+	var roles []*entity.Role
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		var err error
+		roles, err = uc.RoleRepository.FindOrganizationRoles(txCtx, orgID)
+		if err != nil {
+			uc.Log.WithContext(txCtx).Errorf("Failed to get organization roles: %v", err)
+			return exception.ErrInternalServer
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return converter.RolesToResponse(roles), nil
+}
+
+func (uc *roleUseCase) DeleteForOrganization(ctx context.Context, orgID, roleID string) error {
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		role, err := uc.RoleRepository.FindOrganizationRoleByID(txCtx, orgID, roleID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return exception.ErrNotFound
+			}
+			return exception.ErrInternalServer
+		}
+
+		if err := uc.RoleRepository.DeleteInOrg(txCtx, orgID, roleID); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return exception.ErrNotFound
+			}
+			return exception.ErrInternalServer
+		}
+
+		return uc.PermissionUseCase.DeleteRoleInOrg(txCtx, role.Name, orgID)
+	})
+	if err != nil {
+		return err
+	}
+
+	if reloader, ok := uc.PermissionUseCase.(policyReloader); ok {
+		if err := reloader.ReloadPolicy(ctx); err != nil {
+			uc.Log.WithContext(ctx).Errorf("Failed to reload Casbin policy after role deletion: %v", err)
+			return exception.ErrInternalServer
+		}
+	}
+
+	return nil
 }
 
 func (uc *roleUseCase) Update(ctx context.Context, id string, request *model.UpdateRoleRequest) (*model.RoleResponse, error) {
@@ -96,6 +182,37 @@ func (uc *roleUseCase) Update(ctx context.Context, id string, request *model.Upd
 
 		if err := uc.RoleRepository.Update(txCtx, role); err != nil {
 			uc.Log.WithContext(txCtx).Errorf("Failed to update role: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		response = converter.RoleToResponse(role)
+		return nil
+	})
+
+	return response, err
+}
+
+func (uc *roleUseCase) UpdateForOrganization(ctx context.Context, orgID, roleID string, request *model.UpdateRoleRequest) (*model.RoleResponse, error) {
+	if orgID == "" || roleID == "" {
+		return nil, exception.ErrBadRequest
+	}
+
+	var response *model.RoleResponse
+	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		role, err := uc.RoleRepository.FindOrganizationRoleByID(txCtx, orgID, roleID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				uc.Log.WithContext(txCtx).Warnf("Role %s not found in organization %s for update", roleID, orgID)
+				return exception.ErrNotFound
+			}
+			uc.Log.WithContext(txCtx).Errorf("Failed to find organization role by id: %v", err)
+			return exception.ErrInternalServer
+		}
+
+		role.Description = request.Description
+
+		if err := uc.RoleRepository.Update(txCtx, role); err != nil {
+			uc.Log.WithContext(txCtx).Errorf("Failed to update organization role: %v", err)
 			return exception.ErrInternalServer
 		}
 
@@ -144,14 +261,24 @@ func (uc *roleUseCase) Delete(ctx context.Context, id string) error {
 		}
 
 		if err := uc.RoleRepository.Delete(txCtx, id); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return exception.ErrNotFound
+			}
 			uc.Log.WithContext(txCtx).Errorf("Failed to delete role: %v", err)
 			return exception.ErrInternalServer
 		}
 
 		// Clean up Casbin policies for this role
-		if err := uc.PermissionUseCase.DeleteRole(txCtx, role.Name); err != nil {
-			uc.Log.WithContext(txCtx).Errorf("Failed to clean up Casbin policies for role %s: %v", role.Name, err)
-			return exception.ErrInternalServer
+		if role.OrganizationID != nil && *role.OrganizationID != "" {
+			if err := uc.PermissionUseCase.DeleteRoleInOrg(txCtx, role.Name, *role.OrganizationID); err != nil {
+				uc.Log.WithContext(txCtx).Errorf("Failed to clean up Casbin policies for role %s in org %s: %v", role.Name, *role.OrganizationID, err)
+				return exception.ErrInternalServer
+			}
+		} else {
+			if err := uc.PermissionUseCase.DeleteRole(txCtx, role.Name); err != nil {
+				uc.Log.WithContext(txCtx).Errorf("Failed to clean up Casbin policies for role %s: %v", role.Name, err)
+				return exception.ErrInternalServer
+			}
 		}
 
 		return nil

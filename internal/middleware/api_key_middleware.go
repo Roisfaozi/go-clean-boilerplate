@@ -13,11 +13,18 @@ import (
 )
 
 const (
-	authMethodContextKey   = "auth_method"
-	authMethodAPIKey       = "api_key"
-	authMethodJWT          = "jwt"
-	apiKeyIDContextKey     = "api_key_id"
-	apiKeyScopesContextKey = "api_key_scopes"
+	authMethodContextKey     = "auth_method"
+	authMethodAPIKey         = "api_key"
+	authMethodJWT            = "jwt"
+	apiKeyIDContextKey       = "api_key_id"
+	apiKeyScopesContextKey   = "api_key_scopes"
+	apiKeyHeaderName         = "X-API-Key"
+	contextKeyUserID         = "user_id"
+	contextKeyOrganizationID = "organization_id"
+	contextKeyUsername       = "username"
+	contextKeySessionID      = "session_id"
+	contextKeyUserRole       = "user_role"
+	contextKeyMemberRole     = "member_role"
 )
 
 var apiKeyScopeResourceAliases = map[string]string{
@@ -40,7 +47,7 @@ func NewAPIKeyMiddleware(apiKeyUseCase apiKeyUsecase.ApiKeyUseCase, userRepo use
 
 func (m *APIKeyMiddleware) Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		apiKey := c.GetHeader("X-API-Key")
+		apiKey := c.GetHeader(apiKeyHeaderName)
 		if apiKey == "" {
 			c.Next() // Allow other auth methods (JWT) to handle it
 			return
@@ -55,9 +62,9 @@ func (m *APIKeyMiddleware) Authenticate() gin.HandlerFunc {
 		}
 
 		// Inject into context
-		c.Set("user_id", identity.UserID)
-		c.Set("organization_id", identity.OrganizationID)
-		c.Set("username", identity.Username)
+		c.Set(contextKeyUserID, identity.UserID)
+		c.Set(contextKeyOrganizationID, identity.OrganizationID)
+		c.Set(contextKeyUsername, identity.Username)
 		c.Set(authMethodContextKey, authMethodAPIKey)
 		c.Set(apiKeyIDContextKey, identity.ApiKeyID)
 		c.Set(apiKeyScopesContextKey, identity.Scopes)
@@ -94,7 +101,13 @@ func (m *APIKeyMiddleware) RequireScopeAuto() gin.HandlerFunc {
 
 		requiredScope, ok := requiredScopeFromRequest(c.Request.URL.Path, c.Request.Method)
 		if !ok {
-			c.Next()
+			m.Log.WithFields(logrus.Fields{
+				"path":   c.Request.URL.Path,
+				"method": c.Request.Method,
+			}).Warn("API Key scope enforcement failed: undeterminable required scope")
+
+			response.Forbidden(c, errors.New("api key scope required"), "forbidden")
+			c.Abort()
 			return
 		}
 

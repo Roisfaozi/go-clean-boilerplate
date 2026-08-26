@@ -12,39 +12,58 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 )
 
+type Config struct {
+	ServiceName  string
+	CollectorURL string
+	Insecure     bool
+	SampleRatio  float64
+}
+
 // InitTracer initializes the global tracer provider and returns a shutdown function.
-func InitTracer(serviceName, collectorURL string) (func(context.Context) error, error) {
+func InitTracer(cfg Config) (func(context.Context) error, error) {
 	ctx := context.Background()
 
 	// 1. Create Resource
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
-			semconv.ServiceNameKey.String(serviceName),
+			semconv.ServiceNameKey.String(cfg.ServiceName),
 		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
-	// 2. Setup OTLP gRPC exporter
-	// We don't block here to avoid app startup failure if Jaeger is down
-	traceExporter, err := otlptracegrpc.New(ctx,
-		otlptracegrpc.WithInsecure(),
-		otlptracegrpc.WithEndpoint(collectorURL),
-	)
+	// 2. Setup OTLP gRPC exporter options
+	opts := []otlptracegrpc.Option{
+		otlptracegrpc.WithEndpoint(cfg.CollectorURL),
+	}
+	if cfg.Insecure {
+		opts = append(opts, otlptracegrpc.WithInsecure())
+	}
+
+	traceExporter, err := otlptracegrpc.New(ctx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
 
-	// 3. Create Tracer Provider
+	// 3. Configure Sampler
+	ratio := cfg.SampleRatio
+	if ratio <= 0 {
+		ratio = 1.0
+	} else if ratio > 1.0 {
+		ratio = 1.0
+	}
+	sampler := sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))
+
+	// 4. Create Tracer Provider
 	bsp := sdktrace.NewBatchSpanProcessor(traceExporter)
 	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()), // In production, use a more conservative sampler
+		sdktrace.WithSampler(sampler),
 		sdktrace.WithResource(res),
 		sdktrace.WithSpanProcessor(bsp),
 	)
 
-	// 4. Set Global Objects
+	// 5. Set Global Objects
 	otel.SetTracerProvider(tracerProvider)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},

@@ -84,10 +84,12 @@ func (r *tokenRepositoryRedis) StoreToken(ctx context.Context, session *model.Au
 		return fmt.Errorf("failed to store session: %w", err)
 	}
 
-	if err := r.client.SAdd(ctx, r.getUserSessionIndexKey(session.UserID), key).Err(); err != nil {
+	indexKey := r.getUserSessionIndexKey(session.UserID)
+	if err := r.client.SAdd(ctx, indexKey, key).Err(); err != nil {
 		r.log.WithError(err).Error("Failed to index session in Redis")
 		return fmt.Errorf("failed to store session: %w", err)
 	}
+	_ = r.client.Expire(ctx, indexKey, 30*24*time.Hour).Err()
 
 	return nil
 }
@@ -163,6 +165,14 @@ func (r *tokenRepositoryRedis) GetUserSessions(ctx context.Context, userID strin
 	}
 
 	return sessions, nil
+}
+
+func (r *tokenRepositoryRedis) CountActiveSessions(ctx context.Context, userID string) (int, error) {
+	sessions, err := r.GetUserSessions(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	return len(sessions), nil
 }
 
 func (r *tokenRepositoryRedis) RevokeAllSessions(ctx context.Context, userID string) error {

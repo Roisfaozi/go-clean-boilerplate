@@ -40,11 +40,11 @@ func NewCleanupTaskHandler(
 func (h *CleanupTaskHandler) ProcessCleanupExpiredTokens(ctx context.Context, task *asynq.Task) error {
 	h.log.Info("Starting cleanup of expired reset tokens")
 	if err := h.authRepo.DeleteExpiredResetTokens(ctx); err != nil {
-		telemetry.CleanupTasksTotal.WithLabelValues("expired_tokens", "failed").Inc()
+		telemetry.CleanupTasksTotal.WithLabelValues(cleanupTaskLabelExpiredTokens, cleanupTaskStatusFailed).Inc()
 		h.log.WithError(err).Error("Failed to cleanup expired reset tokens")
 		return err
 	}
-	telemetry.CleanupTasksTotal.WithLabelValues("expired_tokens", "success").Inc()
+	telemetry.CleanupTasksTotal.WithLabelValues(cleanupTaskLabelExpiredTokens, cleanupTaskStatusSuccess).Inc()
 	h.log.Info("Completed cleanup of expired reset tokens")
 	return nil
 }
@@ -59,12 +59,12 @@ func (h *CleanupTaskHandler) ProcessCleanupSoftDeletedEntities(ctx context.Conte
 	h.log.Infof("Starting hard delete of users soft-deleted more than %d days ago", payload.RetentionDays)
 
 	if err := h.userRepo.HardDeleteSoftDeletedUsers(ctx, payload.RetentionDays); err != nil {
-		telemetry.CleanupTasksTotal.WithLabelValues("soft_deleted_entities", "failed").Inc()
+		telemetry.CleanupTasksTotal.WithLabelValues(cleanupTaskLabelSoftDeletedEntities, cleanupTaskStatusFailed).Inc()
 		h.log.WithError(err).Error("Failed to hard delete users")
 		return err
 	}
 
-	telemetry.CleanupTasksTotal.WithLabelValues("soft_deleted_entities", "success").Inc()
+	telemetry.CleanupTasksTotal.WithLabelValues(cleanupTaskLabelSoftDeletedEntities, cleanupTaskStatusSuccess).Inc()
 	h.log.Info("Completed hard delete of old users")
 	return nil
 }
@@ -82,12 +82,12 @@ func (h *CleanupTaskHandler) ProcessPruneAuditLogs(ctx context.Context, task *as
 	cutoff := time.Now().AddDate(0, 0, -payload.RetentionDays).UnixMilli()
 
 	if err := h.auditRepo.DeleteLogsOlderThan(ctx, cutoff); err != nil {
-		telemetry.CleanupTasksTotal.WithLabelValues("prune_audit_logs", "failed").Inc()
+		telemetry.CleanupTasksTotal.WithLabelValues(cleanupTaskLabelPruneAuditLogs, cleanupTaskStatusFailed).Inc()
 		h.log.WithError(err).Error("Failed to prune audit logs")
 		return err
 	}
 
-	telemetry.CleanupTasksTotal.WithLabelValues("prune_audit_logs", "success").Inc()
+	telemetry.CleanupTasksTotal.WithLabelValues(cleanupTaskLabelPruneAuditLogs, cleanupTaskStatusSuccess).Inc()
 	h.log.Info("Completed prune of audit logs")
 	return nil
 }

@@ -8,6 +8,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model/converter"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	permissionUseCase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	roleRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	pkgUtil "github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
@@ -16,12 +18,11 @@ import (
 )
 
 const (
-	// DefaultOwnerRoleID is the default role assigned to organization owners
-	DefaultOwnerRoleID = "role:org-owner"
-	adminRoleID        = "role:admin"
-	defaultUserRoleID  = "role:user"
-	globalDomain       = "global"
-	superAdminRoleID   = "role:superadmin"
+	DefaultOwnerRoleName = "role:org-owner"
+	adminRoleName        = "role:admin"
+	defaultUserRoleName  = "role:user"
+	globalDomain         = "global"
+	superAdminRoleName   = "role:superadmin"
 )
 
 type organizationUseCase struct {
@@ -31,6 +32,7 @@ type organizationUseCase struct {
 	MemberRepo repository.OrganizationMemberRepository
 	OrgReader  IOrganizationReader
 	Enforcer   permissionUseCase.IEnforcer
+	RoleRepo   roleRepository.RoleRepository
 }
 
 // NewOrganizationUseCase creates a new OrganizationUseCase instance
@@ -41,6 +43,7 @@ func NewOrganizationUseCase(
 	memberRepo repository.OrganizationMemberRepository,
 	orgReader IOrganizationReader,
 	enforcer permissionUseCase.IEnforcer,
+	roleRepo roleRepository.RoleRepository,
 ) OrganizationUseCase {
 	return &organizationUseCase{
 		Log:        log,
@@ -49,6 +52,7 @@ func NewOrganizationUseCase(
 		MemberRepo: memberRepo,
 		OrgReader:  orgReader,
 		Enforcer:   enforcer,
+		RoleRepo:   roleRepo,
 	}
 }
 
@@ -57,6 +61,16 @@ func (uc *organizationUseCase) CreateOrganization(ctx context.Context, userID st
 	var response *model.OrganizationResponse
 
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if request.Slug == "" {
+			request.Slug = pkgUtil.Slugify(request.Name)
+		}
+
+		ownerRole, err := uc.RoleRepo.FindByName(txCtx, DefaultOwnerRoleName)
+		if err != nil || ownerRole == nil {
+			uc.Log.WithContext(txCtx).Errorf("Failed to find owner role: %v", err)
+			return exception.ErrInternalServer
+		}
+
 		// Check if slug is already taken
 		exists, err := uc.OrgRepo.SlugExists(txCtx, request.Slug)
 		if err != nil {
@@ -85,7 +99,7 @@ func (uc *organizationUseCase) CreateOrganization(ctx context.Context, userID st
 		}
 
 		// Atomic create (org + owner member)
-		if err := uc.OrgRepo.Create(txCtx, org, DefaultOwnerRoleID); err != nil {
+		if err := uc.OrgRepo.Create(txCtx, org, ownerRole.ID); err != nil {
 			uc.Log.WithContext(txCtx).Errorf("Failed to create organization: %v", err)
 			return exception.ErrInternalServer
 		}
@@ -98,7 +112,7 @@ func (uc *organizationUseCase) CreateOrganization(ctx context.Context, userID st
 				return exception.ErrInternalServer
 			}
 
-			if _, err := enf.AddGroupingPolicy(userID, DefaultOwnerRoleID, org.ID); err != nil {
+			if _, err := enf.AddGroupingPolicy(userID, ownerRole.Name, org.ID); err != nil {
 				uc.Log.WithContext(txCtx).Errorf("Failed to add Casbin grouping policy: %v", err)
 				return exception.ErrInternalServer
 			}
@@ -118,7 +132,7 @@ func (uc *organizationUseCase) CreateOrganization(ctx context.Context, userID st
 }
 
 func (uc *organizationUseCase) bootstrapOrganizationPolicies(enf permissionUseCase.IEnforcer, orgID string) error {
-	defaultRoles := []string{adminRoleID, defaultUserRoleID}
+	defaultRoles := []string{adminRoleName, defaultUserRoleName}
 
 	for _, roleID := range defaultRoles {
 		policies, err := enf.GetFilteredPolicy(0, roleID, globalDomain)
@@ -137,7 +151,7 @@ func (uc *organizationUseCase) bootstrapOrganizationPolicies(enf permissionUseCa
 		}
 	}
 
-	if _, err := enf.AddGroupingPolicy(DefaultOwnerRoleID, adminRoleID, orgID); err != nil {
+	if _, err := enf.AddGroupingPolicy(DefaultOwnerRoleName, adminRoleName, orgID); err != nil {
 		return err
 	}
 
@@ -231,13 +245,13 @@ func (uc *organizationUseCase) authorizeOrganizationManagement(ctx context.Conte
 		return nil, exception.ErrForbidden
 	}
 
-	roleID, err := uc.MemberRepo.GetMemberRole(ctx, orgID, actorUserID)
+	roleName, err := uc.MemberRepo.GetMemberRoleName(ctx, orgID, actorUserID)
 	if err != nil {
 		uc.Log.WithContext(ctx).Errorf("Failed to get actor organization role: %v", err)
 		return nil, exception.ErrInternalServer
 	}
 
-	if roleID != adminRoleID && roleID != DefaultOwnerRoleID {
+	if roleName != adminRoleName && roleName != DefaultOwnerRoleName {
 		return nil, exception.ErrForbidden
 	}
 
@@ -299,7 +313,7 @@ func (uc *organizationUseCase) DeleteOrganization(ctx context.Context, id string
 // RestoreOrganization restores a soft-deleted organization.
 func (uc *organizationUseCase) RestoreOrganization(ctx context.Context, id string) (*model.OrganizationResponse, error) {
 	role, ok := actorRoleFromContext(ctx)
-	if !ok || role != superAdminRoleID {
+	if !ok || role != superAdminRoleName {
 		return nil, exception.ErrForbidden
 	}
 
@@ -313,7 +327,8 @@ func (uc *organizationUseCase) RestoreOrganization(ctx context.Context, id strin
 			return exception.ErrInternalServer
 		}
 		if org == nil {
-			return exception.ErrNotFound
+			response = nil
+			return nil
 		}
 
 		if org.DeletedAt == 0 {
@@ -346,7 +361,7 @@ func (uc *organizationUseCase) RestoreOrganization(ctx context.Context, id strin
 // HardDeleteOrganization permanently deletes an already soft-deleted organization.
 func (uc *organizationUseCase) HardDeleteOrganization(ctx context.Context, id string) error {
 	role, ok := actorRoleFromContext(ctx)
-	if !ok || role != superAdminRoleID {
+	if !ok || role != superAdminRoleName {
 		return exception.ErrForbidden
 	}
 
@@ -358,7 +373,7 @@ func (uc *organizationUseCase) HardDeleteOrganization(ctx context.Context, id st
 			return exception.ErrInternalServer
 		}
 		if org == nil {
-			return exception.ErrNotFound
+			return nil
 		}
 		if org.DeletedAt == 0 {
 			return exception.ErrBadRequest

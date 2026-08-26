@@ -27,7 +27,7 @@ func TestCasbinAdapter_AssignDefaultRole(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		deps, adapter := setupCasbinAdapterTest()
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("AddGroupingPolicy", []interface{}{"user-1", "role:user", "global"}).Return(true, nil)
+		deps.Enforcer.On("AddGroupingPolicy", "user-1", "role:user", "global").Return(true, nil)
 
 		err := adapter.AssignDefaultRole(context.Background(), "user-1")
 
@@ -38,7 +38,7 @@ func TestCasbinAdapter_AssignDefaultRole(t *testing.T) {
 	t.Run("error", func(t *testing.T) {
 		deps, adapter := setupCasbinAdapterTest()
 		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer)
-		deps.Enforcer.On("AddGroupingPolicy", []interface{}{"user-1", "role:user", "global"}).Return(false, errors.New("db error"))
+		deps.Enforcer.On("AddGroupingPolicy", "user-1", "role:user", "global").Return(false, errors.New("db error"))
 
 		err := adapter.AssignDefaultRole(context.Background(), "user-1")
 
@@ -58,7 +58,7 @@ func TestCasbinAdapter_AssignDefaultRole(t *testing.T) {
 func TestCasbinAdapter_GetRolesForUser(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		deps, adapter := setupCasbinAdapterTest()
-		deps.Enforcer.On("GetRolesForUser", "user-1", []string{"global"}).Return([]string{"role:admin", "role:user"}, nil)
+		deps.Enforcer.On("GetRolesForUser", "user-1", "global").Return([]string{"role:admin", "role:user"}, nil)
 
 		roles, err := adapter.GetRolesForUser(context.Background(), "user-1", "")
 
@@ -69,7 +69,7 @@ func TestCasbinAdapter_GetRolesForUser(t *testing.T) {
 
 	t.Run("with domain", func(t *testing.T) {
 		deps, adapter := setupCasbinAdapterTest()
-		deps.Enforcer.On("GetRolesForUser", "user-1", []string{"custom_domain"}).Return([]string{"role:custom"}, nil)
+		deps.Enforcer.On("GetRolesForUser", "user-1", "custom_domain").Return([]string{"role:custom"}, nil)
 
 		roles, err := adapter.GetRolesForUser(context.Background(), "user-1", "custom_domain")
 
@@ -80,7 +80,7 @@ func TestCasbinAdapter_GetRolesForUser(t *testing.T) {
 
 	t.Run("error", func(t *testing.T) {
 		deps, adapter := setupCasbinAdapterTest()
-		deps.Enforcer.On("GetRolesForUser", "user-1", []string{"global"}).Return(nil, errors.New("enforcer error"))
+		deps.Enforcer.On("GetRolesForUser", "user-1", "global").Return(nil, errors.New("enforcer error"))
 
 		roles, err := adapter.GetRolesForUser(context.Background(), "user-1", "")
 

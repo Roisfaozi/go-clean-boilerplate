@@ -13,6 +13,7 @@ const withSerwist = withSerwistInit({
  */
 const nextConfig = {
   trailingSlash: true,
+  transpilePackages: ["@casbin/ui", "@casbin/hooks", "@casbin/utils"],
   // Required for Next.js 16+ when webpack config is added by plugins like @serwist/next
   turbopack: {},
 };

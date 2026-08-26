@@ -5,7 +5,9 @@ import (
 	"errors"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
+	txpkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // organizationMemberRepository implements OrganizationMemberRepository interface.
@@ -18,10 +20,17 @@ func NewOrganizationMemberRepository(db *gorm.DB) OrganizationMemberRepository {
 	return &organizationMemberRepository{db: db}
 }
 
+func (r *organizationMemberRepository) getDB(ctx context.Context) *gorm.DB {
+	if txDB, ok := txpkg.DBFromContext(ctx); ok {
+		return txDB.WithContext(ctx)
+	}
+	return r.db.WithContext(ctx)
+}
+
 // CheckMembership verifies if a user is an active member of an organization.
 func (r *organizationMemberRepository) CheckMembership(ctx context.Context, orgID, userID string) (bool, error) {
 	var count int64
-	err := r.db.WithContext(ctx).
+	err := r.getDB(ctx).
 		Model(&entity.OrganizationMember{}).
 		Where("organization_id = ? AND user_id = ? AND status = ?", orgID, userID, entity.MemberStatusActive).
 		Count(&count).Error
@@ -34,7 +43,7 @@ func (r *organizationMemberRepository) CheckMembership(ctx context.Context, orgI
 // GetMemberStatus returns the membership status of a user in an organization.
 func (r *organizationMemberRepository) GetMemberStatus(ctx context.Context, orgID, userID string) (string, error) {
 	var member entity.OrganizationMember
-	err := r.db.WithContext(ctx).
+	err := r.getDB(ctx).
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		First(&member).Error
 	if err != nil {
@@ -48,19 +57,20 @@ func (r *organizationMemberRepository) GetMemberStatus(ctx context.Context, orgI
 
 // AddMember adds a user to an organization with a specific role.
 func (r *organizationMemberRepository) AddMember(ctx context.Context, member *entity.OrganizationMember) error {
-	return r.db.WithContext(ctx).Create(member).Error
+	return r.getDB(ctx).Create(member).Error
 }
 
 // RemoveMember removes a user from an organization.
 func (r *organizationMemberRepository) RemoveMember(ctx context.Context, orgID, userID string) error {
-	return r.db.WithContext(ctx).
+	return r.getDB(ctx).
+		Unscoped().
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		Delete(&entity.OrganizationMember{}).Error
 }
 
 // UpdateMemberRole updates a member's role in an organization.
 func (r *organizationMemberRepository) UpdateMemberRole(ctx context.Context, orgID, userID, roleID string) error {
-	return r.db.WithContext(ctx).
+	return r.getDB(ctx).
 		Model(&entity.OrganizationMember{}).
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		Update("role_id", roleID).Error
@@ -68,7 +78,7 @@ func (r *organizationMemberRepository) UpdateMemberRole(ctx context.Context, org
 
 // UpdateMemberStatus updates a member's status (active, suspended, banned).
 func (r *organizationMemberRepository) UpdateMemberStatus(ctx context.Context, orgID, userID, status string) error {
-	return r.db.WithContext(ctx).
+	return r.getDB(ctx).
 		Model(&entity.OrganizationMember{}).
 		Where("organization_id = ? AND user_id = ?", orgID, userID).
 		Update("status", status).Error
@@ -77,7 +87,7 @@ func (r *organizationMemberRepository) UpdateMemberStatus(ctx context.Context, o
 // FindMembers finds all members of an organization.
 func (r *organizationMemberRepository) FindMembers(ctx context.Context, orgID string) ([]*entity.OrganizationMember, error) {
 	var members []*entity.OrganizationMember
-	err := r.db.WithContext(ctx).
+	err := r.getDB(ctx).
 		Preload("User").
 		Preload("Role").
 		Where("organization_id = ?", orgID).
@@ -91,7 +101,7 @@ func (r *organizationMemberRepository) FindMembers(ctx context.Context, orgID st
 // GetMemberRole returns the role of a user in an organization.
 func (r *organizationMemberRepository) GetMemberRole(ctx context.Context, orgID, userID string) (string, error) {
 	var member entity.OrganizationMember
-	err := r.db.WithContext(ctx).
+	err := r.getDB(ctx).
 		Select("role_id").
 		Where("organization_id = ? AND user_id = ? AND status = ?", orgID, userID, entity.MemberStatusActive).
 		First(&member).Error
@@ -100,4 +110,37 @@ func (r *organizationMemberRepository) GetMemberRole(ctx context.Context, orgID,
 		return "", err
 	}
 	return member.RoleID, nil
+}
+
+// FindMemberForUpdate finds a member with FOR UPDATE lock.
+func (r *organizationMemberRepository) FindMemberForUpdate(ctx context.Context, orgID, userID string) (*entity.OrganizationMember, error) {
+	var member entity.OrganizationMember
+	err := r.getDB(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("organization_id = ? AND user_id = ?", orgID, userID).
+		First(&member).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &member, nil
+}
+
+// GetMemberRoleName resolves and returns the role name of a member.
+func (r *organizationMemberRepository) GetMemberRoleName(ctx context.Context, orgID, userID string) (string, error) {
+	var roleName string
+	err := r.getDB(ctx).
+		Table("organization_members").
+		Select("roles.name").
+		Joins("JOIN roles ON organization_members.role_id = roles.id").
+		Where("organization_members.organization_id = ? AND organization_members.user_id = ?", orgID, userID).
+		Row().
+		Scan(&roleName)
+
+	if err != nil {
+		return "", err
+	}
+	return roleName, nil
 }

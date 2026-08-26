@@ -18,8 +18,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func setupAuditHandlerTest() (*mocks.MockAuditUseCase, *handlers.AuditTaskHandler) {
-	uc := new(mocks.MockAuditUseCase)
+func setupAuditHandlerTest(t *testing.T) (*mocks.MockAuditUseCase, *handlers.AuditTaskHandler) {
+	uc := mocks.NewMockAuditUseCase(t)
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
 	handler := handlers.NewAuditTaskHandler(logger, uc)
@@ -28,7 +28,7 @@ func setupAuditHandlerTest() (*mocks.MockAuditUseCase, *handlers.AuditTaskHandle
 
 func TestAuditTaskHandler_ProcessTaskAuditLog(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		uc, handler := setupAuditHandlerTest()
+		uc, handler := setupAuditHandlerTest(t)
 
 		payload := auditModel.CreateAuditLogRequest{
 			UserID: "user123",
@@ -45,7 +45,7 @@ func TestAuditTaskHandler_ProcessTaskAuditLog(t *testing.T) {
 	})
 
 	t.Run("Invalid Payload", func(t *testing.T) {
-		_, handler := setupAuditHandlerTest()
+		_, handler := setupAuditHandlerTest(t)
 		task := asynq.NewTask(tasks.TypeAuditLogCreate, []byte("invalid json"))
 
 		err := handler.ProcessTaskAuditLog(context.Background(), task)
@@ -54,7 +54,7 @@ func TestAuditTaskHandler_ProcessTaskAuditLog(t *testing.T) {
 	})
 
 	t.Run("UseCase Error", func(t *testing.T) {
-		uc, handler := setupAuditHandlerTest()
+		uc, handler := setupAuditHandlerTest(t)
 
 		payload := auditModel.CreateAuditLogRequest{
 			UserID: "user123",
@@ -78,7 +78,7 @@ func TestAuditTaskHandler_ProcessTaskAuditLogExport(t *testing.T) {
 	defer func() { _ = os.RemoveAll("exports") }()
 
 	t.Run("Success", func(t *testing.T) {
-		uc, handler := setupAuditHandlerTest()
+		uc, handler := setupAuditHandlerTest(t)
 
 		payload := auditModel.AuditLogExportPayload{
 			UserID:         "user123",
@@ -109,7 +109,7 @@ func TestAuditTaskHandler_ProcessTaskAuditLogExport(t *testing.T) {
 	})
 
 	t.Run("Invalid Payload", func(t *testing.T) {
-		_, handler := setupAuditHandlerTest()
+		_, handler := setupAuditHandlerTest(t)
 		task := asynq.NewTask(tasks.TypeAuditLogExport, []byte("invalid json"))
 
 		err := handler.ProcessTaskAuditLogExport(context.Background(), task)
@@ -118,7 +118,7 @@ func TestAuditTaskHandler_ProcessTaskAuditLogExport(t *testing.T) {
 	})
 
 	t.Run("UseCase Error", func(t *testing.T) {
-		uc, handler := setupAuditHandlerTest()
+		uc, handler := setupAuditHandlerTest(t)
 
 		payload := auditModel.AuditLogExportPayload{
 			UserID:   "user123",
@@ -138,10 +138,10 @@ func TestAuditTaskHandler_ProcessTaskAuditLogExport(t *testing.T) {
 	})
 
 	t.Run("Process Callback Error", func(t *testing.T) {
-		uc, handler := setupAuditHandlerTest()
+		uc, handler := setupAuditHandlerTest(t)
 
 		payload := auditModel.AuditLogExportPayload{
-			UserID:   "user123",
+			UserID: "user123",
 		}
 		b, _ := json.Marshal(payload)
 		task := asynq.NewTask(tasks.TypeAuditLogExport, b)

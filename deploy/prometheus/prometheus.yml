@@ -6,5 +6,9 @@ scrape_configs:
   - job_name: "go-clean-api"
     static_configs:
       - targets: ["api:8080"] # 'api' is the container name in docker-compose
+    # If metrics authentication is enabled on backend (METRICS_AUTH_ENABLED=true):
+    # basic_auth:
+    #   username: "prometheus"
+    #   password: "change_me_to_a_strong_password"
     # If running outside docker (via make run), use your host IP or 'host.docker.internal'
     # - targets: ["host.docker.internal:8080"]

@@ -85,6 +85,7 @@ If yes, mention it explicitly in verification and final handoff.
 - bypassing tx/context propagation
 - editing global app config when module-local fix is enough
 - forgetting shared package owner under `pkg/*`
+- creating manual hand-written mocks instead of using mockery (`NewMockX(t)`); always run `make mocks` when interfaces change
 
 ## Verification
 

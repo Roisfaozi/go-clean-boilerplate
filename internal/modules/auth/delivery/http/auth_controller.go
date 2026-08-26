@@ -5,6 +5,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"strings"
+
+	"github.com/google/uuid"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
@@ -18,18 +21,88 @@ import (
 
 const ssoStateCookieName = "sso_state"
 
+type CookieConfig struct {
+	Domain   string
+	SameSite string
+	Secure   *bool
+}
+
 type AuthController struct {
 	AuthUseCase usecase.AuthUseCase
 	log         *logrus.Logger
 	validate    *validator.Validate
+	cookieCfg   CookieConfig
 }
 
-func NewAuthController(useCase usecase.AuthUseCase, log *logrus.Logger, validate *validator.Validate) *AuthController {
+func NewAuthController(useCase usecase.AuthUseCase, log *logrus.Logger, validate *validator.Validate, cookieCfg CookieConfig) *AuthController {
 	return &AuthController{
 		AuthUseCase: useCase,
 		log:         log,
 		validate:    validate,
+		cookieCfg:   cookieCfg,
 	}
+}
+
+func (h *AuthController) resolveSecure(c *gin.Context) bool {
+	if h.cookieCfg.Secure != nil {
+		return *h.cookieCfg.Secure
+	}
+	return c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https"
+}
+
+func (h *AuthController) sameSite() http.SameSite {
+	switch strings.ToLower(h.cookieCfg.SameSite) {
+	case "none":
+		return http.SameSiteNoneMode
+	case "strict":
+		return http.SameSiteStrictMode
+	default:
+		return http.SameSiteLaxMode
+	}
+}
+
+func (h *AuthController) setAuthCookie(c *gin.Context, name, value string, maxAge int) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     "/",
+		Domain:   h.cookieCfg.Domain,
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		Secure:   h.resolveSecure(c),
+		SameSite: h.sameSite(),
+	})
+}
+
+func (h *AuthController) setCsrfCookie(c *gin.Context, maxAge int) {
+	csrfToken := uuid.NewString()
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "csrf_token",
+		Value:    csrfToken,
+		Path:     "/",
+		Domain:   h.cookieCfg.Domain,
+		MaxAge:   maxAge,
+		HttpOnly: false,
+		Secure:   h.resolveSecure(c),
+		SameSite: h.sameSite(),
+	})
+}
+
+func (h *AuthController) clearCsrfCookie(c *gin.Context) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "csrf_token",
+		Value:    "",
+		Path:     "/",
+		Domain:   h.cookieCfg.Domain,
+		MaxAge:   -1,
+		HttpOnly: false,
+		Secure:   h.resolveSecure(c),
+		SameSite: h.sameSite(),
+	})
+}
+
+func (h *AuthController) clearAuthCookie(c *gin.Context, name string) {
+	h.setAuthCookie(c, name, "", -1)
 }
 
 // Login godoc
@@ -71,9 +144,10 @@ func (h *AuthController) Login(c *gin.Context) {
 	}
 
 	// Set refresh token in HttpOnly cookie
-	c.SetCookie("refresh_token", refreshToken, 3600*24*30, "/", "", false, true)
+	h.setAuthCookie(c, "refresh_token", refreshToken, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 	// Set access token in HttpOnly cookie (short lived)
-	c.SetCookie("access_token", res.AccessToken, int(res.ExpiresIn), "/", "", false, true)
+	h.setAuthCookie(c, "access_token", res.AccessToken, int(res.ExpiresIn))
+	h.setCsrfCookie(c, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 
 	response.Success(c, res)
 }
@@ -102,8 +176,9 @@ func (h *AuthController) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("refresh_token", newRefreshToken, 3600*24*30, "/", "", false, true)
-	c.SetCookie("access_token", res.AccessToken, int(res.ExpiresIn), "/", "", false, true)
+	h.setAuthCookie(c, "refresh_token", newRefreshToken, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
+	h.setAuthCookie(c, "access_token", res.AccessToken, int(res.ExpiresIn))
+	h.setCsrfCookie(c, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 	response.Success(c, res)
 }
 
@@ -133,8 +208,9 @@ func (h *AuthController) Logout(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
-	c.SetCookie("access_token", "", -1, "/", "", false, true)
+	h.clearAuthCookie(c, "refresh_token")
+	h.clearAuthCookie(c, "access_token")
+	h.clearCsrfCookie(c)
 	response.Success(c, gin.H{"message": "logged out successfully"})
 }
 
@@ -308,8 +384,9 @@ func (h *AuthController) Register(c *gin.Context) {
 	}
 
 	// Set refresh token in HttpOnly cookie
-	c.SetCookie("refresh_token", refreshToken, 3600*24*30, "/", "", false, true)
-	c.SetCookie("access_token", res.AccessToken, int(res.ExpiresIn), "/", "", false, true)
+	h.setAuthCookie(c, "refresh_token", refreshToken, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
+	h.setAuthCookie(c, "access_token", res.AccessToken, int(res.ExpiresIn))
+	h.setCsrfCookie(c, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 
 	response.Created(c, res)
 }
@@ -494,8 +571,9 @@ func (ac *AuthController) SSOCallback(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("refresh_token", refreshToken, 3600*24*30, "/", "", false, true) // 30 days, HttpOnly
-	c.SetCookie("access_token", res.AccessToken, int(res.ExpiresIn), "/", "", false, true)
+	ac.setAuthCookie(c, "refresh_token", refreshToken, int(ac.AuthUseCase.GetRefreshTokenDuration().Seconds()))
+	ac.setAuthCookie(c, "access_token", res.AccessToken, int(res.ExpiresIn))
+	ac.setCsrfCookie(c, int(ac.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 
 	response.Success(c, res)
 }

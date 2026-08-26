@@ -457,20 +457,20 @@ export default function PermissionsPage() {
 					<TabsList className="bg-muted/50 p-1">
 						<TabsTrigger
 							value="matrix"
-							className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
+							className="data-active:bg-white data-active:shadow-sm"
 						>
 							<Key className="text-primary mr-2 h-4 w-4" /> Matrix View
 						</TabsTrigger>
 						<TabsTrigger
 							value="inheritance"
-							className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
+							className="data-active:bg-white data-active:shadow-sm"
 						>
 							<GitBranch className="text-primary mr-2 h-4 w-4" /> Role
 							Inheritance
 						</TabsTrigger>
 						<TabsTrigger
 							value="list"
-							className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
+							className="data-active:bg-white data-active:shadow-sm"
 						>
 							<Shield className="text-primary mr-2 h-4 w-4" /> List View
 						</TabsTrigger>

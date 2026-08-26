@@ -174,6 +174,7 @@ func TestLinkEndpointToAccessRight(t *testing.T) {
 		ctx := context.Background()
 
 		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
+		deps.Repo.On("GetAccessRightByID", ctx, req.AccessRightID).Return(&entity.AccessRight{ID: req.AccessRightID}, nil).Once()
 		deps.Repo.On("LinkEndpointToAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(nil).Once()
 		err := uc.LinkEndpointToAccessRight(ctx, req)
 		assert.NoError(t, err)
@@ -186,6 +187,7 @@ func TestLinkEndpointToAccessRight(t *testing.T) {
 
 		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
 		repoErr := errors.New("db error")
+		deps.Repo.On("GetAccessRightByID", ctx, req.AccessRightID).Return(&entity.AccessRight{ID: req.AccessRightID}, nil).Once()
 		deps.Repo.On("LinkEndpointToAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(repoErr).Once()
 
 		err := uc.LinkEndpointToAccessRight(ctx, req)
@@ -198,26 +200,44 @@ func TestLinkEndpointToAccessRight(t *testing.T) {
 func TestDeleteAccessRight(t *testing.T) {
 	id := "1"
 
-	t.Run("Success - Delete Access Right", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+	tests := []struct {
+		name         string
+		findResult   *entity.AccessRight
+		findErr      error
+		expectDelete bool
+		expectedErr  error
+	}{
+		{
+			name:         "Success - Delete Access Right",
+			findResult:   &entity.AccessRight{ID: id},
+			expectDelete: true,
+		},
+		{
+			name:        "Error - Not Found",
+			findErr:     gorm.ErrRecordNotFound,
+			expectedErr: exception.ErrNotFound,
+		},
+	}
 
-		deps.Repo.On("GetAccessRightByID", ctx, id).Return(&entity.AccessRight{ID: id}, nil).Once()
-		deps.Repo.On("DeleteAccessRight", ctx, id).Return(nil).Once()
-		err := uc.DeleteAccessRight(ctx, id)
-		assert.NoError(t, err)
-		deps.Repo.AssertExpectations(t)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			deps, uc := setupAccessTest()
+			ctx := context.Background()
 
-	t.Run("Error - Not Found", func(t *testing.T) {
-		deps, uc := setupAccessTest()
-		ctx := context.Background()
+			deps.Repo.On("GetAccessRightByID", ctx, id).Return(tt.findResult, tt.findErr).Once()
+			if tt.expectDelete {
+				deps.Repo.On("DeleteAccessRight", ctx, id).Return(nil).Once()
+			}
 
-		deps.Repo.On("GetAccessRightByID", ctx, id).Return(nil, gorm.ErrRecordNotFound).Once()
-		err := uc.DeleteAccessRight(ctx, id)
-		assert.ErrorIs(t, err, exception.ErrNotFound)
-		deps.Repo.AssertExpectations(t)
-	})
+			err := uc.DeleteAccessRight(ctx, id)
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+			deps.Repo.AssertExpectations(t)
+		})
+	}
 }
 
 func TestDeleteEndpoint(t *testing.T) {
@@ -227,19 +247,20 @@ func TestDeleteEndpoint(t *testing.T) {
 		deps, uc := setupAccessTest()
 		ctx := context.Background()
 
+		deps.Repo.On("GetEndpointByID", ctx, id).Return(&entity.Endpoint{ID: id}, nil).Once()
 		deps.Repo.On("DeleteEndpoint", ctx, id).Return(nil).Once()
 		err := uc.DeleteEndpoint(ctx, id)
 		assert.NoError(t, err)
 		deps.Repo.AssertExpectations(t)
 	})
 
-	t.Run("Error - Not Found (GORM delete behavior)", func(t *testing.T) {
+	t.Run("No-op - Not Found (GORM delete behavior)", func(t *testing.T) {
 		deps, uc := setupAccessTest()
 		ctx := context.Background()
 
-		deps.Repo.On("DeleteEndpoint", ctx, id).Return(gorm.ErrRecordNotFound).Once()
+		deps.Repo.On("GetEndpointByID", ctx, id).Return(nil, gorm.ErrRecordNotFound).Once()
 		err := uc.DeleteEndpoint(ctx, id)
-		assert.ErrorIs(t, err, exception.ErrNotFound)
+		assert.NoError(t, err)
 		deps.Repo.AssertExpectations(t)
 	})
 }
@@ -410,13 +431,17 @@ func TestLinkEndpointToAccessRight_Duplicate(t *testing.T) {
 	}
 
 	// Case: Duplicate link
-	deps.Repo.On("LinkEndpointToAccessRight", mock.Anything, req.AccessRightID, req.EndpointID).
-		Return(errors.New("duplicate entry")) // Simulate DB error
+	deps.Repo.On("GetAccessRightByID", mock.Anything, req.AccessRightID).Return(&entity.AccessRight{
+		ID: req.AccessRightID,
+		Endpoints: []entity.Endpoint{
+			{ID: req.EndpointID},
+		},
+	}, nil)
 
 	err := uc.LinkEndpointToAccessRight(context.Background(), req)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "duplicate")
+	assert.Equal(t, "endpoint already linked to access right", err.Error())
 }
 
 func TestUnlinkEndpointFromAccessRight(t *testing.T) {
@@ -425,6 +450,7 @@ func TestUnlinkEndpointFromAccessRight(t *testing.T) {
 		ctx := context.Background()
 
 		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
+		deps.Repo.On("GetAccessRightByID", ctx, req.AccessRightID).Return(&entity.AccessRight{ID: req.AccessRightID, Endpoints: []entity.Endpoint{{ID: req.EndpointID}}}, nil).Once()
 		deps.Repo.On("UnlinkEndpointFromAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(nil).Once()
 		err := uc.UnlinkEndpointFromAccessRight(ctx, req)
 		assert.NoError(t, err)
@@ -437,11 +463,25 @@ func TestUnlinkEndpointFromAccessRight(t *testing.T) {
 
 		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
 		repoErr := errors.New("db error")
+		deps.Repo.On("GetAccessRightByID", ctx, req.AccessRightID).Return(&entity.AccessRight{ID: req.AccessRightID, Endpoints: []entity.Endpoint{{ID: req.EndpointID}}}, nil).Once()
 		deps.Repo.On("UnlinkEndpointFromAccessRight", ctx, req.AccessRightID, req.EndpointID).Return(repoErr).Once()
 
 		err := uc.UnlinkEndpointFromAccessRight(ctx, req)
 		assert.Error(t, err)
 		assert.Equal(t, repoErr, err)
+		deps.Repo.AssertExpectations(t)
+	})
+
+	t.Run("Noop - Already Unlinked", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		req := model.LinkEndpointRequest{AccessRightID: "1", EndpointID: "2"}
+		deps.Repo.On("GetAccessRightByID", ctx, req.AccessRightID).Return(&entity.AccessRight{ID: req.AccessRightID}, nil).Once()
+
+		err := uc.UnlinkEndpointFromAccessRight(ctx, req)
+		assert.Error(t, err)
+		assert.Equal(t, "endpoint already unlinked from access right", err.Error())
 		deps.Repo.AssertExpectations(t)
 	})
 }

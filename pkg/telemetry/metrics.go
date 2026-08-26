@@ -47,4 +47,22 @@ var (
 		},
 		[]string{"task_type", "status"},
 	)
+
+	// Worker Task metrics
+	WorkerTasksTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "app_worker_tasks_total",
+			Help: "Total number of background worker tasks processed",
+		},
+		[]string{"task_type", "status"},
+	)
+
+	WorkerTaskDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "app_worker_task_duration_seconds",
+			Help:    "Duration of background worker task processing in seconds",
+			Buckets: []float64{.01, .05, .1, .25, .5, 1, 2.5, 5, 10, 30, 60},
+		},
+		[]string{"task_type", "status"},
+	)
 )

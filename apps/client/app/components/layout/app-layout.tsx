@@ -9,22 +9,22 @@ import { UploadDuplicateDialog } from "@/components/upload/upload-duplicate-dial
 import { useUploadSideEffects } from "@/lib/upload/use-upload-side-effects";
 
 export function AppLayout() {
-  useRealtimeInit();
-  useUploadSideEffects();
+	useRealtimeInit();
+	useUploadSideEffects();
 
-  return (
-    <div className="bg-background flex min-h-screen w-full">
-      <AppSidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <AppNavbar />
-        <main className="animate-fade-in flex-1 overflow-auto p-6">
-          <AppBreadcrumb />
-          <Outlet />
-        </main>
-      </div>
-      <AppCommandPalette />
-      <UploadManager />
-      <UploadDuplicateDialog />
-    </div>
-  );
+	return (
+		<div className="bg-background flex min-h-screen w-full">
+			<AppSidebar />
+			<div className="flex min-w-0 flex-1 flex-col">
+				<AppNavbar />
+				<main className="animate-fade-in flex-1 overflow-auto p-6">
+					<AppBreadcrumb />
+					<Outlet />
+				</main>
+			</div>
+			<AppCommandPalette />
+			<UploadManager />
+			<UploadDuplicateDialog />
+		</div>
+	);
 }

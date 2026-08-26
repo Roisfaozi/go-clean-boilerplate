@@ -266,6 +266,7 @@ func TestProjectUseCase_Delete_Success(t *testing.T) {
 	deps, uc := setupProjectTest()
 	ctx := context.Background()
 
+	deps.Repo.On("GetByID", ctx, "p1").Return(&entity.Project{ID: "p1"}, nil).Once()
 	deps.Repo.On("Delete", ctx, "p1").Return(nil).Once()
 
 	err := uc.DeleteProject(ctx, "p1")
@@ -279,11 +280,24 @@ func TestProjectUseCase_Delete_RepositoryError(t *testing.T) {
 	ctx := context.Background()
 
 	repoErr := errors.New("delete failed")
+	deps.Repo.On("GetByID", ctx, "p1").Return(&entity.Project{ID: "p1"}, nil).Once()
 	deps.Repo.On("Delete", ctx, "p1").Return(repoErr).Once()
 
 	err := uc.DeleteProject(ctx, "p1")
 
 	assert.Error(t, err)
 	assert.Equal(t, repoErr, err)
+	deps.Repo.AssertExpectations(t)
+}
+
+func TestProjectUseCase_Delete_NotFound_NoOp(t *testing.T) {
+	deps, uc := setupProjectTest()
+	ctx := context.Background()
+
+	deps.Repo.On("GetByID", ctx, "p1").Return(nil, gorm.ErrRecordNotFound).Once()
+
+	err := uc.DeleteProject(ctx, "p1")
+
+	assert.NoError(t, err)
 	deps.Repo.AssertExpectations(t)
 }

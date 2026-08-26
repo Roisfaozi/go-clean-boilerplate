@@ -1,101 +1,86 @@
 all: true
 dir: "{{.InterfaceDir}}"
-force-file-write: true
-formatter: goimports
-generate: true
 include-auto-generated: false
 log-level: info
-structname: "Mock{{.InterfaceName}}"
-pkgname: mocks
+outpkg: mocks
 recursive: false
-require-template-schema-exists: true
-template: testify
-template-schema: "{{.Template}}.schema.json"
+structname: "Mock{{.InterfaceName}}"
 packages:
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository:
     config:
       dir: internal/modules/access/test/mocks
-      filename: mock_access_repository.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/usecase:
     config:
       dir: internal/modules/access/test/mocks
-      filename: mock_access_usecase.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository:
     config:
       dir: internal/modules/user/test/mocks
-      filename: mock_user_repository.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase:
     config:
       dir: internal/modules/user/test/mocks
-      filename: mock_user_usecase.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository:
     config:
       dir: internal/modules/role/test/mocks
-      filename: mock_role_repository.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase:
     config:
       dir: internal/modules/role/test/mocks
-      filename: mock_role_usecase.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase:
     config:
       dir: internal/modules/permission/test/mocks
-      filename: mock_permission_usecase.go
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/repository:
+    config:
+      dir: internal/modules/project/test/mocks
+  github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/usecase:
+    config:
+      dir: internal/modules/project/test/mocks
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository:
     config:
       dir: internal/modules/auth/test/mocks
-      filename: mock_auth_repository.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase:
     config:
       dir: internal/modules/auth/test/mocks
-      filename: mock_auth_usecase.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository:
     config:
       dir: internal/modules/organization/test/mocks
-      filename: mock_organization_repository.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase:
     config:
       dir: internal/modules/organization/test/mocks
-      filename: mock_organization_usecase.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository:
     config:
       dir: internal/modules/audit/test/mocks
-      filename: mock_audit_repository.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase:
     config:
       dir: internal/modules/audit/test/mocks
-      filename: mock_audit_usecase.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/repository:
     config:
       dir: internal/modules/api_key/test/mocks
-      filename: mock_api_key_repository.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/usecase:
     config:
       dir: internal/modules/api_key/test/mocks
-      filename: mock_api_key_usecase.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/repository:
     config:
       dir: internal/modules/webhook/test/mocks
-      filename: mock_webhook_repository.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/usecase:
     config:
       dir: internal/modules/webhook/test/mocks
-      filename: mock_webhook_usecase.go
+  github.com/Roisfaozi/go-clean-boilerplate/pkg/sso:
+    interfaces:
+      Provider:
+        config:
+          dir: internal/modules/auth/test/mocks
+          structname: MockSSOProvider
   github.com/Roisfaozi/go-clean-boilerplate/pkg/storage:
     config:
       dir: pkg/storage/mocks
-      filename: mock_storage_provider.go
   github.com/Roisfaozi/go-clean-boilerplate/internal/worker:
     config:
       dir: internal/mocking
-      filename: mock_task_distributor.go
-      pkgname: mocking
+      outpkg: mocking
   github.com/Roisfaozi/go-clean-boilerplate/pkg/tx:
     config:
       dir: internal/mocking
-      filename: mock_transaction_manager.go
-      pkgname: mocking
+      outpkg: mocking
   github.com/Roisfaozi/go-clean-boilerplate/pkg/ws:
     config:
       dir: internal/mocking
-      filename: mock_websocket_manager.go
-      pkgname: mocking
+      outpkg: mocking

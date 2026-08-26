@@ -10,13 +10,13 @@ import { usePermissionStore } from "~/stores/use-permission-store";
  * @returns boolean
  */
 export function usePermission(resource?: string, action?: string) {
-  const hasPermission = usePermissionStore((state) => state.hasPermission);
+	const hasPermission = usePermissionStore((state) => state.hasPermission);
 
-  if (!resource || !action) {
-    return false;
-  }
+	if (!resource || !action) {
+		return false;
+	}
 
-  return hasPermission(resource, action);
+	return hasPermission(resource, action);
 }
 
 /**
@@ -24,7 +24,7 @@ export function usePermission(resource?: string, action?: string) {
  * Useful for checking if user can see a whole section.
  */
 export function usePermissions(items: { resource: string; action: string }[]) {
-  const hasPermission = usePermissionStore((state) => state.hasPermission);
+	const hasPermission = usePermissionStore((state) => state.hasPermission);
 
-  return items.every((item) => hasPermission(item.resource, item.action));
+	return items.every((item) => hasPermission(item.resource, item.action));
 }

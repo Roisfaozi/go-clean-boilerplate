@@ -3,9 +3,10 @@ package database
 
 import (
 	"context"
-	"fmt"
+
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // ContextKey is the type for context keys to avoid collisions
@@ -69,11 +70,9 @@ func OrganizationVisibilityScope(ctx context.Context, orgColumn string) func(db 
 		}
 
 		return db.Where(
-			fmt.Sprintf(
-				"(%s IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = %s AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0))",
-				orgColumn,
-				orgColumn,
-			),
+			"(? IS NULL OR NOT EXISTS (SELECT 1 FROM organizations WHERE organizations.id = ? AND organizations.deleted_at IS NOT NULL AND organizations.deleted_at <> 0))",
+			clause.Column{Name: orgColumn},
+			clause.Column{Name: orgColumn},
 		)
 	}
 }

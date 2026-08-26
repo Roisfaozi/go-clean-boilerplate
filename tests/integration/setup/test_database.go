@@ -3,6 +3,11 @@ package setup
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
@@ -19,6 +24,104 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+const migrationsDir = "../../../db/migrations"
+
+// migrationFiles returns the sorted absolute paths of migration files of the
+// given direction ("up" or "down"), optionally capped at maxVersion (>0).
+func migrationFiles(t *testing.T, maxVersion int, direction string) []string {
+	entries, err := os.ReadDir(migrationsDir)
+	require.NoError(t, err)
+
+	suffix := "." + direction + ".sql"
+	var paths []string
+	for _, e := range entries {
+		name := e.Name()
+		if !strings.HasSuffix(name, suffix) {
+			continue
+		}
+		var version int
+		_, err := fmt.Sscanf(name, "%d_", &version)
+		if err != nil || version == 0 {
+			continue
+		}
+		if maxVersion > 0 && version > maxVersion {
+			continue
+		}
+		paths = append(paths, filepath.Join(migrationsDir, name))
+	}
+	sort.Strings(paths)
+	return paths
+}
+
+// FreshMigrationDB creates a dedicated database on the same MySQL server for
+// applying raw SQL migrations in isolation from the shared schema.
+func FreshMigrationDB(t *testing.T, name string) *gorm.DB {
+	require.NotNil(t, globalDB, "shared DB must be initialized first")
+
+	// The testcontainers MySQL module mirrors the password to MYSQL_ROOT_PASSWORD,
+	// so root uses the same password as the app user.
+	rootDSN := strings.Replace(strings.SplitN(mysqlAddr, "?", 2)[0], "test:test@tcp", "root:test@tcp", 1)
+	rootDB, err := connectWithRetry(rootDSN, 5)
+	require.NoError(t, err)
+
+	require.NoError(t, rootDB.Exec("DROP DATABASE IF EXISTS `"+name+"`").Error)
+	require.NoError(t, rootDB.Exec("CREATE DATABASE `"+name+"`").Error)
+	require.NoError(t, rootDB.Exec("GRANT ALL PRIVILEGES ON `"+name+"`.* TO 'test'@'%'").Error)
+	require.NoError(t, rootDB.Exec("FLUSH PRIVILEGES").Error)
+
+	sqlDB, err := rootDB.DB()
+	require.NoError(t, err)
+	_ = sqlDB.Close()
+
+	base := strings.SplitN(mysqlAddr, "?", 2)[0]
+	base = strings.TrimSuffix(base, "test_db")
+	dsn := base + name + "?parseTime=true&multiStatements=true&charset=utf8mb4"
+
+	db, err := connectWithRetry(dsn, 5)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		sqlDB, _ := db.DB()
+		if sqlDB != nil {
+			_ = sqlDB.Close()
+		}
+		rootDB, err := connectWithRetry(rootDSN, 3)
+		if err == nil {
+			_ = rootDB.Exec("DROP DATABASE IF EXISTS `" + name + "`").Error
+			sqlDB, _ := rootDB.DB()
+			if sqlDB != nil {
+				_ = sqlDB.Close()
+			}
+		}
+	})
+
+	return db
+}
+
+// ApplyMigrationsUpTo applies every up migration with version <= maxVersion.
+func ApplyMigrationsUpTo(t *testing.T, db *gorm.DB, maxVersion int) {
+	for _, f := range migrationFiles(t, maxVersion, "up") {
+		content, err := os.ReadFile(f)
+		require.NoError(t, err)
+		require.NoError(t, db.Exec(string(content)).Error, "failed to apply migration %s", f)
+	}
+}
+
+// ApplyMigrationFile applies exactly one migration file (direction: "up"/"down").
+func ApplyMigrationFile(t *testing.T, db *gorm.DB, version int, direction string) {
+	for _, f := range migrationFiles(t, 0, direction) {
+		var v int
+		if _, err := fmt.Sscanf(filepath.Base(f), "%d_", &v); err != nil || v != version {
+			continue
+		}
+		content, err := os.ReadFile(f)
+		require.NoError(t, err)
+		require.NoError(t, db.Exec(string(content)).Error, "failed to apply migration %s", f)
+		return
+	}
+	require.FailNow(t, "migration file %06d.%s.sql not found", version, direction)
+}
 
 func RunMigrations(t *testing.T, db *gorm.DB) {
 	err := db.AutoMigrate(
@@ -71,15 +174,15 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 	db.FirstOrCreate(&globalOrgRecord, orgEntity.Organization{ID: globalOrg})
 
 	roles := []roleEntity.Role{
-		{ID: "role:superadmin", Name: "role:superadmin", OrganizationID: &globalOrg, Description: "Super Administrator role"},
-		{ID: "role:admin", Name: "role:admin", OrganizationID: &globalOrg, Description: "Administrator role"},
-		{ID: "role:user", Name: "role:user", OrganizationID: &globalOrg, Description: "Regular user role"},
-		{ID: "role:org-owner", Name: "role:org-owner", OrganizationID: &globalOrg, Description: "Organization owner role"},
-		{ID: "role:moderator", Name: "role:moderator", OrganizationID: &globalOrg, Description: "Moderator role"},
+		{ID: uuid.NewString(), Name: "role:superadmin", OrganizationID: &globalOrg, Description: "Super Administrator role"},
+		{ID: uuid.NewString(), Name: "role:admin", OrganizationID: &globalOrg, Description: "Administrator role"},
+		{ID: uuid.NewString(), Name: "role:user", OrganizationID: &globalOrg, Description: "Regular user role"},
+		{ID: uuid.NewString(), Name: "role:org-owner", OrganizationID: &globalOrg, Description: "Organization owner role"},
+		{ID: uuid.NewString(), Name: "role:moderator", OrganizationID: &globalOrg, Description: "Moderator role"},
 	}
 
 	for _, role := range roles {
-		db.FirstOrCreate(&role, roleEntity.Role{ID: role.ID})
+		db.FirstOrCreate(&role, roleEntity.Role{Name: role.Name})
 	}
 
 	policies := [][]string{
@@ -100,6 +203,11 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 		{"role:admin", "global", "/api/v1/organizations/:id/members/:userId", "PATCH"},
 		{"role:admin", "global", "/api/v1/organizations/:id/members/:userId", "DELETE"},
 		{"role:admin", "global", "/api/v1/organizations/:id/presence", "GET"},
+		{"role:admin", "global", "/api/v1/organizations/:id/roles", "GET"},
+		{"role:admin", "global", "/api/v1/organizations/:id/roles", "POST"},
+		{"role:admin", "global", "/api/v1/organizations/:id/roles/:roleId", "PUT"},
+		{"role:admin", "global", "/api/v1/organizations/:id/roles/:roleId", "DELETE"},
+		{"role:user", "global", "/api/v1/organizations/:id/roles", "GET"},
 		{"role:admin", "global", "/api/v1/projects", "GET"},
 		{"role:admin", "global", "/api/v1/projects/:id", "GET"},
 		{"role:admin", "global", "/api/v1/projects", "POST"},
@@ -122,6 +230,13 @@ func SeedTestData(t *testing.T, db *gorm.DB) {
 	for _, p := range policies {
 		db.Exec("INSERT IGNORE INTO casbin_rule (ptype, v0, v1, v2, v3) VALUES (?, ?, ?, ?, ?)", "p", p[0], p[1], p[2], p[3])
 	}
+}
+
+func RoleIDByName(t *testing.T, db *gorm.DB, name string) string {
+	var r roleEntity.Role
+	err := db.Where("name = ?", name).First(&r).Error
+	require.NoError(t, err)
+	return r.ID
 }
 
 func CleanupDatabase(t *testing.T, db *gorm.DB) {

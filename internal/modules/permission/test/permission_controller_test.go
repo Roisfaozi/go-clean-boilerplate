@@ -23,6 +23,10 @@ import (
 func setupPermissionTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set("user_id", "test-user-id")
+		c.Next()
+	})
 	return router
 }
 
@@ -108,6 +112,31 @@ func TestGrantPermission_UseCaseError(t *testing.T) {
 	mockUseCase.AssertExpectations(t)
 }
 
+func TestAddRoleInheritance_Success(t *testing.T) {
+	mockUseCase := new(mocks.MockIPermissionUseCase)
+	handler := newTestPermissionController(mockUseCase)
+	router := setupPermissionTestRouter()
+	router.POST("/permissions/inheritance", handler.AddRoleInheritance)
+
+	reqBody := model.RoleInheritanceRequest{
+		ChildRole:  "editor",
+		ParentRole: "viewer",
+		Domain:     "global",
+	}
+
+	mockUseCase.On("AddParentRole", mock.Anything, reqBody.ChildRole, reqBody.ParentRole, "global").Return(nil)
+
+	bodyBytes, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/permissions/inheritance", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockUseCase.AssertExpectations(t)
+}
+
 // --- Handler Tests ---
 
 func setupPermissionControllerTest() (*mocks.MockIPermissionUseCase, *permHandler.PermissionController) {
@@ -125,6 +154,7 @@ func TestPermissionController_AssignRole(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
+	c.Set("user_id", "u1")
 
 	req := model.AssignRoleRequest{
 		UserID: "u1",
@@ -134,7 +164,7 @@ func TestPermissionController_AssignRole(t *testing.T) {
 	body, _ := json.Marshal(req)
 	c.Request, _ = http.NewRequest("POST", "/permission/assign-role", bytes.NewBuffer(body))
 
-	mockUC.On("AssignRoleToUser", c.Request.Context(), "u1", "role:admin", "global").Return(nil)
+	mockUC.On("AssignRoleToUser", mock.Anything, "u1", "role:admin", "global").Return(nil)
 
 	controller.AssignRole(c)
 

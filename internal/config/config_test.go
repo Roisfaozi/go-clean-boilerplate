@@ -37,6 +37,16 @@ func TestNewConfig_DefaultValues(t *testing.T) {
 	assert.Equal(t, true, cfg.RateLimit.Enabled)
 	assert.Equal(t, "memory", cfg.RateLimit.Store)
 	assert.Equal(t, "local", cfg.Storage.Driver)
+	assert.Empty(t, cfg.Server.FrontendBaseURL)
+}
+
+func TestNewConfig_FrontendBaseURLOverride(t *testing.T) {
+	setupTestEnv(t)
+	t.Setenv("SERVER_FRONTEND_BASE_URL", "https://app.example.com")
+
+	cfg, err := NewConfig()
+	require.NoError(t, err)
+	assert.Equal(t, "https://app.example.com", cfg.Server.FrontendBaseURL)
 }
 
 func TestNewConfig_JWTDurations(t *testing.T) {
@@ -81,6 +91,53 @@ func TestNewConfig_MetricsAuthValidation(t *testing.T) {
 	assert.Contains(t, err.Error(), "metrics auth is enabled but username or password is missing")
 }
 
+func TestNewConfig_StrictEnvironmentRequiresMetricsAuth(t *testing.T) {
+	setupTestEnv(t)
+	t.Setenv("SERVER_APP_ENV", "production")
+	t.Setenv("METRICS_ENABLED", "true")
+	t.Setenv("METRICS_AUTH_ENABLED", "false")
+
+	_, err := NewConfig()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "metrics auth must be enabled outside local/test/dev environment")
+}
+
+func TestNewConfig_MetricsCredentialsEnvBinding(t *testing.T) {
+	setupTestEnv(t)
+	t.Setenv("METRICS_AUTH_ENABLED", "true")
+	t.Setenv("METRICS_USERNAME", "prometheus")
+	t.Setenv("METRICS_PASSWORD", "secret")
+
+	cfg, err := NewConfig()
+	require.NoError(t, err)
+	assert.True(t, cfg.Metrics.AuthEnabled)
+	assert.Equal(t, "prometheus", cfg.Metrics.Username)
+	assert.Equal(t, "secret", cfg.Metrics.Password)
+}
+
+func TestNewConfig_TelemetryDefaults(t *testing.T) {
+	setupTestEnv(t)
+
+	cfg, err := NewConfig()
+	require.NoError(t, err)
+	assert.False(t, cfg.Telemetry.Enabled)
+	assert.Equal(t, "go-clean-api", cfg.Telemetry.ServiceName)
+	assert.Equal(t, "localhost:4317", cfg.Telemetry.CollectorURL)
+}
+
+func TestNewConfig_TelemetryEnvBinding(t *testing.T) {
+	setupTestEnv(t)
+	t.Setenv("OTEL_ENABLED", "true")
+	t.Setenv("OTEL_SERVICE_NAME", "casbin-api")
+	t.Setenv("OTEL_COLLECTOR_URL", "jaeger:4317")
+
+	cfg, err := NewConfig()
+	require.NoError(t, err)
+	assert.True(t, cfg.Telemetry.Enabled)
+	assert.Equal(t, "casbin-api", cfg.Telemetry.ServiceName)
+	assert.Equal(t, "jaeger:4317", cfg.Telemetry.CollectorURL)
+}
+
 func TestNewConfig_TrustedProxiesParsing(t *testing.T) {
 	setupTestEnv(t)
 	t.Setenv("SERVER_TRUSTED_PROXIES", "10.0.0.1, 10.0.0.2, 192.168.1.1")
@@ -109,4 +166,26 @@ func TestNewConfig_StorageDrivers(t *testing.T) {
 
 	assert.Equal(t, "local", cfg.Storage.Driver)
 	assert.Equal(t, "./uploads", cfg.Storage.Local.RootPath)
+}
+
+// TestNewConfig_EnvOnlyKeysAreBound guards the whole class of bugs where a
+// config field has no default and is therefore silently dropped by viper even
+// though the environment variable is set.
+func TestNewConfig_EnvOnlyKeysAreBound(t *testing.T) {
+	setupTestEnv(t)
+	t.Setenv("SERVER_FRONTEND_BASE_URL", "https://app.example.com")
+	t.Setenv("COOKIE_SECURE", "true")
+	t.Setenv("REDIS_DIAL_TIMEOUT", "7s")
+	t.Setenv("REDIS_READ_TIMEOUT", "8s")
+	t.Setenv("REDIS_WRITE_TIMEOUT", "9s")
+
+	cfg, err := NewConfig()
+	require.NoError(t, err)
+
+	assert.Equal(t, "https://app.example.com", cfg.Server.FrontendBaseURL)
+	require.NotNil(t, cfg.Cookie.Secure, "COOKIE_SECURE was dropped by viper")
+	assert.True(t, *cfg.Cookie.Secure)
+	assert.Equal(t, 7*time.Second, cfg.Redis.DialTimeout)
+	assert.Equal(t, 8*time.Second, cfg.Redis.ReadTimeout)
+	assert.Equal(t, 9*time.Second, cfg.Redis.WriteTimeout)
 }

@@ -1,15 +1,18 @@
 package http
 
 import (
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type WebhookController struct {
@@ -50,6 +53,12 @@ func (c *WebhookController) Create(ctx *gin.Context) {
 
 	res, err := c.UseCase.Create(ctx.Request.Context(), req)
 	if err != nil {
+		var valErrs validator.ValidationErrors
+		if errors.As(err, &valErrs) {
+			msg := validation.FormatValidationErrors(valErrs)
+			response.ValidationError(ctx, exception.ErrValidationError, msg)
+			return
+		}
 		response.HandleError(ctx, err, "Failed to create webhook")
 		return
 	}
@@ -87,6 +96,12 @@ func (c *WebhookController) Update(ctx *gin.Context) {
 
 	res, err := c.UseCase.Update(ctx.Request.Context(), id, orgID, req)
 	if err != nil {
+		var valErrs validator.ValidationErrors
+		if errors.As(err, &valErrs) {
+			msg := validation.FormatValidationErrors(valErrs)
+			response.ValidationError(ctx, exception.ErrValidationError, msg)
+			return
+		}
 		response.HandleError(ctx, err, "Failed to update webhook")
 		return
 	}

@@ -17,6 +17,7 @@ import (
 	orgRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	userRepository "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
@@ -132,7 +133,7 @@ func (uc *apiKeyUseCase) Revoke(ctx context.Context, orgID, id string) error {
 	apiKey, err := uc.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return exception.ErrNotFound
+			return nil
 		}
 		return exception.ErrInternalServer
 	}
@@ -220,11 +221,11 @@ func (uc *apiKeyUseCase) Authenticate(ctx context.Context, key string) (*model.A
 	}
 
 	// Update last used at (Async)
-	go func() {
+	util.SafeGo(uc.log, func() {
 		now := time.Now()
 		apiKey.LastUsedAt = &now
 		_ = uc.repo.Update(context.Background(), apiKey)
-	}()
+	})
 
 	// Save to Cache
 	if uc.redis != nil {

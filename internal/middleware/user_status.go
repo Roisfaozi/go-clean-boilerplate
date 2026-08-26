@@ -10,6 +10,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	suspendedUserMessage = "Your account has been suspended temporarily. Please contact support."
+	bannedUserMessage    = "Your account has been banned. Please contact support."
+)
+
 // UserStatusMiddleware checks if the user account is active.
 //
 // It assumes that the user_id has already been set in the context by AuthMiddleware.
@@ -37,9 +42,9 @@ func UserStatusMiddleware(userRepo userRepository.UserRepository, log *logrus.Lo
 		if user.Status != entity.UserStatusActive {
 			log.Warnf("Access denied for %s user: %s", user.Status, userID)
 
-			msg := "Your account has been banned. Please contact support."
+			msg := bannedUserMessage
 			if user.Status == entity.UserStatusSuspended {
-				msg = "Your account has been suspended temporarily. Please contact support."
+				msg = suspendedUserMessage
 			}
 
 			response.Forbidden(c, errors.New("forbidden"), msg)

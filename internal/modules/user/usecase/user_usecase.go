@@ -3,6 +3,7 @@ package usecase
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,9 +24,11 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/storage"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type userUseCaseImpl struct {
@@ -142,7 +145,7 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 
 	// Trigger Webhook Event (Out-of-transaction for reliability)
 	if u.WebhookUC != nil {
-		go func() {
+		util.SafeGo(u.Log, func() {
 			err := u.WebhookUC.Trigger(context.Background(), webhookModel.TriggerWebhookRequest{
 				OrganizationID: "global", // Standard user registration is global
 				EventType:      "user.created",
@@ -156,7 +159,7 @@ func (u *userUseCaseImpl) Create(ctx context.Context, request *model.RegisterUse
 			if err != nil {
 				u.Log.Errorf("Failed to trigger webhook user.created: %v", err)
 			}
-		}()
+		})
 	}
 
 	telemetry.UserRegistrationsTotal.Inc()
@@ -457,7 +460,7 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 
 	user, err := u.Repo.FindByID(ctx, request.ID)
 	if err != nil {
-		if err.Error() == "user not found" {
+		if err.Error() == "user not found" || errors.Is(err, gorm.ErrRecordNotFound) {
 			return exception.ErrNotFound
 		}
 		return err

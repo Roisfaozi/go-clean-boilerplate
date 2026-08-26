@@ -10,9 +10,9 @@ import (
 
 func NewStorageProvider(cfg *AppConfig) (storage.Provider, error) {
 	switch cfg.Storage.Driver {
-	case "local":
+	case storageDriverLocal:
 		return local.NewLocalStorage(cfg.Storage.Local.RootPath, cfg.Storage.Local.BaseURL)
-	case "s3":
+	case storageDriverS3:
 		return s3.NewS3Storage(s3.S3Config{
 			Endpoint:       cfg.Storage.S3.Endpoint,
 			Region:         cfg.Storage.S3.Region,

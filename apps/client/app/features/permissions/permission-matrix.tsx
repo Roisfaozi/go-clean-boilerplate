@@ -124,7 +124,7 @@ export function PermissionMatrix({
 												className={cn(
 													"mx-auto",
 													hasPermission(role, resource, action) &&
-														"data-[state=checked]:bg-primary",
+														"data-checked:bg-primary",
 												)}
 											/>
 										</td>

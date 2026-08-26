@@ -235,3 +235,6 @@ When editing frontend:
 ## 11. If you need more context
 
 Use the concretized starter-pack files under `llm/`. They were filled from live repo evidence and are the preferred durable handoff layer for future agent work.
+
+IMPORTANT!!
+NEVER GENERATE WITH PYTHON OR ANY SCRIPT like .sh or etc TO UPDATE CODEBASE AND/OR FILE.

@@ -63,7 +63,7 @@ func (h *StatsController) GetActivity(c *gin.Context) {
 
 // GetInsights godoc
 // @Summary      Get system health insights
-// @Description  Returns system-level performance metrics (latency, error rate, uptime).
+// @Description  Returns high-level user activity insights derived from audit log state.
 // @Tags         stats
 // @Security     BearerAuth
 // @Produce      json

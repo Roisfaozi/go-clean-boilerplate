@@ -2,142 +2,142 @@
 
 import { usePermissionMatrix } from "./permission-matrix-context";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog";
-import { Button } from "~/components/ui/button";
-import { Checkbox } from "~/components/ui/checkbox";
-import { Label } from "~/components/ui/label";
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@casbin/ui";
+import { Button } from "@casbin/ui";
+import { Checkbox } from "@casbin/ui";
+import { Label } from "@casbin/ui";
 import { useState } from "react";
 import type { ResourceCRUD } from "~/lib/api/access";
 import { Icon } from "~/components/shared/icon";
 
 export function MatrixDialog() {
-  const { dialog, closeDialog, updatePermissions, isProcessing } =
-    usePermissionMatrix();
+	const { dialog, closeDialog, updatePermissions, isProcessing } =
+		usePermissionMatrix();
 
-  // Use a key to force re-mounting/resetting state when dialog target changes
-  // instead of using useEffect which triggers cascading renders
-  return (
-    <MatrixDialogContent
-      key={`${dialog.role}-${dialog.resource}`}
-      dialog={dialog}
-      closeDialog={closeDialog}
-      updatePermissions={updatePermissions}
-      isProcessing={isProcessing}
-    />
-  );
+	// Use a key to force re-mounting/resetting state when dialog target changes
+	// instead of using useEffect which triggers cascading renders
+	return (
+		<MatrixDialogContent
+			key={`${dialog.role}-${dialog.resource}`}
+			dialog={dialog}
+			closeDialog={closeDialog}
+			updatePermissions={updatePermissions}
+			isProcessing={isProcessing}
+		/>
+	);
 }
 
 function MatrixDialogContent({
-  dialog,
-  closeDialog,
-  updatePermissions,
-  isProcessing,
+	dialog,
+	closeDialog,
+	updatePermissions,
+	isProcessing,
 }: {
-  dialog: any;
-  closeDialog: () => void;
-  updatePermissions: any;
-  isProcessing: boolean;
+	dialog: any;
+	closeDialog: () => void;
+	updatePermissions: any;
+	isProcessing: boolean;
 }) {
-  const [localCRUD, setLocalCRUD] = useState<ResourceCRUD>(dialog.crud);
+	const [localCRUD, setLocalCRUD] = useState<ResourceCRUD>(dialog.crud);
 
-  const handleApply = async () => {
-    await updatePermissions(
-      dialog.role,
-      dialog.resource,
-      localCRUD,
-      dialog.crud,
-    );
-    closeDialog();
-  };
+	const handleApply = async () => {
+		await updatePermissions(
+			dialog.role,
+			dialog.resource,
+			localCRUD,
+			dialog.crud,
+		);
+		closeDialog();
+	};
 
-  const toggle = (key: keyof ResourceCRUD) => {
-    setLocalCRUD((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+	const toggle = (key: keyof ResourceCRUD) => {
+		setLocalCRUD((prev) => ({ ...prev, [key]: !prev[key] }));
+	};
 
-  return (
-    <Dialog open={dialog.open} onOpenChange={(open) => !open && closeDialog()}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Icon name="Settings2" className="text-primary h-5 w-5" />
-            Edit Permissions
-          </DialogTitle>
-          <DialogDescription>
-            Modify CRUD access for{" "}
-            <span className="text-foreground font-bold">
-              {dialog.role.replace("role:", "")}
-            </span>{" "}
-            on
-            <span className="bg-muted ml-1 rounded px-1 font-mono">
-              /{dialog.resource.toLowerCase()}
-            </span>
-          </DialogDescription>
-        </DialogHeader>
+	return (
+		<Dialog open={dialog.open} onOpenChange={(open) => !open && closeDialog()}>
+			<DialogContent className="sm:max-w-[400px]">
+				<DialogHeader>
+					<DialogTitle className="flex items-center gap-2">
+						<Icon name="Settings2" className="text-primary h-5 w-5" />
+						Edit Permissions
+					</DialogTitle>
+					<DialogDescription>
+						Modify CRUD access for{" "}
+						<span className="text-foreground font-bold">
+							{dialog.role.replace("role:", "")}
+						</span>{" "}
+						on
+						<span className="bg-muted ml-1 rounded px-1 font-mono">
+							/{dialog.resource.toLowerCase()}
+						</span>
+					</DialogDescription>
+				</DialogHeader>
 
-        <div className="grid gap-6 py-6">
-          {(["create", "read", "update", "delete"] as const).map((action) => (
-            <div
-              key={action}
-              className="hover:bg-muted/50 flex items-center justify-between space-x-2 rounded-lg border p-3 transition-colors"
-            >
-              <div className="flex flex-col gap-0.5">
-                <Label
-                  htmlFor={action}
-                  className="text-sm font-semibold capitalize"
-                >
-                  {action}
-                </Label>
-                <p className="text-muted-foreground text-xs">
-                  {getActionDescription(action)}
-                </p>
-              </div>
-              <Checkbox
-                id={action}
-                checked={localCRUD[action]}
-                onCheckedChange={() => toggle(action)}
-                className="h-5 w-5"
-              />
-            </div>
-          ))}
-        </div>
+				<div className="grid gap-6 py-6">
+					{(["create", "read", "update", "delete"] as const).map((action) => (
+						<div
+							key={action}
+							className="hover:bg-muted/50 flex items-center justify-between space-x-2 rounded-lg border p-3 transition-colors"
+						>
+							<div className="flex flex-col gap-0.5">
+								<Label
+									htmlFor={action}
+									className="text-sm font-semibold capitalize"
+								>
+									{action}
+								</Label>
+								<p className="text-muted-foreground text-xs">
+									{getActionDescription(action)}
+								</p>
+							</div>
+							<Checkbox
+								id={action}
+								checked={localCRUD[action]}
+								onCheckedChange={() => toggle(action)}
+								className="h-5 w-5"
+							/>
+						</div>
+					))}
+				</div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={closeDialog}
-            disabled={isProcessing}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleApply} disabled={isProcessing}>
-            {isProcessing && (
-              <Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Apply Changes
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+				<DialogFooter>
+					<Button
+						variant="outline"
+						onClick={closeDialog}
+						disabled={isProcessing}
+					>
+						Cancel
+					</Button>
+					<Button onClick={handleApply} disabled={isProcessing}>
+						{isProcessing && (
+							<Icon name="Loader" className="mr-2 h-4 w-4 animate-spin" />
+						)}
+						Apply Changes
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
 }
 
 function getActionDescription(action: string) {
-  switch (action) {
-    case "create":
-      return "Allow creating new resources";
-    case "read":
-      return "Allow viewing resource data";
-    case "update":
-      return "Allow modifying existing resources";
-    case "delete":
-      return "Allow removing resources";
-    default:
-      return "";
-  }
+	switch (action) {
+		case "create":
+			return "Allow creating new resources";
+		case "read":
+			return "Allow viewing resource data";
+		case "update":
+			return "Allow modifying existing resources";
+		case "delete":
+			return "Allow removing resources";
+		default:
+			return "";
+	}
 }

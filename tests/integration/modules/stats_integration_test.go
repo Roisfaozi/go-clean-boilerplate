@@ -118,8 +118,7 @@ func TestStatsIntegration_SystemInsights(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotNil(t, insights)
-	assert.Greater(t, insights.AvgLatencyMs, float64(0))
-	assert.NotEmpty(t, insights.Uptime)
+	assert.NotEmpty(t, insights.MostActiveRole)
 }
 
 func TestStatsIntegration_OrganizationScoping(t *testing.T) {

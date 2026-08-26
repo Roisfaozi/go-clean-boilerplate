@@ -5,6 +5,8 @@ package scenarios
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"testing"
 	"time"
 
@@ -40,25 +42,26 @@ func TestScenario_PasswordRecovery_Lifecycle(t *testing.T) {
 
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
-	authService := authUC.NewAuthUsecase(5, 30*time.Minute, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider))
+	authService := authUC.NewAuthUsecase(5, 30*time.Minute, 3, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, nil, authz, nil, nil, make(map[string]sso.Provider), "http://localhost:3000")
 
 	oldPassword := "OldPass123!"
 	newPassword := "NewPass456!"
 	user := setup.CreateTestUser(t, env.DB, "forgot_user", "forgot@test.com", oldPassword)
 
-	err := authService.ForgotPassword(context.Background(), user.Email)
+	rawToken := "reset-raw-token-123"
+	sum := sha256.Sum256([]byte(rawToken))
+	hashedToken := hex.EncodeToString(sum[:])
+
+	err := env.DB.Create(&authEntity.PasswordResetToken{
+		Email: user.Email, Token: hashedToken, ExpiresAt: time.Now().Add(15 * time.Minute),
+	}).Error
 	require.NoError(t, err)
 
-	var resetToken authEntity.PasswordResetToken
-	err = env.DB.Where("email = ?", user.Email).First(&resetToken).Error
-	require.NoError(t, err, "Reset token should be saved in DB")
-	assert.NotEmpty(t, resetToken.Token)
-
-	err = authService.ResetPassword(context.Background(), resetToken.Token, newPassword)
+	err = authService.ResetPassword(context.Background(), rawToken, newPassword)
 	require.NoError(t, err)
 
 	var checkToken authEntity.PasswordResetToken
-	err = env.DB.Where("token = ?", resetToken.Token).First(&checkToken).Error
+	err = env.DB.Where("token = ?", hashedToken).First(&checkToken).Error
 	assert.Error(t, err, "Token should be deleted after use")
 
 	_, _, err = authService.Login(context.Background(), authModel.LoginRequest{

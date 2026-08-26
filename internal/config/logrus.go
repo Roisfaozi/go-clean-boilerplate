@@ -5,11 +5,13 @@ import (
 	"path"
 	"runtime"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/constants"
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel/trace"
 )
 
-// TraceContextHook attaches RequestID from context to the log entry
+// TraceContextHook attaches RequestID, UserID, TraceID, and SpanID from context to the log entry
 type TraceContextHook struct{}
 
 func (h *TraceContextHook) Levels() []logrus.Level {
@@ -18,12 +20,20 @@ func (h *TraceContextHook) Levels() []logrus.Level {
 
 func (h *TraceContextHook) Fire(entry *logrus.Entry) error {
 	if entry.Context != nil {
-		if reqID, ok := entry.Context.Value(constants.RequestIDKey).(string); ok {
+		if reqID, ok := entry.Context.Value(constants.RequestIDKey).(string); ok && reqID != "" {
 			entry.Data["request_id"] = reqID
 		}
-		// Also trace UserID if available (e.g. from authenticated context)
-		if userID, ok := entry.Context.Value(constants.UserIDKey).(string); ok {
+
+		if userID, ok := authcontext.UserIDFromContext(entry.Context); ok {
 			entry.Data["user_id"] = userID
+		} else if userID, ok := entry.Context.Value(constants.UserIDKey).(string); ok && userID != "" {
+			entry.Data["user_id"] = userID
+		}
+
+		spanCtx := trace.SpanFromContext(entry.Context).SpanContext()
+		if spanCtx.IsValid() {
+			entry.Data["trace_id"] = spanCtx.TraceID().String()
+			entry.Data["span_id"] = spanCtx.SpanID().String()
 		}
 	}
 	return nil
@@ -45,7 +55,7 @@ func NewLogrus(config *AppConfig) *logrus.Logger {
 
 	logger.SetReportCaller(true)
 
-	if config.Server.AppEnv == "development" {
+	if config.Server.AppEnv == defaultAppEnvDevelopment {
 		logger.SetFormatter(&logrus.TextFormatter{
 			ForceColors:     true,
 			FullTimestamp:   true,

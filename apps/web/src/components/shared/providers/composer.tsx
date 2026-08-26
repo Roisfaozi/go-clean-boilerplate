@@ -4,8 +4,8 @@ import type React from "react";
 import type { ReactNode } from "react";
 
 interface ProviderComposerProps {
-  providers: Array<React.JSXElementConstructor<React.PropsWithChildren<any>>>;
-  children: ReactNode;
+	providers: Array<React.JSXElementConstructor<React.PropsWithChildren<any>>>;
+	children: ReactNode;
 }
 
 /**
@@ -13,14 +13,14 @@ interface ProviderComposerProps {
  * Helps prevent the "wrapper hell" in root layouts.
  */
 export function ProviderComposer({
-  providers,
-  children,
+	providers,
+	children,
 }: ProviderComposerProps) {
-  return (
-    <>
-      {providers.reduceRight((acc, Provider, index) => {
-        return <Provider key={index}>{acc}</Provider>;
-      }, children)}
-    </>
-  );
+	return (
+		<>
+			{providers.reduceRight((acc, Provider, index) => {
+				return <Provider key={index}>{acc}</Provider>;
+			}, children)}
+		</>
+	);
 }

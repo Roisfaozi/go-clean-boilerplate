@@ -243,7 +243,7 @@
       "input-height": { "value": "32px" },
       "table-row-height": { "value": "36px" },
       "icon-size": { "value": "16px" },
-      "sidebar-width": { "value": "72px" },
+      "sidebar-width": { "value": "220px" },
       "navbar-height": { "value": "56px" },
       "touch-target": { "value": "32px" }
     }

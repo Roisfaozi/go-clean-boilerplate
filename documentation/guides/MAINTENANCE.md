@@ -36,3 +36,57 @@ INFO Completed cleanup of expired reset tokens
 ```
 
 For advanced monitoring, you can use the `asynqmon` tool to view the state of the maintenance queues.
+
+## Configuration Loading Rules (Viper)
+
+`internal/config/config.go` builds `AppConfig` with `v.Unmarshal(&cfg)`. Viper's
+`AutomaticEnv()` is a *resolver*, not an environment scanner: it can only resolve
+keys Viper already knows, and `Unmarshal` iterates over `v.AllKeys()`.
+
+A key only enters `AllKeys()` when it has a `SetDefault`, exists in a config
+file, or is explicitly bound. So a field with **no default is silently dropped**
+even when its environment variable is set — no error, no warning.
+
+Because of that, every default-less key that must come from the environment is
+registered in `envOnlyKeys` and bound before `Unmarshal`:
+
+```go
+var envOnlyKeys = []string{
+	"server.frontend_base_url",
+	"cookie.secure",
+	"redis.dial_timeout",
+	"redis.read_timeout",
+	"redis.write_timeout",
+}
+
+for _, key := range envOnlyKeys {
+	_ = v.BindEnv(key)
+}
+```
+
+Env var names are derived automatically: the key is upper-cased and `.` becomes
+`_` via `SetEnvKeyReplacer`, so `cookie.secure` reads `COOKIE_SECURE`.
+
+### Rules when adding config
+
+1. If the value may be guessed safely, add a `SetDefault`.
+2. If it must not be guessed (origins, secrets, credentials), add the key to
+   `envOnlyKeys` instead — do **not** invent a default.
+3. Keep the `BindEnv` loop before `v.Unmarshal`; after it, bindings have no effect.
+4. Document the variable in `.env.example`.
+
+Regression guard: `TestNewConfig_EnvOnlyKeysAreBound` in
+`internal/config/config_test.go` sets all five variables and asserts they reach
+the struct.
+
+**Known limit:** the list is manual. A new default-less field that is not added
+to `envOnlyKeys` will reintroduce the same silent-drop bug and the test will not
+catch it, since it only checks the keys already listed.
+
+### Operational notes
+
+- `SERVER_FRONTEND_BASE_URL` has no default and is the base of every link the
+  backend emails. If unset, those links are generated without a domain.
+- `COOKIE_SECURE` is now actually honoured. Set it to `false` for plain-HTTP
+  local testing, otherwise the browser refuses to store the session cookie and
+  login appears to fail with no clear error.

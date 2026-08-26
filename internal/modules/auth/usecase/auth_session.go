@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -9,10 +11,16 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/google/uuid"
 )
+
+func hashToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
 
 func (s *Service) generateAndStoreTokenPair(ctx context.Context, userContext model.UserSessionContext) (string, string, string, error) {
 	uid, err := uuid.NewV7()
@@ -36,8 +44,8 @@ func (s *Service) generateAndStoreTokenPair(ctx context.Context, userContext mod
 	session := &model.Auth{
 		ID:           sessionID,
 		UserID:       userContext.UserID,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		AccessToken:  hashToken(accessToken),
+		RefreshToken: hashToken(refreshToken),
 		CreatedAt:    now,
 		UpdatedAt:    now,
 		ExpiresAt:    now.Add(s.jwtManager.GetRefreshTokenDuration()),
@@ -74,6 +82,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 			attempts, incrErr := s.tokenRepo.IncrementLoginAttempts(txCtx, request.Username)
 			if incrErr != nil {
 				s.log.WithContext(txCtx).WithError(incrErr).Error("Failed to increment login attempts")
+				return exception.ErrInternalServer
 			}
 
 			if attempts >= s.maxLoginAttempts {
@@ -111,6 +120,17 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 	if err != nil {
 		telemetry.UserLoginsTotal.WithLabelValues("failed").Inc()
 		return nil, "", err
+	}
+
+	if s.maxConcurrentSessions > 0 {
+		count, err := s.tokenRepo.CountActiveSessions(ctx, user.ID)
+		if err != nil {
+			s.log.WithContext(ctx).WithError(err).Error("Failed to count user active sessions")
+			return nil, "", fmt.Errorf("failed to check active sessions: %w", err)
+		}
+		if count >= s.maxConcurrentSessions {
+			return nil, "", ErrTooManySessions
+		}
 	}
 
 	var userRole string
@@ -183,53 +203,86 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 }
 
 func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model.TokenResponse, string, error) {
-	claims, err := s.ValidateRefreshToken(refreshToken)
-	if err != nil {
-		return nil, "", err
-	}
-
-	user, err := s.userRepo.FindByID(ctx, claims.UserID)
-	if err != nil {
-		telemetry.UserLoginsTotal.WithLabelValues("failed").Inc()
-		return nil, "", err
-	}
-
-	if user.Status != entity.UserStatusActive {
-		return nil, "", ErrAccountSuspended
-	}
-
-	var userRole string
-	if s.authz != nil {
-		roles, err := s.authz.GetRolesForUser(ctx, user.ID, "")
+	refreshKey := sha256.Sum256([]byte(refreshToken))
+	result, err, _ := s.refreshGroup.Do(hex.EncodeToString(refreshKey[:]), func() (interface{}, error) {
+		claims, err := s.ValidateRefreshToken(refreshToken)
 		if err != nil {
-			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during refresh token")
-			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
+			return nil, err
 		}
-		if len(roles) > 0 {
-			userRole = roles[0]
+
+		user, err := s.userRepo.FindByID(ctx, claims.UserID)
+		if err != nil {
+			telemetry.UserLoginsTotal.WithLabelValues("failed").Inc()
+			return nil, err
 		}
-	}
 
-	if err := s.RevokeToken(ctx, claims.UserID, claims.SessionID); err != nil {
-		s.log.WithContext(ctx).WithError(err).Warn("Failed to revoke old session during refresh")
-	}
+		if user.Status != entity.UserStatusActive {
+			return nil, ErrAccountSuspended
+		}
 
-	newAccessToken, newRefreshToken, _, err := s.generateAndStoreTokenPair(ctx, model.UserSessionContext{
-		UserID:   user.ID,
-		Role:     userRole,
-		Username: user.Username,
+		var userRole string
+		if s.authz != nil {
+			roles, err := s.authz.GetRolesForUser(ctx, user.ID, "")
+			if err != nil {
+				s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during refresh token")
+				return nil, fmt.Errorf("failed to get user roles: %w", err)
+			}
+			if len(roles) > 0 {
+				userRole = roles[0]
+			}
+		}
+
+		if err := s.RevokeToken(ctx, claims.UserID, claims.SessionID); err != nil {
+			s.log.WithContext(ctx).WithError(err).Error("Failed to revoke old session during refresh")
+			return nil, fmt.Errorf("failed to revoke old session during refresh: %w", err)
+		}
+
+		newAccessToken, newRefreshToken, _, err := s.generateAndStoreTokenPair(ctx, model.UserSessionContext{
+			UserID:   user.ID,
+			Role:     userRole,
+			Username: user.Username,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return &refreshResult{
+			tokenResponse: &model.TokenResponse{
+				AccessToken:  newAccessToken,
+				TokenType:    "Bearer",
+				RefreshToken: newRefreshToken,
+				ExpiresIn:    int64(s.jwtManager.GetAccessTokenDuration().Seconds()),
+			},
+			refreshToken: newRefreshToken,
+		}, nil
 	})
 	if err != nil {
 		return nil, "", err
 	}
 
-	tokenResponse := &model.TokenResponse{
-		AccessToken:  newAccessToken,
-		TokenType:    "Bearer",
-		RefreshToken: newRefreshToken,
+	res, ok := result.(*refreshResult)
+	if !ok || res == nil {
+		return nil, "", fmt.Errorf("failed to complete token refresh")
 	}
 
-	return tokenResponse, newRefreshToken, nil
+	if res.tokenResponse == nil {
+		return nil, "", fmt.Errorf("failed to complete token refresh")
+	}
+
+	// Deep copy to prevent concurrent map/struct write issues since the result is shared by singleflight
+	tokenResponse := &model.TokenResponse{
+		AccessToken:  res.tokenResponse.AccessToken,
+		TokenType:    res.tokenResponse.TokenType,
+		RefreshToken: res.tokenResponse.RefreshToken,
+		ExpiresIn:    res.tokenResponse.ExpiresIn,
+	}
+
+	return tokenResponse, res.refreshToken, nil
+}
+
+type refreshResult struct {
+	tokenResponse *model.TokenResponse
+	refreshToken  string
 }
 
 func (s *Service) ValidateAccessToken(tokenString string) (*jwt.Claims, error) {
@@ -258,8 +311,9 @@ func (s *Service) validateSession(claims *jwt.Claims, tokenString string) (*jwt.
 		return nil, ErrTokenRevoked
 	}
 
-	isAccessToken := savedSession.AccessToken == tokenString
-	isRefreshToken := savedSession.RefreshToken == tokenString
+	tokenHash := hashToken(tokenString)
+	isAccessToken := savedSession.AccessToken == tokenHash
+	isRefreshToken := savedSession.RefreshToken == tokenHash
 	if !isAccessToken && !isRefreshToken {
 		return nil, ErrTokenRevoked
 	}
@@ -273,6 +327,14 @@ func (s *Service) Verify(ctx context.Context, userID string, sessionID string) (
 
 func (s *Service) RevokeToken(ctx context.Context, userID, sessionID string) error {
 	s.log.WithContext(ctx).Infof("Revoking token for user %s with session %s", userID, sessionID)
+
+	currentSession, err := s.tokenRepo.GetToken(ctx, userID, sessionID)
+	if err != nil {
+		return err
+	}
+	if currentSession == nil {
+		return nil
+	}
 
 	if s.taskDistributor != nil {
 		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
@@ -356,4 +418,8 @@ func (s *Service) GenerateRefreshToken(user *entity.User) (string, error) {
 		Username:  user.Username,
 	})
 	return refreshToken, err
+}
+
+func (s *Service) GetRefreshTokenDuration() time.Duration {
+	return s.jwtManager.GetRefreshTokenDuration()
 }

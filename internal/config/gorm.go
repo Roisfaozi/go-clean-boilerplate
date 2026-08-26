@@ -11,9 +11,16 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+const (
+	defaultDSNCharset   = "utf8mb4"
+	defaultDSNParseTime = "True"
+	defaultDSNLocation  = "UTC"
+)
+
 func NewDatabase(cfg *AppConfig, log *logrus.Logger) *gorm.DB {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		cfg.Mysql.User, cfg.Mysql.Password, cfg.Mysql.Host, cfg.Mysql.Port, cfg.Mysql.DBName)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=%s&loc=%s",
+		cfg.Mysql.User, cfg.Mysql.Password, cfg.Mysql.Host, cfg.Mysql.Port, cfg.Mysql.DBName,
+		defaultDSNCharset, defaultDSNParseTime, defaultDSNLocation)
 
 	newLogger := logger.New(
 		&logrusWriter{Logger: log},

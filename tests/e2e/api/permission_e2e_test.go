@@ -1,6 +1,10 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
@@ -670,4 +674,108 @@ func TestSecurityE2E_DynamicRBAC(t *testing.T) {
 
 	assert.Equal(t, 200, resp.StatusCode)
 
+}
+
+func mustJSON(v any) []byte {
+	b, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func TestPermissionE2E_CSRFProtection(t *testing.T) {
+	server := setup.SetupTestServer(t)
+	defer server.Cleanup()
+	client := server.Client
+
+	f := fixtures.NewUserFactory(server.DB)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("StrongPass123!"), bcrypt.DefaultCost)
+	passHash := string(hash)
+
+	user := f.Create(func(u *userEntity.User) {
+		u.Username = "csrf_user"
+		u.Password = passHash
+	})
+
+	_, err := server.Enforcer.AddGroupingPolicy(user.ID, "role:superadmin", "global")
+	require.NoError(t, err)
+	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
+	require.NoError(t, err)
+	err = server.Enforcer.SavePolicy()
+	require.NoError(t, err)
+
+	require.NoError(t, server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Editor"}).Error)
+	require.NoError(t, server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Viewer"}).Error)
+
+	resp := client.POST("/api/v1/auth/login", map[string]any{
+		"username": user.Username,
+		"password": "StrongPass123!",
+	})
+	require.Equal(t, 200, resp.StatusCode)
+
+	var csrfCookieVal string
+	var rawCookies []string
+	for _, cookie := range resp.Header["Set-Cookie"] {
+		parts := strings.Split(cookie, ";")
+		if len(parts) > 0 {
+			rawCookies = append(rawCookies, strings.TrimSpace(parts[0]))
+		}
+		if strings.Contains(cookie, "csrf_token=") {
+			kv := strings.Split(parts[0], "=")
+			if len(kv) == 2 {
+				csrfCookieVal = kv[1]
+			}
+		}
+	}
+	require.NotEmpty(t, csrfCookieVal, "csrf_token cookie must be set on login")
+	cookieHeaderStr := strings.Join(rawCookies, "; ")
+
+	t.Run("Cookie Auth without X-CSRF-Token header is rejected (403)", func(t *testing.T) {
+		grantPayload := map[string]any{
+			"role":   "Editor",
+			"path":   "/api/v1/test",
+			"method": "GET",
+		}
+		req, _ := http.NewRequest("POST", server.BaseURL+"/api/v1/permissions/grant", bytes.NewBuffer(mustJSON(grantPayload)))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Cookie", cookieHeaderStr)
+
+		res, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		assert.Equal(t, 403, res.StatusCode, "Cookie-based mutation without X-CSRF-Token header must return 403")
+	})
+
+	t.Run("Cookie Auth with matching X-CSRF-Token header succeeds", func(t *testing.T) {
+		grantPayload := map[string]any{
+			"role":   "Editor",
+			"path":   "/api/v1/test",
+			"method": "GET",
+		}
+		req, _ := http.NewRequest("POST", server.BaseURL+"/api/v1/permissions/grant", bytes.NewBuffer(mustJSON(grantPayload)))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Cookie", cookieHeaderStr)
+		req.Header.Set("X-CSRF-Token", csrfCookieVal)
+
+		res, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		assert.Equal(t, 201, res.StatusCode, "Cookie-based mutation with matching X-CSRF-Token header must succeed")
+	})
+
+	t.Run("Authorization Bearer header bypasses CSRF check", func(t *testing.T) {
+		var loginRes struct {
+			Data struct {
+				AccessToken string `json:"access_token"`
+			} `json:"data"`
+		}
+		_ = resp.JSON(&loginRes)
+
+		grantPayload := map[string]any{
+			"role":   "Viewer",
+			"path":   "/api/v1/test2",
+			"method": "GET",
+		}
+		respAuth := client.POST("/api/v1/permissions/grant", grantPayload, setup.WithAuth(loginRes.Data.AccessToken))
+		assert.Equal(t, 201, respAuth.StatusCode, "Bearer token authentication must bypass CSRF check")
+	})
 }
