@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
@@ -224,4 +225,181 @@ func TestRoleRepository_ErrorPath(t *testing.T) {
 	// Delete
 	err = repo.Delete(ctx, "role-2")
 	assert.Error(t, err)
+}
+
+func TestRoleRepository_FindOrganizationRoleByID(t *testing.T) {
+	repo, _ := setupRoleRepo(t)
+	ctx := context.Background()
+
+	orgID := "org-1"
+	role := &entity.Role{
+		ID:             "role-org-1",
+		Name:           "OrgRole",
+		Description:    "Role in Org",
+		OrganizationID: &orgID,
+	}
+
+	err := repo.Create(ctx, role)
+	require.NoError(t, err)
+
+	// Success
+	found, err := repo.FindOrganizationRoleByID(ctx, orgID, role.ID)
+	require.NoError(t, err)
+	assert.Equal(t, role.Name, found.Name)
+
+	// Not Found (wrong org)
+	_, err = repo.FindOrganizationRoleByID(ctx, "org-2", role.ID)
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+}
+
+func TestRoleRepository_FindOrganizationRoles(t *testing.T) {
+	repo, _ := setupRoleRepo(t)
+	ctx := context.Background()
+
+	orgID := "org-1"
+	role1 := &entity.Role{ID: "role-org-1", Name: "OrgRole1", OrganizationID: &orgID}
+	role2 := &entity.Role{ID: "role-org-2", Name: "OrgRole2", OrganizationID: nil}
+	role3 := &entity.Role{ID: "role-org-3", Name: "OrgRole3", OrganizationID: func() *string { s := "org-2"; return &s }()}
+
+	err := repo.Create(ctx, role1)
+	require.NoError(t, err)
+	err = repo.Create(ctx, role2)
+	require.NoError(t, err)
+	err = repo.Create(ctx, role3)
+	require.NoError(t, err)
+
+	// Success
+	roles, err := repo.FindOrganizationRoles(ctx, orgID)
+	require.NoError(t, err)
+	assert.Len(t, roles, 2)
+}
+
+func TestRoleRepository_FindByNameInScope(t *testing.T) {
+	repo, _ := setupRoleRepo(t)
+	ctx := context.Background()
+
+	orgID := "org-1"
+	role1 := &entity.Role{ID: "role-org-1", Name: "ScopedRole", OrganizationID: &orgID}
+	role2 := &entity.Role{ID: "role-org-2", Name: "GlobalRole", OrganizationID: nil}
+
+	err := repo.Create(ctx, role1)
+	require.NoError(t, err)
+	err = repo.Create(ctx, role2)
+	require.NoError(t, err)
+
+	// Success with orgID
+	found, err := repo.FindByNameInScope(ctx, "ScopedRole", &orgID)
+	require.NoError(t, err)
+	assert.Equal(t, role1.ID, found.ID)
+
+	// Success with nil orgID
+	found, err = repo.FindByNameInScope(ctx, "GlobalRole", nil)
+	require.NoError(t, err)
+	assert.Equal(t, role2.ID, found.ID)
+
+	// Success with empty string orgID
+	emptyOrg := ""
+	found, err = repo.FindByNameInScope(ctx, "GlobalRole", &emptyOrg)
+	require.NoError(t, err)
+	assert.Equal(t, role2.ID, found.ID)
+
+	// Not Found
+	_, err = repo.FindByNameInScope(ctx, "NonExistent", &orgID)
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+}
+
+func TestRoleRepository_DeleteInOrg(t *testing.T) {
+	repo, _ := setupRoleRepo(t)
+	ctx := context.Background()
+
+	orgID := "org-1"
+	role := &entity.Role{
+		ID:             "role-org-1",
+		Name:           "OrgRole",
+		Description:    "Role in Org",
+		OrganizationID: &orgID,
+	}
+
+	err := repo.Create(ctx, role)
+	require.NoError(t, err)
+
+	// Empty IDs
+	err = repo.DeleteInOrg(ctx, "", role.ID)
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+
+	err = repo.DeleteInOrg(ctx, orgID, "")
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+
+	// Not Found (wrong org)
+	err = repo.DeleteInOrg(ctx, "org-2", role.ID)
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+
+	// Success
+	err = repo.DeleteInOrg(ctx, orgID, role.ID)
+	require.NoError(t, err)
+
+	// Verify deletion
+	_, err = repo.FindOrganizationRoleByID(ctx, orgID, role.ID)
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+}
+
+func TestRoleRepository_ErrorPath_Extra(t *testing.T) {
+	repo, db := setupRoleRepo(t)
+	ctx := context.Background()
+
+	// Close db to force error
+	sqlDB, _ := db.DB()
+	_ = sqlDB.Close()
+
+	// FindOrganizationRoleByID
+	_, err := repo.FindOrganizationRoleByID(ctx, "org-1", "role-org-1")
+	assert.Error(t, err)
+
+	// FindOrganizationRoles
+	_, err = repo.FindOrganizationRoles(ctx, "org-1")
+	assert.Error(t, err)
+
+	// FindByNameInScope
+	orgID := "org-1"
+	_, err = repo.FindByNameInScope(ctx, "test", &orgID)
+	assert.Error(t, err)
+
+	// DeleteInOrg
+	err = repo.DeleteInOrg(ctx, "org-1", "role-1")
+	assert.Error(t, err)
+}
+
+func TestRoleRepository_GetDBContextTx(t *testing.T) {
+	repo, db := setupRoleRepo(t)
+	ctx := context.Background()
+
+	// 1. Without Tx in Context (uses regular DB)
+	role := &entity.Role{ID: "role-tx-1", Name: "TxRole1"}
+	err := repo.Create(ctx, role)
+	require.NoError(t, err)
+
+	// 2. With Tx in Context (uses Tx DB)
+	txManager := tx.NewTransactionManager(db, logrus.New())
+
+	err = txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+	    role2 := &entity.Role{ID: "role-tx-2", Name: "TxRole2"}
+	    errCreate := repo.Create(txCtx, role2)
+	    require.NoError(t, errCreate)
+	    return gorm.ErrRecordNotFound // force rollback
+	})
+
+	assert.Error(t, err)
+
+	// Ensure role2 is rolled back, meaning it was executed within the Tx
+	_, err = repo.FindByID(ctx, "role-tx-2")
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+}
+
+func TestRoleRepository_Delete_Error_NoRows(t *testing.T) {
+	repo, _ := setupRoleRepo(t)
+	ctx := context.Background()
+
+	// Try to delete a non-existent record
+	err := repo.Delete(ctx, "non-existent-id")
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
