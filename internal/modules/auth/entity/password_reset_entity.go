@@ -1,12 +1,10 @@
 package entity
 
-import "time"
-
 type PasswordResetToken struct {
-	Email     string    `gorm:"primaryKey;column:email"`
-	Token     string    `gorm:"column:token;index"`
-	ExpiresAt time.Time `gorm:"column:expires_at"`
-	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
+	Email     string `gorm:"primaryKey;column:email"`
+	Token     string `gorm:"column:token;index"`
+	ExpiresAt int64  `gorm:"column:expires_at"`
+	CreatedAt int64  `gorm:"column:created_at;autoCreateTime:milli"`
 }
 
 func (PasswordResetToken) TableName() string {

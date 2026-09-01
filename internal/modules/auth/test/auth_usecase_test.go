@@ -859,7 +859,7 @@ func TestResetPassword_Success(t *testing.T) {
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     user.Email,
 		Token:     token,
-		ExpiresAt: time.Now().Add(1 * time.Hour),
+		ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli(),
 	}
 
 	deps.tokenRepo.On("FindByToken", mock.Anything, mock.Anything).Return(resetToken, nil)
@@ -891,7 +891,7 @@ func TestResetPassword_Failure_TransactionError(t *testing.T) {
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     user.Email,
 		Token:     token,
-		ExpiresAt: time.Now().Add(1 * time.Hour),
+		ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli(),
 	}
 
 	deps.tokenRepo.On("FindByToken", mock.Anything, mock.Anything).Return(resetToken, nil)
@@ -933,7 +933,7 @@ func TestResetPassword_Failure_ExpiredToken(t *testing.T) {
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     "test@example.com",
 		Token:     token,
-		ExpiresAt: time.Now().Add(-1 * time.Hour),
+		ExpiresAt: time.Now().Add(-1 * time.Hour).UnixMilli(),
 	}
 
 	deps.tokenRepo.On("FindByToken", mock.Anything, mock.Anything).Return(resetToken, nil)
@@ -952,7 +952,7 @@ func TestResetPassword_Failure_UserDeleted(t *testing.T) {
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     "deleted@example.com",
 		Token:     token,
-		ExpiresAt: time.Now().Add(1 * time.Hour),
+		ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli(),
 	}
 
 	deps.tokenRepo.On("FindByToken", mock.Anything, mock.Anything).Return(resetToken, nil)
@@ -972,7 +972,7 @@ func TestResetPassword_AuditError(t *testing.T) {
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     user.Email,
 		Token:     token,
-		ExpiresAt: time.Now().Add(1 * time.Hour),
+		ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli(),
 	}
 
 	deps.tokenRepo.On("FindByToken", mock.Anything, mock.Anything).Return(resetToken, nil)
@@ -2631,7 +2631,7 @@ func TestAuthUseCase_ResetPassword_Edge_LongPassword(t *testing.T) {
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     "user@example.com",
 		Token:     token,
-		ExpiresAt: time.Now().Add(1 * time.Hour),
+		ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli(),
 	}
 	// Password longer than 72 bytes causes bcrypt to fail
 	longPassword := strings.Repeat("a", 73)

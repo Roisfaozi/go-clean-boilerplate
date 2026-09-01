@@ -53,7 +53,7 @@ func TestScenario_PasswordRecovery_Lifecycle(t *testing.T) {
 	hashedToken := hex.EncodeToString(sum[:])
 
 	err := env.DB.Create(&authEntity.PasswordResetToken{
-		Email: user.Email, Token: hashedToken, ExpiresAt: time.Now().Add(15 * time.Minute),
+		Email: user.Email, Token: hashedToken, ExpiresAt: time.Now().Add(15 * time.Minute).UnixMilli(),
 	}).Error
 	require.NoError(t, err)
 

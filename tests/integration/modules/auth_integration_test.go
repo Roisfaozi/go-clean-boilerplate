@@ -276,7 +276,7 @@ func TestAuthIntegration_PasswordRecovery(t *testing.T) {
 		sum := sha256.Sum256([]byte(resetToken))
 		hashedToken := hex.EncodeToString(sum[:])
 		err := env.DB.Create(&authEntity.PasswordResetToken{
-			Email: email, Token: hashedToken, ExpiresAt: time.Now().Add(time.Hour),
+			Email: email, Token: hashedToken, ExpiresAt: time.Now().Add(time.Hour).UnixMilli(),
 		}).Error
 		require.NoError(t, err)
 

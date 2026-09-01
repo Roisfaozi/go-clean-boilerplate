@@ -122,7 +122,7 @@ func TestAuthE2E_ForgotPasswordFlow(t *testing.T) {
 	hashedToken := hex.EncodeToString(sum[:])
 	server.DB.Where("email = ?", email).Delete(&entity.PasswordResetToken{})
 	err = server.DB.Create(&entity.PasswordResetToken{
-		Email: email, Token: hashedToken, ExpiresAt: time.Now().Add(15 * time.Minute),
+		Email: email, Token: hashedToken, ExpiresAt: time.Now().Add(15 * time.Minute).UnixMilli(),
 	}).Error
 	require.NoError(t, err)
 

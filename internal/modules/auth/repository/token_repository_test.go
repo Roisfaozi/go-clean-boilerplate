@@ -117,7 +117,7 @@ func TestTokenRepository_Save(t *testing.T) {
 	token := &entity.PasswordResetToken{
 		Email:     "test@example.com",
 		Token:     "token123",
-		ExpiresAt: time.Now().Add(time.Hour),
+		ExpiresAt: time.Now().Add(time.Hour).UnixMilli(),
 	}
 
 	err := repo.Save(context.Background(), token)
@@ -139,7 +139,7 @@ func TestTokenRepository_FindByToken(t *testing.T) {
 	token := &entity.PasswordResetToken{
 		Email:     "test@example.com",
 		Token:     "token123",
-		ExpiresAt: time.Now().Add(time.Hour),
+		ExpiresAt: time.Now().Add(time.Hour).UnixMilli(),
 	}
 	db.Create(token)
 
@@ -502,22 +502,21 @@ func TestTokenRepository_DeleteExpiredResetTokens(t *testing.T) {
 	expiredToken := &entity.PasswordResetToken{
 		Email:     "expired@example.com",
 		Token:     "expired123",
-		ExpiresAt: time.Now().Add(-1 * time.Hour),
+		ExpiresAt: time.Now().Add(-1 * time.Hour).UnixMilli(),
 	}
 	validToken := &entity.PasswordResetToken{
 		Email:     "valid@example.com",
 		Token:     "valid123",
-		ExpiresAt: time.Now().Add(1 * time.Hour),
+		ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli(),
 	}
 	db.Create(expiredToken)
 	db.Create(validToken)
 
 	err := repo.DeleteExpiredResetTokens(context.Background())
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "no such function: NOW")
+	assert.NoError(t, err)
 	var count int64
 	db.Model(&entity.PasswordResetToken{}).Count(&count)
-	assert.Equal(t, int64(2), count)
+	assert.Equal(t, int64(1), count)
 }
 
 func TestTokenRepository_DeleteExpiredResetTokens_Error(t *testing.T) {
@@ -550,6 +549,7 @@ func TestTokenRepository_DeleteExpiredResetTokens_ErrorMock(t *testing.T) {
 	logger.SetOutput(&NoOpWriter{})
 
 	repo := repository.NewTokenRepositoryRedis(nil, logger, db, &util.RealClock{})
+	db.Exec("DROP TABLE IF EXISTS password_reset_tokens;")
 	err := repo.DeleteExpiredResetTokens(context.Background())
 	assert.Error(t, err)
 }
@@ -565,7 +565,7 @@ func TestTokenRepository_SaveVerificationToken(t *testing.T) {
 	token := &entity.EmailVerificationToken{
 		Email:     "verify@example.com",
 		Token:     "verify123",
-		ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
+		ExpiresAt: time.Now().Add(24 * time.Hour).UnixMilli(),
 	}
 
 	err := repo.SaveVerificationToken(context.Background(), token)
@@ -588,7 +588,7 @@ func TestTokenRepository_FindVerificationToken(t *testing.T) {
 	token := &entity.EmailVerificationToken{
 		Email:     "verify@example.com",
 		Token:     "verify123",
-		ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
+		ExpiresAt: time.Now().Add(24 * time.Hour).UnixMilli(),
 	}
 	db.Create(token)
 
@@ -613,7 +613,7 @@ func TestTokenRepository_DeleteVerificationTokenByEmail(t *testing.T) {
 	token := &entity.EmailVerificationToken{
 		Email:     "verify@example.com",
 		Token:     "verify123",
-		ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
+		ExpiresAt: time.Now().Add(24 * time.Hour).UnixMilli(),
 	}
 	db.Create(token)
 
