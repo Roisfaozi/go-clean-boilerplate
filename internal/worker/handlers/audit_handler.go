@@ -54,7 +54,7 @@ func (h *AuditTaskHandler) ProcessTaskAuditLogExport(ctx context.Context, t *asy
 		return fmt.Errorf("failed to create export directory: %w", err)
 	}
 
-	fileName := fmt.Sprintf("audit_logs_export_%s_%d.csv", payload.UserID, time.Now().Unix())
+	fileName := fmt.Sprintf("audit_logs_export_%s_%d.csv", payload.UserID, time.Now().UnixMilli())
 
 	// For now, let's just use a fixed path to demonstrate
 	filePath := filepath.Join(exportDir, fileName)
