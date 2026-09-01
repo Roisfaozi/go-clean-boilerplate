@@ -70,3 +70,9 @@
 - Context-aware Logrus hooks only enrich entries created with
   `WithContext(ctx)`, and typed context keys from different packages do not
   match even when their string values look similar.
+
+## Time & Soft-Delete Normalization
+
+- `deleted_at` across migrations and GORM models uses `BIGINT NOT NULL DEFAULT 0` sentinel (with `gorm.io/plugin/soft_delete` tag `softDelete:milli`).
+- Instant timestamps are epoch milliseconds (`BIGINT`). Conversion functions and helpers live in `pkg/epochms` (Go) and `packages/utils/src/time.ts` (TS).
+- Timezones must be explicit parameters (`timeZone` option in JS, `In(tz)` in Go). Server or browser implicit fallback is blocked by `./scripts/guard-time-conventions.sh` in pre-commit hooks.
