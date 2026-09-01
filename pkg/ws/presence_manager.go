@@ -47,7 +47,7 @@ func NewPresenceManager(redisClient *redis.Client, log *logrus.Logger, ttl time.
 
 func (m *RedisPresenceManager) SetUserOnline(ctx context.Context, orgID, userID string, userData *PresenceUser) error {
 	pipe := m.redisClient.Pipeline()
-	now := time.Now().Unix()
+	now := time.Now().UnixMilli()
 
 	keyOrg := fmt.Sprintf("presence:org:%s", orgID)
 	pipe.ZAdd(ctx, keyOrg, redis.Z{
@@ -57,7 +57,7 @@ func (m *RedisPresenceManager) SetUserOnline(ctx context.Context, orgID, userID 
 
 	keyUser := fmt.Sprintf("presence:user:%s", userID)
 	userData.Status = "online"
-	userData.LastSeen = time.Now().UnixMilli()
+	userData.LastSeen = now
 	data, _ := json.Marshal(userData)
 
 	pipe.Set(ctx, keyUser, data, m.ttl)
@@ -117,7 +117,7 @@ func (m *RedisPresenceManager) GetOnlineUsers(ctx context.Context, orgID string)
 
 func (m *RedisPresenceManager) RefreshUserHeartbeat(ctx context.Context, orgID, userID string) error {
 	pipe := m.redisClient.Pipeline()
-	now := time.Now().Unix()
+	now := time.Now().UnixMilli()
 
 	keyOrg := fmt.Sprintf("presence:org:%s", orgID)
 	pipe.ZAdd(ctx, keyOrg, redis.Z{
@@ -134,7 +134,7 @@ func (m *RedisPresenceManager) RefreshUserHeartbeat(ctx context.Context, orgID, 
 
 func (m *RedisPresenceManager) PruneStaleUsers(ctx context.Context, timeout time.Duration) (map[string][]string, error) {
 	iter := m.redisClient.Scan(ctx, 0, "presence:org:*", 0).Iterator()
-	staleThreshold := time.Now().Add(-timeout).Unix()
+	staleThreshold := time.Now().Add(-timeout).UnixMilli()
 	removedUsers := make(map[string][]string)
 
 	for iter.Next(ctx) {
