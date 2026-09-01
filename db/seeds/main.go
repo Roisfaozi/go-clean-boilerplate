@@ -1,15 +1,15 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
+	accessEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
+	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
+	projectEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/entity"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/google/uuid"
@@ -17,6 +17,22 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
+
+const (
+	globalDomain       = "global"
+	ownerRoleName      = "role:org-owner"
+	adminRoleName      = "role:admin"
+	userRoleName       = "role:user"
+	superAdminRole     = "role:superadmin"
+	defaultOrgSlug     = "default-org"
+	defaultOrgName     = "Default Organization"
+	seededUserPassword = "Password0!"
+)
+
+type endpointSpec struct {
+	Path   string
+	Method string
+}
 
 func main() {
 	cfg, err := config.NewConfig()
@@ -37,72 +53,107 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	log.Println("Database connected. Starting Tiered Authorization Seeder...")
+	log.Println("Database connected. Starting Tiered Authorization Seeder (direct DB)...")
 
-	// 1. Seed Roles
-	seedRoles(db)
-
-	// 2. Seed Superadmin User
-	seedSuperAdmin(db)
-
-	// 3. Authenticate as Superadmin to get the token
-	token, err := authenticateSuperadmin(cfg)
-	if err != nil {
-		log.Fatalf("Failed to authenticate as superadmin during seeding: %v", err)
-	}
-
-	// 4. Seed Access Rights, Endpoints, and Tiered Policies via API
-	seedAccessRightsAndPoliciesViaAPI(cfg, token)
-
-	// 5. Seed Default Organization, Users, and Projects via API
-	seedOrganizationsUsersAndProjects(cfg, token)
-
-	log.Println("Seeding process completed successfully.")
-}
-
-func seedRoles(db *gorm.DB) {
-	roles := []roleEntity.Role{
-		{Name: "role:superadmin", Description: "Full Access", OrganizationID: ptrString("global")},
-		{Name: "role:admin", Description: "Org Administrator", OrganizationID: ptrString("global")},
-		{Name: "role:user", Description: "Org User", OrganizationID: ptrString("global")},
-		{ID: "role:org-owner", Name: "role:org-owner", Description: "Organization Owner", OrganizationID: ptrString("global")},
-	}
-
-	for _, r := range roles {
-		var count int64
-		db.Model(&roleEntity.Role{}).Where("name = ?", r.Name).Count(&count)
-		if count == 0 {
-			if r.ID == "" {
-				r.ID = uuid.NewString()
-			}
-			r.CreatedAt = time.Now().UnixMilli()
-			r.UpdatedAt = time.Now().UnixMilli()
-			db.Create(&r)
-			log.Printf("Role '%s' created.", r.Name)
-		} else {
-			// Update existing role description just in case
-			db.Model(&roleEntity.Role{}).Where("name = ?", r.Name).Update("description", r.Description)
-		}
-	}
-}
-
-func seedSuperAdmin(db *gorm.DB) {
-	adminUsername := "superadmin"
 	adminPassword := os.Getenv("SUPERADMIN_PASSWORD")
 	if adminPassword == "" {
 		log.Fatal("SUPERADMIN_PASSWORD environment variable is missing in .env")
 	}
 
-	hashedPwd, _ := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := seedRoles(tx); err != nil {
+			return fmt.Errorf("seed roles: %w", err)
+		}
+
+		superAdminID, err := seedSuperAdmin(tx, adminPassword)
+		if err != nil {
+			return fmt.Errorf("seed superadmin: %w", err)
+		}
+
+		if err := seedAccessRightsAndPolicies(tx); err != nil {
+			return fmt.Errorf("seed access rights: %w", err)
+		}
+
+		orgID, err := seedDefaultOrganization(tx, superAdminID)
+		if err != nil {
+			return fmt.Errorf("seed organization: %w", err)
+		}
+
+		if err := seedOrganizationUsers(tx, orgID); err != nil {
+			return fmt.Errorf("seed organization users: %w", err)
+		}
+
+		if err := seedDefaultProject(tx, orgID, superAdminID); err != nil {
+			return fmt.Errorf("seed project: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("Seeding failed, transaction rolled back: %v", err)
+	}
+
+	log.Println("Seeding process completed successfully.")
+}
+
+func seedRoles(db *gorm.DB) error {
+	// organization_id stays NULL for global roles: the column has an FK to
+	// organizations(id), and OrganizationScope treats NULL as global.
+	roles := []roleEntity.Role{
+		{Name: superAdminRole, Description: "Full Access"},
+		{Name: adminRoleName, Description: "Org Administrator"},
+		{Name: userRoleName, Description: "Org User"},
+		{ID: ownerRoleName, Name: ownerRoleName, Description: "Organization Owner"},
+	}
+
+	for _, r := range roles {
+		var existing roleEntity.Role
+		err := db.Where("name = ?", r.Name).First(&existing).Error
+		if err == nil {
+			if err := db.Model(&roleEntity.Role{}).Where("id = ?", existing.ID).Update("description", r.Description).Error; err != nil {
+				return err
+			}
+			continue
+		}
+		if err != gorm.ErrRecordNotFound {
+			return err
+		}
+
+		if r.ID == "" {
+			r.ID = uuid.NewString()
+		}
+		if err := db.Create(&r).Error; err != nil {
+			return err
+		}
+		log.Printf("Role '%s' created.", r.Name)
+	}
+
+	return nil
+}
+
+func seedSuperAdmin(db *gorm.DB, adminPassword string) (string, error) {
+	adminUsername := "superadmin"
+
+	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
 
 	var user userEntity.User
-	if err := db.Where("username = ?", adminUsername).First(&user).Error; err != nil {
+	err = db.Where("username = ?", adminUsername).First(&user).Error
+	switch {
+	case err == nil:
+		if err := db.Table("users").Where("id = ?", user.ID).Update("password", string(hashedPwd)).Error; err != nil {
+			return "", err
+		}
+		log.Printf("Superadmin user '%s' password reset.", adminUsername)
+	case err == gorm.ErrRecordNotFound:
 		now := time.Now().UnixMilli()
-		userID := uuid.NewString()
+		user.ID = uuid.NewString()
 
-		// Use Map to avoid "Unknown column 'avatar_url'" errors if DB schema is not fully up to date
+		// Map insert keeps seeder resilient to optional columns such as avatar_url.
 		userData := map[string]interface{}{
-			"id":         userID,
+			"id":         user.ID,
 			"username":   adminUsername,
 			"email":      "superadmin@example.com",
 			"password":   string(hashedPwd),
@@ -110,212 +161,131 @@ func seedSuperAdmin(db *gorm.DB) {
 			"created_at": now,
 			"updated_at": now,
 		}
-
 		if err := db.Table("users").Create(userData).Error; err != nil {
-			log.Fatalf("Failed to create superadmin: %v", err)
+			return "", err
 		}
-		user.ID = userID
 		log.Printf("Superadmin user '%s' created.", adminUsername)
-	} else {
-		// ALWAYS reset superadmin password to ensure login works with current .env
-		db.Table("users").Where("id = ?", user.ID).Update("password", string(hashedPwd))
-		log.Printf("Superadmin user '%s' password reset.", adminUsername)
+	default:
+		return "", err
 	}
 
-	// Policy: superadmin USER has superadmin ROLE
-	ensurePolicy(db, "g", user.ID, "role:superadmin", "global", "", "")
-	// Policy: superadmin ROLE has all permission
-	ensurePolicy(db, "p", "role:superadmin", "global", "*", "*", "")
+	// superadmin user holds superadmin role in global domain
+	if err := ensureGroupingPolicy(db, user.ID, superAdminRole, globalDomain); err != nil {
+		return "", err
+	}
+	// superadmin role has unrestricted policy
+	if err := ensurePolicy(db, superAdminRole, globalDomain, "*", "*"); err != nil {
+		return "", err
+	}
+
+	return user.ID, nil
 }
 
-func authenticateSuperadmin(cfg *config.AppConfig) (string, error) {
-	adminPassword := os.Getenv("SUPERADMIN_PASSWORD")
-	if adminPassword == "" {
-		return "", fmt.Errorf("SUPERADMIN_PASSWORD environment variable is missing in .env")
-	}
-
-	apiBaseURL := fmt.Sprintf("http://localhost:%d/api/v1", cfg.Server.Port)
-	loginURL := fmt.Sprintf("%s/auth/login", apiBaseURL)
-
-	payload := map[string]string{
-		"username": "superadmin",
-		"password": adminPassword,
-	}
-	payloadBytes, _ := json.Marshal(payload)
-
-	req, _ := http.NewRequest("POST", loginURL, bytes.NewBuffer(payloadBytes))
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("login failed: %v", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		var errResp map[string]interface{}
-		_ = json.NewDecoder(resp.Body).Decode(&errResp)
-		return "", fmt.Errorf("login failed with status %d: %v", resp.StatusCode, errResp)
-	}
-
-	var loginResp struct {
-		Data struct {
-			AccessToken string `json:"access_token"`
-		} `json:"data"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&loginResp); err != nil {
-		return "", fmt.Errorf("failed to decode login response: %v", err)
-	}
-
-	return loginResp.Data.AccessToken, nil
-}
-
-func doJSONRequest(method, url string, payload interface{}, token string, expectedStatus int) (map[string]interface{}, error) {
-	var bodyReader *bytes.Buffer
-	if payload != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		bodyReader = bytes.NewBuffer(payloadBytes)
-	} else {
-		bodyReader = bytes.NewBuffer([]byte{})
-	}
-
-	req, err := http.NewRequest(method, url, bodyReader)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil && resp.StatusCode != http.StatusNoContent {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if resp.StatusCode != expectedStatus {
-		return result, fmt.Errorf("API request %s %s failed with status %d: %v", method, url, resp.StatusCode, result)
-	}
-
-	return result, nil
-}
-
-func seedAccessRightsAndPoliciesViaAPI(cfg *config.AppConfig, token string) {
-	apiBaseURL := fmt.Sprintf("http://localhost:%d/api/v1", cfg.Server.Port)
-
-	accessMap := map[string][]map[string]string{
+func accessRightSpec() map[string][]endpointSpec {
+	return map[string][]endpointSpec{
 		"dashboard:view": {
-			{"Path": "/api/v1/stats/summary", "Method": "GET"},
-			{"Path": "/api/v1/stats/activity", "Method": "GET"},
-			{"Path": "/api/v1/stats/insights", "Method": "GET"},
+			{"/api/v1/stats/summary", "GET"},
+			{"/api/v1/stats/activity", "GET"},
+			{"/api/v1/stats/insights", "GET"},
 		},
 		"user:view": {
-			{"Path": "/api/v1/users/", "Method": "GET"},
-			{"Path": "/api/v1/users/search", "Method": "POST"},
-			{"Path": "/api/v1/users/:id", "Method": "GET"},
+			{"/api/v1/users/", "GET"},
+			{"/api/v1/users/search", "POST"},
+			{"/api/v1/users/:id", "GET"},
 		},
 		"user:manage": {
-			{"Path": "/api/v1/users/:id/status", "Method": "PATCH"},
-			{"Path": "/api/v1/users/:id", "Method": "DELETE"},
+			{"/api/v1/users/:id/status", "PATCH"},
+			{"/api/v1/users/:id", "DELETE"},
 		},
 		"org:view": {
-			{"Path": "/api/v1/organizations/:id", "Method": "GET"},
-			{"Path": "/api/v1/organizations/me", "Method": "GET"},
-			{"Path": "/api/v1/organizations/slug/:slug", "Method": "GET"},
+			{"/api/v1/organizations/:id", "GET"},
+			{"/api/v1/organizations/me", "GET"},
+			{"/api/v1/organizations/slug/:slug", "GET"},
 		},
 		"org:manage": {
-			{"Path": "/api/v1/organizations", "Method": "POST"},
-			{"Path": "/api/v1/organizations/:id", "Method": "PUT"},
-			{"Path": "/api/v1/organizations/:id", "Method": "DELETE"},
+			{"/api/v1/organizations", "POST"},
+			{"/api/v1/organizations/:id", "PUT"},
+			{"/api/v1/organizations/:id", "DELETE"},
 		},
 		"member:manage": {
-			{"Path": "/api/v1/organizations/:id/members/invite", "Method": "POST"},
-			{"Path": "/api/v1/organizations/:id/members", "Method": "GET"},
-			{"Path": "/api/v1/organizations/:id/members/:userId", "Method": "PATCH"},
-			{"Path": "/api/v1/organizations/:id/members/:userId", "Method": "DELETE"},
+			{"/api/v1/organizations/:id/members/invite", "POST"},
+			{"/api/v1/organizations/:id/members", "GET"},
+			{"/api/v1/organizations/:id/members/:userId", "PATCH"},
+			{"/api/v1/organizations/:id/members/:userId", "DELETE"},
 		},
 		"presence:view": {
-			{"Path": "/api/v1/organizations/:id/presence", "Method": "GET"},
+			{"/api/v1/organizations/:id/presence", "GET"},
 		},
 		"project:view": {
-			{"Path": "/api/v1/projects", "Method": "GET"},
-			{"Path": "/api/v1/projects/:id", "Method": "GET"},
+			{"/api/v1/projects", "GET"},
+			{"/api/v1/projects/:id", "GET"},
 		},
 		"project:manage": {
-			{"Path": "/api/v1/projects", "Method": "POST"},
-			{"Path": "/api/v1/projects/:id", "Method": "PUT"},
-			{"Path": "/api/v1/projects/:id", "Method": "DELETE"},
+			{"/api/v1/projects", "POST"},
+			{"/api/v1/projects/:id", "PUT"},
+			{"/api/v1/projects/:id", "DELETE"},
 		},
 		"role:view": {
-			{"Path": "/api/v1/roles", "Method": "GET"},
-			{"Path": "/api/v1/roles/search", "Method": "POST"},
+			{"/api/v1/roles", "GET"},
+			{"/api/v1/roles/search", "POST"},
 		},
 		"role:manage": {
-			{"Path": "/api/v1/roles", "Method": "POST"},
-			{"Path": "/api/v1/roles/:id", "Method": "PUT"},
-			{"Path": "/api/v1/roles/:id", "Method": "DELETE"},
+			{"/api/v1/roles", "POST"},
+			{"/api/v1/roles/:id", "PUT"},
+			{"/api/v1/roles/:id", "DELETE"},
 		},
 		"permission:view": {
-			{"Path": "/api/v1/permissions", "Method": "GET"},
-			{"Path": "/api/v1/permissions/:role", "Method": "GET"},
-			{"Path": "/api/v1/permissions/roles/:role/users", "Method": "GET"},
-			{"Path": "/api/v1/permissions/:role/parents", "Method": "GET"},
-			{"Path": "/api/v1/permissions/resources", "Method": "GET"},
-			{"Path": "/api/v1/permissions/inheritance-tree", "Method": "GET"},
+			{"/api/v1/permissions", "GET"},
+			{"/api/v1/permissions/:role", "GET"},
+			{"/api/v1/permissions/roles/:role/users", "GET"},
+			{"/api/v1/permissions/:role/parents", "GET"},
+			{"/api/v1/permissions/resources", "GET"},
+			{"/api/v1/permissions/inheritance-tree", "GET"},
 		},
 		"permission:manage": {
-			{"Path": "/api/v1/permissions/assign-role", "Method": "POST"},
-			{"Path": "/api/v1/permissions/revoke-role", "Method": "DELETE"},
-			{"Path": "/api/v1/permissions/grant", "Method": "POST"},
-			{"Path": "/api/v1/permissions", "Method": "PUT"},
-			{"Path": "/api/v1/permissions/revoke", "Method": "DELETE"},
-			{"Path": "/api/v1/permissions/inheritance", "Method": "POST"},
-			{"Path": "/api/v1/permissions/inheritance", "Method": "DELETE"},
-			// Bulk Access Right assignment (new)
-			{"Path": "/api/v1/permissions/assign-access-right", "Method": "POST"},
-			{"Path": "/api/v1/permissions/revoke-access-right", "Method": "DELETE"},
-			{"Path": "/api/v1/permissions/roles/:role/access-rights", "Method": "GET"},
+			{"/api/v1/permissions/assign-role", "POST"},
+			{"/api/v1/permissions/revoke-role", "DELETE"},
+			{"/api/v1/permissions/grant", "POST"},
+			{"/api/v1/permissions", "PUT"},
+			{"/api/v1/permissions/revoke", "DELETE"},
+			{"/api/v1/permissions/inheritance", "POST"},
+			{"/api/v1/permissions/inheritance", "DELETE"},
+			{"/api/v1/permissions/assign-access-right", "POST"},
+			{"/api/v1/permissions/revoke-access-right", "DELETE"},
+			{"/api/v1/permissions/roles/:role/access-rights", "GET"},
 		},
 		"access:view": {
-			{"Path": "/api/v1/access-rights", "Method": "GET"},
-			{"Path": "/api/v1/access-rights/search", "Method": "POST"},
-			{"Path": "/api/v1/endpoints/search", "Method": "POST"},
+			{"/api/v1/access-rights", "GET"},
+			{"/api/v1/access-rights/search", "POST"},
+			{"/api/v1/endpoints/search", "POST"},
 		},
 		"access:manage": {
-			{"Path": "/api/v1/access-rights", "Method": "POST"},
-			{"Path": "/api/v1/access-rights/:id", "Method": "DELETE"},
-			{"Path": "/api/v1/access-rights/link", "Method": "POST"},
-			{"Path": "/api/v1/access-rights/unlink", "Method": "POST"},
-			{"Path": "/api/v1/endpoints", "Method": "POST"},
-			{"Path": "/api/v1/endpoints/:id", "Method": "DELETE"},
+			{"/api/v1/access-rights", "POST"},
+			{"/api/v1/access-rights/:id", "DELETE"},
+			{"/api/v1/access-rights/link", "POST"},
+			{"/api/v1/access-rights/unlink", "POST"},
+			{"/api/v1/endpoints", "POST"},
+			{"/api/v1/endpoints/:id", "DELETE"},
 		},
 		"audit:view": {
-			{"Path": "/api/v1/audit-logs/search", "Method": "POST"},
-			{"Path": "/api/v1/audit-logs/export", "Method": "GET"},
-			{"Path": "/api/v1/audit-logs/export-async", "Method": "POST"},
+			{"/api/v1/audit-logs/search", "POST"},
+			{"/api/v1/audit-logs/export", "GET"},
+			{"/api/v1/audit-logs/export-async", "POST"},
 		},
 		"webhook:manage": {
-			{"Path": "/api/v1/webhooks", "Method": "POST"},
-			{"Path": "/api/v1/webhooks", "Method": "GET"},
-			{"Path": "/api/v1/webhooks/:id", "Method": "GET"},
-			{"Path": "/api/v1/webhooks/:id", "Method": "PUT"},
-			{"Path": "/api/v1/webhooks/:id", "Method": "DELETE"},
-			{"Path": "/api/v1/webhooks/:id/logs", "Method": "GET"},
+			{"/api/v1/webhooks", "POST"},
+			{"/api/v1/webhooks", "GET"},
+			{"/api/v1/webhooks/:id", "GET"},
+			{"/api/v1/webhooks/:id", "PUT"},
+			{"/api/v1/webhooks/:id", "DELETE"},
+			{"/api/v1/webhooks/:id/logs", "GET"},
 		},
 	}
+}
 
-	roleToRights := map[string][]string{
-		"role:admin": {
+func roleAccessRightSpec() map[string][]string {
+	return map[string][]string{
+		adminRoleName: {
 			"dashboard:view",
 			"user:view", "user:manage",
 			"role:view", "role:manage",
@@ -327,359 +297,310 @@ func seedAccessRightsAndPoliciesViaAPI(cfg *config.AppConfig, token string) {
 			"access:view", "access:manage",
 			"webhook:manage",
 		},
-		"role:user": {
+		userRoleName: {
 			"dashboard:view", "project:view", "org:view", "presence:view",
 		},
 	}
-
-	// 1. Seed Endpoints and AccessRights into DB
-	for arName, eps := range accessMap {
-
-		// Search for access right
-		searchARPayload := map[string]interface{}{
-			"filter": map[string]interface{}{
-				"name": map[string]interface{}{
-					"type": "equals",
-					"from": arName,
-				},
-			},
-		}
-
-		resp, err := doJSONRequest("POST", fmt.Sprintf("%s/access-rights/search", apiBaseURL), searchARPayload, token, http.StatusOK)
-
-		var arID string
-		if err == nil && resp["data"] != nil {
-			if data, ok := resp["data"].([]interface{}); ok && len(data) > 0 {
-				if item, ok := data[0].(map[string]interface{}); ok {
-					if id, ok := item["id"].(string); ok {
-						arID = id
-					}
-				}
-			}
-		} else if err != nil {
-			log.Printf("Warning: search access right failed: %v", err)
-		}
-
-		if arID == "" {
-			// Create it
-			createARPayload := map[string]interface{}{
-				"name": arName,
-			}
-			resp, err := doJSONRequest("POST", fmt.Sprintf("%s/access-rights", apiBaseURL), createARPayload, token, http.StatusCreated)
-			if err != nil {
-				log.Printf("Failed to create access right %s: %v", arName, err)
-				continue
-			}
-			arID = ""
-			if resp["data"] != nil {
-				if item, ok := resp["data"].(map[string]interface{}); ok {
-					if id, ok := item["id"].(string); ok {
-						arID = id
-					}
-				}
-			}
-		}
-
-		for _, ep := range eps {
-			// Search for endpoint
-			searchEpPayload := map[string]interface{}{
-				"filter": map[string]interface{}{
-					"path": map[string]interface{}{
-						"type": "equals",
-						"from": ep["Path"],
-					},
-					"method": map[string]interface{}{
-						"type": "equals",
-						"from": ep["Method"],
-					},
-				},
-			}
-
-			resp, err := doJSONRequest("POST", fmt.Sprintf("%s/endpoints/search", apiBaseURL), searchEpPayload, token, http.StatusOK)
-
-			var epID string
-			if err == nil && resp["data"] != nil {
-				if data, ok := resp["data"].([]interface{}); ok && len(data) > 0 {
-					if item, ok := data[0].(map[string]interface{}); ok {
-						if id, ok := item["id"].(string); ok {
-							epID = id
-						}
-					}
-				}
-			}
-
-			if epID == "" {
-				// Create endpoint
-				createEpPayload := map[string]interface{}{
-					"path":   ep["Path"],
-					"method": ep["Method"],
-				}
-				resp, err := doJSONRequest("POST", fmt.Sprintf("%s/endpoints", apiBaseURL), createEpPayload, token, http.StatusCreated)
-				if err != nil {
-					log.Printf("Failed to create endpoint %s %s: %v", ep["Method"], ep["Path"], err)
-					continue
-				}
-				epID = ""
-				if resp["data"] != nil {
-					if item, ok := resp["data"].(map[string]interface{}); ok {
-						if id, ok := item["id"].(string); ok {
-							epID = id
-						}
-					}
-				}
-			}
-
-			// Link in DB
-			linkPayload := map[string]interface{}{
-				"access_right_id": arID,
-				"endpoint_id":     epID,
-			}
-			_, _ = doJSONRequest("POST", fmt.Sprintf("%s/access-rights/link", apiBaseURL), linkPayload, token, http.StatusOK)
-			// Ignore error on link if it's already linked
-		}
-	}
-
-	// 3. Seed Casbin Inheritance: g, role, accessRight, global
-	for roleName, rights := range roleToRights {
-		for _, arName := range rights {
-			// Need to fetch AR ID again, or rely assigning access right
-			// find AR ID
-			searchARPayload := map[string]interface{}{
-				"filter": map[string]interface{}{
-					"name": map[string]interface{}{
-						"type": "equals",
-						"from": arName,
-					},
-				},
-			}
-			resp, err := doJSONRequest("POST", fmt.Sprintf("%s/access-rights/search", apiBaseURL), searchARPayload, token, http.StatusOK)
-			var arID string
-			if err == nil && resp["data"] != nil {
-				if data, ok := resp["data"].([]interface{}); ok && len(data) > 0 {
-					if item, ok := data[0].(map[string]interface{}); ok {
-						if id, ok := item["id"].(string); ok {
-							arID = id
-						}
-					}
-				}
-			}
-
-			if arID != "" {
-				assignPayload := map[string]interface{}{
-					"role":            roleName,
-					"access_right_id": arID,
-					"domain":          "global",
-				}
-				_, err := doJSONRequest("POST", fmt.Sprintf("%s/permissions/assign-access-right", apiBaseURL), assignPayload, token, http.StatusOK)
-				if err != nil {
-					log.Printf("Warning: failed to assign %s to %s: %v", arName, roleName, err)
-				}
-			}
-		}
-	}
 }
 
-func ensurePolicy(db *gorm.DB, ptype, v0, v1, v2, v3, v4 string) {
+func seedAccessRightsAndPolicies(db *gorm.DB) error {
+	accessMap := accessRightSpec()
+
+	for arName, endpoints := range accessMap {
+		arID, err := ensureAccessRight(db, arName)
+		if err != nil {
+			return err
+		}
+
+		for _, ep := range endpoints {
+			epID, err := ensureEndpoint(db, ep)
+			if err != nil {
+				return err
+			}
+			if err := ensureAccessRightEndpointLink(db, arID, epID); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Expand access rights into Casbin policies: p, role, domain, path, method
+	for roleName, rights := range roleAccessRightSpec() {
+		for _, arName := range rights {
+			for _, ep := range accessMap[arName] {
+				if err := ensurePolicy(db, roleName, globalDomain, ep.Path, ep.Method); err != nil {
+					return err
+				}
+			}
+		}
+		log.Printf("Access rights expanded into policies for role '%s'.", roleName)
+	}
+
+	return nil
+}
+
+func ensureAccessRight(db *gorm.DB, name string) (string, error) {
+	var ar accessEntity.AccessRight
+	err := db.Where("name = ?", name).First(&ar).Error
+	if err == nil {
+		return ar.ID, nil
+	}
+	if err != gorm.ErrRecordNotFound {
+		return "", err
+	}
+
+	// organization_id stays NULL for global access rights: the column has an FK to
+	// organizations(id), and OrganizationScope treats NULL as global.
+	ar = accessEntity.AccessRight{
+		ID:   uuid.NewString(),
+		Name: name,
+	}
+	if err := db.Create(&ar).Error; err != nil {
+		return "", err
+	}
+	log.Printf("Access right '%s' created.", name)
+	return ar.ID, nil
+}
+
+func ensureEndpoint(db *gorm.DB, ep endpointSpec) (string, error) {
+	var existing accessEntity.Endpoint
+	err := db.Where("path = ? AND method = ?", ep.Path, ep.Method).First(&existing).Error
+	if err == nil {
+		return existing.ID, nil
+	}
+	if err != gorm.ErrRecordNotFound {
+		return "", err
+	}
+
+	created := accessEntity.Endpoint{
+		ID:     uuid.NewString(),
+		Path:   ep.Path,
+		Method: ep.Method,
+	}
+	if err := db.Create(&created).Error; err != nil {
+		return "", err
+	}
+	return created.ID, nil
+}
+
+func ensureAccessRightEndpointLink(db *gorm.DB, accessRightID, endpointID string) error {
 	var count int64
+	if err := db.Table("access_right_endpoints").
+		Where("access_right_id = ? AND endpoint_id = ?", accessRightID, endpointID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	return db.Create(&accessEntity.AccessRightEndpoint{
+		AccessRightID: accessRightID,
+		EndpointID:    endpointID,
+	}).Error
+}
+
+func seedDefaultOrganization(db *gorm.DB, ownerUserID string) (string, error) {
+	ownerRoleID, err := roleIDByName(db, ownerRoleName)
+	if err != nil {
+		return "", err
+	}
+
+	var org orgEntity.Organization
+	err = db.Where("slug = ?", defaultOrgSlug).First(&org).Error
+	switch {
+	case err == nil:
+		log.Printf("Default organization found with ID: %s", org.ID)
+	case err == gorm.ErrRecordNotFound:
+		org = orgEntity.Organization{
+			ID:      uuid.NewString(),
+			Name:    defaultOrgName,
+			Slug:    defaultOrgSlug,
+			OwnerID: ownerUserID,
+			Status:  orgEntity.OrgStatusActive,
+		}
+		if err := db.Create(&org).Error; err != nil {
+			return "", err
+		}
+		log.Printf("Default organization created with ID: %s", org.ID)
+	default:
+		return "", err
+	}
+
+	// Owner membership row
+	if err := ensureMember(db, org.ID, ownerUserID, ownerRoleID, orgEntity.MemberStatusActive); err != nil {
+		return "", err
+	}
+
+	// Mirror global role policies into org domain, matching bootstrapOrganizationPolicies
+	accessMap := accessRightSpec()
+	for roleName, rights := range roleAccessRightSpec() {
+		for _, arName := range rights {
+			for _, ep := range accessMap[arName] {
+				if err := ensurePolicy(db, roleName, org.ID, ep.Path, ep.Method); err != nil {
+					return "", err
+				}
+			}
+		}
+	}
+
+	// org-owner inherits admin inside org domain
+	if err := ensureGroupingPolicy(db, ownerRoleName, adminRoleName, org.ID); err != nil {
+		return "", err
+	}
+	// owner user holds org-owner role in org domain
+	if err := ensureGroupingPolicy(db, ownerUserID, ownerRoleName, org.ID); err != nil {
+		return "", err
+	}
+
+	return org.ID, nil
+}
+
+func seedOrganizationUsers(db *gorm.DB, orgID string) error {
+	usersToSeed := []struct {
+		Username string
+		Name     string
+		Email    string
+		RoleName string
+	}{
+		{"adminuser", "Admin User", "admin@example.com", adminRoleName},
+		{"regularuser", "Regular User", "user@example.com", userRoleName},
+	}
+
+	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(seededUserPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	for _, u := range usersToSeed {
+		roleID, err := roleIDByName(db, u.RoleName)
+		if err != nil {
+			return err
+		}
+
+		var user userEntity.User
+		err = db.Where("username = ?", u.Username).First(&user).Error
+		switch {
+		case err == nil:
+			log.Printf("User '%s' found with ID: %s", u.Username, user.ID)
+		case err == gorm.ErrRecordNotFound:
+			now := time.Now().UnixMilli()
+			user.ID = uuid.NewString()
+			userData := map[string]interface{}{
+				"id":         user.ID,
+				"username":   u.Username,
+				"email":      u.Email,
+				"password":   string(hashedPwd),
+				"name":       u.Name,
+				"created_at": now,
+				"updated_at": now,
+			}
+			if err := db.Table("users").Create(userData).Error; err != nil {
+				return err
+			}
+			log.Printf("User '%s' created with ID: %s", u.Username, user.ID)
+		default:
+			return err
+		}
+
+		if err := ensureMember(db, orgID, user.ID, roleID, orgEntity.MemberStatusActive); err != nil {
+			return err
+		}
+		if err := ensureGroupingPolicy(db, user.ID, u.RoleName, orgID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func seedDefaultProject(db *gorm.DB, orgID, userID string) error {
+	const projectName = "Sample E-Commerce App"
+
+	var count int64
+	if err := db.Model(&projectEntity.Project{}).
+		Where("organization_id = ? AND name = ?", orgID, projectName).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	project := projectEntity.Project{
+		ID:             uuid.NewString(),
+		OrganizationID: orgID,
+		UserID:         userID,
+		Name:           projectName,
+		Domain:         "e-commerce",
+		Status:         "active",
+	}
+	if err := db.Create(&project).Error; err != nil {
+		return err
+	}
+
+	log.Println("Default project created successfully.")
+	return nil
+}
+
+func ensureMember(db *gorm.DB, orgID, userID, roleID, status string) error {
+	var count int64
+	if err := db.Model(&orgEntity.OrganizationMember{}).
+		Where("organization_id = ? AND user_id = ?", orgID, userID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	return db.Create(&orgEntity.OrganizationMember{
+		ID:             uuid.NewString(),
+		OrganizationID: orgID,
+		UserID:         userID,
+		RoleID:         roleID,
+		Status:         status,
+	}).Error
+}
+
+func roleIDByName(db *gorm.DB, name string) (string, error) {
+	var role roleEntity.Role
+	if err := db.Where("name = ?", name).First(&role).Error; err != nil {
+		return "", fmt.Errorf("role %q not found: %w", name, err)
+	}
+	return role.ID, nil
+}
+
+// ensurePolicy inserts a Casbin permission rule: p, subject, domain, object, action
+func ensurePolicy(db *gorm.DB, subject, domain, object, action string) error {
+	return ensureCasbinRule(db, "p", subject, domain, object, action)
+}
+
+// ensureGroupingPolicy inserts a Casbin grouping rule: g, member, role, domain
+func ensureGroupingPolicy(db *gorm.DB, member, role, domain string) error {
+	return ensureCasbinRule(db, "g", member, role, domain, "")
+}
+
+func ensureCasbinRule(db *gorm.DB, ptype, v0, v1, v2, v3 string) error {
 	query := db.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", ptype, v0, v1, v2)
 	if v3 != "" {
 		query = query.Where("v3 = ?", v3)
+	} else {
+		query = query.Where("v3 IS NULL OR v3 = ?", "")
 	}
-	if v4 != "" {
-		query = query.Where("v4 = ?", v4)
-	}
-	query.Count(&count)
 
-	if count == 0 {
-		db.Table("casbin_rule").Create(map[string]interface{}{
-			"ptype": ptype, "v0": v0, "v1": v1, "v2": v2, "v3": v3, "v4": v4,
-		})
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return err
 	}
+	if count > 0 {
+		return nil
+	}
+
+	return db.Table("casbin_rule").Create(map[string]interface{}{
+		"ptype": ptype, "v0": v0, "v1": v1, "v2": v2, "v3": v3, "v4": "",
+	}).Error
 }
 
 func ptrString(s string) *string {
 	return &s
-}
-
-func seedOrganizationsUsersAndProjects(cfg *config.AppConfig, token string) {
-	apiBaseURL := fmt.Sprintf("http://localhost:%d/api/v1", cfg.Server.Port)
-
-	// 1. Create Default Organization
-	orgPayload := map[string]interface{}{
-		"name": "Default Organization",
-		"slug": "default-org",
-	}
-
-	resp, err := doJSONRequest("POST", fmt.Sprintf("%s/organizations", apiBaseURL), orgPayload, token, http.StatusCreated)
-	var orgID string
-	if err != nil {
-		log.Printf("Failed to create default organization (or it already exists): %v", err)
-		// Try to fetch it
-		resp, err = doJSONRequest("GET", fmt.Sprintf("%s/organizations/slug/default-org", apiBaseURL), nil, token, http.StatusOK)
-		if err == nil && resp["data"] != nil {
-			if item, ok := resp["data"].(map[string]interface{}); ok {
-				if id, ok := item["id"].(string); ok {
-					orgID = id
-				}
-			}
-		}
-	} else if resp["data"] != nil {
-		if item, ok := resp["data"].(map[string]interface{}); ok {
-			if id, ok := item["id"].(string); ok {
-				orgID = id
-			}
-		}
-	}
-
-	if orgID == "" {
-		log.Println("Could not determine default organization ID. Skipping user and project seeding.")
-		return
-	}
-	log.Printf("Default Organization seeded/found with ID: %s", orgID)
-
-	// 2. Assign Superadmin as member/owner of default org (often handled by creation, but let's ensure)
-	// We might need to invite or just rely on the API auto-assigning the creator.
-	// The access control model uses organizations/:id/members.
-	// But first let's create the other users.
-
-	usersToSeed := []map[string]string{
-		{"username": "adminuser", "fullname": "Admin User", "email": "admin@example.com", "role": "role:admin"},
-		{"username": "regularuser", "fullname": "Regular User", "email": "user@example.com", "role": "role:user"},
-	}
-
-	for _, u := range usersToSeed {
-		userPayload := map[string]interface{}{
-			"username": u["username"],
-			"password": "Password0!",
-			"fullname": u["fullname"],
-			"email":    u["email"],
-		}
-
-		resp, err := doJSONRequest("POST", fmt.Sprintf("%s/users", apiBaseURL), userPayload, token, http.StatusCreated)
-		var userID string
-		if err != nil {
-			log.Printf("User %s might already exist. Attempting to fetch...", u["username"])
-			// Search user by username
-			searchPayload := map[string]interface{}{
-				"filter": map[string]interface{}{
-					"username": map[string]interface{}{
-						"type": "equals",
-						"from": u["username"],
-					},
-				},
-			}
-			searchResp, searchErr := doJSONRequest("POST", fmt.Sprintf("%s/users/search", apiBaseURL), searchPayload, token, http.StatusOK)
-			if searchErr == nil && searchResp["data"] != nil {
-				if dataList, ok := searchResp["data"].([]interface{}); ok && len(dataList) > 0 {
-					if item, ok := dataList[0].(map[string]interface{}); ok {
-						if id, ok := item["id"].(string); ok {
-							userID = id
-						}
-					}
-				}
-			}
-		} else if resp["data"] != nil {
-			if item, ok := resp["data"].(map[string]interface{}); ok {
-				if id, ok := item["id"].(string); ok {
-					userID = id
-				}
-			}
-		}
-
-		if userID != "" {
-			log.Printf("User %s seeded/found with ID: %s", u["username"], userID)
-
-			// Get Role ID
-			roleSearchPayload := map[string]interface{}{
-				"filter": map[string]interface{}{
-					"name": map[string]interface{}{
-						"type": "equals",
-						"from": u["role"],
-					},
-				},
-			}
-			roleResp, roleErr := doJSONRequest("POST", fmt.Sprintf("%s/roles/search", apiBaseURL), roleSearchPayload, token, http.StatusOK)
-			var roleID string
-			if roleErr == nil && roleResp["data"] != nil {
-				if list, ok := roleResp["data"].([]interface{}); ok && len(list) > 0 {
-					if item, ok := list[0].(map[string]interface{}); ok {
-						if id, ok := item["id"].(string); ok {
-							roleID = id
-						}
-					}
-				}
-			}
-
-			if roleID != "" {
-				invitePayload := map[string]interface{}{
-					"email":   u["email"],
-					"user_id": userID,
-					"role_id": roleID,
-				}
-				_, err = doJSONRequest("POST", fmt.Sprintf("%s/organizations/%s/members/invite", apiBaseURL, orgID), invitePayload, token, http.StatusOK)
-				if err != nil {
-					log.Printf("Warning: Could not invite user %s to org %s: %v", u["username"], orgID, err)
-				} else {
-					log.Printf("User %s added to organization.", u["username"])
-				}
-			} else {
-				log.Printf("Could not find role %s for user %s", u["role"], u["username"])
-			}
-		}
-	}
-
-	// 3. Create Default Project
-	projectPayload := map[string]interface{}{
-		"name":   "Sample E-Commerce App",
-		"domain": "e-commerce",
-	}
-
-	// Create project requests typically go to /organizations/:id/projects if nested,
-	// but this boilerplate routes Projects at /api/v1/projects and relies on the user's Context (which includes the Active Organization if set).
-	// Because Superadmin is making the request, we need to ensure they are operating within an organization context.
-	// Since X-Organization-Id might be required by middleware, let's inject it into `doJSONRequest` if needed,
-	// or assume the generic `doJSONRequest` doesn't pass it and see if it falls back.
-	// For now, let's just trace the path.
-
-	// To reliably create a project for an org, we might need a modified request that passes the org ID header,
-	// but let's try the standard POST and see if the controller handles it.
-	doJSONRequestWithOrg(apiBaseURL, orgID, projectPayload, token)
-}
-
-func doJSONRequestWithOrg(apiBaseURL, orgID string, payload interface{}, token string) {
-	var bodyReader *bytes.Buffer
-	if payload != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		bodyReader = bytes.NewBuffer(payloadBytes)
-	} else {
-		bodyReader = bytes.NewBuffer([]byte{})
-	}
-
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/projects", apiBaseURL), bodyReader)
-	if err != nil {
-		log.Printf("Failed to create project request: %v", err)
-		return
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-	req.Header.Set("X-Organization-Id", orgID)
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("Failed to execute project creation request: %v", err)
-		return
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		var errResp map[string]interface{}
-		_ = json.NewDecoder(resp.Body).Decode(&errResp)
-		log.Printf("API request to create project failed with status %d: %v", resp.StatusCode, errResp)
-	} else {
-		log.Println("Default Project created successfully.")
-	}
 }
