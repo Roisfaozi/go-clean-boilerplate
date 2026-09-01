@@ -167,7 +167,7 @@ func (uc *apiKeyUseCase) Authenticate(ctx context.Context, key string) (*model.A
 			var identity model.ApiKeyIdentity
 			if err := json.Unmarshal([]byte(val), &identity); err == nil {
 				// Re-verify expiration
-				if identity.ExpiresAt != nil && identity.ExpiresAt.Before(time.Now()) {
+				if identity.ExpiresAt != nil && *identity.ExpiresAt < time.Now().UnixMilli() {
 					return nil, exception.ErrUnauthorized
 				}
 				if err := uc.ensureOrganizationAccessible(ctx, identity.OrganizationID); err != nil {
@@ -189,7 +189,7 @@ func (uc *apiKeyUseCase) Authenticate(ctx context.Context, key string) (*model.A
 		return nil, exception.ErrInternalServer
 	}
 
-	if apiKey.ExpiresAt != nil && apiKey.ExpiresAt.Before(time.Now()) {
+	if apiKey.ExpiresAt != nil && *apiKey.ExpiresAt < time.Now().UnixMilli() {
 		return nil, exception.ErrUnauthorized
 	}
 
@@ -222,7 +222,7 @@ func (uc *apiKeyUseCase) Authenticate(ctx context.Context, key string) (*model.A
 
 	// Update last used at (Async)
 	util.SafeGo(uc.log, func() {
-		now := time.Now()
+		now := time.Now().UnixMilli()
 		apiKey.LastUsedAt = &now
 		_ = uc.repo.Update(context.Background(), apiKey)
 	})
