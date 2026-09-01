@@ -6,7 +6,7 @@ SET @sql = IF(
       AND column_name = 'deleted_at'
   ),
   'SELECT 1',
-  'ALTER TABLE organizations ADD COLUMN deleted_at BIGINT DEFAULT 0'
+  'ALTER TABLE organizations ADD COLUMN deleted_at BIGINT NOT NULL DEFAULT 0'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
@@ -17,7 +17,7 @@ SET @sql = IF(
       AND column_name = 'deleted_at'
   ),
   'SELECT 1',
-  'ALTER TABLE users ADD COLUMN deleted_at BIGINT DEFAULT 0'
+  'ALTER TABLE users ADD COLUMN deleted_at BIGINT NOT NULL DEFAULT 0'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
@@ -28,7 +28,7 @@ SET @sql = IF(
       AND column_name = 'deleted_at'
   ),
   'SELECT 1',
-  'ALTER TABLE roles ADD COLUMN deleted_at BIGINT DEFAULT 0'
+  'ALTER TABLE roles ADD COLUMN deleted_at BIGINT NOT NULL DEFAULT 0'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
@@ -39,6 +39,6 @@ SET @sql = IF(
       AND column_name = 'deleted_at'
   ),
   'SELECT 1',
-  'ALTER TABLE organization_members ADD COLUMN deleted_at BIGINT DEFAULT 0'
+  'ALTER TABLE organization_members ADD COLUMN deleted_at BIGINT NOT NULL DEFAULT 0'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     token TEXT,
     created_at BIGINT NOT NULL,
     updated_at BIGINT NOT NULL,
-    deleted_at BIGINT DEFAULT 0,
+    deleted_at BIGINT NOT NULL DEFAULT 0,
     UNIQUE KEY idx_users_email (email),
     INDEX idx_users_deleted_at (deleted_at)
     ) engine=InnoDB;

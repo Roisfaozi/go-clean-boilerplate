@@ -4,5 +4,5 @@ CREATE TABLE roles (
     description TEXT,
     created_at BIGINT NOT NULL,
     updated_at BIGINT NOT NULL,
-    deleted_at BIGINT DEFAULT 0
+    deleted_at BIGINT NOT NULL DEFAULT 0
 )Engine=InnoDB;

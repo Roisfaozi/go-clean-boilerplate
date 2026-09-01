@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS webhooks (
     is_active BOOLEAN DEFAULT TRUE,
     created_at BIGINT NOT NULL,
     updated_at BIGINT NOT NULL,
-    deleted_at BIGINT NULL,
+    deleted_at BIGINT NOT NULL DEFAULT 0,
     INDEX idx_webhooks_org_id (organization_id),
     INDEX idx_webhooks_deleted_at (deleted_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     ip_address VARCHAR(45),
     user_agent VARCHAR(255),
     created_at BIGINT,
-    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    deleted_at BIGINT NOT NULL DEFAULT 0,
     INDEX idx_audit_logs_user_id (user_id),
     INDEX idx_audit_logs_entity_id (entity_id),
     INDEX idx_audit_logs_deleted_at (deleted_at)
