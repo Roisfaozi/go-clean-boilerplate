@@ -25,7 +25,7 @@ import type { Webhook, WebhookLog } from "~/lib/api/webhooks";
 import { useWebhooks } from "./webhooks-context";
 
 function formatTime(millis: number) {
-	return new Date(millis).toLocaleString();
+	return new Date(millis).toLocaleString("en-US", { timeZone: "Asia/Jakarta" });
 }
 
 export function WebhookLogs({ webhookId }: { webhookId: string }) {

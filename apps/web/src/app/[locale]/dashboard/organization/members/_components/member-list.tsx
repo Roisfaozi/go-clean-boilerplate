@@ -112,7 +112,9 @@ const MemoizedMemberTableRow = memo(function MemberTableRow({
 			</TableCell>
 			<TableCell className="text-muted-foreground text-xs">
 				{member.joined_at
-					? new Date(member.joined_at).toLocaleDateString()
+					? new Date(member.joined_at).toLocaleDateString("en-US", {
+							timeZone: "Asia/Jakarta",
+						})
 					: "-"}
 			</TableCell>
 			<TableCell className="text-right">

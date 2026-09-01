@@ -51,7 +51,9 @@ export function LogDetailDialog({
 	if (!log) return null;
 
 	const formatDate = (timestamp: number) => {
-		return new Date(timestamp).toLocaleString();
+		return new Date(timestamp).toLocaleString("en-US", {
+			timeZone: "Asia/Jakarta",
+		});
 	};
 
 	return (
