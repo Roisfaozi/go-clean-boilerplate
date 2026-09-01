@@ -56,16 +56,22 @@ func (u *statsUseCase) GetDashboardActivity(ctx context.Context, days int) (*mod
 		days = 7
 	}
 
+	// TODO: read timezone from clinic/branch settings once setting model exposes branch_timezone
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		loc = time.UTC
+	}
+
 	scope := database.OrganizationScope(ctx)
 	points := make([]model.ActivityPoint, days)
-	now := time.Now()
+	now := time.Now().In(loc)
 
 	for i := 0; i < days; i++ {
 		date := now.AddDate(0, 0, -i)
 		dateStr := date.Format("2006-01-02")
 
-		startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location()).UnixMilli()
-		endOfDay := time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 999, date.Location()).UnixMilli()
+		startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, loc).UnixMilli()
+		endOfDay := time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 999, loc).UnixMilli()
 
 		var auditCount, loginCount int64
 
