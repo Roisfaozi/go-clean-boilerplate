@@ -141,13 +141,13 @@ func seedSuperAdmin(db *gorm.DB, adminPassword string) (string, error) {
 
 	var user userEntity.User
 	err = db.Where("username = ?", adminUsername).First(&user).Error
-	switch {
-	case err == nil:
+	switch err {
+	case nil:
 		if err := db.Table("users").Where("id = ?", user.ID).Update("password", string(hashedPwd)).Error; err != nil {
 			return "", err
 		}
 		log.Printf("Superadmin user '%s' password reset.", adminUsername)
-	case err == gorm.ErrRecordNotFound:
+	case gorm.ErrRecordNotFound:
 		now := time.Now().UnixMilli()
 		user.ID = uuid.NewString()
 
@@ -407,10 +407,10 @@ func seedDefaultOrganization(db *gorm.DB, ownerUserID string) (string, error) {
 
 	var org orgEntity.Organization
 	err = db.Where("slug = ?", defaultOrgSlug).First(&org).Error
-	switch {
-	case err == nil:
+	switch err {
+	case nil:
 		log.Printf("Default organization found with ID: %s", org.ID)
-	case err == gorm.ErrRecordNotFound:
+	case gorm.ErrRecordNotFound:
 		org = orgEntity.Organization{
 			ID:      uuid.NewString(),
 			Name:    defaultOrgName,
@@ -479,10 +479,10 @@ func seedOrganizationUsers(db *gorm.DB, orgID string) error {
 
 		var user userEntity.User
 		err = db.Where("username = ?", u.Username).First(&user).Error
-		switch {
-		case err == nil:
+		switch err {
+		case nil:
 			log.Printf("User '%s' found with ID: %s", u.Username, user.ID)
-		case err == gorm.ErrRecordNotFound:
+		case gorm.ErrRecordNotFound:
 			now := time.Now().UnixMilli()
 			user.ID = uuid.NewString()
 			userData := map[string]interface{}{
@@ -599,8 +599,4 @@ func ensureCasbinRule(db *gorm.DB, ptype, v0, v1, v2, v3 string) error {
 	return db.Table("casbin_rule").Create(map[string]interface{}{
 		"ptype": ptype, "v0": v0, "v1": v1, "v2": v2, "v3": v3, "v4": "",
 	}).Error
-}
-
-func ptrString(s string) *string {
-	return &s
 }
