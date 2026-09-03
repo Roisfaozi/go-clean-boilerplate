@@ -1,24 +1,22 @@
 package entity
 
 import (
-	"time"
-
-	"gorm.io/gorm"
+	"gorm.io/plugin/soft_delete"
 )
 
 type ApiKey struct {
-	ID             string         `gorm:"type:varchar(36);primaryKey"`
-	Name           string         `gorm:"type:varchar(255);not null"`
-	KeyHash        string         `gorm:"type:varchar(255);not null;uniqueIndex"`
-	OrganizationID string         `gorm:"type:varchar(36);not null;index"`
-	UserID         string         `gorm:"type:varchar(36);not null;index"`
-	Scopes         string         `gorm:"type:text"`
-	ExpiresAt      *time.Time     `gorm:"type:timestamp"`
-	LastUsedAt     *time.Time     `gorm:"type:timestamp"`
-	IsActive       bool           `gorm:"type:boolean;default:true"`
-	CreatedAt      time.Time      `gorm:"type:timestamp;default:CURRENT_TIMESTAMP"`
-	UpdatedAt      time.Time      `gorm:"type:timestamp;default:CURRENT_TIMESTAMP"`
-	DeletedAt      gorm.DeletedAt `gorm:"index"`
+	ID             string                `gorm:"type:varchar(36);primaryKey"`
+	Name           string                `gorm:"type:varchar(255);not null"`
+	KeyHash        string                `gorm:"type:varchar(255);not null;uniqueIndex"`
+	OrganizationID string                `gorm:"type:varchar(36);not null;index"`
+	UserID         string                `gorm:"type:varchar(36);not null;index"`
+	Scopes         string                `gorm:"type:text"`
+	ExpiresAt      *int64                `gorm:"type:bigint"`
+	LastUsedAt     *int64                `gorm:"type:bigint"`
+	IsActive       bool                  `gorm:"type:boolean;default:true"`
+	CreatedAt      int64                 `gorm:"type:bigint;autoCreateTime:milli"`
+	UpdatedAt      int64                 `gorm:"type:bigint;autoUpdateTime:milli"`
+	DeletedAt      soft_delete.DeletedAt `gorm:"type:bigint;not null;default:0;softDelete:milli"`
 }
 
 func (ApiKey) TableName() string {

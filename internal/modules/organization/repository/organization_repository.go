@@ -66,7 +66,7 @@ func (r *organizationRepository) query(ctx context.Context) *gorm.DB {
 	if database.CanAccessDeletedOrganizations(ctx) {
 		return query.Unscoped()
 	}
-	return query.Unscoped().Where("(organizations.deleted_at = 0 OR organizations.deleted_at IS NULL)")
+	return query.Unscoped().Where("organizations.deleted_at = 0")
 }
 
 func (r *organizationRepository) getDB(ctx context.Context) *gorm.DB {

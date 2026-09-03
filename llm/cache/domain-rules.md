@@ -182,6 +182,10 @@ Stop and inspect more live code if any of these happen:
 - assuming API-key scope replaces Casbin or tenant checks
 - changing organization membership without cache invalidation review
 
+## Pre-merge checklist
+
+- `scripts/guard-time-conventions.sh` passes cleanly (no `.Unix()`, `date.Location()`, un-timezoned `toLocale*`, or `deleted_at IS NULL`).
+
 ## Hard rules
 
 - Live code stays source of truth.

@@ -51,7 +51,9 @@ export function EndpointsList() {
 								</TableCell>
 								<TableCell className="font-mono text-sm">{ep.path}</TableCell>
 								<TableCell className="text-muted-foreground text-xs">
-									{new Date(ep.created_at).toLocaleDateString()}
+									{new Date(ep.created_at).toLocaleDateString("en-US", {
+										timeZone: "Asia/Jakarta",
+									})}
 								</TableCell>
 								<TableCell className="text-right">
 									<Button

@@ -51,8 +51,9 @@ func (r *tokenRepositoryRedis) DeleteByEmail(ctx context.Context, email string) 
 }
 
 func (r *tokenRepositoryRedis) DeleteExpiredResetTokens(ctx context.Context) error {
-	// Deletes tokens where expires_at < NOW()
-	if err := r.getDB(ctx).Where("expires_at < NOW()").Delete(&entity.PasswordResetToken{}).Error; err != nil {
+	// Deletes tokens where expires_at < now (millis)
+	now := time.Now().UnixMilli()
+	if err := r.getDB(ctx).Where("expires_at < ?", now).Delete(&entity.PasswordResetToken{}).Error; err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("Failed to delete expired reset tokens")
 		return err
 	}

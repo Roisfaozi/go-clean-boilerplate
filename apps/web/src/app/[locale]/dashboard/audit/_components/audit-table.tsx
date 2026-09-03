@@ -103,7 +103,9 @@ const MemoizedAuditRow = memo(function AuditRow({
 			onClick={onClick}
 		>
 			<TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-				{new Date(log.created_at).toLocaleString()}
+				{new Date(log.created_at).toLocaleString("en-US", {
+					timeZone: "Asia/Jakarta",
+				})}
 			</TableCell>
 			<TableCell>
 				<Badge

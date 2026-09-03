@@ -28,6 +28,8 @@ If logic is deciding _how_ to query or persist, it usually belongs in repository
 
 - SQL migrations live under `db/migrations` with paired `.up.sql` and `.down.sql` files.
 - Migration files follow numeric prefix pattern already used in repo, for example `000025_*.up.sql` and `000025_*.down.sql`.
+- Soft-delete column `deleted_at` convention across all tables is `BIGINT NOT NULL DEFAULT 0` (sentinel `0` for active records, epoch millis for deleted records).
+- All instant timestamps are `BIGINT` epoch milliseconds. Never seconds, never nanoseconds. Business dates stay native `DATE`.
 - Seed entrypoint is `db/seeds/main.go`.
 - Migration commands come from `Makefile`, including:
   - `make migrate-create`

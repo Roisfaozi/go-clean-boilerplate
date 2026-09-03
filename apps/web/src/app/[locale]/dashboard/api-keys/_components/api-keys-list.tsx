@@ -24,7 +24,7 @@ import { useApiKeys } from "./api-keys-context";
 
 function formatDate(value: string | null) {
 	if (!value) return "Never";
-	return new Date(value).toLocaleString();
+	return new Date(value).toLocaleString("en-US", { timeZone: "Asia/Jakarta" });
 }
 
 export function ApiKeysList() {

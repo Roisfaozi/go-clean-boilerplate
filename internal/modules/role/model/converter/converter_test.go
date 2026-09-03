@@ -10,7 +10,7 @@ import (
 )
 
 func TestRoleToResponse(t *testing.T) {
-	now := time.Now().Unix()
+	now := time.Now().UnixMilli()
 	role := &entity.Role{
 		ID:          "role-1",
 		Name:        "Admin",
@@ -28,7 +28,7 @@ func TestRoleToResponse(t *testing.T) {
 }
 
 func TestRolesToResponse(t *testing.T) {
-	now := time.Now().Unix()
+	now := time.Now().UnixMilli()
 	roles := []*entity.Role{
 		{
 			ID:          "role-1",

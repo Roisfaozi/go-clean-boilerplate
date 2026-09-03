@@ -11,7 +11,7 @@ CREATE TABLE organizations (
     status VARCHAR(20) DEFAULT 'active',
     created_at BIGINT,
     updated_at BIGINT,
-    deleted_at BIGINT,
+    deleted_at BIGINT NOT NULL DEFAULT 0,
     INDEX idx_org_slug (slug),
     INDEX idx_org_owner (owner_id),
     INDEX idx_org_status (status)

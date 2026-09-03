@@ -87,27 +87,41 @@ func TestRedisPresenceManager(t *testing.T) {
 	})
 
 	t.Run("PruneStaleUsers - Removes inactive users", func(t *testing.T) {
-		// 1. Add an active user
+		// 1. Add an active user via SetUserOnline (score is current ms)
 		_ = manager.SetUserOnline(ctx, "org-A", "user-active", &PresenceUser{Name: "Active"})
 
-		// 2. Add a stale user manually to miniredis ZSET with old score
-		_, err := mr.ZAdd("presence:org:org-A", 1000, "user-stale") // Very old timestamp
+		// Verify score is in milliseconds range (> 1.0e12)
+		activeScore, err := mr.ZScore("presence:org:org-A", "user-active")
 		require.NoError(t, err)
-		err = mr.Set("presence:user:user-stale", `{"name":"Stale"}`)
-		require.NoError(t, err)
+		assert.True(t, activeScore > 1_000_000_000_000, "ZSET score must be in milliseconds, got %f", activeScore)
 
-		// 3. Prune with 1 minute threshold
+		// 2. Add a stale user (2 minutes ago in ms) and a fresh user (30s ago in ms)
+		nowMs := time.Now().UnixMilli()
+		staleMs := float64(nowMs - (2 * 60 * 1000))
+		freshMs := float64(nowMs - (30 * 1000))
+
+		_, err = mr.ZAdd("presence:org:org-A", staleMs, "user-stale")
+		require.NoError(t, err)
+		_ = mr.Set("presence:user:user-stale", `{"name":"Stale"}`)
+
+		_, err = mr.ZAdd("presence:org:org-A", freshMs, "user-fresh")
+		require.NoError(t, err)
+		_ = mr.Set("presence:user:user-fresh", `{"name":"Fresh"}`)
+
+		// 3. Prune with 1 minute timeout
 		removed, err := manager.PruneStaleUsers(ctx, 1*time.Minute)
 		assert.NoError(t, err)
 
-		// Verify "user-stale" is in removed list for "org-A"
+		// Verify "user-stale" is removed, but "user-active" and "user-fresh" remain
 		assert.Contains(t, removed["org-A"], "user-stale")
 		assert.NotContains(t, removed["org-A"], "user-active")
+		assert.NotContains(t, removed["org-A"], "user-fresh")
 
 		// Verify deletion from Redis
 		members, _ := mr.ZMembers("presence:org:org-A")
 		assert.NotContains(t, members, "user-stale")
 		assert.Contains(t, members, "user-active")
+		assert.Contains(t, members, "user-fresh")
 
 		val, _ := mr.Get("presence:user:user-stale")
 		assert.Empty(t, val)

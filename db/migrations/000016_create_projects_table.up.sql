@@ -7,7 +7,7 @@ CREATE TABLE projects (
     status VARCHAR(50) DEFAULT 'active',
     created_at BIGINT NOT NULL,
     updated_at BIGINT NOT NULL,
-    deleted_at BIGINT DEFAULT 0,
+    deleted_at BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT fk_projects_organization FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
     CONSTRAINT fk_projects_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_projects_organization_id (organization_id),

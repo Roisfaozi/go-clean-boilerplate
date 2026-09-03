@@ -136,7 +136,7 @@ func TestApiKeyUseCase_Authenticate_Expired(t *testing.T) {
 	uc := usecase.NewApiKeyUseCase(repo, nil, nil, nil, log)
 
 	ctx := context.Background()
-	past := time.Now().Add(-1 * time.Hour)
+	past := time.Now().Add(-1 * time.Hour).UnixMilli()
 	apiKey := &entity.ApiKey{
 		ID:        "key-1",
 		ExpiresAt: &past,

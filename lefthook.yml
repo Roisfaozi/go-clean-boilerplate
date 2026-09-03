@@ -4,6 +4,10 @@
 pre-commit:
   parallel: true
   commands:
+    # ─── TIME & SOFT-DELETE CONVENTION GUARD ───
+    time-guard:
+      run: ./scripts/guard-time-conventions.sh
+
     # ─── GO BACKEND ───
     go-fmt:
       glob: '**/*.go'
