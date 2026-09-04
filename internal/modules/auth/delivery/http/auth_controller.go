@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
@@ -597,6 +598,369 @@ func setStateCookie(c *gin.Context, name, value string, maxAge int) {
 		Secure:   c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https",
 		SameSite: http.SameSiteLaxMode,
 	})
+}
+
+func (h *AuthController) resolveSecureHTTP(r *http.Request) bool {
+	if h.cookieCfg.Secure != nil {
+		return *h.cookieCfg.Secure
+	}
+	return r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+}
+
+func (h *AuthController) setAuthCookieHTTP(w http.ResponseWriter, r *http.Request, name, value string, maxAge int) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     "/",
+		Domain:   h.cookieCfg.Domain,
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		Secure:   h.resolveSecureHTTP(r),
+		SameSite: h.sameSite(),
+	})
+}
+
+func (h *AuthController) setCsrfCookieHTTP(w http.ResponseWriter, r *http.Request, maxAge int) {
+	csrfToken := uuid.NewString()
+	http.SetCookie(w, &http.Cookie{
+		Name:     "csrf_token",
+		Value:    csrfToken,
+		Path:     "/",
+		Domain:   h.cookieCfg.Domain,
+		MaxAge:   maxAge,
+		HttpOnly: false,
+		Secure:   h.resolveSecureHTTP(r),
+		SameSite: h.sameSite(),
+	})
+}
+
+func (h *AuthController) clearCsrfCookieHTTP(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "csrf_token",
+		Value:    "",
+		Path:     "/",
+		Domain:   h.cookieCfg.Domain,
+		MaxAge:   -1,
+		HttpOnly: false,
+		Secure:   h.resolveSecureHTTP(r),
+		SameSite: h.sameSite(),
+	})
+}
+
+func (h *AuthController) clearAuthCookieHTTP(w http.ResponseWriter, r *http.Request, name string) {
+	h.setAuthCookieHTTP(w, r, name, "", -1)
+}
+
+func setStateCookieHTTP(w http.ResponseWriter, r *http.Request, name, value string, maxAge int) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     "/",
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		Secure:   r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func clearStateCookieHTTP(w http.ResponseWriter, r *http.Request, name string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func (h *AuthController) HTTPLogin(w http.ResponseWriter, r *http.Request) {
+	var req model.LoginRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		h.log.WithContext(r.Context()).WithError(err).Error("Login failed: could not bind request")
+		response.WriteHTTPError(w, exception.ErrBadRequest, "could not bind request")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		h.log.WithContext(r.Context()).WithError(err).Error("Login failed: validation error")
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+
+	req.IPAddress = r.RemoteAddr
+	req.UserAgent = r.UserAgent()
+
+	res, refreshToken, err := h.AuthUseCase.Login(r.Context(), req)
+	if err != nil {
+		h.log.WithContext(r.Context()).Errorf("Login failed for user: %s", req.Username)
+		response.WriteHTTPError(w, err, "Login failed")
+		return
+	}
+
+	h.setAuthCookieHTTP(w, r, "refresh_token", refreshToken, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
+	h.setAuthCookieHTTP(w, r, "access_token", res.AccessToken, int(res.ExpiresIn))
+	h.setCsrfCookieHTTP(w, r, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
+
+	response.WriteSuccess(w, http.StatusOK, res)
+}
+
+func (h *AuthController) HTTPRefreshToken(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("refresh_token")
+	if err != nil || cookie.Value == "" {
+		h.log.WithContext(r.Context()).Warn("Refresh token not found in cookie")
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "refresh token not found")
+		return
+	}
+
+	res, newRefreshToken, err := h.AuthUseCase.RefreshToken(r.Context(), cookie.Value)
+	if err != nil {
+		response.WriteHTTPError(w, err, "Refresh token failed")
+		return
+	}
+
+	h.setAuthCookieHTTP(w, r, "refresh_token", newRefreshToken, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
+	h.setAuthCookieHTTP(w, r, "access_token", res.AccessToken, int(res.ExpiresIn))
+	h.setCsrfCookieHTTP(w, r, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
+	response.WriteSuccess(w, http.StatusOK, res)
+}
+
+func (h *AuthController) HTTPLogout(w http.ResponseWriter, r *http.Request) {
+	userID, okUserID := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	sessionID, okSessionID := delivery.GetContextString(r.Context(), "session_id")
+
+	if !okUserID || !okSessionID || userID == "" || sessionID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+
+	err := h.AuthUseCase.RevokeToken(r.Context(), userID, sessionID)
+	if err != nil {
+		response.WriteHTTPError(w, err, "Logout failed")
+		return
+	}
+
+	h.clearAuthCookieHTTP(w, r, "refresh_token")
+	h.clearAuthCookieHTTP(w, r, "access_token")
+	h.clearCsrfCookieHTTP(w, r)
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "logged out successfully"})
+}
+
+func (h *AuthController) HTTPForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var req model.ForgotPasswordRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+
+	err := h.AuthUseCase.ForgotPassword(r.Context(), req.Email)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to process forgot password request")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "If the email is registered, a reset link will be sent shortly."})
+}
+
+func (h *AuthController) HTTPResetPassword(w http.ResponseWriter, r *http.Request) {
+	var req model.ResetPasswordRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+
+	err := h.AuthUseCase.ResetPassword(r.Context(), req.Token, req.NewPassword)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to reset password")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "password reset successfully"})
+}
+
+func (h *AuthController) HTTPVerifyEmail(w http.ResponseWriter, r *http.Request) {
+	var req model.VerifyEmailRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+
+	err := h.AuthUseCase.VerifyEmail(r.Context(), req.Token)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to verify email")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "email verified successfully"})
+}
+
+func (h *AuthController) HTTPResendVerification(w http.ResponseWriter, r *http.Request) {
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+
+	err := h.AuthUseCase.RequestVerification(r.Context(), userID)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to request verification email")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "verification email sent successfully"})
+}
+
+func (h *AuthController) HTTPRegister(w http.ResponseWriter, r *http.Request) {
+	var req model.RegisterRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		h.log.WithContext(r.Context()).WithError(err).Error("Register failed: could not bind request")
+		response.WriteHTTPError(w, exception.ErrBadRequest, "could not bind request")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		h.log.WithContext(r.Context()).WithError(err).Error("Register failed: validation error")
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+
+	req.IPAddress = r.RemoteAddr
+	req.UserAgent = r.UserAgent()
+
+	res, refreshToken, err := h.AuthUseCase.Register(r.Context(), req)
+	if err != nil {
+		h.log.WithContext(r.Context()).Errorf("Register failed for user: %s\n with error: %v", req.Username, err)
+		response.WriteHTTPError(w, err, "Register failed")
+		return
+	}
+
+	h.setAuthCookieHTTP(w, r, "refresh_token", refreshToken, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
+	h.setAuthCookieHTTP(w, r, "access_token", res.AccessToken, int(res.ExpiresIn))
+	h.setCsrfCookieHTTP(w, r, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
+
+	response.WriteSuccess(w, http.StatusCreated, res)
+}
+
+func (h *AuthController) HTTPMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	username, _ := delivery.GetContextString(r.Context(), delivery.UsernameKey)
+	role, _ := delivery.GetContextString(r.Context(), delivery.RoleKey)
+
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusOK, map[string]any{
+		"user": map[string]any{
+			"id":       userID,
+			"username": username,
+			"role":     role,
+		},
+	})
+}
+
+func (h *AuthController) HTTPGetTicket(w http.ResponseWriter, r *http.Request) {
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+
+	sessionID, _ := delivery.GetContextString(r.Context(), "session_id")
+	role, _ := delivery.GetContextString(r.Context(), delivery.RoleKey)
+	username, _ := delivery.GetContextString(r.Context(), delivery.UsernameKey)
+
+	orgID := r.URL.Query().Get("org_id")
+	if orgID == "" {
+		orgID = r.URL.Query().Get("organization_id")
+	}
+
+	ticket, err := h.AuthUseCase.GetTicket(
+		r.Context(),
+		model.UserSessionContext{
+			UserID:    userID,
+			OrgID:     orgID,
+			SessionID: sessionID,
+			Role:      role,
+			Username:  username,
+		},
+	)
+	if err != nil {
+		h.log.WithError(err).Error("Failed to generate WebSocket ticket")
+		response.WriteHTTPError(w, errors.New("failed to generate ticket"), "internal server error")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusOK, map[string]any{
+		"ticket":     ticket,
+		"expires_in": 30,
+	})
+}
+
+func (ac *AuthController) HTTPSSOLogin(w http.ResponseWriter, r *http.Request) {
+	provider := r.PathValue("provider")
+	state, err := generateSSOState()
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to generate SSO state")
+		return
+	}
+
+	url, err := ac.AuthUseCase.GetSSORedirectURL(r.Context(), provider, state)
+	if err != nil {
+		response.WriteHTTPError(w, err, "Failed to initiate SSO")
+		return
+	}
+
+	setStateCookieHTTP(w, r, ssoStateCookieName, state, 300)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+}
+
+func (ac *AuthController) HTTPSSOCallback(w http.ResponseWriter, r *http.Request) {
+	provider := r.PathValue("provider")
+	code := r.URL.Query().Get("code")
+	state := r.URL.Query().Get("state")
+
+	if code == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "authorization code is required")
+		return
+	}
+
+	cookie, err := r.Cookie(ssoStateCookieName)
+	if err != nil || cookie.Value == "" || state == "" || state != cookie.Value {
+		clearStateCookieHTTP(w, r, ssoStateCookieName)
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "invalid SSO state")
+		return
+	}
+
+	clearStateCookieHTTP(w, r, ssoStateCookieName)
+	res, refreshToken, err := ac.AuthUseCase.HandleSSOCallback(r.Context(), provider, code)
+	if err != nil {
+		response.WriteHTTPError(w, err, "Failed to handle SSO callback")
+		return
+	}
+
+	ac.setAuthCookieHTTP(w, r, "refresh_token", refreshToken, int(ac.AuthUseCase.GetRefreshTokenDuration().Seconds()))
+	ac.setAuthCookieHTTP(w, r, "access_token", res.AccessToken, int(res.ExpiresIn))
+	ac.setCsrfCookieHTTP(w, r, int(ac.AuthUseCase.GetRefreshTokenDuration().Seconds()))
+
+	response.WriteSuccess(w, http.StatusOK, res)
 }
 
 func clearStateCookie(c *gin.Context, name string) {
