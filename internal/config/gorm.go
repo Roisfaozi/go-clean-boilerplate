@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"github.com/uptrace/opentelemetry-go-extra/otelgorm"
 	"gorm.io/driver/mysql"
@@ -17,11 +18,13 @@ const (
 	defaultDSNLocation  = "UTC"
 )
 
-func NewDatabase(cfg *AppConfig, log *logrus.Logger) *gorm.DB {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=%s&loc=%s",
-		cfg.Mysql.User, cfg.Mysql.Password, cfg.Mysql.Host, cfg.Mysql.Port, cfg.Mysql.DBName,
-		defaultDSNCharset, defaultDSNParseTime, defaultDSNLocation)
+func NewDatabase(cfg *AppConfig, log *logrus.Logger) (*gorm.DB, *sqlx.DB) {
+	sqlxDB := NewSQLXDatabase(cfg, log)
+	gormDB := NewDatabaseFromSQLX(cfg, sqlxDB, log)
+	return gormDB, sqlxDB
+}
 
+func NewDatabaseFromSQLX(cfg *AppConfig, sqlxDB *sqlx.DB, log *logrus.Logger) *gorm.DB {
 	newLogger := logger.New(
 		&logrusWriter{Logger: log},
 		logger.Config{
@@ -33,28 +36,20 @@ func NewDatabase(cfg *AppConfig, log *logrus.Logger) *gorm.DB {
 		},
 	)
 
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+	db, err := gorm.Open(mysql.New(mysql.Config{
+		Conn: sqlxDB.DB,
+	}), &gorm.Config{
 		Logger: newLogger,
 	})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to initialize GORM with existing connection: %v", err)
 	}
 
-	// Instrument GORM with OpenTelemetry
 	if cfg.Telemetry.Enabled {
 		if err := db.Use(otelgorm.NewPlugin()); err != nil {
 			log.Errorf("Failed to instrument GORM with OTEL: %v", err)
 		}
 	}
-
-	sqlDB, err := db.DB()
-	if err != nil {
-		log.Fatalf("Failed to get database instance: %v", err)
-	}
-
-	sqlDB.SetMaxIdleConns(cfg.Mysql.IdleConnection)
-	sqlDB.SetMaxOpenConns(cfg.Mysql.MaxConnection)
-	sqlDB.SetConnMaxLifetime(time.Duration(cfg.Mysql.MaxLifeTimeConnection) * time.Second)
 
 	return db
 }
@@ -75,5 +70,4 @@ func (l *logrusWriter) Printf(message string, args ...interface{}) {
 	} else {
 		l.Logger.Debugf("GORM: %s", msg)
 	}
-
 }

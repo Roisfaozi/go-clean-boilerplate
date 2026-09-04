@@ -73,7 +73,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 
 	validate := NewValidator()
-	dbConnection := NewDatabase(cfg, logger)
+	dbConnection, sqlxDB := NewDatabase(cfg, logger)
 
 	redisClient := NewRedisConfig(cfg, logger)
 
@@ -143,6 +143,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	modules := initModules(
 		cfg,
 		dbConnection,
+		sqlxDB,
 		redisClient,
 		logger,
 		validate,

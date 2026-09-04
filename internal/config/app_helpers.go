@@ -35,6 +35,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -89,6 +90,7 @@ func initSSOProviders(cfg *AppConfig) map[string]sso.Provider {
 func initModules(
 	cfg *AppConfig,
 	dbConnection *gorm.DB,
+	sqlxDB *sqlx.DB,
 	redisClient *redis.Client,
 	logger *logrus.Logger,
 	validate *validator.Validate,
@@ -103,7 +105,7 @@ func initModules(
 	storageProvider storage.Provider,
 	ssoProviders map[string]sso.Provider,
 ) appModules {
-	roleRepo := roleRepository.NewRoleRepository(dbConnection, logger)
+	roleRepo := roleRepository.NewRoleRepository(sqlxDB, logger)
 	organizationRepository := orgRepo.NewOrganizationRepository(dbConnection, redisClient)
 
 	auditModule := audit.NewAuditModule(dbConnection, logger, validate, wsManager, taskDistributor)
@@ -142,15 +144,15 @@ func initModules(
 
 	apiKeyModule := api_key.NewApiKeyModule(dbConnection, userModule.UserRepo, redisClient, logger, validate)
 
-	accessModule := access.NewAccessModule(dbConnection, logger, validate)
+	accessModule := access.NewAccessModule(sqlxDB, logger, validate)
 
 	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo, userModule.UserRepo, accessModule.AccessRepo, auditModule)
 
-	roleModule := role.NewRoleModule(dbConnection, logger, validate, tm, permissionModule.PermissionUseCase)
+	roleModule := role.NewRoleModule(sqlxDB, logger, validate, tm, permissionModule.PermissionUseCase)
 
 	statsModule := stats.NewStatsModule(dbConnection, logger)
 
-	projectModule := project.NewProjectModule(dbConnection, validate)
+	projectModule := project.NewProjectModule(sqlxDB, validate)
 
 	organizationModule := organization.NewOrganizationModule(dbConnection, redisClient, taskDistributor, userModule.UserRepo, logger, validate, tm, enforcer, presenceManager, cfg.Server.FrontendBaseURL, roleRepo)
 

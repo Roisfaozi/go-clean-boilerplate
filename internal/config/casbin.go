@@ -3,29 +3,23 @@ package config
 import (
 	"fmt"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/casbinadapter"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/casbin/casbin/v3"
-	gormadapter "github.com/casbin/gorm-adapter/v3"
 	rediswatcher "github.com/casbin/redis-watcher/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
-// NewCasbinEnforcer creates a new Casbin enforcer with the given configuration,
-// database connection, and logger. If Casbin is disabled in the configuration,
-// it returns nil without an error. If the Casbin watcher is enabled in the
-// configuration, it also sets the watcher for the enforcer. It returns the
-// enforcer and any error encountered.
-func NewCasbinEnforcer(cfg *AppConfig, db *gorm.DB, log *logrus.Logger) (*casbin.Enforcer, error) {
+// NewCasbinEnforcer creates a new Casbin enforcer using SQLXCasbinAdapter.
+func NewCasbinEnforcer(cfg *AppConfig, db any, log *logrus.Logger) (*casbin.Enforcer, error) {
 	if !cfg.Casbin.Enabled {
 		log.Info("Casbin is disabled.")
 		return nil, nil
 	}
 
-	adapter, err := gormadapter.NewAdapterByDB(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create casbin gorm adapter: %w", err)
-	}
+	sqlxDB := tx.ExtractSQLX(db)
+	adapter := casbinadapter.NewSQLXCasbinAdapter(sqlxDB)
 
 	enforcer, err := casbin.NewEnforcer(cfg.Casbin.Model, adapter)
 	if err != nil {

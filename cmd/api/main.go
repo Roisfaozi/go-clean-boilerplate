@@ -1,18 +1,15 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
-	"os/signal"
 	"strings"
-	"syscall"
-	"time"
 
 	_ "github.com/Roisfaozi/go-clean-boilerplate/docs"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
+	"go.uber.org/fx"
 )
 
 // @title           Go Clean Boilerplate API
@@ -35,7 +32,6 @@ import (
 // @name Authorization
 // @description "Type 'Bearer ' followed by a space and the access token."
 func main() {
-
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
@@ -55,11 +51,6 @@ func main() {
 		}
 	}
 
-	app, err := config.NewApplication(cfg)
-	if err != nil {
-		log.Fatalf("Failed to create application: %v", err)
-	}
-
 	if cfg.Pprof.Enabled {
 		go func() {
 			pprofAddr := fmt.Sprintf("localhost:%d", cfg.Pprof.Port)
@@ -70,32 +61,10 @@ func main() {
 		}()
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	fxApp := fx.New(
+		config.CoreFxModule,
+		fx.Supply(cfg),
+	)
 
-	go func() {
-		log.Printf("Starting server on %s", app.Server.Addr)
-		if err := app.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Failed to start server: %v", err)
-		}
-	}()
-
-	go func() {
-		log.Println("Starting Scheduler...")
-		if err := app.Scheduler.Start(); err != nil {
-			log.Fatalf("Failed to start scheduler: %v", err)
-		}
-	}()
-
-	<-ctx.Done()
-	log.Println("Shutting down server...")
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := app.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("Server shutdown failed: %v", err)
-	}
-
-	log.Println("Server exiting")
+	fxApp.Run()
 }
