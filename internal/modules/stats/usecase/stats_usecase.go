@@ -2,12 +2,17 @@ package usecase
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type StatsUseCase interface {
@@ -17,36 +22,67 @@ type StatsUseCase interface {
 }
 
 type statsUseCase struct {
-	db  *gorm.DB
+	db  *sqlx.DB
 	log *logrus.Logger
 }
 
-func NewStatsUseCase(db *gorm.DB, log *logrus.Logger) StatsUseCase {
+func NewStatsUseCase(db any, log *logrus.Logger) StatsUseCase {
 	return &statsUseCase{
-		db:  db,
+		db:  tx.ExtractSQLX(db),
 		log: log,
 	}
+}
+
+func (u *statsUseCase) getDB(ctx context.Context) tx.DBTX {
+	if dbtx, ok := tx.DBTXFromContext(ctx); ok {
+		return dbtx
+	}
+	return u.db
+}
+
+func (u *statsUseCase) countWithOrg(ctx context.Context, table string, col string) int64 {
+	whereClauses := []string{fmt.Sprintf("%s.deleted_at = 0", table)}
+	var args []any
+
+	orgClause, orgArgs := database.SQLOrganizationClause(ctx, fmt.Sprintf("%s.%s", table, col))
+	if orgClause != "" {
+		whereClauses = append(whereClauses, orgClause)
+		args = append(args, orgArgs...)
+	}
+
+	query := fmt.Sprintf(`SELECT COUNT(*) FROM %s WHERE %s`, table, strings.Join(whereClauses, " AND "))
+	var count int64
+	_ = u.getDB(ctx).GetContext(ctx, &count, query, args...)
+	return count
 }
 
 func (u *statsUseCase) GetDashboardSummary(ctx context.Context) (*model.DashboardSummary, error) {
 	var summary model.DashboardSummary
 
-	// Apply organization scope if present
-	scope := database.OrganizationScope(ctx)
-	// For tenant user count, prefer counting active memberships so global users are
-	// not misattributed. If organization context exists, count distinct user IDs
-	// in organization_members. Otherwise fallback to users table for global count.
 	orgID := database.GetOrganizationID(ctx)
 	if orgID != "" {
 		var totalUsers int64
-		u.db.WithContext(ctx).Table("organization_members").Where("organization_id = ?", orgID).Distinct("user_id").Count(&totalUsers)
+		query := `SELECT COUNT(DISTINCT user_id) FROM organization_members WHERE organization_id = ?`
+		_ = u.getDB(ctx).GetContext(ctx, &totalUsers, query, orgID)
 		summary.TotalUsers = totalUsers
 	} else {
-		u.db.WithContext(ctx).Model(&struct{ Table string }{}).Table("users").Scopes(scope).Count(&summary.TotalUsers)
+		summary.TotalUsers = u.countWithOrg(ctx, "users", "organization_id")
 	}
-	u.db.WithContext(ctx).Model(&struct{ Table string }{}).Table("roles").Scopes(scope).Count(&summary.TotalRoles)
-	u.db.WithContext(ctx).Model(&struct{ Table string }{}).Table("audit_logs").Scopes(scope).Count(&summary.TotalAuditLogs)
-	u.db.WithContext(ctx).Model(&struct{ Table string }{}).Table("organization_members").Scopes(scope).Count(&summary.TotalOrgMembers)
+
+	summary.TotalRoles = u.countWithOrg(ctx, "roles", "organization_id")
+	summary.TotalAuditLogs = u.countWithOrg(ctx, "audit_logs", "organization_id")
+
+	// Organization members count
+	whereClauses := []string{"1=1"}
+	var orgArgs []any
+	if orgID != "" {
+		whereClauses = append(whereClauses, "organization_id = ?")
+		orgArgs = append(orgArgs, orgID)
+	}
+	queryMem := fmt.Sprintf(`SELECT COUNT(*) FROM organization_members WHERE %s`, strings.Join(whereClauses, " AND "))
+	var totalOrgMembers int64
+	_ = u.getDB(ctx).GetContext(ctx, &totalOrgMembers, queryMem, orgArgs...)
+	summary.TotalOrgMembers = totalOrgMembers
 
 	return &summary, nil
 }
@@ -56,13 +92,11 @@ func (u *statsUseCase) GetDashboardActivity(ctx context.Context, days int) (*mod
 		days = 7
 	}
 
-	// TODO: read timezone from clinic/branch settings once setting model exposes branch_timezone
 	loc, err := time.LoadLocation("Asia/Jakarta")
 	if err != nil {
 		loc = time.UTC
 	}
 
-	scope := database.OrganizationScope(ctx)
 	points := make([]model.ActivityPoint, days)
 	now := time.Now().In(loc)
 
@@ -73,19 +107,25 @@ func (u *statsUseCase) GetDashboardActivity(ctx context.Context, days int) (*mod
 		startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, loc).UnixMilli()
 		endOfDay := time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 999, loc).UnixMilli()
 
-		var auditCount, loginCount int64
+		whereClauses := []string{"deleted_at = 0", "created_at >= ?", "created_at <= ?"}
+		args := []any{startOfDay, endOfDay}
 
-		// Count all audits for that day
-		u.db.WithContext(ctx).Table("audit_logs").
-			Scopes(scope).
-			Where("created_at >= ? AND created_at <= ?", startOfDay, endOfDay).
-			Count(&auditCount)
+		orgClause, orgArgs := database.SQLOrganizationClause(ctx, "organization_id")
+		if orgClause != "" {
+			whereClauses = append(whereClauses, orgClause)
+			args = append(args, orgArgs...)
+		}
 
-		// Count only LOGIN actions
-		u.db.WithContext(ctx).Table("audit_logs").
-			Scopes(scope).
-			Where("action = ? AND created_at >= ? AND created_at <= ?", "LOGIN", startOfDay, endOfDay).
-			Count(&loginCount)
+		whereSQL := strings.Join(whereClauses, " AND ")
+
+		var auditCount int64
+		qAudit := fmt.Sprintf(`SELECT COUNT(*) FROM audit_logs WHERE %s`, whereSQL)
+		_ = u.getDB(ctx).GetContext(ctx, &auditCount, qAudit, args...)
+
+		var loginCount int64
+		loginArgs := append([]any{"LOGIN"}, args...)
+		qLogin := fmt.Sprintf(`SELECT COUNT(*) FROM audit_logs WHERE action = ? AND %s`, whereSQL)
+		_ = u.getDB(ctx).GetContext(ctx, &loginCount, qLogin, loginArgs...)
 
 		points[days-1-i] = model.ActivityPoint{
 			Date:   dateStr,
@@ -98,24 +138,31 @@ func (u *statsUseCase) GetDashboardActivity(ctx context.Context, days int) (*mod
 }
 
 func (u *statsUseCase) GetSystemInsights(ctx context.Context) (*model.SystemInsights, error) {
-	var result struct {
-		Role string
-	}
-
-	query := u.db.WithContext(ctx).Table("organization_members om").
-		Select("r.name as role, COUNT(*) as total").
-		Joins("JOIN roles r ON r.id = om.role_id").
-		Group("r.name").
-		Order("total DESC").
-		Limit(1)
+	whereClauses := []string{"1=1"}
+	var args []any
 
 	if orgID := database.GetOrganizationID(ctx); orgID != "" {
-		query = query.Where("om.organization_id = ?", orgID)
+		whereClauses = append(whereClauses, "om.organization_id = ?")
+		args = append(args, orgID)
 	}
 
+	query := fmt.Sprintf(`
+		SELECT r.name
+		FROM organization_members om
+		INNER JOIN roles r ON r.id = om.role_id
+		WHERE %s
+		GROUP BY r.name
+		ORDER BY COUNT(*) DESC
+		LIMIT 1
+	`, strings.Join(whereClauses, " AND "))
+
+	var roleName string
 	mostActive := "none"
-	if err := query.Scan(&result).Error; err == nil && result.Role != "" {
-		mostActive = result.Role
+	err := u.getDB(ctx).GetContext(ctx, &roleName, query, args...)
+	if err == nil && roleName != "" {
+		mostActive = roleName
+	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		u.log.WithError(err).Warn("Failed to fetch most active role insight")
 	}
 
 	return &model.SystemInsights{

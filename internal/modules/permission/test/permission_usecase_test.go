@@ -83,7 +83,7 @@ func TestAssignRoleToUser_UserNotFound(t *testing.T) {
 
 	userID, roleName := "user123", "editor"
 
-	deps.UserRepo.On("FindByID", mock.Anything, userID).Return(nil, gorm.ErrRecordNotFound)
+	deps.UserRepo.On("FindByID", mock.Anything, userID).Return(nil, exception.ErrNotFound)
 
 	err := uc.AssignRoleToUser(ctx, userID, roleName, "global")
 
@@ -119,7 +119,7 @@ func TestAssignRoleToUser_RoleNotFound(t *testing.T) {
 	deps.UserRepo.On("FindByID", mock.Anything, userID).Return(&userEntity.User{ID: userID}, nil)
 
 	// Mock RoleRepo Fail
-	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(nil, gorm.ErrRecordNotFound)
+	deps.RoleRepo.On("FindByName", mock.Anything, roleName).Return(nil, exception.ErrNotFound)
 
 	err := uc.AssignRoleToUser(ctx, userID, roleName, "global")
 
@@ -210,7 +210,7 @@ func TestGrantPermissionToRole_RoleNotFound(t *testing.T) {
 	ctx := authcontext.WithUserID(context.Background(), "admin-user")
 
 	role, path, method := "non_existent_role", "/api/v1/articles", "POST"
-	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(nil, gorm.ErrRecordNotFound)
+	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(nil, exception.ErrNotFound)
 
 	err := uc.GrantPermissionToRole(ctx, role, path, method, "global")
 
@@ -283,7 +283,7 @@ func TestRevokePermissionFromRole_RoleNotFound(t *testing.T) {
 	deps, uc := setupPermissionTest()
 
 	role, path, method := "non_existent_role", "/api/v1/articles", "DELETE"
-	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(nil, gorm.ErrRecordNotFound)
+	deps.RoleRepo.On("FindByName", mock.Anything, role).Return(nil, exception.ErrNotFound)
 
 	err := uc.RevokePermissionFromRole(context.Background(), role, path, method, "global")
 
@@ -611,7 +611,7 @@ func TestRevokeRoleFromUser_Guardian_EmptyInput(t *testing.T) {
 
 func TestRevokeRoleFromUser_Guardian_UserNotFound(t *testing.T) {
 	deps, uc := setupPermissionTest()
-	deps.UserRepo.On("FindByID", mock.Anything, "u").Return(nil, gorm.ErrRecordNotFound)
+	deps.UserRepo.On("FindByID", mock.Anything, "u").Return(nil, exception.ErrNotFound)
 
 	err := uc.RevokeRoleFromUser(context.Background(), "u", "r", "global")
 	assert.ErrorIs(t, err, exception.ErrNotFound)
@@ -628,7 +628,7 @@ func TestRevokeRoleFromUser_Guardian_UserRepoError(t *testing.T) {
 func TestRevokeRoleFromUser_Guardian_RoleNotFound(t *testing.T) {
 	deps, uc := setupPermissionTest()
 	deps.UserRepo.On("FindByID", mock.Anything, "u").Return(&userEntity.User{ID: "u"}, nil)
-	deps.RoleRepo.On("FindByName", mock.Anything, "r").Return(nil, gorm.ErrRecordNotFound)
+	deps.RoleRepo.On("FindByName", mock.Anything, "r").Return(nil, exception.ErrNotFound)
 
 	err := uc.RevokeRoleFromUser(context.Background(), "u", "r", "global")
 	assert.ErrorIs(t, err, exception.ErrBadRequest)

@@ -15,7 +15,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type roleUseCase struct {
@@ -79,7 +78,7 @@ func (uc *roleUseCase) create(ctx context.Context, request *model.CreateRoleRequ
 			uc.Log.WithContext(txCtx).Warnf("Role with name %s already exists in scope", request.Name)
 			return exception.ErrConflict
 		}
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err != nil && !errors.Is(err, exception.ErrNotFound) {
 			uc.Log.WithContext(txCtx).Errorf("Failed to find role by name in scope: %v", err)
 			return exception.ErrInternalServer
 		}
@@ -136,14 +135,14 @@ func (uc *roleUseCase) DeleteForOrganization(ctx context.Context, orgID, roleID 
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		role, err := uc.RoleRepository.FindOrganizationRoleByID(txCtx, orgID, roleID)
 		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+			if errors.Is(err, exception.ErrNotFound) {
 				return exception.ErrNotFound
 			}
 			return exception.ErrInternalServer
 		}
 
 		if err := uc.RoleRepository.DeleteInOrg(txCtx, orgID, roleID); err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+			if errors.Is(err, exception.ErrNotFound) {
 				return exception.ErrNotFound
 			}
 			return exception.ErrInternalServer
@@ -170,7 +169,7 @@ func (uc *roleUseCase) Update(ctx context.Context, id string, request *model.Upd
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		role, err := uc.RoleRepository.FindByID(txCtx, id)
 		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+			if errors.Is(err, exception.ErrNotFound) {
 				uc.Log.WithContext(txCtx).Warnf("Role with id %s not found for update", id)
 				return exception.ErrNotFound
 			}
@@ -201,7 +200,7 @@ func (uc *roleUseCase) UpdateForOrganization(ctx context.Context, orgID, roleID 
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		role, err := uc.RoleRepository.FindOrganizationRoleByID(txCtx, orgID, roleID)
 		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+			if errors.Is(err, exception.ErrNotFound) {
 				uc.Log.WithContext(txCtx).Warnf("Role %s not found in organization %s for update", roleID, orgID)
 				return exception.ErrNotFound
 			}
@@ -246,7 +245,7 @@ func (uc *roleUseCase) Delete(ctx context.Context, id string) error {
 	err := uc.TM.WithinTransaction(ctx, func(txCtx context.Context) error {
 		role, err := uc.RoleRepository.FindByID(txCtx, id)
 		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+			if errors.Is(err, exception.ErrNotFound) {
 				uc.Log.WithContext(txCtx).Warnf("Role with id %s not found for deletion", id)
 				return exception.ErrNotFound
 			}
@@ -261,7 +260,7 @@ func (uc *roleUseCase) Delete(ctx context.Context, id string) error {
 		}
 
 		if err := uc.RoleRepository.Delete(txCtx, id); err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+			if errors.Is(err, exception.ErrNotFound) {
 				return exception.ErrNotFound
 			}
 			uc.Log.WithContext(txCtx).Errorf("Failed to delete role: %v", err)

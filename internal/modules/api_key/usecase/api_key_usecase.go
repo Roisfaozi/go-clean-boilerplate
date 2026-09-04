@@ -21,7 +21,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type ApiKeyUseCase interface {
@@ -132,7 +131,7 @@ func (uc *apiKeyUseCase) List(ctx context.Context, orgID string) ([]model.ApiKey
 func (uc *apiKeyUseCase) Revoke(ctx context.Context, orgID, id string) error {
 	apiKey, err := uc.repo.FindByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			return nil
 		}
 		return exception.ErrInternalServer
@@ -181,7 +180,7 @@ func (uc *apiKeyUseCase) Authenticate(ctx context.Context, key string) (*model.A
 	// Cache Miss - Query DB
 	apiKey, err := uc.repo.FindByHash(ctx, keyHash)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			uc.log.Warn("API key not found during authentication")
 			return nil, exception.ErrUnauthorized
 		}

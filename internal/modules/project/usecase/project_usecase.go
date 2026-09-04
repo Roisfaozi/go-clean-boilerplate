@@ -8,7 +8,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
-	"gorm.io/gorm"
 )
 
 type ProjectUseCase interface {
@@ -90,7 +89,7 @@ func (u *projectUseCase) UpdateProject(ctx context.Context, id string, req model
 func (u *projectUseCase) DeleteProject(ctx context.Context, id string) error {
 	project, err := u.repo.GetByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			return nil
 		}
 		return err

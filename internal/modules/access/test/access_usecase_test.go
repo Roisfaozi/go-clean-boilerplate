@@ -14,7 +14,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gorm.io/gorm"
 )
 
 type nullWriter struct{}
@@ -214,7 +213,7 @@ func TestDeleteAccessRight(t *testing.T) {
 		},
 		{
 			name:        "Error - Not Found",
-			findErr:     gorm.ErrRecordNotFound,
+			findErr:     exception.ErrNotFound,
 			expectedErr: exception.ErrNotFound,
 		},
 	}
@@ -258,7 +257,7 @@ func TestDeleteEndpoint(t *testing.T) {
 		deps, uc := setupAccessTest()
 		ctx := context.Background()
 
-		deps.Repo.On("GetEndpointByID", ctx, id).Return(nil, gorm.ErrRecordNotFound).Once()
+		deps.Repo.On("GetEndpointByID", ctx, id).Return(nil, exception.ErrNotFound).Once()
 		err := uc.DeleteEndpoint(ctx, id)
 		assert.NoError(t, err)
 		deps.Repo.AssertExpectations(t)

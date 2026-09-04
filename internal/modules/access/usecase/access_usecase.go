@@ -12,7 +12,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type NoopError struct {
@@ -134,7 +133,7 @@ func (uc *AccessUseCase) LinkEndpointToAccessRight(ctx context.Context, req mode
 func (uc *AccessUseCase) UnlinkEndpointFromAccessRight(ctx context.Context, req model.LinkEndpointRequest) error {
 	accessRight, err := uc.repo.GetAccessRightByID(ctx, req.AccessRightID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			uc.log.WithContext(ctx).Warnf("Access right with ID %s not found for unlinking; treating as success", req.AccessRightID)
 			return nil
 		}
@@ -166,7 +165,7 @@ func (uc *AccessUseCase) DeleteAccessRight(ctx context.Context, id string) error
 	uc.log.WithContext(ctx).Infof("Attempting to delete access right with ID: %s", id)
 	_, err := uc.repo.GetAccessRightByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			uc.log.WithContext(ctx).Warnf("Access right with ID %s not found for deletion", id)
 			return exception.ErrNotFound
 		}
@@ -186,7 +185,7 @@ func (uc *AccessUseCase) DeleteAccessRight(ctx context.Context, id string) error
 func (uc *AccessUseCase) DeleteEndpoint(ctx context.Context, id string) error {
 	uc.log.WithContext(ctx).Infof("Attempting to delete endpoint with ID: %s", id)
 	if _, err := uc.repo.GetEndpointByID(ctx, id); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			uc.log.WithContext(ctx).Warnf("Endpoint with ID %s already absent; treating delete as success", id)
 			return nil
 		}
@@ -195,7 +194,7 @@ func (uc *AccessUseCase) DeleteEndpoint(ctx context.Context, id string) error {
 	}
 
 	if err := uc.repo.DeleteEndpoint(ctx, id); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			uc.log.WithContext(ctx).Warnf("Endpoint with ID %s already absent; treating delete as success", id)
 			return nil
 		}

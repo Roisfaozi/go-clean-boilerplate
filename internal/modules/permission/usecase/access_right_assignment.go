@@ -8,7 +8,6 @@ import (
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
-	"gorm.io/gorm"
 )
 
 func (uc *PermissionUseCase) GetRoleAccessRights(ctx context.Context, role, domain string) ([]model.RoleAccessRightStatus, error) {
@@ -61,7 +60,7 @@ func (uc *PermissionUseCase) AssignAccessRight(ctx context.Context, req model.As
 
 	ar, err := uc.AccessRepo.GetAccessRightByID(ctx, req.AccessRightID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, exception.ErrNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			return NewNoopError(fmt.Sprintf("access right '%s' not found", req.AccessRightID))
 		}
 		return exception.ErrInternalServer
@@ -101,7 +100,7 @@ func (uc *PermissionUseCase) RevokeAccessRight(ctx context.Context, req model.As
 
 	ar, err := uc.AccessRepo.GetAccessRightByID(ctx, req.AccessRightID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, exception.ErrNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			return NewNoopError(fmt.Sprintf("access right '%s' not found", req.AccessRightID))
 		}
 		return exception.ErrInternalServer

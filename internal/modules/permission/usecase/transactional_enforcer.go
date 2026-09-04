@@ -3,9 +3,9 @@ package usecase
 import (
 	"context"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/casbinadapter"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/casbin/casbin/v3"
-	gormadapter "github.com/casbin/gorm-adapter/v3"
 )
 
 type transactionalEnforcer struct {
@@ -22,12 +22,8 @@ func NewTransactionalEnforcer(globalEnforcer *casbin.Enforcer, casbinModelPath s
 }
 
 func (e *transactionalEnforcer) getEnforcer(ctx context.Context) IEnforcer {
-	if txDB, ok := tx.DBFromContext(ctx); ok {
-		adapter, err := gormadapter.NewAdapterByDB(txDB)
-		if err != nil {
-			return &failingEnforcer{err: err}
-		}
-
+	if dbtx, ok := tx.DBTXFromContext(ctx); ok {
+		adapter := casbinadapter.NewSQLXCasbinAdapter(dbtx)
 		enforcer, err := casbin.NewEnforcer(e.casbinModel, adapter)
 		if err != nil {
 			return &failingEnforcer{err: err}
@@ -97,8 +93,6 @@ func (e *transactionalEnforcer) RemoveFilteredPolicy(fieldIndex int, fieldValues
 }
 
 func (e *transactionalEnforcer) DeleteRole(role string) (bool, error) {
-	// Built-in DeleteRole should work if AutoSave is on.
-	// It removes from both policy (p) and grouping policy (g).
 	return e.globalEnforcer.DeleteRole(role)
 }
 

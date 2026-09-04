@@ -17,15 +17,17 @@ import (
 
 // testTable represents tables we create for stats counting
 type testUser struct {
-	ID   string `gorm:"primaryKey"`
-	Name string
+	ID        string `gorm:"primaryKey"`
+	Name      string
+	DeletedAt int64 `gorm:"default:0"`
 }
 
 func (testUser) TableName() string { return "users" }
 
 type testRole struct {
-	ID   string `gorm:"primaryKey"`
-	Name string
+	ID        string `gorm:"primaryKey"`
+	Name      string
+	DeletedAt int64 `gorm:"default:0"`
 }
 
 func (testRole) TableName() string { return "roles" }
@@ -34,6 +36,7 @@ type testAuditLog struct {
 	ID        string `gorm:"primaryKey"`
 	Action    string
 	CreatedAt int64
+	DeletedAt int64 `gorm:"default:0"`
 }
 
 func (testAuditLog) TableName() string { return "audit_logs" }

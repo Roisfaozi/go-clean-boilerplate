@@ -12,7 +12,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gorm.io/gorm"
 )
 
 type projectTestDeps struct {
@@ -141,7 +140,7 @@ func TestProjectUseCase_GetByID_NotFound(t *testing.T) {
 	deps, uc := setupProjectTest()
 	ctx := context.Background()
 
-	deps.Repo.On("GetByID", ctx, "nonexistent").Return(nil, gorm.ErrRecordNotFound).Once()
+	deps.Repo.On("GetByID", ctx, "nonexistent").Return(nil, exception.ErrNotFound).Once()
 
 	result, err := uc.GetProjectByID(ctx, "nonexistent")
 
@@ -204,7 +203,7 @@ func TestProjectUseCase_Update_NotFound(t *testing.T) {
 	deps, uc := setupProjectTest()
 	ctx := context.Background()
 
-	deps.Repo.On("GetByID", ctx, "nonexistent").Return(nil, gorm.ErrRecordNotFound).Once()
+	deps.Repo.On("GetByID", ctx, "nonexistent").Return(nil, exception.ErrNotFound).Once()
 
 	req := model.UpdateProjectRequest{Name: stringPtr("Updated")}
 	result, err := uc.UpdateProject(ctx, "nonexistent", req)
@@ -294,7 +293,7 @@ func TestProjectUseCase_Delete_NotFound_NoOp(t *testing.T) {
 	deps, uc := setupProjectTest()
 	ctx := context.Background()
 
-	deps.Repo.On("GetByID", ctx, "p1").Return(nil, gorm.ErrRecordNotFound).Once()
+	deps.Repo.On("GetByID", ctx, "p1").Return(nil, exception.ErrNotFound).Once()
 
 	err := uc.DeleteProject(ctx, "p1")
 

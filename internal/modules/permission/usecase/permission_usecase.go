@@ -14,7 +14,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type IPermissionUseCase interface {
@@ -188,7 +187,7 @@ func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role,
 
 	_, err := uc.UserRepo.FindByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			uc.log.WithContext(ctx).Warnf("Assign role failed: user '%s' does not exist.", userID)
 			return exception.ErrNotFound
 		}
@@ -198,7 +197,7 @@ func (uc *PermissionUseCase) AssignRoleToUser(ctx context.Context, userID, role,
 
 	_, err = uc.RoleRepo.FindByName(ctx, role)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			uc.log.WithContext(ctx).Warnf("Assign role failed: role '%s' does not exist.", role)
 			return exception.ErrBadRequest
 		}
@@ -237,7 +236,7 @@ func (uc *PermissionUseCase) RevokeRoleFromUser(ctx context.Context, userID, rol
 
 	_, err := uc.UserRepo.FindByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			uc.log.WithContext(ctx).Warnf("Revoke role failed: user '%s' does not exist.", userID)
 			return exception.ErrNotFound
 		}
@@ -247,7 +246,7 @@ func (uc *PermissionUseCase) RevokeRoleFromUser(ctx context.Context, userID, rol
 
 	_, err = uc.RoleRepo.FindByName(ctx, role)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			uc.log.WithContext(ctx).Warnf("Revoke role failed: role '%s' does not exist.", role)
 			return exception.ErrBadRequest
 		}
@@ -285,7 +284,7 @@ func (uc *PermissionUseCase) GrantPermissionToRole(ctx context.Context, role, pa
 
 	_, err := uc.RoleRepo.FindByName(ctx, role)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			uc.log.WithContext(ctx).Warnf("Grant permission failed: role '%s' does not exist.", role)
 			return exception.ErrBadRequest
 		}
@@ -314,7 +313,7 @@ func (uc *PermissionUseCase) RevokePermissionFromRole(ctx context.Context, role,
 
 	_, err := uc.RoleRepo.FindByName(ctx, role)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			uc.log.WithContext(ctx).Warnf("Revoke permission failed: role '%s' does not exist.", role)
 			return exception.ErrBadRequest
 		}

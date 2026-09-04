@@ -28,7 +28,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type userUseCaseImpl struct {
@@ -460,7 +459,7 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 
 	user, err := u.Repo.FindByID(ctx, request.ID)
 	if err != nil {
-		if err.Error() == "user not found" || errors.Is(err, gorm.ErrRecordNotFound) {
+		if err.Error() == "user not found" || errors.Is(err, exception.ErrNotFound) {
 			return exception.ErrNotFound
 		}
 		return err

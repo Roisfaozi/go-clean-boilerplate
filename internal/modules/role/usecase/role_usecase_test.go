@@ -17,7 +17,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gorm.io/gorm"
 )
 
 type roleTestDeps struct {
@@ -51,7 +50,7 @@ func TestRoleUseCase_Create(t *testing.T) {
 		ctx := context.Background()
 		req := &model.CreateRoleRequest{Name: "NewRole", Description: "Desc"}
 
-		deps.Repo.On("FindByNameInScope", ctx, "NewRole", (*string)(nil)).Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindByNameInScope", ctx, "NewRole", (*string)(nil)).Return(nil, exception.ErrNotFound)
 		deps.Repo.On("Create", ctx, mock.AnythingOfType("*entity.Role")).Return(nil)
 
 		res, err := uc.Create(ctx, req)
@@ -89,7 +88,7 @@ func TestRoleUseCase_Create(t *testing.T) {
 		ctx := context.Background()
 		req := &model.CreateRoleRequest{Name: "Role", Description: "Desc"}
 
-		deps.Repo.On("FindByNameInScope", ctx, "Role", (*string)(nil)).Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindByNameInScope", ctx, "Role", (*string)(nil)).Return(nil, exception.ErrNotFound)
 		deps.Repo.On("Create", ctx, mock.AnythingOfType("*entity.Role")).Return(errors.New("db error"))
 
 		res, err := uc.Create(ctx, req)
@@ -123,7 +122,7 @@ func TestRoleUseCase_Update(t *testing.T) {
 		req := &model.UpdateRoleRequest{Description: "NewDesc"}
 		id := "role-1"
 
-		deps.Repo.On("FindByID", ctx, id).Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindByID", ctx, id).Return(nil, exception.ErrNotFound)
 
 		res, err := uc.Update(ctx, id, req)
 		assert.ErrorIs(t, err, exception.ErrNotFound)
@@ -219,7 +218,7 @@ func TestRoleUseCase_Delete(t *testing.T) {
 		ctx := context.Background()
 		id := "role-1"
 
-		deps.Repo.On("FindByID", ctx, id).Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindByID", ctx, id).Return(nil, exception.ErrNotFound)
 
 		err := uc.Delete(ctx, id)
 		assert.ErrorIs(t, err, exception.ErrNotFound)
@@ -286,7 +285,7 @@ func TestRoleUseCase_DeleteForOrganization(t *testing.T) {
 		orgID := "org-1"
 		roleID := "role-1"
 
-		deps.Repo.On("FindOrganizationRoleByID", ctx, orgID, roleID).Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindOrganizationRoleByID", ctx, orgID, roleID).Return(nil, exception.ErrNotFound)
 
 		err := uc.DeleteForOrganization(ctx, orgID, roleID)
 		assert.ErrorIs(t, err, exception.ErrNotFound)
@@ -300,7 +299,7 @@ func TestRoleUseCase_DeleteForOrganization(t *testing.T) {
 		role := &entity.Role{ID: roleID, Name: "OrgRole", OrganizationID: &orgID}
 
 		deps.Repo.On("FindOrganizationRoleByID", ctx, orgID, roleID).Return(role, nil)
-		deps.Repo.On("DeleteInOrg", ctx, orgID, roleID).Return(gorm.ErrRecordNotFound)
+		deps.Repo.On("DeleteInOrg", ctx, orgID, roleID).Return(exception.ErrNotFound)
 
 		err := uc.DeleteForOrganization(ctx, orgID, roleID)
 		assert.ErrorIs(t, err, exception.ErrNotFound)
@@ -343,7 +342,7 @@ func TestRoleUseCase_CreateForOrganization(t *testing.T) {
 		req := &model.CreateRoleRequest{Name: "OrgRole", Description: "Desc"}
 		orgID := "org-1"
 
-		deps.Repo.On("FindByNameInScope", ctx, "OrgRole", &orgID).Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindByNameInScope", ctx, "OrgRole", &orgID).Return(nil, exception.ErrNotFound)
 		deps.Repo.On("Create", ctx, mock.AnythingOfType("*entity.Role")).Return(nil)
 
 		res, err := uc.CreateForOrganization(ctx, orgID, req)
@@ -450,7 +449,7 @@ func TestRoleUseCase_UpdateForOrganization(t *testing.T) {
 		orgID := "org-1"
 		roleID := "role-1"
 
-		deps.Repo.On("FindOrganizationRoleByID", ctx, orgID, roleID).Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindOrganizationRoleByID", ctx, orgID, roleID).Return(nil, exception.ErrNotFound)
 
 		res, err := uc.UpdateForOrganization(ctx, orgID, roleID, req)
 		assert.ErrorIs(t, err, exception.ErrNotFound)
