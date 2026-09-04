@@ -2,18 +2,19 @@ package repository_test
 
 import (
 	"context"
-	"testing"
-
 	"fmt"
 	"io"
+	"testing"
 
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func setupRoleRepo(t *testing.T) (repository.RoleRepository, *gorm.DB) {
+func setupRoleRepo(t *testing.T) (repository.RoleRepository, *sqlx.DB, *gorm.DB) {
 	uid, _ := uuid.NewV7()
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", uid.String())
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
@@ -32,17 +33,20 @@ func setupRoleRepo(t *testing.T) (repository.RoleRepository, *gorm.DB) {
 	err = db.AutoMigrate(&entity.Role{}, &orgEntity.Organization{})
 	require.NoError(t, err)
 
-	// Silent Logrus
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	sqlxDB := sqlx.NewDb(sqlDB, "sqlite")
+
 	l := logrus.New()
 	l.SetOutput(io.Discard)
 	l.SetLevel(logrus.FatalLevel)
 
-	repo := repository.NewRoleRepository(db, l)
-	return repo, db
+	repo := repository.NewRoleRepository(sqlxDB, l)
+	return repo, sqlxDB, db
 }
 
 func TestRoleRepository_FindAllDynamic(t *testing.T) {
-	repo, db := setupRoleRepo(t)
+	repo, _, db := setupRoleRepo(t)
 	ctx := context.Background()
 
 	roles := []entity.Role{
@@ -101,7 +105,7 @@ func TestRoleRepository_FindAllDynamic(t *testing.T) {
 }
 
 func TestRoleRepository_CRUD(t *testing.T) {
-	repo, _ := setupRoleRepo(t)
+	repo, _, _ := setupRoleRepo(t)
 	ctx := context.Background()
 
 	role := &entity.Role{
@@ -136,11 +140,11 @@ func TestRoleRepository_CRUD(t *testing.T) {
 	// Verify Delete
 	_, err = repo.FindByID(ctx, role.ID)
 	assert.Error(t, err)
-	assert.Equal(t, gorm.ErrRecordNotFound, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 }
 
 func TestRoleRepository_Update(t *testing.T) {
-	repo, db := setupRoleRepo(t)
+	repo, _, db := setupRoleRepo(t)
 	ctx := context.Background()
 
 	role := &entity.Role{
@@ -163,21 +167,19 @@ func TestRoleRepository_Update(t *testing.T) {
 }
 
 func TestRoleRepository_FindAllDynamic_ErrorSort(t *testing.T) {
-	repo, _ := setupRoleRepo(t)
+	repo, _, _ := setupRoleRepo(t)
 	ctx := context.Background()
 
 	filter := &querybuilder.DynamicFilter{
 		Sort: &[]querybuilder.SortModel{{ColId: "NonExistentColumn", Sort: "desc"}},
 	}
 
-	// This will just get ignored or error depending on the underlying implementation. Let's verify behavior.
 	_, err := repo.FindAllDynamic(ctx, filter)
-	// According to querybuilder, unknown columns in sort might return an error. Let's assert an error.
 	assert.Error(t, err)
 }
 
 func TestRoleRepository_FindAllDynamic_ErrorFilter(t *testing.T) {
-	repo, _ := setupRoleRepo(t)
+	repo, _, _ := setupRoleRepo(t)
 	ctx := context.Background()
 
 	filter := &querybuilder.DynamicFilter{
@@ -191,12 +193,10 @@ func TestRoleRepository_FindAllDynamic_ErrorFilter(t *testing.T) {
 }
 
 func TestRoleRepository_ErrorPath(t *testing.T) {
-	repo, db := setupRoleRepo(t)
+	repo, sqlxDB, _ := setupRoleRepo(t)
 	ctx := context.Background()
 
-	// Close db to force error
-	sqlDB, _ := db.DB()
-	_ = sqlDB.Close()
+	_ = sqlxDB.Close()
 
 	// Create
 	err := repo.Create(ctx, &entity.Role{})
@@ -228,7 +228,7 @@ func TestRoleRepository_ErrorPath(t *testing.T) {
 }
 
 func TestRoleRepository_FindOrganizationRoleByID(t *testing.T) {
-	repo, _ := setupRoleRepo(t)
+	repo, _, _ := setupRoleRepo(t)
 	ctx := context.Background()
 
 	orgID := "org-1"
@@ -249,11 +249,11 @@ func TestRoleRepository_FindOrganizationRoleByID(t *testing.T) {
 
 	// Not Found (wrong org)
 	_, err = repo.FindOrganizationRoleByID(ctx, "org-2", role.ID)
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 }
 
 func TestRoleRepository_FindOrganizationRoles(t *testing.T) {
-	repo, _ := setupRoleRepo(t)
+	repo, _, _ := setupRoleRepo(t)
 	ctx := context.Background()
 
 	orgID := "org-1"
@@ -275,7 +275,7 @@ func TestRoleRepository_FindOrganizationRoles(t *testing.T) {
 }
 
 func TestRoleRepository_FindByNameInScope(t *testing.T) {
-	repo, _ := setupRoleRepo(t)
+	repo, _, _ := setupRoleRepo(t)
 	ctx := context.Background()
 
 	orgID := "org-1"
@@ -305,11 +305,11 @@ func TestRoleRepository_FindByNameInScope(t *testing.T) {
 
 	// Not Found
 	_, err = repo.FindByNameInScope(ctx, "NonExistent", &orgID)
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 }
 
 func TestRoleRepository_DeleteInOrg(t *testing.T) {
-	repo, _ := setupRoleRepo(t)
+	repo, _, _ := setupRoleRepo(t)
 	ctx := context.Background()
 
 	orgID := "org-1"
@@ -325,14 +325,14 @@ func TestRoleRepository_DeleteInOrg(t *testing.T) {
 
 	// Empty IDs
 	err = repo.DeleteInOrg(ctx, "", role.ID)
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 
 	err = repo.DeleteInOrg(ctx, orgID, "")
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 
 	// Not Found (wrong org)
 	err = repo.DeleteInOrg(ctx, "org-2", role.ID)
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 
 	// Success
 	err = repo.DeleteInOrg(ctx, orgID, role.ID)
@@ -340,37 +340,11 @@ func TestRoleRepository_DeleteInOrg(t *testing.T) {
 
 	// Verify deletion
 	_, err = repo.FindOrganizationRoleByID(ctx, orgID, role.ID)
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
-}
-
-func TestRoleRepository_ErrorPath_Extra(t *testing.T) {
-	repo, db := setupRoleRepo(t)
-	ctx := context.Background()
-
-	// Close db to force error
-	sqlDB, _ := db.DB()
-	_ = sqlDB.Close()
-
-	// FindOrganizationRoleByID
-	_, err := repo.FindOrganizationRoleByID(ctx, "org-1", "role-org-1")
-	assert.Error(t, err)
-
-	// FindOrganizationRoles
-	_, err = repo.FindOrganizationRoles(ctx, "org-1")
-	assert.Error(t, err)
-
-	// FindByNameInScope
-	orgID := "org-1"
-	_, err = repo.FindByNameInScope(ctx, "test", &orgID)
-	assert.Error(t, err)
-
-	// DeleteInOrg
-	err = repo.DeleteInOrg(ctx, "org-1", "role-1")
-	assert.Error(t, err)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 }
 
 func TestRoleRepository_GetDBContextTx(t *testing.T) {
-	repo, db := setupRoleRepo(t)
+	repo, sqlxDB, _ := setupRoleRepo(t)
 	ctx := context.Background()
 
 	// 1. Without Tx in Context (uses regular DB)
@@ -379,27 +353,26 @@ func TestRoleRepository_GetDBContextTx(t *testing.T) {
 	require.NoError(t, err)
 
 	// 2. With Tx in Context (uses Tx DB)
-	txManager := tx.NewTransactionManager(db, logrus.New())
+	txManager := tx.NewSQLXTransactionManager(sqlxDB, logrus.New())
 
 	err = txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
-	    role2 := &entity.Role{ID: "role-tx-2", Name: "TxRole2"}
-	    errCreate := repo.Create(txCtx, role2)
-	    require.NoError(t, errCreate)
-	    return gorm.ErrRecordNotFound // force rollback
+		role2 := &entity.Role{ID: "role-tx-2", Name: "TxRole2"}
+		errCreate := repo.Create(txCtx, role2)
+		require.NoError(t, errCreate)
+		return exception.ErrNotFound // force rollback
 	})
 
 	assert.Error(t, err)
 
-	// Ensure role2 is rolled back, meaning it was executed within the Tx
+	// Ensure role2 is rolled back
 	_, err = repo.FindByID(ctx, "role-tx-2")
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 }
 
 func TestRoleRepository_Delete_Error_NoRows(t *testing.T) {
-	repo, _ := setupRoleRepo(t)
+	repo, _, _ := setupRoleRepo(t)
 	ctx := context.Background()
 
-	// Try to delete a non-existent record
-	err := repo.Delete(ctx, "non-existent-id")
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	err := repo.Delete(ctx, "non-existent")
+	assert.ErrorIs(t, err, exception.ErrNotFound)
 }

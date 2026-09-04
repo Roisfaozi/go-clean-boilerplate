@@ -11,6 +11,7 @@ import (
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/glebarez/sqlite"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,14 +25,18 @@ func setupAccessRepo(t *testing.T) (repository.AccessRepository, *gorm.DB) {
 	})
 	require.NoError(t, err)
 
-	err = db.AutoMigrate(&entity.Endpoint{}, &entity.AccessRight{}, &orgEntity.Organization{})
+	err = db.AutoMigrate(&entity.Endpoint{}, &entity.AccessRight{}, &orgEntity.Organization{}, &entity.AccessRightEndpoint{})
 	require.NoError(t, err)
+
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	sqlxDB := sqlx.NewDb(sqlDB, "sqlite")
 
 	l := logrus.New()
 	l.SetOutput(io.Discard)
 	l.SetLevel(logrus.FatalLevel)
 
-	repo := repository.NewAccessRepository(db, l)
+	repo := repository.NewAccessRepository(sqlxDB, l)
 	return repo, db
 }
 

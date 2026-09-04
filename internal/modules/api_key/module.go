@@ -9,7 +9,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type ApiKeyModule struct {
@@ -18,7 +17,7 @@ type ApiKeyModule struct {
 	Controller *http.ApiKeyController
 }
 
-func NewApiKeyModule(db *gorm.DB, userRepo userRepository.UserRepository, redis *redis.Client, log *logrus.Logger, validator *validator.Validate) *ApiKeyModule {
+func NewApiKeyModule(db any, userRepo userRepository.UserRepository, redis *redis.Client, log *logrus.Logger, validator *validator.Validate) *ApiKeyModule {
 	repo := repository.NewApiKeyRepository(db)
 	orgRepo := orgRepository.NewOrganizationRepository(db)
 	useCase := usecase.NewApiKeyUseCase(repo, orgRepo, userRepo, redis, log)

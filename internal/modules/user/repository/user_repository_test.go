@@ -15,6 +15,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
@@ -653,7 +654,7 @@ func TestUserRepository_FindBySSOIdentity(t *testing.T) {
 
 	t.Run("NotFound", func(t *testing.T) {
 		res, err := repo.FindBySSOIdentity(ctx, "google", "nonexistent")
-		assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+		assert.ErrorIs(t, err, exception.ErrNotFound)
 		assert.Nil(t, res)
 	})
 

@@ -2,76 +2,38 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
-	txpkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
-	"gorm.io/gorm"
 )
 
-// organizationRepository implements OrganizationRepository interface.
 type organizationRepository struct {
-	db    *gorm.DB
+	db    *sqlx.DB
 	redis *redis.Client
 }
 
-// NewOrganizationRepository creates a new instance of OrganizationRepository.
-// An optional Redis client can be passed to enable cache invalidation for organization status.
-func NewOrganizationRepository(db *gorm.DB, redisClients ...*redis.Client) OrganizationRepository {
+func NewOrganizationRepository(db any, redisClients ...*redis.Client) OrganizationRepository {
 	var redisClient *redis.Client
 	if len(redisClients) > 0 {
 		redisClient = redisClients[0]
 	}
-	return &organizationRepository{db: db, redis: redisClient}
+	return &organizationRepository{
+		db:    tx.ExtractSQLX(db),
+		redis: redisClient,
+	}
 }
 
-// Create creates a new organization with the owner as the first member atomically.
-func (r *organizationRepository) Create(ctx context.Context, org *entity.Organization, ownerRoleID string) error {
-	createWithDB := func(db *gorm.DB) error {
-		// Create organization
-		if err := db.Create(org).Error; err != nil {
-			return err
-		}
-
-		// Create owner as first member
-		member := &entity.OrganizationMember{
-			ID:             uuid.New().String(),
-			OrganizationID: org.ID,
-			UserID:         org.OwnerID,
-			RoleID:         ownerRoleID,
-			Status:         entity.MemberStatusActive,
-		}
-		if err := db.Create(member).Error; err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	if txDB, ok := txpkg.DBFromContext(ctx); ok {
-		return createWithDB(txDB.WithContext(ctx))
-	}
-
-	return r.db.WithContext(ctx).Transaction(func(db *gorm.DB) error {
-		return createWithDB(db)
-	})
-}
-
-func (r *organizationRepository) query(ctx context.Context) *gorm.DB {
-	query := r.getDB(ctx).WithContext(ctx)
-	if database.CanAccessDeletedOrganizations(ctx) {
-		return query.Unscoped()
-	}
-	return query.Unscoped().Where("organizations.deleted_at = 0")
-}
-
-func (r *organizationRepository) getDB(ctx context.Context) *gorm.DB {
-	if txDB, ok := txpkg.DBFromContext(ctx); ok {
-		return txDB
+func (r *organizationRepository) getDB(ctx context.Context) tx.DBTX {
+	if dbtx, ok := tx.DBTXFromContext(ctx); ok {
+		return dbtx
 	}
 	return r.db
 }
@@ -80,19 +42,85 @@ func (r *organizationRepository) invalidateOrganizationStatusCache(ctx context.C
 	if r.redis == nil {
 		return
 	}
-
 	cacheKey := fmt.Sprintf("nexusos:org_status:%s", orgID)
 	_ = r.redis.Del(ctx, cacheKey).Err()
 }
 
-// FindByID finds an organization by its ID.
+func (r *organizationRepository) Create(ctx context.Context, org *entity.Organization, ownerRoleID string) error {
+	createOps := func(dbtx tx.DBTX) error {
+		if org.ID == "" {
+			org.ID = uuid.NewString()
+		}
+		now := time.Now().UnixMilli()
+		if org.CreatedAt == 0 {
+			org.CreatedAt = now
+		}
+		if org.UpdatedAt == 0 {
+			org.UpdatedAt = now
+		}
+		if org.Status == "" {
+			org.Status = entity.OrgStatusActive
+		}
+
+		queryOrg := `
+			INSERT INTO organizations (id, name, slug, owner_id, status, created_at, updated_at, deleted_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+		`
+		_, err := dbtx.ExecContext(ctx, queryOrg,
+			org.ID, org.Name, org.Slug, org.OwnerID, org.Status,
+			org.CreatedAt, org.UpdatedAt,
+		)
+		if err != nil {
+			return err
+		}
+
+		memberID := uuid.NewString()
+		queryMember := `
+			INSERT INTO organization_members (id, organization_id, user_id, role_id, status, joined_at)
+			VALUES (?, ?, ?, ?, ?, ?)
+		`
+		_, err = dbtx.ExecContext(ctx, queryMember,
+			memberID, org.ID, org.OwnerID, ownerRoleID,
+			entity.MemberStatusActive, now,
+		)
+		return err
+	}
+
+	if dbtx, ok := tx.DBTXFromContext(ctx); ok {
+		return createOps(dbtx)
+	}
+
+	// Not in a transaction context, manage one
+	txx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer txx.Rollback()
+
+	if err := createOps(txx); err != nil {
+		return err
+	}
+
+	return txx.Commit()
+}
+
 func (r *organizationRepository) FindByID(ctx context.Context, id string) (*entity.Organization, error) {
+	where := "id = ? AND deleted_at = 0"
+	if database.CanAccessDeletedOrganizations(ctx) {
+		where = "id = ?"
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, name, slug, owner_id, status, created_at, updated_at, deleted_at
+		FROM organizations
+		WHERE %s
+		LIMIT 1
+	`, where)
+
 	var org entity.Organization
-	err := r.query(ctx).
-		Where("id = ?", id).
-		First(&org).Error
+	err := r.getDB(ctx).GetContext(ctx, &org, query, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
@@ -100,14 +128,23 @@ func (r *organizationRepository) FindByID(ctx context.Context, id string) (*enti
 	return &org, nil
 }
 
-// FindBySlug finds an organization by its unique slug.
 func (r *organizationRepository) FindBySlug(ctx context.Context, slug string) (*entity.Organization, error) {
+	where := "slug = ? AND deleted_at = 0"
+	if database.CanAccessDeletedOrganizations(ctx) {
+		where = "slug = ?"
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, name, slug, owner_id, status, created_at, updated_at, deleted_at
+		FROM organizations
+		WHERE %s
+		LIMIT 1
+	`, where)
+
 	var org entity.Organization
-	err := r.query(ctx).
-		Where("slug = ?", slug).
-		First(&org).Error
+	err := r.getDB(ctx).GetContext(ctx, &org, query, slug)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
@@ -115,74 +152,74 @@ func (r *organizationRepository) FindBySlug(ctx context.Context, slug string) (*
 	return &org, nil
 }
 
-// SlugExists checks if a slug is already taken.
 func (r *organizationRepository) SlugExists(ctx context.Context, slug string) (bool, error) {
+	query := `SELECT COUNT(*) FROM organizations WHERE slug = ?`
 	var count int64
-	err := r.getDB(ctx).WithContext(ctx).
-		Model(&entity.Organization{}).
-		Where("slug = ?", slug).
-		Count(&count).Error
+	err := r.getDB(ctx).GetContext(ctx, &count, query, slug)
 	if err != nil {
 		return false, err
 	}
 	return count > 0, nil
 }
 
-// FindUserOrganizations finds all organizations a user is a member of.
 func (r *organizationRepository) FindUserOrganizations(ctx context.Context, userID string) ([]*entity.Organization, error) {
+	query := `
+		SELECT o.id, o.name, o.slug, o.owner_id, o.status, o.created_at, o.updated_at, o.deleted_at
+		FROM organizations o
+		INNER JOIN organization_members om ON om.organization_id = o.id
+		WHERE om.user_id = ? AND om.status = ? AND o.deleted_at = 0
+		ORDER BY o.created_at DESC
+	`
 	var orgs []*entity.Organization
-	err := r.getDB(ctx).WithContext(ctx).
-		Joins("INNER JOIN organization_members ON organization_members.organization_id = organizations.id").
-		Where("organization_members.user_id = ?", userID).
-		Where("organization_members.status = ?", entity.MemberStatusActive).
-		Find(&orgs).Error
+	err := r.getDB(ctx).SelectContext(ctx, &orgs, query, userID, entity.MemberStatusActive)
 	if err != nil {
 		return nil, err
 	}
 	return orgs, nil
 }
 
-// Update updates an organization's details.
 func (r *organizationRepository) Update(ctx context.Context, org *entity.Organization) error {
-	return r.getDB(ctx).WithContext(ctx).
-		Save(org).Error
+	now := time.Now().UnixMilli()
+	org.UpdatedAt = now
+
+	query := `
+		UPDATE organizations
+		SET name = ?, slug = ?, owner_id = ?, status = ?, updated_at = ?
+		WHERE id = ? AND deleted_at = 0
+	`
+	_, err := r.getDB(ctx).ExecContext(ctx, query,
+		org.Name, org.Slug, org.OwnerID, org.Status, org.UpdatedAt, org.ID,
+	)
+	return err
 }
 
-// Delete soft-deletes an organization.
 func (r *organizationRepository) Delete(ctx context.Context, id string) error {
-	if err := r.getDB(ctx).WithContext(ctx).
-		Where("id = ?", id).
-		Delete(&entity.Organization{}).Error; err != nil {
+	now := time.Now().UnixMilli()
+	query := `UPDATE organizations SET deleted_at = ? WHERE id = ? AND deleted_at = 0`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, now, id)
+	if err != nil {
 		return err
 	}
-
 	r.invalidateOrganizationStatusCache(ctx, id)
 	return nil
 }
 
-// Restore clears the soft-delete marker for an organization.
 func (r *organizationRepository) Restore(ctx context.Context, id string) error {
-	if err := r.getDB(ctx).WithContext(ctx).
-		Unscoped().
-		Model(&entity.Organization{}).
-		Where("id = ?", id).
-		Update("deleted_at", 0).Error; err != nil {
+	query := `UPDATE organizations SET deleted_at = 0 WHERE id = ?`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, id)
+	if err != nil {
 		return err
 	}
-
 	r.invalidateOrganizationStatusCache(ctx, id)
 	return nil
 }
 
-// HardDelete permanently removes an organization.
 func (r *organizationRepository) HardDelete(ctx context.Context, id string) error {
-	if err := r.getDB(ctx).WithContext(ctx).
-		Unscoped().
-		Where("id = ?", id).
-		Delete(&entity.Organization{}).Error; err != nil {
+	query := `DELETE FROM organizations WHERE id = ?`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, id)
+	if err != nil {
 		return err
 	}
-
 	r.invalidateOrganizationStatusCache(ctx, id)
 	return nil
 }

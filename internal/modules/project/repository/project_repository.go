@@ -2,10 +2,18 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
-	"gorm.io/gorm"
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 )
 
 type ProjectRepository interface {
@@ -18,67 +26,191 @@ type ProjectRepository interface {
 }
 
 type projectRepository struct {
-	db *gorm.DB
+	db *sqlx.DB
 }
 
-func NewProjectRepository(db *gorm.DB) ProjectRepository {
+func NewProjectRepository(db *sqlx.DB) ProjectRepository {
 	return &projectRepository{db: db}
 }
 
-func (r *projectRepository) getDB(ctx context.Context) *gorm.DB {
-	if txDB, ok := tx.DBFromContext(ctx); ok {
-		return txDB
+func (r *projectRepository) getDB(ctx context.Context) tx.DBTX {
+	if dbtx, ok := tx.DBTXFromContext(ctx); ok {
+		return dbtx
 	}
-	return r.db.WithContext(ctx)
+	return r.db
 }
 
 func (r *projectRepository) Create(ctx context.Context, project *entity.Project) error {
-	return r.getDB(ctx).Create(project).Error
+	if project.ID == "" {
+		project.ID = uuid.NewString()
+	}
+	now := time.Now().UnixMilli()
+	if project.CreatedAt == 0 {
+		project.CreatedAt = now
+	}
+	if project.UpdatedAt == 0 {
+		project.UpdatedAt = now
+	}
+	if project.Status == "" {
+		project.Status = "active"
+	}
+
+	query := `
+		INSERT INTO projects (id, organization_id, user_id, name, domain, status, created_at, updated_at, deleted_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+	`
+	_, err := r.getDB(ctx).ExecContext(ctx, query,
+		project.ID, project.OrganizationID, project.UserID,
+		project.Name, project.Domain, project.Status,
+		project.CreatedAt, project.UpdatedAt,
+	)
+	return err
 }
 
 func (r *projectRepository) GetByID(ctx context.Context, id string) (*entity.Project, error) {
-	var project entity.Project
-	if err := r.getDB(ctx).
-		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "projects.organization_id")).
-		First(&project, "id = ?", id).Error; err != nil {
+	whereClauses := []string{"id = ?", "deleted_at = 0"}
+	args := []any{id}
+
+	orgClause, orgArgs := database.SQLOrganizationClause(ctx, "projects.organization_id")
+	if orgClause != "" {
+		whereClauses = append(whereClauses, orgClause)
+		args = append(args, orgArgs...)
+	}
+
+	visClause, visArgs := database.SQLOrganizationVisibilityClause(ctx, "projects.organization_id")
+	if visClause != "" {
+		whereClauses = append(whereClauses, visClause)
+		args = append(args, visArgs...)
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, organization_id, user_id, name, domain, status, created_at, updated_at, deleted_at
+		FROM projects
+		WHERE %s
+		LIMIT 1
+	`, strings.Join(whereClauses, " AND "))
+
+	var p entity.Project
+	err := r.getDB(ctx).GetContext(ctx, &p, query, args...)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, exception.ErrNotFound
+		}
 		return nil, err
 	}
-	return &project, nil
+	return &p, nil
 }
 
 func (r *projectRepository) GetByOrgID(ctx context.Context, orgID string) ([]*entity.Project, error) {
+	whereClauses := []string{"organization_id = ?", "deleted_at = 0"}
+	args := []any{orgID}
+
+	visClause, visArgs := database.SQLOrganizationVisibilityClause(ctx, "projects.organization_id")
+	if visClause != "" {
+		whereClauses = append(whereClauses, visClause)
+		args = append(args, visArgs...)
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, organization_id, user_id, name, domain, status, created_at, updated_at, deleted_at
+		FROM projects
+		WHERE %s
+		ORDER BY created_at DESC
+	`, strings.Join(whereClauses, " AND "))
+
 	var projects []*entity.Project
-	if err := r.getDB(ctx).
-		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "projects.organization_id")).
-		Where("organization_id = ?", orgID).
-		Find(&projects).Error; err != nil {
+	err := r.getDB(ctx).SelectContext(ctx, &projects, query, args...)
+	if err != nil {
 		return nil, err
 	}
 	return projects, nil
 }
 
 func (r *projectRepository) Update(ctx context.Context, project *entity.Project) error {
-	return r.getDB(ctx).
-		Model(&entity.Project{}).
-		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "projects.organization_id")).
-		Where("id = ?", project.ID).
-		Updates(map[string]interface{}{
-			"name":       project.Name,
-			"domain":     project.Domain,
-			"status":     project.Status,
-			"updated_at": project.UpdatedAt,
-		}).Error
+	now := time.Now().UnixMilli()
+	project.UpdatedAt = now
+
+	whereClauses := []string{"id = ?", "deleted_at = 0"}
+	args := []any{project.Name, project.Domain, project.Status, project.UpdatedAt, project.ID}
+
+	orgClause, orgArgs := database.SQLOrganizationClause(ctx, "projects.organization_id")
+	if orgClause != "" {
+		whereClauses = append(whereClauses, orgClause)
+		args = append(args, orgArgs...)
+	}
+
+	visClause, visArgs := database.SQLOrganizationVisibilityClause(ctx, "projects.organization_id")
+	if visClause != "" {
+		whereClauses = append(whereClauses, visClause)
+		args = append(args, visArgs...)
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE projects
+		SET name = ?, domain = ?, status = ?, updated_at = ?
+		WHERE %s
+	`, strings.Join(whereClauses, " AND "))
+
+	res, err := r.getDB(ctx).ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return exception.ErrNotFound
+	}
+	return nil
 }
 
 func (r *projectRepository) Delete(ctx context.Context, id string) error {
-	return r.getDB(ctx).
-		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "projects.organization_id")).
-		Delete(&entity.Project{}, "id = ?", id).Error
+	now := time.Now().UnixMilli()
+	whereClauses := []string{"id = ?", "deleted_at = 0"}
+	args := []any{now, id}
+
+	orgClause, orgArgs := database.SQLOrganizationClause(ctx, "projects.organization_id")
+	if orgClause != "" {
+		whereClauses = append(whereClauses, orgClause)
+		args = append(args, orgArgs...)
+	}
+
+	visClause, visArgs := database.SQLOrganizationVisibilityClause(ctx, "projects.organization_id")
+	if visClause != "" {
+		whereClauses = append(whereClauses, visClause)
+		args = append(args, visArgs...)
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE projects
+		SET deleted_at = ?
+		WHERE %s
+	`, strings.Join(whereClauses, " AND "))
+
+	res, err := r.getDB(ctx).ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return exception.ErrNotFound
+	}
+	return nil
 }
 
 func (r *projectRepository) CountByUserID(ctx context.Context, userID string) (int64, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM projects
+		WHERE user_id = ? AND deleted_at = 0
+	`
 	var count int64
-	if err := r.getDB(ctx).Model(&entity.Project{}).Where("user_id = ?", userID).Count(&count).Error; err != nil {
+	err := r.getDB(ctx).GetContext(ctx, &count, query, userID)
+	if err != nil {
 		return 0, err
 	}
 	return count, nil

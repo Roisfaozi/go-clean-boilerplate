@@ -7,15 +7,15 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type RoleModule struct {
 	RoleController *http.RoleController
 }
 
-func NewRoleModule(db *gorm.DB, log *logrus.Logger, validator *validator.Validate, tm tx.WithTransactionManager, permissionUseCase permissionUC.IPermissionUseCase) *RoleModule {
+func NewRoleModule(db *sqlx.DB, log *logrus.Logger, validator *validator.Validate, tm tx.WithTransactionManager, permissionUseCase permissionUC.IPermissionUseCase) *RoleModule {
 	roleRepo := repository.NewRoleRepository(db, log)
 	roleUseCase := usecase.NewRoleUseCase(log, tm, roleRepo, permissionUseCase)
 	roleController := http.NewRoleController(roleUseCase, log, validator)

@@ -5,7 +5,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/usecase"
 	"github.com/go-playground/validator/v10"
-	"gorm.io/gorm"
+	"github.com/jmoiron/sqlx"
 )
 
 type ProjectModule struct {
@@ -13,7 +13,7 @@ type ProjectModule struct {
 	ProjectRepo       repository.ProjectRepository
 }
 
-func NewProjectModule(db *gorm.DB, validate *validator.Validate) *ProjectModule {
+func NewProjectModule(db *sqlx.DB, validate *validator.Validate) *ProjectModule {
 	repo := repository.NewProjectRepository(db)
 	uc := usecase.NewProjectUseCase(repo)
 	ctrl := http.NewProjectController(uc, validate)

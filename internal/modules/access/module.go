@@ -5,8 +5,8 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/usecase"
 	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type AccessModule struct {
@@ -14,7 +14,7 @@ type AccessModule struct {
 	AccessRepo       repository.AccessRepository
 }
 
-func NewAccessModule(db *gorm.DB, log *logrus.Logger, validate *validator.Validate) *AccessModule {
+func NewAccessModule(db *sqlx.DB, log *logrus.Logger, validate *validator.Validate) *AccessModule {
 	repo := repository.NewAccessRepository(db, log)
 	uc := usecase.NewAccessUseCase(repo, log)
 	controller := http.NewAccessController(uc, validate, log)

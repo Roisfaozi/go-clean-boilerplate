@@ -12,7 +12,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 // OrganizationModule encapsulates all organization-related dependencies
@@ -27,7 +26,7 @@ type OrganizationModule struct {
 
 // NewOrganizationModule creates a new OrganizationModule with all dependencies wired
 func NewOrganizationModule(
-	db *gorm.DB,
+	db any,
 	redisClient *redis.Client,
 	taskDistributor worker.TaskDistributor,
 	userRepo userRepo.UserRepository,

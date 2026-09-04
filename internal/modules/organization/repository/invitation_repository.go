@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
-	txpkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
-	"gorm.io/gorm"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 )
 
-// InvitationRepository defines the interface for invitation token data access
 type InvitationRepository interface {
 	Create(ctx context.Context, invitation *entity.InvitationToken) error
 	FindByToken(ctx context.Context, token string) (*entity.InvitationToken, error)
@@ -18,28 +18,46 @@ type InvitationRepository interface {
 }
 
 type invitationRepository struct {
-	db *gorm.DB
+	db *sqlx.DB
 }
 
-// NewInvitationRepository creates a new InvitationRepository
-func NewInvitationRepository(db *gorm.DB) InvitationRepository {
-	return &invitationRepository{db: db}
-}
-
-func (r *invitationRepository) getDB(ctx context.Context) *gorm.DB {
-	if txDB, ok := txpkg.DBFromContext(ctx); ok {
-		return txDB.WithContext(ctx)
+func NewInvitationRepository(db any) InvitationRepository {
+	return &invitationRepository{
+		db: tx.ExtractSQLX(db),
 	}
-	return r.db.WithContext(ctx)
+}
+
+func (r *invitationRepository) getDB(ctx context.Context) tx.DBTX {
+	if dbtx, ok := tx.DBTXFromContext(ctx); ok {
+		return dbtx
+	}
+	return r.db
 }
 
 func (r *invitationRepository) Create(ctx context.Context, invitation *entity.InvitationToken) error {
-	return r.getDB(ctx).Create(invitation).Error
+	if invitation.ID == "" {
+		invitation.ID = uuid.NewString()
+	}
+	query := `
+		INSERT INTO invitation_tokens (id, organization_id, email, token, role_id, expires_at, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`
+	_, err := r.getDB(ctx).ExecContext(ctx, query,
+		invitation.ID, invitation.OrganizationID, invitation.Email,
+		invitation.Token, invitation.RoleID, invitation.ExpiresAt, invitation.CreatedAt,
+	)
+	return err
 }
 
 func (r *invitationRepository) FindByToken(ctx context.Context, token string) (*entity.InvitationToken, error) {
+	query := `
+		SELECT id, organization_id, email, token, role_id, expires_at, created_at
+		FROM invitation_tokens
+		WHERE token = ?
+		LIMIT 1
+	`
 	var invitation entity.InvitationToken
-	err := r.getDB(ctx).Where("token = ?", token).First(&invitation).Error
+	err := r.getDB(ctx).GetContext(ctx, &invitation, query, token)
 	if err != nil {
 		return nil, err
 	}
@@ -47,13 +65,19 @@ func (r *invitationRepository) FindByToken(ctx context.Context, token string) (*
 }
 
 func (r *invitationRepository) Delete(ctx context.Context, id string) error {
-	return r.getDB(ctx).Delete(&entity.InvitationToken{}, "id = ?", id).Error
+	query := `DELETE FROM invitation_tokens WHERE id = ?`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, id)
+	return err
 }
 
 func (r *invitationRepository) DeleteByEmailAndOrg(ctx context.Context, email, orgID string) error {
-	return r.getDB(ctx).Where("email = ? AND organization_id = ?", email, orgID).Delete(&entity.InvitationToken{}).Error
+	query := `DELETE FROM invitation_tokens WHERE email = ? AND organization_id = ?`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, email, orgID)
+	return err
 }
 
 func (r *invitationRepository) CleanupExpired(ctx context.Context, now int64) error {
-	return r.getDB(ctx).Where("expires_at < ?", now).Delete(&entity.InvitationToken{}).Error
+	query := `DELETE FROM invitation_tokens WHERE expires_at < ?`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, now)
+	return err
 }

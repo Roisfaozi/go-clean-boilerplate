@@ -10,32 +10,66 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
+	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type tokenRepositoryRedis struct {
 	client *redis.Client
 	log    *logrus.Logger
-	db     *gorm.DB
+	db     *sqlx.DB
 	clock  util.Clock
 }
 
-func (r *tokenRepositoryRedis) getDB(ctx context.Context) *gorm.DB {
-	if txDB, ok := tx.DBFromContext(ctx); ok {
-		return txDB
+func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger, db any, clock util.Clock) TokenRepository {
+	return &tokenRepositoryRedis{
+		client: client,
+		log:    log,
+		db:     tx.ExtractSQLX(db),
+		clock:  clock,
 	}
-	return r.db.WithContext(ctx)
+}
+
+func (r *tokenRepositoryRedis) getDB(ctx context.Context) tx.DBTX {
+	if dbtx, ok := tx.DBTXFromContext(ctx); ok {
+		return dbtx
+	}
+	return r.db
 }
 
 func (r *tokenRepositoryRedis) Save(ctx context.Context, token *entity.PasswordResetToken) error {
-	return r.getDB(ctx).Save(token).Error
+	now := time.Now().UnixMilli()
+	if token.CreatedAt == 0 {
+		token.CreatedAt = now
+	}
+	query := `
+		INSERT INTO password_reset_tokens (email, token, expires_at, created_at)
+		VALUES (?, ?, ?, ?)
+		ON DUPLICATE KEY UPDATE token = VALUES(token), expires_at = VALUES(expires_at), created_at = VALUES(created_at)
+	`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, token.Email, token.Token, token.ExpiresAt, token.CreatedAt)
+	if err != nil {
+		// SQLite compatibility for testing
+		sqliteQuery := `
+			INSERT INTO password_reset_tokens (email, token, expires_at, created_at)
+			VALUES (?, ?, ?, ?)
+			ON CONFLICT(email) DO UPDATE SET token = excluded.token, expires_at = excluded.expires_at, created_at = excluded.created_at
+		`
+		_, err = r.getDB(ctx).ExecContext(ctx, sqliteQuery, token.Email, token.Token, token.ExpiresAt, token.CreatedAt)
+	}
+	return err
 }
 
 func (r *tokenRepositoryRedis) FindByToken(ctx context.Context, token string) (*entity.PasswordResetToken, error) {
+	query := `
+		SELECT email, token, expires_at, created_at
+		FROM password_reset_tokens
+		WHERE token = ?
+		LIMIT 1
+	`
 	var resetToken entity.PasswordResetToken
-	err := r.getDB(ctx).Where("token = ?", token).First(&resetToken).Error
+	err := r.getDB(ctx).GetContext(ctx, &resetToken, query, token)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +77,9 @@ func (r *tokenRepositoryRedis) FindByToken(ctx context.Context, token string) (*
 }
 
 func (r *tokenRepositoryRedis) DeleteByEmail(ctx context.Context, email string) error {
-	if err := r.getDB(ctx).Where("email = ?", email).Delete(&entity.PasswordResetToken{}).Error; err != nil {
+	query := `DELETE FROM password_reset_tokens WHERE email = ?`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, email)
+	if err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("Failed to delete reset token by email")
 		return err
 	}
@@ -51,22 +87,14 @@ func (r *tokenRepositoryRedis) DeleteByEmail(ctx context.Context, email string) 
 }
 
 func (r *tokenRepositoryRedis) DeleteExpiredResetTokens(ctx context.Context) error {
-	// Deletes tokens where expires_at < now (millis)
 	now := time.Now().UnixMilli()
-	if err := r.getDB(ctx).Where("expires_at < ?", now).Delete(&entity.PasswordResetToken{}).Error; err != nil {
+	query := `DELETE FROM password_reset_tokens WHERE expires_at < ?`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, now)
+	if err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("Failed to delete expired reset tokens")
 		return err
 	}
 	return nil
-}
-
-func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger, db *gorm.DB, clock util.Clock) TokenRepository {
-	return &tokenRepositoryRedis{
-		client: client,
-		log:    log,
-		db:     db,
-		clock:  clock,
-	}
 }
 
 func (r *tokenRepositoryRedis) StoreToken(ctx context.Context, session *model.Auth) error {
@@ -207,12 +235,36 @@ func (r *tokenRepositoryRedis) getUserSessionIndexKey(userID string) string {
 // Email Verification Token Methods
 
 func (r *tokenRepositoryRedis) SaveVerificationToken(ctx context.Context, token *entity.EmailVerificationToken) error {
-	return r.getDB(ctx).Save(token).Error
+	now := time.Now().UnixMilli()
+	if token.CreatedAt == 0 {
+		token.CreatedAt = now
+	}
+	query := `
+		INSERT INTO email_verification_tokens (email, token, expires_at, created_at)
+		VALUES (?, ?, ?, ?)
+		ON DUPLICATE KEY UPDATE token = VALUES(token), expires_at = VALUES(expires_at), created_at = VALUES(created_at)
+	`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, token.Email, token.Token, token.ExpiresAt, token.CreatedAt)
+	if err != nil {
+		sqliteQuery := `
+			INSERT INTO email_verification_tokens (email, token, expires_at, created_at)
+			VALUES (?, ?, ?, ?)
+			ON CONFLICT(email) DO UPDATE SET token = excluded.token, expires_at = excluded.expires_at, created_at = excluded.created_at
+		`
+		_, err = r.getDB(ctx).ExecContext(ctx, sqliteQuery, token.Email, token.Token, token.ExpiresAt, token.CreatedAt)
+	}
+	return err
 }
 
 func (r *tokenRepositoryRedis) FindVerificationToken(ctx context.Context, token string) (*entity.EmailVerificationToken, error) {
+	query := `
+		SELECT email, token, expires_at, created_at
+		FROM email_verification_tokens
+		WHERE token = ?
+		LIMIT 1
+	`
 	var verificationToken entity.EmailVerificationToken
-	err := r.getDB(ctx).Where("token = ?", token).First(&verificationToken).Error
+	err := r.getDB(ctx).GetContext(ctx, &verificationToken, query, token)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +272,9 @@ func (r *tokenRepositoryRedis) FindVerificationToken(ctx context.Context, token 
 }
 
 func (r *tokenRepositoryRedis) DeleteVerificationTokenByEmail(ctx context.Context, email string) error {
-	if err := r.getDB(ctx).Where("email = ?", email).Delete(&entity.EmailVerificationToken{}).Error; err != nil {
+	query := `DELETE FROM email_verification_tokens WHERE email = ?`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, email)
+	if err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("Failed to delete verification token by email")
 		return err
 	}
@@ -254,7 +308,7 @@ func (r *tokenRepositoryRedis) IncrementLoginAttempts(ctx context.Context, usern
 	key := r.getAttemptsKey(username)
 	pipe := r.client.Pipeline()
 	incr := pipe.Incr(ctx, key)
-	pipe.Expire(ctx, key, 1*time.Hour) // Reset attempts counter after 1 hour of inactivity
+	pipe.Expire(ctx, key, 1*time.Hour)
 	_, err := pipe.Exec(ctx)
 	if err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("Failed to increment login attempts")
@@ -274,7 +328,8 @@ func (r *tokenRepositoryRedis) ResetLoginAttempts(ctx context.Context, username 
 
 func (r *tokenRepositoryRedis) LockAccount(ctx context.Context, username string, duration time.Duration) error {
 	key := r.getLockedKey(username)
-	if err := r.client.Set(ctx, key, "locked", duration).Err(); err != nil {
+	err := r.client.Set(ctx, key, "locked", duration).Err()
+	if err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("Failed to lock account")
 		return err
 	}
@@ -288,10 +343,8 @@ func (r *tokenRepositoryRedis) IsAccountLocked(ctx context.Context, username str
 		r.log.WithContext(ctx).WithError(err).Error("Failed to check account lock status")
 		return false, 0, err
 	}
-
-	if ttl <= 0 { // Key does not exist (TTL -2) or no expire (TTL -1) but logic says locked keys always expire
-		return false, 0, nil
+	if ttl > 0 {
+		return true, ttl, nil
 	}
-
-	return true, ttl, nil
+	return false, 0, nil
 }

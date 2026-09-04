@@ -7,7 +7,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type WebhookModule struct {
@@ -17,7 +16,7 @@ type WebhookModule struct {
 }
 
 func NewWebhookModule(
-	db *gorm.DB,
+	db any,
 	log *logrus.Logger,
 	validate *validator.Validate,
 	taskDistributor worker.TaskDistributor,

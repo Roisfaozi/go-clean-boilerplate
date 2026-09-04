@@ -2,6 +2,9 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"strings"
+	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
@@ -9,27 +12,27 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type auditRepository struct {
-	db  *gorm.DB
+	db  *sqlx.DB
 	log *logrus.Logger
 }
 
-func NewAuditRepository(db *gorm.DB, log *logrus.Logger) usecase.AuditRepository {
+func NewAuditRepository(db any, log *logrus.Logger) usecase.AuditRepository {
 	return &auditRepository{
-		db:  db,
+		db:  tx.ExtractSQLX(db),
 		log: log,
 	}
 }
 
-func (r *auditRepository) getDB(ctx context.Context) *gorm.DB {
-	if txDB, ok := tx.DBFromContext(ctx); ok {
-		return txDB
+func (r *auditRepository) getDB(ctx context.Context) tx.DBTX {
+	if dbtx, ok := tx.DBTXFromContext(ctx); ok {
+		return dbtx
 	}
-	return r.db.WithContext(ctx)
+	return r.db
 }
 
 func (r *auditRepository) Create(ctx context.Context, log *entity.AuditLog) error {
@@ -40,93 +43,152 @@ func (r *auditRepository) Create(ctx context.Context, log *entity.AuditLog) erro
 		}
 		log.ID = id.String()
 	}
-	return r.getDB(ctx).Create(log).Error
+	if log.CreatedAt == 0 {
+		log.CreatedAt = time.Now().UnixMilli()
+	}
+
+	query := `
+		INSERT INTO audit_logs (id, organization_id, user_id, action, entity, entity_id, old_values, new_values, ip_address, user_agent, created_at, deleted_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+	`
+	_, err := r.getDB(ctx).ExecContext(ctx, query,
+		log.ID, log.OrganizationID, log.UserID, log.Action,
+		log.Entity, log.EntityID, log.OldValues, log.NewValues,
+		log.IPAddress, log.UserAgent, log.CreatedAt,
+	)
+	return err
 }
 
 func (r *auditRepository) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.AuditLog, int64, error) {
-	var logs []*entity.AuditLog
-	var total int64
-	query := r.getDB(ctx).
-		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "audit_logs.organization_id")).
-		Model(&entity.AuditLog{})
-
-	query, err := querybuilder.GenerateDynamicQuery(query, &entity.AuditLog{}, filter)
+	parsed, err := querybuilder.BuildRawQuery(&entity.AuditLog{}, filter)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Get Total using a session branch
-	if !filter.SkipCount {
-		if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+	whereClauses := []string{"audit_logs.deleted_at = 0"}
+	args := []any{}
+
+	orgClause, orgArgs := database.SQLOrganizationClause(ctx, "audit_logs.organization_id")
+	if orgClause != "" {
+		whereClauses = append(whereClauses, orgClause)
+		args = append(args, orgArgs...)
+	}
+
+	visClause, visArgs := database.SQLOrganizationVisibilityClause(ctx, "audit_logs.organization_id")
+	if visClause != "" {
+		whereClauses = append(whereClauses, visClause)
+		args = append(args, visArgs...)
+	}
+
+	if parsed.WhereSQL != "" {
+		whereClauses = append(whereClauses, parsed.WhereSQL)
+		args = append(args, parsed.Args...)
+	}
+
+	whereSQL := strings.Join(whereClauses, " AND ")
+
+	var total int64
+	if filter == nil || !filter.SkipCount {
+		countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM audit_logs WHERE %s`, whereSQL)
+		if err := r.getDB(ctx).GetContext(ctx, &total, countQuery, args...); err != nil {
 			return nil, 0, err
 		}
 	} else {
 		total = -1
 	}
 
-	query, err = querybuilder.GenerateDynamicSort(query, &entity.AuditLog{}, filter)
-	if err != nil {
+	orderBy := "created_at DESC"
+	if parsed.OrderBy != "" {
+		orderBy = parsed.OrderBy
+	}
+
+	dataArgs := append([]any{}, args...)
+	dataArgs = append(dataArgs, parsed.Limit, parsed.Offset)
+
+	query := fmt.Sprintf(`
+		SELECT id, organization_id, user_id, action, entity, entity_id, old_values, new_values, ip_address, user_agent, created_at, deleted_at
+		FROM audit_logs
+		WHERE %s
+		ORDER BY %s
+		LIMIT ? OFFSET ?
+	`, whereSQL, orderBy)
+
+	var logs []*entity.AuditLog
+	if err := r.getDB(ctx).SelectContext(ctx, &logs, query, dataArgs...); err != nil {
 		return nil, 0, err
 	}
-
-	if filter.Page > 0 && filter.PageSize > 0 {
-		offset := (filter.Page - 1) * filter.PageSize
-		query = query.Limit(filter.PageSize).Offset(offset)
-	}
-
-	if err := query.Find(&logs).Error; err != nil {
-
-		return nil, 0, err
-
-	}
-
 	return logs, total, nil
-
 }
 
 func (r *auditRepository) DeleteLogsOlderThan(ctx context.Context, cutoffTime int64) error {
-
-	// Audit logs use created_at as unix milli
-
-	if err := r.getDB(ctx).Where("created_at < ?", cutoffTime).Delete(&entity.AuditLog{}).Error; err != nil {
-
+	query := `DELETE FROM audit_logs WHERE created_at < ?`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, cutoffTime)
+	if err != nil {
 		r.log.WithContext(ctx).WithError(err).Error("Failed to prune old audit logs")
-
 		return err
-
 	}
-
 	return nil
-
 }
 
 func (r *auditRepository) FindAllInBatches(ctx context.Context, startTime, endTime int64, batchSize int, process func([]*entity.AuditLog) error) error {
-	var logs []*entity.AuditLog
-	query := r.getDB(ctx).
-		Scopes(database.OrganizationScope(ctx), database.OrganizationVisibilityScope(ctx, "audit_logs.organization_id")).
-		Model(&entity.AuditLog{})
+	whereClauses := []string{"audit_logs.deleted_at = 0"}
+	args := []any{}
+
+	orgClause, orgArgs := database.SQLOrganizationClause(ctx, "audit_logs.organization_id")
+	if orgClause != "" {
+		whereClauses = append(whereClauses, orgClause)
+		args = append(args, orgArgs...)
+	}
+
+	visClause, visArgs := database.SQLOrganizationVisibilityClause(ctx, "audit_logs.organization_id")
+	if visClause != "" {
+		whereClauses = append(whereClauses, visClause)
+		args = append(args, visArgs...)
+	}
 
 	if startTime > 0 {
-
-		query = query.Where("created_at >= ?", startTime)
-
+		whereClauses = append(whereClauses, "created_at >= ?")
+		args = append(args, startTime)
 	}
 
 	if endTime > 0 {
-
-		query = query.Where("created_at <= ?", endTime)
-
+		whereClauses = append(whereClauses, "created_at <= ?")
+		args = append(args, endTime)
 	}
 
-	result := query.FindInBatches(&logs, batchSize, func(tx *gorm.DB, batch int) error {
+	whereSQL := strings.Join(whereClauses, " AND ")
+	offset := 0
 
-		return process(logs)
+	for {
+		batchArgs := append([]any{}, args...)
+		batchArgs = append(batchArgs, batchSize, offset)
 
-	})
+		query := fmt.Sprintf(`
+			SELECT id, organization_id, user_id, action, entity, entity_id, old_values, new_values, ip_address, user_agent, created_at, deleted_at
+			FROM audit_logs
+			WHERE %s
+			ORDER BY created_at ASC
+			LIMIT ? OFFSET ?
+		`, whereSQL)
 
-	if result.Error != nil {
-		r.log.WithContext(ctx).WithError(result.Error).Error("Failed to fetch audit logs in batches")
-		return result.Error
+		var logs []*entity.AuditLog
+		if err := r.getDB(ctx).SelectContext(ctx, &logs, query, batchArgs...); err != nil {
+			r.log.WithContext(ctx).WithError(err).Error("Failed to fetch audit logs in batches")
+			return err
+		}
+
+		if len(logs) == 0 {
+			break
+		}
+
+		if err := process(logs); err != nil {
+			return err
+		}
+
+		if len(logs) < batchSize {
+			break
+		}
+		offset += len(logs)
 	}
 
 	return nil
@@ -140,30 +202,67 @@ func (r *auditRepository) CreateOutbox(ctx context.Context, outbox *entity.Audit
 		}
 		outbox.ID = id.String()
 	}
-	return r.getDB(ctx).Create(outbox).Error
+	now := time.Now().UnixMilli()
+	if outbox.CreatedAt == 0 {
+		outbox.CreatedAt = now
+	}
+	if outbox.UpdatedAt == 0 {
+		outbox.UpdatedAt = now
+	}
+	if outbox.Status == "" {
+		outbox.Status = entity.OutboxStatusPending
+	}
+
+	query := `
+		INSERT INTO audit_outbox (id, organization_id, user_id, action, entity, entity_id, old_values, new_values, ip_address, user_agent, status, retry_count, last_error, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+	_, err := r.getDB(ctx).ExecContext(ctx, query,
+		outbox.ID, outbox.OrganizationID, outbox.UserID,
+		outbox.Action, outbox.Entity, outbox.EntityID,
+		outbox.OldValues, outbox.NewValues, outbox.IPAddress,
+		outbox.UserAgent, outbox.Status, outbox.RetryCount,
+		outbox.LastError, outbox.CreatedAt, outbox.UpdatedAt,
+	)
+	return err
 }
 
 func (r *auditRepository) FindPendingOutbox(ctx context.Context, limit int) ([]*entity.AuditOutbox, error) {
+	query := `
+		SELECT id, organization_id, user_id, action, entity, entity_id, old_values, new_values, ip_address, user_agent, status, retry_count, last_error, created_at, updated_at
+		FROM audit_outbox
+		WHERE status = ? OR (status = ? AND retry_count < 5)
+		ORDER BY created_at ASC
+		LIMIT ?
+	`
 	var results []*entity.AuditOutbox
-	err := r.getDB(ctx).
-		Where("status = ? OR (status = ? AND retry_count < ?)", entity.OutboxStatusPending, entity.OutboxStatusFailed, 5).
-		Order("created_at ASC").
-		Limit(limit).
-		Find(&results).Error
+	err := r.getDB(ctx).SelectContext(ctx, &results, query, entity.OutboxStatusPending, entity.OutboxStatusFailed, limit)
 	return results, err
 }
 
 func (r *auditRepository) UpdateOutboxStatus(ctx context.Context, id string, status string, lastError string) error {
-	updates := map[string]interface{}{
-		"status":     status,
-		"last_error": lastError,
-	}
+	now := time.Now().UnixMilli()
 	if status == entity.OutboxStatusFailed {
-		updates["retry_count"] = gorm.Expr("retry_count + 1")
+		query := `
+			UPDATE audit_outbox
+			SET status = ?, last_error = ?, retry_count = retry_count + 1, updated_at = ?
+			WHERE id = ?
+		`
+		_, err := r.getDB(ctx).ExecContext(ctx, query, status, lastError, now, id)
+		return err
 	}
-	return r.getDB(ctx).Model(&entity.AuditOutbox{}).Where("id = ?", id).Updates(updates).Error
+
+	query := `
+		UPDATE audit_outbox
+		SET status = ?, last_error = ?, updated_at = ?
+		WHERE id = ?
+	`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, status, lastError, now, id)
+	return err
 }
 
 func (r *auditRepository) DeleteOutbox(ctx context.Context, id string) error {
-	return r.getDB(ctx).Unscoped().Delete(&entity.AuditOutbox{}, "id = ?", id).Error
+	query := `DELETE FROM audit_outbox WHERE id = ?`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, id)
+	return err
 }
