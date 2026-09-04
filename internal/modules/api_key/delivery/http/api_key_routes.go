@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
@@ -11,11 +12,11 @@ func RegisterApiKeyRoutes(r *gin.RouterGroup, controller *ApiKeyController, auth
 	apiKeys.Use(tenantMiddleware.RequireOrganization())
 	{
 		if idempotencyMiddleware != nil {
-			apiKeys.POST("", idempotencyMiddleware, controller.Create)
+			apiKeys.POST("", idempotencyMiddleware, delivery.AdaptHTTPHandler(controller.HTTPCreate))
 		} else {
-			apiKeys.POST("", controller.Create)
+			apiKeys.POST("", delivery.AdaptHTTPHandler(controller.HTTPCreate))
 		}
-		apiKeys.GET("", controller.List)
-		apiKeys.DELETE("/:id", controller.Revoke)
+		apiKeys.GET("", delivery.AdaptHTTPHandler(controller.HTTPList))
+		apiKeys.DELETE("/:id", delivery.AdaptHTTPHandler(controller.HTTPRevoke))
 	}
 }

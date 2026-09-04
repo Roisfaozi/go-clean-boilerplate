@@ -1,6 +1,9 @@
 package http
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
+	"github.com/gin-gonic/gin"
+)
 
 // RegisterAccessRoutes registers the access-related HTTP routes.
 //
@@ -23,25 +26,25 @@ func RegisterAccessRoutes(router *gin.RouterGroup, controller *AccessController,
 	accessGroup := router.Group("/access-rights")
 	{
 		if idempotencyMiddleware != nil {
-			accessGroup.POST("", idempotencyMiddleware, controller.CreateAccessRight)
+			accessGroup.POST("", idempotencyMiddleware, delivery.AdaptHTTPHandler(controller.HTTPCreateAccessRight))
 		} else {
-			accessGroup.POST("", controller.CreateAccessRight)
+			accessGroup.POST("", delivery.AdaptHTTPHandler(controller.HTTPCreateAccessRight))
 		}
-		accessGroup.GET("", controller.GetAllAccessRights)
-		accessGroup.POST("/search", controller.GetAccessRightsDynamic)
-		accessGroup.DELETE("/:id", controller.DeleteAccessRight)
-		accessGroup.POST("/link", controller.LinkEndpointToAccessRight)
-		accessGroup.POST("/unlink", controller.UnlinkEndpointFromAccessRight)
+		accessGroup.GET("", delivery.AdaptHTTPHandler(controller.HTTPGetAllAccessRights))
+		accessGroup.POST("/search", delivery.AdaptHTTPHandler(controller.HTTPGetAccessRightsDynamic))
+		accessGroup.DELETE("/:id", delivery.AdaptHTTPHandler(controller.HTTPDeleteAccessRight))
+		accessGroup.POST("/link", delivery.AdaptHTTPHandler(controller.HTTPLinkEndpointToAccessRight))
+		accessGroup.POST("/unlink", delivery.AdaptHTTPHandler(controller.HTTPUnlinkEndpointFromAccessRight))
 	}
 
 	endpointGroup := router.Group("/endpoints")
 	{
 		if idempotencyMiddleware != nil {
-			endpointGroup.POST("", idempotencyMiddleware, controller.CreateEndpoint)
+			endpointGroup.POST("", idempotencyMiddleware, delivery.AdaptHTTPHandler(controller.HTTPCreateEndpoint))
 		} else {
-			endpointGroup.POST("", controller.CreateEndpoint)
+			endpointGroup.POST("", delivery.AdaptHTTPHandler(controller.HTTPCreateEndpoint))
 		}
-		endpointGroup.POST("/search", controller.GetEndpointsDynamic)
-		endpointGroup.DELETE("/:id", controller.DeleteEndpoint)
+		endpointGroup.POST("/search", delivery.AdaptHTTPHandler(controller.HTTPGetEndpointsDynamic))
+		endpointGroup.DELETE("/:id", delivery.AdaptHTTPHandler(controller.HTTPDeleteEndpoint))
 	}
 }

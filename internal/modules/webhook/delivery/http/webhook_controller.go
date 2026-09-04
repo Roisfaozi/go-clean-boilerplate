@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
@@ -222,4 +224,138 @@ func (c *WebhookController) GetLogs(ctx *gin.Context) {
 	}
 
 	response.SuccessResponse(ctx, http.StatusOK, res)
+}
+
+func (c *WebhookController) HTTPCreate(w http.ResponseWriter, r *http.Request) {
+	var req model.CreateWebhookRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "Invalid request body")
+		return
+	}
+	orgID, ok := delivery.GetContextString(r.Context(), delivery.OrganizationIDKey)
+	if !ok || orgID == "" {
+		orgID = database.GetOrganizationID(r.Context())
+	}
+	if orgID == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "organization context is required")
+		return
+	}
+	req.OrganizationID = orgID
+	res, err := c.UseCase.Create(r.Context(), req)
+	if err != nil {
+		var valErrs validator.ValidationErrors
+		if errors.As(err, &valErrs) {
+			response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(valErrs))
+			return
+		}
+		response.WriteHTTPError(w, err, "Failed to create webhook")
+		return
+	}
+	response.WriteSuccess(w, http.StatusCreated, res)
+}
+
+func (c *WebhookController) HTTPUpdate(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	orgID, ok := delivery.GetContextString(r.Context(), delivery.OrganizationIDKey)
+	if !ok || orgID == "" {
+		orgID = database.GetOrganizationID(r.Context())
+	}
+	if orgID == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "organization context is required")
+		return
+	}
+	var req model.UpdateWebhookRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "Invalid request body")
+		return
+	}
+	res, err := c.UseCase.Update(r.Context(), id, orgID, req)
+	if err != nil {
+		var valErrs validator.ValidationErrors
+		if errors.As(err, &valErrs) {
+			response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(valErrs))
+			return
+		}
+		response.WriteHTTPError(w, err, "Failed to update webhook")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, res)
+}
+
+func (c *WebhookController) HTTPDelete(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	orgID, ok := delivery.GetContextString(r.Context(), delivery.OrganizationIDKey)
+	if !ok || orgID == "" {
+		orgID = database.GetOrganizationID(r.Context())
+	}
+	if orgID == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "organization context is required")
+		return
+	}
+	if err := c.UseCase.Delete(r.Context(), id, orgID); err != nil {
+		response.WriteHTTPError(w, err, "Failed to delete webhook")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, nil)
+}
+
+func (c *WebhookController) HTTPFindByID(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	orgID, ok := delivery.GetContextString(r.Context(), delivery.OrganizationIDKey)
+	if !ok || orgID == "" {
+		orgID = database.GetOrganizationID(r.Context())
+	}
+	if orgID == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "organization context is required")
+		return
+	}
+	res, err := c.UseCase.FindByID(r.Context(), id, orgID)
+	if err != nil {
+		response.WriteHTTPError(w, err, "Webhook not found")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, res)
+}
+
+func (c *WebhookController) HTTPFindByOrganization(w http.ResponseWriter, r *http.Request) {
+	orgID, ok := delivery.GetContextString(r.Context(), delivery.OrganizationIDKey)
+	if !ok || orgID == "" {
+		orgID = database.GetOrganizationID(r.Context())
+	}
+	if orgID == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "organization context is required")
+		return
+	}
+	res, err := c.UseCase.FindByOrganizationID(r.Context(), orgID)
+	if err != nil {
+		response.WriteHTTPError(w, err, "Failed to retrieve webhooks")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, res)
+}
+
+func (c *WebhookController) HTTPGetLogs(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	orgID, ok := delivery.GetContextString(r.Context(), delivery.OrganizationIDKey)
+	if !ok || orgID == "" {
+		orgID = database.GetOrganizationID(r.Context())
+	}
+	if orgID == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "organization context is required")
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit <= 0 {
+		limit = 10
+	}
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	if offset < 0 {
+		offset = 0
+	}
+	res, err := c.UseCase.FindLogs(r.Context(), id, orgID, limit, offset)
+	if err != nil {
+		response.WriteHTTPError(w, err, "Failed to retrieve webhook logs")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, res)
 }
