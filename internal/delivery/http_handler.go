@@ -25,6 +25,7 @@ const (
 	ScopesKey         contextKey = "scopes"
 	AuthMethodKey     contextKey = "auth_method"
 	APIKeyIDKey       contextKey = "api_key_id"
+	SessionIDKey      contextKey = "session_id"
 )
 
 func SetContextValue(ctx context.Context, key contextKey, val any) context.Context {
