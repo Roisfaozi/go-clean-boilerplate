@@ -2,7 +2,10 @@ package http
 
 import (
 	"errors"
+	"net/http"
+	"strconv"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
@@ -47,7 +50,7 @@ func (h *UserController) RegisterUser(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Log.WithError(err).Error("failed to bind request body")
- 		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
+		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
 		return
 	}
 
@@ -400,6 +403,208 @@ func (h *UserController) GetUsersDynamic(c *gin.Context) {
 	}
 
 	response.SuccessResponseWithPaging(c, users, &response.PageMetadata{
+		Page:  filter.Page,
+		Limit: filter.PageSize,
+		Total: total,
+	})
+}
+
+func (h *UserController) HTTPRegisterUser(w http.ResponseWriter, r *http.Request) {
+	var req model.RegisterUserRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		h.Log.WithError(err).Error("failed to bind request body")
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	req.IPAddress = r.RemoteAddr
+	req.UserAgent = r.UserAgent()
+	user, err := h.UserUseCase.Create(r.Context(), &req)
+	if err != nil {
+		h.Log.WithError(err).Error("failed to create user")
+		response.WriteHTTPError(w, err, "failed to create user")
+		return
+	}
+	response.WriteSuccess(w, http.StatusCreated, user)
+}
+
+func (h *UserController) HTTPGetCurrentUser(w http.ResponseWriter, r *http.Request) {
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "unauthorized")
+		return
+	}
+	user, err := h.UserUseCase.Current(r.Context(), &model.GetUserRequest{ID: userID})
+	if err != nil {
+		h.Log.WithError(err).Error("failed to get current user")
+		response.WriteHTTPError(w, err, "failed to get current user")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, user)
+}
+
+func (h *UserController) HTTPUpdateUser(w http.ResponseWriter, r *http.Request) {
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "unauthorized")
+		return
+	}
+	var req model.UpdateUserRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		h.Log.WithError(err).Error("failed to bind request body")
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	req.ID = userID
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	req.IPAddress = r.RemoteAddr
+	req.UserAgent = r.UserAgent()
+	user, err := h.UserUseCase.Update(r.Context(), &req)
+	if err != nil {
+		h.Log.WithError(err).Error("failed to update user")
+		response.WriteHTTPError(w, err, "failed to update user")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, user)
+}
+
+func (h *UserController) HTTPUpdateAvatar(w http.ResponseWriter, r *http.Request) {
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "unauthorized")
+		return
+	}
+	if err := r.ParseMultipartForm(2 * 1024 * 1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "avatar size must be less than 2MB")
+		return
+	}
+	file, header, err := r.FormFile("avatar")
+	if err != nil {
+		h.Log.WithError(err).Error("failed to get avatar file from request")
+		response.WriteHTTPError(w, exception.ErrBadRequest, "failed to get avatar file from request")
+		return
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+	if header.Size > 2*1024*1024 {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "avatar size must be less than 2MB")
+		return
+	}
+	user, err := h.UserUseCase.UpdateAvatar(r.Context(), userID, file, header.Filename, header.Header.Get("Content-Type"))
+	if err != nil {
+		h.Log.WithError(err).Error("failed to update avatar")
+		response.WriteHTTPError(w, err, "failed to update avatar")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, user)
+}
+
+func (h *UserController) HTTPUpdateUserStatus(w http.ResponseWriter, r *http.Request) {
+	userID := r.PathValue("id")
+	var req model.UpdateUserStatusRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		h.Log.WithError(err).Error("failed to bind request body")
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	err := h.UserUseCase.UpdateStatus(r.Context(), userID, req.Status)
+	if err != nil {
+		h.Log.WithError(err).Error("failed to update user status")
+		response.WriteHTTPError(w, err, "failed to update user status")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "User status updated successfully"})
+}
+
+func (h *UserController) HTTPGetAllUsers(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	page, _ := strconv.Atoi(query.Get("page"))
+	limit, _ := strconv.Atoi(query.Get("limit"))
+	req := model.GetUserListRequest{
+		Page:     page,
+		Limit:    limit,
+		Username: query.Get("username"),
+		Email:    query.Get("email"),
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	users, total, err := h.UserUseCase.GetAllUsers(r.Context(), &req)
+	if err != nil {
+		h.Log.WithError(err).Error("failed to get all users")
+		response.WriteHTTPError(w, err, "failed to get all users")
+		return
+	}
+	response.WriteSuccessWithPaging(w, users, &response.PageMetadata{
+		Page:  req.Page,
+		Limit: req.Limit,
+		Total: total,
+	})
+}
+
+func (h *UserController) HTTPGetUserByID(w http.ResponseWriter, r *http.Request) {
+	userID := r.PathValue("id")
+	user, err := h.UserUseCase.GetUserByID(r.Context(), userID)
+	if err != nil {
+		h.Log.WithError(err).Error("failed to get user by id")
+		response.WriteHTTPError(w, err, "failed to get user by id")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, user)
+}
+
+func (h *UserController) HTTPDeleteUser(w http.ResponseWriter, r *http.Request) {
+	actorUserID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || actorUserID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "Please login to perform this action")
+		return
+	}
+	req := model.DeleteUserRequest{
+		ID:        r.PathValue("id"),
+		IPAddress: r.RemoteAddr,
+		UserAgent: r.UserAgent(),
+	}
+	err := h.UserUseCase.DeleteUser(r.Context(), actorUserID, &req)
+	if err != nil {
+		h.Log.WithError(err).Error("failed to delete user")
+		response.WriteHTTPError(w, err, "failed to delete user")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "User deleted successfully"})
+}
+
+func (h *UserController) HTTPGetUsersDynamic(w http.ResponseWriter, r *http.Request) {
+	var filter querybuilder.DynamicFilter
+	if err := response.DecodeJSON(r, &filter, 1024*1024); err != nil {
+		h.Log.WithError(err).Error("failed to bind dynamic filter request body")
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body for dynamic filter")
+		return
+	}
+	if err := h.validate.Struct(filter); err != nil {
+		msg := validation.FormatValidationErrors(err)
+		h.Log.WithError(err).Error(msg)
+		response.WriteHTTPError(w, exception.ErrValidationError, msg)
+		return
+	}
+	users, total, err := h.UserUseCase.GetAllUsersDynamic(r.Context(), &filter)
+	if err != nil {
+		h.Log.WithError(err).Error("failed to get users dynamically")
+		response.WriteHTTPError(w, err, "failed to retrieve users")
+		return
+	}
+	response.WriteSuccessWithPaging(w, users, &response.PageMetadata{
 		Page:  filter.Page,
 		Limit: filter.PageSize,
 		Total: total,

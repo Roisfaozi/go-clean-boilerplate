@@ -1,22 +1,23 @@
 package http
 
 import (
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterPublicRoutes(router *gin.RouterGroup, controller *UserController) {
 	userGroup := router.Group("/users")
 	{
-		userGroup.POST("/register", controller.RegisterUser)
+		userGroup.POST("/register", delivery.AdaptHTTPHandler(controller.HTTPRegisterUser))
 	}
 }
 
 func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *UserController) {
 	userGroup := router.Group("/users")
 	{
-		userGroup.GET("/me", controller.GetCurrentUser)
-		userGroup.PUT("/me", controller.UpdateUser)
-		userGroup.PATCH("/me/avatar", controller.UpdateAvatar)
+		userGroup.GET("/me", delivery.AdaptHTTPHandler(controller.HTTPGetCurrentUser))
+		userGroup.PUT("/me", delivery.AdaptHTTPHandler(controller.HTTPUpdateUser))
+		userGroup.PATCH("/me/avatar", delivery.AdaptHTTPHandler(controller.HTTPUpdateAvatar))
 	}
 }
 
@@ -24,10 +25,10 @@ func RegisterAuthenticatedRoutes(router *gin.RouterGroup, controller *UserContro
 func RegisterAuthorizedRoutes(router *gin.RouterGroup, controller *UserController) {
 	userGroup := router.Group("/users")
 	{
-		userGroup.GET("", controller.GetAllUsers)
-		userGroup.POST("/search", controller.GetUsersDynamic)
-		userGroup.GET("/:id", controller.GetUserByID)
-		userGroup.PATCH("/:id/status", controller.UpdateUserStatus)
-		userGroup.DELETE("/:id", controller.DeleteUser)
+		userGroup.GET("", delivery.AdaptHTTPHandler(controller.HTTPGetAllUsers))
+		userGroup.POST("/search", delivery.AdaptHTTPHandler(controller.HTTPGetUsersDynamic))
+		userGroup.GET("/:id", delivery.AdaptHTTPHandler(controller.HTTPGetUserByID))
+		userGroup.PATCH("/:id/status", delivery.AdaptHTTPHandler(controller.HTTPUpdateUserStatus))
+		userGroup.DELETE("/:id", delivery.AdaptHTTPHandler(controller.HTTPDeleteUser))
 	}
 }

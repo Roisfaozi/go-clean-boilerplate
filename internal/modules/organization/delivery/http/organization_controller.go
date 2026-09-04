@@ -1,8 +1,13 @@
 package http
 
 import (
+	"errors"
+	"net/http"
+
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
@@ -599,4 +604,366 @@ func (ctrl *OrganizationController) GetPresence(c *gin.Context) {
 	}
 
 	response.Success(c, result)
+}
+
+func (ctrl *OrganizationController) HTTPCreateOrganization(w http.ResponseWriter, r *http.Request) {
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	var request model.CreateOrganizationRequest
+	if err := response.DecodeJSON(r, &request, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	request.Sanitize()
+	if err := ctrl.validate.Struct(&request); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	result, err := ctrl.OrgUseCase.CreateOrganization(r.Context(), userID, &request)
+	if err != nil {
+		if errors.Is(err, exception.ErrConflict) {
+			response.WriteError(w, http.StatusConflict, err, "organization slug already exists")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to create organization")
+		response.WriteHTTPError(w, err, "failed to create organization")
+		return
+	}
+	response.WriteSuccess(w, http.StatusCreated, result)
+}
+
+func (ctrl *OrganizationController) HTTPGetOrganization(w http.ResponseWriter, r *http.Request) {
+	orgID := r.PathValue("id")
+	userID, _ := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	ctx := usecase.WithActorUserID(r.Context(), userID)
+	result, err := ctrl.OrgUseCase.GetOrganization(ctx, orgID)
+	if err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			response.WriteHTTPError(w, exception.ErrNotFound, "organization not found")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to get organization")
+		response.WriteHTTPError(w, err, "failed to get organization")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, result)
+}
+
+func (ctrl *OrganizationController) HTTPGetOrganizationBySlug(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	userID, _ := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	ctx := usecase.WithActorUserID(r.Context(), userID)
+	result, err := ctrl.OrgUseCase.GetOrganizationBySlug(ctx, slug)
+	if err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			response.WriteHTTPError(w, exception.ErrNotFound, "organization not found")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to get organization by slug")
+		response.WriteHTTPError(w, err, "failed to get organization")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, result)
+}
+
+func (ctrl *OrganizationController) HTTPUpdateOrganization(w http.ResponseWriter, r *http.Request) {
+	orgID := r.PathValue("id")
+	userID, _ := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	var request model.UpdateOrganizationRequest
+	if err := response.DecodeJSON(r, &request, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	request.Sanitize()
+	if err := ctrl.validate.Struct(&request); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	ctx := usecase.WithActorUserID(r.Context(), userID)
+	result, err := ctrl.OrgUseCase.UpdateOrganization(ctx, orgID, &request)
+	if err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			response.WriteHTTPError(w, exception.ErrNotFound, "organization not found")
+			return
+		}
+		if errors.Is(err, exception.ErrForbidden) {
+			response.WriteHTTPError(w, exception.ErrForbidden, "you do not have permission to manage this organization")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to update organization")
+		response.WriteHTTPError(w, err, "failed to update organization")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, result)
+}
+
+func (ctrl *OrganizationController) HTTPDeleteOrganization(w http.ResponseWriter, r *http.Request) {
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	orgID := r.PathValue("id")
+	err := ctrl.OrgUseCase.DeleteOrganization(r.Context(), orgID, userID)
+	if err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			response.WriteHTTPError(w, exception.ErrNotFound, "organization not found")
+			return
+		}
+		if errors.Is(err, exception.ErrForbidden) {
+			response.WriteHTTPError(w, exception.ErrForbidden, "only the owner can delete this organization")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to delete organization")
+		response.WriteHTTPError(w, err, "failed to delete organization")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, nil)
+}
+
+func (ctrl *OrganizationController) HTTPRestoreOrganization(w http.ResponseWriter, r *http.Request) {
+	orgID := r.PathValue("id")
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	role, _ := delivery.GetContextString(r.Context(), delivery.RoleKey)
+	ctx := usecase.WithActorUserID(r.Context(), userID)
+	ctx = usecase.WithActorRole(ctx, role)
+	result, err := ctrl.OrgUseCase.RestoreOrganization(ctx, orgID)
+	if err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			response.WriteHTTPError(w, exception.ErrNotFound, "organization not found")
+			return
+		}
+		if errors.Is(err, exception.ErrForbidden) {
+			response.WriteHTTPError(w, exception.ErrForbidden, "only superadmin can restore this organization")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to restore organization")
+		response.WriteHTTPError(w, err, "failed to restore organization")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, result)
+}
+
+func (ctrl *OrganizationController) HTTPHardDeleteOrganization(w http.ResponseWriter, r *http.Request) {
+	orgID := r.PathValue("id")
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	role, _ := delivery.GetContextString(r.Context(), delivery.RoleKey)
+	ctx := usecase.WithActorUserID(r.Context(), userID)
+	ctx = usecase.WithActorRole(ctx, role)
+	err := ctrl.OrgUseCase.HardDeleteOrganization(ctx, orgID)
+	if err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			response.WriteHTTPError(w, exception.ErrNotFound, "organization not found")
+			return
+		}
+		if errors.Is(err, exception.ErrForbidden) {
+			response.WriteHTTPError(w, exception.ErrForbidden, "only superadmin can hard delete this organization")
+			return
+		}
+		if errors.Is(err, exception.ErrBadRequest) {
+			response.WriteHTTPError(w, exception.ErrBadRequest, "organization must be soft-deleted before hard delete")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to hard delete organization")
+		response.WriteHTTPError(w, err, "failed to hard delete organization")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, nil)
+}
+
+func (ctrl *OrganizationController) HTTPGetMyOrganizations(w http.ResponseWriter, r *http.Request) {
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	result, err := ctrl.OrgUseCase.GetUserOrganizations(r.Context(), userID)
+	if err != nil {
+		ctrl.Log.WithError(err).Error("Failed to get user organizations")
+		response.WriteHTTPError(w, err, "failed to get organizations")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, result)
+}
+
+func (ctrl *OrganizationController) HTTPAcceptInvitation(w http.ResponseWriter, r *http.Request) {
+	var request model.AcceptInvitationRequest
+	if err := response.DecodeJSON(r, &request, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "Invalid request body")
+		return
+	}
+	if err := ctrl.validate.Struct(&request); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "Validation failed")
+		return
+	}
+	if err := ctrl.MemberUseCase.AcceptInvitation(r.Context(), &request); err != nil {
+		response.WriteHTTPError(w, err, "Failed to accept invitation")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, nil)
+}
+
+func (ctrl *OrganizationController) HTTPInviteMember(w http.ResponseWriter, r *http.Request) {
+	orgID := r.PathValue("id")
+	if orgID == "" {
+		orgID = database.GetOrganizationID(r.Context())
+	}
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	var request model.InviteMemberRequest
+	if err := response.DecodeJSON(r, &request, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := ctrl.validate.Struct(&request); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	ctx := usecase.WithActorUserID(r.Context(), userID)
+	result, err := ctrl.MemberUseCase.InviteMember(ctx, orgID, &request)
+	if err != nil {
+		if errors.Is(err, exception.ErrBadRequest) {
+			response.WriteHTTPError(w, exception.ErrBadRequest, "invalid or non-existent organization role")
+			return
+		}
+		if errors.Is(err, exception.ErrNotFound) {
+			response.WriteHTTPError(w, exception.ErrNotFound, "organization not found")
+			return
+		}
+		if errors.Is(err, exception.ErrForbidden) {
+			response.WriteHTTPError(w, exception.ErrForbidden, "you do not have permission to manage organization members")
+			return
+		}
+		if errors.Is(err, exception.ErrConflict) {
+			response.WriteError(w, http.StatusConflict, err, "user is already a member of this organization")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to invite member")
+		response.WriteHTTPError(w, err, "failed to invite member")
+		return
+	}
+	response.WriteSuccess(w, http.StatusCreated, result)
+}
+
+func (ctrl *OrganizationController) HTTPGetMembers(w http.ResponseWriter, r *http.Request) {
+	orgID := r.PathValue("id")
+	if orgID == "" {
+		orgID = database.GetOrganizationID(r.Context())
+	}
+	userID, _ := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	ctx := usecase.WithActorUserID(r.Context(), userID)
+	result, err := ctrl.MemberUseCase.GetMembers(ctx, orgID)
+	if err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			response.WriteHTTPError(w, exception.ErrNotFound, "organization not found")
+			return
+		}
+		if errors.Is(err, exception.ErrForbidden) {
+			response.WriteHTTPError(w, exception.ErrForbidden, "you do not have permission to view organization members")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to get members")
+		response.WriteHTTPError(w, err, "failed to get members")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, result)
+}
+
+func (ctrl *OrganizationController) HTTPUpdateMemberRole(w http.ResponseWriter, r *http.Request) {
+	orgID := r.PathValue("id")
+	if orgID == "" {
+		orgID = database.GetOrganizationID(r.Context())
+	}
+	userID := r.PathValue("userId")
+	actorUserID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || actorUserID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	var request model.UpdateMemberRequest
+	if err := response.DecodeJSON(r, &request, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := ctrl.validate.Struct(&request); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	ctx := usecase.WithActorUserID(r.Context(), actorUserID)
+	result, err := ctrl.MemberUseCase.UpdateMember(ctx, orgID, userID, &request)
+	if err != nil {
+		if errors.Is(err, exception.ErrBadRequest) {
+			response.WriteHTTPError(w, exception.ErrBadRequest, "invalid or non-existent organization role")
+			return
+		}
+		if errors.Is(err, exception.ErrNotFound) {
+			response.WriteHTTPError(w, exception.ErrNotFound, "member not found")
+			return
+		}
+		if errors.Is(err, exception.ErrForbidden) {
+			response.WriteHTTPError(w, exception.ErrForbidden, "you do not have permission to update this member")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to update member")
+		response.WriteHTTPError(w, err, "failed to update member")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, result)
+}
+
+func (ctrl *OrganizationController) HTTPRemoveMember(w http.ResponseWriter, r *http.Request) {
+	orgID := r.PathValue("id")
+	if orgID == "" {
+		orgID = database.GetOrganizationID(r.Context())
+	}
+	userID := r.PathValue("userId")
+	actorUserID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || actorUserID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	ctx := usecase.WithActorUserID(r.Context(), actorUserID)
+	err := ctrl.MemberUseCase.RemoveMember(ctx, orgID, userID)
+	if err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			response.WriteHTTPError(w, exception.ErrNotFound, "member not found")
+			return
+		}
+		if errors.Is(err, exception.ErrForbidden) {
+			response.WriteHTTPError(w, exception.ErrForbidden, "you do not have permission to remove this member")
+			return
+		}
+		ctrl.Log.WithError(err).Error("Failed to remove member")
+		response.WriteHTTPError(w, err, "failed to remove member")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, nil)
+}
+
+func (ctrl *OrganizationController) HTTPGetPresence(w http.ResponseWriter, r *http.Request) {
+	orgID := r.PathValue("id")
+	if orgID == "" {
+		orgID = database.GetOrganizationID(r.Context())
+	}
+	result, err := ctrl.MemberUseCase.GetPresence(r.Context(), orgID)
+	if err != nil {
+		ctrl.Log.WithError(err).Error("Failed to get presence")
+		response.WriteHTTPError(w, err, "failed to get presence")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, result)
 }
