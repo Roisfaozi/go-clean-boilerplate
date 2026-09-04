@@ -1,10 +1,13 @@
 package http
 
 import (
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"net/http"
+
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -59,6 +62,29 @@ func (h *ProjectController) Create(c *gin.Context) {
 	response.Created(c, res)
 }
 
+func (h *ProjectController) HTTPCreate(w http.ResponseWriter, r *http.Request) {
+	var req model.CreateProjectRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, "validation error")
+		return
+	}
+
+	userID, _ := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	orgID := database.GetOrganizationID(r.Context())
+
+	res, err := h.useCase.CreateProject(r.Context(), userID, orgID, req)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to create project")
+		return
+	}
+	response.WriteSuccess(w, http.StatusCreated, res)
+}
+
 // GetAll godoc
 // @Summary      Get all projects
 // @Description  Returns a list of all projects belonging to the active organization.
@@ -79,6 +105,16 @@ func (h *ProjectController) GetAll(c *gin.Context) {
 		return
 	}
 	response.Success(c, res)
+}
+
+func (h *ProjectController) HTTPGetAll(w http.ResponseWriter, r *http.Request) {
+	orgID := database.GetOrganizationID(r.Context())
+	res, err := h.useCase.GetProjects(r.Context(), orgID)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to get projects")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, res)
 }
 
 // GetByID godoc
@@ -102,6 +138,16 @@ func (h *ProjectController) GetByID(c *gin.Context) {
 		return
 	}
 	response.Success(c, res)
+}
+
+func (h *ProjectController) HTTPGetByID(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	res, err := h.useCase.GetProjectByID(r.Context(), id)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to get project")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, res)
 }
 
 // Update godoc
@@ -141,6 +187,27 @@ func (h *ProjectController) Update(c *gin.Context) {
 	response.Success(c, res)
 }
 
+func (h *ProjectController) HTTPUpdate(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	var req model.UpdateProjectRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, "validation error")
+		return
+	}
+
+	res, err := h.useCase.UpdateProject(r.Context(), id, req)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to update project")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, res)
+}
+
 // Delete godoc
 // @Summary      Delete project
 // @Description  Soft deletes a project from the active organization.
@@ -161,4 +228,13 @@ func (h *ProjectController) Delete(c *gin.Context) {
 		return
 	}
 	response.Success(c, gin.H{"message": "project deleted successfully"})
+}
+
+func (h *ProjectController) HTTPDelete(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if err := h.useCase.DeleteProject(r.Context(), id); err != nil {
+		response.WriteHTTPError(w, err, "failed to delete project")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "project deleted successfully"})
 }

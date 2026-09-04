@@ -1,12 +1,15 @@
 package http
 
 import (
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"errors"
+	"net/http"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -116,4 +119,64 @@ func (h *ApiKeyController) Revoke(c *gin.Context) {
 	}
 
 	response.Success(c, nil)
+}
+
+func (h *ApiKeyController) HTTPCreate(w http.ResponseWriter, r *http.Request) {
+	var req model.CreateApiKeyRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request")
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, "validation failed")
+		return
+	}
+
+	userID, _ := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	orgID := database.GetOrganizationID(r.Context())
+	if orgID == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "missing organization_id")
+		return
+	}
+
+	res, err := h.useCase.Create(r.Context(), userID, orgID, &req)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to create api key")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusCreated, res)
+}
+
+func (h *ApiKeyController) HTTPList(w http.ResponseWriter, r *http.Request) {
+	orgID := database.GetOrganizationID(r.Context())
+	if orgID == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "missing organization_id")
+		return
+	}
+
+	res, err := h.useCase.List(r.Context(), orgID)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to list api keys")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusOK, res)
+}
+
+func (h *ApiKeyController) HTTPRevoke(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	orgID := database.GetOrganizationID(r.Context())
+	if orgID == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "missing organization_id")
+		return
+	}
+
+	if err := h.useCase.Revoke(r.Context(), orgID, id); err != nil {
+		response.WriteHTTPError(w, err, "failed to revoke api key")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusOK, nil)
 }

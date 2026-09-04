@@ -1,6 +1,7 @@
 package http
 
 import (
+	"net/http"
 	"strconv"
 
 	_ "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats/model"
@@ -38,6 +39,15 @@ func (h *StatsController) GetSummary(c *gin.Context) {
 	response.Success(c, res)
 }
 
+func (h *StatsController) HTTPSummary(w http.ResponseWriter, r *http.Request) {
+	res, err := h.useCase.GetDashboardSummary(r.Context())
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to get dashboard summary")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, res)
+}
+
 // GetActivity godoc
 // @Summary      Get activity chart data
 // @Description  Returns daily activity metrics (logins, audit events) for a given period.
@@ -61,6 +71,21 @@ func (h *StatsController) GetActivity(c *gin.Context) {
 	response.Success(c, res)
 }
 
+func (h *StatsController) HTTPActivity(w http.ResponseWriter, r *http.Request) {
+	daysStr := r.URL.Query().Get("days")
+	if daysStr == "" {
+		daysStr = "7"
+	}
+	days, _ := strconv.Atoi(daysStr)
+
+	res, err := h.useCase.GetDashboardActivity(r.Context(), days)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to get activity data")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, res)
+}
+
 // GetInsights godoc
 // @Summary      Get system health insights
 // @Description  Returns high-level user activity insights derived from audit log state.
@@ -78,4 +103,13 @@ func (h *StatsController) GetInsights(c *gin.Context) {
 		return
 	}
 	response.Success(c, res)
+}
+
+func (h *StatsController) HTTPInsights(w http.ResponseWriter, r *http.Request) {
+	res, err := h.useCase.GetSystemInsights(r.Context())
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to get system insights")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, res)
 }

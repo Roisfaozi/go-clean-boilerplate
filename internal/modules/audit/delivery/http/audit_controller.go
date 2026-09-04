@@ -1,15 +1,17 @@
 package http
 
 import (
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	net_http "net/http"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
@@ -166,6 +168,100 @@ func (h *AuditController) ExportAsync(c *gin.Context) {
 	}
 
 	response.SuccessResponse(c, net_http.StatusAccepted, "Audit log export task initiated. You will be notified when it is complete.")
+}
+
+func (h *AuditController) HTTPGetLogsDynamic(w net_http.ResponseWriter, r *net_http.Request) {
+	var filter querybuilder.DynamicFilter
+	if err := response.DecodeJSON(r, &filter, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "Invalid filter format")
+		return
+	}
+
+	if err := h.Validate.Struct(filter); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+
+	logs, total, err := h.UseCase.GetLogsDynamic(r.Context(), &filter)
+	if err != nil {
+		response.WriteHTTPError(w, err, "Failed to fetch logs")
+		return
+	}
+
+	response.WriteSuccessWithPaging(w, logs, &response.PageMetadata{
+		Page:  filter.Page,
+		Limit: filter.PageSize,
+		Total: total,
+	})
+}
+
+func (h *AuditController) HTTPExport(w net_http.ResponseWriter, r *net_http.Request) {
+	fromDate := r.URL.Query().Get("from_date")
+	toDate := r.URL.Query().Get("to_date")
+
+	w.Header().Set("Content-Disposition", "attachment; filename=audit_logs.csv")
+	w.Header().Set("Content-Type", "text/csv")
+
+	writer := csv.NewWriter(w)
+
+	header := []string{"ID", "UserID", "Action", "Entity", "EntityID", "OldValues", "NewValues", "IPAddress", "UserAgent", "CreatedAt"}
+	if err := writer.Write(header); err != nil {
+		h.Log.WithError(err).Error("Failed to write CSV header")
+		return
+	}
+	writer.Flush()
+
+	err := h.UseCase.ExportLogs(r.Context(), fromDate, toDate, func(logs []model.AuditLogResponse) error {
+		for _, log := range logs {
+			oldVal, oldErr := json.Marshal(log.OldValues)
+			if oldErr != nil {
+				h.Log.WithError(oldErr).Warnf("Failed to marshal OldValues for audit log %s", log.ID)
+				oldVal = []byte("null")
+			}
+			newVal, newErr := json.Marshal(log.NewValues)
+			if newErr != nil {
+				h.Log.WithError(newErr).Warnf("Failed to marshal NewValues for audit log %s", log.ID)
+				newVal = []byte("null")
+			}
+			record := []string{
+				sanitizeCSVField(log.ID),
+				sanitizeCSVField(log.UserID),
+				sanitizeCSVField(log.Action),
+				sanitizeCSVField(log.Entity),
+				sanitizeCSVField(log.EntityID),
+				sanitizeCSVField(string(oldVal)),
+				sanitizeCSVField(string(newVal)),
+				sanitizeCSVField(log.IPAddress),
+				sanitizeCSVField(log.UserAgent),
+				sanitizeCSVField(fmt.Sprintf("%d", log.CreatedAt)),
+			}
+			if err := writer.Write(record); err != nil {
+				return err
+			}
+		}
+		writer.Flush()
+		return writer.Error()
+	})
+
+	if err != nil {
+		h.Log.WithError(err).Error("Failed to export logs")
+		return
+	}
+}
+
+func (h *AuditController) HTTPExportAsync(w net_http.ResponseWriter, r *net_http.Request) {
+	fromDate := r.URL.Query().Get("from_date")
+	toDate := r.URL.Query().Get("to_date")
+	userID, _ := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	orgID := database.GetOrganizationID(r.Context())
+
+	if err := h.UseCase.ExportLogsAsync(r.Context(), userID, orgID, fromDate, toDate, "csv"); err != nil {
+		h.Log.WithError(err).Error("Failed to initiate async export")
+		response.WriteHTTPError(w, err, "Failed to initiate export")
+		return
+	}
+
+	response.WriteSuccess(w, net_http.StatusAccepted, "Audit log export task initiated. You will be notified when it is complete.")
 }
 
 // sanitizeCSVField escapes fields to prevent CSV injection (formula injection).

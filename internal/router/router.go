@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access"
 	accessHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/delivery/http"
@@ -26,6 +27,7 @@ import (
 	webhookHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/delivery/http"
 	_ "github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -201,9 +203,9 @@ func SetupRouter(
 		// Stats Routes
 		statsGroup := authenticated.Group("/stats")
 		{
-			statsGroup.GET("/summary", statsModule.StatsController.GetSummary)
-			statsGroup.GET("/activity", statsModule.StatsController.GetActivity)
-			statsGroup.GET("/insights", statsModule.StatsController.GetInsights)
+			statsGroup.GET("/summary", delivery.AdaptHTTPHandler(statsModule.StatsController.HTTPSummary))
+			statsGroup.GET("/activity", delivery.AdaptHTTPHandler(statsModule.StatsController.HTTPActivity))
+			statsGroup.GET("/insights", delivery.AdaptHTTPHandler(statsModule.StatsController.HTTPInsights))
 		}
 
 		userHttp.RegisterAuthenticatedRoutes(authenticated, userModule.UserController)
@@ -230,11 +232,11 @@ func SetupRouter(
 		// Project Routes
 		projectGroup := tenantAuthorized.Group("/projects")
 		{
-			projectGroup.POST("", idempotencyMiddleware, apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Create)
-			projectGroup.GET("", apiKeyMiddleware.RequireScopes("project:view", "project:manage"), projectModule.ProjectController.GetAll)
-			projectGroup.GET("/:id", apiKeyMiddleware.RequireScopes("project:view", "project:manage"), projectModule.ProjectController.GetByID)
-			projectGroup.PUT("/:id", idempotencyMiddleware, apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Update)
-			projectGroup.DELETE("/:id", apiKeyMiddleware.RequireScopes("project:manage"), projectModule.ProjectController.Delete)
+			projectGroup.POST("", idempotencyMiddleware, apiKeyMiddleware.RequireScopes("project:manage"), delivery.AdaptHTTPHandler(projectModule.ProjectController.HTTPCreate))
+			projectGroup.GET("", apiKeyMiddleware.RequireScopes("project:view", "project:manage"), delivery.AdaptHTTPHandler(projectModule.ProjectController.HTTPGetAll))
+			projectGroup.GET("/:id", apiKeyMiddleware.RequireScopes("project:view", "project:manage"), delivery.AdaptHTTPHandler(projectModule.ProjectController.HTTPGetByID))
+			projectGroup.PUT("/:id", idempotencyMiddleware, apiKeyMiddleware.RequireScopes("project:manage"), delivery.AdaptHTTPHandler(projectModule.ProjectController.HTTPUpdate))
+			projectGroup.DELETE("/:id", apiKeyMiddleware.RequireScopes("project:manage"), delivery.AdaptHTTPHandler(projectModule.ProjectController.HTTPDelete))
 		}
 
 		webhookHttp.RegisterWebhookRoutes(tenantAuthorized, webhookModule.Controller, apiKeyMiddleware, idempotencyMiddleware)
@@ -272,21 +274,19 @@ func SetupRouter(
 }
 
 // GetHealth returns the health status of the application and its core dependencies.
-func GetHealth(db *gorm.DB, redisClient *redis.Client) gin.HandlerFunc {
+func GetHealth(db any, redisClient *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		status := "OK"
 		details := make(map[string]string)
 
 		if db != nil {
-			sqlDB, err := db.DB()
-			if err != nil {
-				status = "DEGRADED"
-				details["mysql"] = "CONNECTION_ERROR"
-			} else if err := sqlDB.Ping(); err != nil {
-				status = "DEGRADED"
-				details["mysql"] = "DOWN"
-			} else {
-				details["mysql"] = "UP"
+			if sqlxDB := tx.ExtractSQLX(db); sqlxDB != nil {
+				if err := sqlxDB.PingContext(c.Request.Context()); err != nil {
+					status = "DEGRADED"
+					details["mysql"] = "DOWN"
+				} else {
+					details["mysql"] = "UP"
+				}
 			}
 		}
 

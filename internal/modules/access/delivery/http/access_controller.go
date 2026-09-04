@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"net/http"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/usecase"
@@ -30,6 +31,10 @@ func NewAccessController(useCase usecase.IAccessUseCase, validate *validator.Val
 
 func respondAccessNoop(c *gin.Context, message string) {
 	response.Success(c, gin.H{"changed": false, "message": message})
+}
+
+func respondAccessNoopHTTP(w http.ResponseWriter, message string) {
+	response.WriteSuccess(w, http.StatusOK, map[string]any{"changed": false, "message": message})
 }
 
 // @Summary      Create access right
@@ -72,6 +77,32 @@ func (h *AccessController) CreateAccessRight(c *gin.Context) {
 	response.Created(c, accessRight)
 }
 
+func (h *AccessController) HTTPCreateAccessRight(w http.ResponseWriter, r *http.Request) {
+	var req model.CreateAccessRightRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+
+	accessRight, err := h.useCase.CreateAccessRight(r.Context(), req)
+	if err != nil {
+		if _, ok := err.(validator.ValidationErrors); ok {
+			response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+			return
+		}
+		h.log.WithError(err).Error("Failed to create access right")
+		response.WriteHTTPError(w, err, "failed to create access right")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusCreated, accessRight)
+}
+
 // @Summary      List all access rights
 // @Description  Retrieves a list of all available access rights.
 // @Tags         access-rights
@@ -89,6 +120,17 @@ func (h *AccessController) GetAllAccessRights(c *gin.Context) {
 	}
 
 	response.Success(c, accessRights)
+}
+
+func (h *AccessController) HTTPGetAllAccessRights(w http.ResponseWriter, r *http.Request) {
+	accessRights, err := h.useCase.GetAllAccessRights(r.Context())
+	if err != nil {
+		h.log.WithError(err).Error("Failed to get all access rights")
+		response.WriteHTTPError(w, err, "failed to get all access rights")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusOK, accessRights)
 }
 
 // @Summary      Create endpoint
@@ -129,6 +171,32 @@ func (h *AccessController) CreateEndpoint(c *gin.Context) {
 	}
 
 	response.Created(c, endpoint)
+}
+
+func (h *AccessController) HTTPCreateEndpoint(w http.ResponseWriter, r *http.Request) {
+	var req model.CreateEndpointRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+
+	endpoint, err := h.useCase.CreateEndpoint(r.Context(), req)
+	if err != nil {
+		if _, ok := err.(validator.ValidationErrors); ok {
+			response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+			return
+		}
+		h.log.WithError(err).Error("Failed to create endpoint")
+		response.WriteHTTPError(w, err, "failed to create endpoint")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusCreated, endpoint)
 }
 
 // @Summary      Link endpoint to access right
@@ -175,6 +243,35 @@ func (h *AccessController) LinkEndpointToAccessRight(c *gin.Context) {
 	response.Success(c, gin.H{"message": "Endpoint linked successfully"})
 }
 
+func (h *AccessController) HTTPLinkEndpointToAccessRight(w http.ResponseWriter, r *http.Request) {
+	var req model.LinkEndpointRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+
+	if err := h.useCase.LinkEndpointToAccessRight(r.Context(), req); err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondAccessNoopHTTP(w, message)
+			return
+		}
+		if _, ok := err.(validator.ValidationErrors); ok {
+			response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+			return
+		}
+		h.log.WithError(err).Error("Failed to link endpoint to access right")
+		response.WriteHTTPError(w, err, "failed to link endpoint")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "Endpoint linked successfully"})
+}
+
 // @Summary      Unlink endpoint from access right
 // @Description  Removes an association between an endpoint and a specific access right.
 // @Tags         access-rights
@@ -219,6 +316,35 @@ func (h *AccessController) UnlinkEndpointFromAccessRight(c *gin.Context) {
 	response.Success(c, gin.H{"message": "Endpoint unlinked successfully"})
 }
 
+func (h *AccessController) HTTPUnlinkEndpointFromAccessRight(w http.ResponseWriter, r *http.Request) {
+	var req model.LinkEndpointRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+
+	if err := h.useCase.UnlinkEndpointFromAccessRight(r.Context(), req); err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondAccessNoopHTTP(w, message)
+			return
+		}
+		if _, ok := err.(validator.ValidationErrors); ok {
+			response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+			return
+		}
+		h.log.WithError(err).Error("Failed to unlink endpoint from access right")
+		response.WriteHTTPError(w, err, "failed to unlink endpoint")
+		return
+	}
+
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "Endpoint unlinked successfully"})
+}
+
 // @Summary      Delete access right
 // @Description  Deletes an access right by ID.
 // @Tags         access-rights
@@ -244,6 +370,20 @@ func (h *AccessController) DeleteAccessRight(c *gin.Context) {
 	response.Success(c, gin.H{"message": "Access right deleted successfully"})
 }
 
+func (h *AccessController) HTTPDeleteAccessRight(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	if err := h.useCase.DeleteAccessRight(r.Context(), id); err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			response.WriteHTTPError(w, err, "Access right not found")
+		} else {
+			response.WriteHTTPError(w, err, "Failed to delete access right")
+		}
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "Access right deleted successfully"})
+}
+
 // @Summary      Delete endpoint
 // @Description  Deletes an endpoint by ID.
 // @Tags         endpoints
@@ -267,6 +407,20 @@ func (h *AccessController) DeleteEndpoint(c *gin.Context) {
 		return
 	}
 	response.Success(c, gin.H{"message": "Endpoint deleted successfully"})
+}
+
+func (h *AccessController) HTTPDeleteEndpoint(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	if err := h.useCase.DeleteEndpoint(r.Context(), id); err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			response.WriteHTTPError(w, err, "Endpoint not found")
+		} else {
+			response.WriteHTTPError(w, err, "Failed to delete endpoint")
+		}
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "Endpoint deleted successfully"})
 }
 
 // GetEndpointsDynamic retrieves endpoints based on dynamic filters and sorting via POST request body
@@ -307,6 +461,29 @@ func (h *AccessController) GetEndpointsDynamic(c *gin.Context) {
 	})
 }
 
+func (h *AccessController) HTTPGetEndpointsDynamic(w http.ResponseWriter, r *http.Request) {
+	var filter querybuilder.DynamicFilter
+
+	if err := response.DecodeJSON(r, &filter, 1024*1024); err != nil {
+		h.log.WithError(err).Error("failed to bind dynamic filter request body for endpoints")
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body for dynamic filter")
+		return
+	}
+
+	endpoints, total, err := h.useCase.GetEndpointsDynamic(r.Context(), &filter)
+	if err != nil {
+		h.log.WithError(err).Error("failed to get endpoints dynamically")
+		response.WriteHTTPError(w, err, "failed to retrieve endpoints")
+		return
+	}
+
+	response.WriteSuccessWithPaging(w, endpoints, &response.PageMetadata{
+		Page:  filter.Page,
+		Limit: filter.PageSize,
+		Total: total,
+	})
+}
+
 // GetAccessRightsDynamic retrieves access rights based on dynamic filters and sorting via POST request body
 // @Summary      Get access rights with dynamic filters
 // @Description  Retrieves a list of access rights based on dynamic filter and sort criteria provided in the request body.
@@ -339,6 +516,29 @@ func (h *AccessController) GetAccessRightsDynamic(c *gin.Context) {
 	}
 
 	response.SuccessResponseWithPaging(c, accessRights, &response.PageMetadata{
+		Page:  filter.Page,
+		Limit: filter.PageSize,
+		Total: total,
+	})
+}
+
+func (h *AccessController) HTTPGetAccessRightsDynamic(w http.ResponseWriter, r *http.Request) {
+	var filter querybuilder.DynamicFilter
+
+	if err := response.DecodeJSON(r, &filter, 1024*1024); err != nil {
+		h.log.WithError(err).Error("failed to bind dynamic filter request body for access rights")
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body for dynamic filter")
+		return
+	}
+
+	accessRights, total, err := h.useCase.GetAccessRightsDynamic(r.Context(), &filter)
+	if err != nil {
+		h.log.WithError(err).Error("failed to get access rights dynamically")
+		response.WriteHTTPError(w, err, "failed to retrieve access rights")
+		return
+	}
+
+	response.WriteSuccessWithPaging(w, accessRights, &response.PageMetadata{
 		Page:  filter.Page,
 		Limit: filter.PageSize,
 		Total: total,
