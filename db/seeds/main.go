@@ -1,21 +1,20 @@
 package main
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
-	accessEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
-	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
-	projectEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/entity"
-	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
-	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 const (
@@ -48,58 +47,65 @@ func main() {
 		cfg.Mysql.DBName,
 	)
 
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := sqlx.Open("mysql", dsn)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
+	defer db.Close()
 
-	log.Println("Database connected. Starting Tiered Authorization Seeder (direct DB)...")
+	log.Println("Database connected. Starting Tiered Authorization Seeder (direct SQLX)...")
 
 	adminPassword := os.Getenv("SUPERADMIN_PASSWORD")
 	if adminPassword == "" {
 		log.Fatal("SUPERADMIN_PASSWORD environment variable is missing in .env")
 	}
 
-	err = db.Transaction(func(tx *gorm.DB) error {
-		if err := seedRoles(tx); err != nil {
-			return fmt.Errorf("seed roles: %w", err)
-		}
-
-		superAdminID, err := seedSuperAdmin(tx, adminPassword)
-		if err != nil {
-			return fmt.Errorf("seed superadmin: %w", err)
-		}
-
-		if err := seedAccessRightsAndPolicies(tx); err != nil {
-			return fmt.Errorf("seed access rights: %w", err)
-		}
-
-		orgID, err := seedDefaultOrganization(tx, superAdminID)
-		if err != nil {
-			return fmt.Errorf("seed organization: %w", err)
-		}
-
-		if err := seedOrganizationUsers(tx, orgID); err != nil {
-			return fmt.Errorf("seed organization users: %w", err)
-		}
-
-		if err := seedDefaultProject(tx, orgID, superAdminID); err != nil {
-			return fmt.Errorf("seed project: %w", err)
-		}
-
-		return nil
-	})
+	ctx := context.Background()
+	txx, err := db.BeginTxx(ctx, nil)
 	if err != nil {
+		log.Fatalf("Failed to begin seed transaction: %v", err)
+	}
+	defer txx.Rollback()
+
+	if err := seedRoles(ctx, txx); err != nil {
+		log.Fatalf("seed roles: %v", err)
+	}
+
+	superAdminID, err := seedSuperAdmin(ctx, txx, adminPassword)
+	if err != nil {
+		log.Fatalf("seed superadmin: %v", err)
+	}
+
+	if err := seedAccessRightsAndPolicies(ctx, txx); err != nil {
+		log.Fatalf("seed access rights: %v", err)
+	}
+
+	orgID, err := seedDefaultOrganization(ctx, txx, superAdminID)
+	if err != nil {
+		log.Fatalf("seed organization: %v", err)
+	}
+
+	if err := seedOrganizationUsers(ctx, txx, orgID); err != nil {
+		log.Fatalf("seed organization users: %v", err)
+	}
+
+	if err := seedDefaultProject(ctx, txx, orgID, superAdminID); err != nil {
+		log.Fatalf("seed project: %v", err)
+	}
+
+	if err := txx.Commit(); err != nil {
 		log.Fatalf("Seeding failed, transaction rolled back: %v", err)
 	}
 
 	log.Println("Seeding process completed successfully.")
 }
 
-func seedRoles(db *gorm.DB) error {
-	// organization_id stays NULL for global roles: the column has an FK to
-	// organizations(id), and OrganizationScope treats NULL as global.
-	roles := []roleEntity.Role{
+func seedRoles(ctx context.Context, dbtx tx.DBTX) error {
+	roles := []struct {
+		ID          string
+		Name        string
+		Description string
+	}{
 		{Name: superAdminRole, Description: "Full Access"},
 		{Name: adminRoleName, Description: "Org Administrator"},
 		{Name: userRoleName, Description: "Org User"},
@@ -107,78 +113,65 @@ func seedRoles(db *gorm.DB) error {
 	}
 
 	for _, r := range roles {
-		var existing roleEntity.Role
-		err := db.Where("name = ?", r.Name).First(&existing).Error
-		if err == nil {
-			if err := db.Model(&roleEntity.Role{}).Where("id = ?", existing.ID).Update("description", r.Description).Error; err != nil {
-				return err
-			}
-			continue
+		id := r.ID
+		if id == "" {
+			id = uuid.NewString()
 		}
-		if err != gorm.ErrRecordNotFound {
-			return err
-		}
+		now := time.Now().UnixMilli()
 
-		if r.ID == "" {
-			r.ID = uuid.NewString()
-		}
-		if err := db.Create(&r).Error; err != nil {
+		query := `
+			INSERT INTO roles (id, name, organization_id, description, created_at, updated_at, deleted_at)
+			VALUES (?, ?, NULL, ?, ?, ?, 0)
+			ON DUPLICATE KEY UPDATE description = VALUES(description), updated_at = VALUES(updated_at)
+		`
+		if _, err := dbtx.ExecContext(ctx, query, id, r.Name, r.Description, now, now); err != nil {
 			return err
 		}
-		log.Printf("Role '%s' created.", r.Name)
+		log.Printf("Role '%s' seeded.", r.Name)
 	}
-
 	return nil
 }
 
-func seedSuperAdmin(db *gorm.DB, adminPassword string) (string, error) {
+func seedSuperAdmin(ctx context.Context, dbtx tx.DBTX, adminPassword string) (string, error) {
 	adminUsername := "superadmin"
-
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
 
-	var user userEntity.User
-	err = db.Where("username = ?", adminUsername).First(&user).Error
-	switch err {
-	case nil:
-		if err := db.Table("users").Where("id = ?", user.ID).Update("password", string(hashedPwd)).Error; err != nil {
+	var userID string
+	err = dbtx.GetContext(ctx, &userID, `SELECT id FROM users WHERE username = ? AND deleted_at = 0 LIMIT 1`, adminUsername)
+	now := time.Now().UnixMilli()
+
+	if err == nil {
+		// Update password
+		query := `UPDATE users SET password = ?, updated_at = ? WHERE id = ?`
+		if _, err := dbtx.ExecContext(ctx, query, string(hashedPwd), now, userID); err != nil {
 			return "", err
 		}
 		log.Printf("Superadmin user '%s' password reset.", adminUsername)
-	case gorm.ErrRecordNotFound:
-		now := time.Now().UnixMilli()
-		user.ID = uuid.NewString()
-
-		// Map insert keeps seeder resilient to optional columns such as avatar_url.
-		userData := map[string]interface{}{
-			"id":         user.ID,
-			"username":   adminUsername,
-			"email":      "superadmin@example.com",
-			"password":   string(hashedPwd),
-			"name":       "Super Admin",
-			"created_at": now,
-			"updated_at": now,
-		}
-		if err := db.Table("users").Create(userData).Error; err != nil {
+	} else if errors.Is(err, sql.ErrNoRows) {
+		userID = uuid.NewString()
+		query := `
+			INSERT INTO users (id, username, email, password, name, status, created_at, updated_at, deleted_at)
+			VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 0)
+		`
+		if _, err := dbtx.ExecContext(ctx, query, userID, adminUsername, "superadmin@example.com", string(hashedPwd), "Super Admin", now, now); err != nil {
 			return "", err
 		}
 		log.Printf("Superadmin user '%s' created.", adminUsername)
-	default:
+	} else {
 		return "", err
 	}
 
-	// superadmin user holds superadmin role in global domain
-	if err := ensureGroupingPolicy(db, user.ID, superAdminRole, globalDomain); err != nil {
+	if err := ensureGroupingPolicy(ctx, dbtx, userID, superAdminRole, globalDomain); err != nil {
 		return "", err
 	}
-	// superadmin role has unrestricted policy
-	if err := ensurePolicy(db, superAdminRole, globalDomain, "*", "*"); err != nil {
+	if err := ensurePolicy(ctx, dbtx, superAdminRole, globalDomain, "*", "*"); err != nil {
 		return "", err
 	}
 
-	return user.ID, nil
+	return userID, nil
 }
 
 func accessRightSpec() map[string][]endpointSpec {
@@ -194,36 +187,8 @@ func accessRightSpec() map[string][]endpointSpec {
 			{"/api/v1/users/:id", "GET"},
 		},
 		"user:manage": {
-			{"/api/v1/users/:id/status", "PATCH"},
 			{"/api/v1/users/:id", "DELETE"},
-		},
-		"org:view": {
-			{"/api/v1/organizations/:id", "GET"},
-			{"/api/v1/organizations/me", "GET"},
-			{"/api/v1/organizations/slug/:slug", "GET"},
-		},
-		"org:manage": {
-			{"/api/v1/organizations", "POST"},
-			{"/api/v1/organizations/:id", "PUT"},
-			{"/api/v1/organizations/:id", "DELETE"},
-		},
-		"member:manage": {
-			{"/api/v1/organizations/:id/members/invite", "POST"},
-			{"/api/v1/organizations/:id/members", "GET"},
-			{"/api/v1/organizations/:id/members/:userId", "PATCH"},
-			{"/api/v1/organizations/:id/members/:userId", "DELETE"},
-		},
-		"presence:view": {
-			{"/api/v1/organizations/:id/presence", "GET"},
-		},
-		"project:view": {
-			{"/api/v1/projects", "GET"},
-			{"/api/v1/projects/:id", "GET"},
-		},
-		"project:manage": {
-			{"/api/v1/projects", "POST"},
-			{"/api/v1/projects/:id", "PUT"},
-			{"/api/v1/projects/:id", "DELETE"},
+			{"/api/v1/users/:id/status", "PATCH"},
 		},
 		"role:view": {
 			{"/api/v1/roles", "GET"},
@@ -234,19 +199,47 @@ func accessRightSpec() map[string][]endpointSpec {
 			{"/api/v1/roles/:id", "PUT"},
 			{"/api/v1/roles/:id", "DELETE"},
 		},
+		"project:view": {
+			{"/api/v1/projects", "GET"},
+			{"/api/v1/projects/:id", "GET"},
+		},
+		"project:manage": {
+			{"/api/v1/projects", "POST"},
+			{"/api/v1/projects/:id", "PUT"},
+			{"/api/v1/projects/:id", "DELETE"},
+		},
+		"org:view": {
+			{"/api/v1/organizations/:id", "GET"},
+			{"/api/v1/organizations/slug/:slug", "GET"},
+		},
+		"org:manage": {
+			{"/api/v1/organizations/:id", "PUT"},
+			{"/api/v1/organizations/:id", "DELETE"},
+			{"/api/v1/organizations/:id/restore", "POST"},
+			{"/api/v1/organizations/:id/hard", "DELETE"},
+		},
+		"member:manage": {
+			{"/api/v1/organizations/:id/members", "GET"},
+			{"/api/v1/organizations/:id/members/invite", "POST"},
+			{"/api/v1/organizations/:id/members/:userId/role", "PUT"},
+			{"/api/v1/organizations/:id/members/:userId", "DELETE"},
+		},
+		"presence:view": {
+			{"/api/v1/organizations/:id/presence", "GET"},
+		},
 		"permission:view": {
 			{"/api/v1/permissions", "GET"},
-			{"/api/v1/permissions/:role", "GET"},
+			{"/api/v1/permissions/roles/:role", "GET"},
 			{"/api/v1/permissions/roles/:role/users", "GET"},
-			{"/api/v1/permissions/:role/parents", "GET"},
-			{"/api/v1/permissions/resources", "GET"},
+			{"/api/v1/permissions/roles/:role/parents", "GET"},
+			{"/api/v1/permissions/aggregation", "GET"},
 			{"/api/v1/permissions/inheritance-tree", "GET"},
 		},
 		"permission:manage": {
-			{"/api/v1/permissions/assign-role", "POST"},
-			{"/api/v1/permissions/revoke-role", "DELETE"},
+			{"/api/v1/permissions/assign", "POST"},
+			{"/api/v1/permissions/revoke-role", "POST"},
 			{"/api/v1/permissions/grant", "POST"},
-			{"/api/v1/permissions", "PUT"},
+			{"/api/v1/permissions/update", "PUT"},
 			{"/api/v1/permissions/revoke", "DELETE"},
 			{"/api/v1/permissions/inheritance", "POST"},
 			{"/api/v1/permissions/inheritance", "DELETE"},
@@ -303,31 +296,30 @@ func roleAccessRightSpec() map[string][]string {
 	}
 }
 
-func seedAccessRightsAndPolicies(db *gorm.DB) error {
+func seedAccessRightsAndPolicies(ctx context.Context, dbtx tx.DBTX) error {
 	accessMap := accessRightSpec()
 
 	for arName, endpoints := range accessMap {
-		arID, err := ensureAccessRight(db, arName)
+		arID, err := ensureAccessRight(ctx, dbtx, arName)
 		if err != nil {
 			return err
 		}
 
 		for _, ep := range endpoints {
-			epID, err := ensureEndpoint(db, ep)
+			epID, err := ensureEndpoint(ctx, dbtx, ep)
 			if err != nil {
 				return err
 			}
-			if err := ensureAccessRightEndpointLink(db, arID, epID); err != nil {
+			if err := ensureAccessRightEndpointLink(ctx, dbtx, arID, epID); err != nil {
 				return err
 			}
 		}
 	}
 
-	// Expand access rights into Casbin policies: p, role, domain, path, method
 	for roleName, rights := range roleAccessRightSpec() {
 		for _, arName := range rights {
 			for _, ep := range accessMap[arName] {
-				if err := ensurePolicy(db, roleName, globalDomain, ep.Path, ep.Method); err != nil {
+				if err := ensurePolicy(ctx, dbtx, roleName, globalDomain, ep.Path, ep.Method); err != nil {
 					return err
 				}
 			}
@@ -338,124 +330,117 @@ func seedAccessRightsAndPolicies(db *gorm.DB) error {
 	return nil
 }
 
-func ensureAccessRight(db *gorm.DB, name string) (string, error) {
-	var ar accessEntity.AccessRight
-	err := db.Where("name = ?", name).First(&ar).Error
+func ensureAccessRight(ctx context.Context, dbtx tx.DBTX, name string) (string, error) {
+	var arID string
+	err := dbtx.GetContext(ctx, &arID, `SELECT id FROM access_rights WHERE name = ? AND deleted_at = 0 LIMIT 1`, name)
 	if err == nil {
-		return ar.ID, nil
+		return arID, nil
 	}
-	if err != gorm.ErrRecordNotFound {
+	if !errors.Is(err, sql.ErrNoRows) {
 		return "", err
 	}
 
-	// organization_id stays NULL for global access rights: the column has an FK to
-	// organizations(id), and OrganizationScope treats NULL as global.
-	ar = accessEntity.AccessRight{
-		ID:   uuid.NewString(),
-		Name: name,
-	}
-	if err := db.Create(&ar).Error; err != nil {
+	arID = uuid.NewString()
+	now := time.Now().UnixMilli()
+	query := `
+		INSERT INTO access_rights (id, name, created_at, updated_at, deleted_at)
+		VALUES (?, ?, ?, ?, 0)
+	`
+	if _, err := dbtx.ExecContext(ctx, query, arID, name, now, now); err != nil {
 		return "", err
 	}
 	log.Printf("Access right '%s' created.", name)
-	return ar.ID, nil
+	return arID, nil
 }
 
-func ensureEndpoint(db *gorm.DB, ep endpointSpec) (string, error) {
-	var existing accessEntity.Endpoint
-	err := db.Where("path = ? AND method = ?", ep.Path, ep.Method).First(&existing).Error
+func ensureEndpoint(ctx context.Context, dbtx tx.DBTX, ep endpointSpec) (string, error) {
+	var epID string
+	err := dbtx.GetContext(ctx, &epID, `SELECT id FROM endpoints WHERE path = ? AND method = ? AND deleted_at = 0 LIMIT 1`, ep.Path, ep.Method)
 	if err == nil {
-		return existing.ID, nil
+		return epID, nil
 	}
-	if err != gorm.ErrRecordNotFound {
+	if !errors.Is(err, sql.ErrNoRows) {
 		return "", err
 	}
 
-	created := accessEntity.Endpoint{
-		ID:     uuid.NewString(),
-		Path:   ep.Path,
-		Method: ep.Method,
-	}
-	if err := db.Create(&created).Error; err != nil {
+	epID = uuid.NewString()
+	now := time.Now().UnixMilli()
+	query := `
+		INSERT INTO endpoints (id, path, method, created_at, updated_at, deleted_at)
+		VALUES (?, ?, ?, ?, ?, 0)
+	`
+	if _, err := dbtx.ExecContext(ctx, query, epID, ep.Path, ep.Method, now, now); err != nil {
 		return "", err
 	}
-	return created.ID, nil
+	return epID, nil
 }
 
-func ensureAccessRightEndpointLink(db *gorm.DB, accessRightID, endpointID string) error {
-	var count int64
-	if err := db.Table("access_right_endpoints").
-		Where("access_right_id = ? AND endpoint_id = ?", accessRightID, endpointID).
-		Count(&count).Error; err != nil {
-		return err
-	}
-	if count > 0 {
-		return nil
-	}
-
-	return db.Create(&accessEntity.AccessRightEndpoint{
-		AccessRightID: accessRightID,
-		EndpointID:    endpointID,
-	}).Error
+func ensureAccessRightEndpointLink(ctx context.Context, dbtx tx.DBTX, accessRightID, endpointID string) error {
+	query := `
+		INSERT IGNORE INTO access_right_endpoints (access_right_id, endpoint_id)
+		VALUES (?, ?)
+	`
+	_, err := dbtx.ExecContext(ctx, query, accessRightID, endpointID)
+	return err
 }
 
-func seedDefaultOrganization(db *gorm.DB, ownerUserID string) (string, error) {
-	ownerRoleID, err := roleIDByName(db, ownerRoleName)
+func seedDefaultOrganization(ctx context.Context, dbtx tx.DBTX, ownerUserID string) (string, error) {
+	ownerRoleID, err := roleIDByName(ctx, dbtx, ownerRoleName)
+	if err != nil {
+		return "", err
+	}
+	adminRoleID, err := roleIDByName(ctx, dbtx, adminRoleName)
 	if err != nil {
 		return "", err
 	}
 
-	var org orgEntity.Organization
-	err = db.Where("slug = ?", defaultOrgSlug).First(&org).Error
-	switch err {
-	case nil:
-		log.Printf("Default organization found with ID: %s", org.ID)
-	case gorm.ErrRecordNotFound:
-		org = orgEntity.Organization{
-			ID:      uuid.NewString(),
-			Name:    defaultOrgName,
-			Slug:    defaultOrgSlug,
-			OwnerID: ownerUserID,
-			Status:  orgEntity.OrgStatusActive,
-		}
-		if err := db.Create(&org).Error; err != nil {
+	var orgID string
+	err = dbtx.GetContext(ctx, &orgID, `SELECT id FROM organizations WHERE slug = ? AND deleted_at = 0 LIMIT 1`, defaultOrgSlug)
+	now := time.Now().UnixMilli()
+
+	if err == nil {
+		log.Printf("Default organization found with ID: %s", orgID)
+	} else if errors.Is(err, sql.ErrNoRows) {
+		orgID = uuid.NewString()
+		query := `
+			INSERT INTO organizations (id, name, slug, owner_id, status, created_at, updated_at, deleted_at)
+			VALUES (?, ?, ?, ?, 'active', ?, ?, 0)
+		`
+		if _, err := dbtx.ExecContext(ctx, query, orgID, defaultOrgName, defaultOrgSlug, ownerUserID, now, now); err != nil {
 			return "", err
 		}
-		log.Printf("Default organization created with ID: %s", org.ID)
-	default:
+		log.Printf("Default organization created with ID: %s", orgID)
+	} else {
 		return "", err
 	}
 
-	// Owner membership row
-	if err := ensureMember(db, org.ID, ownerUserID, ownerRoleID, orgEntity.MemberStatusActive); err != nil {
+	if err := ensureMember(ctx, dbtx, orgID, ownerUserID, ownerRoleID, "active"); err != nil {
 		return "", err
 	}
 
-	// Mirror global role policies into org domain, matching bootstrapOrganizationPolicies
 	accessMap := accessRightSpec()
 	for roleName, rights := range roleAccessRightSpec() {
 		for _, arName := range rights {
 			for _, ep := range accessMap[arName] {
-				if err := ensurePolicy(db, roleName, org.ID, ep.Path, ep.Method); err != nil {
+				if err := ensurePolicy(ctx, dbtx, roleName, orgID, ep.Path, ep.Method); err != nil {
 					return "", err
 				}
 			}
 		}
 	}
 
-	// org-owner inherits admin inside org domain
-	if err := ensureGroupingPolicy(db, ownerRoleName, adminRoleName, org.ID); err != nil {
+	if err := ensureGroupingPolicy(ctx, dbtx, ownerRoleName, adminRoleName, orgID); err != nil {
 		return "", err
 	}
-	// owner user holds org-owner role in org domain
-	if err := ensureGroupingPolicy(db, ownerUserID, ownerRoleName, org.ID); err != nil {
+	if err := ensureGroupingPolicy(ctx, dbtx, ownerUserID, ownerRoleName, orgID); err != nil {
 		return "", err
 	}
 
-	return org.ID, nil
+	_ = adminRoleID
+	return orgID, nil
 }
 
-func seedOrganizationUsers(db *gorm.DB, orgID string) error {
+func seedOrganizationUsers(ctx context.Context, dbtx tx.DBTX, orgID string) error {
 	usersToSeed := []struct {
 		Username string
 		Name     string
@@ -471,41 +456,35 @@ func seedOrganizationUsers(db *gorm.DB, orgID string) error {
 		return err
 	}
 
+	now := time.Now().UnixMilli()
 	for _, u := range usersToSeed {
-		roleID, err := roleIDByName(db, u.RoleName)
+		roleID, err := roleIDByName(ctx, dbtx, u.RoleName)
 		if err != nil {
 			return err
 		}
 
-		var user userEntity.User
-		err = db.Where("username = ?", u.Username).First(&user).Error
-		switch err {
-		case nil:
-			log.Printf("User '%s' found with ID: %s", u.Username, user.ID)
-		case gorm.ErrRecordNotFound:
-			now := time.Now().UnixMilli()
-			user.ID = uuid.NewString()
-			userData := map[string]interface{}{
-				"id":         user.ID,
-				"username":   u.Username,
-				"email":      u.Email,
-				"password":   string(hashedPwd),
-				"name":       u.Name,
-				"created_at": now,
-				"updated_at": now,
-			}
-			if err := db.Table("users").Create(userData).Error; err != nil {
+		var userID string
+		err = dbtx.GetContext(ctx, &userID, `SELECT id FROM users WHERE username = ? AND deleted_at = 0 LIMIT 1`, u.Username)
+		if err == nil {
+			log.Printf("User '%s' found with ID: %s", u.Username, userID)
+		} else if errors.Is(err, sql.ErrNoRows) {
+			userID = uuid.NewString()
+			query := `
+				INSERT INTO users (id, username, email, password, name, status, created_at, updated_at, deleted_at)
+				VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 0)
+			`
+			if _, err := dbtx.ExecContext(ctx, query, userID, u.Username, u.Email, string(hashedPwd), u.Name, now, now); err != nil {
 				return err
 			}
-			log.Printf("User '%s' created with ID: %s", u.Username, user.ID)
-		default:
+			log.Printf("User '%s' created with ID: %s", u.Username, userID)
+		} else {
 			return err
 		}
 
-		if err := ensureMember(db, orgID, user.ID, roleID, orgEntity.MemberStatusActive); err != nil {
+		if err := ensureMember(ctx, dbtx, orgID, userID, roleID, "active"); err != nil {
 			return err
 		}
-		if err := ensureGroupingPolicy(db, user.ID, u.RoleName, orgID); err != nil {
+		if err := ensureGroupingPolicy(ctx, dbtx, userID, u.RoleName, orgID); err != nil {
 			return err
 		}
 	}
@@ -513,28 +492,24 @@ func seedOrganizationUsers(db *gorm.DB, orgID string) error {
 	return nil
 }
 
-func seedDefaultProject(db *gorm.DB, orgID, userID string) error {
+func seedDefaultProject(ctx context.Context, dbtx tx.DBTX, orgID, userID string) error {
 	const projectName = "Sample E-Commerce App"
-
 	var count int64
-	if err := db.Model(&projectEntity.Project{}).
-		Where("organization_id = ? AND name = ?", orgID, projectName).
-		Count(&count).Error; err != nil {
+	err := dbtx.GetContext(ctx, &count, `SELECT COUNT(*) FROM projects WHERE organization_id = ? AND name = ? AND deleted_at = 0`, orgID, projectName)
+	if err != nil {
 		return err
 	}
 	if count > 0 {
 		return nil
 	}
 
-	project := projectEntity.Project{
-		ID:             uuid.NewString(),
-		OrganizationID: orgID,
-		UserID:         userID,
-		Name:           projectName,
-		Domain:         "e-commerce",
-		Status:         "active",
-	}
-	if err := db.Create(&project).Error; err != nil {
+	now := time.Now().UnixMilli()
+	query := `
+		INSERT INTO projects (id, organization_id, user_id, name, domain, status, created_at, updated_at, deleted_at)
+		VALUES (?, ?, ?, ?, 'e-commerce', 'active', ?, ?, 0)
+	`
+	_, err = dbtx.ExecContext(ctx, query, uuid.NewString(), orgID, userID, projectName, now, now)
+	if err != nil {
 		return err
 	}
 
@@ -542,61 +517,54 @@ func seedDefaultProject(db *gorm.DB, orgID, userID string) error {
 	return nil
 }
 
-func ensureMember(db *gorm.DB, orgID, userID, roleID, status string) error {
+func ensureMember(ctx context.Context, dbtx tx.DBTX, orgID, userID, roleID, status string) error {
 	var count int64
-	if err := db.Model(&orgEntity.OrganizationMember{}).
-		Where("organization_id = ? AND user_id = ?", orgID, userID).
-		Count(&count).Error; err != nil {
+	err := dbtx.GetContext(ctx, &count, `SELECT COUNT(*) FROM organization_members WHERE organization_id = ? AND user_id = ?`, orgID, userID)
+	if err != nil {
 		return err
 	}
 	if count > 0 {
 		return nil
 	}
 
-	return db.Create(&orgEntity.OrganizationMember{
-		ID:             uuid.NewString(),
-		OrganizationID: orgID,
-		UserID:         userID,
-		RoleID:         roleID,
-		Status:         status,
-	}).Error
+	now := time.Now().UnixMilli()
+	query := `
+		INSERT INTO organization_members (id, organization_id, user_id, role_id, status, joined_at)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`
+	_, err = dbtx.ExecContext(ctx, query, uuid.NewString(), orgID, userID, roleID, status, now)
+	return err
 }
 
-func roleIDByName(db *gorm.DB, name string) (string, error) {
-	var role roleEntity.Role
-	if err := db.Where("name = ?", name).First(&role).Error; err != nil {
+func roleIDByName(ctx context.Context, dbtx tx.DBTX, name string) (string, error) {
+	var id string
+	err := dbtx.GetContext(ctx, &id, `SELECT id FROM roles WHERE name = ? AND deleted_at = 0 LIMIT 1`, name)
+	if err != nil {
 		return "", fmt.Errorf("role %q not found: %w", name, err)
 	}
-	return role.ID, nil
+	return id, nil
 }
 
-// ensurePolicy inserts a Casbin permission rule: p, subject, domain, object, action
-func ensurePolicy(db *gorm.DB, subject, domain, object, action string) error {
-	return ensureCasbinRule(db, "p", subject, domain, object, action)
+func ensurePolicy(ctx context.Context, dbtx tx.DBTX, subject, domain, object, action string) error {
+	return ensureCasbinRule(ctx, dbtx, "p", subject, domain, object, action)
 }
 
-// ensureGroupingPolicy inserts a Casbin grouping rule: g, member, role, domain
-func ensureGroupingPolicy(db *gorm.DB, member, role, domain string) error {
-	return ensureCasbinRule(db, "g", member, role, domain, "")
+func ensureGroupingPolicy(ctx context.Context, dbtx tx.DBTX, member, role, domain string) error {
+	return ensureCasbinRule(ctx, dbtx, "g", member, role, domain, "")
 }
 
-func ensureCasbinRule(db *gorm.DB, ptype, v0, v1, v2, v3 string) error {
-	query := db.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", ptype, v0, v1, v2)
-	if v3 != "" {
-		query = query.Where("v3 = ?", v3)
-	} else {
-		query = query.Where("v3 IS NULL OR v3 = ?", "")
-	}
-
+func ensureCasbinRule(ctx context.Context, dbtx tx.DBTX, ptype, v0, v1, v2, v3 string) error {
 	var count int64
-	if err := query.Count(&count).Error; err != nil {
+	queryCount := `SELECT COUNT(*) FROM casbin_rule WHERE ptype = ? AND v0 = ? AND v1 = ? AND v2 = ? AND (v3 = ? OR (v3 IS NULL AND ? = ''))`
+	err := dbtx.GetContext(ctx, &count, queryCount, ptype, v0, v1, v2, v3, v3)
+	if err != nil {
 		return err
 	}
 	if count > 0 {
 		return nil
 	}
 
-	return db.Table("casbin_rule").Create(map[string]interface{}{
-		"ptype": ptype, "v0": v0, "v1": v1, "v2": v2, "v3": v3, "v4": "",
-	}).Error
+	queryInsert := `INSERT INTO casbin_rule (ptype, v0, v1, v2, v3, v4) VALUES (?, ?, ?, ?, ?, '')`
+	_, err = dbtx.ExecContext(ctx, queryInsert, ptype, v0, v1, v2, v3)
+	return err
 }

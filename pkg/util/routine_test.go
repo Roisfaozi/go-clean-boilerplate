@@ -10,22 +10,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type safeBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (s *safeBuffer) Write(p []byte) (n int, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.buf.Write(p)
+}
+
+func (s *safeBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.buf.String()
+}
+
 func TestSafeGo_RecoversPanic(t *testing.T) {
-	buf := &bytes.Buffer{}
+	buf := &safeBuffer{}
 	logger := logrus.New()
 	logger.SetOutput(buf)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	done := make(chan struct{})
 
 	SafeGo(logger, func() {
-		go func() {
-			time.Sleep(10 * time.Millisecond)
-			wg.Done()
-		}()
+		defer close(done)
 		panic("simulated panic")
 	})
 
-	wg.Wait()
+	<-done
+	// Allow small window for logger write inside recover defer
+	time.Sleep(20 * time.Millisecond)
 	assert.Contains(t, buf.String(), "panic recovered in goroutine: simulated panic")
 }
