@@ -3,11 +3,14 @@ package http
 import (
 	"context"
 	"errors"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
+	"net/http"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
 	"github.com/gin-gonic/gin"
@@ -17,6 +20,10 @@ import (
 
 func respondPermissionNoop(c *gin.Context, message string) {
 	response.Success(c, gin.H{"changed": false, "message": message})
+}
+
+func respondPermissionNoopHTTP(w http.ResponseWriter, message string) {
+	response.WriteSuccess(w, http.StatusOK, map[string]any{"changed": false, "message": message})
 }
 
 type PermissionController struct {
@@ -676,4 +683,360 @@ func (h *PermissionController) RevokeAccessRight(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{"message": "access right revoked successfully"})
+}
+
+func resolveDomainHTTP(r *http.Request, requestedDomain string) string {
+	orgID, ok := delivery.GetContextString(r.Context(), delivery.OrganizationIDKey)
+	if !ok || orgID == "" {
+		orgID = database.GetOrganizationID(r.Context())
+	}
+	if orgID != "" {
+		return orgID
+	}
+	if requestedDomain == "" {
+		return "global"
+	}
+	return requestedDomain
+}
+
+func actorContextHTTP(r *http.Request) (context.Context, bool) {
+	actorID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || actorID == "" {
+		return nil, false
+	}
+	return authcontext.WithUserID(r.Context(), actorID), true
+}
+
+func (h *PermissionController) HTTPAssignRole(w http.ResponseWriter, r *http.Request) {
+	var req model.AssignRoleRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	ctx, ok := actorContextHTTP(r)
+	if !ok {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	err := h.useCase.AssignRoleToUser(ctx, req.UserID, req.Role, resolveDomainHTTP(r, req.Domain))
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to assign role")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "role assigned successfully"})
+}
+
+func (h *PermissionController) HTTPRevokeRole(w http.ResponseWriter, r *http.Request) {
+	var req model.AssignRoleRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	err := h.useCase.RevokeRoleFromUser(r.Context(), req.UserID, req.Role, resolveDomainHTTP(r, req.Domain))
+	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoopHTTP(w, message)
+			return
+		}
+		response.WriteHTTPError(w, err, "failed to revoke role")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "role revoked successfully"})
+}
+
+func (h *PermissionController) HTTPGrantPermission(w http.ResponseWriter, r *http.Request) {
+	var req model.GrantPermissionRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	ctx, ok := actorContextHTTP(r)
+	if !ok {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	err := h.useCase.GrantPermissionToRole(ctx, req.Role, req.Path, req.Method, resolveDomainHTTP(r, req.Domain))
+	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoopHTTP(w, message)
+			return
+		}
+		response.WriteHTTPError(w, err, "failed to grant permission")
+		return
+	}
+	response.WriteSuccess(w, http.StatusCreated, map[string]string{"message": "permission granted successfully"})
+}
+
+func (h *PermissionController) HTTPGetAllPermissions(w http.ResponseWriter, r *http.Request) {
+	permissions, err := h.useCase.GetAllPermissions(r.Context())
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to get all permissions")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, filterPoliciesByDomainHTTP(r, permissions, resolveDomainHTTP(r, "")))
+}
+
+func (h *PermissionController) HTTPGetPermissionsForRole(w http.ResponseWriter, r *http.Request) {
+	role := r.PathValue("role")
+	if role == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "role is required")
+		return
+	}
+	permissions, err := h.useCase.GetPermissionsForRole(r.Context(), role)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to get permissions for role")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, filterPoliciesByDomainHTTP(r, permissions, resolveDomainHTTP(r, "")))
+}
+
+func (h *PermissionController) HTTPGetUsersForRole(w http.ResponseWriter, r *http.Request) {
+	role := r.PathValue("role")
+	if role == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "role is required")
+		return
+	}
+	domain := resolveDomainHTTP(r, r.URL.Query().Get("domain"))
+	users, err := h.useCase.GetUsersForRole(r.Context(), role, domain)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to get users for role")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, users)
+}
+
+func filterPoliciesByDomainHTTP(r *http.Request, policies [][]string, domain string) [][]string {
+	userRole, _ := delivery.GetContextString(r.Context(), delivery.RoleKey)
+	isSuperAdmin := userRole == "role:superadmin"
+	if (domain == "" || domain == "global") && isSuperAdmin {
+		return policies
+	}
+	targetDomain := domain
+	if targetDomain == "" || targetDomain == "global" {
+		if orgID, ok := delivery.GetContextString(r.Context(), delivery.OrganizationIDKey); ok && orgID != "" {
+			targetDomain = orgID
+		} else if orgID := database.GetOrganizationID(r.Context()); orgID != "" {
+			targetDomain = orgID
+		}
+	}
+	filtered := make([][]string, 0, len(policies))
+	for _, policy := range policies {
+		if len(policy) > 1 && policy[1] == targetDomain {
+			filtered = append(filtered, policy)
+		}
+	}
+	return filtered
+}
+
+func (h *PermissionController) HTTPUpdatePermission(w http.ResponseWriter, r *http.Request) {
+	var req model.UpdatePermissionRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	_, err := h.useCase.UpdatePermission(r.Context(), req.OldPermission, req.NewPermission)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to update permission")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "permission updated successfully"})
+}
+
+func (h *PermissionController) HTTPRevokePermission(w http.ResponseWriter, r *http.Request) {
+	var req model.GrantPermissionRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	err := h.useCase.RevokePermissionFromRole(r.Context(), req.Role, req.Path, req.Method, resolveDomainHTTP(r, req.Domain))
+	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoopHTTP(w, message)
+			return
+		}
+		response.WriteHTTPError(w, err, "failed to revoke permission")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "permission revoked successfully"})
+}
+
+func (h *PermissionController) HTTPAddRoleInheritance(w http.ResponseWriter, r *http.Request) {
+	var req model.RoleInheritanceRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	ctx, ok := actorContextHTTP(r)
+	if !ok {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	err := h.useCase.AddParentRole(ctx, req.ChildRole, req.ParentRole, resolveDomainHTTP(r, req.Domain))
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to add role inheritance")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "role inheritance added successfully"})
+}
+
+func (h *PermissionController) HTTPRemoveRoleInheritance(w http.ResponseWriter, r *http.Request) {
+	var req model.RoleInheritanceRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	err := h.useCase.RemoveParentRole(r.Context(), req.ChildRole, req.ParentRole, resolveDomainHTTP(r, req.Domain))
+	if err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoopHTTP(w, message)
+			return
+		}
+		response.WriteHTTPError(w, err, "failed to remove role inheritance")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "role inheritance removed successfully"})
+}
+
+func (h *PermissionController) HTTPGetParentRoles(w http.ResponseWriter, r *http.Request) {
+	role := r.PathValue("role")
+	if role == "" {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "role is required")
+		return
+	}
+	domain := resolveDomainHTTP(r, r.URL.Query().Get("domain"))
+	parents, err := h.useCase.GetParentRoles(r.Context(), role, domain)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to get parent roles")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, parents)
+}
+
+func (h *PermissionController) HTTPBatchCheck(w http.ResponseWriter, r *http.Request) {
+	var req model.BatchPermissionCheckRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+	if !ok || userID == "" {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	results, err := h.useCase.BatchCheckPermission(r.Context(), userID, req.Items)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to batch check permissions")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, model.BatchPermissionCheckResponse{Results: results})
+}
+
+func (h *PermissionController) HTTPGetResourceAggregation(w http.ResponseWriter, r *http.Request) {
+	result, err := h.useCase.GetResourceAggregation(r.Context())
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to get resource aggregation")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, result)
+}
+
+func (h *PermissionController) HTTPGetInheritanceTree(w http.ResponseWriter, r *http.Request) {
+	result, err := h.useCase.GetInheritanceTree(r.Context())
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to get inheritance tree")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, result)
+}
+
+func (h *PermissionController) HTTPGetRoleAccessRights(w http.ResponseWriter, r *http.Request) {
+	role := r.PathValue("role")
+	domain := resolveDomainHTTP(r, r.URL.Query().Get("domain"))
+	result, err := h.useCase.GetRoleAccessRights(r.Context(), role, domain)
+	if err != nil {
+		response.WriteHTTPError(w, err, "failed to get role access rights")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, result)
+}
+
+func (h *PermissionController) HTTPAssignAccessRight(w http.ResponseWriter, r *http.Request) {
+	var req model.AssignAccessRightRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	req.Domain = resolveDomainHTTP(r, req.Domain)
+	ctx, ok := actorContextHTTP(r)
+	if !ok {
+		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
+		return
+	}
+	if err := h.useCase.AssignAccessRight(ctx, req); err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoopHTTP(w, message)
+			return
+		}
+		response.WriteHTTPError(w, err, "failed to assign access right")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "access right assigned successfully"})
+}
+
+func (h *PermissionController) HTTPRevokeAccessRight(w http.ResponseWriter, r *http.Request) {
+	var req model.AssignAccessRightRequest
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.WriteHTTPError(w, exception.ErrValidationError, validation.FormatValidationErrors(err))
+		return
+	}
+	req.Domain = resolveDomainHTTP(r, req.Domain)
+	if err := h.useCase.RevokeAccessRight(r.Context(), req); err != nil {
+		if message, ok := usecase.IsNoopError(err); ok {
+			respondPermissionNoopHTTP(w, message)
+			return
+		}
+		response.WriteHTTPError(w, err, "failed to revoke access right")
+		return
+	}
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "access right revoked successfully"})
 }

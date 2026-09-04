@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,31 +24,31 @@ import (
 func RegisterPermissionRoutes(router *gin.RouterGroup, controller *PermissionController) {
 	permissionGroup := router.Group("/permissions")
 	{
-		permissionGroup.POST("/assign-role", controller.AssignRole)
-		permissionGroup.DELETE("/revoke-role", controller.RevokeRole)
-		permissionGroup.POST("/grant", controller.GrantPermission)
-		permissionGroup.GET("", controller.GetAllPermissions)
-		permissionGroup.GET("/:role", controller.GetPermissionsForRole)
-		permissionGroup.GET("/roles/:role/users", controller.GetUsersForRole)
-		permissionGroup.PUT("", controller.UpdatePermission)
-		permissionGroup.DELETE("/revoke", controller.RevokePermission)
+		permissionGroup.POST("/assign-role", delivery.AdaptHTTPHandler(controller.HTTPAssignRole))
+		permissionGroup.DELETE("/revoke-role", delivery.AdaptHTTPHandler(controller.HTTPRevokeRole))
+		permissionGroup.POST("/grant", delivery.AdaptHTTPHandler(controller.HTTPGrantPermission))
+		permissionGroup.GET("", delivery.AdaptHTTPHandler(controller.HTTPGetAllPermissions))
+		permissionGroup.GET("/:role", delivery.AdaptHTTPHandler(controller.HTTPGetPermissionsForRole))
+		permissionGroup.GET("/roles/:role/users", delivery.AdaptHTTPHandler(controller.HTTPGetUsersForRole))
+		permissionGroup.PUT("", delivery.AdaptHTTPHandler(controller.HTTPUpdatePermission))
+		permissionGroup.DELETE("/revoke", delivery.AdaptHTTPHandler(controller.HTTPRevokePermission))
 
-		permissionGroup.POST("/inheritance", controller.AddRoleInheritance)
-		permissionGroup.DELETE("/inheritance", controller.RemoveRoleInheritance)
-		permissionGroup.GET("/:role/parents", controller.GetParentRoles)
+		permissionGroup.POST("/inheritance", delivery.AdaptHTTPHandler(controller.HTTPAddRoleInheritance))
+		permissionGroup.DELETE("/inheritance", delivery.AdaptHTTPHandler(controller.HTTPRemoveRoleInheritance))
+		permissionGroup.GET("/:role/parents", delivery.AdaptHTTPHandler(controller.HTTPGetParentRoles))
 
 		// New routes for Matrix View
-		permissionGroup.GET("/resources", controller.GetResourceAggregation)
-		permissionGroup.GET("/inheritance-tree", controller.GetInheritanceTree)
+		permissionGroup.GET("/resources", delivery.AdaptHTTPHandler(controller.HTTPGetResourceAggregation))
+		permissionGroup.GET("/inheritance-tree", delivery.AdaptHTTPHandler(controller.HTTPGetInheritanceTree))
 
 		// Bulk Access Right assignment
-		permissionGroup.GET("/roles/:role/access-rights", controller.GetRoleAccessRights)
-		permissionGroup.POST("/assign-access-right", controller.AssignAccessRight)
-		permissionGroup.DELETE("/revoke-access-right", controller.RevokeAccessRight)
+		permissionGroup.GET("/roles/:role/access-rights", delivery.AdaptHTTPHandler(controller.HTTPGetRoleAccessRights))
+		permissionGroup.POST("/assign-access-right", delivery.AdaptHTTPHandler(controller.HTTPAssignAccessRight))
+		permissionGroup.DELETE("/revoke-access-right", delivery.AdaptHTTPHandler(controller.HTTPRevokeAccessRight))
 	}
 }
 
 // RegisterBatchCheckRoute registers the route for batch permission checking which requires authentication but not specific admin permissions.
 func RegisterBatchCheckRoute(router *gin.RouterGroup, controller *PermissionController) {
-	router.POST("/permissions/check-batch", controller.BatchCheck)
+	router.POST("/permissions/check-batch", delivery.AdaptHTTPHandler(controller.HTTPBatchCheck))
 }

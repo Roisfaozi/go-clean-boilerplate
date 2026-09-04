@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
@@ -8,11 +9,11 @@ import (
 func RegisterAuthorizedRoutes(router *gin.RouterGroup, roleHandler *RoleController) {
 	roleGroup := router.Group("/roles")
 	{
-		roleGroup.POST("", roleHandler.Create)
-		roleGroup.GET("", roleHandler.GetAll)
-		roleGroup.PUT("/:id", roleHandler.Update)
-		roleGroup.POST("/search", roleHandler.GetRolesDynamic)
-		roleGroup.DELETE("/:id", roleHandler.Delete)
+		roleGroup.POST("", delivery.AdaptHTTPHandler(roleHandler.HTTPCreate))
+		roleGroup.GET("", delivery.AdaptHTTPHandler(roleHandler.HTTPGetAll))
+		roleGroup.PUT("/:id", delivery.AdaptHTTPHandler(roleHandler.HTTPUpdate))
+		roleGroup.POST("/search", delivery.AdaptHTTPHandler(roleHandler.HTTPGetRolesDynamic))
+		roleGroup.DELETE("/:id", delivery.AdaptHTTPHandler(roleHandler.HTTPDelete))
 	}
 }
 
@@ -20,9 +21,9 @@ func RegisterAuthorizedRoutes(router *gin.RouterGroup, roleHandler *RoleControll
 func RegisterTenantRoutes(router *gin.RouterGroup, roleHandler *RoleController, apiKeyMiddleware *middleware.APIKeyMiddleware) {
 	orgRoleGroup := router.Group("/organizations/:id/roles")
 	{
-		orgRoleGroup.POST("", apiKeyMiddleware.RequireScopes("role:manage"), roleHandler.CreateOrganizationRole)
-		orgRoleGroup.GET("", apiKeyMiddleware.RequireScopes("role:view", "role:manage"), roleHandler.GetOrganizationRoles)
-		orgRoleGroup.PUT("/:roleId", apiKeyMiddleware.RequireScopes("role:manage"), roleHandler.UpdateOrganizationRole)
-		orgRoleGroup.DELETE("/:roleId", apiKeyMiddleware.RequireScopes("role:manage"), roleHandler.DeleteOrganizationRole)
+		orgRoleGroup.POST("", apiKeyMiddleware.RequireScopes("role:manage"), delivery.AdaptHTTPHandler(roleHandler.HTTPCreateOrganizationRole))
+		orgRoleGroup.GET("", apiKeyMiddleware.RequireScopes("role:view", "role:manage"), delivery.AdaptHTTPHandler(roleHandler.HTTPGetOrganizationRoles))
+		orgRoleGroup.PUT("/:roleId", apiKeyMiddleware.RequireScopes("role:manage"), delivery.AdaptHTTPHandler(roleHandler.HTTPUpdateOrganizationRole))
+		orgRoleGroup.DELETE("/:roleId", apiKeyMiddleware.RequireScopes("role:manage"), delivery.AdaptHTTPHandler(roleHandler.HTTPDeleteOrganizationRole))
 	}
 }
