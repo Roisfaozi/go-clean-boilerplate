@@ -8,21 +8,21 @@ const (
 )
 
 type AuditOutbox struct {
-	ID             string  `gorm:"primaryKey;type:varchar(36)"`
-	OrganizationID *string `gorm:"type:varchar(36)"`
-	UserID         string  `gorm:"type:varchar(36);not null"`
-	Action         string  `gorm:"size:50;not null"`
-	Entity         string  `gorm:"size:50;not null"`
-	EntityID       string  `gorm:"size:100;not null"`
-	OldValues      string  `gorm:"type:json"`
-	NewValues      string  `gorm:"type:json"`
-	IPAddress      string  `gorm:"size:45"`
-	UserAgent      string  `gorm:"size:255"`
-	Status         string  `gorm:"size:20;default:'pending'"`
-	RetryCount     int     `gorm:"default:0"`
-	LastError      string  `gorm:"type:text"`
-	CreatedAt      int64   `gorm:"autoCreateTime:milli"`
-	UpdatedAt      int64   `gorm:"autoCreateTime:milli;autoUpdateTime:milli"`
+	ID             string  `db:"id" gorm:"primaryKey;type:varchar(36)"`
+	OrganizationID *string `db:"organization_id" gorm:"type:varchar(36)"`
+	UserID         string  `db:"user_id" gorm:"type:varchar(36);not null"`
+	Action         string  `db:"action" gorm:"size:50;not null"`
+	Entity         string  `db:"entity" gorm:"size:50;not null"`
+	EntityID       string  `db:"entity_id" gorm:"size:100;not null"`
+	OldValues      string  `db:"old_values" gorm:"type:json"`
+	NewValues      string  `db:"new_values" gorm:"type:json"`
+	IPAddress      string  `db:"ip_address" gorm:"size:45"`
+	UserAgent      string  `db:"user_agent" gorm:"size:255"`
+	Status         string  `db:"status" gorm:"size:20;default:'pending'"`
+	RetryCount     int     `db:"retry_count" gorm:"default:0"`
+	LastError      string  `db:"last_error" gorm:"type:text"`
+	CreatedAt      int64   `db:"created_at" gorm:"autoCreateTime:milli"`
+	UpdatedAt      int64   `db:"updated_at" gorm:"autoCreateTime:milli;autoUpdateTime:milli"`
 }
 
 func (AuditOutbox) TableName() string {
