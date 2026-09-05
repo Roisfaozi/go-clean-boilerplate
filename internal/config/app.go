@@ -191,7 +191,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	authUseCase := modules.auth.AuthController.AuthUseCase
 	authMiddleware := middleware.NewAuthMiddleware(authUseCase, logger, ticketManager)
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(modules.apiKey.UseCase, modules.user.UserRepo, logger)
-	casbinMiddleware := middleware.CasbinMiddleware(enforcer, logger)
 	tenantMiddleware := middleware.NewTenantMiddleware(
 		modules.organization.OrgRepo,
 		modules.organization.Reader(),
@@ -208,17 +207,12 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		logger.Info("TUS Handler initialized.")
 	}
 
-	configRouter := router.RouterConfig{
-		AllowedOrigins:   cfg.CORS.AllowedOrigins,
-		TrustedProxies:   cfg.Server.TrustedProxies,
-		RateLimitEnabled: cfg.RateLimit.Enabled,
-		RateLimitRPS:     cfg.RateLimit.RPS,
-		RateLimitBurst:   cfg.RateLimit.Burst,
-		RateLimitStore:   cfg.RateLimit.Store,
-		MetricsEnabled:   cfg.Metrics.Enabled,
-		MetricsAuth:      cfg.Metrics.AuthEnabled,
-		MetricsUser:      cfg.Metrics.Username,
-		MetricsPass:      cfg.Metrics.Password,
+	stdRouterCfg := router.StdRouterConfig{
+		AllowedOrigins: cfg.CORS.AllowedOrigins,
+		MetricsEnabled: cfg.Metrics.Enabled,
+		MetricsAuth:    cfg.Metrics.AuthEnabled,
+		MetricsUser:    cfg.Metrics.Username,
+		MetricsPass:    cfg.Metrics.Password,
 		OTEL: struct {
 			Enabled     bool
 			ServiceName string
@@ -228,8 +222,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		},
 	}
 
-	ginRouter := router.SetupRouter(
-		configRouter,
+	stdRouter := router.SetupStdRouter(
+		stdRouterCfg,
 		modules.auth,
 		modules.user,
 		modules.permission,
@@ -243,21 +237,21 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 		modules.webhook,
 		authMiddleware,
 		apiKeyMiddleware,
-		casbinMiddleware,
+		enforcer,
 		tenantMiddleware,
 		wsController,
 		sseManager,
-		dbConnection,
+		sqlxDB,
 		redisClient,
 		tusHandler,
 		logger,
 	)
-	logger.Info("Router setup complete.")
+	logger.Info("Stdlib router setup complete.")
 
 	serverPort := fmt.Sprintf(":%d", cfg.Server.Port)
 	httpServer := &http.Server{
 		Addr:    serverPort,
-		Handler: ginRouter,
+		Handler: stdRouter,
 	}
 	logger.Infof("Server configured to run on port %s", serverPort)
 

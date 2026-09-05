@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"sync"
 
 	_ "github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
@@ -109,61 +110,55 @@ func (m *Manager) UnregisterClient(client *Client) {
 	m.unregister <- client
 }
 
-// ServeHTTP godoc
-// @Summary      SSE connection
-// @Description  Establishes a Server-Sent Events connection for unidirectional real-time notifications.
-// @Tags         realtime
-// @Security     BearerAuth
-// @Produce      text/event-stream
-// @Success      200  {string}  string "Event stream"
-// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
-// @Router       /events [get]
-func (m *Manager) ServeHTTP() gin.HandlerFunc {
-	return func(c *gin.Context) {
+// ServeHTTP returns standard net/http handler.
+func (m *Manager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+		return
+	}
 
-		c.Writer.Header().Set("Content-Type", "text/event-stream")
-		c.Writer.Header().Set("Cache-Control", "no-cache")
-		c.Writer.Header().Set("Connection", "keep-alive")
-		c.Writer.Header().Set("Transfer-Encoding", "chunked")
-		c.Writer.Flush()
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	flusher.Flush()
 
-		clientChan := make(chan Event, 10)
-		client := &Client{Channel: clientChan}
+	clientChan := make(chan Event, 10)
+	client := &Client{Channel: clientChan}
+	m.register <- client
+	defer func() {
+		m.unregister <- client
+	}()
 
-		m.register <- client
-
-		defer func() {
-			m.unregister <- client
-		}()
-
-		c.Stream(func(w io.Writer) bool {
-			select {
-			case <-c.Request.Context().Done():
-				return false
-			case event, ok := <-clientChan:
-				if !ok {
-					return false
-				}
-
-				if _, err := fmt.Fprintf(c.Writer, "event: %s\n", event.Name); err != nil {
-					return false
-				}
-
-				jsonData, err := json.Marshal(event.Data)
-				if err != nil {
-					m.log.Errorf("Failed to marshal SSE event data: %v", err)
-					if _, err := fmt.Fprintf(c.Writer, "data: %v\n\n", event.Data); err != nil {
-						return false
-					}
-				} else {
-					if _, err := fmt.Fprintf(c.Writer, "data: %s\n\n", jsonData); err != nil {
-						return false
-					}
-				}
-
-				c.Writer.Flush()
-				return true
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case event, ok := <-clientChan:
+			if !ok {
+				return
 			}
-		})
+			if _, err := fmt.Fprintf(w, "event: %s\n", event.Name); err != nil {
+				return
+			}
+			jsonData, err := json.Marshal(event.Data)
+			if err != nil {
+				if _, err := fmt.Fprintf(w, "data: %v\n\n", event.Data); err != nil {
+					return
+				}
+			} else {
+				if _, err := fmt.Fprintf(w, "data: %s\n\n", jsonData); err != nil {
+					return
+				}
+			}
+			flusher.Flush()
+		}
+	}
+}
+
+// GinServeHTTP returns gin-compatible handler wrapper.
+func (m *Manager) GinServeHTTP() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		m.ServeHTTP(c.Writer, c.Request)
 	}
 }

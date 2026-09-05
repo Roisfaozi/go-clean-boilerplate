@@ -152,7 +152,7 @@ func SetupRouter(
 		metricsGroup.GET("", gin.WrapH(promhttp.Handler()))
 	}
 
-	apiV1.GET("/events", authMiddleware.ValidateToken(), sseManager.ServeHTTP())
+	apiV1.GET("/events", authMiddleware.ValidateToken(), sseManager.GinServeHTTP())
 	apiV1.GET("/ws", authMiddleware.ValidateWebSocketToken(), wsController.HandleWebSocket)
 	apiV1.GET("/health", GetHealth(db, redisClient))
 

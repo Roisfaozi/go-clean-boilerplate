@@ -60,7 +60,57 @@ func NewWebSocketController(log *logrus.Logger, manager Manager, allowedOrigins 
 	}
 }
 
-// HandleWebSocket godoc
+// HandleWebSocketHTTP serves standard net/http WebSocket upgrade requests.
+func (c *WebSocketController) HandleWebSocketHTTP(w http.ResponseWriter, r *http.Request) {
+	conn, err := c.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		c.log.Errorf("Failed to upgrade connection: %v", err)
+		return
+	}
+
+	config := &WebSocketConfig{
+		WriteWait:      10 * time.Second,
+		PongWait:       60 * time.Second,
+		PingPeriod:     54 * time.Second,
+		MaxMessageSize: 512 * 1024,
+	}
+
+	userID, _ := r.Context().Value("user_id").(string)
+	orgID, _ := r.Context().Value("organization_id").(string)
+	if orgID == "" {
+		orgID = defaultOrgID
+	}
+
+	var userData *PresenceUser
+	if userID != "" && c.userRepo != nil {
+		user, err := c.userRepo.FindByID(r.Context(), userID)
+		if err == nil && user != nil {
+			role := defaultUserRole
+			if c.enforcer != nil {
+				roles, _ := c.enforcer.GetRolesForUser(userID, orgID)
+				if len(roles) > 0 {
+					role = roles[0]
+				}
+			}
+			userData = &PresenceUser{
+				UserID:    userID,
+				Name:      user.Name,
+				AvatarURL: user.AvatarURL,
+				Role:      role,
+				Status:    presenceStatusOnline,
+			}
+		}
+	}
+
+	client := NewWebsocketClient(conn, c.manager, c.log, config, userID, orgID, userData)
+	c.manager.RegisterClient(client)
+
+	go client.WritePump()
+	go client.ReadPump()
+
+	c.log.Infof("New WebSocket connection established for user %s in org %s", userID, orgID)
+}
+
 // @Summary      WebSocket connection
 // @Description  Establishes a WebSocket connection for real-time updates and presence. Requires a one-time ticket obtained from `/auth/ticket`.
 // @Tags         realtime
