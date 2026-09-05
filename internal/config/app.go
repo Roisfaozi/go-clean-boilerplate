@@ -21,9 +21,9 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	ws2 "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/hibiken/asynq"
+	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 const (
@@ -33,7 +33,7 @@ const (
 
 type Application struct {
 	Server            *http.Server
-	DB                *gorm.DB
+	DB                *sqlx.DB
 	Redis             *redis.Client
 	Log               *logrus.Logger
 	Enforcer          permission.IEnforcer
@@ -73,7 +73,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	}
 
 	validate := NewValidator()
-	dbConnection, sqlxDB := NewDatabase(cfg, logger)
+	sqlxDB := NewSQLXDatabase(cfg, logger)
 
 	redisClient := NewRedisConfig(cfg, logger)
 
@@ -107,7 +107,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	sseManager := sse.NewManager()
 	logger.Info("SSE Manager initialized.")
 
-	globalEnforcer, err := NewCasbinEnforcer(cfg, dbConnection, logger)
+	globalEnforcer, err := NewCasbinEnforcer(cfg, sqlxDB, logger)
 	if err != nil {
 		logger.Errorf("Error initializing casbin enforcer: %v", err)
 		return nil, err
@@ -142,7 +142,6 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	modules := initModules(
 		cfg,
-		dbConnection,
 		sqlxDB,
 		redisClient,
 		logger,
@@ -264,7 +263,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	app := &Application{
 		Server:            httpServer,
-		DB:                dbConnection,
+		DB:                sqlxDB,
 		Redis:             redisClient,
 		Log:               logger,
 		Enforcer:          enforcer,
@@ -319,10 +318,7 @@ func (app *Application) Shutdown(ctx context.Context) error {
 
 	if app.DB != nil {
 		app.Log.Info("Closing database connection...")
-		sqlDB, err := app.DB.DB()
-		if err != nil {
-			app.Log.Errorf("Failed to get DB instance for closing: %v", err)
-		} else if err := sqlDB.Close(); err != nil {
+		if err := app.DB.Close(); err != nil {
 			app.Log.Errorf("Failed to close database connection: %v", err)
 		}
 	}

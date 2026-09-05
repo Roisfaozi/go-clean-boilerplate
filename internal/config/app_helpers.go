@@ -39,7 +39,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/tus/tusd/v2/pkg/handler"
-	"gorm.io/gorm"
 )
 
 type appModules struct {
@@ -89,7 +88,6 @@ func initSSOProviders(cfg *AppConfig) map[string]sso.Provider {
 
 func initModules(
 	cfg *AppConfig,
-	dbConnection *gorm.DB,
 	sqlxDB *sqlx.DB,
 	redisClient *redis.Client,
 	logger *logrus.Logger,
@@ -106,16 +104,16 @@ func initModules(
 	ssoProviders map[string]sso.Provider,
 ) appModules {
 	roleRepo := roleRepository.NewRoleRepository(sqlxDB, logger)
-	organizationRepository := orgRepo.NewOrganizationRepository(dbConnection, redisClient)
+	organizationRepository := orgRepo.NewOrganizationRepository(sqlxDB, redisClient)
 
-	auditModule := audit.NewAuditModule(dbConnection, logger, validate, wsManager, taskDistributor)
+	auditModule := audit.NewAuditModule(sqlxDB, logger, validate, wsManager, taskDistributor)
 
 	authModule := auth.NewAuthModule(
 		cfg.Security.MaxLoginAttempts,
 		cfg.Security.LockoutDuration,
 		cfg.Security.MaxConcurrentSessions,
 		jwtManager,
-		dbConnection,
+		sqlxDB,
 		redisClient,
 		logger,
 		validate,
@@ -138,11 +136,11 @@ func initModules(
 		},
 	)
 
-	webhookModule := webhook.NewWebhookModule(dbConnection, logger, validate, taskDistributor)
+	webhookModule := webhook.NewWebhookModule(sqlxDB, logger, validate, taskDistributor)
 
-	userModule := user.NewUserModule(dbConnection, logger, validate, tm, enforcer, auditModule, authModule, webhookModule, storageProvider)
+	userModule := user.NewUserModule(sqlxDB, logger, validate, tm, enforcer, auditModule, authModule, webhookModule, storageProvider)
 
-	apiKeyModule := api_key.NewApiKeyModule(dbConnection, userModule.UserRepo, redisClient, logger, validate)
+	apiKeyModule := api_key.NewApiKeyModule(sqlxDB, userModule.UserRepo, redisClient, logger, validate)
 
 	accessModule := access.NewAccessModule(sqlxDB, logger, validate)
 
@@ -150,11 +148,11 @@ func initModules(
 
 	roleModule := role.NewRoleModule(sqlxDB, logger, validate, tm, permissionModule.PermissionUseCase)
 
-	statsModule := stats.NewStatsModule(dbConnection, logger)
+	statsModule := stats.NewStatsModule(sqlxDB, logger)
 
 	projectModule := project.NewProjectModule(sqlxDB, validate)
 
-	organizationModule := organization.NewOrganizationModule(dbConnection, redisClient, taskDistributor, userModule.UserRepo, logger, validate, tm, enforcer, presenceManager, cfg.Server.FrontendBaseURL, roleRepo)
+	organizationModule := organization.NewOrganizationModule(sqlxDB, redisClient, taskDistributor, userModule.UserRepo, logger, validate, tm, enforcer, presenceManager, cfg.Server.FrontendBaseURL, roleRepo)
 
 	return appModules{
 		audit:        auditModule,
