@@ -85,7 +85,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
 
-	tm := tx.NewTransactionManager(dbConnection, logger)
+	tm := tx.NewSQLXTransactionManager(sqlxDB, logger)
 
 	jwtManager := jwt.NewJWTManager(
 		cfg.JWT.AccessTokenSecret,

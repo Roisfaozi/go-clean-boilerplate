@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	authUsecase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
@@ -94,6 +95,11 @@ func (m *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 		ctx = authcontext.WithSessionID(ctx, claims.SessionID)
 		ctx = authcontext.WithRole(ctx, claims.Role)
 		ctx = authcontext.WithUsername(ctx, claims.Username)
+		ctx = delivery.SetContextValue(ctx, delivery.UserIDKey, claims.UserID)
+		ctx = delivery.SetContextValue(ctx, delivery.SessionIDKey, claims.SessionID)
+		ctx = delivery.SetContextValue(ctx, delivery.RoleKey, claims.Role)
+		ctx = delivery.SetContextValue(ctx, delivery.UsernameKey, claims.Username)
+		ctx = delivery.SetContextValue(ctx, delivery.AuthMethodKey, "jwt")
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()
