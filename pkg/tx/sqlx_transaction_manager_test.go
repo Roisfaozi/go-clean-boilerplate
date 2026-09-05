@@ -16,7 +16,9 @@ import (
 func TestSQLXTransactionManager_Commit(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	logger := logrus.New()
@@ -41,7 +43,9 @@ func TestSQLXTransactionManager_Commit(t *testing.T) {
 func TestSQLXTransactionManager_Rollback(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	logger := logrus.New()
@@ -67,7 +71,9 @@ func TestSQLXTransactionManager_Rollback(t *testing.T) {
 func TestSQLXTransactionManager_Panic(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	logger := logrus.New()

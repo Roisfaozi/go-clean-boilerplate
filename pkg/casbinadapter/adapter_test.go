@@ -40,7 +40,9 @@ func setupAdapterMock(t *testing.T) (*sqlx.DB, sqlmock.Sqlmock, *casbinadapter.S
 
 func TestSQLXCasbinAdapter_LoadPolicy(t *testing.T) {
 	db, mock, adapter := setupAdapterMock(t)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	rows := sqlmock.NewRows([]string{"id", "ptype", "v0", "v1", "v2", "v3", "v4", "v5"}).
 		AddRow(1, "p", "admin", "org1", "/api/v1/projects", "GET", nil, nil).
@@ -59,7 +61,9 @@ func TestSQLXCasbinAdapter_LoadPolicy(t *testing.T) {
 
 func TestSQLXCasbinAdapter_LoadPolicyIgnoresTrailingEmptyColumns(t *testing.T) {
 	db, mock, adapter := setupAdapterMock(t)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	rows := sqlmock.NewRows([]string{"id", "ptype", "v0", "v1", "v2", "v3", "v4", "v5"}).
 		AddRow(1, "g", "alice", "admin", "org1", "", "", nil)
@@ -83,7 +87,7 @@ func TestSQLXCasbinAdapter_LoadPolicyIgnoresTrailingEmptyColumns(t *testing.T) {
 
 func TestSQLXCasbinAdapter_AddPolicy(t *testing.T) {
 	db, mock, adapter := setupAdapterMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectExec("INSERT INTO casbin_rule").
 		WithArgs("p", "admin", "org1", "/api/v1/projects", "GET").
@@ -96,7 +100,7 @@ func TestSQLXCasbinAdapter_AddPolicy(t *testing.T) {
 
 func TestSQLXCasbinAdapter_RemovePolicy(t *testing.T) {
 	db, mock, adapter := setupAdapterMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectExec("DELETE FROM casbin_rule WHERE").
 		WithArgs("p", "admin", "org1").
@@ -109,7 +113,7 @@ func TestSQLXCasbinAdapter_RemovePolicy(t *testing.T) {
 
 func TestSQLXCasbinAdapter_Enforcement(t *testing.T) {
 	db, mock, adapter := setupAdapterMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	rows := sqlmock.NewRows([]string{"id", "ptype", "v0", "v1", "v2", "v3", "v4", "v5"}).
 		AddRow(1, "p", "admin", "org1", "/api/v1/projects", "GET", nil, nil).

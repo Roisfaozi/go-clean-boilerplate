@@ -16,8 +16,8 @@ func ExtractSQLX(db any) *sqlx.DB {
 			panic(err)
 		}
 		driverName := "mysql"
-		if d.Dialector != nil && d.Dialector.Name() != "" {
-			driverName = d.Dialector.Name()
+		if d.Name() != "" {
+			driverName = d.Name()
 		}
 		return sqlx.NewDb(sqlDB, driverName)
 	default:

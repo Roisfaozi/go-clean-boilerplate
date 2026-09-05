@@ -22,8 +22,7 @@ type CasbinRule struct {
 }
 
 type SQLXCasbinAdapter struct {
-	dbtx     tx.DBTX
-	filtered bool
+	dbtx tx.DBTX
 }
 
 func NewSQLXCasbinAdapter(dbtx tx.DBTX) *SQLXCasbinAdapter {
@@ -62,7 +61,7 @@ func loadRule(rule CasbinRule, m model.Model) {
 	if len(policy) > 0 {
 		lineText += ", " + strings.Join(policy, ", ")
 	}
-	persist.LoadPolicyLine(lineText, m)
+	_ = persist.LoadPolicyLine(lineText, m)
 }
 
 func (a *SQLXCasbinAdapter) SavePolicy(m model.Model) error {
@@ -125,6 +124,109 @@ func (a *SQLXCasbinAdapter) AddPolicies(sec string, ptype string, rules [][]stri
 		}
 	}
 	return nil
+}
+
+func (a *SQLXCasbinAdapter) UpdatePolicy(sec string, ptype string, oldRule, newRule []string) error {
+	ctx := context.Background()
+	setClauses := make([]string, len(newRule))
+	setArgs := make([]any, len(newRule))
+	for i, val := range newRule {
+		if i >= 6 {
+			break
+		}
+		setClauses[i] = fmt.Sprintf("v%d = ?", i)
+		setArgs[i] = val
+	}
+
+	whereClauses := []string{"ptype = ?"}
+	whereArgs := []any{ptype}
+	for i, val := range oldRule {
+		if i >= 6 {
+			break
+		}
+		whereClauses = append(whereClauses, fmt.Sprintf("v%d = ?", i))
+		whereArgs = append(whereArgs, val)
+	}
+
+	query := fmt.Sprintf(`UPDATE casbin_rule SET %s WHERE %s`,
+		strings.Join(setClauses, ", "),
+		strings.Join(whereClauses, " AND "),
+	)
+	args := append(setArgs, whereArgs...)
+	_, err := a.dbtx.ExecContext(ctx, query, args...)
+	return err
+}
+
+func (a *SQLXCasbinAdapter) UpdatePolicies(sec string, ptype string, oldRules, newRules [][]string) error {
+	if len(oldRules) != len(newRules) {
+		return fmt.Errorf("the length of oldRules should be equal to the length of newRules, but got %d and %d", len(oldRules), len(newRules))
+	}
+	for i := range oldRules {
+		if err := a.UpdatePolicy(sec, ptype, oldRules[i], newRules[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *SQLXCasbinAdapter) UpdateFilteredPolicies(sec string, ptype string, newRules [][]string, fieldIndex int, fieldValues ...string) ([][]string, error) {
+	ctx := context.Background()
+	whereClauses := []string{"ptype = ?"}
+	args := []any{ptype}
+
+	for i, val := range fieldValues {
+		if val != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("v%d = ?", fieldIndex+i))
+			args = append(args, val)
+		}
+	}
+
+	oldRules, err := a.queryRules(ctx, strings.Join(whereClauses, " AND "), args...)
+	if err != nil {
+		return nil, err
+	}
+
+	deleteQuery := fmt.Sprintf(`DELETE FROM casbin_rule WHERE %s`, strings.Join(whereClauses, " AND "))
+	if _, err := a.dbtx.ExecContext(ctx, deleteQuery, args...); err != nil {
+		return nil, err
+	}
+
+	for _, rule := range newRules {
+		if err := a.saveRule(ctx, ptype, rule); err != nil {
+			return oldRules, err
+		}
+	}
+	return oldRules, nil
+}
+
+func (a *SQLXCasbinAdapter) queryRules(ctx context.Context, where string, args ...any) ([][]string, error) {
+	query := fmt.Sprintf(`SELECT v0, v1, v2, v3, v4, v5 FROM casbin_rule WHERE %s`, where)
+	rows, err := a.dbtx.QueryxContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	var result [][]string
+	for rows.Next() {
+		var vals [6]*string
+		if err := rows.Scan(&vals[0], &vals[1], &vals[2], &vals[3], &vals[4], &vals[5]); err != nil {
+			return nil, err
+		}
+		rule := make([]string, 6)
+		for i := range vals {
+			if vals[i] != nil {
+				rule[i] = *vals[i]
+			}
+		}
+		for len(rule) > 0 && rule[len(rule)-1] == "" {
+			rule = rule[:len(rule)-1]
+		}
+		result = append(result, rule)
+	}
+	return result, rows.Err()
 }
 
 func (a *SQLXCasbinAdapter) RemovePolicy(sec string, ptype string, rule []string) error {
