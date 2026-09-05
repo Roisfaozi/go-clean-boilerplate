@@ -4,12 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/entity"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/google/uuid"
@@ -49,8 +46,8 @@ func (r *webhookRepository) Create(ctx context.Context, webhook *entity.Webhook)
 	}
 
 	query := `
-		INSERT INTO webhooks (id, name, organization_id, url, events, secret, is_active, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO webhooks (id, name, organization_id, url, events, secret, is_active, created_at, updated_at, deleted_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
 	`
 	_, err := r.getDB(ctx).ExecContext(ctx, query,
 		webhook.ID, webhook.Name, webhook.OrganizationID, webhook.URL,
@@ -77,44 +74,24 @@ func (r *webhookRepository) Update(ctx context.Context, webhook *entity.Webhook)
 
 func (r *webhookRepository) Delete(ctx context.Context, id string, organizationID string) error {
 	now := time.Now().UnixMilli()
-	whereClauses := []string{"id = ?", "organization_id = ?", "deleted_at = 0"}
-	args := []any{now, id, organizationID}
-
-	visClause, visArgs := database.SQLOrganizationVisibilityClause(ctx, "webhooks.organization_id")
-	if visClause != "" {
-		whereClauses = append(whereClauses, visClause)
-		args = append(args, visArgs...)
-	}
-
-	query := fmt.Sprintf(`
+	query := `
 		UPDATE webhooks
 		SET deleted_at = ?
-		WHERE %s
-	`, strings.Join(whereClauses, " AND "))
-
-	_, err := r.getDB(ctx).ExecContext(ctx, query, args...)
+		WHERE id = ? AND organization_id = ? AND deleted_at = 0
+	`
+	_, err := r.getDB(ctx).ExecContext(ctx, query, now, id, organizationID)
 	return err
 }
 
 func (r *webhookRepository) FindByID(ctx context.Context, id string, organizationID string) (*entity.Webhook, error) {
-	whereClauses := []string{"id = ?", "organization_id = ?", "deleted_at = 0"}
-	args := []any{id, organizationID}
-
-	visClause, visArgs := database.SQLOrganizationVisibilityClause(ctx, "webhooks.organization_id")
-	if visClause != "" {
-		whereClauses = append(whereClauses, visClause)
-		args = append(args, visArgs...)
-	}
-
-	query := fmt.Sprintf(`
+	query := `
 		SELECT id, name, organization_id, url, events, secret, is_active, created_at, updated_at
 		FROM webhooks
-		WHERE %s
+		WHERE id = ? AND organization_id = ? AND deleted_at = 0
 		LIMIT 1
-	`, strings.Join(whereClauses, " AND "))
-
+	`
 	var webhook entity.Webhook
-	err := r.getDB(ctx).GetContext(ctx, &webhook, query, args...)
+	err := r.getDB(ctx).GetContext(ctx, &webhook, query, id, organizationID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, exception.ErrNotFound
@@ -125,24 +102,14 @@ func (r *webhookRepository) FindByID(ctx context.Context, id string, organizatio
 }
 
 func (r *webhookRepository) FindByOrganizationID(ctx context.Context, organizationID string) ([]entity.Webhook, error) {
-	whereClauses := []string{"organization_id = ?", "deleted_at = 0"}
-	args := []any{organizationID}
-
-	visClause, visArgs := database.SQLOrganizationVisibilityClause(ctx, "webhooks.organization_id")
-	if visClause != "" {
-		whereClauses = append(whereClauses, visClause)
-		args = append(args, visArgs...)
-	}
-
-	query := fmt.Sprintf(`
+	query := `
 		SELECT id, name, organization_id, url, events, secret, is_active, created_at, updated_at
 		FROM webhooks
-		WHERE %s
+		WHERE organization_id = ? AND deleted_at = 0
 		ORDER BY created_at DESC
-	`, strings.Join(whereClauses, " AND "))
-
+	`
 	var webhooks []entity.Webhook
-	err := r.getDB(ctx).SelectContext(ctx, &webhooks, query, args...)
+	err := r.getDB(ctx).SelectContext(ctx, &webhooks, query, organizationID)
 	if err != nil {
 		return nil, err
 	}
@@ -150,29 +117,17 @@ func (r *webhookRepository) FindByOrganizationID(ctx context.Context, organizati
 }
 
 func (r *webhookRepository) FindByEvent(ctx context.Context, organizationID string, event string) ([]entity.Webhook, error) {
-	whereClauses := []string{
-		"organization_id = ?",
-		"is_active = true",
-		"deleted_at = 0",
-		"JSON_CONTAINS(events, JSON_QUOTE(?))",
-	}
-	args := []any{organizationID, event}
-
-	visClause, visArgs := database.SQLOrganizationVisibilityClause(ctx, "webhooks.organization_id")
-	if visClause != "" {
-		whereClauses = append(whereClauses, visClause)
-		args = append(args, visArgs...)
-	}
-
-	query := fmt.Sprintf(`
+	query := `
 		SELECT id, name, organization_id, url, events, secret, is_active, created_at, updated_at
 		FROM webhooks
-		WHERE %s
+		WHERE organization_id = ?
+		  AND is_active = 1
+		  AND deleted_at = 0
+		  AND JSON_CONTAINS(events, JSON_QUOTE(?))
 		ORDER BY created_at DESC
-	`, strings.Join(whereClauses, " AND "))
-
+	`
 	var webhooks []entity.Webhook
-	err := r.getDB(ctx).SelectContext(ctx, &webhooks, query, args...)
+	err := r.getDB(ctx).SelectContext(ctx, &webhooks, query, organizationID, event)
 	if err != nil {
 		return nil, err
 	}

@@ -51,7 +51,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			log.Printf("error closing db: %v", closeErr)
+		}
+	}()
 
 	log.Println("Database connected. Starting Tiered Authorization Seeder (direct SQLX)...")
 
@@ -65,7 +69,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to begin seed transaction: %v", err)
 	}
-	defer txx.Rollback()
+	defer func() {
+		_ = txx.Rollback()
+	}()
 
 	if err := seedRoles(ctx, txx); err != nil {
 		log.Fatalf("seed roles: %v", err)

@@ -24,7 +24,9 @@ func setupMockDB(t *testing.T) (*sqlx.DB, sqlmock.Sqlmock) {
 
 func TestProjectRepository_Create(t *testing.T) {
 	db, mock := setupMockDB(t)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	repo := repository.NewProjectRepository(db)
 
@@ -47,7 +49,9 @@ func TestProjectRepository_Create(t *testing.T) {
 
 func TestProjectRepository_GetByID_Success(t *testing.T) {
 	db, mock := setupMockDB(t)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	repo := repository.NewProjectRepository(db)
 
@@ -67,7 +71,9 @@ func TestProjectRepository_GetByID_Success(t *testing.T) {
 
 func TestProjectRepository_GetByID_NotFound(t *testing.T) {
 	db, mock := setupMockDB(t)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	repo := repository.NewProjectRepository(db)
 
@@ -85,7 +91,7 @@ func TestProjectRepository_GetByID_NotFound(t *testing.T) {
 
 func TestProjectRepository_GetByID_TenantScoped(t *testing.T) {
 	db, mock := setupMockDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := repository.NewProjectRepository(db)
 	ctx := database.SetOrganizationContext(context.Background(), "org-1")
@@ -105,7 +111,7 @@ func TestProjectRepository_GetByID_TenantScoped(t *testing.T) {
 
 func TestProjectRepository_GetByOrgID(t *testing.T) {
 	db, mock := setupMockDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := repository.NewProjectRepository(db)
 
@@ -125,7 +131,7 @@ func TestProjectRepository_GetByOrgID(t *testing.T) {
 
 func TestProjectRepository_Update(t *testing.T) {
 	db, mock := setupMockDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := repository.NewProjectRepository(db)
 
@@ -147,7 +153,7 @@ func TestProjectRepository_Update(t *testing.T) {
 
 func TestProjectRepository_Delete(t *testing.T) {
 	db, mock := setupMockDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := repository.NewProjectRepository(db)
 
@@ -162,7 +168,7 @@ func TestProjectRepository_Delete(t *testing.T) {
 
 func TestProjectRepository_CountByUserID(t *testing.T) {
 	db, mock := setupMockDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := repository.NewProjectRepository(db)
 

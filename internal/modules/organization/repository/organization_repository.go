@@ -95,7 +95,9 @@ func (r *organizationRepository) Create(ctx context.Context, org *entity.Organiz
 	if err != nil {
 		return err
 	}
-	defer txx.Rollback()
+	defer func() {
+		_ = txx.Rollback()
+	}()
 
 	if err := createOps(txx); err != nil {
 		return err
