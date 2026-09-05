@@ -29,9 +29,9 @@ func TestScenario_PermissionBatchCheck(t *testing.T) {
 	ctx := context.Background()
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 
-	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
+	aRepo := accessRepo.NewAccessRepository(env.SQLXDB, env.Logger)
 	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo, nil)
 	roleService := roleUC.NewRoleUseCase(env.Logger, tm, rRepo, permService)
 

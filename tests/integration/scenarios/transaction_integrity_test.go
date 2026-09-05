@@ -33,15 +33,15 @@ func TestScenario_TransactionalIntegrity_RegisterRollback(t *testing.T) {
 	defer env.Cleanup()
 	setup.CleanupDatabase(t, env.DB)
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
+	uRepo := userRepo.NewUserRepository(env.SQLXDB, env.Logger)
 	mockEnforcer := new(mocks.MockIEnforcer)
 
 	// Mock WithContext to return itself
 	mockEnforcer.On("WithContext", mock.Anything).Return(mockEnforcer)
 
-	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
-	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
+	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.SQLXDB, &util.RealClock{})
+	aucRepo := auditRepo.NewAuditRepository(env.SQLXDB, env.Logger)
 	auditService := auditUC.NewAuditUseCase(aucRepo, env.Logger, nil, nil)
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)

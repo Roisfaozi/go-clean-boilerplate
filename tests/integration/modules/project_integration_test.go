@@ -19,7 +19,7 @@ import (
 )
 
 func setupProjectIntegration(env *setup.TestEnvironment) usecase.ProjectUseCase {
-	repo := repository.NewProjectRepository(env.DB)
+	repo := repository.NewProjectRepository(env.SQLXDB)
 	return usecase.NewProjectUseCase(repo)
 }
 
@@ -190,7 +190,7 @@ func TestProjectIntegration_OrganizationScopeIsolation(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 
-	repo := repository.NewProjectRepository(env.DB)
+	repo := repository.NewProjectRepository(env.SQLXDB)
 	ctx := context.Background()
 
 	userA := setup.CreateTestUser(t, env.DB, "project_repo_iso_a", "project_repo_iso_a@test.com", "Password123!")
@@ -219,7 +219,7 @@ func TestProjectIsolation_UseCase(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 
-	repo := repository.NewProjectRepository(env.DB)
+	repo := repository.NewProjectRepository(env.SQLXDB)
 	uc := usecase.NewProjectUseCase(repo)
 	ctx := context.Background()
 

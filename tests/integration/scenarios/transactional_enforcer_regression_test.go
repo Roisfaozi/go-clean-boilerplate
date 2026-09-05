@@ -61,7 +61,7 @@ func TestOrganizationUseCase_CreateOrganization_PersistsCompletePolicies(t *test
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	organizations := orgRepo.NewOrganizationRepository(env.DB)
 	members := orgRepo.NewOrganizationMemberRepository(env.DB)
-	roles := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	roles := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	uc := orgUsecase.NewOrganizationUseCase(env.Logger, tm, organizations, members, nil, env.Enforcer, roles)
 
 	resp, err := uc.CreateOrganization(context.Background(), user.ID, &orgModel.CreateOrganizationRequest{

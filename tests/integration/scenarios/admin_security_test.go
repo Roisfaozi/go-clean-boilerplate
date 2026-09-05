@@ -80,9 +80,9 @@ func TestScenario_AdminSecurity_RBAC_Lifecycle(t *testing.T) {
 	defer env.Cleanup()
 	setup.CleanupDatabase(t, env.DB)
 
-	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	uRepoData := userRepo.NewUserRepository(env.DB, env.Logger)
-	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
+	aRepo := accessRepo.NewAccessRepository(env.SQLXDB, env.Logger)
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepoData, aRepo, nil)
 	roleService := roleUC.NewRoleUseCase(env.Logger, tm, rRepo, permService)

@@ -18,7 +18,7 @@ import (
 )
 
 func setupAccessIntegration(env *setup.TestEnvironment) usecase.IAccessUseCase {
-	repo := repository.NewAccessRepository(env.DB, env.Logger)
+	repo := repository.NewAccessRepository(env.SQLXDB, env.Logger)
 	return usecase.NewAccessUseCase(repo, env.Logger)
 }
 

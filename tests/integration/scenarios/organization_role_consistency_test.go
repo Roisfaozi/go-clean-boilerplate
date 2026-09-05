@@ -32,7 +32,7 @@ func TestOrganizationRoleConsistency_Lifecycle(t *testing.T) {
 	defer env.Cleanup()
 
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
 	iRepo := orgRepo.NewInvitationRepository(env.DB)
@@ -159,7 +159,7 @@ func TestOrganizationAuth_AdminWithUUIDRoleID_CanManageMembers(t *testing.T) {
 	defer env.Cleanup()
 
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
 	iRepo := orgRepo.NewInvitationRepository(env.DB)
@@ -220,7 +220,7 @@ func TestDeleteRole_ScopedToOrganization(t *testing.T) {
 	defer env.Cleanup()
 
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
 	oReader := orgUsecase.NewCachedOrgReader(mRepo, env.Redis, env.Logger)
@@ -229,7 +229,7 @@ func TestDeleteRole_ScopedToOrganization(t *testing.T) {
 	ownerB := setup.CreateTestUser(t, env.DB, "ownerB", "ownerB@example.com", "Password123!")
 
 	orgUC := orgUsecase.NewOrganizationUseCase(env.Logger, tm, oRepo, mRepo, oReader, env.Enforcer, rRepo)
-	roleUC := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	roleUC := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	_ = roleUC
 
 	orgA, _ := orgUC.CreateOrganization(context.Background(), ownerA.ID, &orgModel.CreateOrganizationRequest{Name: "Org A", Slug: "org-a"})
@@ -251,7 +251,7 @@ func TestDeleteRole_ScopedToOrganization(t *testing.T) {
 	env.Enforcer.AddGroupingPolicy(userB.ID, "shared_name", orgB.ID)
 
 	// Delete custom role from Org A using DeleteForOrganization
-	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
+	aRepo := accessRepo.NewAccessRepository(env.SQLXDB, env.Logger)
 	usrRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	pUC := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, usrRepo, aRepo, nil)
 	rUC := roleUseCase.NewRoleUseCase(env.Logger, tm, rRepo, pUC)
@@ -270,7 +270,7 @@ func TestOrganizationRoleConsistency_ReinviteAndUpdateSuspended(t *testing.T) {
 	defer env.Cleanup()
 
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
 	iRepo := orgRepo.NewInvitationRepository(env.DB)

@@ -11,6 +11,8 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
@@ -40,6 +42,7 @@ const (
 
 type TestEnvironment struct {
 	DB        *gorm.DB
+	SQLXDB    *sqlx.DB
 	Redis     *redis.Client
 	Enforcer  usecase.IEnforcer
 	Logger    *logrus.Logger
@@ -192,6 +195,7 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 
 	return &TestEnvironment{
 		DB:        globalDB,
+		SQLXDB:    tx.ExtractSQLX(globalDB),
 		Redis:     globalRDB,
 		Enforcer:  enforcer,
 		Logger:    logger,

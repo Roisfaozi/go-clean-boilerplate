@@ -18,9 +18,9 @@ import (
 )
 
 func setupPermissionIntegration(env *setup.TestEnvironment) usecase.IPermissionUseCase {
-	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
+	aRepo := accessRepo.NewAccessRepository(env.SQLXDB, env.Logger)
 	return usecase.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo, nil)
 }
 

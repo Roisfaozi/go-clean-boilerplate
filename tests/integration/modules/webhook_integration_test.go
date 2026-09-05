@@ -34,7 +34,7 @@ func TestWebhookIntegration_FullLifecycle(t *testing.T) {
 	// Setup components
 	redisOpt := asynq.RedisClientOpt{Addr: env.RedisAddr}
 	distributor := worker.NewRedisTaskDistributor(redisOpt)
-	webhookRepo := repository.NewWebhookRepository(env.DB, env.Logger)
+	webhookRepo := repository.NewWebhookRepository(env.SQLXDB, env.Logger)
 	webhookHandler := handlers.NewWebhookHandler(webhookRepo, env.Logger)
 	cleanupHandler := handlers.NewCleanupTaskHandler(nil, nil, nil, env.Logger)
 	processor := worker.NewRedisTaskProcessor(redisOpt, env.Logger, cleanupHandler, webhookHandler, nil, nil, worker.WorkerConfig{})

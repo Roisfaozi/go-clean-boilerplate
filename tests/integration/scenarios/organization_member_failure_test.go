@@ -63,12 +63,12 @@ type memberFailureFixture struct {
 func newMemberFailureFixture(t *testing.T, env *setup.TestEnvironment, prefix string, enforcer permissionUC.IEnforcer) *memberFailureFixture {
 	t.Helper()
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
 	iRepo := orgRepo.NewInvitationRepository(env.DB)
-	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
+	uRepo := userRepo.NewUserRepository(env.SQLXDB, env.Logger)
 	oReader := orgUsecase.NewCachedOrgReader(mRepo, env.Redis, env.Logger)
 
 	owner := setup.CreateTestUser(t, env.DB, prefix+"Owner", prefix+"owner@example.com", "Password123!")

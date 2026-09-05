@@ -22,7 +22,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 )
 
 type orgRoleEndpointFixture struct {
@@ -36,11 +35,11 @@ func newOrgRoleEndpointFixture(t *testing.T, env *setup.TestEnvironment, slugPre
 	t.Helper()
 
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
-	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
+	aRepo := accessRepo.NewAccessRepository(env.SQLXDB, env.Logger)
 	oReader := orgUsecase.NewCachedOrgReader(mRepo, env.Redis, env.Logger)
 
 	pUC := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepo, aRepo, nil)
@@ -376,7 +375,7 @@ func TestRoleRepository_DirectEdgeCases(t *testing.T) {
 				require.NoError(t, f.rRepo.Delete(ctx, roleA.ID))
 
 				err := f.rRepo.Delete(ctx, roleA.ID)
-				assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+				assert.ErrorIs(t, err, exception.ErrNotFound)
 			},
 		},
 		{
@@ -402,7 +401,7 @@ func TestRoleRepository_DirectEdgeCases(t *testing.T) {
 				require.NoError(t, err)
 
 				err = f.rRepo.DeleteInOrg(context.Background(), f.orgAID, roleB.ID)
-				assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+				assert.ErrorIs(t, err, exception.ErrNotFound)
 
 				_, findErr := f.rRepo.FindOrganizationRoleByID(context.Background(), f.orgBID, roleB.ID)
 				require.NoError(t, findErr, "role must survive a cross-tenant delete attempt")
@@ -423,7 +422,7 @@ func TestRoleRepository_DirectEdgeCases(t *testing.T) {
 			name: "DeleteInOrg returns not found when role is missing",
 			run: func(t *testing.T) {
 				err := f.rRepo.DeleteInOrg(context.Background(), f.orgAID, "00000000-0000-0000-0000-000000000000")
-				assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+				assert.ErrorIs(t, err, exception.ErrNotFound)
 			},
 		},
 	}

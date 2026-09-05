@@ -30,8 +30,8 @@ func TestScenario_RBAC_Orchestration(t *testing.T) {
 	ctx := context.Background()
 	tm := tx.NewTransactionManager(env.DB, env.Logger)
 
-	rRepo := roleRepo.NewRoleRepository(env.DB, env.Logger)
-	aRepo := accessRepo.NewAccessRepository(env.DB, env.Logger)
+	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
+	aRepo := accessRepo.NewAccessRepository(env.SQLXDB, env.Logger)
 	accessService := accessUC.NewAccessUseCase(aRepo, env.Logger)
 
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)

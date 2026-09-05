@@ -33,13 +33,13 @@ func TestScenario_TransactionalIntegrity_DeleteRollback(t *testing.T) {
 	defer env.Cleanup()
 	setup.CleanupDatabase(t, env.DB)
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
-	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
+	uRepo := userRepo.NewUserRepository(env.SQLXDB, env.Logger)
 
-	realAuditRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
+	realAuditRepo := auditRepo.NewAuditRepository(env.SQLXDB, env.Logger)
 	realAuditUC := auditUC.NewAuditUseCase(realAuditRepo, env.Logger, nil, nil)
 
-	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
+	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.SQLXDB, &util.RealClock{})
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 60, 60)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB)
 	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
