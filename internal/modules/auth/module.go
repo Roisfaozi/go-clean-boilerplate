@@ -21,7 +21,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type AuthModule struct {
@@ -35,7 +34,7 @@ func NewAuthModule(
 	lockoutDuration time.Duration,
 	maxConcurrentSessions int,
 	jwtManager *jwt.JWTManager,
-	db *gorm.DB,
+	db any,
 	redisClient *redis.Client,
 	log *logrus.Logger,
 	validate *validator.Validate,

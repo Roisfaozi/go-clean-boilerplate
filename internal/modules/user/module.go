@@ -12,7 +12,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type UserModule struct {
@@ -22,7 +21,7 @@ type UserModule struct {
 }
 
 func NewUserModule(
-	db *gorm.DB,
+	db any,
 	log *logrus.Logger,
 	validator *validator.Validate,
 	tm tx.WithTransactionManager,

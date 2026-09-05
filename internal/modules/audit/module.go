@@ -8,7 +8,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type AuditModule struct {
@@ -18,15 +17,7 @@ type AuditModule struct {
 }
 
 // NewAuditModule creates a new instance of AuditModule.
-//
-// db: The GORM database connection.
-// log: The logger instance.
-// validate: The validator instance.
-// wsManager: The WebSocket manager instance.
-// taskDistributor: The task distributor instance.
-//
-// Returns a pointer to the newly created AuditModule instance.
-func NewAuditModule(db *gorm.DB, log *logrus.Logger, validate *validator.Validate, wsManager ws.Manager, taskDistributor worker.TaskDistributor) *AuditModule {
+func NewAuditModule(db any, log *logrus.Logger, validate *validator.Validate, wsManager ws.Manager, taskDistributor worker.TaskDistributor) *AuditModule {
 	repo := repository.NewAuditRepository(db, log)
 	uc := usecase.NewAuditUseCase(repo, log, wsManager, taskDistributor)
 	controller := http.NewAuditController(uc, validate, log)
