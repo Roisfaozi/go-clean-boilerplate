@@ -1,6 +1,9 @@
 package middleware
 
 import (
+	"bufio"
+	"errors"
+	"net"
 	"net/http"
 	"time"
 
@@ -28,12 +31,32 @@ func (r *responseRecorder) Write(b []byte) (int, error) {
 	return n, err
 }
 
+// hijackForwarder preserves the inner ResponseWriter's optional interfaces
+// (Hijacker, Flusher, Pusher, CloseNotifier) so WebSocket upgrades keep working.
+type hijackForwarder struct {
+	http.ResponseWriter
+}
+
+func (f hijackForwarder) Flush() {
+	if fl, ok := f.ResponseWriter.(http.Flusher); ok {
+		fl.Flush()
+	}
+}
+
+func (f hijackForwarder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hj, ok := f.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("hijack not supported")
+	}
+	return hj.Hijack()
+}
+
 // HTTPRequestLogger logs inbound requests and outcoming response statuses.
 func HTTPRequestLogger(log *logrus.Logger) delivery.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			startTime := time.Now()
-			rec := &responseRecorder{ResponseWriter: w, statusCode: http.StatusOK}
+			rec := &responseRecorder{ResponseWriter: hijackForwarder{w}, statusCode: http.StatusOK}
 
 			next.ServeHTTP(rec, r)
 

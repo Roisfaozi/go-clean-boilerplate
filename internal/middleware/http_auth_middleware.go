@@ -70,7 +70,9 @@ func (m *AuthMiddleware) HTTPValidateToken() delivery.Middleware {
 			ctx = authcontext.WithRole(ctx, claims.Role)
 			ctx = authcontext.WithUsername(ctx, claims.Username)
 			ctx = delivery.SetContextValue(ctx, delivery.UserIDKey, claims.UserID)
+			ctx = delivery.SetContextValue(ctx, delivery.SessionIDKey, claims.SessionID)
 			ctx = delivery.SetContextValue(ctx, delivery.RoleKey, claims.Role)
+			ctx = delivery.SetContextValue(ctx, delivery.UsernameKey, claims.Username)
 			ctx = delivery.SetContextValue(ctx, delivery.AuthMethodKey, "jwt")
 
 			next.ServeHTTP(w, r.WithContext(ctx))

@@ -25,6 +25,22 @@ func (m *TenantMiddleware) HTTPRequireOrganization() delivery.Middleware {
 			if orgID == "" {
 				orgID, _ = delivery.GetContextString(r.Context(), delivery.OrganizationIDKey)
 			}
+			if orgID == "" {
+				if id := r.PathValue("id"); id != "" {
+					if id == "slug" {
+						if action := r.PathValue("action"); action != "" && orgSlug == "" {
+							orgSlug = action
+						}
+					} else {
+						orgID = id
+					}
+				}
+			}
+			if orgSlug == "" {
+				if slug := r.PathValue("slug"); slug != "" {
+					orgSlug = slug
+				}
+			}
 
 			if orgID == "" && orgSlug == "" {
 				response.WriteError(w, http.StatusBadRequest, errors.New("organization ID or slug is required"), "missing organization identifier")
