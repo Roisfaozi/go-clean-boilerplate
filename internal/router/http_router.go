@@ -16,6 +16,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
@@ -74,7 +75,10 @@ func SetupStdRouter(
 	cors := middleware.HTTPCORSMiddleware(cfg.AllowedOrigins)
 
 	authMw := authMiddleware.HTTPValidateToken()
+	wsTicketMw := authMiddleware.HTTPValidateWebSocketToken()
 	apiKeyAuth := apiKeyMiddleware.HTTPAuthenticate()
+	apiKeyAutoScope := apiKeyMiddleware.HTTPRequireScopeAuto()
+	csrf := middleware.HTTPCSRFMiddleware(logger)
 	userStatus := middleware.HTTPUserStatusMiddleware(userModule.UserRepo, logger)
 	requireOrg := tenantMiddleware.HTTPRequireOrganization()
 	optOrg := tenantMiddleware.HTTPOptionalOrganization()
@@ -86,15 +90,15 @@ func SetupStdRouter(
 	}
 
 	authChain := func(h http.HandlerFunc) http.Handler {
-		return delivery.Chain(h, reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, userStatus)
+		return delivery.Chain(h, reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyAutoScope, userStatus)
 	}
 
 	tenantChain := func(h http.HandlerFunc) http.Handler {
-		return delivery.Chain(h, reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, userStatus, requireOrg, casbinMw)
+		return delivery.Chain(h, reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyAutoScope, userStatus, requireOrg, casbinMw)
 	}
 
 	adminChain := func(h http.HandlerFunc) http.Handler {
-		return delivery.Chain(h, reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, apiKeyMiddleware.HTTPRequireScopes("admin:manage"), userStatus, optOrg, casbinMw)
+		return delivery.Chain(h, reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("admin:manage"), userStatus, optOrg, casbinMw)
 	}
 
 	// 1. Health & System
@@ -110,7 +114,9 @@ func SetupStdRouter(
 
 	// 2. Realtime & Uploads
 	mux.Handle("GET /api/v1/events", delivery.Chain(http.HandlerFunc(sseManager.ServeHTTP), reqID, reqLog, rec, sec, cors, authMw))
-	mux.Handle("GET /api/v1/ws", delivery.Chain(http.HandlerFunc(wsController.HandleWebSocketHTTP), reqID, reqLog, rec, sec, cors, authMw))
+	// WS upgrade requires raw http.Hijacker connection.
+	// Skip reqLog/sec/cors wrappers; they wrap ResponseWriter and break gorilla upgrade.
+	mux.Handle("GET /api/v1/ws", delivery.Chain(http.HandlerFunc(wsController.HandleWebSocketHTTP), reqID, rec, wsTicketMw))
 
 	if tusHandler != nil {
 		mux.Handle("/api/v1/upload/files/", delivery.Chain(http.StripPrefix("/api/v1/upload/files/", tusHandler), reqID, reqLog, rec, sec, cors, authMw, userStatus))
@@ -149,31 +155,57 @@ func SetupStdRouter(
 	mux.Handle("GET /api/v1/organizations/me", authChain(organizationModule.OrganizationController.HTTPGetMyOrganizations))
 
 	mux.Handle("GET /api/v1/organizations/{id}", tenantChain(organizationModule.OrganizationController.HTTPGetOrganization))
-	mux.Handle("GET /api/v1/organizations/slug/{slug}", tenantChain(organizationModule.OrganizationController.HTTPGetOrganizationBySlug))
+	// Single dispatcher for 5-segment organization GETs avoids Go ServeMux
+	// pattern conflicts between "slug/{slug}" and "{id}/members|presence|roles".
+	mux.Handle("GET /api/v1/organizations/{id}/{action}", tenantChain(func(w http.ResponseWriter, r *http.Request) {
+		action := r.PathValue("action")
+		ctxOrgID := database.GetOrganizationID(r.Context())
+		if ctxOrgID == "" {
+			id := r.PathValue("id")
+			if id != "" {
+				ctx := database.SetOrganizationContext(r.Context(), id)
+				ctx = delivery.SetContextValue(ctx, delivery.OrganizationIDKey, id)
+				r = r.WithContext(ctx)
+			}
+		}
+		id := r.PathValue("id")
+		if id == "slug" {
+			r.SetPathValue("slug", action)
+			organizationModule.OrganizationController.HTTPGetOrganizationBySlug(w, r)
+			return
+		}
+		switch action {
+		case "members":
+			delivery.Chain(http.HandlerFunc(organizationModule.OrganizationController.HTTPGetMembers), apiKeyMiddleware.HTTPRequireScopes("member:manage")).ServeHTTP(w, r)
+		case "presence":
+			delivery.Chain(http.HandlerFunc(organizationModule.OrganizationController.HTTPGetPresence), apiKeyMiddleware.HTTPRequireScopes("presence:view")).ServeHTTP(w, r)
+		case "roles":
+			delivery.Chain(http.HandlerFunc(roleModule.RoleController.HTTPGetOrganizationRoles), apiKeyMiddleware.HTTPRequireScopes("role:view", "role:manage")).ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
 	mux.Handle("PUT /api/v1/organizations/{id}", tenantChain(organizationModule.OrganizationController.HTTPUpdateOrganization))
-	mux.Handle("DELETE /api/v1/organizations/{id}", tenantChain(organizationModule.OrganizationController.HTTPDeleteOrganization))
+	mux.Handle("DELETE /api/v1/organizations/{id}", delivery.Chain(http.HandlerFunc(organizationModule.OrganizationController.HTTPDeleteOrganization), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireUserSession(), userStatus, requireOrg, casbinMw))
 
-	mux.Handle("POST /api/v1/organizations/{id}/members/invite", tenantChain(organizationModule.OrganizationController.HTTPInviteMember))
-	mux.Handle("GET /api/v1/organizations/{id}/members", tenantChain(organizationModule.OrganizationController.HTTPGetMembers))
-	mux.Handle("PATCH /api/v1/organizations/{id}/members/{userId}", tenantChain(organizationModule.OrganizationController.HTTPUpdateMemberRole))
-	mux.Handle("DELETE /api/v1/organizations/{id}/members/{userId}", tenantChain(organizationModule.OrganizationController.HTTPRemoveMember))
-	mux.Handle("GET /api/v1/organizations/{id}/presence", tenantChain(organizationModule.OrganizationController.HTTPGetPresence))
+	mux.Handle("POST /api/v1/organizations/{id}/members/invite", delivery.Chain(http.HandlerFunc(organizationModule.OrganizationController.HTTPInviteMember), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("member:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("PATCH /api/v1/organizations/{id}/members/{userId}", delivery.Chain(http.HandlerFunc(organizationModule.OrganizationController.HTTPUpdateMemberRole), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("member:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("DELETE /api/v1/organizations/{id}/members/{userId}", delivery.Chain(http.HandlerFunc(organizationModule.OrganizationController.HTTPRemoveMember), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("member:manage"), userStatus, requireOrg, casbinMw))
 
-	mux.Handle("POST /api/v1/organizations/{id}/restore", adminChain(organizationModule.OrganizationController.HTTPRestoreOrganization))
-	mux.Handle("DELETE /api/v1/organizations/{id}/hard", adminChain(organizationModule.OrganizationController.HTTPHardDeleteOrganization))
+	mux.Handle("POST /api/v1/organizations/{id}/restore", delivery.Chain(http.HandlerFunc(organizationModule.OrganizationController.HTTPRestoreOrganization), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireUserSession(), userStatus, optOrg, casbinMw))
+	mux.Handle("DELETE /api/v1/organizations/{id}/hard", delivery.Chain(http.HandlerFunc(organizationModule.OrganizationController.HTTPHardDeleteOrganization), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireUserSession(), userStatus, optOrg, casbinMw))
 
 	// 6. Projects Routes
-	mux.Handle("POST /api/v1/projects", tenantChain(projectModule.ProjectController.HTTPCreate))
-	mux.Handle("GET /api/v1/projects", tenantChain(projectModule.ProjectController.HTTPGetAll))
-	mux.Handle("GET /api/v1/projects/{id}", tenantChain(projectModule.ProjectController.HTTPGetByID))
-	mux.Handle("PUT /api/v1/projects/{id}", tenantChain(projectModule.ProjectController.HTTPUpdate))
-	mux.Handle("DELETE /api/v1/projects/{id}", tenantChain(projectModule.ProjectController.HTTPDelete))
+	mux.Handle("POST /api/v1/projects", delivery.Chain(http.HandlerFunc(projectModule.ProjectController.HTTPCreate), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("project:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("GET /api/v1/projects", delivery.Chain(http.HandlerFunc(projectModule.ProjectController.HTTPGetAll), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("project:view", "project:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("GET /api/v1/projects/{id}", delivery.Chain(http.HandlerFunc(projectModule.ProjectController.HTTPGetByID), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("project:view", "project:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("PUT /api/v1/projects/{id}", delivery.Chain(http.HandlerFunc(projectModule.ProjectController.HTTPUpdate), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("project:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("DELETE /api/v1/projects/{id}", delivery.Chain(http.HandlerFunc(projectModule.ProjectController.HTTPDelete), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("project:manage"), userStatus, requireOrg, casbinMw))
 
 	// 7. Roles & Organization Roles
-	mux.Handle("POST /api/v1/organizations/{id}/roles", tenantChain(roleModule.RoleController.HTTPCreateOrganizationRole))
-	mux.Handle("GET /api/v1/organizations/{id}/roles", tenantChain(roleModule.RoleController.HTTPGetOrganizationRoles))
-	mux.Handle("PUT /api/v1/organizations/{id}/roles/{roleId}", tenantChain(roleModule.RoleController.HTTPUpdateOrganizationRole))
-	mux.Handle("DELETE /api/v1/organizations/{id}/roles/{roleId}", tenantChain(roleModule.RoleController.HTTPDeleteOrganizationRole))
+	mux.Handle("POST /api/v1/organizations/{id}/roles", delivery.Chain(http.HandlerFunc(roleModule.RoleController.HTTPCreateOrganizationRole), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("role:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("PUT /api/v1/organizations/{id}/roles/{roleId}", delivery.Chain(http.HandlerFunc(roleModule.RoleController.HTTPUpdateOrganizationRole), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("role:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("DELETE /api/v1/organizations/{id}/roles/{roleId}", delivery.Chain(http.HandlerFunc(roleModule.RoleController.HTTPDeleteOrganizationRole), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("role:manage"), userStatus, requireOrg, casbinMw))
 
 	mux.Handle("POST /api/v1/roles", adminChain(roleModule.RoleController.HTTPCreate))
 	mux.Handle("GET /api/v1/roles", adminChain(roleModule.RoleController.HTTPGetAll))
@@ -187,15 +219,26 @@ func SetupStdRouter(
 	mux.Handle("DELETE /api/v1/permissions/revoke-role", adminChain(permissionModule.PermissionController.HTTPRevokeRole))
 	mux.Handle("POST /api/v1/permissions/grant", adminChain(permissionModule.PermissionController.HTTPGrantPermission))
 	mux.Handle("GET /api/v1/permissions", adminChain(permissionModule.PermissionController.HTTPGetAllPermissions))
-	mux.Handle("GET /api/v1/permissions/{role}", adminChain(permissionModule.PermissionController.HTTPGetPermissionsForRole))
+	// Single dispatcher for 4-segment permission GETs avoids Go ServeMux
+	// pattern conflicts between "{role}", "resources", and "inheritance-tree".
+	mux.Handle("GET /api/v1/permissions/{name}", adminChain(func(w http.ResponseWriter, r *http.Request) {
+		name := r.PathValue("name")
+		switch name {
+		case "resources":
+			permissionModule.PermissionController.HTTPGetResourceAggregation(w, r)
+		case "inheritance-tree":
+			permissionModule.PermissionController.HTTPGetInheritanceTree(w, r)
+		default:
+			r.SetPathValue("role", name)
+			permissionModule.PermissionController.HTTPGetPermissionsForRole(w, r)
+		}
+	}))
 	mux.Handle("GET /api/v1/permissions/roles/{role}/users", adminChain(permissionModule.PermissionController.HTTPGetUsersForRole))
 	mux.Handle("PUT /api/v1/permissions", adminChain(permissionModule.PermissionController.HTTPUpdatePermission))
 	mux.Handle("DELETE /api/v1/permissions/revoke", adminChain(permissionModule.PermissionController.HTTPRevokePermission))
 	mux.Handle("POST /api/v1/permissions/inheritance", adminChain(permissionModule.PermissionController.HTTPAddRoleInheritance))
 	mux.Handle("DELETE /api/v1/permissions/inheritance", adminChain(permissionModule.PermissionController.HTTPRemoveRoleInheritance))
 	mux.Handle("GET /api/v1/permissions/{role}/parents", adminChain(permissionModule.PermissionController.HTTPGetParentRoles))
-	mux.Handle("GET /api/v1/permissions/resources", adminChain(permissionModule.PermissionController.HTTPGetResourceAggregation))
-	mux.Handle("GET /api/v1/permissions/inheritance-tree", adminChain(permissionModule.PermissionController.HTTPGetInheritanceTree))
 	mux.Handle("GET /api/v1/permissions/roles/{role}/access-rights", adminChain(permissionModule.PermissionController.HTTPGetRoleAccessRights))
 	mux.Handle("POST /api/v1/permissions/assign-access-right", adminChain(permissionModule.PermissionController.HTTPAssignAccessRight))
 	mux.Handle("DELETE /api/v1/permissions/revoke-access-right", adminChain(permissionModule.PermissionController.HTTPRevokeAccessRight))
@@ -217,12 +260,12 @@ func SetupStdRouter(
 	mux.Handle("DELETE /api/v1/api-keys/{id}", tenantChain(apiKeyModule.Controller.HTTPRevoke))
 
 	// 11. Webhooks Routes
-	mux.Handle("POST /api/v1/webhooks", tenantChain(webhookModule.Controller.HTTPCreate))
-	mux.Handle("GET /api/v1/webhooks", tenantChain(webhookModule.Controller.HTTPFindByOrganization))
-	mux.Handle("GET /api/v1/webhooks/{id}", tenantChain(webhookModule.Controller.HTTPFindByID))
-	mux.Handle("PUT /api/v1/webhooks/{id}", tenantChain(webhookModule.Controller.HTTPUpdate))
-	mux.Handle("DELETE /api/v1/webhooks/{id}", tenantChain(webhookModule.Controller.HTTPDelete))
-	mux.Handle("GET /api/v1/webhooks/{id}/logs", tenantChain(webhookModule.Controller.HTTPGetLogs))
+	mux.Handle("POST /api/v1/webhooks", delivery.Chain(http.HandlerFunc(webhookModule.Controller.HTTPCreate), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("webhook:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("GET /api/v1/webhooks", delivery.Chain(http.HandlerFunc(webhookModule.Controller.HTTPFindByOrganization), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("webhook:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("GET /api/v1/webhooks/{id}", delivery.Chain(http.HandlerFunc(webhookModule.Controller.HTTPFindByID), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("webhook:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("PUT /api/v1/webhooks/{id}", delivery.Chain(http.HandlerFunc(webhookModule.Controller.HTTPUpdate), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("webhook:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("DELETE /api/v1/webhooks/{id}", delivery.Chain(http.HandlerFunc(webhookModule.Controller.HTTPDelete), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("webhook:manage"), userStatus, requireOrg, casbinMw))
+	mux.Handle("GET /api/v1/webhooks/{id}/logs", delivery.Chain(http.HandlerFunc(webhookModule.Controller.HTTPGetLogs), reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("webhook:manage"), userStatus, requireOrg, casbinMw))
 
 	// 12. Audit Logs Routes
 	mux.Handle("POST /api/v1/audit-logs/search", adminChain(auditModule.AuditController.HTTPGetLogsDynamic))

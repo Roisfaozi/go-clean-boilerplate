@@ -6,6 +6,8 @@ import (
 	"time"
 
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	_ "github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -75,11 +77,14 @@ func (c *WebSocketController) HandleWebSocketHTTP(w http.ResponseWriter, r *http
 		MaxMessageSize: 512 * 1024,
 	}
 
-	userID, _ := r.Context().Value("user_id").(string)
-	orgID, _ := r.Context().Value("organization_id").(string)
-	if orgID == "" {
-		orgID = defaultOrgID
+	authUserID, _ := authcontext.UserIDFromContext(r.Context())
+	orgID := defaultOrgID
+	if deliveryOrgID, ok := r.Context().Value("organization_id").(string); ok && deliveryOrgID != "" {
+		orgID = deliveryOrgID
+	} else if dbOrgID := database.GetOrganizationID(r.Context()); dbOrgID != "" {
+		orgID = dbOrgID
 	}
+	userID := authUserID
 
 	var userData *PresenceUser
 	if userID != "" && c.userRepo != nil {
