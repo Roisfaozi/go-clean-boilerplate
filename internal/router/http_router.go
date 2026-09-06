@@ -101,6 +101,10 @@ func SetupStdRouter(
 		return delivery.Chain(h, reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyMiddleware.HTTPRequireScopes("admin:manage"), userStatus, optOrg, casbinMw)
 	}
 
+	apiKeyChain := func(h http.HandlerFunc) http.Handler {
+		return delivery.Chain(h, reqID, reqLog, rec, sec, cors, apiKeyAuth, authMw, csrf, apiKeyAutoScope, apiKeyMiddleware.HTTPRequireUserSession(), userStatus, requireOrg)
+	}
+
 	// 1. Health & System
 	mux.Handle("GET /api/v1/health", publicChain(GetStdHealth(db, redisClient)))
 
@@ -255,7 +259,7 @@ func SetupStdRouter(
 	mux.Handle("DELETE /api/v1/endpoints/{id}", adminChain(accessModule.AccessController.HTTPDeleteEndpoint))
 
 	// 10. API Keys Routes
-	mux.Handle("POST /api/v1/api-keys", tenantChain(apiKeyModule.Controller.HTTPCreate))
+	mux.Handle("POST /api/v1/api-keys", apiKeyChain(apiKeyModule.Controller.HTTPCreate))
 	mux.Handle("GET /api/v1/api-keys", tenantChain(apiKeyModule.Controller.HTTPList))
 	mux.Handle("DELETE /api/v1/api-keys/{id}", tenantChain(apiKeyModule.Controller.HTTPRevoke))
 
