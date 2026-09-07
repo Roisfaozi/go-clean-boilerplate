@@ -10,6 +10,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	defaultDSNCharset   = "utf8mb4"
+	defaultDSNParseTime = "True"
+	defaultDSNLocation  = "UTC"
+)
+
 // NewSQLXDatabase creates and connects a new *sqlx.DB connection pool.
 func NewSQLXDatabase(cfg *AppConfig, log *logrus.Logger) *sqlx.DB {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=%s&loc=%s",
