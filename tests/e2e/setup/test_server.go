@@ -2,6 +2,8 @@ package setup
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"net/http/httptest"
 	"strconv"
 	"strings"
@@ -18,15 +20,15 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type TestServer struct {
 	Server    *httptest.Server
-	DB        *gorm.DB
+	DB        *sqlx.DB
 	Redis     *redis.Client
 	Enforcer  usecase.IEnforcer
 	Scheduler *worker.Scheduler
@@ -269,16 +271,24 @@ func (s *TestServer) Cleanup() {
 }
 
 func CreateAdminAndLogin(t *testing.T, server *TestServer) string {
-	f := fixtures.NewUserFactory(server.DB)
-	hash, _ := bcrypt.GenerateFromPassword([]byte("AdminPass123!"), bcrypt.DefaultCost)
+	var admin userEntity.User
+	err := server.DB.Get(&admin, "SELECT id, username FROM users WHERE username = ? AND deleted_at = 0 LIMIT 1", "user_admin")
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			require.NoError(t, err)
+		}
+		f := fixtures.NewUserFactory(server.DB)
+		hash, _ := bcrypt.GenerateFromPassword([]byte("AdminPass123!"), bcrypt.DefaultCost)
 
-	admin := f.Create(func(u *userEntity.User) {
-		u.Username = "user_admin"
-		u.Email = "user_admin@test.com"
-		u.Password = string(hash)
-	})
+		created := f.Create(func(u *userEntity.User) {
+			u.Username = "user_admin"
+			u.Email = "user_admin@test.com"
+			u.Password = string(hash)
+		})
+		admin = *created
+	}
 
-	_, err := server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
+	_, err = server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
 	require.NoError(t, err)
 	_, err = server.Enforcer.AddPolicy("role:superadmin", "global", "*", "*")
 	require.NoError(t, err)

@@ -74,7 +74,8 @@ func TestRoleE2E_CreateRole(t *testing.T) {
 
 	t.Run("Negative - Duplicate Role Name", func(t *testing.T) {
 		roleName := "DuplicateRole"
-		server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: roleName})
+		rf := fixtures.NewRoleFactory(server.DB)
+		rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = roleName })
 
 		resp := server.Client.POST("/api/v1/roles", map[string]any{
 			"name": roleName,
@@ -100,8 +101,8 @@ func TestRoleE2E_DeleteRole(t *testing.T) {
 
 	t.Run("Success - Delete Role", func(t *testing.T) {
 		// Create role to delete
-		roleToDelete := &roleEntity.Role{ID: uuid.New().String(), Name: "RoleToDelete"}
-		server.DB.Create(roleToDelete)
+		rf := fixtures.NewRoleFactory(server.DB)
+		roleToDelete := rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "RoleToDelete" })
 
 		resp := server.Client.DELETE("/api/v1/roles/"+roleToDelete.ID, setup.WithAuth(adminToken))
 		assert.Equal(t, 200, resp.StatusCode)
@@ -120,8 +121,9 @@ func TestRoleE2E_GetAllRoles(t *testing.T) {
 	adminToken := createRoleAdminAndLogin(t, server)
 
 	// Create some roles
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Role_List_1"})
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Role_List_2"})
+	rf := fixtures.NewRoleFactory(server.DB)
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "Role_List_1" })
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "Role_List_2" })
 
 	t.Run("Success - Get All Roles", func(t *testing.T) {
 		resp := server.Client.GET("/api/v1/roles", setup.WithAuth(adminToken))
@@ -146,8 +148,12 @@ func TestRoleE2E_UpdateRole(t *testing.T) {
 	adminToken := createRoleAdminAndLogin(t, server)
 
 	// Create role to update
-	roleToUpdate := &roleEntity.Role{ID: uuid.New().String(), Name: "RoleToUpdate", Description: "Original"}
-	server.DB.Create(roleToUpdate)
+	rf := fixtures.NewRoleFactory(server.DB)
+	roleToUpdate := rf.Create(func(r *roleEntity.Role) {
+		r.ID = uuid.New().String()
+		r.Name = "RoleToUpdate"
+		r.Description = "Original"
+	})
 
 	t.Run("Success - Update Role", func(t *testing.T) {
 		resp := server.Client.PUT("/api/v1/roles/"+roleToUpdate.ID, map[string]any{
@@ -184,9 +190,10 @@ func TestRoleE2E_DynamicSearch(t *testing.T) {
 	adminToken := createRoleAdminAndLogin(t, server)
 
 	// Create roles for searching
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "SearchableRole_Alpha"})
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "SearchableRole_Beta"})
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "OtherRole"})
+	rf := fixtures.NewRoleFactory(server.DB)
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "SearchableRole_Alpha" })
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "SearchableRole_Beta" })
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "OtherRole" })
 
 	t.Run("Success - Search by Name", func(t *testing.T) {
 		resp := server.Client.POST("/api/v1/roles/search", map[string]any{

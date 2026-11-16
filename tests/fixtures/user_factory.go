@@ -1,17 +1,19 @@
 package fixtures
 
 import (
+	"time"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type UserFactory struct {
-	db *gorm.DB
+	db *sqlx.DB
 }
 
-func NewUserFactory(db *gorm.DB) *UserFactory {
+func NewUserFactory(db *sqlx.DB) *UserFactory {
 	return &UserFactory{db: db}
 }
 
@@ -32,7 +34,29 @@ func (f *UserFactory) Create(overrides ...func(*entity.User)) *entity.User {
 		override(user)
 	}
 
-	f.db.Create(user)
+	if user.ID == "" {
+		user.ID = uuid.New().String()
+	}
+	if user.Status == "" {
+		user.Status = entity.UserStatusActive
+	}
+	now := time.Now().UTC().UnixMilli()
+	if user.CreatedAt == 0 {
+		user.CreatedAt = now
+	}
+	if user.UpdatedAt == 0 {
+		user.UpdatedAt = now
+	}
+
+	_, err := f.db.Exec(
+		`INSERT INTO users (id, organization_id, username, email, name, password, status, avatar_url, token, email_verified_at, created_at, updated_at, deleted_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		user.ID, user.OrganizationID, user.Username, user.Email, user.Name, user.Password,
+		user.Status, user.AvatarURL, user.Token, user.EmailVerifiedAt, user.CreatedAt, user.UpdatedAt, user.DeletedAt,
+	)
+	if err != nil {
+		panic(err)
+	}
 	return user
 }
 

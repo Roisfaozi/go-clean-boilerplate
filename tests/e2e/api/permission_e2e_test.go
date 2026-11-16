@@ -55,8 +55,9 @@ func TestPermissionE2E_RoleHierarchy(t *testing.T) {
 	require.NoError(t, err)
 	adminToken := loginRes.Data.AccessToken
 
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Supervisor"})
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Intern"})
+	rf := fixtures.NewRoleFactory(server.DB)
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "Supervisor" })
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "Intern" })
 
 	grantPayload := map[string]any{
 		"role": "Intern", "path": "/api/v1/coffee", "method": "GET",
@@ -137,7 +138,8 @@ func TestPermissionE2E_BatchCheck(t *testing.T) {
 	require.NoError(t, err)
 	adminToken := adminRes.Data.AccessToken
 
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Editor"})
+	rf := fixtures.NewRoleFactory(server.DB)
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "Editor" })
 
 	client.POST("/api/v1/permissions/grant", map[string]any{"role": "Editor", "path": "/news", "method": "READ"}, setup.WithAuth(adminToken))
 	client.POST("/api/v1/permissions/grant", map[string]any{"role": "Editor", "path": "/news", "method": "WRITE"}, setup.WithAuth(adminToken))
@@ -215,7 +217,8 @@ func TestPermissionE2E_RevokeRole(t *testing.T) {
 	require.NoError(t, err)
 	adminToken := loginRes.Data.AccessToken
 
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "RevokeTestRole"})
+	rf := fixtures.NewRoleFactory(server.DB)
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "RevokeTestRole" })
 	user := f.Create(func(u *userEntity.User) { u.Username = "revoke_user"; u.Password = passHash })
 
 	resp = client.POST("/api/v1/permissions/assign-role", map[string]any{
@@ -272,8 +275,9 @@ func TestPermissionE2E_RemoveInheritance(t *testing.T) {
 	require.NoError(t, err)
 	adminToken := loginRes.Data.AccessToken
 
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "ParentRole"})
-	server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "ChildRole"})
+	rf := fixtures.NewRoleFactory(server.DB)
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "ParentRole" })
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "ChildRole" })
 
 	client.POST("/api/v1/permissions/grant", map[string]any{
 		"role": "ChildRole", "path": "/api/v1/inherited", "method": "GET",
@@ -333,7 +337,8 @@ func TestPermissionE2E_Security_PostRoleDeletion_PermissionsRevoked(t *testing.T
 	adminToken := adminLoginRes.Data.AccessToken
 
 	roleID := uuid.New().String()
-	server.DB.Create(&roleEntity.Role{ID: roleID, Name: "EphemeralRole"})
+	rf := fixtures.NewRoleFactory(server.DB)
+	rf.Create(func(r *roleEntity.Role) { r.ID = roleID; r.Name = "EphemeralRole" })
 	_, err = server.Enforcer.AddPolicy("EphemeralRole", "global", "/api/v1/secret", "GET")
 	require.NoError(t, err)
 	err = server.Enforcer.SavePolicy()
@@ -411,16 +416,18 @@ func TestPermissionE2E_AccessRightAssignment(t *testing.T) {
 	require.NoError(t, err)
 	adminToken := loginRes.Data.AccessToken
 
-	ep1 := entity.Endpoint{Path: "/api/test", Method: "GET"}
-	ep2 := entity.Endpoint{Path: "/api/test", Method: "POST"}
-	server.DB.Create(&ep1)
-	server.DB.Create(&ep2)
+	ep1 := entity.Endpoint{ID: uuid.New().String(), Path: "/api/test", Method: "GET"}
+	ep2 := entity.Endpoint{ID: uuid.New().String(), Path: "/api/test", Method: "POST"}
+	server.DB.MustExec("INSERT INTO endpoints (id, path, method, created_at, updated_at, deleted_at) VALUES (?, ?, ?, 1, 1, 0)", ep1.ID, ep1.Path, ep1.Method)
+	server.DB.MustExec("INSERT INTO endpoints (id, path, method, created_at, updated_at, deleted_at) VALUES (?, ?, ?, 1, 1, 0)", ep2.ID, ep2.Path, ep2.Method)
 
 	ar := entity.AccessRight{
+		ID:        uuid.New().String(),
 		Name:      "Test Access Right",
 		Endpoints: []entity.Endpoint{ep1, ep2},
 	}
-	server.DB.Create(&ar)
+	server.DB.MustExec("INSERT INTO access_rights (id, name, description, created_at, updated_at, deleted_at) VALUES (?, ?, '', 1, 1, 0)", ar.ID, ar.Name)
+	server.DB.MustExec("INSERT INTO access_right_endpoints (access_right_id, endpoint_id) VALUES (?, ?), (?, ?)", ar.ID, ep1.ID, ar.ID, ep2.ID)
 
 	roleName := "TestRole"
 
@@ -558,7 +565,8 @@ func TestAccessRightsFlowE2E(t *testing.T) {
 	assert.Equal(t, 200, resp.StatusCode)
 
 	roleID := uuid.New().String()
-	server.DB.Create(&roleEntity.Role{ID: roleID, Name: "UserManager"})
+	rf := fixtures.NewRoleFactory(server.DB)
+	rf.Create(func(r *roleEntity.Role) { r.ID = roleID; r.Name = "UserManager" })
 
 	resp = client.POST("/api/v1/permissions/grant", map[string]any{
 		"role":   "UserManager",
@@ -638,7 +646,8 @@ func TestSecurityE2E_DynamicRBAC(t *testing.T) {
 
 	roleName := "DynamicViewer"
 
-	server.DB.Create(&roleEntity.Role{Name: roleName})
+	rf := fixtures.NewRoleFactory(server.DB)
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = roleName })
 
 	grantPayload := map[string]any{
 		"role":   roleName,
@@ -705,8 +714,9 @@ func TestPermissionE2E_CSRFProtection(t *testing.T) {
 	err = server.Enforcer.SavePolicy()
 	require.NoError(t, err)
 
-	require.NoError(t, server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Editor"}).Error)
-	require.NoError(t, server.DB.Create(&roleEntity.Role{ID: uuid.New().String(), Name: "Viewer"}).Error)
+	rf := fixtures.NewRoleFactory(server.DB)
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "Editor" })
+	rf.Create(func(r *roleEntity.Role) { r.ID = uuid.New().String(); r.Name = "Viewer" })
 
 	resp := client.POST("/api/v1/auth/login", map[string]any{
 		"username": user.Username,

@@ -1,16 +1,18 @@
 package fixtures
 
 import (
+	"time"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
+	"github.com/jmoiron/sqlx"
 )
 
 type RoleFactory struct {
-	db *gorm.DB
+	db *sqlx.DB
 }
 
-func NewRoleFactory(db *gorm.DB) *RoleFactory {
+func NewRoleFactory(db *sqlx.DB) *RoleFactory {
 	return &RoleFactory{db: db}
 }
 
@@ -27,7 +29,25 @@ func (f *RoleFactory) Create(overrides ...func(*entity.Role)) *entity.Role {
 		override(role)
 	}
 
-	f.db.Create(role)
+	if role.ID == "" {
+		role.ID = uuid.New().String()
+	}
+	now := time.Now().UTC().UnixMilli()
+	if role.CreatedAt == 0 {
+		role.CreatedAt = now
+	}
+	if role.UpdatedAt == 0 {
+		role.UpdatedAt = now
+	}
+
+	_, err := f.db.Exec(
+		`INSERT INTO roles (id, organization_id, name, description, created_at, updated_at, deleted_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		role.ID, role.OrganizationID, role.Name, role.Description, role.CreatedAt, role.UpdatedAt, role.DeletedAt,
+	)
+	if err != nil {
+		panic(err)
+	}
 	return role
 }
 

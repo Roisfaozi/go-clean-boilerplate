@@ -20,11 +20,11 @@ func TestApiKeyE2E_LifecycleAndAccess(t *testing.T) {
 	defer server.Server.Close()
 
 	// 2. Create Global Org and Superadmin
-	server.DB.Exec("INSERT INTO organizations (id, name, slug, owner_id, status) VALUES (?, ?, ?, ?, ?)", "global", "Global", "global", "system", "active")
+	_, _ = server.DB.Exec("INSERT IGNORE INTO organizations (id, name, slug, owner_id, status) VALUES (?, ?, ?, ?, ?)", "global", "Global", "global", "system", "active")
 
 	admin := integrationSetup.CreateTestUser(t, server.DB, "api_admin", "admin@api.com", "Password123!", "global")
 	// Make admin owner of global
-	server.DB.Exec("UPDATE organization_members SET role_id = ? WHERE organization_id = ? AND user_id = ?", "owner", "global", admin.ID)
+	_, _ = server.DB.Exec("UPDATE organization_members SET role_id = ? WHERE organization_id = ? AND user_id = ?", "owner", "global", admin.ID)
 
 	_, err := server.Enforcer.AddGroupingPolicy(admin.ID, "role:superadmin", "global")
 	require.NoError(t, err)

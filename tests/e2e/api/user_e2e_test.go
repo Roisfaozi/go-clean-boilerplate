@@ -277,7 +277,7 @@ func TestSecurityE2E_AdminBanUser(t *testing.T) {
 	resp = client.GET("/api/v1/users/me", setup.WithAuth(targetToken))
 	assert.Equal(t, 200, resp.StatusCode)
 
-	server.DB.Model(&userEntity.User{}).Where("id = ?", targetUser.ID).Update("status", userEntity.UserStatusBanned)
+	server.DB.MustExec("UPDATE users SET status = ? WHERE id = ?", userEntity.UserStatusBanned, targetUser.ID)
 
 	resp = client.GET("/api/v1/users/me", setup.WithAuth(targetToken))
 

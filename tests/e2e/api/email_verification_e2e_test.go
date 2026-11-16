@@ -62,7 +62,7 @@ func TestAuthE2E_EmailVerificationFlow(t *testing.T) {
 
 	// 4. Get Token from DB (Backdoor for testing)
 	var verificationToken entity.EmailVerificationToken
-	err = server.DB.Where("email = ?", email).First(&verificationToken).Error
+	err = server.DB.Get(&verificationToken, "SELECT email, token, expires_at, created_at FROM email_verification_tokens WHERE email = ? LIMIT 1", email)
 	require.NoError(t, err)
 	require.NotEmpty(t, verificationToken.Token)
 
@@ -75,9 +75,9 @@ func TestAuthE2E_EmailVerificationFlow(t *testing.T) {
 
 	// 6. Check DB: email_verified_at should be set
 	var user struct {
-		EmailVerifiedAt *int64 `gorm:"column:email_verified_at"`
+		EmailVerifiedAt *int64 `db:"email_verified_at"`
 	}
-	err = server.DB.Table("users").Where("id = ?", userID).First(&user).Error
+	err = server.DB.Get(&user, "SELECT email_verified_at FROM users WHERE id = ? LIMIT 1", userID)
 	require.NoError(t, err)
 	assert.NotNil(t, user.EmailVerifiedAt, "email_verified_at should be set after verification")
 

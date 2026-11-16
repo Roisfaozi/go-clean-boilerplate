@@ -74,11 +74,12 @@ func TestMultiTenancyE2E_MemberFlow(t *testing.T) {
 	// Let's create a role manually in DB for this org to be safe and "multi-tenant" compliant.
 
 	memberRoleID := uuid.New().String()
-	server.DB.Create(&roleEntity.Role{
-		ID:             memberRoleID,
-		Name:           "Viewer",
-		OrganizationID: &orgID,
-		Description:    "View only",
+	roleFactory := fixtures.NewRoleFactory(server.DB)
+	roleFactory.Create(func(r *roleEntity.Role) {
+		r.ID = memberRoleID
+		r.Name = "Viewer"
+		r.OrganizationID = &orgID
+		r.Description = "View only"
 	})
 
 	// 4. Invite New User
@@ -91,7 +92,7 @@ func TestMultiTenancyE2E_MemberFlow(t *testing.T) {
 
 	// 5. Verify Invitation Token exists in DB
 	var tokenRecord orgEntity.InvitationToken
-	err := server.DB.Where("email = ? AND organization_id = ?", inviteEmail, orgID).First(&tokenRecord).Error
+	err := server.DB.Get(&tokenRecord, "SELECT id, organization_id, email, token, role_id, expires_at, created_at FROM invitation_tokens WHERE email = ? AND organization_id = ? LIMIT 1", inviteEmail, orgID)
 	require.NoError(t, err, "Invitation token should exist in DB")
 
 	// 6. Accept Invitation
@@ -130,7 +131,7 @@ func TestMultiTenancyE2E_MemberFlow(t *testing.T) {
 	// User should have role "Viewer" in domain "orgID"
 	// Get User ID from member list or DB
 	var newUser userEntity.User
-	server.DB.Where("email = ?", inviteEmail).First(&newUser)
+	_ = server.DB.Get(&newUser, "SELECT id, organization_id, password, email, username, name, avatar_url, token, status, email_verified_at, created_at, updated_at, deleted_at FROM users WHERE email = ? LIMIT 1", inviteEmail)
 
 	// Explicitly reload policy to ensure in-memory enforcer is synced with DB
 	// especially since changes happened in other transactions/handlers

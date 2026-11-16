@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
-	projectEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/project/entity"
 	roleEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/e2e/setup"
@@ -104,20 +103,21 @@ func TestCrossTenantIsolation_ProjectAccess(t *testing.T) {
 	orgBID := orgBRes.Data.ID
 
 	// Grant Casbin policies for both users in their respective orgs
+	rf := fixtures.NewRoleFactory(server.DB)
 	roleA := uuid.New().String()
-	server.DB.Create(&roleEntity.Role{
-		ID:             roleA,
-		Name:           "ProjectManager",
-		OrganizationID: &orgAID,
-		Description:    "Can manage projects",
+	rf.Create(func(r *roleEntity.Role) {
+		r.ID = roleA
+		r.Name = "ProjectManager"
+		r.OrganizationID = &orgAID
+		r.Description = "Can manage projects"
 	})
 
 	roleB := uuid.New().String()
-	server.DB.Create(&roleEntity.Role{
-		ID:             roleB,
-		Name:           "ProjectManager",
-		OrganizationID: &orgBID,
-		Description:    "Can manage projects",
+	rf.Create(func(r *roleEntity.Role) {
+		r.ID = roleB
+		r.Name = "ProjectManager"
+		r.OrganizationID = &orgBID
+		r.Description = "Can manage projects"
 	})
 
 	// Assign roles in Casbin
@@ -141,23 +141,17 @@ func TestCrossTenantIsolation_ProjectAccess(t *testing.T) {
 
 	// Create a project in Org A (directly in DB for isolation test)
 	projectAlphaID := uuid.New().String()
-	server.DB.Create(&projectEntity.Project{
-		ID:             projectAlphaID,
-		Name:           "Alpha Secret Project",
-		Domain:         "alpha-secret",
-		OrganizationID: orgAID,
-		Status:         "active",
-	})
+	server.DB.MustExec(
+		"INSERT INTO projects (id, organization_id, user_id, name, domain, status, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, 1, 1, 0)",
+		projectAlphaID, orgAID, userA.ID, "Alpha Secret Project", "alpha-secret", "active",
+	)
 
 	// Create a project in Org B (directly in DB)
 	projectBetaID := uuid.New().String()
-	server.DB.Create(&projectEntity.Project{
-		ID:             projectBetaID,
-		Name:           "Beta Secret Project",
-		Domain:         "beta-secret",
-		OrganizationID: orgBID,
-		Status:         "active",
-	})
+	server.DB.MustExec(
+		"INSERT INTO projects (id, organization_id, user_id, name, domain, status, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, 1, 1, 0)",
+		projectBetaID, orgBID, userB.ID, "Beta Secret Project", "beta-secret", "active",
+	)
 
 	// ── Test Cases ──
 
@@ -306,11 +300,12 @@ func TestCrossTenantIsolation_MemberList(t *testing.T) {
 	resp.JSON(&orgB)
 
 	// Grant Casbin policies for member listing
+	rf := fixtures.NewRoleFactory(server.DB)
 	roleA := uuid.New().String()
-	server.DB.Create(&roleEntity.Role{
-		ID:             roleA,
-		Name:           "OrgAdmin",
-		OrganizationID: &orgA.Data.ID,
+	rf.Create(func(r *roleEntity.Role) {
+		r.ID = roleA
+		r.Name = "OrgAdmin"
+		r.OrganizationID = &orgA.Data.ID
 	})
 	_, _ = server.Enforcer.AddGroupingPolicy(userA.ID, roleA, orgA.Data.ID)
 	_, _ = server.Enforcer.AddPolicy(roleA, orgA.Data.ID, "/api/v1/organizations/:id/members", "GET")
@@ -396,9 +391,12 @@ func TestCrossTenantIsolation_OrgDetails(t *testing.T) {
 	resp.JSON(&orgA)
 
 	// Grant Casbin policies for User A
+	rf := fixtures.NewRoleFactory(server.DB)
 	roleA := uuid.New().String()
-	server.DB.Create(&roleEntity.Role{
-		ID: roleA, Name: "OrgViewer", OrganizationID: &orgA.Data.ID,
+	rf.Create(func(r *roleEntity.Role) {
+		r.ID = roleA
+		r.Name = "OrgViewer"
+		r.OrganizationID = &orgA.Data.ID
 	})
 	_, _ = server.Enforcer.AddGroupingPolicy(userA.ID, roleA, orgA.Data.ID)
 	_, _ = server.Enforcer.AddPolicy(roleA, orgA.Data.ID, "/api/v1/organizations/:id", "*")
@@ -482,9 +480,12 @@ func TestCrossTenantIsolation_PermissionManagement(t *testing.T) {
 	orgBID := uuid.New().String()
 
 	// Grant Casbin policies for User A to manage permissions
+	rf := fixtures.NewRoleFactory(server.DB)
 	roleA := "PermAdmin"
-	server.DB.Create(&roleEntity.Role{
-		ID: uuid.New().String(), Name: roleA, OrganizationID: &orgA.Data.ID,
+	rf.Create(func(r *roleEntity.Role) {
+		r.ID = uuid.New().String()
+		r.Name = roleA
+		r.OrganizationID = &orgA.Data.ID
 	})
 	_, _ = server.Enforcer.AddGroupingPolicy(userA.ID, roleA, orgA.Data.ID)
 	// Give permission to grant permissions (POST /api/v1/permissions/grant)

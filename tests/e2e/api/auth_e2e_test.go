@@ -112,7 +112,7 @@ func TestAuthE2E_ForgotPasswordFlow(t *testing.T) {
 
 	// 3. Assert the flow persisted a hashed reset token (issuance path)
 	var resetToken entity.PasswordResetToken
-	err := server.DB.Where("email = ?", email).First(&resetToken).Error
+	err := server.DB.Get(&resetToken, "SELECT email, token, expires_at, created_at FROM password_reset_tokens WHERE email = ? LIMIT 1", email)
 	require.NoError(t, err, "forgot-password must persist a reset token")
 	require.Len(t, resetToken.Token, 64, "stored token must be a sha256 hex hash, not the raw token")
 
@@ -120,10 +120,11 @@ func TestAuthE2E_ForgotPasswordFlow(t *testing.T) {
 	rawToken := "e2e-reset-token-123"
 	sum := sha256.Sum256([]byte(rawToken))
 	hashedToken := hex.EncodeToString(sum[:])
-	server.DB.Where("email = ?", email).Delete(&entity.PasswordResetToken{})
-	err = server.DB.Create(&entity.PasswordResetToken{
-		Email: email, Token: hashedToken, ExpiresAt: time.Now().Add(15 * time.Minute).UnixMilli(),
-	}).Error
+	_, _ = server.DB.Exec("DELETE FROM password_reset_tokens WHERE email = ?", email)
+	_, err = server.DB.Exec(
+		"INSERT INTO password_reset_tokens (email, token, expires_at, created_at) VALUES (?, ?, ?, ?)",
+		email, hashedToken, time.Now().Add(15*time.Minute).UnixMilli(), time.Now().UTC().UnixMilli(),
+	)
 	require.NoError(t, err)
 
 	// 5. Reset Password
