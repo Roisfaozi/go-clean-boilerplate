@@ -37,7 +37,7 @@ func TestScenario_AdminSecurity_AccountSuspension(t *testing.T) {
 	defer env.Cleanup()
 	setup.CleanupDatabase(t, env.DB)
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
@@ -83,7 +83,7 @@ func TestScenario_AdminSecurity_RBAC_Lifecycle(t *testing.T) {
 	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	uRepoData := userRepo.NewUserRepository(env.DB, env.Logger)
 	aRepo := accessRepo.NewAccessRepository(env.SQLXDB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	permService := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, rRepo, uRepoData, aRepo, nil)
 	roleService := roleUC.NewRoleUseCase(env.Logger, tm, rRepo, permService)
 

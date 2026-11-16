@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	auditEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
@@ -54,25 +53,19 @@ func TestStatsIntegration_DashboardActivity_WithAuditLogs(t *testing.T) {
 	todayNoon := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, now.Location())
 
 	for i := 0; i < 3; i++ {
-		env.DB.Create(&auditEntity.AuditLog{
-			ID:        uuid.NewString(),
-			UserID:    "test-user",
-			Action:    "LOGIN",
-			Entity:    "Auth",
-			EntityID:  uuid.NewString(),
-			CreatedAt: todayNoon.Add(time.Duration(i) * time.Minute).UnixMilli(),
-		})
+		_, err := env.SQLXDB.Exec(
+			"INSERT INTO audit_logs (id, user_id, action, entity, entity_id, created_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, 0)",
+			uuid.NewString(), "test-user", "LOGIN", "Auth", uuid.NewString(), todayNoon.Add(time.Duration(i)*time.Minute).UnixMilli(),
+		)
+		require.NoError(t, err)
 	}
 
 	// Add a non-login audit log
-	env.DB.Create(&auditEntity.AuditLog{
-		ID:        uuid.NewString(),
-		UserID:    "test-user",
-		Action:    "VIEWED_DASHBOARD",
-		Entity:    "Stats",
-		EntityID:  uuid.NewString(),
-		CreatedAt: todayNoon.Add(10 * time.Minute).UnixMilli(),
-	})
+	_, err := env.SQLXDB.Exec(
+		"INSERT INTO audit_logs (id, user_id, action, entity, entity_id, created_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, 0)",
+		uuid.NewString(), "test-user", "VIEWED_DASHBOARD", "Stats", uuid.NewString(), todayNoon.Add(10*time.Minute).UnixMilli(),
+	)
+	require.NoError(t, err)
 
 	activity, err := statsUC.GetDashboardActivity(context.Background(), 7)
 

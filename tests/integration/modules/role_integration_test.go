@@ -24,7 +24,7 @@ import (
 
 func setupRoleIntegration(env *setup.TestEnvironment) usecase.RoleUseCase {
 	roleRepo := repository.NewRoleRepository(env.SQLXDB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	permUC := permissionUC.NewPermissionUseCase(env.Enforcer, env.Logger, roleRepo, userRepository.NewUserRepository(env.DB, env.Logger), accessRepository.NewAccessRepository(env.SQLXDB, env.Logger), nil)
 	return usecase.NewRoleUseCase(env.Logger, tm, roleRepo, permUC)
 }

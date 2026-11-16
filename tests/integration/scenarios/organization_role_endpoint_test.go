@@ -34,7 +34,7 @@ type orgRoleEndpointFixture struct {
 func newOrgRoleEndpointFixture(t *testing.T, env *setup.TestEnvironment, slugPrefix string) *orgRoleEndpointFixture {
 	t.Helper()
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)

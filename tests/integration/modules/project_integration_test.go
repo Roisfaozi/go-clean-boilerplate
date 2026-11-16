@@ -176,13 +176,14 @@ func TestProjectIntegration_Security_SQLInjection(t *testing.T) {
 		Domain: "sqli.example.com",
 	})
 
-	// Should succeed (GORM parameterizes queries)
+	// Should succeed (parameterized SQL queries prevent injection)
 	require.NoError(t, err)
 	assert.NotNil(t, result)
 
 	// Verify the projects table still exists
 	var count int64
-	env.DB.Model(&projectEntity.Project{}).Count(&count)
+	err = env.SQLXDB.Get(&count, "SELECT COUNT(*) FROM projects WHERE deleted_at = 0")
+	require.NoError(t, err)
 	assert.GreaterOrEqual(t, count, int64(1), "Projects table should still exist")
 }
 
@@ -259,9 +260,8 @@ func TestProjectIsolation_UseCase(t *testing.T) {
 	t.Run("Cross-tenant DELETE should fail", func(t *testing.T) {
 		ctxOrgB := database.SetOrganizationContext(ctx, orgB)
 		err := uc.DeleteProject(ctxOrgB, created.ID)
-		// Note: Delete in GORM might not return error if 0 rows affected unless checked,
-		// but since we use Scopes, it will just do 'DELETE ... WHERE id = X AND org_id = B'
-		// which affects 0 rows.
+		// DeleteProject treats ErrNotFound from the org-scoped GetByID check as an idempotent no-op,
+		// so it returns nil without modifying Org A's project.
 		assert.NoError(t, err) // It doesn't error, but it shouldn't delete the record
 
 		// Verify project still exists in Org A

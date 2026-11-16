@@ -11,7 +11,7 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/config"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/usecase"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
@@ -20,15 +20,12 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/mysql"
 	redisContainer "github.com/testcontainers/testcontainers-go/modules/redis"
 	"github.com/testcontainers/testcontainers-go/wait"
-	mysqlDriver "gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 var (
 	mysqlC    *mysql.MySQLContainer
 	redisC    *redisContainer.RedisContainer
-	globalDB  *gorm.DB
+	globalDB  *sqlx.DB
 	globalRDB *redis.Client
 	mysqlAddr string
 	redisAddr string
@@ -41,7 +38,7 @@ const (
 )
 
 type TestEnvironment struct {
-	DB        *gorm.DB
+	DB        *sqlx.DB
 	SQLXDB    *sqlx.DB
 	Redis     *redis.Client
 	Enforcer  usecase.IEnforcer
@@ -161,7 +158,7 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 			panic(err)
 		}
 
-		mysqlAddr = mysqlAddr + "?parseTime=true"
+		mysqlAddr = mysqlAddr + "?parseTime=true&multiStatements=true&charset=utf8mb4"
 		globalDB, err = connectWithRetry(mysqlAddr, 5)
 		if err != nil {
 			panic(err)
@@ -195,7 +192,7 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 
 	return &TestEnvironment{
 		DB:        globalDB,
-		SQLXDB:    tx.ExtractSQLX(globalDB),
+		SQLXDB:    globalDB,
 		Redis:     globalRDB,
 		Enforcer:  enforcer,
 		Logger:    logger,
@@ -205,30 +202,25 @@ func SetupIntegrationEnvironment(t *testing.T) *TestEnvironment {
 	}
 }
 
-func connectWithRetry(connStr string, maxRetries int) (*gorm.DB, error) {
-	var db *gorm.DB
+func connectWithRetry(connStr string, maxRetries int) (*sqlx.DB, error) {
+	var db *sqlx.DB
 	var err error
 
 	for i := 0; i < maxRetries; i++ {
-		db, err = gorm.Open(mysqlDriver.Open(connStr), &gorm.Config{
-			DisableForeignKeyConstraintWhenMigrating: true,
-			Logger:                                   logger.Default.LogMode(logger.Silent),
-		})
+		db, err = sqlx.Open("mysql", connStr)
 		if err == nil {
-			sqlDB, err := db.DB()
+			err = db.Ping()
 			if err == nil {
-				err = sqlDB.Ping()
-				if err == nil {
-					return db, nil
-				}
+				return db, nil
 			}
+			_ = db.Close()
 		}
 		time.Sleep(time.Second * 1)
 	}
 	return nil, fmt.Errorf("failed to connect after %d retries: %w", maxRetries, err)
 }
 
-func SetupCasbin(t *testing.T, db *gorm.DB, logger *logrus.Logger) usecase.IEnforcer {
+func SetupCasbin(t *testing.T, db *sqlx.DB, logger *logrus.Logger) usecase.IEnforcer {
 	// Ensure config path is correct relative to integration tests
 	cfg := &config.AppConfig{
 		Casbin: config.CasbinConfig{

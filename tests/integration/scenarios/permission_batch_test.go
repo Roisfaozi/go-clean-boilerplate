@@ -27,7 +27,7 @@ func TestScenario_PermissionBatchCheck(t *testing.T) {
 	setup.CleanupDatabase(t, env.DB)
 
 	ctx := context.Background()
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 
 	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)

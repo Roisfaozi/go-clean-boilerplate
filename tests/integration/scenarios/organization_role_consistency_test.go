@@ -31,7 +31,7 @@ func TestOrganizationRoleConsistency_Lifecycle(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
@@ -85,7 +85,11 @@ func TestOrganizationRoleConsistency_Lifecycle(t *testing.T) {
 
 	// Verify InvitationToken in DB stores role_id = roleUUID
 	var invToken orgEntity.InvitationToken
-	err = env.DB.Where("organization_id = ? AND email = ?", orgID, inviteReq.Email).First(&invToken).Error
+	err = env.SQLXDB.Get(
+		&invToken,
+		"SELECT id, organization_id, email, token, role_id, expires_at, created_at FROM invitation_tokens WHERE organization_id = ? AND email = ? LIMIT 1",
+		orgID, inviteReq.Email,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, roleUUID, invToken.RoleID)
 
@@ -108,9 +112,11 @@ func TestOrganizationRoleConsistency_Lifecycle(t *testing.T) {
 
 	// Verify Casbin stores role.Name ("custom_lead"), NOT roleUUID
 	var casbinCount int64
-	err = env.DB.Table("casbin_rule").
-		Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "g", invitedUser.ID, roleName, orgID).
-		Count(&casbinCount).Error
+	err = env.SQLXDB.Get(
+		&casbinCount,
+		"SELECT COUNT(*) FROM casbin_rule WHERE ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?",
+		"g", invitedUser.ID, roleName, orgID,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), casbinCount)
 
@@ -137,9 +143,11 @@ func TestOrganizationRoleConsistency_Lifecycle(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, roleUUID2, memberRoleInDB2)
 
-	err = env.DB.Table("casbin_rule").
-		Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "g", invitedUser.ID, roleName2, orgID).
-		Count(&casbinCount).Error
+	err = env.SQLXDB.Get(
+		&casbinCount,
+		"SELECT COUNT(*) FROM casbin_rule WHERE ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?",
+		"g", invitedUser.ID, roleName2, orgID,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), casbinCount)
 
@@ -147,9 +155,11 @@ func TestOrganizationRoleConsistency_Lifecycle(t *testing.T) {
 	err = memberUC.RemoveMember(inviteCtx, orgID, invitedUser.ID)
 	require.NoError(t, err)
 
-	err = env.DB.Table("casbin_rule").
-		Where("ptype = ? AND v0 = ? AND v2 = ?", "g", invitedUser.ID, orgID).
-		Count(&casbinCount).Error
+	err = env.SQLXDB.Get(
+		&casbinCount,
+		"SELECT COUNT(*) FROM casbin_rule WHERE ptype = ? AND v0 = ? AND v2 = ?",
+		"g", invitedUser.ID, orgID,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), casbinCount)
 }
@@ -158,7 +168,7 @@ func TestOrganizationAuth_AdminWithUUIDRoleID_CanManageMembers(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
@@ -219,7 +229,7 @@ func TestDeleteRole_ScopedToOrganization(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
@@ -258,8 +268,16 @@ func TestDeleteRole_ScopedToOrganization(t *testing.T) {
 	require.NoError(t, rUC.DeleteForOrganization(context.Background(), orgA.ID, roleAID))
 
 	var countA, countB int64
-	env.DB.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "g", userA.ID, "shared_name", orgA.ID).Count(&countA)
-	env.DB.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?", "g", userB.ID, "shared_name", orgB.ID).Count(&countB)
+	require.NoError(t, env.SQLXDB.Get(
+		&countA,
+		"SELECT COUNT(*) FROM casbin_rule WHERE ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?",
+		"g", userA.ID, "shared_name", orgA.ID,
+	))
+	require.NoError(t, env.SQLXDB.Get(
+		&countB,
+		"SELECT COUNT(*) FROM casbin_rule WHERE ptype = ? AND v0 = ? AND v1 = ? AND v2 = ?",
+		"g", userB.ID, "shared_name", orgB.ID,
+	))
 
 	assert.Equal(t, int64(0), countA, "Org A grouping policy should be deleted")
 	assert.Equal(t, int64(1), countB, "Org B grouping policy must remain intact")
@@ -269,7 +287,7 @@ func TestOrganizationRoleConsistency_ReinviteAndUpdateSuspended(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	rRepo := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
 	mRepo := orgRepo.NewOrganizationMemberRepository(env.DB)
 	oRepo := orgRepo.NewOrganizationRepository(env.DB, env.Redis)
@@ -323,7 +341,11 @@ func TestOrganizationRoleConsistency_ReinviteAndUpdateSuspended(t *testing.T) {
 
 	// Verify InvitationToken in DB stores role_id = role2ID
 	var invToken orgEntity.InvitationToken
-	err = env.DB.Where("organization_id = ? AND email = ?", orgID, inviteEmail).First(&invToken).Error
+	err = env.SQLXDB.Get(
+		&invToken,
+		"SELECT id, organization_id, email, token, role_id, expires_at, created_at FROM invitation_tokens WHERE organization_id = ? AND email = ? LIMIT 1",
+		orgID, inviteEmail,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, role2ID, invToken.RoleID)
 
@@ -343,9 +365,11 @@ func TestOrganizationRoleConsistency_ReinviteAndUpdateSuspended(t *testing.T) {
 	require.NoError(t, memberUC.RemoveMember(inviteCtx, orgID, user.ID))
 
 	var casbinCount int64
-	err = env.DB.Table("casbin_rule").
-		Where("ptype = ? AND v0 = ? AND v2 = ?", "g", user.ID, orgID).
-		Count(&casbinCount).Error
+	err = env.SQLXDB.Get(
+		&casbinCount,
+		"SELECT COUNT(*) FROM casbin_rule WHERE ptype = ? AND v0 = ? AND v2 = ?",
+		"g", user.ID, orgID,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), casbinCount)
 }

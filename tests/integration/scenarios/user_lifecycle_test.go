@@ -40,7 +40,7 @@ func TestUserLifecycle_FullFlow(t *testing.T) {
 	jwtManager := jwt.NewJWTManager("lifecycle-secret", "lifecycle-refresh", 15*time.Minute, 24*time.Hour)
 	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil, nil)
 

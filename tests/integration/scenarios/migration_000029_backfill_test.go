@@ -8,9 +8,9 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 )
 
 const migration000029FKQuery = `SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS
@@ -25,7 +25,7 @@ type migrationSeedResult struct {
 
 // seedLegacyMigrationData applies migrations up to 28 and inserts a member and
 // invitation row using the given role reference (name for legacy, id for modern).
-func seedLegacyMigrationData(t *testing.T, db *gorm.DB, roleRefIsName bool) migrationSeedResult {
+func seedLegacyMigrationData(t *testing.T, db *sqlx.DB, roleRefIsName bool) migrationSeedResult {
 	t.Helper()
 
 	setup.ApplyMigrationsUpTo(t, db, 28)
@@ -33,16 +33,18 @@ func seedLegacyMigrationData(t *testing.T, db *gorm.DB, roleRefIsName bool) migr
 	orgID := uuid.NewString()
 	userID := uuid.NewString()
 
-	require.NoError(t, db.Exec(
+	_, err := db.Exec(
 		"INSERT INTO organizations (id, name, slug, owner_id, status, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, 'active', 0, 0, 0)",
-		orgID, "Migration Org", "migration-org-"+orgID[:8], "system").Error)
+		orgID, "Migration Org", "migration-org-"+orgID[:8], "system")
+	require.NoError(t, err)
 
-	require.NoError(t, db.Exec(
+	_, err = db.Exec(
 		"INSERT INTO users (id, username, email, password, name, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, 0, 0, 0)",
-		userID, "miguser-"+userID[:8], "mig-"+userID[:8]+"@example.com", "x", "Mig User").Error)
+		userID, "miguser-"+userID[:8], "mig-"+userID[:8]+"@example.com", "x", "Mig User")
+	require.NoError(t, err)
 
 	var adminRoleID string
-	require.NoError(t, db.Raw("SELECT id FROM roles WHERE name = 'role:admin'").Scan(&adminRoleID).Error)
+	require.NoError(t, db.Get(&adminRoleID, "SELECT id FROM roles WHERE name = 'role:admin'"))
 	require.NotEmpty(t, adminRoleID, "role:admin seed must exist before migration 000029")
 
 	roleRef := adminRoleID
@@ -50,13 +52,15 @@ func seedLegacyMigrationData(t *testing.T, db *gorm.DB, roleRefIsName bool) migr
 		roleRef = "role:admin"
 	}
 
-	require.NoError(t, db.Exec(
+	_, err = db.Exec(
 		"INSERT INTO organization_members (id, organization_id, user_id, role_id, status) VALUES (?, ?, ?, ?, 'active')",
-		uuid.NewString(), orgID, userID, roleRef).Error)
+		uuid.NewString(), orgID, userID, roleRef)
+	require.NoError(t, err)
 
-	require.NoError(t, db.Exec(
+	_, err = db.Exec(
 		"INSERT INTO invitation_tokens (id, organization_id, email, token, role, expires_at, created_at) VALUES (?, ?, ?, ?, ?, 9999999999999, 1)",
-		uuid.NewString(), orgID, "mig-"+userID[:8]+"@example.com", "legacy_token_"+userID[:8], roleRef).Error)
+		uuid.NewString(), orgID, "mig-"+userID[:8]+"@example.com", "legacy_token_"+userID[:8], roleRef)
+	require.NoError(t, err)
 
 	return migrationSeedResult{orgID: orgID, userID: userID, adminRoleID: adminRoleID}
 }
@@ -95,15 +99,15 @@ func TestMigration000029_Backfill(t *testing.T) {
 			setup.ApplyMigrationFile(t, migDB, 29, "up")
 
 			var memberRoleID string
-			require.NoError(t, migDB.Raw("SELECT role_id FROM organization_members WHERE user_id = ?", seed.userID).Scan(&memberRoleID).Error)
+			require.NoError(t, migDB.Get(&memberRoleID, "SELECT role_id FROM organization_members WHERE user_id = ?", seed.userID))
 			assert.Equal(t, seed.adminRoleID, memberRoleID, tt.description)
 
 			var invitationRoleID string
-			require.NoError(t, migDB.Raw("SELECT role_id FROM invitation_tokens WHERE organization_id = ?", seed.orgID).Scan(&invitationRoleID).Error)
+			require.NoError(t, migDB.Get(&invitationRoleID, "SELECT role_id FROM invitation_tokens WHERE organization_id = ?", seed.orgID))
 			assert.Equal(t, seed.adminRoleID, invitationRoleID, "invitation_tokens.role_id must hold the role UUID after migration")
 
 			var fkCount int64
-			require.NoError(t, migDB.Raw(migration000029FKQuery).Scan(&fkCount).Error)
+			require.NoError(t, migDB.Get(&fkCount, migration000029FKQuery))
 			assert.Equal(t, int64(2), fkCount, "both role foreign keys must be created by migration 000029")
 		})
 	}
@@ -147,14 +151,14 @@ func TestMigration000029_Down(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var got string
-			require.NoError(t, migDB.Raw(tt.query, tt.args...).Scan(&got).Error)
+			require.NoError(t, migDB.Get(&got, tt.query, tt.args...))
 			assert.Equal(t, tt.expected, got, tt.message)
 		})
 	}
 
 	t.Run("both role foreign keys are dropped", func(t *testing.T) {
 		var fkCount int64
-		require.NoError(t, migDB.Raw(migration000029FKQuery).Scan(&fkCount).Error)
+		require.NoError(t, migDB.Get(&fkCount, migration000029FKQuery))
 		assert.Equal(t, int64(0), fkCount, "down migration must drop both role FKs")
 	})
 }

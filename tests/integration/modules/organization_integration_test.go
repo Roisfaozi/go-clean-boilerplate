@@ -4,14 +4,38 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	orgRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func insertTestOrg(db *sqlx.DB, org *orgEntity.Organization) error {
+	now := time.Now().UnixMilli()
+	if org.CreatedAt == 0 {
+		org.CreatedAt = now
+	}
+	if org.UpdatedAt == 0 {
+		org.UpdatedAt = now
+	}
+	_, err := db.Exec(`INSERT INTO organizations (id, name, slug, owner_id, status, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
+		org.ID, org.Name, org.Slug, org.OwnerID, org.Status, org.CreatedAt, org.UpdatedAt)
+	return err
+}
+
+func insertTestMember(db *sqlx.DB, member *orgEntity.OrganizationMember) error {
+	if member.JoinedAt == 0 {
+		member.JoinedAt = time.Now().UnixMilli()
+	}
+	_, err := db.Exec(`INSERT INTO organization_members (id, organization_id, user_id, role_id, status, joined_at) VALUES (?, ?, ?, ?, ?, ?)`,
+		member.ID, member.OrganizationID, member.UserID, member.RoleID, member.Status, member.JoinedAt)
+	return err
+}
 
 // TestOrganizationRepository_Create tests atomic creation of org + owner member
 func TestOrganizationRepository_Create(t *testing.T) {
@@ -32,7 +56,7 @@ func TestOrganizationRepository_Create(t *testing.T) {
 	}
 
 	// Create org (will use repository once implemented)
-	err := env.DB.Create(org).Error
+	err := insertTestOrg(env.SQLXDB, org)
 	require.NoError(t, err, "Should create organization")
 
 	// Create owner membership
@@ -43,18 +67,18 @@ func TestOrganizationRepository_Create(t *testing.T) {
 		RoleID:         "role:admin",
 		Status:         orgEntity.MemberStatusActive,
 	}
-	err = env.DB.Create(member).Error
+	err = insertTestMember(env.SQLXDB, member)
 	require.NoError(t, err, "Should create owner membership")
 
 	// Verify organization was created
 	var foundOrg orgEntity.Organization
-	err = env.DB.First(&foundOrg, "id = ?", org.ID).Error
+	err = env.SQLXDB.Get(&foundOrg, "SELECT id, name, slug, owner_id, status, created_at, updated_at, deleted_at FROM organizations WHERE id = ? LIMIT 1", org.ID)
 	require.NoError(t, err)
 	assert.Equal(t, org.Name, foundOrg.Name)
 
 	// Verify owner membership was created
 	var foundMember orgEntity.OrganizationMember
-	err = env.DB.First(&foundMember, "organization_id = ? AND user_id = ?", org.ID, user.ID).Error
+	err = env.SQLXDB.Get(&foundMember, "SELECT id, organization_id, user_id, role_id, status, joined_at FROM organization_members WHERE organization_id = ? AND user_id = ? LIMIT 1", org.ID, user.ID)
 	require.NoError(t, err)
 	assert.Equal(t, orgEntity.MemberStatusActive, foundMember.Status)
 }
@@ -77,7 +101,7 @@ func TestOrganizationRepository_SlugUniqueness(t *testing.T) {
 		OwnerID: user.ID,
 		Status:  orgEntity.OrgStatusActive,
 	}
-	err := env.DB.Create(org1).Error
+	err := insertTestOrg(env.SQLXDB, org1)
 	require.NoError(t, err, "First org should be created")
 
 	// Try to create another org with the same slug
@@ -88,7 +112,7 @@ func TestOrganizationRepository_SlugUniqueness(t *testing.T) {
 		OwnerID: user.ID,
 		Status:  orgEntity.OrgStatusActive,
 	}
-	err = env.DB.Create(org2).Error
+	err = insertTestOrg(env.SQLXDB, org2)
 	assert.Error(t, err, "Should fail with duplicate slug")
 }
 
@@ -111,7 +135,7 @@ func TestOrganizationRepository_DataIsolation(t *testing.T) {
 		OwnerID: userA.ID,
 		Status:  orgEntity.OrgStatusActive,
 	}
-	err := env.DB.Create(orgA).Error
+	err := insertTestOrg(env.SQLXDB, orgA)
 	require.NoError(t, err)
 
 	orgB := &orgEntity.Organization{
@@ -121,7 +145,7 @@ func TestOrganizationRepository_DataIsolation(t *testing.T) {
 		OwnerID: userB.ID,
 		Status:  orgEntity.OrgStatusActive,
 	}
-	err = env.DB.Create(orgB).Error
+	err = insertTestOrg(env.SQLXDB, orgB)
 	require.NoError(t, err)
 
 	// Add userA as member of orgA only
@@ -132,7 +156,7 @@ func TestOrganizationRepository_DataIsolation(t *testing.T) {
 		RoleID:         "role:admin",
 		Status:         orgEntity.MemberStatusActive,
 	}
-	err = env.DB.Create(memberA).Error
+	err = insertTestMember(env.SQLXDB, memberA)
 	require.NoError(t, err)
 
 	// Add userB as member of orgB only
@@ -143,12 +167,12 @@ func TestOrganizationRepository_DataIsolation(t *testing.T) {
 		RoleID:         "role:admin",
 		Status:         orgEntity.MemberStatusActive,
 	}
-	err = env.DB.Create(memberB).Error
+	err = insertTestMember(env.SQLXDB, memberB)
 	require.NoError(t, err)
 
 	// Test: Query members of orgA should NOT include userB
 	var membersOfA []*orgEntity.OrganizationMember
-	err = env.DB.Where("organization_id = ?", orgA.ID).Find(&membersOfA).Error
+	err = env.SQLXDB.Select(&membersOfA, "SELECT id, organization_id, user_id, role_id, status, joined_at FROM organization_members WHERE organization_id = ?", orgA.ID)
 	require.NoError(t, err)
 
 	assert.Len(t, membersOfA, 1, "Org A should have exactly 1 member")
@@ -156,7 +180,7 @@ func TestOrganizationRepository_DataIsolation(t *testing.T) {
 
 	// Test: Query members of orgB should NOT include userA
 	var membersOfB []*orgEntity.OrganizationMember
-	err = env.DB.Where("organization_id = ?", orgB.ID).Find(&membersOfB).Error
+	err = env.SQLXDB.Select(&membersOfB, "SELECT id, organization_id, user_id, role_id, status, joined_at FROM organization_members WHERE organization_id = ?", orgB.ID)
 	require.NoError(t, err)
 
 	assert.Len(t, membersOfB, 1, "Org B should have exactly 1 member")
@@ -179,7 +203,7 @@ func TestOrganizationRepository_CheckMembership(t *testing.T) {
 		OwnerID: user.ID,
 		Status:  orgEntity.OrgStatusActive,
 	}
-	err := env.DB.Create(org).Error
+	err := insertTestOrg(env.SQLXDB, org)
 	require.NoError(t, err)
 
 	// Add as active member
@@ -190,21 +214,17 @@ func TestOrganizationRepository_CheckMembership(t *testing.T) {
 		RoleID:         "role:user",
 		Status:         orgEntity.MemberStatusActive,
 	}
-	err = env.DB.Create(member).Error
+	err = insertTestMember(env.SQLXDB, member)
 	require.NoError(t, err)
 
 	// Test: Active member should be found
 	var count int64
-	err = env.DB.Model(&orgEntity.OrganizationMember{}).
-		Where("organization_id = ? AND user_id = ? AND status = ?", org.ID, user.ID, orgEntity.MemberStatusActive).
-		Count(&count).Error
+	err = env.SQLXDB.Get(&count, "SELECT COUNT(*) FROM organization_members WHERE organization_id = ? AND user_id = ? AND status = ?", org.ID, user.ID, orgEntity.MemberStatusActive)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), count, "Active member should be found")
 
 	// Test: Non-existent member should not be found
-	err = env.DB.Model(&orgEntity.OrganizationMember{}).
-		Where("organization_id = ? AND user_id = ? AND status = ?", org.ID, "non-existent-user", orgEntity.MemberStatusActive).
-		Count(&count).Error
+	err = env.SQLXDB.Get(&count, "SELECT COUNT(*) FROM organization_members WHERE organization_id = ? AND user_id = ? AND status = ?", org.ID, "non-existent-user", orgEntity.MemberStatusActive)
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), count, "Non-existent member should not be found")
 }
@@ -225,7 +245,7 @@ func TestOrganizationRepository_BannedMemberDenied(t *testing.T) {
 		OwnerID: user.ID,
 		Status:  orgEntity.OrgStatusActive,
 	}
-	err := env.DB.Create(org).Error
+	err := insertTestOrg(env.SQLXDB, org)
 	require.NoError(t, err)
 
 	// Add as banned member
@@ -236,21 +256,17 @@ func TestOrganizationRepository_BannedMemberDenied(t *testing.T) {
 		RoleID:         "role:user",
 		Status:         orgEntity.MemberStatusBanned,
 	}
-	err = env.DB.Create(member).Error
+	err = insertTestMember(env.SQLXDB, member)
 	require.NoError(t, err)
 
 	// Test: Banned member should NOT be counted as active
 	var count int64
-	err = env.DB.Model(&orgEntity.OrganizationMember{}).
-		Where("organization_id = ? AND user_id = ? AND status = ?", org.ID, user.ID, orgEntity.MemberStatusActive).
-		Count(&count).Error
+	err = env.SQLXDB.Get(&count, "SELECT COUNT(*) FROM organization_members WHERE organization_id = ? AND user_id = ? AND status = ?", org.ID, user.ID, orgEntity.MemberStatusActive)
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), count, "Banned member should not be counted as active")
 
 	// Test: Banned member should still exist in table
-	err = env.DB.Model(&orgEntity.OrganizationMember{}).
-		Where("organization_id = ? AND user_id = ?", org.ID, user.ID).
-		Count(&count).Error
+	err = env.SQLXDB.Get(&count, "SELECT COUNT(*) FROM organization_members WHERE organization_id = ? AND user_id = ?", org.ID, user.ID)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), count, "Banned member record should exist")
 }
@@ -286,9 +302,7 @@ func TestOrganizationRepository_AtomicCreate(t *testing.T) {
 
 	// Verify owner membership was created automatically
 	var count int64
-	err = env.DB.Model(&orgEntity.OrganizationMember{}).
-		Where("organization_id = ? AND user_id = ? AND status = ?", org.ID, user.ID, orgEntity.MemberStatusActive).
-		Count(&count).Error
+	err = env.SQLXDB.Get(&count, "SELECT COUNT(*) FROM organization_members WHERE organization_id = ? AND user_id = ? AND status = ?", org.ID, user.ID, orgEntity.MemberStatusActive)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), count, "Owner membership should be created atomically")
 }
@@ -311,7 +325,7 @@ func TestOrganizationMemberRepository_CheckMembership(t *testing.T) {
 		OwnerID: user.ID,
 		Status:  orgEntity.OrgStatusActive,
 	}
-	err := env.DB.Create(org).Error
+	err := insertTestOrg(env.SQLXDB, org)
 	require.NoError(t, err)
 
 	// Add member
@@ -351,7 +365,7 @@ func TestOrganizationMemberRepository_HardDeleteAllowsReAdd(t *testing.T) {
 		OwnerID: user.ID,
 		Status:  orgEntity.OrgStatusActive,
 	}
-	require.NoError(t, env.DB.Create(org).Error)
+	require.NoError(t, insertTestOrg(env.SQLXDB, org))
 
 	member := &orgEntity.OrganizationMember{
 		ID:             uuid.New().String(),
@@ -364,9 +378,7 @@ func TestOrganizationMemberRepository_HardDeleteAllowsReAdd(t *testing.T) {
 	require.NoError(t, memberRepo.RemoveMember(context.Background(), org.ID, user.ID))
 
 	var count int64
-	require.NoError(t, env.DB.Unscoped().Model(&orgEntity.OrganizationMember{}).
-		Where("organization_id = ? AND user_id = ?", org.ID, user.ID).
-		Count(&count).Error)
+	require.NoError(t, env.SQLXDB.Get(&count, "SELECT COUNT(*) FROM organization_members WHERE organization_id = ? AND user_id = ?", org.ID, user.ID))
 	assert.Zero(t, count)
 
 	member.ID = uuid.New().String()
@@ -393,7 +405,7 @@ func TestOrganizationRepository_FindUserOrganizations(t *testing.T) {
 			OwnerID: user.ID,
 			Status:  orgEntity.OrgStatusActive,
 		}
-		err := env.DB.Create(org).Error
+		err := insertTestOrg(env.SQLXDB, org)
 		require.NoError(t, err)
 
 		// Only add user to first 2 orgs
@@ -405,7 +417,7 @@ func TestOrganizationRepository_FindUserOrganizations(t *testing.T) {
 				RoleID:         "role:member",
 				Status:         orgEntity.MemberStatusActive,
 			}
-			err = env.DB.Create(member).Error
+			err = insertTestMember(env.SQLXDB, member)
 			require.NoError(t, err)
 		}
 	}

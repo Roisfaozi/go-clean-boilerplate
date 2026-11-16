@@ -33,7 +33,7 @@ import (
 
 func setupUserIntegration(env *setup.TestEnvironment) usecase.UserUseCase {
 	userRepo := repository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil, nil)
 
@@ -126,12 +126,13 @@ func TestUserStatus_BannedFlow(t *testing.T) {
 	password := "password123"
 	user := setup.CreateTestUser(t, env.DB, "banneduser", "banned@example.com", password)
 
-	env.DB.Model(&entity.User{}).Where("id = ?", user.ID).Update("status", entity.UserStatusBanned)
+	_, err := env.SQLXDB.Exec("UPDATE users SET status = ? WHERE id = ?", entity.UserStatusBanned, user.ID)
+	require.NoError(t, err)
 
 	jwtManager := jwt.NewJWTManager("test-secret", "test-refresh", 15*time.Minute, 24*time.Hour)
 	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	_ = auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil, nil)
 
@@ -524,9 +525,7 @@ func TestUserRepository_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		orgID := "org-1"
-		// Clean way is to automigrate
-		// env.DB.AutoMigrate(&orgEntity.OrganizationMember{}) -- handled in test_database.go usually.
-		err = env.DB.Exec("INSERT INTO organization_members (id, organization_id, user_id, role_id, status) VALUES (?, ?, ?, ?, ?)", "mem-1", orgID, user.ID, "ADMIN", "ACTIVE").Error
+		_, err = env.SQLXDB.Exec("INSERT INTO organization_members (id, organization_id, user_id, role_id, status, joined_at) VALUES (?, ?, ?, ?, ?, ?)", "mem-1", orgID, user.ID, "ADMIN", "ACTIVE", time.Now().UnixMilli())
 		require.NoError(t, err)
 
 		users, err := userRepo.GetByOrganization(context.Background(), orgID)

@@ -32,7 +32,7 @@ func TestScenario_PasswordRecovery_Lifecycle(t *testing.T) {
 	defer env.Cleanup()
 	setup.CleanupDatabase(t, env.DB)
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	aucRepo := auditRepo.NewAuditRepository(env.DB, env.Logger)
@@ -52,16 +52,22 @@ func TestScenario_PasswordRecovery_Lifecycle(t *testing.T) {
 	sum := sha256.Sum256([]byte(rawToken))
 	hashedToken := hex.EncodeToString(sum[:])
 
-	err := env.DB.Create(&authEntity.PasswordResetToken{
-		Email: user.Email, Token: hashedToken, ExpiresAt: time.Now().Add(15 * time.Minute).UnixMilli(),
-	}).Error
+	now := time.Now().UTC().UnixMilli()
+	_, err := env.SQLXDB.Exec(
+		`INSERT INTO password_reset_tokens (email, token, expires_at, created_at) VALUES (?, ?, ?, ?)`,
+		user.Email, hashedToken, time.Now().Add(15*time.Minute).UnixMilli(), now,
+	)
 	require.NoError(t, err)
 
 	err = authService.ResetPassword(context.Background(), rawToken, newPassword)
 	require.NoError(t, err)
 
 	var checkToken authEntity.PasswordResetToken
-	err = env.DB.Where("token = ?", hashedToken).First(&checkToken).Error
+	err = env.SQLXDB.Get(
+		&checkToken,
+		"SELECT email, token, expires_at, created_at FROM password_reset_tokens WHERE token = ? LIMIT 1",
+		hashedToken,
+	)
 	assert.Error(t, err, "Token should be deleted after use")
 
 	_, _, err = authService.Login(context.Background(), authModel.LoginRequest{

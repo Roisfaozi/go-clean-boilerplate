@@ -208,5 +208,5 @@ func TestAccessIntegration_UnlinkEndpointFromAccessRight_Negative_NonExistent(t 
 	uc := setupAccessIntegration(env)
 
 	err := uc.UnlinkEndpointFromAccessRight(context.Background(), model.LinkEndpointRequest{AccessRightID: "non-existent", EndpointID: "non-existent"})
-	require.NoError(t, err) // GORM handles non-existent gracefully when unlinking
+	require.NoError(t, err) // Unlinking non-existent association is a no-op
 }

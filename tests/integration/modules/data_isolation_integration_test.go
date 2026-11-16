@@ -27,11 +27,11 @@ func TestDataIsolation_User_FindAll(t *testing.T) {
 	orgB := "org-b"
 
 	// Create Organizations in DB first to satisfy foreign key if any, and for consistency
-	env.DB.Exec("DELETE FROM organization_members")
-	env.DB.Exec("DELETE FROM organizations")
-	env.DB.Exec("INSERT INTO organizations (id, name, slug, owner_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+	_, _ = env.SQLXDB.Exec("DELETE FROM organization_members")
+	_, _ = env.SQLXDB.Exec("DELETE FROM organizations")
+	_, _ = env.SQLXDB.Exec("INSERT INTO organizations (id, name, slug, owner_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		orgA, "Org A", "org-a", "system", "active", time.Now().UnixMilli(), time.Now().UnixMilli())
-	env.DB.Exec("INSERT INTO organizations (id, name, slug, owner_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+	_, _ = env.SQLXDB.Exec("INSERT INTO organizations (id, name, slug, owner_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		orgB, "Org B", "org-b", "system", "active", time.Now().UnixMilli(), time.Now().UnixMilli())
 
 	// Create Users with memberships
@@ -40,9 +40,9 @@ func TestDataIsolation_User_FindAll(t *testing.T) {
 
 	// Verify memberships exist
 	var count int64
-	env.DB.Table("organization_members").Where("organization_id = ?", orgA).Count(&count)
+	_ = env.SQLXDB.Get(&count, "SELECT COUNT(*) FROM organization_members WHERE organization_id = ?", orgA)
 	assert.Equal(t, int64(1), count, "Org A should have 1 member")
-	env.DB.Table("organization_members").Where("organization_id = ?", orgB).Count(&count)
+	_ = env.SQLXDB.Get(&count, "SELECT COUNT(*) FROM organization_members WHERE organization_id = ?", orgB)
 	assert.Equal(t, int64(1), count, "Org B should have 1 member")
 
 	ctx := context.Background()

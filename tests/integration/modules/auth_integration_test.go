@@ -42,7 +42,7 @@ func setupAuthIntegration(env *setup.TestEnvironment) (usecase.AuthUseCase, *jwt
 func setupAuthIntegrationWithJWT(env *setup.TestEnvironment, jwtManager *jwt.JWTManager) usecase.AuthUseCase {
 	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	_ = auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil, nil)
 
@@ -263,7 +263,7 @@ func TestAuthIntegration_PasswordRecovery(t *testing.T) {
 		require.NoError(t, err)
 
 		var token authEntity.PasswordResetToken
-		err = env.DB.Where("email = ?", email).First(&token).Error
+		err = env.SQLXDB.Get(&token, "SELECT email, token, expires_at, created_at FROM password_reset_tokens WHERE email = ? LIMIT 1", email)
 		require.NoError(t, err)
 		assert.NotEmpty(t, token.Token)
 	})
@@ -275,9 +275,8 @@ func TestAuthIntegration_PasswordRecovery(t *testing.T) {
 		resetToken := "secret-token-unique-123"
 		sum := sha256.Sum256([]byte(resetToken))
 		hashedToken := hex.EncodeToString(sum[:])
-		err := env.DB.Create(&authEntity.PasswordResetToken{
-			Email: email, Token: hashedToken, ExpiresAt: time.Now().Add(time.Hour).UnixMilli(),
-		}).Error
+		_, err := env.SQLXDB.Exec("INSERT INTO password_reset_tokens (email, token, expires_at, created_at) VALUES (?, ?, ?, ?)",
+			email, hashedToken, time.Now().Add(time.Hour).UnixMilli(), time.Now().UnixMilli())
 		require.NoError(t, err)
 
 		err = authUC.ResetPassword(context.Background(), resetToken, "NewPass123!")

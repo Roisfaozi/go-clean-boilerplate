@@ -109,13 +109,15 @@ func newMemberFailureFixture(t *testing.T, env *setup.TestEnvironment, prefix st
 func (f *memberFailureFixture) countGroupingPolicies(t *testing.T, userID string, roleName string) int64 {
 	t.Helper()
 
-	query := f.env.DB.Table("casbin_rule").Where("ptype = ? AND v0 = ? AND v2 = ?", "g", userID, f.orgID)
+	query := "SELECT COUNT(*) FROM casbin_rule WHERE ptype = ? AND v0 = ? AND v2 = ?"
+	args := []interface{}{"g", userID, f.orgID}
 	if roleName != "" {
-		query = query.Where("v1 = ?", roleName)
+		query += " AND v1 = ?"
+		args = append(args, roleName)
 	}
 
 	var count int64
-	require.NoError(t, query.Count(&count).Error)
+	require.NoError(t, f.env.SQLXDB.Get(&count, query, args...))
 	return count
 }
 
@@ -199,7 +201,11 @@ func TestAcceptInvitation_ActiveMember_NoDuplicatePolicy(t *testing.T) {
 	require.NoError(t, err)
 
 	var firstToken orgEntity.InvitationToken
-	require.NoError(t, env.DB.Where("organization_id = ? AND email = ?", f.orgID, inviteEmail).First(&firstToken).Error)
+	require.NoError(t, env.SQLXDB.Get(
+		&firstToken,
+		"SELECT id, organization_id, email, token, role_id, expires_at, created_at FROM invitation_tokens WHERE organization_id = ? AND email = ? LIMIT 1",
+		f.orgID, inviteEmail,
+	))
 
 	staleToken := "stale_token_" + uuid.NewString()
 
@@ -235,15 +241,13 @@ func TestAcceptInvitation_ActiveMember_NoDuplicatePolicy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.seedStaleToken {
-				require.NoError(t, env.DB.Create(&orgEntity.InvitationToken{
-					ID:             uuid.NewString(),
-					OrganizationID: f.orgID,
-					Email:          inviteEmail,
-					Token:          staleToken,
-					RoleID:         f.role2.ID,
-					ExpiresAt:      time.Now().Add(48 * time.Hour).UnixMilli(),
-					CreatedAt:      time.Now().UnixMilli(),
-				}).Error)
+				_, err := env.SQLXDB.Exec(
+					`INSERT INTO invitation_tokens (id, organization_id, email, token, role_id, expires_at, created_at)
+					 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+					uuid.NewString(), f.orgID, inviteEmail, staleToken, f.role2.ID,
+					time.Now().Add(48*time.Hour).UnixMilli(), time.Now().UnixMilli(),
+				)
+				require.NoError(t, err)
 			}
 
 			require.NoError(t, f.memberUC.AcceptInvitation(context.Background(), tt.request))
@@ -259,7 +263,7 @@ func TestAcceptInvitation_ActiveMember_NoDuplicatePolicy(t *testing.T) {
 				"active member must not receive a duplicate grouping policy")
 
 			var tokenCount int64
-			require.NoError(t, env.DB.Table("invitation_tokens").Where("token = ?", tt.consumedToken).Count(&tokenCount).Error)
+			require.NoError(t, env.SQLXDB.Get(&tokenCount, "SELECT COUNT(*) FROM invitation_tokens WHERE token = ?", tt.consumedToken))
 			assert.Equal(t, int64(0), tokenCount, "consumed token must be cleaned up")
 		})
 	}

@@ -22,7 +22,7 @@ func TestTransactionalEnforcer_PersistsCompleteGroupingPolicy(t *testing.T) {
 	env := setup.SetupIntegrationEnvironment(t)
 	defer env.Cleanup()
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	userID := "user-regression"
 
 	err := tm.WithinTransaction(context.Background(), func(txCtx context.Context) error {
@@ -32,16 +32,13 @@ func TestTransactionalEnforcer_PersistsCompleteGroupingPolicy(t *testing.T) {
 	require.NoError(t, err)
 
 	var row struct {
-		Ptype string
-		V0    string
-		V1    string
-		V2    string
+		Ptype string `db:"ptype"`
+		V0    string `db:"v0"`
+		V1    string `db:"v1"`
+		V2    string `db:"v2"`
 	}
 
-	err = env.DB.Table("casbin_rule").
-		Select("ptype, v0, v1, v2").
-		Where("ptype = ? AND v0 = ?", "g", userID).
-		Take(&row).Error
+	err = env.SQLXDB.Get(&row, "SELECT ptype, v0, v1, v2 FROM casbin_rule WHERE ptype = ? AND v0 = ? LIMIT 1", "g", userID)
 	require.NoError(t, err)
 
 	assert.Equal(t, "g", row.Ptype)
@@ -58,7 +55,7 @@ func TestOrganizationUseCase_CreateOrganization_PersistsCompletePolicies(t *test
 	_, err := env.Enforcer.AddGroupingPolicy(user.ID, "role:user", "global")
 	require.NoError(t, err)
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	organizations := orgRepo.NewOrganizationRepository(env.DB)
 	members := orgRepo.NewOrganizationMemberRepository(env.DB)
 	roles := roleRepo.NewRoleRepository(env.SQLXDB, env.Logger)
@@ -72,18 +69,14 @@ func TestOrganizationUseCase_CreateOrganization_PersistsCompletePolicies(t *test
 	require.NotNil(t, resp)
 
 	var rules []struct {
-		Ptype string
-		V0    string
-		V1    string
-		V2    string
-		V3    string
+		Ptype string `db:"ptype"`
+		V0    string `db:"v0"`
+		V1    string `db:"v1"`
+		V2    string `db:"v2"`
+		V3    string `db:"v3"`
 	}
 
-	err = env.DB.Table("casbin_rule").
-		Select("ptype, v0, v1, v2, v3").
-		Where("v2 = ? OR v1 = ?", resp.ID, resp.ID).
-		Order("id ASC").
-		Find(&rules).Error
+	err = env.SQLXDB.Select(&rules, "SELECT ptype, v0, v1, v2, COALESCE(v3, '') AS v3 FROM casbin_rule WHERE v2 = ? OR v1 = ? ORDER BY id ASC", resp.ID, resp.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, rules)
 
@@ -109,16 +102,13 @@ func TestAuthRegister_DoesNotPersistMalformedGroupingPolicies(t *testing.T) {
 	require.Equal(t, 201, resp.StatusCode)
 
 	var rows []struct {
-		Ptype string
-		V0    string
-		V1    string
-		V2    string
+		Ptype string `db:"ptype"`
+		V0    string `db:"v0"`
+		V1    string `db:"v1"`
+		V2    string `db:"v2"`
 	}
 
-	err := server.DB.Table("casbin_rule").
-		Select("ptype, v0, v1, v2").
-		Where("ptype = ?", "g").
-		Find(&rows).Error
+	err := server.DB.Select(&rows, "SELECT ptype, v0, v1, v2 FROM casbin_rule WHERE ptype = ?", "g")
 	require.NoError(t, err)
 	require.NotEmpty(t, rows)
 

@@ -47,7 +47,7 @@ func TestScenario_RealTime_LoginBroadcast(t *testing.T) {
 	wsManager := ws.NewWebSocketManager(wsConfig, env.Logger, env.Redis, presenceManager)
 	go wsManager.Run()
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	publisher := delivery.NewEventPublisher(wsManager, nil, env.Logger)
 	authz := authRepo.NewCasbinAdapter(env.Enforcer, "role:user", "global")
 	authService := authUC.NewAuthUsecase(5, 30*time.Minute, 3, jwtManager, tRepo, uRepo, oRepo, tm, env.Logger, publisher, authz, nil, nil, make(map[string]sso.Provider), "http://localhost:3000")

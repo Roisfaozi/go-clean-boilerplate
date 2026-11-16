@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	apiKeyModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
@@ -52,24 +53,39 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 	ctx := context.Background()
 
 	// 1. Create a real organization
+	now := time.Now().UTC().UnixMilli()
 	orgID, _ := uuid.NewV7()
 	org := &orgEntity.Organization{
-		ID:   orgID.String(),
-		Name: "Test Org",
-		Slug: "test-org",
+		ID:        orgID.String(),
+		Name:      "Test Org",
+		Slug:      "test-org",
+		Status:    orgEntity.OrgStatusActive,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
-	err := env.DB.Create(org).Error
+	_, err := env.SQLXDB.Exec(
+		`INSERT INTO organizations (id, name, slug, owner_id, status, created_at, updated_at, deleted_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
+		org.ID, org.Name, org.Slug, org.OwnerID, org.Status, org.CreatedAt, org.UpdatedAt,
+	)
 	require.NoError(t, err)
 
 	// 2. Create a real user
 	userID, _ := uuid.NewV7()
 	user := &userEntity.User{
-		ID:       userID.String(),
-		Username: "apitestuser",
-		Email:    "api@test.com",
-		Status:   "active",
+		ID:        userID.String(),
+		Username:  "apitestuser",
+		Email:     "api@test.com",
+		Name:      "apitestuser",
+		Status:    userEntity.UserStatusActive,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
-	err = env.DB.Create(user).Error
+	_, err = env.SQLXDB.Exec(
+		`INSERT INTO users (id, username, email, name, password, status, created_at, updated_at, deleted_at)
+		 VALUES (?, ?, ?, ?, '', ?, ?, ?, 0)`,
+		user.ID, user.Username, user.Email, user.Name, user.Status, user.CreatedAt, user.UpdatedAt,
+	)
 	require.NoError(t, err)
 
 	// 3. Generate an API Key via UseCase

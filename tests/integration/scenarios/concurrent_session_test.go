@@ -27,7 +27,7 @@ func TestScenario_Auth_ConcurrentSessions(t *testing.T) {
 	defer env.Cleanup()
 	setup.CleanupDatabase(t, env.DB)
 
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	uRepo := userRepo.NewUserRepository(env.DB, env.Logger)
 	tRepo := authRepo.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
 	jwtManager := jwt.NewJWTManager("secret", "refresh", 15*time.Minute, 24*time.Hour)

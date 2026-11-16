@@ -46,7 +46,7 @@ const (
 
 func setupTUSDeps(t *testing.T, env *setup.TestEnvironment, s3Client *s3.Client, s3URL string) (*handler.Handler, userUseCase.UserUseCase, string) {
 	userRepo := userRepository.NewUserRepository(env.DB, env.Logger)
-	tm := tx.NewTransactionManager(env.DB, env.Logger)
+	tm := tx.NewSQLXTransactionManager(env.SQLXDB, env.Logger)
 	auditRepo := auditRepository.NewAuditRepository(env.DB, env.Logger)
 	auditUC := auditUseCase.NewAuditUseCase(auditRepo, env.Logger, nil, nil)
 	tokenRepo := authRepository.NewTokenRepositoryRedis(env.Redis, env.Logger, env.DB, &util.RealClock{})
@@ -145,8 +145,10 @@ func TestTUS_Integration_Lifecycle(t *testing.T) {
 
 			time.Sleep(2 * time.Second)
 
-			var user struct{ AvatarURL string }
-			err := env.DB.Table("users").Select("avatar_url").Where("id = ?", userID).Scan(&user).Error
+			var user struct {
+				AvatarURL string `db:"avatar_url"`
+			}
+			err := env.SQLXDB.Get(&user, "SELECT COALESCE(avatar_url, '') AS avatar_url FROM users WHERE id = ?", userID)
 			require.NoError(t, err)
 
 			assert.Contains(t, user.AvatarURL, rustfsBucket)
