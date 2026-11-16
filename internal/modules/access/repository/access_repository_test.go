@@ -2,42 +2,68 @@ package repository_test
 
 import (
 	"context"
-	"testing"
-
 	"io"
+	"testing"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/repository"
-	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
-	"github.com/glebarez/sqlite"
+	_ "github.com/glebarez/go-sqlite"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-func setupAccessRepo(t *testing.T) (repository.AccessRepository, *gorm.DB) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
+func setupAccessRepo(t *testing.T) (repository.AccessRepository, *sqlx.DB) {
+	sqlxDB, err := sqlx.Open("sqlite", "file::memory:?cache=shared")
 	require.NoError(t, err)
 
-	err = db.AutoMigrate(&entity.Endpoint{}, &entity.AccessRight{}, &orgEntity.Organization{}, &entity.AccessRightEndpoint{})
+	schema := `
+	CREATE TABLE IF NOT EXISTS organizations (
+		id TEXT PRIMARY KEY,
+		name TEXT,
+		slug TEXT,
+		created_at INTEGER DEFAULT 0,
+		updated_at INTEGER DEFAULT 0,
+		deleted_at INTEGER DEFAULT 0
+	);
+	CREATE TABLE IF NOT EXISTS endpoints (
+		id TEXT PRIMARY KEY,
+		path TEXT NOT NULL,
+		method TEXT NOT NULL,
+		created_at INTEGER DEFAULT 0,
+		updated_at INTEGER DEFAULT 0,
+		deleted_at INTEGER DEFAULT 0
+	);
+	CREATE TABLE IF NOT EXISTS access_rights (
+		id TEXT PRIMARY KEY,
+		organization_id TEXT,
+		name TEXT NOT NULL,
+		description TEXT,
+		created_at INTEGER DEFAULT 0,
+		updated_at INTEGER DEFAULT 0,
+		deleted_at INTEGER DEFAULT 0
+	);
+	CREATE TABLE IF NOT EXISTS access_right_endpoints (
+		access_right_id TEXT NOT NULL,
+		endpoint_id TEXT NOT NULL,
+		PRIMARY KEY (access_right_id, endpoint_id)
+	);
+	DELETE FROM access_right_endpoints;
+	DELETE FROM access_rights;
+	DELETE FROM endpoints;
+	DELETE FROM organizations;
+	`
+	_, err = sqlxDB.Exec(schema)
 	require.NoError(t, err)
-
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	sqlxDB := sqlx.NewDb(sqlDB, "sqlite")
 
 	l := logrus.New()
 	l.SetOutput(io.Discard)
 	l.SetLevel(logrus.FatalLevel)
 
 	repo := repository.NewAccessRepository(sqlxDB, l)
-	return repo, db
+	return repo, sqlxDB
 }
 
 func TestAccessRepository_FindEndpointsDynamic(t *testing.T) {
@@ -50,7 +76,9 @@ func TestAccessRepository_FindEndpointsDynamic(t *testing.T) {
 		{ID: "2", Path: "/api/users", Method: "POST"},
 		{ID: "3", Path: "/api/roles", Method: "GET"},
 	}
-	db.Create(&endpoints)
+	for _, ep := range endpoints {
+		db.MustExec(`INSERT INTO endpoints (id, path, method, created_at, updated_at, deleted_at) VALUES (?, ?, ?, 1, 1, 0)`, ep.ID, ep.Path, ep.Method)
+	}
 
 	tests := []struct {
 		name          string
@@ -96,7 +124,9 @@ func TestAccessRepository_FindAccessRightsDynamic(t *testing.T) {
 		{ID: "1", Name: "User Management", Description: "Manage users"},
 		{ID: "2", Name: "Role Management", Description: "Manage roles"},
 	}
-	db.Create(&ars)
+	for _, ar := range ars {
+		db.MustExec(`INSERT INTO access_rights (id, organization_id, name, description, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, 1, 1, 0)`, ar.ID, ar.OrganizationID, ar.Name, ar.Description)
+	}
 
 	tests := []struct {
 		name          string
@@ -178,7 +208,9 @@ func TestAccessRepository_GetEndpoints(t *testing.T) {
 			{ID: "get-1", Path: "/api/users", Method: "GET"},
 			{ID: "get-2", Path: "/api/roles", Method: "POST"},
 		}
-		db.Create(&endpoints)
+		for _, ep := range endpoints {
+			db.MustExec(`INSERT INTO endpoints (id, path, method, created_at, updated_at, deleted_at) VALUES (?, ?, ?, 1, 1, 0)`, ep.ID, ep.Path, ep.Method)
+		}
 
 		result, err := repo.GetEndpoints(ctx)
 		require.NoError(t, err)
@@ -187,7 +219,7 @@ func TestAccessRepository_GetEndpoints(t *testing.T) {
 
 	t.Run("Empty table returns empty slice", func(t *testing.T) {
 		// Clean the table first
-		db.Exec("DELETE FROM endpoints")
+		db.MustExec("DELETE FROM endpoints")
 
 		result, err := repo.GetEndpoints(ctx)
 		require.NoError(t, err)
@@ -201,7 +233,7 @@ func TestAccessRepository_GetEndpointByID(t *testing.T) {
 
 	t.Run("Found", func(t *testing.T) {
 		endpoint := entity.Endpoint{ID: "find-1", Path: "/api/find", Method: "GET"}
-		db.Create(&endpoint)
+		db.MustExec(`INSERT INTO endpoints (id, path, method, created_at, updated_at, deleted_at) VALUES (?, ?, ?, 1, 1, 0)`, endpoint.ID, endpoint.Path, endpoint.Method)
 
 		result, err := repo.GetEndpointByID(ctx, "find-1")
 		require.NoError(t, err)
@@ -220,7 +252,7 @@ func TestAccessRepository_DeleteEndpoint(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		endpoint := entity.Endpoint{ID: "del-1", Path: "/api/delete", Method: "DELETE"}
-		db.Create(&endpoint)
+		db.MustExec(`INSERT INTO endpoints (id, path, method, created_at, updated_at, deleted_at) VALUES (?, ?, ?, 1, 1, 0)`, endpoint.ID, endpoint.Path, endpoint.Method)
 
 		err := repo.DeleteEndpoint(ctx, "del-1")
 		require.NoError(t, err)
@@ -232,7 +264,7 @@ func TestAccessRepository_DeleteEndpoint(t *testing.T) {
 
 	t.Run("Delete non-existent does not error", func(t *testing.T) {
 		err := repo.DeleteEndpoint(ctx, "never-existed")
-		require.NoError(t, err) // GORM soft deletes don't error for missing records
+		require.NoError(t, err) // Soft delete is idempotent for missing records
 	})
 }
 
@@ -277,15 +309,15 @@ func TestAccessRepository_GetAccessRights(t *testing.T) {
 	t.Run("Returns all with preloaded endpoints", func(t *testing.T) {
 		// Create endpoint
 		endpoint := entity.Endpoint{ID: "preload-ep", Path: "/api/preload", Method: "GET"}
-		db.Create(&endpoint)
+		db.MustExec(`INSERT INTO endpoints (id, path, method, created_at, updated_at, deleted_at) VALUES (?, ?, ?, 1, 1, 0)`, endpoint.ID, endpoint.Path, endpoint.Method)
 
 		// Create access right with endpoint
 		ar := entity.AccessRight{
-			ID:        "ar-preload",
-			Name:      "Preload Test",
-			Endpoints: []entity.Endpoint{endpoint},
+			ID:   "ar-preload",
+			Name: "Preload Test",
 		}
-		db.Create(&ar)
+		db.MustExec(`INSERT INTO access_rights (id, organization_id, name, description, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, 1, 1, 0)`, ar.ID, ar.OrganizationID, ar.Name, ar.Description)
+		db.MustExec(`INSERT INTO access_right_endpoints (access_right_id, endpoint_id) VALUES (?, ?)`, ar.ID, endpoint.ID)
 
 		result, err := repo.GetAccessRights(ctx)
 		require.NoError(t, err)
@@ -309,14 +341,14 @@ func TestAccessRepository_GetAccessRightByID(t *testing.T) {
 
 	t.Run("Found with preload", func(t *testing.T) {
 		endpoint := entity.Endpoint{ID: "ar-ep-1", Path: "/api/ar", Method: "GET"}
-		db.Create(&endpoint)
+		db.MustExec(`INSERT INTO endpoints (id, path, method, created_at, updated_at, deleted_at) VALUES (?, ?, ?, 1, 1, 0)`, endpoint.ID, endpoint.Path, endpoint.Method)
 
 		ar := entity.AccessRight{
-			ID:        "ar-find",
-			Name:      "Find Test",
-			Endpoints: []entity.Endpoint{endpoint},
+			ID:   "ar-find",
+			Name: "Find Test",
 		}
-		db.Create(&ar)
+		db.MustExec(`INSERT INTO access_rights (id, organization_id, name, description, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, 1, 1, 0)`, ar.ID, ar.OrganizationID, ar.Name, ar.Description)
+		db.MustExec(`INSERT INTO access_right_endpoints (access_right_id, endpoint_id) VALUES (?, ?)`, ar.ID, endpoint.ID)
 
 		result, err := repo.GetAccessRightByID(ctx, "ar-find")
 		require.NoError(t, err)
@@ -336,7 +368,7 @@ func TestAccessRepository_DeleteAccessRight(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		ar := entity.AccessRight{ID: "ar-del", Name: "Delete Me"}
-		db.Create(&ar)
+		db.MustExec(`INSERT INTO access_rights (id, organization_id, name, description, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, 1, 1, 0)`, ar.ID, ar.OrganizationID, ar.Name, ar.Description)
 
 		err := repo.DeleteAccessRight(ctx, "ar-del")
 		require.NoError(t, err)
@@ -353,10 +385,10 @@ func TestAccessRepository_LinkEndpointToAccessRight(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		// Create endpoint and access right
 		endpoint := entity.Endpoint{ID: "link-ep", Path: "/api/link", Method: "GET"}
-		db.Create(&endpoint)
+		db.MustExec(`INSERT INTO endpoints (id, path, method, created_at, updated_at, deleted_at) VALUES (?, ?, ?, 1, 1, 0)`, endpoint.ID, endpoint.Path, endpoint.Method)
 
 		ar := entity.AccessRight{ID: "link-ar", Name: "Link Test"}
-		db.Create(&ar)
+		db.MustExec(`INSERT INTO access_rights (id, organization_id, name, description, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, 1, 1, 0)`, ar.ID, ar.OrganizationID, ar.Name, ar.Description)
 
 		// Link them
 		err := repo.LinkEndpointToAccessRight(ctx, "link-ar", "link-ep")
@@ -377,13 +409,15 @@ func TestAccessRepository_UnlinkEndpointFromAccessRight(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		// Create endpoint and access right
 		endpoint := entity.Endpoint{ID: "unlink-ep", Path: "/api/unlink", Method: "GET"}
-		require.NoError(t, db.Create(&endpoint).Error)
+		_, err := db.Exec(`INSERT INTO endpoints (id, path, method, created_at, updated_at, deleted_at) VALUES (?, ?, ?, 1, 1, 0)`, endpoint.ID, endpoint.Path, endpoint.Method)
+		require.NoError(t, err)
 
 		ar := entity.AccessRight{ID: "unlink-ar", Name: "Unlink Test"}
-		require.NoError(t, db.Create(&ar).Error)
+		_, err = db.Exec(`INSERT INTO access_rights (id, organization_id, name, description, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, 1, 1, 0)`, ar.ID, ar.OrganizationID, ar.Name, ar.Description)
+		require.NoError(t, err)
 
 		// Link them
-		err := repo.LinkEndpointToAccessRight(ctx, "unlink-ar", "unlink-ep")
+		err = repo.LinkEndpointToAccessRight(ctx, "unlink-ar", "unlink-ep")
 		require.NoError(t, err)
 
 		// Verify they are linked
@@ -403,7 +437,7 @@ func TestAccessRepository_UnlinkEndpointFromAccessRight(t *testing.T) {
 
 	t.Run("Negative - Unlink Non-existent Access Right", func(t *testing.T) {
 		err := repo.UnlinkEndpointFromAccessRight(ctx, "non-existent-ar", "unlink-ep")
-		require.NoError(t, err) // GORM does not return an error when deleting non-existent associations if the model isn't found
+		require.NoError(t, err) // Unlinking a non-existent association executes a 0-row DELETE without error
 	})
 
 	t.Run("Negative - Unlink Non-existent Endpoint", func(t *testing.T) {

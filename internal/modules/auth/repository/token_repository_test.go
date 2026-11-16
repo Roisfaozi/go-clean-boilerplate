@@ -2,6 +2,7 @@ package repository_test
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,13 +13,12 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
-	"github.com/glebarez/sqlite"
+	_ "github.com/glebarez/go-sqlite"
 	"github.com/go-redis/redismock/v9"
+	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 func getSessionKey(userID, sessionID string) string {
@@ -37,12 +37,23 @@ func getLockedKey(username string) string {
 	return fmt.Sprintf("auth:locked:%s", username)
 }
 
-func setupGormDB(t *testing.T) *gorm.DB {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
+func setupTestDB(t *testing.T) *sqlx.DB {
+	db, err := sqlx.Open("sqlite", ":memory:")
 	assert.NoError(t, err)
-	err = db.AutoMigrate(&entity.PasswordResetToken{})
+	_, err = db.Exec(`
+		CREATE TABLE password_reset_tokens (
+			email TEXT PRIMARY KEY,
+			token TEXT,
+			expires_at INTEGER,
+			created_at INTEGER
+		);
+		CREATE TABLE email_verification_tokens (
+			email TEXT PRIMARY KEY,
+			token TEXT,
+			expires_at INTEGER,
+			created_at INTEGER
+		);
+	`)
 	assert.NoError(t, err)
 	return db
 }
@@ -108,7 +119,7 @@ func TestTokenRepository_StoreToken_RedisError(t *testing.T) {
 }
 
 func TestTokenRepository_Save(t *testing.T) {
-	db := setupGormDB(t)
+	db := setupTestDB(t)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
@@ -124,13 +135,13 @@ func TestTokenRepository_Save(t *testing.T) {
 	assert.NoError(t, err)
 
 	var stored entity.PasswordResetToken
-	err = db.First(&stored, "email = ?", token.Email).Error
+	err = db.Get(&stored, "SELECT email, token, expires_at, created_at FROM password_reset_tokens WHERE email = ?", token.Email)
 	assert.NoError(t, err)
 	assert.Equal(t, token.Token, stored.Token)
 }
 
 func TestTokenRepository_FindByToken(t *testing.T) {
-	db := setupGormDB(t)
+	db := setupTestDB(t)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
@@ -141,7 +152,8 @@ func TestTokenRepository_FindByToken(t *testing.T) {
 		Token:     "token123",
 		ExpiresAt: time.Now().Add(time.Hour).UnixMilli(),
 	}
-	db.Create(token)
+	_, err := db.Exec("INSERT INTO password_reset_tokens (email, token, expires_at, created_at) VALUES (?, ?, ?, ?)", token.Email, token.Token, token.ExpiresAt, token.CreatedAt)
+	assert.NoError(t, err)
 
 	result, err := repo.FindByToken(context.Background(), "token123")
 	assert.NoError(t, err)
@@ -154,7 +166,7 @@ func TestTokenRepository_FindByToken(t *testing.T) {
 }
 
 func TestTokenRepository_DeleteByEmail(t *testing.T) {
-	db := setupGormDB(t)
+	db := setupTestDB(t)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
@@ -164,14 +176,15 @@ func TestTokenRepository_DeleteByEmail(t *testing.T) {
 		Email: "test@example.com",
 		Token: "token123",
 	}
-	db.Create(token)
+	_, err := db.Exec("INSERT INTO password_reset_tokens (email, token, expires_at, created_at) VALUES (?, ?, ?, ?)", token.Email, token.Token, token.ExpiresAt, token.CreatedAt)
+	assert.NoError(t, err)
 
-	err := repo.DeleteByEmail(context.Background(), "test@example.com")
+	err = repo.DeleteByEmail(context.Background(), "test@example.com")
 	assert.NoError(t, err)
 
 	var stored entity.PasswordResetToken
-	err = db.First(&stored, "email = ?", "test@example.com").Error
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	err = db.Get(&stored, "SELECT email, token, expires_at, created_at FROM password_reset_tokens WHERE email = ?", "test@example.com")
+	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
 
 func TestTokenRepository_GetUserSessions(t *testing.T) {
@@ -492,8 +505,7 @@ func (w *NoOpWriter) Write([]byte) (int, error) { return 0, nil }
 func (w *NoOpWriter) Levels() []logrus.Level    { return logrus.AllLevels }
 
 func TestTokenRepository_DeleteExpiredResetTokens(t *testing.T) {
-	db := setupGormDB(t)
-	_ = db.AutoMigrate(&entity.PasswordResetToken{}) // ensure table
+	db := setupTestDB(t)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
@@ -509,54 +521,56 @@ func TestTokenRepository_DeleteExpiredResetTokens(t *testing.T) {
 		Token:     "valid123",
 		ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli(),
 	}
-	db.Create(expiredToken)
-	db.Create(validToken)
+	_, err := db.Exec("INSERT INTO password_reset_tokens (email, token, expires_at, created_at) VALUES (?, ?, ?, ?)", expiredToken.Email, expiredToken.Token, expiredToken.ExpiresAt, expiredToken.CreatedAt)
+	assert.NoError(t, err)
+	_, err = db.Exec("INSERT INTO password_reset_tokens (email, token, expires_at, created_at) VALUES (?, ?, ?, ?)", validToken.Email, validToken.Token, validToken.ExpiresAt, validToken.CreatedAt)
+	assert.NoError(t, err)
 
-	err := repo.DeleteExpiredResetTokens(context.Background())
+	err = repo.DeleteExpiredResetTokens(context.Background())
 	assert.NoError(t, err)
 	var count int64
-	db.Model(&entity.PasswordResetToken{}).Count(&count)
+	err = db.Get(&count, "SELECT COUNT(*) FROM password_reset_tokens")
+	assert.NoError(t, err)
 	assert.Equal(t, int64(1), count)
 }
 
 func TestTokenRepository_DeleteExpiredResetTokens_Error(t *testing.T) {
-	db := setupGormDB(t)
+	db := setupTestDB(t)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
 	repo := repository.NewTokenRepositoryRedis(nil, logger, db, &util.RealClock{})
 
-	db.Exec("DROP TABLE IF EXISTS password_reset_tokens;")
+	_, _ = db.Exec("DROP TABLE IF EXISTS password_reset_tokens;")
 	err := repo.DeleteExpiredResetTokens(context.Background())
 	assert.Error(t, err)
 }
 
 func TestTokenRepository_DeleteByEmail_Error(t *testing.T) {
-	db := setupGormDB(t)
+	db := setupTestDB(t)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
 	repo := repository.NewTokenRepositoryRedis(nil, logger, db, &util.RealClock{})
 
-	db.Exec("DROP TABLE IF EXISTS password_reset_tokens;")
+	_, _ = db.Exec("DROP TABLE IF EXISTS password_reset_tokens;")
 	err := repo.DeleteByEmail(context.Background(), "test@example.com")
 	assert.Error(t, err)
 }
 
 func TestTokenRepository_DeleteExpiredResetTokens_ErrorMock(t *testing.T) {
-	db := setupGormDB(t)
+	db := setupTestDB(t)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
 	repo := repository.NewTokenRepositoryRedis(nil, logger, db, &util.RealClock{})
-	db.Exec("DROP TABLE IF EXISTS password_reset_tokens;")
+	_, _ = db.Exec("DROP TABLE IF EXISTS password_reset_tokens;")
 	err := repo.DeleteExpiredResetTokens(context.Background())
 	assert.Error(t, err)
 }
 
 func TestTokenRepository_SaveVerificationToken(t *testing.T) {
-	db := setupGormDB(t)
-	_ = db.AutoMigrate(&entity.EmailVerificationToken{})
+	db := setupTestDB(t)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
@@ -572,14 +586,13 @@ func TestTokenRepository_SaveVerificationToken(t *testing.T) {
 	assert.NoError(t, err)
 
 	var stored entity.EmailVerificationToken
-	err = db.First(&stored, "email = ?", "verify@example.com").Error
+	err = db.Get(&stored, "SELECT email, token, expires_at, created_at FROM email_verification_tokens WHERE email = ?", "verify@example.com")
 	assert.NoError(t, err)
 	assert.Equal(t, "verify123", stored.Token)
 }
 
 func TestTokenRepository_FindVerificationToken(t *testing.T) {
-	db := setupGormDB(t)
-	_ = db.AutoMigrate(&entity.EmailVerificationToken{})
+	db := setupTestDB(t)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
@@ -590,7 +603,8 @@ func TestTokenRepository_FindVerificationToken(t *testing.T) {
 		Token:     "verify123",
 		ExpiresAt: time.Now().Add(24 * time.Hour).UnixMilli(),
 	}
-	db.Create(token)
+	_, err := db.Exec("INSERT INTO email_verification_tokens (email, token, expires_at, created_at) VALUES (?, ?, ?, ?)", token.Email, token.Token, token.ExpiresAt, token.CreatedAt)
+	assert.NoError(t, err)
 
 	result, err := repo.FindVerificationToken(context.Background(), "verify123")
 	assert.NoError(t, err)
@@ -603,8 +617,7 @@ func TestTokenRepository_FindVerificationToken(t *testing.T) {
 }
 
 func TestTokenRepository_DeleteVerificationTokenByEmail(t *testing.T) {
-	db := setupGormDB(t)
-	_ = db.AutoMigrate(&entity.EmailVerificationToken{})
+	db := setupTestDB(t)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
@@ -615,25 +628,25 @@ func TestTokenRepository_DeleteVerificationTokenByEmail(t *testing.T) {
 		Token:     "verify123",
 		ExpiresAt: time.Now().Add(24 * time.Hour).UnixMilli(),
 	}
-	db.Create(token)
+	_, err := db.Exec("INSERT INTO email_verification_tokens (email, token, expires_at, created_at) VALUES (?, ?, ?, ?)", token.Email, token.Token, token.ExpiresAt, token.CreatedAt)
+	assert.NoError(t, err)
 
-	err := repo.DeleteVerificationTokenByEmail(context.Background(), "verify@example.com")
+	err = repo.DeleteVerificationTokenByEmail(context.Background(), "verify@example.com")
 	assert.NoError(t, err)
 
 	var stored entity.EmailVerificationToken
-	err = db.First(&stored, "email = ?", "verify@example.com").Error
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	err = db.Get(&stored, "SELECT email, token, expires_at, created_at FROM email_verification_tokens WHERE email = ?", "verify@example.com")
+	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
 
 func TestTokenRepository_DeleteVerificationTokenByEmail_Error(t *testing.T) {
-	db := setupGormDB(t)
-	_ = db.AutoMigrate(&entity.EmailVerificationToken{})
+	db := setupTestDB(t)
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
 	repo := repository.NewTokenRepositoryRedis(nil, logger, db, &util.RealClock{})
 
-	db.Exec("DROP TABLE IF EXISTS email_verification_tokens;")
+	_, _ = db.Exec("DROP TABLE IF EXISTS email_verification_tokens;")
 	err := repo.DeleteVerificationTokenByEmail(context.Background(), "verify@example.com")
 	assert.Error(t, err)
 }

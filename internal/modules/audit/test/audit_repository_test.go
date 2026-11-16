@@ -7,20 +7,51 @@ import (
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/repository"
-	"github.com/glebarez/sqlite"
+	_ "github.com/glebarez/go-sqlite"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-func setupTestDB(t *testing.T) *gorm.DB {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
+func setupTestDB(t *testing.T) *sqlx.DB {
+	db, err := sqlx.Open("sqlite", ":memory:")
 	require.NoError(t, err)
-	err = db.AutoMigrate(&entity.AuditLog{})
+
+	schema := `
+	CREATE TABLE IF NOT EXISTS audit_logs (
+		id TEXT PRIMARY KEY,
+		organization_id TEXT,
+		user_id TEXT,
+		action TEXT,
+		entity TEXT,
+		entity_id TEXT,
+		old_values TEXT,
+		new_values TEXT,
+		ip_address TEXT,
+		user_agent TEXT,
+		created_at INTEGER DEFAULT 0,
+		deleted_at INTEGER DEFAULT 0
+	);
+	CREATE TABLE IF NOT EXISTS audit_outbox (
+		id TEXT PRIMARY KEY,
+		organization_id TEXT,
+		user_id TEXT,
+		action TEXT,
+		entity TEXT,
+		entity_id TEXT,
+		old_values TEXT,
+		new_values TEXT,
+		ip_address TEXT,
+		user_agent TEXT,
+		status TEXT,
+		retry_count INTEGER DEFAULT 0,
+		last_error TEXT,
+		created_at INTEGER DEFAULT 0,
+		updated_at INTEGER DEFAULT 0
+	);
+	`
+	_, err = db.Exec(schema)
 	require.NoError(t, err)
 	return db
 }
@@ -55,7 +86,7 @@ func TestAuditRepository_Create(t *testing.T) {
 
 		// Verify in DB
 		var storedLog entity.AuditLog
-		err = db.First(&storedLog, "id = ?", log.ID).Error
+		err = db.Get(&storedLog, "SELECT id, organization_id, user_id, action, entity, entity_id, old_values, new_values, ip_address, user_agent, created_at, deleted_at FROM audit_logs WHERE id = ?", log.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, "user-123", storedLog.UserID)
 		assert.Equal(t, oldVal, storedLog.OldValues)
@@ -75,15 +106,14 @@ func TestAuditRepository_Create(t *testing.T) {
 		assert.NoError(t, err)
 
 		var storedLog entity.AuditLog
-		db.First(&storedLog, "id = ?", log.ID)
+		err = db.Get(&storedLog, "SELECT id, organization_id, user_id, action, entity, entity_id, old_values, new_values, ip_address, user_agent, created_at, deleted_at FROM audit_logs WHERE id = ?", log.ID)
+		assert.NoError(t, err)
 		assert.Empty(t, storedLog.OldValues)
 		assert.Equal(t, "LOGIN", storedLog.Action)
 	})
 
 	t.Run("Edge - JSON Injection Safety", func(t *testing.T) {
 		// Ensure storing complex/malformed JSON strings doesn't break SQL
-		// Since we treat it as a string field in GORM (type:json is just a hint for some DBs),
-		// it should be safe from SQL injection due to GORM parameterization.
 		ctx := context.Background()
 		malformedJSON := `{"key": "value" -- broken query'; DROP TABLE users; --`
 
@@ -99,7 +129,8 @@ func TestAuditRepository_Create(t *testing.T) {
 		assert.NoError(t, err)
 
 		var storedLog entity.AuditLog
-		db.First(&storedLog, "id = ?", log.ID)
+		err = db.Get(&storedLog, "SELECT id, organization_id, user_id, action, entity, entity_id, old_values, new_values, ip_address, user_agent, created_at, deleted_at FROM audit_logs WHERE id = ?", log.ID)
+		assert.NoError(t, err)
 		assert.Equal(t, malformedJSON, storedLog.OldValues)
 	})
 
@@ -124,8 +155,9 @@ func TestAuditRepository_Create(t *testing.T) {
 		assert.NoError(t, err) // SQLite usually allows this unless STRICT table.
 
 		var storedLog entity.AuditLog
-		db.First(&storedLog, "id = ?", log.ID)
-		// Verifying it stored the long value (showing GORM/SQLite flexibility)
+		err = db.Get(&storedLog, "SELECT id, organization_id, user_id, action, entity, entity_id, old_values, new_values, ip_address, user_agent, created_at, deleted_at FROM audit_logs WHERE id = ?", log.ID)
+		assert.NoError(t, err)
+		// Verifying it stored the long value
 		assert.Equal(t, longUA, storedLog.UserAgent)
 	})
 }

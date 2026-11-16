@@ -253,7 +253,7 @@ func TestDeleteEndpoint(t *testing.T) {
 		deps.Repo.AssertExpectations(t)
 	})
 
-	t.Run("No-op - Not Found (GORM delete behavior)", func(t *testing.T) {
+	t.Run("No-op - Not Found (idempotent delete behavior)", func(t *testing.T) {
 		deps, uc := setupAccessTest()
 		ctx := context.Background()
 

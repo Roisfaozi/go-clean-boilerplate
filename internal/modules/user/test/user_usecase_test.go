@@ -32,7 +32,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gorm.io/gorm"
 )
 
 type userTestDeps struct {
@@ -76,8 +75,8 @@ func TestUserUseCase_Create_Success(t *testing.T) {
 		Username: "testuser", Email: "test@example.com", Name: "Test User", Password: "password123",
 	}
 
-	deps.Repo.On("FindByUsername", mock.Anything, "testuser").Return(nil, gorm.ErrRecordNotFound)
-	deps.Repo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByUsername", mock.Anything, "testuser").Return(nil, errors.New("user not found"))
+	deps.Repo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, errors.New("user not found"))
 
 	// Mock Transaction that executes closure
 	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
@@ -118,7 +117,7 @@ func TestUserUseCase_Create_Conflict(t *testing.T) {
 			Username: "newuser", Email: "existing@example.com", Password: "password123", Name: "Test",
 		}
 
-		deps.Repo.On("FindByUsername", mock.Anything, "newuser").Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindByUsername", mock.Anything, "newuser").Return(nil, errors.New("user not found"))
 		deps.Repo.On("FindByEmail", mock.Anything, "existing@example.com").Return(&entity.User{Email: "existing@example.com"}, nil)
 
 		_, err := uc.Create(context.Background(), req)
@@ -132,8 +131,8 @@ func TestUserUseCase_Create_RepoError(t *testing.T) {
 		Username: "user", Email: "test@example.com", Password: "password123", Name: "Test",
 	}
 
-	deps.Repo.On("FindByUsername", mock.Anything, "user").Return(nil, gorm.ErrRecordNotFound)
-	deps.Repo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByUsername", mock.Anything, "user").Return(nil, errors.New("user not found"))
+	deps.Repo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, errors.New("user not found"))
 
 	// Mock Transaction that executes closure and returns its error
 	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
@@ -152,8 +151,8 @@ func TestUserUseCase_Create_AuditError(t *testing.T) {
 		Username: "auditfail", Email: "audit@fail.com", Password: "password123", Name: "Audit Fail",
 	}
 
-	deps.Repo.On("FindByUsername", mock.Anything, "auditfail").Return(nil, gorm.ErrRecordNotFound)
-	deps.Repo.On("FindByEmail", mock.Anything, "audit@fail.com").Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByUsername", mock.Anything, "auditfail").Return(nil, errors.New("user not found"))
+	deps.Repo.On("FindByEmail", mock.Anything, "audit@fail.com").Return(nil, errors.New("user not found"))
 
 	// Mock Transaction
 	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
@@ -176,8 +175,8 @@ func TestUserUseCase_Create_EnforcerError(t *testing.T) {
 		Username: "user", Email: "test@example.com", Password: "password123", Name: "Test",
 	}
 
-	deps.Repo.On("FindByUsername", mock.Anything, "user").Return(nil, gorm.ErrRecordNotFound)
-	deps.Repo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByUsername", mock.Anything, "user").Return(nil, errors.New("user not found"))
+	deps.Repo.On("FindByEmail", mock.Anything, "test@example.com").Return(nil, errors.New("user not found"))
 
 	// Mock Transaction that executes closure
 	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
@@ -324,7 +323,7 @@ func TestUserUseCase_Current(t *testing.T) {
 		deps, uc := setupUserTest()
 		testReq := &model.GetUserRequest{ID: "nonexistent"}
 
-		deps.Repo.On("FindByID", mock.Anything, "nonexistent").Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindByID", mock.Anything, "nonexistent").Return(nil, errors.New("user not found"))
 
 		result, err := uc.Current(context.Background(), testReq)
 
@@ -374,7 +373,7 @@ func TestUserUseCase_Update(t *testing.T) {
 		existingUser := &entity.User{ID: "user123", Username: "olduser"}
 
 		deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
-		deps.Repo.On("FindByUsername", mock.Anything, "newuser").Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindByUsername", mock.Anything, "newuser").Return(nil, errors.New("user not found"))
 		deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
 			return fn(ctx)
 		})
@@ -441,7 +440,7 @@ func TestUserUseCase_Update(t *testing.T) {
 			Name: "New Name",
 		}
 
-		deps.Repo.On("FindByID", mock.Anything, "nonexistent").Return(nil, gorm.ErrRecordNotFound)
+		deps.Repo.On("FindByID", mock.Anything, "nonexistent").Return(nil, errors.New("user not found"))
 
 		result, err := uc.Update(context.Background(), updateReq)
 
@@ -861,8 +860,8 @@ func TestUserUseCase_Create_Sanitization(t *testing.T) {
 		Username: "userXSS", Email: "xss@example.com", Name: inputName, Password: "password123",
 	}
 
-	deps.Repo.On("FindByUsername", mock.Anything, "userXSS").Return(nil, gorm.ErrRecordNotFound)
-	deps.Repo.On("FindByEmail", mock.Anything, "xss@example.com").Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByUsername", mock.Anything, "userXSS").Return(nil, errors.New("user not found"))
+	deps.Repo.On("FindByEmail", mock.Anything, "xss@example.com").Return(nil, errors.New("user not found"))
 
 	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
 		return fn(ctx)
@@ -903,7 +902,7 @@ func TestUserUseCase_Update_Sanitization(t *testing.T) {
 
 	deps.Repo.On("FindByID", mock.Anything, "user123").Return(existingUser, nil)
 
-	deps.Repo.On("FindByUsername", mock.Anything, expectedUsername).Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByUsername", mock.Anything, expectedUsername).Return(nil, errors.New("user not found"))
 
 	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {
 		return fn(ctx)
@@ -1089,7 +1088,7 @@ func TestUserUseCase_UpdateAvatar_UserNotFound(t *testing.T) {
 	fileContent := strings.NewReader("fake-image-data")
 
 	// Mock FindByID - User not found
-	deps.Repo.On("FindByID", ctx, userID).Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByID", ctx, userID).Return(nil, errors.New("user not found"))
 
 	// Execute
 	result, err := uc.UpdateAvatar(ctx, userID, fileContent, filename, contentType)
@@ -1476,7 +1475,7 @@ func TestUserUseCase_SetAvatarURL_UserNotFound(t *testing.T) {
 	userID := "nonexistent-user"
 	url := "https://storage.example.com/avatars/user-123.png"
 
-	deps.Repo.On("FindByID", ctx, userID).Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByID", ctx, userID).Return(nil, errors.New("user not found"))
 
 	err := uc.SetAvatarURL(ctx, userID, url)
 
@@ -1544,7 +1543,7 @@ func TestUserUseCase_GetAvatarUrl_UserNotFound(t *testing.T) {
 
 	userID := "nonexistent-user"
 
-	deps.Repo.On("FindByID", ctx, userID).Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByID", ctx, userID).Return(nil, errors.New("user not found"))
 
 	result, err := uc.GetAvatarUrl(ctx, userID)
 
@@ -1689,7 +1688,7 @@ func TestUserUseCase_Update_Security_UsernameSanitization(t *testing.T) {
 
 	// Mock: Check uniqueness
 	// The usecase should sanitize BEFORE checking uniqueness to ensure we check the actual value to be stored.
-	deps.Repo.On("FindByUsername", mock.Anything, expectedUsername).Return(nil, gorm.ErrRecordNotFound)
+	deps.Repo.On("FindByUsername", mock.Anything, expectedUsername).Return(nil, errors.New("user not found"))
 
 	// Mock: Transaction
 	deps.TM.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).Return(func(ctx context.Context, fn func(context.Context) error) error {

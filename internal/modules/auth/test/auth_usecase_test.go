@@ -29,10 +29,10 @@ import (
 	mock_auth "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/test/mocks"
 	mock_org "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	mock_user "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
-	"gorm.io/gorm"
 )
 
 const (
@@ -188,7 +188,7 @@ func TestLogin_Failure_UserNotFound(t *testing.T) {
 			fn := args.Get(1).(func(context.Context) error)
 			_ = fn(context.Background())
 		}).Return(usecase.ErrInvalidCredentials)
-	deps.userRepo.On("FindByUsername", mock.Anything, "nonexistent").Return(nil, gorm.ErrRecordNotFound)
+	deps.userRepo.On("FindByUsername", mock.Anything, "nonexistent").Return(nil, exception.ErrNotFound)
 
 	loginResp, refreshToken, err := authService.Login(context.Background(), loginReq)
 
@@ -498,12 +498,12 @@ func TestRefreshToken_Failure_UserNotFound(t *testing.T) {
 
 	session := &model.Auth{ID: "session-1", UserID: user.ID, RefreshToken: hashedRefreshToken}
 	deps.tokenRepo.On("GetToken", mock.Anything, user.ID, "session-1").Return(session, nil)
-	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(nil, gorm.ErrRecordNotFound)
+	deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(nil, exception.ErrNotFound)
 
 	_, _, err = authService.RefreshToken(context.Background(), refreshToken)
 
 	assert.Error(t, err)
-	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+	assert.True(t, errors.Is(err, exception.ErrNotFound))
 	deps.userRepo.AssertExpectations(t)
 }
 
@@ -1322,8 +1322,8 @@ func TestRegister_Success(t *testing.T) {
 	hashedPassword := string(hashedBytes)
 
 	// 1. Check existing (Register check)
-	deps.userRepo.On("FindByUsername", mock.Anything, req.Username).Return(nil, gorm.ErrRecordNotFound).Once()
-	deps.userRepo.On("FindByEmail", mock.Anything, req.Email).Return(nil, gorm.ErrRecordNotFound)
+	deps.userRepo.On("FindByUsername", mock.Anything, req.Username).Return(nil, exception.ErrNotFound).Once()
+	deps.userRepo.On("FindByEmail", mock.Anything, req.Email).Return(nil, exception.ErrNotFound)
 
 	// 2. Transaction
 	deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
@@ -2063,7 +2063,7 @@ func TestAuthUseCase_RequestVerification_UserNotFound(t *testing.T) {
 	userID := "nonexistent-user"
 
 	// Mock FindByID - User not found
-	deps.userRepo.On("FindByID", ctx, userID).Return(nil, gorm.ErrRecordNotFound)
+	deps.userRepo.On("FindByID", ctx, userID).Return(nil, exception.ErrNotFound)
 
 	// Execute
 	err := authService.RequestVerification(ctx, userID)
@@ -2318,7 +2318,7 @@ func TestAuthUseCase_VerifyEmail_UserNotFound(t *testing.T) {
 	deps.tokenRepo.On("FindVerificationToken", ctx, token).Return(verificationToken, nil)
 
 	// Mock FindByEmail - User deleted
-	deps.userRepo.On("FindByEmail", ctx, email).Return(nil, gorm.ErrRecordNotFound)
+	deps.userRepo.On("FindByEmail", ctx, email).Return(nil, exception.ErrNotFound)
 
 	// Execute
 	err := authService.VerifyEmail(ctx, token)

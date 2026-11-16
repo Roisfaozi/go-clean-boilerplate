@@ -16,11 +16,11 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
+	"github.com/stretchr/testify/require"
 )
 
 type auditTestDeps struct {
@@ -70,14 +70,16 @@ func TestLogActivity(t *testing.T) {
 		}
 
 		// Simulate being inside a transaction using real TransactionManager
-		db, mockSQL, _ := sqlmock.New()
-		gormDB, _ := gorm.Open(mysql.New(mysql.Config{Conn: db, SkipInitializeWithVersion: true}), &gorm.Config{})
-		tm := tx.NewTransactionManager(gormDB, logrus.New())
+		db, mockSQL, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+		sqlxDB := sqlx.NewDb(db, "sqlmock")
+		tm := tx.NewSQLXTransactionManager(sqlxDB, logrus.New())
 
 		mockSQL.ExpectBegin()
 		mockSQL.ExpectCommit()
 
-		err := tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
+		err = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
 			deps.Repo.On("CreateOutbox", ctx, mock.MatchedBy(func(outbox *entity.AuditOutbox) bool {
 				return outbox.UserID == "u1" && outbox.Action == "UPDATE"
 			})).Return(nil)

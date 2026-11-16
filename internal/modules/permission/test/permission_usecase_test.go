@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	accessMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/access/test/mocks"
 	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
@@ -19,11 +20,10 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
-	"github.com/glebarez/sqlite"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gorm.io/gorm"
 )
 
 type permissionTestDeps struct {
@@ -437,12 +437,16 @@ func TestDeleteRole_DefersPolicyReloadInsideTransaction(t *testing.T) {
 
 	deps.Enforcer.On("DeleteRole", roleName).Return(true, nil)
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	sqlDB, mockSQL, err := sqlmock.New()
 	assert.NoError(t, err)
+	defer sqlDB.Close()
+	mockSQL.ExpectBegin()
+	mockSQL.ExpectCommit()
 
+	sqlxDB := sqlx.NewDb(sqlDB, "sqlmock")
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
-	tm := tx.NewTransactionManager(db, logger)
+	tm := tx.NewSQLXTransactionManager(sqlxDB, logger)
 
 	err = tm.WithinTransaction(context.Background(), func(txCtx context.Context) error {
 		return uc.DeleteRole(txCtx, roleName)

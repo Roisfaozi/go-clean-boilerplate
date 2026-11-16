@@ -6,43 +6,37 @@ import (
 	"io"
 	"testing"
 
-	orgEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
-	"github.com/glebarez/sqlite"
+	_ "github.com/glebarez/go-sqlite"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-func setupRoleRepo(t *testing.T) (repository.RoleRepository, *sqlx.DB, *gorm.DB) {
+func setupRoleRepo(t *testing.T) (repository.RoleRepository, *sqlx.DB, *sqlx.DB) {
 	uid, _ := uuid.NewV7()
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", uid.String())
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
+	sqlxDB, err := sqlx.Open("sqlite", dsn)
 	require.NoError(t, err)
 
-	err = db.AutoMigrate(&entity.Role{}, &orgEntity.Organization{})
+	_, err = sqlxDB.Exec(`CREATE TABLE organizations (id TEXT PRIMARY KEY, name TEXT, slug TEXT, owner_id TEXT, status TEXT, created_at INTEGER DEFAULT 0, updated_at INTEGER DEFAULT 0, deleted_at INTEGER DEFAULT 0)`)
 	require.NoError(t, err)
 
-	sqlDB, err := db.DB()
+	_, err = sqlxDB.Exec(`CREATE TABLE roles (id TEXT PRIMARY KEY, organization_id TEXT, name TEXT, description TEXT, created_at INTEGER DEFAULT 0, updated_at INTEGER DEFAULT 0, deleted_at INTEGER DEFAULT 0)`)
 	require.NoError(t, err)
-	sqlxDB := sqlx.NewDb(sqlDB, "sqlite")
 
 	l := logrus.New()
 	l.SetOutput(io.Discard)
 	l.SetLevel(logrus.FatalLevel)
 
 	repo := repository.NewRoleRepository(sqlxDB, l)
-	return repo, sqlxDB, db
+	return repo, sqlxDB, sqlxDB
 }
 
 func TestRoleRepository_FindAllDynamic(t *testing.T) {
@@ -54,7 +48,9 @@ func TestRoleRepository_FindAllDynamic(t *testing.T) {
 		{ID: "2", Name: "Editor", Description: "Content Editor"},
 		{ID: "3", Name: "Viewer", Description: "Read Only"},
 	}
-	db.Create(&roles)
+	for _, r := range roles {
+		db.MustExec(`INSERT INTO roles (id, name, description, created_at, updated_at, deleted_at) VALUES (?, ?, ?, 0, 0, 0)`, r.ID, r.Name, r.Description)
+	}
 
 	tests := []struct {
 		name          string
@@ -161,7 +157,7 @@ func TestRoleRepository_Update(t *testing.T) {
 	require.NoError(t, err)
 
 	var updatedRole entity.Role
-	err = db.First(&updatedRole, "id = ?", role.ID).Error
+	err = db.Get(&updatedRole, "SELECT id, name, organization_id, description, created_at, updated_at, deleted_at FROM roles WHERE id = ?", role.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "New Description", updatedRole.Description)
 }

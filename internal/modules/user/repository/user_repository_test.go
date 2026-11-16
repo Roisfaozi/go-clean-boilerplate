@@ -1,33 +1,29 @@
 package repository_test
 
 import (
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
-
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
-
 	"context"
+	"database/sql"
 	"fmt"
+	"io"
 	"testing"
 	"time"
-
-	"io"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
-	"github.com/glebarez/sqlite"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
+	_ "github.com/glebarez/go-sqlite"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-	"gorm.io/plugin/soft_delete"
 )
 
-func setupUserRepo(t *testing.T) (repository.UserRepository, *gorm.DB) {
+func setupUserRepo(t *testing.T) (repository.UserRepository, *sqlx.DB) {
 	// Use unique DB name to prevent shared state issues in tests
 	dbName := uuid.New().String()
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", dbName)
@@ -37,16 +33,69 @@ func setupUserRepo(t *testing.T) (repository.UserRepository, *gorm.DB) {
 	logrusLogger.SetOutput(io.Discard)
 	logrusLogger.SetLevel(logrus.FatalLevel)
 
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
+	db, err := sqlx.Open("sqlite", dsn)
 	require.NoError(t, err)
 
-	err = db.AutoMigrate(&entity.User{})
+	_, err = db.Exec(`
+		CREATE TABLE organizations (
+			id TEXT PRIMARY KEY,
+			name TEXT,
+			slug TEXT,
+			owner_id TEXT,
+			status TEXT,
+			created_at INTEGER DEFAULT 0,
+			updated_at INTEGER DEFAULT 0,
+			deleted_at INTEGER DEFAULT 0
+		);
+		CREATE TABLE users (
+			id TEXT PRIMARY KEY,
+			organization_id TEXT,
+			password TEXT NOT NULL DEFAULT '',
+			email TEXT NOT NULL UNIQUE,
+			username TEXT NOT NULL UNIQUE,
+			name TEXT NOT NULL DEFAULT '',
+			avatar_url TEXT NOT NULL DEFAULT '',
+			token TEXT NOT NULL DEFAULT '',
+			status TEXT NOT NULL DEFAULT 'active',
+			email_verified_at INTEGER,
+			created_at INTEGER NOT NULL DEFAULT 0,
+			updated_at INTEGER NOT NULL DEFAULT 0,
+			deleted_at INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE organization_members (
+			id TEXT,
+			organization_id TEXT,
+			user_id TEXT,
+			role_id TEXT,
+			created_at INTEGER DEFAULT 0,
+			updated_at INTEGER DEFAULT 0
+		);
+		CREATE TABLE user_sso_identities (
+			id TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL,
+			provider TEXT NOT NULL,
+			provider_id TEXT NOT NULL UNIQUE,
+			created_at INTEGER NOT NULL DEFAULT 0,
+			updated_at INTEGER NOT NULL DEFAULT 0
+		);
+	`)
 	require.NoError(t, err)
 
 	repo := repository.NewUserRepository(db, logrusLogger)
 	return repo, db
+}
+
+func seedUser(t *testing.T, db *sqlx.DB, u *entity.User) {
+	t.Helper()
+	status := u.Status
+	if status == "" {
+		status = entity.UserStatusActive
+	}
+	_, err := db.Exec(`
+		INSERT INTO users (id, organization_id, password, email, username, name, avatar_url, token, status, email_verified_at, created_at, updated_at, deleted_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, u.ID, u.OrganizationID, u.Password, u.Email, u.Username, u.Name, u.AvatarURL, u.Token, status, u.EmailVerifiedAt, u.CreatedAt, u.UpdatedAt, int64(u.DeletedAt))
+	require.NoError(t, err)
 }
 
 func TestUserRepository_Create(t *testing.T) {
@@ -89,7 +138,7 @@ func TestUserRepository_FindByUsername(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	db.Create(&entity.User{ID: "1", Username: "findme", Email: "findme@test.com"})
+	seedUser(t, db, &entity.User{ID: "1", Username: "findme", Email: "findme@test.com"})
 
 	t.Run("Found", func(t *testing.T) {
 		user, err := repo.FindByUsername(ctx, "findme")
@@ -109,7 +158,7 @@ func TestUserRepository_FindByEmail(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	db.Create(&entity.User{ID: "1", Email: "find@me.com", Username: "findme"})
+	seedUser(t, db, &entity.User{ID: "1", Email: "find@me.com", Username: "findme"})
 
 	t.Run("Found", func(t *testing.T) {
 		user, err := repo.FindByEmail(ctx, "find@me.com")
@@ -129,7 +178,7 @@ func TestUserRepository_FindByToken(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	db.Create(&entity.User{ID: "1", Token: "valid-token", Username: "tokenuser", Email: "token@test.com"})
+	seedUser(t, db, &entity.User{ID: "1", Token: "valid-token", Username: "tokenuser", Email: "token@test.com"})
 
 	t.Run("Found", func(t *testing.T) {
 		user, err := repo.FindByToken(ctx, "valid-token")
@@ -150,7 +199,7 @@ func TestUserRepository_Update(t *testing.T) {
 	ctx := context.Background()
 
 	user := &entity.User{ID: "1", Name: "Old Name", Username: "updateuser", Email: "update@test.com"}
-	db.Create(user)
+	seedUser(t, db, user)
 
 	user.Name = "New Name"
 	err := repo.Update(ctx, user)
@@ -166,10 +215,10 @@ func TestUserRepository_Update_Error(t *testing.T) {
 	ctx := context.Background()
 
 	// Create User 1
-	db.Create(&entity.User{ID: "1", Username: "user1", Email: "user1@test.com"})
+	seedUser(t, db, &entity.User{ID: "1", Username: "user1", Email: "user1@test.com"})
 
 	// Create User 2
-	db.Create(&entity.User{ID: "2", Username: "user2", Email: "user2@test.com"})
+	seedUser(t, db, &entity.User{ID: "2", Username: "user2", Email: "user2@test.com"})
 
 	// Try to update User 2 to have User 1's username (should fail)
 	user2ToUpdate := &entity.User{ID: "2", Username: "user1", Email: "user2@test.com"}
@@ -182,7 +231,7 @@ func TestUserRepository_UpdateStatus(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	db.Create(&entity.User{ID: "1", Status: entity.UserStatusActive, Username: "statususer", Email: "status@test.com"})
+	seedUser(t, db, &entity.User{ID: "1", Status: entity.UserStatusActive, Username: "statususer", Email: "status@test.com"})
 
 	err := repo.UpdateStatus(ctx, "1", entity.UserStatusBanned)
 	require.NoError(t, err)
@@ -196,7 +245,7 @@ func TestUserRepository_Delete(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	db.Create(&entity.User{ID: "1", Username: "deleteuser", Email: "delete@test.com"})
+	seedUser(t, db, &entity.User{ID: "1", Username: "deleteuser", Email: "delete@test.com"})
 
 	err := repo.Delete(ctx, "1")
 	require.NoError(t, err)
@@ -207,11 +256,13 @@ func TestUserRepository_Delete(t *testing.T) {
 
 	// Check DB directly for Unscoped
 	var count int64
-	db.Unscoped().Model(&entity.User{}).Where("id = ?", "1").Count(&count)
+	err = db.Get(&count, "SELECT COUNT(*) FROM users WHERE id = ?", "1")
+	require.NoError(t, err)
 	assert.Equal(t, int64(1), count)
 
 	var deletedAt int64
-	db.Unscoped().Model(&entity.User{}).Select("deleted_at").Where("id = ?", "1").Scan(&deletedAt)
+	err = db.Get(&deletedAt, "SELECT deleted_at FROM users WHERE id = ?", "1")
+	require.NoError(t, err)
 	assert.True(t, deletedAt > 0, "DeletedAt should be > 0")
 }
 
@@ -219,8 +270,8 @@ func TestUserRepository_FindAll(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	db.Create(&entity.User{ID: "1", Username: "alpha", Email: "alpha@test.com", Name: "Alpha User"})
-	db.Create(&entity.User{ID: "2", Username: "beta", Email: "beta@test.com", Name: "Beta User"})
+	seedUser(t, db, &entity.User{ID: "1", Username: "alpha", Email: "alpha@test.com", Name: "Alpha User"})
+	seedUser(t, db, &entity.User{ID: "2", Username: "beta", Email: "beta@test.com", Name: "Beta User"})
 
 	// Test 1: No Filter
 	users, total, err := repo.FindAll(ctx, &model.GetUserListRequest{Page: 1, Limit: 10})
@@ -250,7 +301,9 @@ func TestUserRepository_FindAllDynamic(t *testing.T) {
 		{ID: "2", Name: "Bob", Email: "bob@example.com", Username: "bob"},
 		{ID: "3", Name: "Charlie", Email: "charlie@example.com", Username: "charlie"},
 	}
-	db.Create(&users)
+	for i := range users {
+		seedUser(t, db, &users[i])
+	}
 
 	tests := []struct {
 		name          string
@@ -311,36 +364,34 @@ func TestUserRepository_HardDeleteSoftDeletedUsers(t *testing.T) {
 
 	// User 1: Deleted 31 days ago (Should be hard deleted if retention is 30)
 	deletedOld := time.Now().Add(-31 * 24 * time.Hour).UnixMilli()
-	user1 := entity.User{ID: "1", Username: "old_deleted", Email: "old@test.com"}
-	user1.DeletedAt = soft_delete.DeletedAt(deletedOld)
-	db.Create(&user1)
+	db.MustExec(`INSERT INTO users (id, username, email, deleted_at) VALUES (?, ?, ?, ?)`, "1", "old_deleted", "old@test.com", deletedOld)
 
 	// User 2: Deleted 10 days ago (Should stay)
 	deletedRecent := time.Now().Add(-10 * 24 * time.Hour).UnixMilli()
-	user2 := entity.User{ID: "2", Username: "recent_deleted", Email: "recent@test.com"}
-	user2.DeletedAt = soft_delete.DeletedAt(deletedRecent)
-	db.Create(&user2)
+	db.MustExec(`INSERT INTO users (id, username, email, deleted_at) VALUES (?, ?, ?, ?)`, "2", "recent_deleted", "recent@test.com", deletedRecent)
 
 	// User 3: Active (Should stay)
-	user3 := entity.User{ID: "3", Username: "active", Email: "active@test.com"}
-	db.Create(&user3)
+	db.MustExec(`INSERT INTO users (id, username, email, deleted_at) VALUES (?, ?, ?, 0)`, "3", "active", "active@test.com")
 
 	err := repo.HardDeleteSoftDeletedUsers(ctx, 30)
 	require.NoError(t, err)
 
 	// Verify User 1 is GONE (hard deleted)
 	var count1 int64
-	db.Unscoped().Model(&entity.User{}).Where("id = ?", "1").Count(&count1)
+	err = db.Get(&count1, "SELECT COUNT(*) FROM users WHERE id = ?", "1")
+	require.NoError(t, err)
 	assert.Equal(t, int64(0), count1)
 
 	// Verify User 2 exists (soft deleted)
 	var count2 int64
-	db.Unscoped().Model(&entity.User{}).Where("id = ?", "2").Count(&count2)
+	err = db.Get(&count2, "SELECT COUNT(*) FROM users WHERE id = ?", "2")
+	require.NoError(t, err)
 	assert.Equal(t, int64(1), count2)
 
 	// Verify User 3 exists (active)
 	var count3 int64
-	db.Model(&entity.User{}).Where("id = ?", "3").Count(&count3)
+	err = db.Get(&count3, "SELECT COUNT(*) FROM users WHERE id = ? AND deleted_at = 0", "3")
+	require.NoError(t, err)
 	assert.Equal(t, int64(1), count3)
 }
 
@@ -348,10 +399,7 @@ func TestUserRepository_Create_DBError(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	// Extract the underlying *sql.DB and close it to simulate a DB error
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	err = sqlDB.Close()
+	err := db.Close()
 	require.NoError(t, err)
 
 	user := &entity.User{
@@ -370,10 +418,7 @@ func TestUserRepository_Update_DBError(t *testing.T) {
 
 	user := &entity.User{ID: "1", Name: "Old Name", Username: "updateuser", Email: "update@test.com"}
 
-	// Extract the underlying *sql.DB and close it to simulate a DB error
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	err = sqlDB.Close()
+	err := db.Close()
 	require.NoError(t, err)
 
 	user.Name = "New Name"
@@ -385,9 +430,7 @@ func TestUserRepository_UpdateStatus_DBError(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	err = sqlDB.Close()
+	err := db.Close()
 	require.NoError(t, err)
 
 	err = repo.UpdateStatus(ctx, "1", entity.UserStatusBanned)
@@ -398,9 +441,7 @@ func TestUserRepository_FindByID_DBError(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	err = sqlDB.Close()
+	err := db.Close()
 	require.NoError(t, err)
 
 	user, err := repo.FindByID(ctx, "1")
@@ -412,9 +453,7 @@ func TestUserRepository_FindByEmail_DBError(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	err = sqlDB.Close()
+	err := db.Close()
 	require.NoError(t, err)
 
 	user, err := repo.FindByEmail(ctx, "test@example.com")
@@ -426,9 +465,7 @@ func TestUserRepository_FindByToken_DBError(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	err = sqlDB.Close()
+	err := db.Close()
 	require.NoError(t, err)
 
 	user, err := repo.FindByToken(ctx, "sometoken")
@@ -440,9 +477,7 @@ func TestUserRepository_Delete_DBError(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	err = sqlDB.Close()
+	err := db.Close()
 	require.NoError(t, err)
 
 	err = repo.Delete(ctx, "1")
@@ -453,9 +488,7 @@ func TestUserRepository_FindByUsername_DBError(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	err = sqlDB.Close()
+	err := db.Close()
 	require.NoError(t, err)
 
 	user, err := repo.FindByUsername(ctx, "someuser")
@@ -469,7 +502,7 @@ func TestUserRepository_getDB_TransactionContext(t *testing.T) {
 
 	logrusLogger := logrus.New()
 	logrusLogger.SetOutput(io.Discard)
-	tm := tx.NewTransactionManager(db, logrusLogger)
+	tm := tx.NewSQLXTransactionManager(db, logrusLogger)
 
 	err := tm.WithinTransaction(ctx, func(txCtx context.Context) error {
 		user := &entity.User{
@@ -491,9 +524,7 @@ func TestUserRepository_FindAll_DBError(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	err = sqlDB.Close()
+	err := db.Close()
 	require.NoError(t, err)
 
 	users, total, err := repo.FindAll(ctx, &model.GetUserListRequest{Page: 1, Limit: 10})
@@ -505,22 +536,15 @@ func TestUserRepository_FindAll_DBError(t *testing.T) {
 func TestUserRepository_FindAll_WithOrganizationContext(t *testing.T) {
 	repo, db := setupUserRepo(t)
 
-	// Since we don't have the OrganizationMember entity readily available or a proper structure for testing it within
-	// this user repo test scope easily using pure sqlite schema auto migration for other domains,
-	// we can manually create the necessary tables for the query to execute successfully.
-	err := db.Exec(`CREATE TABLE organization_members (organization_id TEXT, user_id TEXT)`).Error
-	require.NoError(t, err)
+	seedUser(t, db, &entity.User{ID: "user1", Username: "user1", Email: "u1@test.com"})
+	seedUser(t, db, &entity.User{ID: "user2", Username: "user2", Email: "u2@test.com"})
+	seedUser(t, db, &entity.User{ID: "user3", Username: "user3", Email: "u3@test.com"})
 
-	db.Create(&entity.User{ID: "user1", Username: "user1", Email: "u1@test.com"})
-	db.Create(&entity.User{ID: "user2", Username: "user2", Email: "u2@test.com"})
-	db.Create(&entity.User{ID: "user3", Username: "user3", Email: "u3@test.com"})
-
-	db.Exec(`INSERT INTO organization_members (organization_id, user_id) VALUES ('org1', 'user1')`)
-	db.Exec(`INSERT INTO organization_members (organization_id, user_id) VALUES ('org1', 'user2')`)
-	db.Exec(`INSERT INTO organization_members (organization_id, user_id) VALUES ('org2', 'user3')`)
+	db.MustExec(`INSERT INTO organization_members (organization_id, user_id) VALUES ('org1', 'user1')`)
+	db.MustExec(`INSERT INTO organization_members (organization_id, user_id) VALUES ('org1', 'user2')`)
+	db.MustExec(`INSERT INTO organization_members (organization_id, user_id) VALUES ('org2', 'user3')`)
 
 	ctx := context.Background()
-	// Import pkg/database for setting context
 	ctxWithOrg := database.SetOrganizationContext(ctx, "org1")
 
 	users, total, err := repo.FindAll(ctxWithOrg, &model.GetUserListRequest{Page: 1, Limit: 10})
@@ -539,9 +563,7 @@ func TestUserRepository_FindAllDynamic_DBError(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	err = sqlDB.Close()
+	err := db.Close()
 	require.NoError(t, err)
 
 	users, total, err := repo.FindAllDynamic(ctx, &querybuilder.DynamicFilter{})
@@ -553,14 +575,11 @@ func TestUserRepository_FindAllDynamic_DBError(t *testing.T) {
 func TestUserRepository_FindAllDynamic_WithOrganizationContextAndSkipCount(t *testing.T) {
 	repo, db := setupUserRepo(t)
 
-	err := db.Exec(`CREATE TABLE organization_members (organization_id TEXT, user_id TEXT)`).Error
-	require.NoError(t, err)
+	seedUser(t, db, &entity.User{ID: "user1", Username: "user1", Email: "u1@test.com"})
+	seedUser(t, db, &entity.User{ID: "user2", Username: "user2", Email: "u2@test.com"})
 
-	db.Create(&entity.User{ID: "user1", Username: "user1", Email: "u1@test.com"})
-	db.Create(&entity.User{ID: "user2", Username: "user2", Email: "u2@test.com"})
-
-	db.Exec(`INSERT INTO organization_members (organization_id, user_id) VALUES ('org1', 'user1')`)
-	db.Exec(`INSERT INTO organization_members (organization_id, user_id) VALUES ('org2', 'user2')`)
+	db.MustExec(`INSERT INTO organization_members (organization_id, user_id) VALUES ('org1', 'user1')`)
+	db.MustExec(`INSERT INTO organization_members (organization_id, user_id) VALUES ('org2', 'user2')`)
 
 	ctx := context.Background()
 	ctxWithOrg := database.SetOrganizationContext(ctx, "org1")
@@ -583,9 +602,7 @@ func TestUserRepository_HardDeleteSoftDeletedUsers_DBError(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	err = sqlDB.Close()
+	err := db.Close()
 	require.NoError(t, err)
 
 	err = repo.HardDeleteSoftDeletedUsers(ctx, 30)
@@ -595,13 +612,10 @@ func TestUserRepository_HardDeleteSoftDeletedUsers_DBError(t *testing.T) {
 func TestUserRepository_GetByOrganization(t *testing.T) {
 	repo, db := setupUserRepo(t)
 
-	err := db.Exec(`CREATE TABLE organization_members (organization_id TEXT, user_id TEXT)`).Error
-	require.NoError(t, err)
+	seedUser(t, db, &entity.User{ID: "user1", Username: "user1", Email: "u1@test.com"})
+	seedUser(t, db, &entity.User{ID: "user2", Username: "user2", Email: "u2@test.com"})
 
-	db.Create(&entity.User{ID: "user1", Username: "user1", Email: "u1@test.com"})
-	db.Create(&entity.User{ID: "user2", Username: "user2", Email: "u2@test.com"})
-
-	db.Exec(`INSERT INTO organization_members (organization_id, user_id) VALUES ('org1', 'user1')`)
+	db.MustExec(`INSERT INTO organization_members (organization_id, user_id) VALUES ('org1', 'user1')`)
 
 	ctx := context.Background()
 
@@ -619,9 +633,7 @@ func TestUserRepository_GetByOrganization(t *testing.T) {
 	})
 
 	t.Run("DBError", func(t *testing.T) {
-		sqlDB, err := db.DB()
-		require.NoError(t, err)
-		err = sqlDB.Close()
+		err := db.Close()
 		require.NoError(t, err)
 
 		users, err := repo.GetByOrganization(ctx, "org1")
@@ -634,17 +646,13 @@ func TestUserRepository_FindBySSOIdentity(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
 
-	// Need to migrate UserSSOIdentity table since it's used
-	err := db.AutoMigrate(&entity.UserSSOIdentity{})
-	require.NoError(t, err)
-
 	identity := &entity.UserSSOIdentity{
 		ID:         "sso1",
 		UserID:     "user1",
 		Provider:   "google",
 		ProviderID: "google-123",
 	}
-	db.Create(identity)
+	require.NoError(t, repo.CreateSSOIdentity(ctx, identity))
 
 	t.Run("Found", func(t *testing.T) {
 		res, err := repo.FindBySSOIdentity(ctx, "google", "google-123")
@@ -659,14 +667,12 @@ func TestUserRepository_FindBySSOIdentity(t *testing.T) {
 	})
 
 	t.Run("DBError", func(t *testing.T) {
-		sqlDB, err := db.DB()
-		require.NoError(t, err)
-		err = sqlDB.Close()
+		err := db.Close()
 		require.NoError(t, err)
 
 		res, err := repo.FindBySSOIdentity(ctx, "google", "google-123")
 		assert.Error(t, err)
-		assert.NotErrorIs(t, err, gorm.ErrRecordNotFound)
+		assert.NotErrorIs(t, err, sql.ErrNoRows)
 		assert.Nil(t, res)
 	})
 }
@@ -674,9 +680,6 @@ func TestUserRepository_FindBySSOIdentity(t *testing.T) {
 func TestUserRepository_CreateSSOIdentity(t *testing.T) {
 	repo, db := setupUserRepo(t)
 	ctx := context.Background()
-
-	err := db.AutoMigrate(&entity.UserSSOIdentity{})
-	require.NoError(t, err)
 
 	identity := &entity.UserSSOIdentity{
 		ID:         "sso1",
@@ -690,15 +693,13 @@ func TestUserRepository_CreateSSOIdentity(t *testing.T) {
 		require.NoError(t, err)
 
 		var saved entity.UserSSOIdentity
-		err = db.First(&saved, "id = ?", "sso1").Error
+		err = db.Get(&saved, "SELECT id, user_id, provider, provider_id, created_at, updated_at FROM user_sso_identities WHERE id = ?", "sso1")
 		require.NoError(t, err)
 		assert.Equal(t, "user1", saved.UserID)
 	})
 
 	t.Run("DBError", func(t *testing.T) {
-		sqlDB, err := db.DB()
-		require.NoError(t, err)
-		err = sqlDB.Close()
+		err := db.Close()
 		require.NoError(t, err)
 
 		err = repo.CreateSSOIdentity(ctx, &entity.UserSSOIdentity{ID: "sso2"})

@@ -7,54 +7,23 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
-	"github.com/glebarez/sqlite"
+	_ "github.com/glebarez/go-sqlite"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-// testTable represents tables we create for stats counting
-type testUser struct {
-	ID        string `gorm:"primaryKey"`
-	Name      string
-	DeletedAt int64 `gorm:"default:0"`
-}
-
-func (testUser) TableName() string { return "users" }
-
-type testRole struct {
-	ID        string `gorm:"primaryKey"`
-	Name      string
-	DeletedAt int64 `gorm:"default:0"`
-}
-
-func (testRole) TableName() string { return "roles" }
-
-type testAuditLog struct {
-	ID        string `gorm:"primaryKey"`
-	Action    string
-	CreatedAt int64
-	DeletedAt int64 `gorm:"default:0"`
-}
-
-func (testAuditLog) TableName() string { return "audit_logs" }
-
-type testOrgMember struct {
-	ID string `gorm:"primaryKey"`
-}
-
-func (testOrgMember) TableName() string { return "organization_members" }
-
-func setupStatsTest(t *testing.T) (*gorm.DB, usecase.StatsUseCase) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
+func setupStatsTest(t *testing.T) (*sqlx.DB, usecase.StatsUseCase) {
+	db, err := sqlx.Open("sqlite", ":memory:")
 	require.NoError(t, err)
 
-	// Migrate test tables
-	err = db.AutoMigrate(&testUser{}, &testRole{}, &testAuditLog{}, &testOrgMember{})
+	_, err = db.Exec(`
+		CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, organization_id TEXT, deleted_at INTEGER DEFAULT 0);
+		CREATE TABLE roles (id TEXT PRIMARY KEY, name TEXT, organization_id TEXT, deleted_at INTEGER DEFAULT 0);
+		CREATE TABLE audit_logs (id TEXT PRIMARY KEY, action TEXT, organization_id TEXT, created_at INTEGER DEFAULT 0, deleted_at INTEGER DEFAULT 0);
+		CREATE TABLE organization_members (id TEXT PRIMARY KEY, organization_id TEXT, user_id TEXT, role_id TEXT);
+	`)
 	require.NoError(t, err)
 
 	log := logrus.New()
@@ -68,14 +37,14 @@ func TestStatsUseCase_GetDashboardSummary_Success(t *testing.T) {
 	db, uc := setupStatsTest(t)
 
 	// Seed test data
-	db.Create(&testUser{ID: "u1", Name: "Alice"})
-	db.Create(&testUser{ID: "u2", Name: "Bob"})
-	db.Create(&testRole{ID: "r1", Name: "admin"})
-	db.Create(&testAuditLog{ID: "a1", Action: "LOGIN", CreatedAt: 1000})
-	db.Create(&testAuditLog{ID: "a2", Action: "LOGOUT", CreatedAt: 2000})
-	db.Create(&testAuditLog{ID: "a3", Action: "LOGIN", CreatedAt: 3000})
-	db.Create(&testOrgMember{ID: "m1"})
-	db.Create(&testOrgMember{ID: "m2"})
+	db.MustExec(`INSERT INTO users (id, name, deleted_at) VALUES ('u1', 'Alice', 0)`)
+	db.MustExec(`INSERT INTO users (id, name, deleted_at) VALUES ('u2', 'Bob', 0)`)
+	db.MustExec(`INSERT INTO roles (id, name, deleted_at) VALUES ('r1', 'admin', 0)`)
+	db.MustExec(`INSERT INTO audit_logs (id, action, created_at, deleted_at) VALUES ('a1', 'LOGIN', 1000, 0)`)
+	db.MustExec(`INSERT INTO audit_logs (id, action, created_at, deleted_at) VALUES ('a2', 'LOGOUT', 2000, 0)`)
+	db.MustExec(`INSERT INTO audit_logs (id, action, created_at, deleted_at) VALUES ('a3', 'LOGIN', 3000, 0)`)
+	db.MustExec(`INSERT INTO organization_members (id) VALUES ('m1')`)
+	db.MustExec(`INSERT INTO organization_members (id) VALUES ('m2')`)
 
 	summary, err := uc.GetDashboardSummary(context.Background())
 
@@ -104,7 +73,7 @@ func TestStatsUseCase_GetDashboardSummary_WithOrgScope(t *testing.T) {
 	db, uc := setupStatsTest(t)
 
 	// Seed data (without org scoping column, scope is a no-op on base context)
-	db.Create(&testUser{ID: "u1", Name: "Alice"})
+	db.MustExec(`INSERT INTO users (id, name, deleted_at) VALUES ('u1', 'Alice', 0)`)
 
 	ctx := database.SetOrganizationContext(context.Background(), "org-1")
 	summary, err := uc.GetDashboardSummary(ctx)
