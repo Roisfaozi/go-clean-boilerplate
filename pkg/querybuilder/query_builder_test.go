@@ -4,36 +4,18 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 type TestModel struct {
-	ID        int            `gorm:"column:id"`
-	Name      string         `gorm:"column:name"`
-	Age       int            `gorm:"column:age"`
-	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at"`
+	ID        int    `db:"id" json:"id"`
+	Name      string `db:"name" json:"name"`
+	Age       int    `db:"age" json:"age"`
+	DeletedAt int64  `db:"deleted_at" json:"deleted_at"`
 }
 
-type TestModelNoDelete struct {
-	ID   int    `gorm:"column:id"`
-	Name string `gorm:"column:name"`
-}
-
-func setupDB() *gorm.DB {
-	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
-		DryRun: true,
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	return db
-}
-
-func TestGenerateDynamicQuery(t *testing.T) {
-	db := setupDB()
-
+func TestBuildRawQuery_Operators(t *testing.T) {
 	tests := []struct {
 		name          string
 		filter        *DynamicFilter
@@ -47,7 +29,7 @@ func TestGenerateDynamicQuery(t *testing.T) {
 					"Name": {Type: "contains", From: "Test"},
 				},
 			},
-			expectedQuery: "`name` LIKE",
+			expectedQuery: "name LIKE ?",
 			expectError:   false,
 		},
 		{
@@ -57,7 +39,7 @@ func TestGenerateDynamicQuery(t *testing.T) {
 					"Age": {Type: "between", From: 10, To: 20},
 				},
 			},
-			expectedQuery: "`age` BETWEEN",
+			expectedQuery: "age BETWEEN ? AND ?",
 			expectError:   false,
 		},
 		{
@@ -67,7 +49,7 @@ func TestGenerateDynamicQuery(t *testing.T) {
 					"Age": {Type: "in", From: []int{1, 2, 3}},
 				},
 			},
-			expectedQuery: "`age` IN",
+			expectedQuery: "age IN (?, ?, ?)",
 			expectError:   false,
 		},
 		{
@@ -83,44 +65,19 @@ func TestGenerateDynamicQuery(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			query := db.Model(&TestModel{})
-			resQuery, err := GenerateDynamicQuery(query, &TestModel{}, tt.filter)
+			res, err := BuildRawQuery(&TestModel{}, tt.filter)
 
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				// ToSQL generates the SQL string
-				sql := resQuery.Find(&[]TestModel{}).Statement.SQL.String()
-				assert.Contains(t, sql, tt.expectedQuery)
-				// TestModel has DeletedAt, so GORM SHOULD automatically include the check
-				assert.Contains(t, sql, "deleted_at")
-				assert.Contains(t, sql, "IS NULL")
+				assert.Equal(t, tt.expectedQuery, res.WhereSQL)
 			}
 		})
 	}
 }
 
-func TestGenerateDynamicQuery_NoSoftDelete(t *testing.T) {
-	db := setupDB()
-	filter := &DynamicFilter{
-		Filter: map[string]Filter{
-			"Name": {Type: "equals", From: "Test"},
-		},
-	}
-
-	query := db.Model(&TestModelNoDelete{})
-	resQuery, err := GenerateDynamicQuery(query, &TestModelNoDelete{}, filter)
-	require.NoError(t, err)
-
-	sql := resQuery.Find(&[]TestModelNoDelete{}).Statement.SQL.String()
-	assert.Contains(t, sql, "`name` =")
-	assert.NotContains(t, sql, "deleted_at", "Should not include soft delete check for model without DeletedAt")
-}
-
-func TestGenerateDynamicSort(t *testing.T) {
-	db := setupDB()
-
+func TestBuildRawQuery_Sort(t *testing.T) {
 	sorts := []SortModel{
 		{ColId: "Name", Sort: "asc"},
 		{ColId: "Age", Sort: "desc"},
@@ -129,15 +86,10 @@ func TestGenerateDynamicSort(t *testing.T) {
 		Sort: &sorts,
 	}
 
-	query := db.Model(&TestModel{})
-	resQuery, err := GenerateDynamicSort(query, &TestModel{}, f)
+	res, err := BuildRawQuery(&TestModel{}, f)
 	require.NoError(t, err)
 
-	sql := resQuery.Find(&[]TestModel{}).Statement.SQL.String()
-
-	assert.Contains(t, sql, "ORDER BY")
-	assert.Contains(t, sql, "`name`")
-	assert.Contains(t, sql, "`age` DESC")
+	assert.Equal(t, "name ASC, age DESC", res.OrderBy)
 }
 
 func TestGetDBFieldName(t *testing.T) {

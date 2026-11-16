@@ -54,13 +54,8 @@ func (uc *auditUseCase) LogActivity(ctx context.Context, req model.CreateAuditLo
 	oldValJSON, _ := json.Marshal(req.OldValues)
 	newValJSON, _ := json.Marshal(req.NewValues)
 
-	// Check if we are inside a transaction (supports both legacy GORM and SQLX managers during cutover)
-	inTransaction := false
-	if _, ok := tx.DBFromContext(ctx); ok {
-		inTransaction = true
-	} else if _, ok := tx.DBTXFromContext(ctx); ok {
-		inTransaction = true
-	}
+	// Check if we are inside a transaction
+	_, inTransaction := tx.DBTXFromContext(ctx)
 
 	if inTransaction {
 		// TRANSACTIONAL PATH: Write to Outbox

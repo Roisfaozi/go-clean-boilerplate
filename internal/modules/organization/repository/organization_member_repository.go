@@ -134,11 +134,11 @@ func (r *organizationMemberRepository) FindMembers(ctx context.Context, orgID st
 		SELECT om.id, om.organization_id, om.user_id, om.role_id, om.status, om.joined_at,
 		       u.id AS u_id, u.organization_id AS u_organization_id, u.password AS u_password,
 		       u.email AS u_email, u.username AS u_username, u.name AS u_name,
-		       u.avatar_url AS u_avatar_url, u.token AS u_token, u.status AS u_status,
+		       COALESCE(u.avatar_url, '') AS u_avatar_url, COALESCE(u.token, '') AS u_token, u.status AS u_status,
 		       u.email_verified_at AS u_email_verified_at, u.created_at AS u_created_at,
 		       u.updated_at AS u_updated_at, u.deleted_at AS u_deleted_at,
 		       r.id AS r_id, r.name AS r_name, r.organization_id AS r_organization_id,
-		       r.description AS r_description, r.created_at AS r_created_at,
+		       COALESCE(r.description, '') AS r_description, r.created_at AS r_created_at,
 		       r.updated_at AS r_updated_at, r.deleted_at AS r_deleted_at
 		FROM organization_members om
 		INNER JOIN users u ON om.user_id = u.id
@@ -169,6 +169,7 @@ func (r *organizationMemberRepository) FindMembers(ctx context.Context, orgID st
 			EmailVerifiedAt: row.U_EmailVerifiedAt,
 			CreatedAt:       row.U_CreatedAt,
 			UpdatedAt:       row.U_UpdatedAt,
+			DeletedAt:       row.U_DeletedAt,
 		}
 		mem.Role = roleEntity.Role{
 			ID:             row.R_ID,
@@ -177,6 +178,7 @@ func (r *organizationMemberRepository) FindMembers(ctx context.Context, orgID st
 			Description:    row.R_Description,
 			CreatedAt:      row.R_CreatedAt,
 			UpdatedAt:      row.R_UpdatedAt,
+			DeletedAt:      row.R_DeletedAt,
 		}
 		members[i] = &mem
 	}

@@ -100,7 +100,7 @@ func (r *roleRepository) FindByID(ctx context.Context, id string) (*entity.Role,
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, name, organization_id, description, created_at, updated_at, deleted_at
+		SELECT id, name, organization_id, COALESCE(description, '') AS description, created_at, updated_at, deleted_at
 		FROM roles
 		WHERE %s
 		LIMIT 1
@@ -128,7 +128,7 @@ func (r *roleRepository) FindOrganizationRoleByID(ctx context.Context, organizat
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, name, organization_id, description, created_at, updated_at, deleted_at
+		SELECT id, name, organization_id, COALESCE(description, '') AS description, created_at, updated_at, deleted_at
 		FROM roles
 		WHERE %s
 		LIMIT 1
@@ -156,7 +156,7 @@ func (r *roleRepository) FindOrganizationRoles(ctx context.Context, organization
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, name, organization_id, description, created_at, updated_at, deleted_at
+		SELECT id, name, organization_id, COALESCE(description, '') AS description, created_at, updated_at, deleted_at
 		FROM roles
 		WHERE %s
 		ORDER BY created_at DESC
@@ -187,7 +187,7 @@ func (r *roleRepository) FindByName(ctx context.Context, name string) (*entity.R
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, name, organization_id, description, created_at, updated_at, deleted_at
+		SELECT id, name, organization_id, COALESCE(description, '') AS description, created_at, updated_at, deleted_at
 		FROM roles
 		WHERE %s
 		LIMIT 1
@@ -217,7 +217,7 @@ func (r *roleRepository) FindByNameInScope(ctx context.Context, name string, org
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, name, organization_id, description, created_at, updated_at, deleted_at
+		SELECT id, name, organization_id, COALESCE(description, '') AS description, created_at, updated_at, deleted_at
 		FROM roles
 		WHERE %s
 		LIMIT 1
@@ -251,7 +251,7 @@ func (r *roleRepository) FindAll(ctx context.Context) ([]*entity.Role, error) {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, name, organization_id, description, created_at, updated_at, deleted_at
+		SELECT id, name, organization_id, COALESCE(description, '') AS description, created_at, updated_at, deleted_at
 		FROM roles
 		WHERE %s
 		ORDER BY created_at DESC
@@ -298,7 +298,7 @@ func (r *roleRepository) FindAllDynamic(ctx context.Context, filter *querybuilde
 
 	dataArgs := append([]any{}, args...)
 	query := fmt.Sprintf(`
-		SELECT id, name, organization_id, description, created_at, updated_at, deleted_at
+		SELECT id, name, organization_id, COALESCE(description, '') AS description, created_at, updated_at, deleted_at
 		FROM roles
 		WHERE %s
 		ORDER BY %s

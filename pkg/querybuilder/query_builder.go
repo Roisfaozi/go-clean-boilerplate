@@ -1,90 +1,12 @@
 package querybuilder
 
 import (
-	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
-
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
-func GenerateDynamicQuery(db *gorm.DB, model interface{}, filter *DynamicFilter) (*gorm.DB, error) {
-	if filter == nil {
-		return db, nil
-	}
-
-	tType := reflect.TypeOf(model)
-	if tType.Kind() == reflect.Ptr {
-		tType = tType.Elem()
-	}
-
-	for fieldName, condition := range filter.Filter {
-		dbFieldName, ok := GetDBFieldName(tType, fieldName)
-		if !ok {
-			return nil, fmt.Errorf("invalid field for filtering: %s", fieldName)
-		}
-
-		switch condition.Type {
-		case "equals":
-			db = db.Where(clause.Expr{SQL: "? = ?", Vars: []interface{}{clause.Column{Name: dbFieldName}, condition.From}})
-		case "contains":
-			db = db.Where(clause.Expr{SQL: "? LIKE ?", Vars: []interface{}{clause.Column{Name: dbFieldName}, fmt.Sprintf("%%%v%%", condition.From)}})
-		case "in":
-			val := reflect.ValueOf(condition.From)
-			if val.Kind() == reflect.Slice || val.Kind() == reflect.Array {
-				db = db.Where(clause.Expr{SQL: "? IN (?)", Vars: []interface{}{clause.Column{Name: dbFieldName}, condition.From}})
-			} else {
-				return nil, fmt.Errorf("invalid value for 'in' filter, must be a slice or array")
-			}
-		case "between":
-			db = db.Where(clause.Expr{SQL: "? BETWEEN ? AND ?", Vars: []interface{}{clause.Column{Name: dbFieldName}, condition.From, condition.To}})
-		case "gt":
-			db = db.Where(clause.Expr{SQL: "? > ?", Vars: []interface{}{clause.Column{Name: dbFieldName}, condition.From}})
-		case "gte":
-			db = db.Where(clause.Expr{SQL: "? >= ?", Vars: []interface{}{clause.Column{Name: dbFieldName}, condition.From}})
-		case "lt":
-			db = db.Where(clause.Expr{SQL: "? < ?", Vars: []interface{}{clause.Column{Name: dbFieldName}, condition.From}})
-		case "lte":
-			db = db.Where(clause.Expr{SQL: "? <= ?", Vars: []interface{}{clause.Column{Name: dbFieldName}, condition.From}})
-		case "ne":
-			db = db.Where(clause.Expr{SQL: "? != ?", Vars: []interface{}{clause.Column{Name: dbFieldName}, condition.From}})
-		default:
-			return nil, fmt.Errorf("unsupported filter type: %s", condition.Type)
-		}
-	}
-
-	return db, nil
-}
-
-func GenerateDynamicSort(db *gorm.DB, model interface{}, filter *DynamicFilter) (*gorm.DB, error) {
-	if filter == nil || filter.Sort == nil || len(*filter.Sort) == 0 {
-		return db, nil
-	}
-
-	tType := reflect.TypeOf(model)
-	if tType.Kind() == reflect.Ptr {
-		tType = tType.Elem()
-	}
-
-	for _, sort := range *filter.Sort {
-		dbFieldName, ok := GetDBFieldName(tType, sort.ColId)
-		if !ok {
-			return nil, fmt.Errorf("invalid field for sorting: %s", sort.ColId)
-		}
-
-		isDesc := false
-		if strings.ToLower(sort.Sort) == "desc" {
-			isDesc = true
-		}
-		db = db.Order(clause.OrderByColumn{Column: clause.Column{Name: dbFieldName}, Desc: isDesc})
-	}
-
-	return db, nil
-}
-
-// GetDBFieldName extracts the database column name from the gorm tag or converts the field name to snake_case.
+// GetDBFieldName extracts the database column name from the db tag or converts the field name to snake_case.
 func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 	if isSensitiveField(fieldName) {
 		return "", false
@@ -105,21 +27,21 @@ func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 				break
 			}
 
-			// Check JSON tag
-			jsonTag := f.Tag.Get("json")
-			if jsonTag != "" {
-				col := extractColumnNameFromJsonTag(jsonTag)
-				if strings.EqualFold(col, fieldName) {
+			// Check DB tag
+			dbTag := f.Tag.Get("db")
+			if dbTag != "" {
+				col := extractColumnNameFromDBTag(dbTag)
+				if col != "" && strings.EqualFold(col, fieldName) {
 					field = f
 					found = true
 					break
 				}
 			}
 
-			// Check GORM tag
-			gormTag := f.Tag.Get("gorm")
-			if gormTag != "" {
-				col := extractColumnNameFromGormTag(gormTag)
+			// Check JSON tag
+			jsonTag := f.Tag.Get("json")
+			if jsonTag != "" {
+				col := extractColumnNameFromJsonTag(jsonTag)
 				if strings.EqualFold(col, fieldName) {
 					field = f
 					found = true
@@ -141,9 +63,9 @@ func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 	}
 
 	// Now that we have the field, get its DB column name
-	gormTag := field.Tag.Get("gorm")
-	if gormTag != "" {
-		if colName := extractColumnNameFromGormTag(gormTag); colName != "" {
+	dbTag := field.Tag.Get("db")
+	if dbTag != "" {
+		if colName := extractColumnNameFromDBTag(dbTag); colName != "" {
 			return colName, true
 		}
 	}
@@ -151,12 +73,10 @@ func GetDBFieldName(tType reflect.Type, fieldName string) (string, bool) {
 	return ToSnakeCase(field.Name), true
 }
 
-func extractColumnNameFromGormTag(tag string) string {
-	parts := strings.Split(tag, ";")
-	for _, part := range parts {
-		if strings.HasPrefix(part, "column:") {
-			return strings.TrimPrefix(part, "column:")
-		}
+func extractColumnNameFromDBTag(tag string) string {
+	parts := strings.Split(tag, ",")
+	if len(parts) > 0 && parts[0] != "-" {
+		return parts[0]
 	}
 	return ""
 }

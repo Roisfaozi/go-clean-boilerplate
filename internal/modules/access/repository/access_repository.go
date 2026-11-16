@@ -228,7 +228,7 @@ func (r *accessRepository) GetAccessRights(ctx context.Context) ([]*entity.Acces
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, organization_id, name, description, created_at, updated_at, deleted_at
+		SELECT id, organization_id, name, COALESCE(description, '') AS description, created_at, updated_at, deleted_at
 		FROM access_rights
 		WHERE %s
 		ORDER BY created_at DESC
@@ -288,7 +288,7 @@ func (r *accessRepository) FindAccessRightsDynamic(ctx context.Context, filter *
 
 	dataArgs := append([]any{}, args...)
 	query := fmt.Sprintf(`
-		SELECT id, organization_id, name, description, created_at, updated_at, deleted_at
+		SELECT id, organization_id, name, COALESCE(description, '') AS description, created_at, updated_at, deleted_at
 		FROM access_rights
 		WHERE %s
 		ORDER BY %s
@@ -325,7 +325,7 @@ func (r *accessRepository) GetAccessRightByID(ctx context.Context, id string) (*
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, organization_id, name, description, created_at, updated_at, deleted_at
+		SELECT id, organization_id, name, COALESCE(description, '') AS description, created_at, updated_at, deleted_at
 		FROM access_rights
 		WHERE %s
 		LIMIT 1

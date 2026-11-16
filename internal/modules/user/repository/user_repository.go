@@ -122,7 +122,7 @@ func (r *userRepositoryData) UpdateStatus(ctx context.Context, userID, status st
 
 func (r *userRepositoryData) FindByID(ctx context.Context, id string) (*entity.User, error) {
 	query := `
-		SELECT id, organization_id, password, email, username, name, avatar_url, token, status, email_verified_at, created_at, updated_at, deleted_at
+		SELECT id, organization_id, password, email, username, name, COALESCE(avatar_url, '') AS avatar_url, COALESCE(token, '') AS token, status, email_verified_at, created_at, updated_at, deleted_at
 		FROM users
 		WHERE id = ? AND deleted_at = 0
 		LIMIT 1
@@ -141,7 +141,7 @@ func (r *userRepositoryData) FindByID(ctx context.Context, id string) (*entity.U
 
 func (r *userRepositoryData) FindByEmail(ctx context.Context, email string) (*entity.User, error) {
 	query := `
-		SELECT id, organization_id, password, email, username, name, avatar_url, token, status, email_verified_at, created_at, updated_at, deleted_at
+		SELECT id, organization_id, password, email, username, name, COALESCE(avatar_url, '') AS avatar_url, COALESCE(token, '') AS token, status, email_verified_at, created_at, updated_at, deleted_at
 		FROM users
 		WHERE email = ? AND deleted_at = 0
 		LIMIT 1
@@ -160,7 +160,7 @@ func (r *userRepositoryData) FindByEmail(ctx context.Context, email string) (*en
 
 func (r *userRepositoryData) FindByUsername(ctx context.Context, username string) (*entity.User, error) {
 	query := `
-		SELECT id, organization_id, password, email, username, name, avatar_url, token, status, email_verified_at, created_at, updated_at, deleted_at
+		SELECT id, organization_id, password, email, username, name, COALESCE(avatar_url, '') AS avatar_url, COALESCE(token, '') AS token, status, email_verified_at, created_at, updated_at, deleted_at
 		FROM users
 		WHERE username = ? AND deleted_at = 0
 		LIMIT 1
@@ -178,7 +178,7 @@ func (r *userRepositoryData) FindByUsername(ctx context.Context, username string
 
 func (r *userRepositoryData) FindByToken(ctx context.Context, token string) (*entity.User, error) {
 	query := `
-		SELECT id, organization_id, password, email, username, name, avatar_url, token, status, email_verified_at, created_at, updated_at, deleted_at
+		SELECT id, organization_id, password, email, username, name, COALESCE(avatar_url, '') AS avatar_url, COALESCE(token, '') AS token, status, email_verified_at, created_at, updated_at, deleted_at
 		FROM users
 		WHERE token = ? AND deleted_at = 0
 		LIMIT 1
@@ -261,7 +261,7 @@ func (r *userRepositoryData) FindAll(ctx context.Context, filter *model.GetUserL
 	dataArgs = append(dataArgs, limit, offset)
 
 	dataQuery := fmt.Sprintf(`
-		SELECT id, organization_id, password, email, username, name, avatar_url, token, status, email_verified_at, created_at, updated_at, deleted_at
+		SELECT id, organization_id, password, email, username, name, COALESCE(avatar_url, '') AS avatar_url, COALESCE(token, '') AS token, status, email_verified_at, created_at, updated_at, deleted_at
 		FROM users
 		WHERE %s
 		ORDER BY created_at DESC
@@ -317,7 +317,7 @@ func (r *userRepositoryData) FindAllDynamic(ctx context.Context, filter *querybu
 	dataArgs = append(dataArgs, parsed.Limit, parsed.Offset)
 
 	query := fmt.Sprintf(`
-		SELECT id, organization_id, password, email, username, name, avatar_url, token, status, email_verified_at, created_at, updated_at, deleted_at
+		SELECT id, organization_id, password, email, username, name, COALESCE(avatar_url, '') AS avatar_url, COALESCE(token, '') AS token, status, email_verified_at, created_at, updated_at, deleted_at
 		FROM users
 		WHERE %s
 		ORDER BY %s
@@ -345,7 +345,7 @@ func (r *userRepositoryData) HardDeleteSoftDeletedUsers(ctx context.Context, ret
 
 func (r *userRepositoryData) GetByOrganization(ctx context.Context, orgID string) ([]*entity.User, error) {
 	query := `
-		SELECT u.id, u.organization_id, u.password, u.email, u.username, u.name, u.avatar_url, u.token, u.status, u.email_verified_at, u.created_at, u.updated_at, u.deleted_at
+		SELECT u.id, u.organization_id, u.password, u.email, u.username, u.name, COALESCE(u.avatar_url, '') AS avatar_url, COALESCE(u.token, '') AS token, u.status, u.email_verified_at, u.created_at, u.updated_at, u.deleted_at
 		FROM users u
 		WHERE u.id IN (SELECT user_id FROM organization_members WHERE organization_id = ?) AND u.deleted_at = 0
 		ORDER BY u.created_at DESC

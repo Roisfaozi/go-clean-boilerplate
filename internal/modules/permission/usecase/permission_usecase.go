@@ -393,7 +393,7 @@ func (uc *PermissionUseCase) DeleteRole(ctx context.Context, roleName string) er
 		return err
 	}
 
-	if _, inTx := tx.DBFromContext(ctx); !inTx {
+	if _, inTx := tx.DBTXFromContext(ctx); !inTx {
 		return uc.ReloadPolicy(ctx)
 	}
 
@@ -414,7 +414,7 @@ func (uc *PermissionUseCase) DeleteRoleInOrg(ctx context.Context, roleName, orgI
 		return err
 	}
 
-	if _, inTx := tx.DBFromContext(ctx); !inTx {
+	if _, inTx := tx.DBTXFromContext(ctx); !inTx {
 		return uc.ReloadPolicy(ctx)
 	}
 

@@ -9,11 +9,11 @@ import (
 )
 
 type TestItem struct {
-	ID        string `json:"id" gorm:"column:id"`
-	Name      string `json:"name" gorm:"column:name"`
-	Age       int    `json:"age" gorm:"column:age"`
-	Password  string `json:"password" gorm:"column:password"`
-	SecretKey string `json:"secret_key" gorm:"column:secret_key"`
+	ID        string `json:"id" db:"id"`
+	Name      string `json:"name" db:"name"`
+	Age       int    `json:"age" db:"age"`
+	Password  string `json:"password" db:"password"`
+	SecretKey string `json:"secret_key" db:"secret_key"`
 }
 
 func TestBuildRawQuery_Basic(t *testing.T) {

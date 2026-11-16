@@ -5,12 +5,12 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
-	"github.com/glebarez/sqlite" // Pure Go SQLite
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 )
 
 type NoOpWriter struct{}
@@ -23,80 +23,82 @@ func (w *NoOpWriter) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
-type User struct {
-	ID   uint `gorm:"primaryKey"`
-	Name string
-}
-
-func setupTestDB(t *testing.T) (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		return nil, err
-	}
-	err = db.AutoMigrate(&User{})
-	require.NoError(t, err)
-	return db, nil
-}
-
 func TestTransactionManager_WithinTransaction_Commit(t *testing.T) {
-	db, err := setupTestDB(t)
-	assert.NoError(t, err)
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() {
+		_ = db.Close()
+	}()
 
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	tm := tx.NewTransactionManager(db, logger)
+	tm := tx.NewTransactionManager(sqlxDB, logger)
+
+	mock.ExpectBegin()
+	mock.ExpectExec("INSERT INTO users").WithArgs("Alice").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
 
 	err = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
 		txDB, ok := tx.DBFromContext(ctx)
 		assert.True(t, ok)
+		assert.NotNil(t, txDB)
 
-		if err := txDB.Create(&User{Name: "Alice"}).Error; err != nil {
-			return err
-		}
-		return nil
+		_, err := txDB.ExecContext(ctx, "INSERT INTO users (name) VALUES (?)", "Alice")
+		return err
 	})
 
 	assert.NoError(t, err)
-
-	var count int64
-	db.Model(&User{}).Count(&count)
-	assert.Equal(t, int64(1), count)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTransactionManager_WithinTransaction_Rollback(t *testing.T) {
-	db, err := setupTestDB(t)
-	assert.NoError(t, err)
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() {
+		_ = db.Close()
+	}()
 
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	tm := tx.NewTransactionManager(db, logger)
+	tm := tx.NewTransactionManager(sqlxDB, logger)
+
+	mock.ExpectBegin()
+	mock.ExpectExec("INSERT INTO users").WithArgs("Bob").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectRollback()
 
 	err = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
 		txDB, ok := tx.DBFromContext(ctx)
 		assert.True(t, ok)
+		assert.NotNil(t, txDB)
 
-		txDB.Create(&User{Name: "Bob"})
+		_, _ = txDB.ExecContext(ctx, "INSERT INTO users (name) VALUES (?)", "Bob")
 
 		return errors.New("simulated error")
 	})
 
 	assert.Error(t, err)
-
-	var count int64
-	db.Model(&User{}).Count(&count)
-	assert.Equal(t, int64(0), count)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTransactionManager_WithinTransaction_PanicRollback(t *testing.T) {
-	db, err := setupTestDB(t)
-	assert.NoError(t, err)
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() {
+		_ = db.Close()
+	}()
 
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	logger := logrus.New()
 	logger.SetOutput(&NoOpWriter{})
 
-	tm := tx.NewTransactionManager(db, logger)
+	tm := tx.NewTransactionManager(sqlxDB, logger)
+
+	mock.ExpectBegin()
+	mock.ExpectRollback()
 
 	assert.PanicsWithValue(t, "panic inside transaction", func() {
 		_ = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
@@ -104,7 +106,5 @@ func TestTransactionManager_WithinTransaction_PanicRollback(t *testing.T) {
 		})
 	})
 
-	var count int64
-	db.Model(&User{}).Count(&count)
-	assert.Equal(t, int64(0), count)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
