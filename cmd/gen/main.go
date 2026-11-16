@@ -167,14 +167,12 @@ func toCamelCase(s string) string {
 
 const entityTemplate = `package entity
 
-import "gorm.io/gorm"
-
 type {{.ModuleNameTitle}} struct {
-	ID        string         ` + "`" + `gorm:"primaryKey;type:varchar(36)"` + "`" + `
-	Name      string         ` + "`" + `gorm:"type:varchar(100);not null"` + "`" + `
-	CreatedAt int64          ` + "`" + `gorm:"autoCreateTime:milli"` + "`" + `
-	UpdatedAt int64          ` + "`" + `gorm:"autoUpdateTime:milli"` + "`" + `
-	DeletedAt gorm.DeletedAt ` + "`" + `gorm:"index"` + "`" + `
+	ID        string ` + "`" + `db:"id"` + "`" + `
+	Name      string ` + "`" + `db:"name"` + "`" + `
+	CreatedAt int64  ` + "`" + `db:"created_at"` + "`" + `
+	UpdatedAt int64  ` + "`" + `db:"updated_at"` + "`" + `
+	DeletedAt int64  ` + "`" + `db:"deleted_at"` + "`" + `
 }
 
 func ({{.ModuleNameTitle}}) TableName() string {
@@ -222,68 +220,124 @@ const repoImplTemplate = `package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"strings"
+	"time"
 
 	"{{.ProjectModule}}/internal/modules/{{.ModuleName}}/entity"
+	"{{.ProjectModule}}/pkg/exception"
 	"{{.ProjectModule}}/pkg/querybuilder"
+	"{{.ProjectModule}}/pkg/tx"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type {{.ModuleNameCamel}}Repository struct {
-	db  *gorm.DB
+	db  *sqlx.DB
 	log *logrus.Logger
 }
 
-func New{{.ModuleNameTitle}}Repository(db *gorm.DB, log *logrus.Logger) {{.ModuleNameTitle}}Repository {
+func New{{.ModuleNameTitle}}Repository(db *sqlx.DB, log *logrus.Logger) {{.ModuleNameTitle}}Repository {
 	return &{{.ModuleNameCamel}}Repository{
 		db:  db,
 		log: log,
 	}
 }
 
+func (r *{{.ModuleNameCamel}}Repository) getDB(ctx context.Context) tx.DBTX {
+	if dbtx, ok := tx.DBTXFromContext(ctx); ok {
+		return dbtx
+	}
+	return r.db
+}
+
 func (r *{{.ModuleNameCamel}}Repository) Create(ctx context.Context, data *entity.{{.ModuleNameTitle}}) error {
 	if data.ID == "" {
 		id, err := uuid.NewV7()
-			if err != nil {
-				return err
-			}
-			data.ID = id.String()
+		if err != nil {
+			return err
 		}
-	return r.db.WithContext(ctx).Create(data).Error
+		data.ID = id.String()
+	}
+	now := time.Now().UnixMilli()
+	if data.CreatedAt == 0 {
+		data.CreatedAt = now
+	}
+	if data.UpdatedAt == 0 {
+		data.UpdatedAt = now
+	}
+	query := ` + "`" + `
+		INSERT INTO {{.ModuleName}}s (id, name, created_at, updated_at, deleted_at)
+		VALUES (?, ?, ?, ?, 0)
+	` + "`" + `
+	_, err := r.getDB(ctx).ExecContext(ctx, query, data.ID, data.Name, data.CreatedAt, data.UpdatedAt)
+	return err
 }
 
 func (r *{{.ModuleNameCamel}}Repository) FindByID(ctx context.Context, id string) (*entity.{{.ModuleNameTitle}}, error) {
+	query := ` + "`" + `
+		SELECT id, name, created_at, updated_at, deleted_at
+		FROM {{.ModuleName}}s
+		WHERE id = ? AND deleted_at = 0
+		LIMIT 1
+	` + "`" + `
 	var data entity.{{.ModuleNameTitle}}
-	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&data).Error; err != nil {
+	if err := r.getDB(ctx).GetContext(ctx, &data, query, id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, exception.ErrNotFound
+		}
 		return nil, err
 	}
 	return &data, nil
 }
 
 func (r *{{.ModuleNameCamel}}Repository) Update(ctx context.Context, data *entity.{{.ModuleNameTitle}}) error {
-	return r.db.WithContext(ctx).Save(data).Error
+	data.UpdatedAt = time.Now().UnixMilli()
+	query := ` + "`" + `
+		UPDATE {{.ModuleName}}s
+		SET name = ?, updated_at = ?
+		WHERE id = ? AND deleted_at = 0
+	` + "`" + `
+	_, err := r.getDB(ctx).ExecContext(ctx, query, data.Name, data.UpdatedAt, data.ID)
+	return err
 }
 
 func (r *{{.ModuleNameCamel}}Repository) Delete(ctx context.Context, id string) error {
-	return r.db.WithContext(ctx).Delete(&entity.{{.ModuleNameTitle}}{}, "id = ?", id).Error
+	now := time.Now().UnixMilli()
+	query := ` + "`" + `
+		UPDATE {{.ModuleName}}s
+		SET deleted_at = ?, updated_at = ?
+		WHERE id = ? AND deleted_at = 0
+	` + "`" + `
+	_, err := r.getDB(ctx).ExecContext(ctx, query, now, now, id)
+	return err
 }
 
 func (r *{{.ModuleNameCamel}}Repository) FindAllDynamic(ctx context.Context, filter *querybuilder.DynamicFilter) ([]*entity.{{.ModuleNameTitle}}, error) {
+	qResult, err := querybuilder.BuildRawQuery(&entity.{{.ModuleNameTitle}}{}, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	var conditions []string
+	var args []any
+	conditions = append(conditions, "deleted_at = 0")
+	if qResult.WhereSQL != "" {
+		conditions = append(conditions, qResult.WhereSQL)
+		args = append(args, qResult.Args...)
+	}
+
+	query := "SELECT id, name, created_at, updated_at, deleted_at FROM {{.ModuleName}}s WHERE " + strings.Join(conditions, " AND ")
+	if qResult.OrderBy != "" {
+		query += " ORDER BY " + qResult.OrderBy
+	}
+	query += " LIMIT ? OFFSET ?"
+	args = append(args, qResult.Limit, qResult.Offset)
+
 	var results []*entity.{{.ModuleNameTitle}}
-	query := r.db.WithContext(ctx)
-
-	query, err := querybuilder.GenerateDynamicQuery(query, &entity.{{.ModuleNameTitle}}{}, filter)
-	if err != nil {
-		return nil, err
-	}
-
-	query, err = querybuilder.GenerateDynamicSort(query, &entity.{{.ModuleNameTitle}}{}, filter)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := query.Find(&results).Error; err != nil {
+	if err := r.getDB(ctx).SelectContext(ctx, &results, query, args...); err != nil {
 		return nil, err
 	}
 	return results, nil
@@ -320,7 +374,6 @@ import (
 	"{{.ProjectModule}}/pkg/exception"
 	"{{.ProjectModule}}/pkg/querybuilder"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type {{.ModuleNameCamel}}UseCase struct {
@@ -355,7 +408,7 @@ func (uc *{{.ModuleNameCamel}}UseCase) Create(ctx context.Context, req model.Cre
 func (uc *{{.ModuleNameCamel}}UseCase) GetByID(ctx context.Context, id string) (*model.{{.ModuleNameTitle}}Response, error) {
 	entity, err := uc.repo.FindByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			return nil, exception.ErrNotFound
 		}
 		uc.log.WithError(err).Error("Failed to get {{.ModuleName}} by ID")
@@ -372,7 +425,7 @@ func (uc *{{.ModuleNameCamel}}UseCase) GetByID(ctx context.Context, id string) (
 func (uc *{{.ModuleNameCamel}}UseCase) Update(ctx context.Context, req model.Update{{.ModuleNameTitle}}Request) (*model.{{.ModuleNameTitle}}Response, error) {
 	entity, err := uc.repo.FindByID(ctx, req.ID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, exception.ErrNotFound) {
 			return nil, exception.ErrNotFound
 		}
 		return nil, exception.ErrInternalServer
@@ -556,15 +609,15 @@ import (
 	"{{.ProjectModule}}/internal/modules/{{.ModuleName}}/repository"
 	"{{.ProjectModule}}/internal/modules/{{.ModuleName}}/usecase"
 	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type {{.ModuleNameTitle}}Module struct {
 	{{.ModuleNameTitle}}Controller *http.{{.ModuleNameTitle}}Controller
 }
 
-func New{{.ModuleNameTitle}}Module(db *gorm.DB, log *logrus.Logger, validate *validator.Validate) *{{.ModuleNameTitle}}Module {
+func New{{.ModuleNameTitle}}Module(db *sqlx.DB, log *logrus.Logger, validate *validator.Validate) *{{.ModuleNameTitle}}Module {
 	repo := repository.New{{.ModuleNameTitle}}Repository(db, log)
 	uc := usecase.New{{.ModuleNameTitle}}UseCase(repo, log)
 	controller := http.New{{.ModuleNameTitle}}Controller(uc, log, validate)
