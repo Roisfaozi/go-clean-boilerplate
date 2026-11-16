@@ -6,20 +6,21 @@ Guide for DB access, migrations, query safety, tenant-sensitive persistence, and
 
 ## Primary runtime model
 
-- GORM is the primary ORM and runtime DB access layer.
-- Module repositories own DB access for module code.
-- Controllers should not call GORM directly for business behavior.
-- Tenant-aware reads and writes should respect organization context established by middleware or usecase boundaries.
-- Dynamic query construction should use `pkg/querybuilder` or GORM placeholders, never interpolated SQL.
+- `sqlx` (`github.com/jmoiron/sqlx`) with parameterized raw SQL is the primary runtime DB access layer.
+- Entities use `db:"..."` struct tags for column mapping.
+- Module repositories own DB access for module code via `tx.DBTX` (`tx.DBTXFromContext(ctx)` or `*sqlx.DB`).
+- Controllers should not call `sqlx` or execute SQL directly for business behavior.
+- Tenant-aware reads and writes should respect organization context established by middleware or usecase boundaries (`pkg/database.SQLOrganizationClause`, `pkg/database.SQLOrganizationVisibilityClause`).
+- Dynamic query construction should use `pkg/querybuilder` (`BuildRawQuery`) and `?` placeholders, never interpolated SQL values or raw client column names.
 
 ## Ownership rules
 
 - controller
   - bind, validate, respond
 - usecase
-  - business rules, orchestration, transaction ownership when needed
+  - business rules, orchestration, transaction ownership when needed (`pkg/tx.WithTransactionManager`)
 - repository
-  - query shape, GORM calls, persistence detail, tenant-aware scopes
+  - query shape, parameterized `sqlx` SQL calls, persistence detail, tenant-aware `WHERE` clauses (`pkg/database`), explicit `deleted_at = 0` filtering
 
 If logic is deciding _what_ to write or _whether_ to write, it belongs above repository.
 If logic is deciding _how_ to query or persist, it usually belongs in repository.
@@ -55,8 +56,8 @@ If logic is deciding _how_ to query or persist, it usually belongs in repository
 
 ## Query safety rules
 
-- always use parameterized GORM queries
-- query-builder field names should come from struct metadata, not raw user input
+- always use parameterized `sqlx` SQL queries (`?` placeholders)
+- query-builder field names should come from struct metadata (`db`/`json` tags or snake_case), not raw user input
 - sensitive fields must remain blocked from generic filtering or sorting
 - do not expose soft-deleted records unless route/usecase explicitly supports restore or admin flow
 - if query flexibility expands, treat it as security-sensitive change

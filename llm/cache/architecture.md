@@ -3,8 +3,8 @@
 ## Source of truth order
 
 1. `cmd/api/main.go`
-2. `internal/config/app.go`
-3. `internal/router/router.go`
+2. `internal/config/fx.go` and `internal/config/app.go`
+3. `internal/router/http_router.go`
 4. `internal/modules/*/module.go`
 5. module delivery/usecase/repository files
 6. tests under `internal`, `pkg`, and `tests`
@@ -12,7 +12,7 @@
 
 ## Runtime composition
 
-`cmd/api/main.go` starts the API binary and calls application construction through `internal/config.NewApplication`.
+`cmd/api/main.go` validates startup config and boots `config.CoreFxModule` via `go.uber.org/fx` (`internal/config/fx.go`), which calls `internal/config.NewApplication` and registers `RegisterAppLifecycle` startup/shutdown hooks.
 
 `internal/config/app.go` is the top-level composition root. Most wiring helpers now live in `internal/config/app_helpers.go`, but `app.go` still owns the final assembly. It wires:
 
@@ -20,20 +20,20 @@
 - circuit breaker config
 - OpenTelemetry tracer
 - validator
-- GORM database connection
+- `sqlx` database connection (`*sqlx.DB` via `NewSQLXDatabase` in `internal/config/sqlx.go`)
 - Redis client
 - Asynq task distributor and processor
-- transaction manager
+- `sqlx` transaction manager (`tx.NewSQLXTransactionManager`)
 - JWT manager
 - WebSocket presence and ticket managers
 - WebSocket manager
 - SSE manager
-- Casbin enforcer
+- Casbin enforcer (`pkg/casbinadapter.NewSQLXCasbinAdapter`)
 - storage provider
 - TUS upload handler and hook registry
 - SSO providers
 - business modules
-- Gin router
+- stdlib `http.Handler` router (`router.SetupStdRouter` in `internal/router/http_router.go`) wrapped in `*http.Server`
 - scheduler
 
 `internal/config/app_helpers.go` holds extracted builders for SSO providers, module graphs, realtime metrics broadcasting, and TUS handler setup.
@@ -42,11 +42,10 @@ The composition root also initializes production safety around Casbin and shared
 
 ## HTTP boundary
 
-`internal/router/router.go` creates the Gin router and route groups.
+`internal/router/http_router.go` wires routes on a Go `http.ServeMux` (`SetupStdRouter`) using `delivery.Chain` middleware chains and `HTTP*` controller handlers (wrapping with `otelhttp.NewHandler` when OTEL is enabled).
 
 Top-level surfaces:
 
-- `/api/v1/docs/*any`: Swagger UI
 - `/metrics`: Prometheus metrics, optionally basic-auth protected
 - `/api/v1/events`: SSE, protected by auth token
 - `/api/v1/ws`: WebSocket, protected by WebSocket ticket validation
@@ -57,20 +56,21 @@ Top-level surfaces:
 
 ## Route authorization strata
 
-`internal/router/router.go` defines practical security strata:
+`internal/router/http_router.go` defines practical security chains:
 
-1. public group: public auth, public user/org invitation flows
-2. authenticated group: API key middleware, JWT validation, scope auto-check, user session requirement, user status middleware
-3. tenantAuthorized group: authenticated + organization requirement + Casbin middleware
-4. admin/authorized management groups: route-specific Casbin/API-key scope checks for permission, role, access, audit, webhook, and tenant resources
+1. `publicChain`: request ID, logging, recovery, security headers, CORS (public auth, public user/org invitation flows)
+2. `authChain`: `publicChain` + API key auth, JWT validation, CSRF check, auto-scope check, user status middleware
+3. `tenantChain`: `authChain` + organization requirement + Casbin middleware
+4. `adminChain`: `publicChain` + API key auth, JWT validation, CSRF check, `admin:manage` scope check, user status, optional organization context, Casbin middleware
+5. `apiKeyChain`: `authChain` + `HTTPRequireUserSession` (rejects API keys) + organization requirement
 
 Operational route details:
 
-- `public` group handles unauthenticated auth and public organization/user flows.
-- `authenticated` group adds API-key auth, JWT/session validation, scope checks, and user-status enforcement.
-- `tenantAuthorized` adds organization resolution plus Casbin policy checks.
-- `authorized` is for admin-style management with `admin:manage` scope and optional organization context.
-- TUS upload group uses token auth + user status only, then delegates to `pkg/tus`.
+- `publicChain` handles unauthenticated auth and public organization/user flows.
+- `authChain` adds API-key auth, JWT/session validation, CSRF, scope checks, and user-status enforcement.
+- `tenantChain` adds organization resolution plus Casbin policy checks.
+- `adminChain` is for admin-style management with `admin:manage` scope and optional organization context.
+- TUS upload route uses `HTTPValidateToken` + `HTTPUserStatusMiddleware` with base wrappers, then delegates to `pkg/tus`.
 
 ## Module architecture
 
@@ -114,10 +114,13 @@ The upload boundary is intentionally separate from standard CRUD routes so uploa
 
 ## Database boundary
 
-- GORM is the runtime ORM.
+- `sqlx` (`*sqlx.DB` initialized in `internal/config/sqlx.go`) with parameterized raw SQL is the runtime database layer; GORM has been removed.
+- `pkg/tx` provides `SQLXTransactionManager`, `DBTX`, and `DBTXFromContext` (`DBFromContext` delegates to `DBTXFromContext`).
+- `pkg/database` provides tenant/visibility SQL clause helpers (`SQLOrganizationClause`, `SQLOrganizationVisibilityClause`).
+- `pkg/casbinadapter` provides `SQLXCasbinAdapter` for Casbin policy persistence.
 - Migration files live under `db/migrations`.
 - Seed entrypoint lives under `db/seeds/main.go`.
-- The repo uses MySQL driver in `go.mod`.
+- The repo uses `github.com/go-sql-driver/mysql` in `go.mod`.
 
 ## Frontend boundary
 

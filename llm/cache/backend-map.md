@@ -2,25 +2,26 @@
 
 ## Entrypoints
 
-- API binary: `cmd/api/main.go`
+- API binary: `cmd/api/main.go` (boots `config.CoreFxModule` via `go.uber.org/fx` in `internal/config/fx.go`)
 - Generator binary: `cmd/gen/main.go`
 - Composition root: `internal/config/app.go` with extracted helper wiring in `internal/config/app_helpers.go`
-- Router: `internal/router/router.go`
+- Router: `internal/router/http_router.go` (`SetupStdRouter`)
 
 ## Shared infrastructure
 
 - config loading: `internal/config/config.go`
-- DB: `internal/config/gorm.go`
+- DB: `internal/config/sqlx.go` (`NewSQLXDatabase` returning `*sqlx.DB`)
 - Redis: `internal/config/redis.go`
-- Casbin: `internal/config/casbin.go`, `internal/config/casbin_model.conf`
+- Casbin: `internal/config/casbin.go`, `internal/config/casbin_model.conf`, `pkg/casbinadapter`
 - storage: `internal/config/storage.go`, `pkg/storage/*`
-- transaction manager: `pkg/tx`
+- transaction manager: `pkg/tx` (`SQLXTransactionManager`, `DBTX`, `DBTXFromContext`)
+- SQL tenant/visibility helpers: `pkg/database` (`SQLOrganizationClause`, `SQLOrganizationVisibilityClause`)
 - JWT: `pkg/jwt`
 - SSE: `pkg/sse`
 - WebSocket: `pkg/ws`
 - TUS: `pkg/tus`
 - telemetry: `pkg/telemetry`
-- query builder: `pkg/querybuilder`
+- query builder: `pkg/querybuilder` (`BuildRawQuery`, `GetDBFieldName`)
 
 Runtime wiring direction:
 
@@ -71,27 +72,29 @@ Module dependency hotspots:
 
 Common backend request path:
 
-1. Gin route in `internal/router/router.go` or module route file.
-2. Middleware applies auth, API-key, tenant, status, rate-limit, and/or Casbin checks.
-3. Controller parses and validates request.
-4. Usecase executes business behavior and transaction handling.
-5. Repository reads/writes GORM models.
+1. `http.ServeMux` route in `internal/router/http_router.go` (`SetupStdRouter`) wrapped with `delivery.Chain`.
+2. Middleware applies request ID, logging, recovery, security headers, CORS, API-key, JWT/session, CSRF, user status, tenant, and/or Casbin checks.
+3. Stdlib `HTTP*` controller method parses and validates request.
+4. Usecase executes business behavior and transaction handling (`pkg/tx`).
+5. Repository executes parameterized `sqlx` raw SQL queries via `tx.DBTX` (`DBTXFromContext(ctx)` or `*sqlx.DB`).
 6. Side effects go through worker, audit, webhook, SSE, or WebSocket managers.
 
-This pattern is visible in module constructors and route/controller files, not only in documentation.
+This pattern is visible in module constructors and route/controller/repository files, not only in documentation.
 
 Controller pattern:
 
-- bind request using Gin (`ShouldBindJSON`, path/query params, or upload-specific handling)
+- bind JSON via `response.DecodeJSON` or read path/query params via `r.PathValue(...)` / `r.URL.Query()` (legacy Gin handler methods remain alongside `HTTP*` handlers during phased cutover)
 - validate with injected validator where applicable
-- call usecase with `context.Context` from request
-- return project response helpers / JSON responses
+- read auth/tenant context keys via `internal/delivery` (`delivery.GetContextString`)
+- call usecase with `r.Context()`
+- return `pkg/response` stdlib helpers (`response.WriteSuccess`, `response.WriteSuccessWithPaging`, `response.WriteHTTPError`, `response.WriteJSON`)
 
 Repository pattern:
 
-- hide GORM query details behind module repositories
-- use scopes/context for tenant-sensitive data where module design requires it
-- keep dynamic filtering through `pkg/querybuilder` instead of raw user-controlled SQL fragments
+- hide `sqlx` parameterized SQL queries behind module repositories
+- extract active transaction via `tx.DBTXFromContext(ctx)` (falling back to `*sqlx.DB`)
+- apply tenant/visibility clauses via `pkg/database` (`SQLOrganizationClause`, `SQLOrganizationVisibilityClause`) and soft-delete filters (`deleted_at = 0`)
+- keep dynamic filtering through `pkg/querybuilder` (`BuildRawQuery`) instead of raw user-controlled SQL fragments
 
 ## Worker path
 
@@ -118,12 +121,12 @@ Worker change checklist:
 - API key: `internal/middleware/api_key_middleware.go`
 - CORS/security headers/rate limit/recovery/request logging/user status/prometheus: `internal/middleware/*`
 
-Observed middleware layering in router:
+Observed middleware layering in `internal/router/http_router.go`:
 
-- API key authenticate happens before JWT validation on authenticated, tenantAuthorized, and authorized groups.
-- user status middleware is applied after auth/API-key identity resolution.
-- tenant requirement is enforced before Casbin on tenant-authorized routes.
-- upload route uses auth + user-status middleware but not tenant/Casbin group middleware.
+- `apiKeyAuth` (`HTTPAuthenticate`) runs before `authMw` (`HTTPValidateToken`) on `authChain`, `tenantChain`, `adminChain`, and `apiKeyChain`.
+- `csrf` (`HTTPCSRFMiddleware`) and `apiKeyAutoScope` / `HTTPRequireScopes` run after auth and before `userStatus` (`HTTPUserStatusMiddleware`).
+- tenant requirement (`HTTPRequireOrganization` / `HTTPOptionalOrganization`) is enforced before `casbinMw` (`HTTPCasbinMiddleware`) on tenant and admin routes.
+- upload route uses `authMw` + `userStatus` with base wrappers (`reqID`, `reqLog`, `rec`, `sec`, `cors`), without tenant/Casbin chain middleware.
 
 ## Tests
 
@@ -144,7 +147,7 @@ Important backend test coverage areas already present:
 
 Backend change checklist:
 
-- route/middleware change: inspect `internal/router/router.go` and target middleware tests
+- route/middleware change: inspect `internal/router/http_router.go` and target middleware tests
 - module behavior change: inspect target module unit tests and integration tests
 - tenant/Casbin change: inspect tenant isolation, permission, role, and transactional enforcer tests
 - upload change: inspect `pkg/tus`, upload tests, and storage provider tests

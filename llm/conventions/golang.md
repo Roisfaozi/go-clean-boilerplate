@@ -32,7 +32,7 @@ Shared runtime infrastructure lives under:
   - transaction ownership when needed
 - repository
   - DB and query details
-  - GORM-specific operations
+  - parameterized `sqlx` SQL operations (`tx.DBTX`, `pkg/database` tenant clauses, `deleted_at = 0` filters)
 - app/config wiring
   - dependency construction and lifecycle
 
@@ -45,7 +45,7 @@ Shared runtime infrastructure lives under:
 ## Middleware and boundary rules
 
 - auth, session, tenant, API-key, user-status, and Casbin checks belong in middleware and usecase boundaries, not duplicated ad hoc in handlers
-- route ownership and group semantics come from `internal/router/router.go`
+- route ownership and group semantics come from `internal/router/http_router.go`
 - upload, realtime, worker, and webhook paths are special trust or side-effect boundaries; do not treat them like ordinary CRUD paths
 
 ## Error and response rules

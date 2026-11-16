@@ -9,23 +9,24 @@ This package is small but security-sensitive. Treat changes here as authorizatio
 ## Primary source of truth
 
 1. `pkg/querybuilder/query_builder.go`
-2. `pkg/querybuilder/query_builder_test.go`
-3. `pkg/querybuilder/README.md`
-4. repositories that call `GenerateDynamicQuery` and `GenerateDynamicSort`
-5. `llm/cache/user-system.md`
-6. `llm/cache/audit-system.md`
+2. `pkg/querybuilder/raw_builder.go`
+3. `pkg/querybuilder/query_builder_test.go`
+4. `pkg/querybuilder/raw_builder_test.go`
+5. repositories that call `BuildRawQuery`
+6. `llm/cache/user-system.md`
+7. `llm/cache/audit-system.md`
 
 ## Runtime ownership
 
 ### Package responsibilities
 
-`pkg/querybuilder/query_builder.go` owns:
+`pkg/querybuilder/query_builder.go` and `pkg/querybuilder/raw_builder.go` own:
 
-- mapping requested fields to DB column names
-- validating filter/sort field legitimacy against model metadata
-- building supported filter clauses
-- building safe order clauses
-- denying obviously sensitive fields
+- mapping requested fields to DB column names (`GetDBFieldName`)
+- validating filter/sort field legitimacy against model metadata (`BuildRawQuery`)
+- building parameterized `WHERE` clauses (`WhereSQL` + `Args`)
+- building safe `ORDER BY` clauses (`OrderBy`) and clamped `Limit`/`Offset`
+- denying obviously sensitive fields (`isSensitiveField`)
 
 ### Call-site responsibilities
 
@@ -34,7 +35,7 @@ Repositories still own:
 - which model metadata is exposed
 - whether endpoint should allow dynamic filtering at all
 - pagination/count behavior
-- surrounding tenant/auth restrictions
+- surrounding tenant/auth restrictions and `deleted_at = 0` filtering
 
 Do not push repository access policy into querybuilder alone.
 
@@ -44,11 +45,11 @@ Do not push repository access policy into querybuilder alone.
 
 1. direct struct field name
 2. case-insensitive struct field match
-3. JSON tag name
-4. GORM column tag
-5. snake_case version of struct field name
+3. `db` tag column name
+4. `json` tag name
+5. snake_case version of struct field name (`ToSnakeCase`)
 
-If field is not found, query generation fails closed with error.
+Column name extraction prefers the `db` tag (`extractColumnNameFromDBTag`) and falls back to `ToSnakeCase(field.Name)`. If field is not found (or matches `isSensitiveField`), query generation fails closed with error.
 
 That is important. Do not degrade invalid field handling into silent skip.
 
@@ -74,7 +75,7 @@ Implication:
 
 ## Supported filter operators
 
-Current supported types in `GenerateDynamicQuery`:
+Current supported types in `BuildRawQuery` (`buildSingleCondition`):
 
 - `equals`
 - `contains`
@@ -94,24 +95,24 @@ Package safety depends on two separate properties:
 
 ### Value safety
 
-- values are passed through GORM placeholders like `?`
+- values are collected into `SQLQueryResult.Args` and bound via SQL placeholders (`?`) in `sqlx` queries
 - querybuilder does not interpolate raw filter values directly into SQL
 
 ### Field safety
 
-- column names are derived from model metadata, not accepted raw from caller
-- sort direction defaults to `asc`
-- only exact `desc` selects descending order
+- column names are derived from model metadata (`db` tag, `json` tag, or `ToSnakeCase`), not accepted raw from caller
+- sort direction defaults to `ASC`
+- only case-insensitive `desc` selects `DESC` order
 
 If either property regresses, injection surface opens.
 
 ## Sort behavior
 
-`GenerateDynamicSort`:
+`buildOrderClause` (called by `BuildRawQuery`):
 
-- no-ops when sort absent
-- validates each requested sort field through same metadata path
-- appends `ORDER BY <column> asc|desc`
+- returns empty string when sort is absent
+- validates each requested sort field through `GetDBFieldName`
+- formats `<column> ASC|DESC` into `SQLQueryResult.OrderBy`
 - fails on invalid field instead of silently sorting on raw input
 
 ## Known consumers and risk level
@@ -128,7 +129,7 @@ These are dangerous because they combine privileged data access with flexible qu
 ## Known sharp edges
 
 - sensitive-field deny list is exact-name based and may miss future semantically sensitive aliases.
-- JSON tag or GORM tag exposure can widen allowed query surface even if handler code unchanged.
+- `db` tag or `json` tag exposure can widen allowed query surface even if handler code is unchanged.
 - changing model fields can silently change querybuilder allow-surface.
 - sorting by newly exposed field may leak sensitive ordering behavior even if field not returned in API response.
 

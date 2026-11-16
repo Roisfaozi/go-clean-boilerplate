@@ -9,7 +9,7 @@
 ## Phase 2
 
 - `internal/config/app.go` remains highest-value file for runtime truth, but helper extraction means `internal/config/app_helpers.go` must also be checked for module wiring, broadcaster behavior, SSO providers, and TUS setup.
-- `internal/router/router.go` is the clearest single file for route strata, middleware layering, and upload/realtime exposure.
+- `internal/router/http_router.go` is the clearest single file for route strata, middleware layering, and upload/realtime exposure.
 - `internal/modules/*/module.go` files are the best compact view of real dependency boundaries.
 
 ## Phase 3
@@ -41,7 +41,7 @@
   - `auth_usecase_test.go`: `HandleSSOCallback` uses `StoreToken`, not `StoreSession`. Registering expectations on uncalled methods with `NewMockX(t)` triggers test cleanup failures.
 
 
-## API Key Scope Enforcement (verified against internal/router/router.go + internal/middleware/api_key_middleware.go)
+## API Key Scope Enforcement (verified against internal/router/http_router.go + internal/middleware/api_key_middleware.go)
 
 - Only two route groups accept API-key auth: `tenantAuthorized` and `authorized`. The `authenticated` group is JWT-only (`RequireUserSession` rejects API keys), so scopes like `user:*`, `stats:*`, `permission:*` unlock nothing for API keys.
 - `authorized` group requires `admin:manage` for API keys (`RequireScopes("admin:manage")` at group level) — permission, access-right, audit, user-admin, and org-admin endpoints are gated by `admin:manage`, not by resource-scoped scopes.
@@ -73,6 +73,6 @@
 
 ## Time & Soft-Delete Normalization
 
-- `deleted_at` across migrations and GORM models uses `BIGINT NOT NULL DEFAULT 0` sentinel (with `gorm.io/plugin/soft_delete` tag `softDelete:milli`).
+- `deleted_at` across migrations and entities (`db:"deleted_at"`) uses `BIGINT NOT NULL DEFAULT 0` sentinel (`0` for active rows, epoch milliseconds for soft-deleted rows, enforced in explicit `WHERE deleted_at = 0` / `UPDATE ... SET deleted_at = ?` SQL queries).
 - Instant timestamps are epoch milliseconds (`BIGINT`). Conversion functions and helpers live in `pkg/epochms` (Go) and `packages/utils/src/time.ts` (TS).
 - Timezones must be explicit parameters (`timeZone` option in JS, `In(tz)` in Go). Server or browser implicit fallback is blocked by `./scripts/guard-time-conventions.sh` in pre-commit hooks.
