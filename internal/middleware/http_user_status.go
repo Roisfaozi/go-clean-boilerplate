@@ -11,6 +11,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	suspendedUserMessage = "Your account has been suspended temporarily. Please contact support."
+	bannedUserMessage    = "Your account has been banned. Please contact support."
+)
+
 // HTTPUserStatusMiddleware verifies the user account is currently active.
 func HTTPUserStatusMiddleware(userRepo userRepository.UserRepository, log *logrus.Logger) delivery.Middleware {
 	return func(next http.Handler) http.Handler {

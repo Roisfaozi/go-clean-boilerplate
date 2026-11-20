@@ -6,9 +6,32 @@ import (
 	"strings"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
+	authUsecase "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/auth/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
+	"github.com/sirupsen/logrus"
 )
+
+const (
+	headerAuthorization = "Authorization"
+	authSchemeBearer    = "bearer"
+	cookieAccessToken   = "access_token"
+)
+
+type AuthMiddleware struct {
+	AuthUseCase   authUsecase.AuthUseCase
+	Log           *logrus.Logger
+	TicketManager ws.TicketManager
+}
+
+func NewAuthMiddleware(authUseCase authUsecase.AuthUseCase, log *logrus.Logger, ticketManager ws.TicketManager) *AuthMiddleware {
+	return &AuthMiddleware{
+		AuthUseCase:   authUseCase,
+		Log:           log,
+		TicketManager: ticketManager,
+	}
+}
 
 // HTTPValidateToken verifies Bearer token or cookie on incoming HTTP requests.
 func (m *AuthMiddleware) HTTPValidateToken() delivery.Middleware {

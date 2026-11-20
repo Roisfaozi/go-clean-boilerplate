@@ -1,13 +1,50 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/repository"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
+	"github.com/sirupsen/logrus"
 )
+
+const (
+	// OrgIDHeader is the header name for organization ID
+	OrgIDHeader = "X-Organization-ID"
+	// OrgSlugHeader is the header name for organization slug
+	OrgSlugHeader = "X-Organization-Slug"
+)
+
+// TenantMiddleware validates organization membership and sets org context.
+// Uses IOrganizationReader for cached membership validation.
+type TenantMiddleware struct {
+	OrgRepo repository.OrganizationRepository
+	Reader  usecase.IOrganizationReader
+	Log     *logrus.Logger
+}
+
+// NewTenantMiddleware creates a new TenantMiddleware instance
+func NewTenantMiddleware(
+	orgRepo repository.OrganizationRepository,
+	reader usecase.IOrganizationReader,
+	log *logrus.Logger,
+) *TenantMiddleware {
+	return &TenantMiddleware{
+		OrgRepo: orgRepo,
+		Reader:  reader,
+		Log:     log,
+	}
+}
+
+// InvalidateMembershipCache delegates cache invalidation to the reader
+func (m *TenantMiddleware) InvalidateMembershipCache(ctx context.Context, orgID, userID string) error {
+	return m.Reader.InvalidateMembershipCache(ctx, orgID, userID)
+}
 
 // HTTPRequireOrganization enforces organization presence and tenant isolation for net/http.
 func (m *TenantMiddleware) HTTPRequireOrganization() delivery.Middleware {

@@ -10,6 +10,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const defaultCasbinDomain = "global"
+
+// CasbinEnforcer defines the interface required by the middleware.
+// *casbin.Enforcer satisfies this interface.
+type CasbinEnforcer interface {
+	Enforce(rvals ...interface{}) (bool, error)
+}
+
 // HTTPCasbinMiddleware enforces RBAC policy based on user_id, organization domain, URL path, and method.
 func HTTPCasbinMiddleware(enforcer CasbinEnforcer, log *logrus.Logger) delivery.Middleware {
 	return func(next http.Handler) http.Handler {

@@ -9,6 +9,8 @@ import (
 	"github.com/google/uuid"
 )
 
+const headerXRequestID = "X-Request-ID"
+
 // HTTPRequestIDMiddleware injects X-Request-ID into request context and response header.
 func HTTPRequestIDMiddleware() delivery.Middleware {
 	return func(next http.Handler) http.Handler {
