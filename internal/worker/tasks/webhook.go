@@ -17,6 +17,7 @@ type WebhookTriggerPayload struct {
 	Secret    string `json:"secret"`
 	EventType string `json:"event_type"`
 	Payload   string `json:"payload"` // JSON string
+	EventID   string `json:"event_id,omitempty"`
 }
 
 func NewWebhookTriggerTask(payload WebhookTriggerPayload) (*asynq.Task, error) {

@@ -128,6 +128,28 @@ func TestRedisTaskDistributor_DistributeTaskSendEmail(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("Positive - Enqueue Email Task with IdempotencyKey", func(t *testing.T) {
+		deps, cleanup := setupDistributorTest(t)
+		defer cleanup()
+		payload := &tasks.SendEmailPayload{
+			To:             "test@example.com",
+			Subject:        "Welcome",
+			Body:           "<h1>Welcome!</h1>",
+			IdempotencyKey: "welcome:user-1",
+		}
+
+		err := deps.distributor.DistributeTaskSendEmail(context.Background(), payload)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Negative - Nil Email Payload", func(t *testing.T) {
+		deps, cleanup := setupDistributorTest(t)
+		defer cleanup()
+
+		err := deps.distributor.DistributeTaskSendEmail(context.Background(), nil)
+		assert.Error(t, err)
+	})
+
 	t.Run("Vulnerability - XSS in Email Body", func(t *testing.T) {
 		deps, cleanup := setupDistributorTest(t)
 		defer cleanup()
@@ -207,7 +229,7 @@ func TestRedisTaskDistributor_DistributeTaskAuditLogExport(t *testing.T) {
 		defer cleanup()
 		payload := model.AuditLogExportPayload{
 			UserID:   "user_123",
-			FromDate: time.Now().Add(-24*time.Hour).Format("2006-01-02"),
+			FromDate: time.Now().Add(-24 * time.Hour).Format("2006-01-02"),
 			ToDate:   time.Now().Format("2006-01-02"),
 		}
 

@@ -138,6 +138,7 @@ func (u *webhookUseCase) Trigger(ctx context.Context, req model.TriggerWebhookRe
 
 	payloadJSON, _ := json.Marshal(req.Payload)
 	payloadStr := string(payloadJSON)
+	eventID := uuid.NewString()
 
 	for _, w := range webhooks {
 		taskPayload := tasks.WebhookTriggerPayload{
@@ -146,6 +147,7 @@ func (u *webhookUseCase) Trigger(ctx context.Context, req model.TriggerWebhookRe
 			Secret:    w.Secret,
 			EventType: req.EventType,
 			Payload:   payloadStr,
+			EventID:   eventID,
 		}
 
 		if err := u.taskDistributor.DistributeTaskWebhookTrigger(ctx, taskPayload); err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/hibiken/asynq"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,6 +26,7 @@ type RedisTaskProcessor struct {
 	webhookHandler *handlers.WebhookHandler
 	auditUC        auditUseCase.AuditUseCase
 	auditRepo      auditUseCase.AuditRepository
+	redisClient    *redis.Client
 	cfg            WorkerConfig
 	mu             sync.Mutex
 	started        bool
@@ -65,6 +67,12 @@ func NewRedisTaskProcessor(
 	}
 }
 
+func (processor *RedisTaskProcessor) SetRedisClient(rdb *redis.Client) {
+	processor.mu.Lock()
+	defer processor.mu.Unlock()
+	processor.redisClient = rdb
+}
+
 func (processor *RedisTaskProcessor) Start() error {
 	processor.mu.Lock()
 	if processor.started {
@@ -72,6 +80,7 @@ func (processor *RedisTaskProcessor) Start() error {
 		return nil
 	}
 	processor.started = true
+	redisClient := processor.redisClient
 	processor.mu.Unlock()
 
 	mux := asynq.NewServeMux()
@@ -90,7 +99,7 @@ func (processor *RedisTaskProcessor) Start() error {
 		mux.HandleFunc(taskType, InstrumentTaskHandler(taskType, fn))
 	}
 
-	emailHandler := handlers.NewEmailTaskHandler(processor.logger, smtpCfg)
+	emailHandler := handlers.NewEmailTaskHandlerWithDedupe(processor.logger, smtpCfg, redisClient)
 	registerInstrumented(tasks.TypeSendEmail, emailHandler.ProcessTaskSendEmail)
 
 	auditHandler := handlers.NewAuditTaskHandler(processor.logger, processor.auditUC)

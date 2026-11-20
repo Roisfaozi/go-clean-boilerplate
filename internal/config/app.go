@@ -274,14 +274,18 @@ func provideCleanupTaskHandler(
 
 func provideWebhookHandler(
 	webhookMod *webhook.WebhookModule,
+	redisClient *redis.Client,
 	logger *logrus.Logger,
 ) *handlers.WebhookHandler {
-	return handlers.NewWebhookHandler(webhookMod.Repo, logger)
+	h := handlers.NewWebhookHandler(webhookMod.Repo, logger)
+	h.SetRedisClient(redisClient)
+	return h
 }
 
 func provideTaskProcessor(
 	cfg *AppConfig,
 	redisOpt asynq.RedisClientOpt,
+	redisClient *redis.Client,
 	logger *logrus.Logger,
 	cleanupHandler *handlers.CleanupTaskHandler,
 	webhookHandler *handlers.WebhookHandler,
@@ -298,7 +302,7 @@ func provideTaskProcessor(
 		},
 	}
 
-	return worker.NewRedisTaskProcessor(
+	processor := worker.NewRedisTaskProcessor(
 		redisOpt,
 		logger,
 		cleanupHandler,
@@ -307,6 +311,10 @@ func provideTaskProcessor(
 		auditMod.AuditRepo,
 		workerCfg,
 	)
+	if p, ok := processor.(*worker.RedisTaskProcessor); ok {
+		p.SetRedisClient(redisClient)
+	}
+	return processor
 }
 
 func provideScheduler(redisOpt asynq.RedisClientOpt, logger *logrus.Logger) *worker.Scheduler {
@@ -565,8 +573,8 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 
 	broadcaster := provideMetricsBroadcaster(wsManager, presenceManager, statsMod)
 	cleanupHandler := provideCleanupTaskHandler(authMod, userMod, auditMod, logger)
-	webhookHandler := provideWebhookHandler(webhookMod, logger)
-	taskProcessor := provideTaskProcessor(cfg, redisOpt, logger, cleanupHandler, webhookHandler, auditMod)
+	webhookHandler := provideWebhookHandler(webhookMod, redisClient, logger)
+	taskProcessor := provideTaskProcessor(cfg, redisOpt, redisClient, logger, cleanupHandler, webhookHandler, auditMod)
 	scheduler := provideScheduler(redisOpt, logger)
 
 	authMiddleware := provideAuthMiddleware(authMod, logger, ticketManager)
@@ -575,7 +583,7 @@ func NewApplication(cfg *AppConfig) (*Application, error) {
 	wsController := provideWebSocketController(cfg, logger, wsManager, userMod, enforcer)
 	logger.Info("Middleware initialized.")
 
-	tusHandler := provideTusHandler(cfg, logger, userMod)
+	tusHandler := provideTusHandler(cfg, logger, userMod, redisClient)
 
 	stdRouter := provideStdRouter(routerParams{
 		Cfg:              cfg,

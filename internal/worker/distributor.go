@@ -43,7 +43,7 @@ func (d *RedisTaskDistributor) DistributeTaskWebhookTrigger(ctx context.Context,
 }
 
 func (d *RedisTaskDistributor) DistributeTaskSendEmail(ctx context.Context, payload *tasks.SendEmailPayload, opts ...asynq.Option) error {
-	task, err := tasks.NewSendEmailTask(payload.To, payload.Subject, payload.Body)
+	task, err := tasks.NewSendEmailTaskWithPayload(payload)
 	if err != nil {
 		return fmt.Errorf("failed to create email task: %w", err)
 	}

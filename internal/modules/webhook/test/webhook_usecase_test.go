@@ -9,6 +9,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -63,10 +64,23 @@ func TestWebhookUseCase_Trigger(t *testing.T) {
 			OrganizationID: orgID,
 			IsActive:       true,
 		},
+		{
+			ID:             "wh-2",
+			Name:           "WH 2",
+			URL:            "https://b.com",
+			Secret:         "s2",
+			Events:         `["user.created"]`,
+			OrganizationID: orgID,
+			IsActive:       true,
+		},
 	}
 
+	var captured []tasks.WebhookTriggerPayload
 	repo.On("FindByEvent", mock.Anything, orgID, eventType).Return(webhooks, nil)
-	distributor.On("DistributeTaskWebhookTrigger", mock.Anything, mock.Anything).Return(nil)
+	distributor.On("DistributeTaskWebhookTrigger", mock.Anything, mock.MatchedBy(func(p tasks.WebhookTriggerPayload) bool {
+		captured = append(captured, p)
+		return p.EventID != ""
+	})).Return(nil).Twice()
 
 	err := uc.Trigger(context.Background(), model.TriggerWebhookRequest{
 		OrganizationID: orgID,
@@ -75,6 +89,9 @@ func TestWebhookUseCase_Trigger(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
+	assert.Len(t, captured, 2)
+	assert.NotEmpty(t, captured[0].EventID)
+	assert.Equal(t, captured[0].EventID, captured[1].EventID, "all webhooks triggered by one event must share EventID")
 	repo.AssertExpectations(t)
 	distributor.AssertExpectations(t)
 }

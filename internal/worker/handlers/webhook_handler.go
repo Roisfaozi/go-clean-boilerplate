@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/entity"
@@ -18,13 +20,26 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	headerWebhookDeliveryID        = "X-Webhook-Delivery-ID"
+	webhookDedupeKeyPrefix         = "worker:webhook:dedupe:"
+	defaultWebhookDedupeTTL        = 24 * time.Hour
+	defaultWebhookDedupeMaxEntries = 10000
+)
+
 type WebhookHandler struct {
-	repo   repository.WebhookRepository
-	log    *logrus.Logger
-	client *http.Client
+	repo      repository.WebhookRepository
+	log       *logrus.Logger
+	client    *http.Client
+	rdb       *redis.Client
+	dedupeTTL time.Duration
+
+	mu        sync.Mutex
+	dedupeMap map[string]time.Time
 }
 
 func NewWebhookHandler(repo repository.WebhookRepository, log *logrus.Logger) *WebhookHandler {
@@ -34,13 +49,106 @@ func NewWebhookHandler(repo repository.WebhookRepository, log *logrus.Logger) *W
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		dedupeTTL: defaultWebhookDedupeTTL,
 	}
+}
+
+func (h *WebhookHandler) SetRedisClient(rdb *redis.Client) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.rdb = rdb
+}
+
+func webhookDedupeKey(webhookID, eventID string) string {
+	sum := sha256.Sum256([]byte(webhookID + ":" + eventID))
+	return webhookDedupeKeyPrefix + hex.EncodeToString(sum[:])
+}
+
+func (h *WebhookHandler) claimDedupe(ctx context.Context, key string) (bool, error) {
+	h.mu.Lock()
+	rdb := h.rdb
+	ttl := h.dedupeTTL
+	if ttl <= 0 {
+		ttl = defaultWebhookDedupeTTL
+	}
+	if rdb != nil {
+		h.mu.Unlock()
+		return rdb.SetNX(ctx, key, "1", ttl).Result()
+	}
+	defer h.mu.Unlock()
+
+	now := time.Now()
+	if h.dedupeMap == nil {
+		h.dedupeMap = make(map[string]time.Time)
+	}
+	for k, exp := range h.dedupeMap {
+		if !exp.After(now) {
+			delete(h.dedupeMap, k)
+		}
+	}
+	if exp, ok := h.dedupeMap[key]; ok && exp.After(now) {
+		return false, nil
+	}
+	if len(h.dedupeMap) >= defaultWebhookDedupeMaxEntries {
+		var oldestKey string
+		var oldestExp time.Time
+		first := true
+		for k, exp := range h.dedupeMap {
+			if first || exp.Before(oldestExp) {
+				oldestKey = k
+				oldestExp = exp
+				first = false
+			}
+		}
+		if !first {
+			delete(h.dedupeMap, oldestKey)
+		}
+	}
+	h.dedupeMap[key] = now.Add(ttl)
+	return true, nil
+}
+
+func (h *WebhookHandler) releaseDedupe(ctx context.Context, key string) {
+	if key == "" {
+		return
+	}
+	h.mu.Lock()
+	rdb := h.rdb
+	if rdb != nil {
+		h.mu.Unlock()
+		unclaimCtx := ctx
+		if unclaimCtx == nil || unclaimCtx.Err() != nil {
+			unclaimCtx = context.Background()
+		}
+		if err := rdb.Del(unclaimCtx, key).Err(); err != nil && h.log != nil {
+			h.log.WithContext(unclaimCtx).WithError(err).Warnf("Failed to release webhook dedupe key %s", key)
+		}
+		return
+	}
+	delete(h.dedupeMap, key)
+	h.mu.Unlock()
 }
 
 func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq.Task) error {
 	var payload tasks.WebhookTriggerPayload
 	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
 		return fmt.Errorf("unmarshal payload: %w", err)
+	}
+
+	eventID := strings.TrimSpace(payload.EventID)
+	var dedupeKey string
+	if eventID != "" {
+		dedupeKey = webhookDedupeKey(payload.WebhookID, eventID)
+		claimed, err := h.claimDedupe(ctx, dedupeKey)
+		if err != nil {
+			return fmt.Errorf("failed to claim webhook dedupe key: %w", err)
+		}
+		if !claimed {
+			if h.log != nil {
+				h.log.WithContext(ctx).Infof("Skipping duplicate webhook delivery webhook_id=%s event_id=%s", payload.WebhookID, eventID)
+			}
+			return nil
+		}
 	}
 
 	start := time.Now()
@@ -68,6 +176,9 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 	req.Header.Set(headerWebhookEvent, payload.EventType)
 	req.Header.Set(headerWebhookID, payload.WebhookID)
 	req.Header.Set(headerWebhookTimestamp, timestamp)
+	if eventID != "" {
+		req.Header.Set(headerWebhookDeliveryID, eventID)
+	}
 
 	resp, err := h.client.Do(req)
 
@@ -83,6 +194,7 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 	}
 
 	if err != nil {
+		h.releaseDedupe(ctx, dedupeKey)
 		outcome = "retryable_error"
 		logEntry.ErrorMessage = err.Error()
 		if logErr := h.saveWebhookLog(ctx, logEntry); logErr != nil {
@@ -106,12 +218,14 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 
 	if err := h.saveWebhookLog(ctx, logEntry); err != nil {
 		if resp.StatusCode >= 500 {
+			h.releaseDedupe(ctx, dedupeKey)
 			outcome = "retryable_error"
 			return fmt.Errorf("upstream server error: %d; failed to save webhook log: %w", resp.StatusCode, err)
 		}
 	}
 
 	if resp.StatusCode >= 500 {
+		h.releaseDedupe(ctx, dedupeKey)
 		outcome = "retryable_error"
 		return fmt.Errorf("upstream server error: %d", resp.StatusCode)
 	}

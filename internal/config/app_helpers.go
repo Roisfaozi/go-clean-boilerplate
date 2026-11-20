@@ -379,8 +379,9 @@ func provideTusHandler(
 	cfg *AppConfig,
 	logger *logrus.Logger,
 	userModule *user.UserModule,
+	redisClient *redis.Client,
 ) *handler.Handler {
-	tusHandler, err := initTusHandler(cfg, logger, userModule)
+	tusHandler, err := initTusHandler(cfg, logger, userModule, redisClient)
 	if err != nil {
 		logger.Errorf("Failed to init TUS handler: %v", err)
 		return nil
@@ -393,10 +394,14 @@ func initTusHandler(
 	cfg *AppConfig,
 	logger *logrus.Logger,
 	userModule *user.UserModule,
+	redisClient *redis.Client,
 ) (*handler.Handler, error) {
 	tusRegistry := tus.NewRegistry()
 
-	tusRegistry.Register("avatar", &userUseCase.AvatarHook{UserUseCase: userModule.UserUseCase})
+	tusRegistry.Register("avatar", &userUseCase.AvatarHook{
+		UserUseCase: userModule.UserUseCase,
+		Tracker:     userUseCase.NewRedisProcessedUploadTracker(redisClient),
+	})
 
 	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(),
 		awsconfig.WithRegion(cfg.Storage.S3.Region),
