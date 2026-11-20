@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
@@ -39,21 +40,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/tus/tusd/v2/pkg/handler"
+	"go.uber.org/fx"
 )
-
-type appModules struct {
-	audit        *audit.AuditModule
-	auth         *auth.AuthModule
-	webhook      *webhook.WebhookModule
-	user         *user.UserModule
-	apiKey       *api_key.ApiKeyModule
-	access       *access.AccessModule
-	permission   *permission.PermissionModule
-	role         *role.RoleModule
-	stats        *stats.StatsModule
-	project      *project.ProjectModule
-	organization *organization.OrganizationModule
-}
 
 const (
 	providerGoogle    = "google"
@@ -86,86 +74,233 @@ func initSSOProviders(cfg *AppConfig) map[string]sso.Provider {
 	return ssoProviders
 }
 
-func initModules(
-	cfg *AppConfig,
+func provideRoleRepository(sqlxDB *sqlx.DB, logger *logrus.Logger) roleRepository.RoleRepository {
+	return roleRepository.NewRoleRepository(sqlxDB, logger)
+}
+
+func provideOrganizationRepository(sqlxDB *sqlx.DB, redisClient *redis.Client) orgRepo.OrganizationRepository {
+	return orgRepo.NewOrganizationRepository(sqlxDB, redisClient)
+}
+
+func provideAuditModule(
 	sqlxDB *sqlx.DB,
-	redisClient *redis.Client,
 	logger *logrus.Logger,
 	validate *validator.Validate,
 	wsManager *ws2.WebSocketManager,
-	presenceManager ws2.PresenceManager,
 	taskDistributor worker.TaskDistributor,
-	tm tx.WithTransactionManager,
-	jwtManager *jwt.JWTManager,
-	ticketManager ws2.TicketManager,
-	enforcer usecase.IEnforcer,
-	sseManager *sse.Manager,
-	storageProvider storage.Provider,
-	ssoProviders map[string]sso.Provider,
-) appModules {
-	roleRepo := roleRepository.NewRoleRepository(sqlxDB, logger)
-	organizationRepository := orgRepo.NewOrganizationRepository(sqlxDB, redisClient)
+) *audit.AuditModule {
+	return audit.NewAuditModule(sqlxDB, logger, validate, wsManager, taskDistributor)
+}
 
-	auditModule := audit.NewAuditModule(sqlxDB, logger, validate, wsManager, taskDistributor)
+type authModuleParams struct {
+	fx.In
 
-	authModule := auth.NewAuthModule(
-		cfg.Security.MaxLoginAttempts,
-		cfg.Security.LockoutDuration,
-		cfg.Security.MaxConcurrentSessions,
-		jwtManager,
-		sqlxDB,
-		redisClient,
-		logger,
-		validate,
-		tm,
-		wsManager,
-		sseManager,
-		enforcer,
-		auditModule,
-		taskDistributor,
-		organizationRepository,
-		ticketManager,
-		cfg.Casbin.DefaultRole,
-		cfg.Casbin.DefaultDomain,
-		ssoProviders,
-		cfg.Server.FrontendBaseURL,
+	Cfg             *AppConfig
+	JWTManager      *jwt.JWTManager
+	DB              *sqlx.DB
+	Redis           *redis.Client
+	Logger          *logrus.Logger
+	Validate        *validator.Validate
+	TM              tx.WithTransactionManager
+	WSManager       *ws2.WebSocketManager
+	SSEManager      *sse.Manager
+	Enforcer        usecase.IEnforcer
+	AuditMod        *audit.AuditModule
+	TaskDistributor worker.TaskDistributor
+	OrgRepo         orgRepo.OrganizationRepository
+	TicketManager   ws2.TicketManager
+	SSOProviders    map[string]sso.Provider
+}
+
+func provideAuthModule(p authModuleParams) *auth.AuthModule {
+	return auth.NewAuthModule(
+		p.Cfg.Security.MaxLoginAttempts,
+		p.Cfg.Security.LockoutDuration,
+		p.Cfg.Security.MaxConcurrentSessions,
+		p.JWTManager,
+		p.DB,
+		p.Redis,
+		p.Logger,
+		p.Validate,
+		p.TM,
+		p.WSManager,
+		p.SSEManager,
+		p.Enforcer,
+		p.AuditMod,
+		p.TaskDistributor,
+		p.OrgRepo,
+		p.TicketManager,
+		p.Cfg.Casbin.DefaultRole,
+		p.Cfg.Casbin.DefaultDomain,
+		p.SSOProviders,
+		p.Cfg.Server.FrontendBaseURL,
 		authHttp.CookieConfig{
-			Domain:   cfg.Cookie.Domain,
-			SameSite: cfg.Cookie.SameSite,
-			Secure:   cfg.Cookie.Secure,
+			Domain:   p.Cfg.Cookie.Domain,
+			SameSite: p.Cfg.Cookie.SameSite,
+			Secure:   p.Cfg.Cookie.Secure,
 		},
 	)
+}
 
-	webhookModule := webhook.NewWebhookModule(sqlxDB, logger, validate, taskDistributor)
+func provideWebhookModule(
+	sqlxDB *sqlx.DB,
+	logger *logrus.Logger,
+	validate *validator.Validate,
+	taskDistributor worker.TaskDistributor,
+) *webhook.WebhookModule {
+	return webhook.NewWebhookModule(sqlxDB, logger, validate, taskDistributor)
+}
 
-	userModule := user.NewUserModule(sqlxDB, logger, validate, tm, enforcer, auditModule, authModule, webhookModule, storageProvider)
+type userModuleParams struct {
+	fx.In
 
-	apiKeyModule := api_key.NewApiKeyModule(sqlxDB, userModule.UserRepo, redisClient, logger, validate)
+	DB              *sqlx.DB
+	Logger          *logrus.Logger
+	Validate        *validator.Validate
+	TM              tx.WithTransactionManager
+	Enforcer        usecase.IEnforcer
+	AuditMod        *audit.AuditModule
+	AuthMod         *auth.AuthModule
+	WebhookMod      *webhook.WebhookModule
+	StorageProvider storage.Provider
+}
 
-	accessModule := access.NewAccessModule(sqlxDB, logger, validate)
+func provideUserModule(p userModuleParams) *user.UserModule {
+	return user.NewUserModule(
+		p.DB,
+		p.Logger,
+		p.Validate,
+		p.TM,
+		p.Enforcer,
+		p.AuditMod,
+		p.AuthMod,
+		p.WebhookMod,
+		p.StorageProvider,
+	)
+}
 
-	permissionModule := permission.NewPermissionModule(enforcer, validate, logger, roleRepo, userModule.UserRepo, accessModule.AccessRepo, auditModule)
+func provideAPIKeyModule(
+	sqlxDB *sqlx.DB,
+	userMod *user.UserModule,
+	redisClient *redis.Client,
+	logger *logrus.Logger,
+	validate *validator.Validate,
+) *api_key.ApiKeyModule {
+	return api_key.NewApiKeyModule(sqlxDB, userMod.UserRepo, redisClient, logger, validate)
+}
 
-	roleModule := role.NewRoleModule(sqlxDB, logger, validate, tm, permissionModule.PermissionUseCase)
+func provideAccessModule(
+	sqlxDB *sqlx.DB,
+	logger *logrus.Logger,
+	validate *validator.Validate,
+) *access.AccessModule {
+	return access.NewAccessModule(sqlxDB, logger, validate)
+}
 
-	statsModule := stats.NewStatsModule(sqlxDB, logger)
+func providePermissionModule(
+	enforcer usecase.IEnforcer,
+	validate *validator.Validate,
+	logger *logrus.Logger,
+	roleRepo roleRepository.RoleRepository,
+	userMod *user.UserModule,
+	accessMod *access.AccessModule,
+	auditMod *audit.AuditModule,
+) *permission.PermissionModule {
+	return permission.NewPermissionModule(enforcer, validate, logger, roleRepo, userMod.UserRepo, accessMod.AccessRepo, auditMod)
+}
 
-	projectModule := project.NewProjectModule(sqlxDB, validate)
+func provideRoleModule(
+	sqlxDB *sqlx.DB,
+	logger *logrus.Logger,
+	validate *validator.Validate,
+	tm tx.WithTransactionManager,
+	permissionMod *permission.PermissionModule,
+) *role.RoleModule {
+	return role.NewRoleModule(sqlxDB, logger, validate, tm, permissionMod.PermissionUseCase)
+}
 
-	organizationModule := organization.NewOrganizationModule(sqlxDB, redisClient, taskDistributor, userModule.UserRepo, logger, validate, tm, enforcer, presenceManager, cfg.Server.FrontendBaseURL, roleRepo)
+func provideStatsModule(sqlxDB *sqlx.DB, logger *logrus.Logger) *stats.StatsModule {
+	return stats.NewStatsModule(sqlxDB, logger)
+}
 
-	return appModules{
-		audit:        auditModule,
-		auth:         authModule,
-		webhook:      webhookModule,
-		user:         userModule,
-		apiKey:       apiKeyModule,
-		access:       accessModule,
-		permission:   permissionModule,
-		role:         roleModule,
-		stats:        statsModule,
-		project:      projectModule,
-		organization: organizationModule,
+func provideProjectModule(sqlxDB *sqlx.DB, validate *validator.Validate) *project.ProjectModule {
+	return project.NewProjectModule(sqlxDB, validate)
+}
+
+type organizationModuleParams struct {
+	fx.In
+
+	Cfg             *AppConfig
+	DB              *sqlx.DB
+	Redis           *redis.Client
+	TaskDistributor worker.TaskDistributor
+	UserMod         *user.UserModule
+	Logger          *logrus.Logger
+	Validate        *validator.Validate
+	TM              tx.WithTransactionManager
+	Enforcer        usecase.IEnforcer
+	PresenceManager ws2.PresenceManager
+	RoleRepo        roleRepository.RoleRepository
+}
+
+func provideOrganizationModule(p organizationModuleParams) *organization.OrganizationModule {
+	return organization.NewOrganizationModule(
+		p.DB,
+		p.Redis,
+		p.TaskDistributor,
+		p.UserMod.UserRepo,
+		p.Logger,
+		p.Validate,
+		p.TM,
+		p.Enforcer,
+		p.PresenceManager,
+		p.Cfg.Server.FrontendBaseURL,
+		p.RoleRepo,
+	)
+}
+
+// MetricsBroadcaster manages the lifecycle of the real-time metrics broadcaster
+// and user presence pruner goroutines.
+type MetricsBroadcaster struct {
+	wsManager       *ws2.WebSocketManager
+	presenceManager ws2.PresenceManager
+	statsModule     *stats.StatsModule
+
+	mu     sync.Mutex
+	cancel context.CancelFunc
+}
+
+func provideMetricsBroadcaster(
+	wsManager *ws2.WebSocketManager,
+	presenceManager ws2.PresenceManager,
+	statsModule *stats.StatsModule,
+) *MetricsBroadcaster {
+	return &MetricsBroadcaster{
+		wsManager:       wsManager,
+		presenceManager: presenceManager,
+		statsModule:     statsModule,
+	}
+}
+
+func (b *MetricsBroadcaster) Start() context.CancelFunc {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.cancel != nil {
+		return b.cancel
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	b.cancel = cancel
+	startMetricsBroadcaster(ctx, b.wsManager, b.presenceManager, b.statsModule)
+	return cancel
+}
+
+func (b *MetricsBroadcaster) Stop() {
+	b.mu.Lock()
+	cancel := b.cancel
+	b.cancel = nil
+	b.mu.Unlock()
+	if cancel != nil {
+		cancel()
 	}
 }
 
@@ -238,6 +373,20 @@ func startMetricsBroadcaster(
 			}
 		}
 	}()
+}
+
+func provideTusHandler(
+	cfg *AppConfig,
+	logger *logrus.Logger,
+	userModule *user.UserModule,
+) *handler.Handler {
+	tusHandler, err := initTusHandler(cfg, logger, userModule)
+	if err != nil {
+		logger.Errorf("Failed to init TUS handler: %v", err)
+		return nil
+	}
+	logger.Info("TUS Handler initialized.")
+	return tusHandler
 }
 
 func initTusHandler(
