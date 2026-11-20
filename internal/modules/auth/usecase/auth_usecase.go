@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
@@ -21,6 +22,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/singleflight"
 )
@@ -43,6 +45,17 @@ type Service struct {
 	frontendBaseURL       string
 	dummyHash             string
 	refreshGroup          singleflight.Group
+
+	cfgMu             sync.RWMutex
+	redisClient       *redis.Client
+	loginReplayWindow time.Duration
+	resendCooldown    time.Duration
+
+	initMu           sync.Mutex
+	loginReplay      *loginReplayCache
+	loginReplayGroup singleflight.Group
+	ssoStates        *ssoStateStore
+	resendCooldowns  *cooldownStore
 }
 
 func NewAuthUsecase(
@@ -78,6 +91,11 @@ func NewAuthUsecase(
 		ticketManager:         ticketManager,
 		ssoProviders:          ssoProviders,
 		frontendBaseURL:       frontendBaseURL,
+		loginReplayWindow:     defaultLoginReplayWindow,
+		resendCooldown:        defaultResendCooldown,
+		loginReplay:           newLoginReplayCache(),
+		ssoStates:             newSSOStateStore(),
+		resendCooldowns:       newCooldownStore(),
 	}
 
 	hash, err := pkg.HashPassword("dummy")
@@ -87,6 +105,45 @@ func NewAuthUsecase(
 	s.dummyHash = hash
 
 	return s
+}
+
+// SetRedisClient configures an optional Redis client for distributed SSO state and resend cooldown tracking.
+func (s *Service) SetRedisClient(client *redis.Client) {
+	s.cfgMu.Lock()
+	defer s.cfgMu.Unlock()
+	s.redisClient = client
+}
+
+// SetLoginReplayWindow overrides the recent-login replay deduplication window.
+func (s *Service) SetLoginReplayWindow(d time.Duration) {
+	s.cfgMu.Lock()
+	defer s.cfgMu.Unlock()
+	s.loginReplayWindow = d
+}
+
+// SetResendCooldown overrides the cooldown duration for ForgotPassword and RequestVerification.
+func (s *Service) SetResendCooldown(d time.Duration) {
+	s.cfgMu.Lock()
+	defer s.cfgMu.Unlock()
+	s.resendCooldown = d
+}
+
+func (s *Service) getRedisClient() *redis.Client {
+	s.cfgMu.RLock()
+	defer s.cfgMu.RUnlock()
+	return s.redisClient
+}
+
+func (s *Service) getLoginReplayWindow() time.Duration {
+	s.cfgMu.RLock()
+	defer s.cfgMu.RUnlock()
+	return s.loginReplayWindow
+}
+
+func (s *Service) getResendCooldown() time.Duration {
+	s.cfgMu.RLock()
+	defer s.cfgMu.RUnlock()
+	return s.resendCooldown
 }
 
 func (s *Service) Register(ctx context.Context, request model.RegisterRequest) (*model.LoginResponse, string, error) {
@@ -152,10 +209,10 @@ func (s *Service) Register(ctx context.Context, request model.RegisterRequest) (
 
 	telemetry.UserRegistrationsTotal.Inc()
 
-	return s.Login(ctx, model.LoginRequest{
+	return s.login(ctx, model.LoginRequest{
 		Username:  request.Username,
 		Password:  request.Password,
 		IPAddress: request.IPAddress,
 		UserAgent: request.UserAgent,
-	})
+	}, false)
 }

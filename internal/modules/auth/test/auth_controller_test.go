@@ -2,6 +2,7 @@ package test_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -539,4 +540,38 @@ func TestAuthHandler_SSOCallback_InvalidState(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	mockUseCase.AssertNotCalled(t, "HandleSSOCallback", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestAuthHandler_SSOCallback_Success_PassesSSOState(t *testing.T) {
+	mockUseCase := new(mocks.MockAuthUseCase)
+	handler := newTestAuthController(mockUseCase)
+	mux := setupAuthTestMux()
+	mux.HandleFunc("GET /auth/sso/{provider}/callback", handler.HTTPSSOCallback)
+
+	loginRes := &model.LoginResponse{
+		AccessToken:  "sso-access-token",
+		RefreshToken: "sso-refresh-token",
+		TokenType:    "Bearer",
+		ExpiresIn:    900,
+	}
+
+	mockUseCase.On(
+		"HandleSSOCallback",
+		mock.MatchedBy(func(ctx context.Context) bool {
+			state, ok := usecase.SSOStateFromContext(ctx)
+			return ok && state == "expected-state"
+		}),
+		"google",
+		"test-code",
+	).Return(loginRes, "sso-refresh-token", nil).Once()
+
+	req := httptest.NewRequest(http.MethodGet, "/auth/sso/google/callback?code=test-code&state=expected-state", nil)
+	req.AddCookie(&http.Cookie{Name: "sso_state", Value: "expected-state"})
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Header().Get("Set-Cookie"), "sso_state=;")
+	mockUseCase.AssertExpectations(t)
 }

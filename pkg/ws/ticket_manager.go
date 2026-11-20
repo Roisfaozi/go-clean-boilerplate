@@ -2,6 +2,8 @@ package ws
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +11,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+)
+
+const (
+	defaultTicketTTL          = 30 * time.Second
+	defaultRecentReplayWindow = 5 * time.Second
 )
 
 // TicketManager defines the interface for managing one-time WebSocket authentication tickets.
@@ -31,26 +38,44 @@ type UserContext struct {
 
 // RedisTicketManager implements TicketManager using Redis.
 type RedisTicketManager struct {
-	redisClient *redis.Client
-	ttl         time.Duration
+	redisClient  *redis.Client
+	ttl          time.Duration
+	recentWindow time.Duration
 }
 
 // NewRedisTicketManager creates a new instance of RedisTicketManager.
 func NewRedisTicketManager(redisClient *redis.Client, ttl time.Duration) *RedisTicketManager {
-	if ttl == 0 {
-		ttl = 30 * time.Second // Default TTL
+	if ttl <= 0 {
+		ttl = defaultTicketTTL
+	}
+	recentWindow := defaultRecentReplayWindow
+	if ttl < recentWindow {
+		recentWindow = ttl
 	}
 	return &RedisTicketManager{
-		redisClient: redisClient,
-		ttl:         ttl,
+		redisClient:  redisClient,
+		ttl:          ttl,
+		recentWindow: recentWindow,
 	}
 }
 
-// CreateTicket generates a new ticket and stores it in Redis.
-func (m *RedisTicketManager) CreateTicket(ctx context.Context, userID, orgID, sessionID, role, username string) (string, error) {
-	ticket := uuid.New().String()
-	key := m.ticketKey(ticket)
+// SetRecentReplayWindow configures the deduplication window for replaying an
+// unused ticket for identical user context. A non-positive duration disables replay.
+func (m *RedisTicketManager) SetRecentReplayWindow(d time.Duration) {
+	if d <= 0 {
+		m.recentWindow = 0
+		return
+	}
+	if d > m.ttl {
+		d = m.ttl
+	}
+	m.recentWindow = d
+}
 
+// CreateTicket generates a new ticket and stores it in Redis.
+// When a recent replay window is active and an unused ticket for the same user
+// context was issued within that window, the existing unused ticket is returned.
+func (m *RedisTicketManager) CreateTicket(ctx context.Context, userID, orgID, sessionID, role, username string) (string, error) {
 	userCtx := UserContext{
 		UserID:         userID,
 		OrganizationID: orgID,
@@ -64,9 +89,27 @@ func (m *RedisTicketManager) CreateTicket(ctx context.Context, userID, orgID, se
 		return "", fmt.Errorf("failed to marshal user context: %w", err)
 	}
 
+	var recentKey string
+	if m.recentWindow > 0 {
+		recentKey = m.recentTicketKey(data)
+		recentTicket, err := m.redisClient.Get(ctx, recentKey).Result()
+		if err == nil && recentTicket != "" {
+			if m.redisClient.Exists(ctx, m.ticketKey(recentTicket)).Val() > 0 {
+				return recentTicket, nil
+			}
+		}
+	}
+
+	ticket := uuid.New().String()
+	key := m.ticketKey(ticket)
+
 	err = m.redisClient.Set(ctx, key, data, m.ttl).Err()
 	if err != nil {
 		return "", fmt.Errorf("failed to store ticket in redis: %w", err)
+	}
+
+	if m.recentWindow > 0 {
+		_ = m.redisClient.Set(ctx, recentKey, ticket, m.recentWindow).Err()
 	}
 
 	return ticket, nil
@@ -97,4 +140,9 @@ func (m *RedisTicketManager) ValidateTicket(ctx context.Context, ticket string) 
 
 func (m *RedisTicketManager) ticketKey(ticket string) string {
 	return fmt.Sprintf("ws:ticket:%s", ticket)
+}
+
+func (m *RedisTicketManager) recentTicketKey(userCtxPayload []byte) string {
+	sum := sha256.Sum256(userCtxPayload)
+	return "ws:ticket:recent:" + hex.EncodeToString(sum[:])
 }

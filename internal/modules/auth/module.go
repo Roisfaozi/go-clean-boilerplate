@@ -76,6 +76,9 @@ func NewAuthModule(
 		ssoProviders,
 		frontendBaseURL,
 	)
+	if svc, ok := authUseCase.(*usecase.Service); ok {
+		svc.SetRedisClient(redisClient)
+	}
 	authController := http.NewAuthController(authUseCase, log, validate, cookieCfg)
 
 	return &AuthModule{

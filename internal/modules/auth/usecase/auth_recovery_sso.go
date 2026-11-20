@@ -3,7 +3,9 @@ package usecase
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -19,14 +21,17 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 )
 
 const (
-	defaultSSOStateTTL   = 5 * time.Minute
-	defaultMaxSSOStates  = 10000
-	verifyEmailFlightKey = "verify:"
-	ssoCallbackFlightKey = "sso:"
+	defaultSSOStateTTL        = 5 * time.Minute
+	defaultMaxSSOStates       = 10000
+	defaultResendCooldown     = 60 * time.Second
+	defaultMaxCooldownEntries = 10000
+	verifyEmailFlightKey      = "verify:"
+	ssoCallbackFlightKey      = "sso:"
 )
 
 type ssoStateContextKey struct{}
@@ -36,7 +41,8 @@ func WithSSOState(ctx context.Context, state string) context.Context {
 	return context.WithValue(ctx, ssoStateContextKey{}, state)
 }
 
-func ssoStateFromContext(ctx context.Context) (string, bool) {
+// SSOStateFromContext extracts the OAuth2 state attached by WithSSOState.
+func SSOStateFromContext(ctx context.Context) (string, bool) {
 	if ctx == nil {
 		return "", false
 	}
@@ -49,15 +55,112 @@ type ssoStateStore struct {
 	entries map[string]time.Time
 }
 
-var serviceSSOStateStores sync.Map // map[*Service]*ssoStateStore
+func newSSOStateStore() *ssoStateStore {
+	return &ssoStateStore{entries: make(map[string]time.Time)}
+}
 
-func getSSOStateStore(s *Service) *ssoStateStore {
-	if store, ok := serviceSSOStateStores.Load(s); ok {
-		return store.(*ssoStateStore)
+func (s *Service) getSSOStateStore() *ssoStateStore {
+	s.initMu.Lock()
+	defer s.initMu.Unlock()
+	if s.ssoStates == nil {
+		s.ssoStates = newSSOStateStore()
 	}
-	created := &ssoStateStore{entries: make(map[string]time.Time)}
-	actual, _ := serviceSSOStateStores.LoadOrStore(s, created)
-	return actual.(*ssoStateStore)
+	return s.ssoStates
+}
+
+func ssoRedisKey(providerName, state string) string {
+	return "sso:state:" + providerName + ":" + state
+}
+
+type cooldownStore struct {
+	mu      sync.Mutex
+	entries map[string]time.Time
+}
+
+func newCooldownStore() *cooldownStore {
+	return &cooldownStore{entries: make(map[string]time.Time)}
+}
+
+func (s *Service) getResendCooldownStore() *cooldownStore {
+	s.initMu.Lock()
+	defer s.initMu.Unlock()
+	if s.resendCooldowns == nil {
+		s.resendCooldowns = newCooldownStore()
+	}
+	return s.resendCooldowns
+}
+
+func (c *cooldownStore) claim(key string, now time.Time, ttl time.Duration) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for k, exp := range c.entries {
+		if !exp.After(now) {
+			delete(c.entries, k)
+		}
+	}
+	if exp, ok := c.entries[key]; ok && exp.After(now) {
+		return false
+	}
+	if len(c.entries) >= defaultMaxCooldownEntries {
+		var oldestKey string
+		var oldestExp time.Time
+		first := true
+		for k, exp := range c.entries {
+			if first || exp.Before(oldestExp) {
+				oldestKey = k
+				oldestExp = exp
+				first = false
+			}
+		}
+		if !first {
+			delete(c.entries, oldestKey)
+		}
+	}
+	c.entries[key] = now.Add(ttl)
+	return true
+}
+
+func (c *cooldownStore) release(key string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.entries, key)
+}
+
+func forgotCooldownKey(email string) string {
+	normalized := strings.ToLower(strings.TrimSpace(email))
+	sum := sha256.Sum256([]byte(normalized))
+	return "auth:cooldown:forgot:" + hex.EncodeToString(sum[:])
+}
+
+func verifyCooldownKey(userID string) string {
+	return "auth:cooldown:verify:" + userID
+}
+
+func (s *Service) claimCooldown(ctx context.Context, key string, cooldown time.Duration) (bool, error) {
+	if cooldown <= 0 {
+		return true, nil
+	}
+	if rdb := s.getRedisClient(); rdb != nil {
+		acquired, err := rdb.SetNX(ctx, key, "1", cooldown).Result()
+		if err != nil {
+			if s.log != nil {
+				s.log.WithContext(ctx).WithError(err).Warn("Failed to claim resend cooldown in Redis, falling back to in-memory store")
+			}
+			return s.getResendCooldownStore().claim(key, time.Now(), cooldown), nil
+		}
+		return acquired, nil
+	}
+	return s.getResendCooldownStore().claim(key, time.Now(), cooldown), nil
+}
+
+func (s *Service) releaseCooldown(ctx context.Context, key string) {
+	if rdb := s.getRedisClient(); rdb != nil {
+		if err := rdb.Del(ctx, key).Err(); err != nil && s.log != nil {
+			s.log.WithContext(ctx).WithError(err).Warn("Failed to release resend cooldown in Redis")
+		}
+	}
+	s.getResendCooldownStore().release(key)
 }
 
 func (st *ssoStateStore) record(providerName, state string, now time.Time, ttl time.Duration) {
@@ -122,6 +225,15 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 		return nil
 	}
 
+	cooldown := s.getResendCooldown()
+	cooldownKey := forgotCooldownKey(email)
+	if cooldown > 0 {
+		acquired, _ := s.claimCooldown(ctx, cooldownKey, cooldown)
+		if !acquired {
+			return nil
+		}
+	}
+
 	resetToken := &authEntity.PasswordResetToken{
 		Email:     email,
 		Token:     hashToken(token),
@@ -129,6 +241,9 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 	}
 
 	if err := s.tokenRepo.Save(ctx, resetToken); err != nil {
+		if cooldown > 0 {
+			s.releaseCooldown(ctx, cooldownKey)
+		}
 		s.log.WithContext(ctx).WithError(err).Error("Failed to save password reset token")
 		return nil
 	}
@@ -195,6 +310,7 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 	if err != nil {
 		return err
 	}
+	s.evictLoginReplayByUser(user.ID)
 
 	if s.taskDistributor != nil {
 		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
@@ -218,8 +334,20 @@ func (s *Service) RequestVerification(ctx context.Context, userID string) error 
 		return ErrAlreadyVerified
 	}
 
+	cooldown := s.getResendCooldown()
+	cooldownKey := verifyCooldownKey(userID)
+	if cooldown > 0 {
+		acquired, _ := s.claimCooldown(ctx, cooldownKey, cooldown)
+		if !acquired {
+			return nil
+		}
+	}
+
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
+		if cooldown > 0 {
+			s.releaseCooldown(ctx, cooldownKey)
+		}
 		return fmt.Errorf("failed to generate random token: %w", err)
 	}
 	token := hex.EncodeToString(b)
@@ -233,6 +361,9 @@ func (s *Service) RequestVerification(ctx context.Context, userID string) error 
 	}
 
 	if err := s.tokenRepo.SaveVerificationToken(ctx, verificationToken); err != nil {
+		if cooldown > 0 {
+			s.releaseCooldown(ctx, cooldownKey)
+		}
 		return err
 	}
 
@@ -332,7 +463,16 @@ func (s *Service) GetSSORedirectURL(ctx context.Context, providerName string, st
 	}
 
 	if state != "" {
-		getSSOStateStore(s).record(providerName, state, time.Now(), defaultSSOStateTTL)
+		if rdb := s.getRedisClient(); rdb != nil {
+			if err := rdb.Set(ctx, ssoRedisKey(providerName, state), "1", defaultSSOStateTTL).Err(); err != nil {
+				if s.log != nil {
+					s.log.WithContext(ctx).WithError(err).Error("Failed to store SSO state in Redis")
+				}
+				return "", fmt.Errorf("failed to store SSO state: %w", err)
+			}
+		} else {
+			s.getSSOStateStore().record(providerName, state, time.Now(), defaultSSOStateTTL)
+		}
 	}
 
 	url := provider.GetLoginURL(state)
@@ -342,10 +482,27 @@ func (s *Service) GetSSORedirectURL(ctx context.Context, providerName string, st
 // ConsumeSSOState validates and immediately deletes a previously issued SSO state for the given provider.
 // Reusing the same state returns exception.ErrUnauthorized.
 func (s *Service) ConsumeSSOState(providerName string, state string) error {
+	return s.consumeSSOState(context.Background(), providerName, state)
+}
+
+func (s *Service) consumeSSOState(ctx context.Context, providerName string, state string) error {
 	if providerName == "" || state == "" {
 		return exception.ErrUnauthorized
 	}
-	if !getSSOStateStore(s).consume(providerName, state, time.Now()) {
+	if rdb := s.getRedisClient(); rdb != nil {
+		err := rdb.GetDel(ctx, ssoRedisKey(providerName, state)).Err()
+		if err != nil {
+			if errors.Is(err, redis.Nil) {
+				return exception.ErrUnauthorized
+			}
+			if s.log != nil {
+				s.log.WithContext(ctx).WithError(err).Error("Failed to consume SSO state from Redis")
+			}
+			return fmt.Errorf("failed to consume SSO state: %w", err)
+		}
+		return nil
+	}
+	if !s.getSSOStateStore().consume(providerName, state, time.Now()) {
 		return exception.ErrUnauthorized
 	}
 	return nil
@@ -357,8 +514,8 @@ func (s *Service) HandleSSOCallback(ctx context.Context, providerName string, co
 		return nil, "", exception.ErrBadRequest
 	}
 
-	if state, hasState := ssoStateFromContext(ctx); hasState {
-		if err := s.ConsumeSSOState(providerName, state); err != nil {
+	if state, hasState := SSOStateFromContext(ctx); hasState {
+		if err := s.consumeSSOState(ctx, providerName, state); err != nil {
 			return nil, "", err
 		}
 	}

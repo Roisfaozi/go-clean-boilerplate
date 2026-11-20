@@ -548,7 +548,8 @@ func (ac *AuthController) HTTPSSOCallback(w http.ResponseWriter, r *http.Request
 	}
 
 	clearStateCookieHTTP(w, r, ssoStateCookieName)
-	res, refreshToken, err := ac.AuthUseCase.HandleSSOCallback(r.Context(), provider, code)
+	ctx := usecase.WithSSOState(r.Context(), state)
+	res, refreshToken, err := ac.AuthUseCase.HandleSSOCallback(ctx, provider, code)
 	if err != nil {
 		response.WriteHTTPError(w, err, "Failed to handle SSO callback")
 		return

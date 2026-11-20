@@ -6,6 +6,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net"
+	"strings"
+	"sync"
 	"time"
 
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
@@ -17,6 +20,154 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/google/uuid"
 )
+
+const (
+	defaultLoginReplayWindow     = 5 * time.Second
+	defaultMaxLoginReplayEntries = 10000
+)
+
+type loginReplayEntry struct {
+	userID       string
+	sessionID    string
+	response     *model.LoginResponse
+	refreshToken string
+	expiresAt    time.Time
+}
+
+type loginReplayCache struct {
+	mu      sync.Mutex
+	entries map[string]loginReplayEntry
+}
+
+func newLoginReplayCache() *loginReplayCache {
+	return &loginReplayCache{
+		entries: make(map[string]loginReplayEntry),
+	}
+}
+
+func (s *Service) getLoginReplayCache() *loginReplayCache {
+	s.initMu.Lock()
+	defer s.initMu.Unlock()
+	if s.loginReplay == nil {
+		s.loginReplay = newLoginReplayCache()
+	}
+	return s.loginReplay
+}
+
+func (c *loginReplayCache) get(key string, now time.Time) (loginReplayEntry, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	entry, ok := c.entries[key]
+	if !ok {
+		return loginReplayEntry{}, false
+	}
+	if !entry.expiresAt.After(now) {
+		delete(c.entries, key)
+		return loginReplayEntry{}, false
+	}
+	return entry, true
+}
+
+func (c *loginReplayCache) set(key string, entry loginReplayEntry, now time.Time) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for k, existing := range c.entries {
+		if !existing.expiresAt.After(now) {
+			delete(c.entries, k)
+		}
+	}
+	if _, exists := c.entries[key]; !exists && len(c.entries) >= defaultMaxLoginReplayEntries {
+		var oldestKey string
+		var oldestExp time.Time
+		first := true
+		for k, existing := range c.entries {
+			if first || existing.expiresAt.Before(oldestExp) {
+				oldestKey = k
+				oldestExp = existing.expiresAt
+				first = false
+			}
+		}
+		if !first {
+			delete(c.entries, oldestKey)
+		}
+	}
+	c.entries[key] = entry
+}
+
+func (c *loginReplayCache) deleteKey(key string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.entries, key)
+}
+
+func (c *loginReplayCache) evictByUser(userID string) {
+	if userID == "" {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for k, entry := range c.entries {
+		if entry.userID == userID {
+			delete(c.entries, k)
+		}
+	}
+}
+
+func (c *loginReplayCache) evictBySession(userID, sessionID string) {
+	if userID == "" || sessionID == "" {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for k, entry := range c.entries {
+		if entry.userID == userID && entry.sessionID == sessionID {
+			delete(c.entries, k)
+		}
+	}
+}
+
+func (s *Service) evictLoginReplayByUser(userID string) {
+	s.getLoginReplayCache().evictByUser(userID)
+}
+
+func (s *Service) evictLoginReplayBySession(userID, sessionID string) {
+	s.getLoginReplayCache().evictBySession(userID, sessionID)
+}
+
+func normalizeLoginIP(rawIP string) string {
+	trimmed := strings.TrimSpace(rawIP)
+	if trimmed == "" {
+		return ""
+	}
+	if host, _, err := net.SplitHostPort(trimmed); err == nil {
+		return strings.TrimSpace(host)
+	}
+	return trimmed
+}
+
+func normalizeLoginUA(rawUA string) string {
+	return strings.TrimSpace(rawUA)
+}
+
+func loginReplayKey(userID, normalizedIP, normalizedUA string) string {
+	sum := sha256.Sum256([]byte(userID + "\x00" + normalizedIP + "\x00" + normalizedUA))
+	return hex.EncodeToString(sum[:])
+}
+
+func deepCopyLoginResponse(src *model.LoginResponse) *model.LoginResponse {
+	if src == nil {
+		return nil
+	}
+	copied := *src
+	return &copied
+}
+
+type loginReplayResult struct {
+	response     *model.LoginResponse
+	refreshToken string
+}
 
 func hashToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
@@ -61,6 +212,10 @@ func (s *Service) generateAndStoreTokenPair(ctx context.Context, userContext mod
 }
 
 func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model.LoginResponse, string, error) {
+	return s.login(ctx, request, true)
+}
+
+func (s *Service) login(ctx context.Context, request model.LoginRequest, useReplayCache bool) (*model.LoginResponse, string, error) {
 	locked, ttl, err := s.tokenRepo.IsAccountLocked(ctx, request.Username)
 	if err != nil {
 		s.log.WithContext(ctx).WithError(err).Error("Failed to check account lock status")
@@ -123,14 +278,69 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		return nil, "", err
 	}
 
+	normalizedIP := normalizeLoginIP(request.IPAddress)
+	normalizedUA := normalizeLoginUA(request.UserAgent)
+	replayWindow := s.getLoginReplayWindow()
+
+	if !useReplayCache || replayWindow <= 0 || (normalizedIP == "" && normalizedUA == "") {
+		resp, refreshToken, _, err := s.issueNewLoginSession(ctx, user, request)
+		return resp, refreshToken, err
+	}
+
+	key := loginReplayKey(user.ID, normalizedIP, normalizedUA)
+	result, err, _ := s.loginReplayGroup.Do(key, func() (interface{}, error) {
+		now := time.Now()
+		if entry, ok := s.getLoginReplayCache().get(key, now); ok {
+			savedSession, getErr := s.tokenRepo.GetToken(ctx, user.ID, entry.sessionID)
+			if getErr == nil && savedSession != nil {
+				return &loginReplayResult{
+					response:     deepCopyLoginResponse(entry.response),
+					refreshToken: entry.refreshToken,
+				}, nil
+			}
+			s.getLoginReplayCache().deleteKey(key)
+		}
+
+		resp, refreshToken, sessionID, err := s.issueNewLoginSession(ctx, user, request)
+		if err != nil {
+			return nil, err
+		}
+
+		cacheNow := time.Now()
+		s.getLoginReplayCache().set(key, loginReplayEntry{
+			userID:       user.ID,
+			sessionID:    sessionID,
+			response:     deepCopyLoginResponse(resp),
+			refreshToken: refreshToken,
+			expiresAt:    cacheNow.Add(replayWindow),
+		}, cacheNow)
+
+		return &loginReplayResult{
+			response:     resp,
+			refreshToken: refreshToken,
+		}, nil
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	res, ok := result.(*loginReplayResult)
+	if !ok || res == nil || res.response == nil {
+		return nil, "", fmt.Errorf("failed to complete login")
+	}
+
+	return deepCopyLoginResponse(res.response), res.refreshToken, nil
+}
+
+func (s *Service) issueNewLoginSession(ctx context.Context, user *entity.User, request model.LoginRequest) (*model.LoginResponse, string, string, error) {
 	if s.maxConcurrentSessions > 0 {
 		count, err := s.tokenRepo.CountActiveSessions(ctx, user.ID)
 		if err != nil {
 			s.log.WithContext(ctx).WithError(err).Error("Failed to count user active sessions")
-			return nil, "", fmt.Errorf("failed to check active sessions: %w", err)
+			return nil, "", "", fmt.Errorf("failed to check active sessions: %w", err)
 		}
 		if count >= s.maxConcurrentSessions {
-			return nil, "", ErrTooManySessions
+			return nil, "", "", ErrTooManySessions
 		}
 	}
 
@@ -139,7 +349,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		roles, err := s.authz.GetRolesForUser(ctx, user.ID, "")
 		if err != nil {
 			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during login")
-			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
+			return nil, "", "", fmt.Errorf("failed to get user roles: %w", err)
 		}
 		if len(roles) > 0 {
 			userRole = roles[0]
@@ -152,7 +362,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		Username: user.Username,
 	})
 	if err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
 
 	if s.taskDistributor != nil {
@@ -200,7 +410,7 @@ func (s *Service) Login(ctx context.Context, request model.LoginRequest) (*model
 		User:         userInfo,
 	}
 
-	return loginResponse, refreshToken, nil
+	return loginResponse, refreshToken, sessionID, nil
 }
 
 func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model.TokenResponse, string, error) {
@@ -332,11 +542,13 @@ func (s *Service) RevokeToken(ctx context.Context, userID, sessionID string) err
 	currentSession, err := s.tokenRepo.GetToken(ctx, userID, sessionID)
 	if err != nil {
 		if errors.Is(err, exception.ErrNotFound) {
+			s.evictLoginReplayBySession(userID, sessionID)
 			return nil
 		}
 		return err
 	}
 	if currentSession == nil {
+		s.evictLoginReplayBySession(userID, sessionID)
 		return nil
 	}
 
@@ -349,7 +561,11 @@ func (s *Service) RevokeToken(ctx context.Context, userID, sessionID string) err
 		})
 	}
 
-	return s.tokenRepo.DeleteToken(ctx, userID, sessionID)
+	if err := s.tokenRepo.DeleteToken(ctx, userID, sessionID); err != nil {
+		return err
+	}
+	s.evictLoginReplayBySession(userID, sessionID)
+	return nil
 }
 
 func (s *Service) GetUserSessions(ctx context.Context, userID string) ([]*model.Auth, error) {
@@ -369,7 +585,11 @@ func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
 		})
 	}
 
-	return s.tokenRepo.RevokeAllSessions(ctx, userID)
+	if err := s.tokenRepo.RevokeAllSessions(ctx, userID); err != nil {
+		return err
+	}
+	s.evictLoginReplayByUser(userID)
+	return nil
 }
 
 func (s *Service) GenerateAccessToken(user *entity.User) (string, error) {

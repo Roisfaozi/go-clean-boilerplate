@@ -31,6 +31,8 @@ import (
 	mock_user "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sso"
+	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 )
@@ -2920,10 +2922,9 @@ func TestVerifyEmail_RepeatWhenAlreadyVerified_AndConcurrent(t *testing.T) {
 		}).Return(tokenEntity, nil).Once()
 		deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil).Once()
 		deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
-			Run(func(args mock.Arguments) {
-				fn := args.Get(1).(func(context.Context) error)
-				_ = fn(context.Background())
-			}).Return(nil).Once()
+			Return(func(ctx context.Context, fn func(context.Context) error) error {
+				return fn(ctx)
+			}).Once()
 		deps.userRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.User")).
 			Run(func(args mock.Arguments) {
 				updateCalls.Add(1)
@@ -3071,5 +3072,578 @@ func TestAuthUseCase_SSOState_OneTimeConsumption(t *testing.T) {
 
 		assert.Equal(t, int32(1), successes.Load(), "exactly one callback may consume the SSO state")
 		assert.Equal(t, int32(workers-1), unauthorized.Load(), "replayed callbacks must be rejected with ErrUnauthorized")
+	})
+}
+
+func TestAuthUseCase_SSOState_Redis_OneTimeAndMultiInstance(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Skipf("miniredis unavailable in current environment: %v", err)
+	}
+	defer mr.Close()
+
+	redisClient := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer func() { _ = redisClient.Close() }()
+
+	t.Run("state stored in Redis with TTL, consumed across instances, and rejected on replay", func(t *testing.T) {
+		mr.FlushAll()
+
+		uc1, deps1 := setupTest(t)
+		uc2, deps2 := setupTest(t)
+		uc1.(*usecase.Service).SetRedisClient(redisClient)
+		uc2.(*usecase.Service).SetRedisClient(redisClient)
+
+		state := "redis-sso-state-1"
+		token := &oauth2.Token{AccessToken: "token"}
+		userInfo := &sso.UserInfo{Email: "sso-redis@example.com", ProviderID: "gh-redis-1", Name: "Redis SSO User"}
+
+		provider1 := mock_auth.NewMockProvider(t)
+		provider1.On("GetLoginURL", state).Return("https://github.com/login?state=" + state).Once()
+		deps1.ssoProviders["github"] = provider1
+
+		provider2 := mock_auth.NewMockProvider(t)
+		provider2.On("ExchangeCode", mock.Anything, "code-1").Return(token, nil).Once()
+		provider2.On("GetUserInfo", mock.Anything, token).Return(userInfo, nil).Once()
+		deps2.ssoProviders["github"] = provider2
+
+		ssoIdentity := &entity.UserSSOIdentity{UserID: TestUserID, Provider: "github", ProviderID: "gh-redis-1"}
+		deps2.userRepo.On("FindBySSOIdentity", mock.Anything, "github", "gh-redis-1").Return(ssoIdentity, nil).Once()
+		usr := &entity.User{ID: TestUserID, Email: "sso-redis@example.com", Status: entity.UserStatusActive}
+		deps2.userRepo.On("FindByID", mock.Anything, TestUserID).Return(usr, nil).Once()
+		deps2.authz.On("GetRolesForUser", mock.Anything, TestUserID, "").Return([]string{"role:user"}, nil).Once()
+		deps2.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil).Once()
+		deps2.tokenRepo.On("ResetLoginAttempts", mock.Anything, usr.Email).Return(nil).Once()
+		deps2.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+
+		redirectURL, err := uc1.GetSSORedirectURL(context.Background(), "github", state)
+		assert.NoError(t, err)
+		assert.Contains(t, redirectURL, state)
+
+		redisKey := "sso:state:github:" + state
+		assert.True(t, mr.Exists(redisKey))
+		assert.Equal(t, 5*time.Minute, mr.TTL(redisKey))
+
+		// Second instance consumes the state issued by the first instance.
+		ctxWithState := usecase.WithSSOState(context.Background(), state)
+		res, refresh, err := uc2.HandleSSOCallback(ctxWithState, "github", "code-1")
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+		assert.NotEmpty(t, refresh)
+		assert.False(t, mr.Exists(redisKey), "SSO state key must be atomically deleted upon consumption")
+
+		// Replaying the same state on uc1 must fail before ExchangeCode.
+		res2, refresh2, err := uc1.HandleSSOCallback(ctxWithState, "github", "code-replay")
+		assert.ErrorIs(t, err, exception.ErrUnauthorized)
+		assert.Nil(t, res2)
+		assert.Empty(t, refresh2)
+		provider1.AssertNotCalled(t, "ExchangeCode", mock.Anything, mock.Anything)
+	})
+
+	t.Run("expired Redis state is rejected", func(t *testing.T) {
+		mr.FlushAll()
+
+		uc, deps := setupTest(t)
+		uc.(*usecase.Service).SetRedisClient(redisClient)
+
+		state := "expired-redis-state"
+		provider := mock_auth.NewMockProvider(t)
+		provider.On("GetLoginURL", state).Return("https://github.com/login?state=" + state).Once()
+		deps.ssoProviders["github"] = provider
+
+		_, err := uc.GetSSORedirectURL(context.Background(), "github", state)
+		assert.NoError(t, err)
+
+		mr.FastForward(5*time.Minute + time.Second)
+
+		res, refresh, err := uc.HandleSSOCallback(usecase.WithSSOState(context.Background(), state), "github", "code-late")
+		assert.ErrorIs(t, err, exception.ErrUnauthorized)
+		assert.Nil(t, res)
+		assert.Empty(t, refresh)
+		provider.AssertNotCalled(t, "ExchangeCode", mock.Anything, mock.Anything)
+	})
+
+	t.Run("concurrent Redis callbacks allow strictly one winner", func(t *testing.T) {
+		mr.FlushAll()
+
+		uc, deps := setupTest(t)
+		uc.(*usecase.Service).SetRedisClient(redisClient)
+
+		state := "concurrent-redis-state"
+		token := &oauth2.Token{AccessToken: "token"}
+		userInfo := &sso.UserInfo{Email: "race-redis@example.com", ProviderID: "gh-race-redis", Name: "Race Redis"}
+
+		provider := mock_auth.NewMockProvider(t)
+		provider.On("GetLoginURL", state).Return("https://github.com/login?state=" + state).Once()
+		provider.On("ExchangeCode", mock.Anything, "race-code").Return(token, nil).Once()
+		provider.On("GetUserInfo", mock.Anything, token).Return(userInfo, nil).Once()
+		deps.ssoProviders["github"] = provider
+
+		ssoIdentity := &entity.UserSSOIdentity{UserID: TestUserID, Provider: "github", ProviderID: "gh-race-redis"}
+		deps.userRepo.On("FindBySSOIdentity", mock.Anything, "github", "gh-race-redis").Return(ssoIdentity, nil).Once()
+		usr := &entity.User{ID: TestUserID, Email: "race-redis@example.com", Status: entity.UserStatusActive}
+		deps.userRepo.On("FindByID", mock.Anything, TestUserID).Return(usr, nil).Once()
+		deps.authz.On("GetRolesForUser", mock.Anything, TestUserID, "").Return([]string{"role:user"}, nil).Once()
+		deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil).Once()
+		deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, usr.Email).Return(nil).Once()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+
+		_, err := uc.GetSSORedirectURL(context.Background(), "github", state)
+		assert.NoError(t, err)
+
+		const workers = 5
+		var successes, unauthorized atomic.Int32
+		var wg sync.WaitGroup
+		wg.Add(workers)
+		for i := 0; i < workers; i++ {
+			go func() {
+				defer wg.Done()
+				res, _, cbErr := uc.HandleSSOCallback(usecase.WithSSOState(context.Background(), state), "github", "race-code")
+				if cbErr == nil && res != nil {
+					successes.Add(1)
+				} else if errors.Is(cbErr, exception.ErrUnauthorized) {
+					unauthorized.Add(1)
+				}
+			}()
+		}
+		wg.Wait()
+
+		assert.Equal(t, int32(1), successes.Load())
+		assert.Equal(t, int32(workers-1), unauthorized.Load())
+	})
+}
+
+func TestLogin_ReplayWindow(t *testing.T) {
+	setupLoginSuccessMocks := func(deps *testDependencies, user *entity.User, storedSessionID *string) {
+		deps.tokenRepo.On("IsAccountLocked", mock.Anything, user.Username).Return(false, time.Duration(0), nil)
+		deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, user.Username).Return(nil)
+		deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+			Return(func(ctx context.Context, fn func(context.Context) error) error {
+				return fn(ctx)
+			})
+		deps.userRepo.On("FindByUsername", mock.Anything, user.Username).Return(user, nil)
+		deps.authz.On("GetRolesForUser", mock.Anything, user.ID, "").Return([]string{TestRole}, nil)
+		deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).
+			Run(func(args mock.Arguments) {
+				if storedSessionID != nil {
+					*storedSessionID = args.Get(1).(*model.Auth).ID
+				}
+			}).Return(nil)
+		deps.orgRepo.On("FindUserOrganizations", mock.Anything, user.ID).Return([]*orgEntity.Organization{}, nil)
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+			return req.UserID == user.ID && req.Action == "LOGIN"
+		}), mock.Anything).Return(nil)
+		deps.publisher.On("PublishUserLoggedIn", mock.Anything, mock.Anything, mock.Anything).Return()
+	}
+
+	t.Run("repeat login within replay window with same IP/UA returns same session without extra StoreToken", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		user, password := createTestUser("password123")
+		var sessionID string
+		setupLoginSuccessMocks(deps, user, &sessionID)
+
+		req1 := model.LoginRequest{Username: user.Username, Password: password, IPAddress: "192.0.2.10:50001", UserAgent: "Mozilla/5.0"}
+		resp1, rt1, err := authService.Login(context.Background(), req1)
+		assert.NoError(t, err)
+		assert.NotNil(t, resp1)
+		assert.NotEmpty(t, sessionID)
+
+		deps.tokenRepo.On("GetToken", mock.Anything, user.ID, sessionID).
+			Return(&model.Auth{ID: sessionID, UserID: user.ID}, nil).Once()
+
+		// Repeat login from same normalized IP (ephemeral port differs) and same User-Agent
+		req2 := model.LoginRequest{Username: user.Username, Password: password, IPAddress: "192.0.2.10:50002", UserAgent: "Mozilla/5.0"}
+		resp2, rt2, err := authService.Login(context.Background(), req2)
+		assert.NoError(t, err)
+		assert.NotNil(t, resp2)
+		assert.Equal(t, resp1.AccessToken, resp2.AccessToken)
+		assert.Equal(t, rt1, rt2)
+		assert.NotSame(t, resp1, resp2, "replayed login must return a deep copy")
+
+		deps.tokenRepo.AssertNumberOfCalls(t, "StoreToken", 1)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskAuditLog", 1)
+		deps.publisher.AssertNumberOfCalls(t, "PublishUserLoggedIn", 1)
+	})
+
+	t.Run("wrong password during replay window still fails with ErrInvalidCredentials", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		user, password := createTestUser("password123")
+		var sessionID string
+		setupLoginSuccessMocks(deps, user, &sessionID)
+
+		req := model.LoginRequest{Username: user.Username, Password: password, IPAddress: "10.0.0.1", UserAgent: "Agent-A"}
+		resp1, _, err := authService.Login(context.Background(), req)
+		assert.NoError(t, err)
+		assert.NotNil(t, resp1)
+
+		deps.tokenRepo.On("IncrementLoginAttempts", mock.Anything, user.Username).Return(1, nil).Once()
+
+		badReq := model.LoginRequest{Username: user.Username, Password: "wrong-password", IPAddress: "10.0.0.1", UserAgent: "Agent-A"}
+		respBad, rtBad, err := authService.Login(context.Background(), badReq)
+		assert.ErrorIs(t, err, usecase.ErrInvalidCredentials)
+		assert.Nil(t, respBad)
+		assert.Empty(t, rtBad)
+		deps.tokenRepo.AssertNumberOfCalls(t, "IncrementLoginAttempts", 1)
+	})
+
+	t.Run("different IP or UA creates a distinct session", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		user, password := createTestUser("password123")
+		setupLoginSuccessMocks(deps, user, nil)
+
+		resp1, _, err := authService.Login(context.Background(), model.LoginRequest{
+			Username: user.Username, Password: password, IPAddress: "10.0.0.1", UserAgent: "Agent-A",
+		})
+		assert.NoError(t, err)
+
+		resp2, _, err := authService.Login(context.Background(), model.LoginRequest{
+			Username: user.Username, Password: password, IPAddress: "10.0.0.1", UserAgent: "Agent-B",
+		})
+		assert.NoError(t, err)
+		assert.NotEqual(t, resp1.AccessToken, resp2.AccessToken)
+
+		resp3, _, err := authService.Login(context.Background(), model.LoginRequest{
+			Username: user.Username, Password: password, IPAddress: "10.0.0.2", UserAgent: "Agent-A",
+		})
+		assert.NoError(t, err)
+		assert.NotEqual(t, resp1.AccessToken, resp3.AccessToken)
+		assert.NotEqual(t, resp2.AccessToken, resp3.AccessToken)
+
+		deps.tokenRepo.AssertNumberOfCalls(t, "StoreToken", 3)
+	})
+
+	t.Run("after RevokeToken immediate re-login creates a fresh session", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		user, password := createTestUser("password123")
+		var sessionID string
+		setupLoginSuccessMocks(deps, user, &sessionID)
+
+		req := model.LoginRequest{Username: user.Username, Password: password, IPAddress: "10.0.0.5", UserAgent: "Agent-Logout"}
+		resp1, _, err := authService.Login(context.Background(), req)
+		assert.NoError(t, err)
+		firstSessionID := sessionID
+
+		deps.tokenRepo.On("GetToken", mock.Anything, user.ID, firstSessionID).
+			Return(&model.Auth{ID: firstSessionID, UserID: user.ID}, nil).Once()
+		deps.tokenRepo.On("DeleteToken", mock.Anything, user.ID, firstSessionID).Return(nil).Once()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+			return req.UserID == user.ID && req.Action == "LOGOUT" && req.EntityID == firstSessionID
+		}), mock.Anything).Return(nil).Once()
+
+		assert.NoError(t, authService.RevokeToken(context.Background(), user.ID, firstSessionID))
+
+		resp2, _, err := authService.Login(context.Background(), req)
+		assert.NoError(t, err)
+		assert.NotEqual(t, resp1.AccessToken, resp2.AccessToken)
+		assert.NotEqual(t, firstSessionID, sessionID)
+		deps.tokenRepo.AssertNumberOfCalls(t, "StoreToken", 2)
+	})
+
+	t.Run("after RevokeAllSessions immediate re-login creates a fresh session", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		user, password := createTestUser("password123")
+		var sessionID string
+		setupLoginSuccessMocks(deps, user, &sessionID)
+
+		req := model.LoginRequest{Username: user.Username, Password: password, IPAddress: "10.0.0.6", UserAgent: "Agent-RevokeAll"}
+		resp1, _, err := authService.Login(context.Background(), req)
+		assert.NoError(t, err)
+		firstSessionID := sessionID
+
+		deps.tokenRepo.On("RevokeAllSessions", mock.Anything, user.ID).Return(nil).Once()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+			return req.UserID == user.ID && req.Action == "REVOKE_ALL_SESSIONS"
+		}), mock.Anything).Return(nil).Once()
+
+		assert.NoError(t, authService.RevokeAllSessions(context.Background(), user.ID))
+
+		resp2, _, err := authService.Login(context.Background(), req)
+		assert.NoError(t, err)
+		assert.NotEqual(t, resp1.AccessToken, resp2.AccessToken)
+		assert.NotEqual(t, firstSessionID, sessionID)
+		deps.tokenRepo.AssertNumberOfCalls(t, "StoreToken", 2)
+	})
+
+	t.Run("after replay window expires re-login creates a fresh session", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		authService.(*usecase.Service).SetLoginReplayWindow(30 * time.Millisecond)
+
+		user, password := createTestUser("password123")
+		setupLoginSuccessMocks(deps, user, nil)
+
+		req := model.LoginRequest{Username: user.Username, Password: password, IPAddress: "10.0.0.7", UserAgent: "Agent-Expire"}
+		resp1, _, err := authService.Login(context.Background(), req)
+		assert.NoError(t, err)
+
+		time.Sleep(50 * time.Millisecond)
+
+		resp2, _, err := authService.Login(context.Background(), req)
+		assert.NoError(t, err)
+		assert.NotEqual(t, resp1.AccessToken, resp2.AccessToken)
+		deps.tokenRepo.AssertNumberOfCalls(t, "StoreToken", 2)
+	})
+
+	t.Run("register auto-login does not populate replay cache; immediate login publishes event and second login replays", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		password := "password123"
+		regReq := model.RegisterRequest{
+			Username:  "reg_replay_user",
+			Email:     "reg_replay@example.com",
+			Password:  password,
+			Name:      "Reg Replay User",
+			IPAddress: "192.0.2.50:40001",
+			UserAgent: "ReplayTestAgent/1.0",
+		}
+
+		var createdUser *entity.User
+		deps.userRepo.On("FindByUsername", mock.Anything, regReq.Username).Return(nil, exception.ErrNotFound).Once()
+		deps.userRepo.On("FindByEmail", mock.Anything, regReq.Email).Return(nil, exception.ErrNotFound).Once()
+		deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+			Return(func(ctx context.Context, fn func(context.Context) error) error {
+				return fn(ctx)
+			})
+		deps.userRepo.On("Create", mock.Anything, mock.MatchedBy(func(u *entity.User) bool {
+			return u.Username == regReq.Username && u.Email == regReq.Email
+		})).Run(func(args mock.Arguments) {
+			createdUser = args.Get(1).(*entity.User)
+		}).Return(nil).Once()
+		deps.authz.On("AssignDefaultRole", mock.Anything, mock.Anything).Return(nil).Once()
+		deps.orgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.Organization"), "owner").Return(nil).Once()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+			return req.Action == "REGISTER" && req.Entity == "User"
+		}), mock.Anything).Return(nil).Once()
+
+		deps.tokenRepo.On("IsAccountLocked", mock.Anything, regReq.Username).Return(false, time.Duration(0), nil)
+		deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, regReq.Username).Return(nil)
+		deps.userRepo.On("FindByUsername", mock.Anything, regReq.Username).Return(func(context.Context, string) (*entity.User, error) {
+			return createdUser, nil
+		}).Times(3)
+		deps.authz.On("GetRolesForUser", mock.Anything, mock.Anything, "").Return([]string{TestRole}, nil)
+
+		var sessionIDs []string
+		deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).
+			Run(func(args mock.Arguments) {
+				sessionIDs = append(sessionIDs, args.Get(1).(*model.Auth).ID)
+			}).Return(nil)
+		deps.orgRepo.On("FindUserOrganizations", mock.Anything, mock.Anything).Return([]*orgEntity.Organization{
+			{ID: "org-1"},
+		}, nil)
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+			return req.Action == "LOGIN" && req.Entity == "Auth"
+		}), mock.Anything).Return(nil)
+		deps.publisher.On("PublishUserLoggedIn", mock.Anything, mock.Anything, []string{"org-1"}).Return()
+
+		// 1. Register triggers internal auto-login without populating loginReplayCache.
+		regResp, regRT, err := authService.Register(context.Background(), regReq)
+		assert.NoError(t, err)
+		assert.NotNil(t, regResp)
+		assert.NotEmpty(t, regRT)
+		assert.Len(t, sessionIDs, 1)
+		deps.publisher.AssertNumberOfCalls(t, "PublishUserLoggedIn", 1)
+
+		// 2. Immediate Login from same IP/UA must NOT hit Register's auto-login cache and must publish login event.
+		loginReq := model.LoginRequest{
+			Username:  regReq.Username,
+			Password:  password,
+			IPAddress: "192.0.2.50:40002",
+			UserAgent: regReq.UserAgent,
+		}
+		loginResp1, loginRT1, err := authService.Login(context.Background(), loginReq)
+		assert.NoError(t, err)
+		assert.NotNil(t, loginResp1)
+		assert.NotEqual(t, regResp.AccessToken, loginResp1.AccessToken)
+		assert.NotEqual(t, regRT, loginRT1)
+		assert.Len(t, sessionIDs, 2)
+		deps.tokenRepo.AssertNumberOfCalls(t, "StoreToken", 2)
+		deps.publisher.AssertNumberOfCalls(t, "PublishUserLoggedIn", 2)
+
+		// 3. Second Login immediately afterward from same IP/UA MUST hit the replay cache.
+		deps.tokenRepo.On("GetToken", mock.Anything, createdUser.ID, sessionIDs[1]).
+			Return(&model.Auth{ID: sessionIDs[1], UserID: createdUser.ID}, nil).Once()
+
+		loginResp2, loginRT2, err := authService.Login(context.Background(), loginReq)
+		assert.NoError(t, err)
+		assert.NotNil(t, loginResp2)
+		assert.Equal(t, loginResp1.AccessToken, loginResp2.AccessToken)
+		assert.Equal(t, loginRT1, loginRT2)
+		assert.NotSame(t, loginResp1, loginResp2, "replayed login must return a deep copy")
+		deps.tokenRepo.AssertNumberOfCalls(t, "StoreToken", 2)
+		deps.publisher.AssertNumberOfCalls(t, "PublishUserLoggedIn", 2)
+	})
+}
+
+func TestForgotPassword_ResendCooldown(t *testing.T) {
+	t.Run("in-memory cooldown suppresses repeat within window and allows retry after expiry", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		authService.(*usecase.Service).SetResendCooldown(40 * time.Millisecond)
+
+		user, _ := createTestUser("password123")
+		deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
+		deps.userRepo.On("FindByEmail", mock.Anything, " TEST@example.com ").Return(user, nil)
+		deps.tokenRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.PasswordResetToken")).Return(nil).Twice()
+		deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything).Return(nil).Twice()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil).Twice()
+
+		// First attempt issues token and enqueues email.
+		assert.NoError(t, authService.ForgotPassword(context.Background(), user.Email))
+
+		// Immediate repeat (even with casing/whitespace variation) is suppressed.
+		assert.NoError(t, authService.ForgotPassword(context.Background(), " TEST@example.com "))
+		deps.tokenRepo.AssertNumberOfCalls(t, "Save", 1)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskSendEmail", 1)
+
+		// After cooldown expires, next attempt succeeds.
+		time.Sleep(60 * time.Millisecond)
+		assert.NoError(t, authService.ForgotPassword(context.Background(), user.Email))
+		deps.tokenRepo.AssertNumberOfCalls(t, "Save", 2)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskSendEmail", 2)
+	})
+
+	t.Run("cooldown rolls back when tokenRepo.Save fails", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		user, _ := createTestUser("password123")
+
+		deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil).Twice()
+		deps.tokenRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.PasswordResetToken")).
+			Return(errors.New("db error")).Once()
+		deps.tokenRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.PasswordResetToken")).
+			Return(nil).Once()
+		deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+
+		assert.NoError(t, authService.ForgotPassword(context.Background(), user.Email))
+		assert.NoError(t, authService.ForgotPassword(context.Background(), user.Email))
+
+		deps.tokenRepo.AssertNumberOfCalls(t, "Save", 2)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskSendEmail", 1)
+	})
+
+	t.Run("redis-backed cooldown suppresses repeat and recovers after TTL or Save error", func(t *testing.T) {
+		mr, err := miniredis.Run()
+		if err != nil {
+			t.Skipf("miniredis unavailable in current environment: %v", err)
+		}
+		defer mr.Close()
+
+		redisClient := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+		defer func() { _ = redisClient.Close() }()
+
+		authService, deps := setupTest(t)
+		authService.(*usecase.Service).SetRedisClient(redisClient)
+
+		user, _ := createTestUser("password123")
+		deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil)
+		deps.tokenRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.PasswordResetToken")).
+			Return(errors.New("transient db error")).Once()
+		deps.tokenRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.PasswordResetToken")).
+			Return(nil).Twice()
+		deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything).Return(nil).Twice()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil).Twice()
+
+		// 1. Save fails -> cooldown key rolled back -> immediate retry succeeds.
+		assert.NoError(t, authService.ForgotPassword(context.Background(), user.Email))
+		assert.NoError(t, authService.ForgotPassword(context.Background(), user.Email))
+		deps.tokenRepo.AssertNumberOfCalls(t, "Save", 2)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskSendEmail", 1)
+
+		// 2. Immediate repeat within 60s Redis cooldown is suppressed.
+		assert.NoError(t, authService.ForgotPassword(context.Background(), user.Email))
+		deps.tokenRepo.AssertNumberOfCalls(t, "Save", 2)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskSendEmail", 1)
+
+		// 3. Fast-forward past 60s TTL -> retry succeeds.
+		mr.FastForward(61 * time.Second)
+		assert.NoError(t, authService.ForgotPassword(context.Background(), user.Email))
+		deps.tokenRepo.AssertNumberOfCalls(t, "Save", 3)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskSendEmail", 2)
+	})
+}
+
+func TestRequestVerification_ResendCooldown(t *testing.T) {
+	t.Run("in-memory cooldown suppresses repeat within window and allows retry after expiry", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		authService.(*usecase.Service).SetResendCooldown(40 * time.Millisecond)
+
+		user, _ := createTestUser("password123")
+		user.EmailVerifiedAt = nil
+
+		deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
+		deps.tokenRepo.On("SaveVerificationToken", mock.Anything, mock.AnythingOfType("*entity.EmailVerificationToken")).Return(nil).Twice()
+		deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything).Return(nil).Twice()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil).Twice()
+
+		assert.NoError(t, authService.RequestVerification(context.Background(), user.ID))
+		assert.NoError(t, authService.RequestVerification(context.Background(), user.ID))
+
+		deps.tokenRepo.AssertNumberOfCalls(t, "SaveVerificationToken", 1)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskSendEmail", 1)
+
+		time.Sleep(60 * time.Millisecond)
+		assert.NoError(t, authService.RequestVerification(context.Background(), user.ID))
+		deps.tokenRepo.AssertNumberOfCalls(t, "SaveVerificationToken", 2)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskSendEmail", 2)
+	})
+
+	t.Run("cooldown rolls back when SaveVerificationToken fails", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		user, _ := createTestUser("password123")
+		user.EmailVerifiedAt = nil
+
+		deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil).Twice()
+		deps.tokenRepo.On("SaveVerificationToken", mock.Anything, mock.AnythingOfType("*entity.EmailVerificationToken")).
+			Return(errors.New("db error")).Once()
+		deps.tokenRepo.On("SaveVerificationToken", mock.Anything, mock.AnythingOfType("*entity.EmailVerificationToken")).
+			Return(nil).Once()
+		deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+
+		err := authService.RequestVerification(context.Background(), user.ID)
+		assert.Error(t, err)
+
+		assert.NoError(t, authService.RequestVerification(context.Background(), user.ID))
+		deps.tokenRepo.AssertNumberOfCalls(t, "SaveVerificationToken", 2)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskSendEmail", 1)
+	})
+
+	t.Run("redis-backed cooldown suppresses repeat and recovers after TTL or Save error", func(t *testing.T) {
+		mr, err := miniredis.Run()
+		if err != nil {
+			t.Skipf("miniredis unavailable in current environment: %v", err)
+		}
+		defer mr.Close()
+
+		redisClient := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+		defer func() { _ = redisClient.Close() }()
+
+		authService, deps := setupTest(t)
+		authService.(*usecase.Service).SetRedisClient(redisClient)
+
+		user, _ := createTestUser("password123")
+		user.EmailVerifiedAt = nil
+
+		deps.userRepo.On("FindByID", mock.Anything, user.ID).Return(user, nil)
+		deps.tokenRepo.On("SaveVerificationToken", mock.Anything, mock.AnythingOfType("*entity.EmailVerificationToken")).
+			Return(errors.New("transient db error")).Once()
+		deps.tokenRepo.On("SaveVerificationToken", mock.Anything, mock.AnythingOfType("*entity.EmailVerificationToken")).
+			Return(nil).Twice()
+		deps.taskDistributor.On("DistributeTaskSendEmail", mock.Anything, mock.Anything, mock.Anything).Return(nil).Twice()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil).Twice()
+
+		// 1. Save fails -> cooldown key rolled back -> immediate retry succeeds.
+		assert.Error(t, authService.RequestVerification(context.Background(), user.ID))
+		assert.NoError(t, authService.RequestVerification(context.Background(), user.ID))
+		assert.True(t, mr.Exists("auth:cooldown:verify:"+user.ID))
+		deps.tokenRepo.AssertNumberOfCalls(t, "SaveVerificationToken", 2)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskSendEmail", 1)
+
+		// 2. Immediate repeat within 60s Redis cooldown is suppressed.
+		assert.NoError(t, authService.RequestVerification(context.Background(), user.ID))
+		deps.tokenRepo.AssertNumberOfCalls(t, "SaveVerificationToken", 2)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskSendEmail", 1)
+
+		// 3. Fast-forward past 60s TTL -> retry succeeds.
+		mr.FastForward(61 * time.Second)
+		assert.NoError(t, authService.RequestVerification(context.Background(), user.ID))
+		deps.tokenRepo.AssertNumberOfCalls(t, "SaveVerificationToken", 3)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskSendEmail", 2)
 	})
 }
