@@ -195,4 +195,102 @@ func TestWSSendDropsAndAuditOutboxPending(t *testing.T) {
 	assert.Equal(t, float64(42), testutil.ToFloat64(AuditOutboxPending))
 	SetAuditOutboxPending(0)
 	assert.Equal(t, float64(0), testutil.ToFloat64(AuditOutboxPending))
+
+	SetAuditOutboxOldestAgeSeconds(12.5)
+	assert.Equal(t, 12.5, testutil.ToFloat64(AuditOutboxOldestAgeSeconds))
+	SetAuditOutboxOldestAgeSeconds(-5)
+	assert.Equal(t, float64(0), testutil.ToFloat64(AuditOutboxOldestAgeSeconds))
+}
+
+func TestRecordRedisOperation_BoundedLabels(t *testing.T) {
+	beforeGetOK := testutil.ToFloat64(RedisOperationsTotal.WithLabelValues("get", "ok"))
+	beforeOtherErr := testutil.ToFloat64(RedisOperationsTotal.WithLabelValues("other", "error"))
+	beforeMiss := testutil.ToFloat64(RedisOperationsTotal.WithLabelValues("getdel", "miss"))
+
+	RecordRedisOperation("GET", "ok", 5*time.Millisecond)
+	RecordRedisOperation("getdel", "miss", 2*time.Millisecond)
+	RecordRedisOperation("CUSTOM_UNBOUNDED_CMD_KEY_123", "raw_err_detail", 10*time.Millisecond)
+
+	assert.Equal(t, beforeGetOK+1, testutil.ToFloat64(RedisOperationsTotal.WithLabelValues("get", "ok")))
+	assert.Equal(t, beforeMiss+1, testutil.ToFloat64(RedisOperationsTotal.WithLabelValues("getdel", "miss")))
+	assert.Equal(t, beforeOtherErr+1, testutil.ToFloat64(RedisOperationsTotal.WithLabelValues("other", "error")))
+
+	families, err := prometheus.DefaultGatherer.Gather()
+	require.NoError(t, err)
+	for _, mf := range families {
+		if mf.GetName() == "app_redis_operations_total" || mf.GetName() == "app_redis_operation_duration_seconds" {
+			for _, m := range mf.GetMetric() {
+				for _, l := range m.GetLabel() {
+					assert.NotEqual(t, "CUSTOM_UNBOUNDED_CMD_KEY_123", l.GetValue())
+					assert.NotEqual(t, "raw_err_detail", l.GetValue())
+				}
+			}
+		}
+	}
+}
+
+func TestRecordRateLimitRejection_BoundedLabels(t *testing.T) {
+	beforeIP := testutil.ToFloat64(RateLimitRejectionsTotal.WithLabelValues("ip"))
+	beforeUser := testutil.ToFloat64(RateLimitRejectionsTotal.WithLabelValues("user"))
+	beforeMemory := testutil.ToFloat64(RateLimitRejectionsTotal.WithLabelValues("memory"))
+	beforeOther := testutil.ToFloat64(RateLimitRejectionsTotal.WithLabelValues("other"))
+
+	RecordRateLimitRejection("ip")
+	RecordRateLimitRejection("user")
+	RecordRateLimitRejection("memory")
+	RecordRateLimitRejection("user:secret-id-999")
+
+	assert.Equal(t, beforeIP+1, testutil.ToFloat64(RateLimitRejectionsTotal.WithLabelValues("ip")))
+	assert.Equal(t, beforeUser+1, testutil.ToFloat64(RateLimitRejectionsTotal.WithLabelValues("user")))
+	assert.Equal(t, beforeMemory+1, testutil.ToFloat64(RateLimitRejectionsTotal.WithLabelValues("memory")))
+	assert.Equal(t, beforeOther+1, testutil.ToFloat64(RateLimitRejectionsTotal.WithLabelValues("other")))
+
+	families, err := prometheus.DefaultGatherer.Gather()
+	require.NoError(t, err)
+	for _, mf := range families {
+		if mf.GetName() == "app_rate_limit_rejections_total" {
+			for _, m := range mf.GetMetric() {
+				for _, l := range m.GetLabel() {
+					assert.NotEqual(t, "user:secret-id-999", l.GetValue())
+				}
+			}
+		}
+	}
+}
+
+func TestRecordTUSUpload_BoundedLabels(t *testing.T) {
+	beforeS3Success := testutil.ToFloat64(StorageUploadsTotal.WithLabelValues("s3", "success"))
+	beforeLocalError := testutil.ToFloat64(StorageUploadsTotal.WithLabelValues("local", "error"))
+
+	RecordTUSUpload("s3", "success", 2048, 50*time.Millisecond)
+	RecordTUSUpload("unknown-driver", "raw_boom", 512, 10*time.Millisecond)
+
+	assert.Equal(t, beforeS3Success+1, testutil.ToFloat64(StorageUploadsTotal.WithLabelValues("s3", "success")))
+	assert.Equal(t, beforeLocalError+1, testutil.ToFloat64(StorageUploadsTotal.WithLabelValues("local", "error")))
+
+	families, err := prometheus.DefaultGatherer.Gather()
+	require.NoError(t, err)
+	foundSize := false
+	foundDuration := false
+	for _, mf := range families {
+		switch mf.GetName() {
+		case "app_tus_upload_size_bytes":
+			foundSize = true
+			for _, m := range mf.GetMetric() {
+				for _, l := range m.GetLabel() {
+					assert.NotEqual(t, "unknown-driver", l.GetValue())
+				}
+			}
+		case "app_tus_upload_duration_seconds":
+			foundDuration = true
+			for _, m := range mf.GetMetric() {
+				for _, l := range m.GetLabel() {
+					assert.NotEqual(t, "unknown-driver", l.GetValue())
+					assert.NotEqual(t, "raw_boom", l.GetValue())
+				}
+			}
+		}
+	}
+	assert.True(t, foundSize)
+	assert.True(t, foundDuration)
 }

@@ -51,7 +51,7 @@ Implementation complete and 100% verified across unit, integration, and E2E test
 | P2-2 | single panic recovery owner | verified | single stdlib `HTTPRecoveryMiddleware` in `internal/router/http_router.go` |
 | P2-3 | frontend/proxy request correlation | verified | Next.js API proxy forwards `X-Request-ID` |
 | P2-4 | PII and secret redaction | verified | email masking in `email_handler.go`, `TestMaskEmail` PASS |
-| P2-5 | dependency/realtime metric expansion | verified | `pkg/telemetry/metrics.go` DB pool stats collector, realtime SSE/WS collector, webhook/email/outbox metrics, WS send drop counter, plus `otelsql` DB tracing & `HTTPPrometheusMiddleware` stdlib restoration PASS |
+| P2-5 | dependency/realtime metric expansion | verified | `pkg/telemetry/metrics.go` DB pool stats collector, realtime SSE/WS collector, webhook/email/outbox metrics, WS send drop counter, `otelsql` DB tracing, `HTTPPrometheusMiddleware` stdlib restoration, plus Redis hook metrics (`app_redis_operations_total`, `app_redis_operation_duration_seconds`), audit outbox oldest age (`app_audit_outbox_oldest_age_seconds`), rate-limit rejections (`app_rate_limit_rejections_total`), and TUS upload metrics (`app_tus_upload_size_bytes`, `app_tus_upload_duration_seconds`, `app_storage_uploads_total`) PASS |
 | P2-6 | structured lifecycle logging | verified | application startup/shutdown logs structured |
 
 ## Audit Verification Run

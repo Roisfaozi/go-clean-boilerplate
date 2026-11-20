@@ -15,6 +15,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
@@ -240,6 +241,7 @@ func HTTPRateLimitMiddlewareRedis(rdb *redis.Client, log *logrus.Logger, limiter
 			w.Header().Set("X-RateLimit-Remaining", strconv.FormatInt(remaining, 10))
 
 			if count > int64(limit) {
+				telemetry.RecordRateLimitRejection(string(limiterType))
 				w.Header().Set("Retry-After", strconv.Itoa(windowSeconds))
 				if log != nil {
 					log.Warnf("Rate limit exceeded for %s: %s (Count: %d, Limit: %d)", limiterType, identifier, count, limit)
@@ -283,6 +285,7 @@ func HTTPRateLimitMiddlewareMemory(rps float64, burst int) delivery.Middleware {
 
 			ipLimiter := limiter.GetLimiter(ip)
 			if !ipLimiter.Allow() {
+				telemetry.RecordRateLimitRejection("memory")
 				retryAfter := 1
 				if rps > 0 && rps < 1 {
 					retryAfter = int(math.Ceil(1.0 / rps))

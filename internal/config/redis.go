@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
@@ -33,6 +34,7 @@ func NewRedisConfig(cfg *AppConfig, log *logrus.Logger) *redis.Client {
 		Protocol:        redisRESP2Protocol,
 		DisableIdentity: true,
 	})
+	redisClient.AddHook(telemetry.NewRedisMetricsHook())
 
 	log.Infof("Redis connection established: %s", cfg.Redis.Addr)
 

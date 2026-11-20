@@ -5,9 +5,12 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	auditEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -99,11 +102,43 @@ func TestOutboxTaskHandler_ProcessAuditOutbox_Robustness(t *testing.T) {
 		handler := NewOutboxTaskHandler(mockRepo, logger)
 		ctx := context.Background()
 
+		telemetry.SetAuditOutboxOldestAgeSeconds(42)
 		mockRepo.On("FindPendingOutbox", ctx, 50).Return([]*auditEntity.AuditOutbox{}, nil)
 
 		err := handler.ProcessAuditOutbox(ctx, nil)
 
 		assert.NoError(t, err)
+		assert.Equal(t, float64(0), testutil.ToFloat64(telemetry.AuditOutboxPending))
+		assert.Equal(t, float64(0), testutil.ToFloat64(telemetry.AuditOutboxOldestAgeSeconds))
 		mockRepo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+	})
+
+	t.Run("Records oldest outbox entry age in seconds", func(t *testing.T) {
+		mockRepo := mocks.NewMockAuditRepository(t)
+		handler := NewOutboxTaskHandler(mockRepo, logger)
+		ctx := context.Background()
+
+		now := time.Now()
+		newer := now.Add(-5 * time.Second).UnixMilli()
+		oldest := now.Add(-30 * time.Second).UnixMilli()
+
+		entries := []*auditEntity.AuditOutbox{
+			{ID: "outbox-newer", UserID: "user-1", Action: "CREATE", CreatedAt: newer},
+			{ID: "outbox-oldest", UserID: "user-1", Action: "UPDATE", CreatedAt: oldest},
+		}
+
+		mockRepo.On("FindPendingOutbox", ctx, 50).Return(entries, nil)
+		mockRepo.On("Create", ctx, mock.AnythingOfType("*entity.AuditLog")).Return(nil).Twice()
+		mockRepo.On("DeleteOutbox", ctx, "outbox-newer").Return(nil)
+		mockRepo.On("DeleteOutbox", ctx, "outbox-oldest").Return(nil)
+
+		err := handler.ProcessAuditOutbox(ctx, nil)
+
+		assert.NoError(t, err)
+		assert.Equal(t, float64(2), testutil.ToFloat64(telemetry.AuditOutboxPending))
+		age := testutil.ToFloat64(telemetry.AuditOutboxOldestAgeSeconds)
+		assert.GreaterOrEqual(t, age, 29.0)
+		assert.Less(t, age, 60.0)
+		mockRepo.AssertExpectations(t)
 	})
 }

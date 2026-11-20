@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/sirupsen/logrus"
 	"github.com/tus/tusd/v2/pkg/filestore"
@@ -69,36 +71,53 @@ func NewHandler(cfg Config, registry *Registry, s3Client *s3.Client, log *logrus
 	go func() {
 		for {
 			event := <-tusHandler.CompleteUploads
-			meta := event.Upload.MetaData
-			uploadType := meta["type"]
-
-			if hook := registry.Get(uploadType); hook != nil {
-				var fileURL string
-				if cfg.StorageDriver == "s3" {
-					fileURL = fmt.Sprintf("%s/%s/%s", cfg.S3Endpoint, cfg.S3Bucket, event.Upload.ID)
-				} else {
-					fileURL = fmt.Sprintf("%s/%s", cfg.BasePath, event.Upload.ID)
-				}
-
-				// Dispatch to specific module
-				err := hook.HandleUpload(context.Background(), UploadEvent{
-					UploadID: event.Upload.ID,
-					FileURL:  fileURL,
-					Metadata: meta,
-				})
-				if err != nil {
-					if log != nil {
-						log.Errorf("Hook error for %s: %v", uploadType, err)
-					} else {
-						fmt.Printf("Hook error for %s: %v\n", uploadType, err)
-					}
-					cleanupFailedCompletedUpload(context.Background(), store, event.Upload.ID, log)
-				}
-			}
+			dispatchCompletedUpload(context.Background(), cfg, registry, store, event, log)
 		}
 	}()
 
 	return tusHandler, nil
+}
+
+func dispatchCompletedUpload(ctx context.Context, cfg Config, registry *Registry, store handler.DataStore, event handler.HookEvent, log *logrus.Logger) {
+	if registry == nil {
+		return
+	}
+	meta := event.Upload.MetaData
+	uploadType := meta["type"]
+
+	hook := registry.Get(uploadType)
+	if hook == nil {
+		return
+	}
+
+	var fileURL string
+	if cfg.StorageDriver == "s3" {
+		fileURL = fmt.Sprintf("%s/%s/%s", cfg.S3Endpoint, cfg.S3Bucket, event.Upload.ID)
+	} else {
+		fileURL = fmt.Sprintf("%s/%s", cfg.BasePath, event.Upload.ID)
+	}
+
+	start := time.Now()
+	// Dispatch to specific module
+	err := hook.HandleUpload(ctx, UploadEvent{
+		UploadID: event.Upload.ID,
+		FileURL:  fileURL,
+		Metadata: meta,
+	})
+	duration := time.Since(start)
+
+	status := "success"
+	if err != nil {
+		status = "error"
+		if log != nil {
+			log.Errorf("Hook error for %s: %v", uploadType, err)
+		} else {
+			fmt.Printf("Hook error for %s: %v\n", uploadType, err)
+		}
+		cleanupFailedCompletedUpload(ctx, store, event.Upload.ID, log)
+	}
+
+	telemetry.RecordTUSUpload(cfg.StorageDriver, status, event.Upload.Size, duration)
 }
 
 func cleanupFailedCompletedUpload(ctx context.Context, store handler.DataStore, uploadID string, log *logrus.Logger) {

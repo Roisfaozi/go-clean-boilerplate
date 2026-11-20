@@ -25,8 +25,10 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/constants"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/jwt"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/go-redis/redismock/v9"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -383,6 +385,7 @@ func TestHTTPRateLimitMiddlewareRedis(t *testing.T) {
 	})
 
 	t.Run("blocks over limit with 429 and Retry-After", func(t *testing.T) {
+		beforeIPRejections := testutil.ToFloat64(telemetry.RateLimitRejectionsTotal.WithLabelValues("ip"))
 		rdb, redMock := redismock.NewClientMock()
 		redMock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:ip:203.0.113.11"}, 60).SetVal(int64(6))
 
@@ -399,6 +402,27 @@ func TestHTTPRateLimitMiddlewareRedis(t *testing.T) {
 		assert.Equal(t, "5", w.Header().Get("X-RateLimit-Limit"))
 		assert.Equal(t, "0", w.Header().Get("X-RateLimit-Remaining"))
 		assert.Equal(t, "60", w.Header().Get("Retry-After"))
+		assert.Equal(t, beforeIPRejections+1, testutil.ToFloat64(telemetry.RateLimitRejectionsTotal.WithLabelValues("ip")))
+		require.NoError(t, redMock.ExpectationsWereMet())
+	})
+
+	t.Run("blocks LimiterTypeUser over limit and records user rejection metric", func(t *testing.T) {
+		beforeUserRejections := testutil.ToFloat64(telemetry.RateLimitRejectionsTotal.WithLabelValues("user"))
+		rdb, redMock := redismock.NewClientMock()
+		redMock.ExpectEvalSha(rateLimitScript.Hash(), []string{"rate_limit:user:user-99"}, 60).SetVal(int64(11))
+
+		h := HTTPRateLimitMiddlewareRedis(rdb, log, LimiterTypeUser, 10, 60)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.RemoteAddr = "203.0.113.14:1234"
+		req = req.WithContext(delivery.SetContextValue(req.Context(), delivery.UserIDKey, "user-99"))
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusTooManyRequests, w.Code)
+		assert.Equal(t, beforeUserRejections+1, testutil.ToFloat64(telemetry.RateLimitRejectionsTotal.WithLabelValues("user")))
 		require.NoError(t, redMock.ExpectationsWereMet())
 	})
 
@@ -461,6 +485,7 @@ func TestHTTPRateLimitMiddlewareMemory(t *testing.T) {
 	}
 
 	// 3rd request blocked with 429 and headers
+	beforeMemoryRejections := testutil.ToFloat64(telemetry.RateLimitRejectionsTotal.WithLabelValues("memory"))
 	req3 := httptest.NewRequest(http.MethodGet, "/mem", nil)
 	req3.RemoteAddr = "198.51.100.1:1000"
 	w3 := httptest.NewRecorder()
@@ -468,6 +493,7 @@ func TestHTTPRateLimitMiddlewareMemory(t *testing.T) {
 	assert.Equal(t, http.StatusTooManyRequests, w3.Code)
 	assert.Equal(t, "0", w3.Header().Get("X-RateLimit-Remaining"))
 	assert.Equal(t, "1", w3.Header().Get("Retry-After"))
+	assert.Equal(t, beforeMemoryRejections+1, testutil.ToFloat64(telemetry.RateLimitRejectionsTotal.WithLabelValues("memory")))
 
 	// Different IP is isolated and allowed
 	reqOther := httptest.NewRequest(http.MethodGet, "/mem", nil)

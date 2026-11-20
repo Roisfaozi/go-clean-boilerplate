@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	auditEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
@@ -38,8 +39,27 @@ func (h *OutboxTaskHandler) ProcessAuditOutbox(ctx context.Context, t *asynq.Tas
 	telemetry.SetAuditOutboxPending(int64(len(entries)))
 
 	if len(entries) == 0 {
+		telemetry.SetAuditOutboxOldestAgeSeconds(0)
 		h.log.Debug("No pending audit outbox entries found.")
 		return nil
+	}
+
+	var minCreatedAt int64
+	for _, entry := range entries {
+		if entry != nil && entry.CreatedAt > 0 {
+			if minCreatedAt == 0 || entry.CreatedAt < minCreatedAt {
+				minCreatedAt = entry.CreatedAt
+			}
+		}
+	}
+	if minCreatedAt > 0 {
+		age := time.Since(time.UnixMilli(minCreatedAt)).Seconds()
+		if age < 0 {
+			age = 0
+		}
+		telemetry.SetAuditOutboxOldestAgeSeconds(age)
+	} else {
+		telemetry.SetAuditOutboxOldestAgeSeconds(0)
 	}
 
 	successCount := 0

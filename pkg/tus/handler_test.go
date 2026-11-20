@@ -6,7 +6,11 @@ import (
 	"io"
 	"testing"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tus/tusd/v2/pkg/handler"
 )
 
@@ -101,5 +105,107 @@ func TestCleanupFailedCompletedUpload(t *testing.T) {
 			cleanupFailedCompletedUpload(context.Background(), store, "upload-1", nil)
 		})
 		assert.False(t, upload.terminated)
+	})
+}
+
+type stubUploadHook struct {
+	err       error
+	lastEvent UploadEvent
+}
+
+func (h *stubUploadHook) HandleUpload(ctx context.Context, event UploadEvent) error {
+	h.lastEvent = event
+	return h.err
+}
+
+func TestDispatchCompletedUpload_Telemetry(t *testing.T) {
+	t.Run("records success metrics for local driver", func(t *testing.T) {
+		beforeLocalSuccess := testutil.ToFloat64(telemetry.StorageUploadsTotal.WithLabelValues("local", "success"))
+		hook := &stubUploadHook{}
+		registry := NewRegistry()
+		registry.Register("avatar", hook)
+
+		cfg := Config{
+			StorageDriver: "local",
+			BasePath:      "/api/v1/uploads",
+		}
+		event := handler.HookEvent{
+			Upload: handler.FileInfo{
+				ID:   "up-123",
+				Size: 4096,
+				MetaData: handler.MetaData{
+					"type": "avatar",
+				},
+			},
+		}
+
+		dispatchCompletedUpload(context.Background(), cfg, registry, &fakeCoreStore{}, event, nil)
+
+		assert.Equal(t, "up-123", hook.lastEvent.UploadID)
+		assert.Equal(t, "/api/v1/uploads/up-123", hook.lastEvent.FileURL)
+		assert.Equal(t, beforeLocalSuccess+1, testutil.ToFloat64(telemetry.StorageUploadsTotal.WithLabelValues("local", "success")))
+
+		families, err := prometheus.DefaultGatherer.Gather()
+		require.NoError(t, err)
+		var sizeCount, durCount uint64
+		for _, mf := range families {
+			if mf.GetName() == "app_tus_upload_size_bytes" {
+				for _, m := range mf.GetMetric() {
+					for _, l := range m.GetLabel() {
+						if l.GetName() == "driver" && l.GetValue() == "local" {
+							sizeCount = m.GetHistogram().GetSampleCount()
+						}
+					}
+				}
+			}
+			if mf.GetName() == "app_tus_upload_duration_seconds" {
+				for _, m := range mf.GetMetric() {
+					var isLocal, isSuccess bool
+					for _, l := range m.GetLabel() {
+						if l.GetName() == "driver" && l.GetValue() == "local" {
+							isLocal = true
+						}
+						if l.GetName() == "status" && l.GetValue() == "success" {
+							isSuccess = true
+						}
+					}
+					if isLocal && isSuccess {
+						durCount = m.GetHistogram().GetSampleCount()
+					}
+				}
+			}
+		}
+		assert.GreaterOrEqual(t, sizeCount, uint64(1))
+		assert.GreaterOrEqual(t, durCount, uint64(1))
+	})
+
+	t.Run("records error metrics and cleans up on hook failure for s3 driver", func(t *testing.T) {
+		beforeS3Error := testutil.ToFloat64(telemetry.StorageUploadsTotal.WithLabelValues("s3", "error"))
+		hook := &stubUploadHook{err: errors.New("hook failed")}
+		registry := NewRegistry()
+		registry.Register("avatar", hook)
+
+		upload := &fakeTerminatableUpload{}
+		store := &fakeTerminatableStore{upload: upload}
+		cfg := Config{
+			StorageDriver: "s3",
+			S3Endpoint:    "https://s3.example.com",
+			S3Bucket:      "assets",
+		}
+		event := handler.HookEvent{
+			Upload: handler.FileInfo{
+				ID:   "up-err",
+				Size: 8192,
+				MetaData: handler.MetaData{
+					"type": "avatar",
+				},
+			},
+		}
+
+		dispatchCompletedUpload(context.Background(), cfg, registry, store, event, nil)
+
+		assert.True(t, upload.terminated)
+		assert.Equal(t, "https://s3.example.com/assets/up-err", hook.lastEvent.FileURL)
+		assert.Equal(t, beforeS3Error+1, testutil.ToFloat64(telemetry.StorageUploadsTotal.WithLabelValues("s3", "error")))
 	})
 }

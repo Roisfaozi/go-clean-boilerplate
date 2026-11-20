@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -119,6 +120,59 @@ var (
 			Help: "Number of pending audit outbox entries observed in the latest worker batch",
 		},
 	)
+
+	AuditOutboxOldestAgeSeconds = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "app_audit_outbox_oldest_age_seconds",
+			Help: "Age in seconds of the oldest pending audit outbox entry observed in the latest worker batch",
+		},
+	)
+
+	// Redis operation metrics
+	RedisOperationsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "app_redis_operations_total",
+			Help: "Total number of Redis operations by bounded command and status",
+		},
+		[]string{"cmd", "status"},
+	)
+
+	RedisOperationDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "app_redis_operation_duration_seconds",
+			Help:    "Duration of Redis operations in seconds",
+			Buckets: []float64{.0005, .001, .0025, .005, .01, .025, .05, .1, .25, .5, 1, 2.5},
+		},
+		[]string{"cmd", "status"},
+	)
+
+	// Rate-limit rejection metrics
+	RateLimitRejectionsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "app_rate_limit_rejections_total",
+			Help: "Total number of HTTP requests rejected by rate limiters",
+		},
+		[]string{"limiter"},
+	)
+
+	// TUS upload metrics
+	TUSUploadSizeBytes = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "app_tus_upload_size_bytes",
+			Help:    "Size of completed TUS uploads in bytes",
+			Buckets: []float64{1024, 10240, 102400, 1048576, 5242880, 10485760, 52428800, 104857600},
+		},
+		[]string{"driver"},
+	)
+
+	TUSUploadDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "app_tus_upload_duration_seconds",
+			Help:    "Duration of TUS upload completion hook handling in seconds",
+			Buckets: []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 30},
+		},
+		[]string{"driver", "status"},
+	)
 )
 
 // RecordWebhookDelivery records a webhook delivery attempt with a bounded outcome label.
@@ -159,6 +213,88 @@ func IncWSSendDrop() {
 // SetAuditOutboxPending sets the current number of pending audit outbox entries.
 func SetAuditOutboxPending(count int64) {
 	AuditOutboxPending.Set(float64(count))
+}
+
+// SetAuditOutboxOldestAgeSeconds sets the age in seconds of the oldest pending audit outbox entry.
+func SetAuditOutboxOldestAgeSeconds(seconds float64) {
+	if seconds < 0 {
+		seconds = 0
+	}
+	AuditOutboxOldestAgeSeconds.Set(seconds)
+}
+
+// RecordRedisOperation records a Redis command execution with bounded command and status labels.
+func RecordRedisOperation(cmd, status string, duration time.Duration) {
+	normalizedCmd := normalizeRedisCmd(cmd)
+	normalizedStatus := normalizeRedisStatus(status)
+	if duration < 0 {
+		duration = 0
+	}
+	RedisOperationsTotal.WithLabelValues(normalizedCmd, normalizedStatus).Inc()
+	RedisOperationDuration.WithLabelValues(normalizedCmd, normalizedStatus).Observe(duration.Seconds())
+}
+
+func normalizeRedisCmd(cmd string) string {
+	switch strings.ToLower(strings.TrimSpace(cmd)) {
+	case "get", "set", "del", "getdel", "setnx", "expire", "ttl", "incr",
+		"eval", "evalsha", "sadd", "srem", "smembers", "scard",
+		"zadd", "zremrangebyscore", "zrange", "exists", "ping", "pipeline":
+		return strings.ToLower(strings.TrimSpace(cmd))
+	default:
+		return "other"
+	}
+}
+
+func normalizeRedisStatus(status string) string {
+	switch status {
+	case "ok", "miss", "error":
+		return status
+	default:
+		return "error"
+	}
+}
+
+// RecordRateLimitRejection increments the rate-limit rejection counter for a bounded limiter type.
+func RecordRateLimitRejection(limiter string) {
+	RateLimitRejectionsTotal.WithLabelValues(normalizeRateLimiter(limiter)).Inc()
+}
+
+func normalizeRateLimiter(limiter string) string {
+	switch limiter {
+	case "ip", "user", "memory":
+		return limiter
+	default:
+		return "other"
+	}
+}
+
+// RecordTUSUpload records completion metrics for a TUS upload using bounded driver and status labels.
+func RecordTUSUpload(driver, status string, sizeBytes int64, duration time.Duration) {
+	normalizedDriver := normalizeTUSDriver(driver)
+	normalizedStatus := normalizeTUSStatus(status)
+	if sizeBytes < 0 {
+		sizeBytes = 0
+	}
+	if duration < 0 {
+		duration = 0
+	}
+	StorageUploadsTotal.WithLabelValues(normalizedDriver, normalizedStatus).Inc()
+	TUSUploadSizeBytes.WithLabelValues(normalizedDriver).Observe(float64(sizeBytes))
+	TUSUploadDuration.WithLabelValues(normalizedDriver, normalizedStatus).Observe(duration.Seconds())
+}
+
+func normalizeTUSDriver(driver string) string {
+	if driver == "s3" {
+		return "s3"
+	}
+	return "local"
+}
+
+func normalizeTUSStatus(status string) string {
+	if status == "success" {
+		return "success"
+	}
+	return "error"
 }
 
 type dbStatsCollector struct {
