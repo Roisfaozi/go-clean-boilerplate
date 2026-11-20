@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/gomail.v2"
@@ -54,6 +56,7 @@ func (h *EmailTaskHandler) ProcessTaskSendEmail(ctx context.Context, task *asynq
 		return fmt.Errorf("failed to unmarshal task payload: %w", err)
 	}
 
+	start := time.Now()
 	maskedTo := MaskEmail(payload.To)
 	h.logger.WithContext(ctx).Infof("Sending real email to %s via %s:%d", maskedTo, h.cfg.Host, h.cfg.Port)
 
@@ -66,10 +69,12 @@ func (h *EmailTaskHandler) ProcessTaskSendEmail(ctx context.Context, task *asynq
 	d := gomail.NewDialer(h.cfg.Host, h.cfg.Port, h.cfg.Username, h.cfg.Password)
 
 	if err := d.DialAndSend(m); err != nil {
+		telemetry.RecordEmailDelivery("error", time.Since(start))
 		h.logger.WithContext(ctx).Errorf("Failed to send email to %s: %v", maskedTo, err)
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
+	telemetry.RecordEmailDelivery("success", time.Since(start))
 	h.logger.WithContext(ctx).Infof("SUCCESS: Email sent to %s", maskedTo)
 	return nil
 }

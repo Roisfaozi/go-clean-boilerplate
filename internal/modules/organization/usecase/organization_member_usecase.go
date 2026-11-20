@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/entity"
@@ -25,7 +26,13 @@ import (
 	wsPkg "github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/singleflight"
 )
+
+type keyedInviteMutex struct {
+	mu   sync.Mutex
+	refs int
+}
 
 type organizationMemberUseCase struct {
 	log             *logrus.Logger
@@ -40,6 +47,37 @@ type organizationMemberUseCase struct {
 	orgReader       IOrganizationReader
 	frontendBaseURL string
 	roleRepo        roleRepo.RoleRepository
+
+	inviteLocksMu sync.Mutex
+	inviteLocks   map[string]*keyedInviteMutex
+	acceptGroup   singleflight.Group
+}
+
+func (uc *organizationMemberUseCase) lockInviteTarget(orgID, email string) func() {
+	key := orgID + ":" + strings.ToLower(strings.TrimSpace(email))
+
+	uc.inviteLocksMu.Lock()
+	if uc.inviteLocks == nil {
+		uc.inviteLocks = make(map[string]*keyedInviteMutex)
+	}
+	entry, ok := uc.inviteLocks[key]
+	if !ok {
+		entry = &keyedInviteMutex{}
+		uc.inviteLocks[key] = entry
+	}
+	entry.refs++
+	uc.inviteLocksMu.Unlock()
+
+	entry.mu.Lock()
+	return func() {
+		entry.mu.Unlock()
+		uc.inviteLocksMu.Lock()
+		entry.refs--
+		if entry.refs == 0 {
+			delete(uc.inviteLocks, key)
+		}
+		uc.inviteLocksMu.Unlock()
+	}
 }
 
 // PresenceReader defines the read-only presence operations to avoid circular dependency
@@ -93,6 +131,9 @@ func (uc *organizationMemberUseCase) resolveOrganizationRole(ctx context.Context
 
 // InviteMember invites a user to an organization
 func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID string, request *model.InviteMemberRequest) (*model.MemberResponse, error) {
+	unlock := uc.lockInviteTarget(orgID, request.Email)
+	defer unlock()
+
 	var result *model.MemberResponse
 	var targetUserID string
 
@@ -239,6 +280,8 @@ func (uc *organizationMemberUseCase) GetMembers(ctx context.Context, orgID strin
 // UpdateMember updates a member's role or status
 func (uc *organizationMemberUseCase) UpdateMember(ctx context.Context, orgID, userID string, request *model.UpdateMemberRequest) (*model.MemberResponse, error) {
 	var result *model.MemberResponse
+	roleChanged := false
+	statusChanged := false
 
 	err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
 		org, _, _, err := uc.authorizeMemberManagement(txCtx, orgID)
@@ -276,22 +319,25 @@ func (uc *organizationMemberUseCase) UpdateMember(ctx context.Context, orgID, us
 			return exception.ErrInternalServer
 		}
 
-		// Update role if provided
-		if newRole != nil {
+		roleChanged = newRole != nil && member.RoleID != newRole.ID
+		statusChanged = request.Status != "" && member.Status != request.Status
+
+		// Update role if changed
+		if roleChanged {
 			if err := uc.memberRepo.UpdateMemberRole(txCtx, orgID, userID, newRole.ID); err != nil {
 				return err
 			}
 		}
 
-		// Update status if provided
-		if request.Status != "" {
+		// Update status if changed
+		if statusChanged {
 			if err := uc.memberRepo.UpdateMemberStatus(txCtx, orgID, userID, request.Status); err != nil {
 				return err
 			}
 		}
 
 		// Update Casbin grouping policy if role changed
-		if newRole != nil && uc.enforcer != nil {
+		if roleChanged && uc.enforcer != nil {
 			enf := uc.enforcer.WithContext(txCtx)
 			if _, err := enf.RemoveFilteredGroupingPolicy(0, userID, oldRoleName, orgID); err != nil {
 				uc.log.WithError(err).Error("Failed to remove old Casbin grouping policy")
@@ -322,128 +368,140 @@ func (uc *organizationMemberUseCase) UpdateMember(ctx context.Context, orgID, us
 		return nil, err
 	}
 
-	uc.reloadPolicyAfterCommit(ctx)
-	uc.invalidateMembershipCache(ctx, orgID, userID)
+	if roleChanged {
+		uc.reloadPolicyAfterCommit(ctx)
+	}
+	if roleChanged || statusChanged {
+		uc.invalidateMembershipCache(ctx, orgID, userID)
+	}
 
 	return result, nil
 }
 
 // AcceptInvitation accepts an invitation and activates the user if needed
 func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, request *model.AcceptInvitationRequest) error {
-	var orgID string
-	var userID string
+	_, err, _ := uc.acceptGroup.Do(request.Token, func() (interface{}, error) {
+		var orgID string
+		var userID string
+		policyChanged := false
 
-	err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
-		// 1. Find Invitation
-		invitation, err := uc.invitationRepo.FindByToken(txCtx, request.Token)
-		if err != nil {
-			return exception.ErrUnauthorized // Token invalid or not found
-		}
-		if invitation == nil {
-			return exception.ErrUnauthorized
-		}
-
-		// 2. Check Expiry
-		if invitation.ExpiresAt < time.Now().UnixMilli() {
-			return exception.ErrUnauthorized // Token expired
-		}
-
-		// 3. Find User
-		user, err := uc.userRepo.FindByEmail(txCtx, invitation.Email)
-		if err != nil {
-			return err
-		}
-		if user == nil {
-			// Should not happen if invitation exists, as we create shadow user.
-			return exception.ErrNotFound
-		}
-
-		// 4. Update User if it's a shadow user (status "invited")
-		// NOTE: Assuming "invited" status. If user is already active, we just link to org.
-		if user.Status == "invited" {
-			if request.Password == "" {
-				return exception.ErrBadRequest // Password required for new user
+		err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+			// 1. Find Invitation
+			invitation, err := uc.invitationRepo.FindByToken(txCtx, request.Token)
+			if err != nil {
+				return exception.ErrUnauthorized // Token invalid or not found
+			}
+			if invitation == nil {
+				return exception.ErrUnauthorized
 			}
 
-			hash, err := pkgUtil.HashPassword(request.Password)
+			// 2. Check Expiry
+			if invitation.ExpiresAt < time.Now().UnixMilli() {
+				return exception.ErrUnauthorized // Token expired
+			}
+
+			// 3. Find User
+			user, err := uc.userRepo.FindByEmail(txCtx, invitation.Email)
+			if err != nil {
+				return err
+			}
+			if user == nil {
+				// Should not happen if invitation exists, as we create shadow user.
+				return exception.ErrNotFound
+			}
+
+			// 4. Update User if it's a shadow user (status "invited")
+			// NOTE: Assuming "invited" status. If user is already active, we just link to org.
+			if user.Status == "invited" {
+				if request.Password == "" {
+					return exception.ErrBadRequest // Password required for new user
+				}
+
+				hash, err := pkgUtil.HashPassword(request.Password)
+				if err != nil {
+					return err
+				}
+
+				user.Password = hash
+				user.Status = "active"
+				if request.Name != "" {
+					user.Name = pkgUtil.SanitizeString(request.Name)
+				} else {
+					user.Name = user.Email // Default name
+				}
+				user.EmailVerifiedAt = new(int64)
+				*user.EmailVerifiedAt = time.Now().UnixMilli()
+
+				if err := uc.userRepo.Update(txCtx, user); err != nil {
+					return err
+				}
+			}
+
+			// 5. Resolve role to get role.Name for Casbin and role.ID for DB
+			role, err := uc.resolveOrganizationRole(txCtx, invitation.OrganizationID, invitation.RoleID)
+			if err != nil {
+				uc.log.WithContext(txCtx).Warnf("Failed to resolve organization role %s for invitation: %v", invitation.RoleID, err)
+				return exception.ErrUnauthorized
+			}
+
+			memberStatus, err := uc.memberRepo.GetMemberStatus(txCtx, invitation.OrganizationID, user.ID)
 			if err != nil {
 				return err
 			}
 
-			user.Password = hash
-			user.Status = "active"
-			if request.Name != "" {
-				user.Name = pkgUtil.SanitizeString(request.Name)
-			} else {
-				user.Name = user.Email // Default name
-			}
-			user.EmailVerifiedAt = new(int64)
-			*user.EmailVerifiedAt = time.Now().UnixMilli()
-
-			if err := uc.userRepo.Update(txCtx, user); err != nil {
-				return err
-			}
-		}
-
-		// 5. Resolve role to get role.Name for Casbin and role.ID for DB
-		role, err := uc.resolveOrganizationRole(txCtx, invitation.OrganizationID, invitation.RoleID)
-		if err != nil {
-			uc.log.WithContext(txCtx).Warnf("Failed to resolve organization role %s for invitation: %v", invitation.RoleID, err)
-			return exception.ErrUnauthorized
-		}
-
-		memberStatus, err := uc.memberRepo.GetMemberStatus(txCtx, invitation.OrganizationID, user.ID)
-		if err != nil {
-			return err
-		}
-
-		switch memberStatus {
-		case entity.MemberStatusInvited:
-			if err := uc.memberRepo.UpdateMemberStatus(txCtx, invitation.OrganizationID, user.ID, entity.MemberStatusActive); err != nil {
-				return err
-			}
-			if uc.enforcer != nil {
-				if _, err := uc.enforcer.WithContext(txCtx).AddGroupingPolicy(user.ID, role.Name, invitation.OrganizationID); err != nil {
-					uc.log.WithError(err).Error("Failed to add Casbin grouping policy on accept")
-					return exception.ErrInternalServer
+			switch memberStatus {
+			case entity.MemberStatusInvited:
+				if err := uc.memberRepo.UpdateMemberStatus(txCtx, invitation.OrganizationID, user.ID, entity.MemberStatusActive); err != nil {
+					return err
+				}
+				if uc.enforcer != nil {
+					if _, err := uc.enforcer.WithContext(txCtx).AddGroupingPolicy(user.ID, role.Name, invitation.OrganizationID); err != nil {
+						uc.log.WithError(err).Error("Failed to add Casbin grouping policy on accept")
+						return exception.ErrInternalServer
+					}
+					policyChanged = true
+				}
+			case "":
+				member := &entity.OrganizationMember{
+					ID:             uuid.New().String(),
+					OrganizationID: invitation.OrganizationID,
+					UserID:         user.ID,
+					RoleID:         role.ID,
+					Status:         entity.MemberStatusActive,
+				}
+				if err := uc.memberRepo.AddMember(txCtx, member); err != nil {
+					return err
+				}
+				if uc.enforcer != nil {
+					if _, err := uc.enforcer.WithContext(txCtx).AddGroupingPolicy(user.ID, role.Name, invitation.OrganizationID); err != nil {
+						uc.log.WithError(err).Error("Failed to add Casbin grouping policy on accept")
+						return exception.ErrInternalServer
+					}
+					policyChanged = true
 				}
 			}
-		case "":
-			member := &entity.OrganizationMember{
-				ID:             uuid.New().String(),
-				OrganizationID: invitation.OrganizationID,
-				UserID:         user.ID,
-				RoleID:         role.ID,
-				Status:         entity.MemberStatusActive,
-			}
-			if err := uc.memberRepo.AddMember(txCtx, member); err != nil {
+			// If already active, do not add duplicate policy, just clean up token.
+			orgID = invitation.OrganizationID
+			userID = user.ID
+
+			// 6. Delete Invitation
+			if err := uc.invitationRepo.Delete(txCtx, invitation.ID); err != nil {
 				return err
 			}
-			if uc.enforcer != nil {
-				if _, err := uc.enforcer.WithContext(txCtx).AddGroupingPolicy(user.ID, role.Name, invitation.OrganizationID); err != nil {
-					uc.log.WithError(err).Error("Failed to add Casbin grouping policy on accept")
-					return exception.ErrInternalServer
-				}
-			}
-		}
-		// If already active, do not add duplicate policy, just clean up token.
-		orgID = invitation.OrganizationID
-		userID = user.ID
 
-		// 6. Delete Invitation
-		if err := uc.invitationRepo.Delete(txCtx, invitation.ID); err != nil {
-			return err
+			return nil
+		})
+		if err != nil {
+			return nil, err
 		}
 
-		return nil
+		if policyChanged {
+			uc.reloadPolicyAfterCommit(ctx)
+		}
+		uc.invalidateMembershipCache(ctx, orgID, userID)
+		return nil, nil
 	})
-	if err != nil {
-		return err
-	}
-
-	uc.reloadPolicyAfterCommit(ctx)
-	uc.invalidateMembershipCache(ctx, orgID, userID)
-	return nil
+	return err
 }
 
 // RemoveMember removes a member from an organization

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -236,6 +237,7 @@ func (c *Client) sendJSON(data interface{}) {
 	select {
 	case c.Send <- payload:
 	default:
+		telemetry.IncWSSendDrop()
 		c.Log.Warnf("Client %s: Send buffer full, dropping message", c.ID)
 	}
 }

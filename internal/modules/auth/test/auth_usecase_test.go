@@ -2840,3 +2840,236 @@ func TestAuthUseCase_HandleSSOCallback_NewUser_AutoProvision(t *testing.T) {
 	deps.userRepo.AssertExpectations(t)
 	deps.orgRepo.AssertExpectations(t)
 }
+
+func TestRevokeToken_RepeatLogout_Idempotent(t *testing.T) {
+	t.Run("second logout on missing session is no-op", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		userID, sessionID := "user-repeat-1", "session-repeat-1"
+
+		deps.tokenRepo.On("GetToken", mock.Anything, userID, sessionID).Return(&model.Auth{ID: sessionID, UserID: userID}, nil).Once()
+		deps.tokenRepo.On("DeleteToken", mock.Anything, userID, sessionID).Return(nil).Once()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+			return req.UserID == userID && req.Action == "LOGOUT" && req.Entity == "Auth" && req.EntityID == sessionID
+		}), mock.Anything).Return(nil).Once()
+
+		deps.tokenRepo.On("GetToken", mock.Anything, userID, sessionID).Return(nil, nil).Once()
+
+		assert.NoError(t, authService.RevokeToken(context.Background(), userID, sessionID))
+		assert.NoError(t, authService.RevokeToken(context.Background(), userID, sessionID))
+
+		deps.tokenRepo.AssertNumberOfCalls(t, "DeleteToken", 1)
+		deps.taskDistributor.AssertNumberOfCalls(t, "DistributeTaskAuditLog", 1)
+	})
+
+	t.Run("logout when repo returns ErrNotFound is no-op", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		userID, sessionID := "user-repeat-2", "session-repeat-2"
+
+		deps.tokenRepo.On("GetToken", mock.Anything, userID, sessionID).Return(nil, exception.ErrNotFound).Once()
+
+		assert.NoError(t, authService.RevokeToken(context.Background(), userID, sessionID))
+		deps.tokenRepo.AssertNotCalled(t, "DeleteToken", mock.Anything, mock.Anything, mock.Anything)
+		deps.taskDistributor.AssertNotCalled(t, "DistributeTaskAuditLog", mock.Anything, mock.Anything)
+	})
+}
+
+func TestVerifyEmail_RepeatWhenAlreadyVerified_AndConcurrent(t *testing.T) {
+	t.Run("repeat verify on already verified user is predictable no-op", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		user, _ := createTestUser("password123")
+		verifiedAt := time.Now().Add(-10 * time.Minute).UnixMilli()
+		user.EmailVerifiedAt = &verifiedAt
+
+		token := "stale-verification-token"
+		tokenEntity := &authEntity.EmailVerificationToken{
+			Email:     user.Email,
+			Token:     token,
+			ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli(),
+		}
+
+		deps.tokenRepo.On("FindVerificationToken", mock.Anything, token).Return(tokenEntity, nil).Twice()
+		deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil).Twice()
+		deps.tokenRepo.On("DeleteVerificationTokenByEmail", mock.Anything, user.Email).Return(nil).Twice()
+
+		assert.NoError(t, authService.VerifyEmail(context.Background(), token))
+		assert.NoError(t, authService.VerifyEmail(context.Background(), token))
+
+		deps.userRepo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
+		deps.taskDistributor.AssertNotCalled(t, "DistributeTaskAuditLog", mock.Anything, mock.Anything)
+	})
+
+	t.Run("concurrent verify with same token executes once", func(t *testing.T) {
+		authService, deps := setupTest(t)
+		user, _ := createTestUser("password123")
+		user.EmailVerifiedAt = nil
+
+		token := "concurrent-verification-token"
+		tokenEntity := &authEntity.EmailVerificationToken{
+			Email:     user.Email,
+			Token:     token,
+			ExpiresAt: time.Now().Add(1 * time.Hour).UnixMilli(),
+		}
+
+		started := make(chan struct{})
+		release := make(chan struct{})
+		var updateCalls atomic.Int32
+
+		deps.tokenRepo.On("FindVerificationToken", mock.Anything, token).Run(func(args mock.Arguments) {
+			close(started)
+			<-release
+		}).Return(tokenEntity, nil).Once()
+		deps.userRepo.On("FindByEmail", mock.Anything, user.Email).Return(user, nil).Once()
+		deps.tm.On("WithinTransaction", mock.Anything, mock.AnythingOfType("func(context.Context) error")).
+			Run(func(args mock.Arguments) {
+				fn := args.Get(1).(func(context.Context) error)
+				_ = fn(context.Background())
+			}).Return(nil).Once()
+		deps.userRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.User")).
+			Run(func(args mock.Arguments) {
+				updateCalls.Add(1)
+			}).Return(nil).Once()
+		deps.tokenRepo.On("DeleteVerificationTokenByEmail", mock.Anything, user.Email).Return(nil).Once()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.MatchedBy(func(req auditModel.CreateAuditLogRequest) bool {
+			return req.Action == "EMAIL_VERIFIED" && req.UserID == user.ID
+		}), mock.Anything).Return(nil).Once()
+
+		var wg sync.WaitGroup
+		errs := make(chan error, 3)
+		wg.Add(3)
+		go func() {
+			defer wg.Done()
+			errs <- authService.VerifyEmail(context.Background(), token)
+		}()
+		<-started
+		for i := 0; i < 2; i++ {
+			go func() {
+				defer wg.Done()
+				errs <- authService.VerifyEmail(context.Background(), token)
+			}()
+		}
+		time.Sleep(20 * time.Millisecond)
+		close(release)
+		wg.Wait()
+		close(errs)
+
+		for err := range errs {
+			assert.NoError(t, err)
+		}
+		assert.Equal(t, int32(1), updateCalls.Load())
+	})
+}
+
+func TestAuthUseCase_SSOState_OneTimeConsumption(t *testing.T) {
+	t.Run("valid state consumed once and rejected on replay", func(t *testing.T) {
+		uc, deps := setupTest(t)
+
+		token := &oauth2.Token{AccessToken: "token"}
+		userInfo := &sso.UserInfo{Email: "sso@example.com", ProviderID: "gh-99", Name: "SSO User"}
+		state := "one-time-state-token"
+
+		ssoProvider := mock_auth.NewMockProvider(t)
+		ssoProvider.On("GetLoginURL", state).Return("https://github.com/login?state=" + state).Once()
+		ssoProvider.On("ExchangeCode", mock.Anything, "code-1").Return(token, nil).Once()
+		ssoProvider.On("GetUserInfo", mock.Anything, token).Return(userInfo, nil).Once()
+		deps.ssoProviders["github"] = ssoProvider
+
+		ssoIdentity := &entity.UserSSOIdentity{UserID: TestUserID, Provider: "github", ProviderID: "gh-99"}
+		deps.userRepo.On("FindBySSOIdentity", mock.Anything, "github", "gh-99").Return(ssoIdentity, nil).Once()
+		usr := &entity.User{ID: TestUserID, Email: "sso@example.com", Status: entity.UserStatusActive}
+		deps.userRepo.On("FindByID", mock.Anything, TestUserID).Return(usr, nil).Once()
+		deps.authz.On("GetRolesForUser", mock.Anything, TestUserID, "").Return([]string{"role:user"}, nil).Once()
+		deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil).Once()
+		deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, usr.Email).Return(nil).Once()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+
+		redirectURL, err := uc.GetSSORedirectURL(context.Background(), "github", state)
+		assert.NoError(t, err)
+		assert.Contains(t, redirectURL, state)
+
+		// First callback with issued state succeeds and consumes state immediately.
+		ctxWithState := usecase.WithSSOState(context.Background(), state)
+		res, refresh, err := uc.HandleSSOCallback(ctxWithState, "github", "code-1")
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+		assert.NotEmpty(t, refresh)
+
+		// Second callback reusing the same state must fail with Unauthorized before ExchangeCode.
+		res2, refresh2, err := uc.HandleSSOCallback(ctxWithState, "github", "code-2")
+		assert.ErrorIs(t, err, exception.ErrUnauthorized)
+		assert.Nil(t, res2)
+		assert.Empty(t, refresh2)
+		ssoProvider.AssertNotCalled(t, "ExchangeCode", mock.Anything, "code-2")
+	})
+
+	t.Run("unknown provider mismatch or empty state rejected", func(t *testing.T) {
+		uc, deps := setupTest(t)
+
+		githubProvider := mock_auth.NewMockProvider(t)
+		googleProvider := mock_auth.NewMockProvider(t)
+		githubProvider.On("GetLoginURL", "gh-state").Return("https://github.com/login?state=gh-state").Once()
+		deps.ssoProviders["github"] = githubProvider
+		deps.ssoProviders["google"] = googleProvider
+
+		_, err := uc.GetSSORedirectURL(context.Background(), "github", "gh-state")
+		assert.NoError(t, err)
+
+		// Cross-provider state replay must fail.
+		_, _, err = uc.HandleSSOCallback(usecase.WithSSOState(context.Background(), "gh-state"), "google", "code-x")
+		assert.ErrorIs(t, err, exception.ErrUnauthorized)
+
+		// Forged or empty state must fail.
+		_, _, err = uc.HandleSSOCallback(usecase.WithSSOState(context.Background(), "forged-state"), "github", "code-x")
+		assert.ErrorIs(t, err, exception.ErrUnauthorized)
+		_, _, err = uc.HandleSSOCallback(usecase.WithSSOState(context.Background(), ""), "github", "code-x")
+		assert.ErrorIs(t, err, exception.ErrUnauthorized)
+
+		googleProvider.AssertNotCalled(t, "ExchangeCode", mock.Anything, mock.Anything)
+		githubProvider.AssertNotCalled(t, "ExchangeCode", mock.Anything, mock.Anything)
+	})
+
+	t.Run("concurrent callbacks with same state allow only one winner", func(t *testing.T) {
+		uc, deps := setupTest(t)
+
+		token := &oauth2.Token{AccessToken: "token"}
+		userInfo := &sso.UserInfo{Email: "race@example.com", ProviderID: "gh-race", Name: "Race User"}
+		state := "concurrent-sso-state"
+
+		ssoProvider := mock_auth.NewMockProvider(t)
+		ssoProvider.On("GetLoginURL", state).Return("https://github.com/login?state=" + state).Once()
+		ssoProvider.On("ExchangeCode", mock.Anything, "race-code").Return(token, nil).Once()
+		ssoProvider.On("GetUserInfo", mock.Anything, token).Return(userInfo, nil).Once()
+		deps.ssoProviders["github"] = ssoProvider
+
+		ssoIdentity := &entity.UserSSOIdentity{UserID: TestUserID, Provider: "github", ProviderID: "gh-race"}
+		deps.userRepo.On("FindBySSOIdentity", mock.Anything, "github", "gh-race").Return(ssoIdentity, nil).Once()
+		usr := &entity.User{ID: TestUserID, Email: "race@example.com", Status: entity.UserStatusActive}
+		deps.userRepo.On("FindByID", mock.Anything, TestUserID).Return(usr, nil).Once()
+		deps.authz.On("GetRolesForUser", mock.Anything, TestUserID, "").Return([]string{"role:user"}, nil).Once()
+		deps.tokenRepo.On("StoreToken", mock.Anything, mock.AnythingOfType("*model.Auth")).Return(nil).Once()
+		deps.tokenRepo.On("ResetLoginAttempts", mock.Anything, usr.Email).Return(nil).Once()
+		deps.taskDistributor.On("DistributeTaskAuditLog", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+
+		_, err := uc.GetSSORedirectURL(context.Background(), "github", state)
+		assert.NoError(t, err)
+
+		const workers = 5
+		var successes, unauthorized atomic.Int32
+		var wg sync.WaitGroup
+		wg.Add(workers)
+		for i := 0; i < workers; i++ {
+			go func() {
+				defer wg.Done()
+				res, _, cbErr := uc.HandleSSOCallback(usecase.WithSSOState(context.Background(), state), "github", "race-code")
+				if cbErr == nil && res != nil {
+					successes.Add(1)
+				} else if errors.Is(cbErr, exception.ErrUnauthorized) {
+					unauthorized.Add(1)
+				}
+			}()
+		}
+		wg.Wait()
+
+		assert.Equal(t, int32(1), successes.Load(), "exactly one callback may consume the SSO state")
+		assert.Equal(t, int32(workers-1), unauthorized.Load(), "replayed callbacks must be rejected with ErrUnauthorized")
+	})
+}

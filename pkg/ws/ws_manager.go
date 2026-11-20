@@ -280,6 +280,7 @@ func (m *WebSocketManager) handleBroadcast(msg *BroadcastMessage) {
 			case client.Send <- payload:
 				count++
 			default:
+				telemetry.IncWSSendDrop()
 				m.log.Warnf("Failed to Send message to client %s (buffer full)", client.ID)
 			}
 		}

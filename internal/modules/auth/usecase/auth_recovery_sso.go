@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
@@ -20,6 +21,91 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
+
+const (
+	defaultSSOStateTTL   = 5 * time.Minute
+	defaultMaxSSOStates  = 10000
+	verifyEmailFlightKey = "verify:"
+	ssoCallbackFlightKey = "sso:"
+)
+
+type ssoStateContextKey struct{}
+
+// WithSSOState attaches an OAuth2 state value to ctx so HandleSSOCallback can enforce strict one-time consumption.
+func WithSSOState(ctx context.Context, state string) context.Context {
+	return context.WithValue(ctx, ssoStateContextKey{}, state)
+}
+
+func ssoStateFromContext(ctx context.Context) (string, bool) {
+	if ctx == nil {
+		return "", false
+	}
+	state, ok := ctx.Value(ssoStateContextKey{}).(string)
+	return state, ok
+}
+
+type ssoStateStore struct {
+	mu      sync.Mutex
+	entries map[string]time.Time
+}
+
+var serviceSSOStateStores sync.Map // map[*Service]*ssoStateStore
+
+func getSSOStateStore(s *Service) *ssoStateStore {
+	if store, ok := serviceSSOStateStores.Load(s); ok {
+		return store.(*ssoStateStore)
+	}
+	created := &ssoStateStore{entries: make(map[string]time.Time)}
+	actual, _ := serviceSSOStateStores.LoadOrStore(s, created)
+	return actual.(*ssoStateStore)
+}
+
+func (st *ssoStateStore) record(providerName, state string, now time.Time, ttl time.Duration) {
+	key := providerName + ":" + state
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
+	for k, exp := range st.entries {
+		if !exp.After(now) {
+			delete(st.entries, k)
+		}
+	}
+	if _, exists := st.entries[key]; !exists && len(st.entries) >= defaultMaxSSOStates {
+		var oldestKey string
+		var oldestExp time.Time
+		first := true
+		for k, exp := range st.entries {
+			if first || exp.Before(oldestExp) {
+				oldestKey = k
+				oldestExp = exp
+				first = false
+			}
+		}
+		if !first {
+			delete(st.entries, oldestKey)
+		}
+	}
+	st.entries[key] = now.Add(ttl)
+}
+
+// consume atomically validates and deletes the state entry on first read (strictly one-time use).
+func (st *ssoStateStore) consume(providerName, state string, now time.Time) bool {
+	key := providerName + ":" + state
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
+	exp, ok := st.entries[key]
+	if !ok {
+		return false
+	}
+	delete(st.entries, key)
+	return exp.After(now)
+}
+
+type ssoCallbackResult struct {
+	loginResponse *model.LoginResponse
+	refreshToken  string
+}
 
 func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 	b := make([]byte, 16)
@@ -177,49 +263,53 @@ func (s *Service) RequestVerification(ctx context.Context, userID string) error 
 }
 
 func (s *Service) VerifyEmail(ctx context.Context, token string) error {
-	verificationToken, err := s.tokenRepo.FindVerificationToken(ctx, token)
-	if err != nil {
-		return ErrInvalidVerificationToken
-	}
-
-	now := time.Now().UnixMilli()
-	if now > verificationToken.ExpiresAt {
-		_ = s.tokenRepo.DeleteVerificationTokenByEmail(ctx, verificationToken.Email)
-		return ErrInvalidVerificationToken
-	}
-
-	user, err := s.userRepo.FindByEmail(ctx, verificationToken.Email)
-	if err != nil {
-		return ErrInvalidVerificationToken
-	}
-
-	if user.EmailVerifiedAt != nil {
-		_ = s.tokenRepo.DeleteVerificationTokenByEmail(ctx, verificationToken.Email)
-		return nil
-	}
-
-	user.EmailVerifiedAt = &now
-
-	err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
-		if err := s.userRepo.Update(txCtx, user); err != nil {
-			return err
+	_, err, _ := s.refreshGroup.Do(verifyEmailFlightKey+hashToken(token), func() (interface{}, error) {
+		verificationToken, err := s.tokenRepo.FindVerificationToken(ctx, token)
+		if err != nil || verificationToken == nil {
+			return nil, ErrInvalidVerificationToken
 		}
-		return s.tokenRepo.DeleteVerificationTokenByEmail(txCtx, verificationToken.Email)
-	})
-	if err != nil {
-		return err
-	}
 
-	if s.taskDistributor != nil {
-		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
-			UserID:   user.ID,
-			Action:   "EMAIL_VERIFIED",
-			Entity:   "User",
-			EntityID: user.ID,
+		now := time.Now().UnixMilli()
+		if now > verificationToken.ExpiresAt {
+			_ = s.tokenRepo.DeleteVerificationTokenByEmail(ctx, verificationToken.Email)
+			return nil, ErrInvalidVerificationToken
+		}
+
+		user, err := s.userRepo.FindByEmail(ctx, verificationToken.Email)
+		if err != nil || user == nil {
+			return nil, ErrInvalidVerificationToken
+		}
+
+		if user.EmailVerifiedAt != nil {
+			_ = s.tokenRepo.DeleteVerificationTokenByEmail(ctx, verificationToken.Email)
+			return nil, nil
+		}
+
+		user.EmailVerifiedAt = &now
+
+		err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+			if err := s.userRepo.Update(txCtx, user); err != nil {
+				return err
+			}
+			return s.tokenRepo.DeleteVerificationTokenByEmail(txCtx, verificationToken.Email)
 		})
-	}
+		if err != nil {
+			return nil, err
+		}
 
-	return nil
+		if s.taskDistributor != nil {
+			_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{
+				UserID:   user.ID,
+				Action:   "EMAIL_VERIFIED",
+				Entity:   "User",
+				EntityID: user.ID,
+			})
+		}
+
+		return nil, nil
+	})
+
+	return err
 }
 
 func (s *Service) GetTicket(ctx context.Context, userContext model.UserSessionContext) (string, error) {
@@ -241,8 +331,24 @@ func (s *Service) GetSSORedirectURL(ctx context.Context, providerName string, st
 		return "", exception.ErrBadRequest
 	}
 
+	if state != "" {
+		getSSOStateStore(s).record(providerName, state, time.Now(), defaultSSOStateTTL)
+	}
+
 	url := provider.GetLoginURL(state)
 	return url, nil
+}
+
+// ConsumeSSOState validates and immediately deletes a previously issued SSO state for the given provider.
+// Reusing the same state returns exception.ErrUnauthorized.
+func (s *Service) ConsumeSSOState(providerName string, state string) error {
+	if providerName == "" || state == "" {
+		return exception.ErrUnauthorized
+	}
+	if !getSSOStateStore(s).consume(providerName, state, time.Now()) {
+		return exception.ErrUnauthorized
+	}
+	return nil
 }
 
 func (s *Service) HandleSSOCallback(ctx context.Context, providerName string, code string) (*model.LoginResponse, string, error) {
@@ -251,120 +357,143 @@ func (s *Service) HandleSSOCallback(ctx context.Context, providerName string, co
 		return nil, "", exception.ErrBadRequest
 	}
 
-	token, err := provider.ExchangeCode(ctx, code)
-	if err != nil {
-		s.log.Errorf("Failed to exchange code: %v", err)
-		return nil, "", exception.ErrUnauthorized
-	}
-
-	userInfo, err := provider.GetUserInfo(ctx, token)
-	if err != nil {
-		s.log.Errorf("Failed to get user info: %v", err)
-		return nil, "", exception.ErrUnauthorized
-	}
-
-	ssoIdentity, err := s.userRepo.FindBySSOIdentity(ctx, providerName, userInfo.ProviderID)
-
-	var usr *entity.User
-
-	if err == nil {
-		usr, err = s.userRepo.FindByID(ctx, ssoIdentity.UserID)
-		if err != nil {
-			s.log.WithContext(ctx).WithError(err).Error("Failed to find user for SSO identity")
-			return nil, "", exception.ErrUnauthorized
+	if state, hasState := ssoStateFromContext(ctx); hasState {
+		if err := s.ConsumeSSOState(providerName, state); err != nil {
+			return nil, "", err
 		}
-	} else {
-		usr, err = s.userRepo.FindByEmail(ctx, userInfo.Email)
-		if err != nil {
-			usrID, _ := uuid.NewV7()
-			usr = &entity.User{
-				ID:       usrID.String(),
-				Email:    userInfo.Email,
-				Name:     userInfo.Name,
-				Password: "",
-				Status:   entity.UserStatusActive,
-			}
+	}
 
-			err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
-				if err := s.userRepo.Create(txCtx, usr); err != nil {
-					return err
+	flightKey := ssoCallbackFlightKey + providerName + ":" + hashToken(code)
+	result, err, _ := s.refreshGroup.Do(flightKey, func() (interface{}, error) {
+		token, err := provider.ExchangeCode(ctx, code)
+		if err != nil {
+			s.log.Errorf("Failed to exchange code: %v", err)
+			return nil, exception.ErrUnauthorized
+		}
+
+		userInfo, err := provider.GetUserInfo(ctx, token)
+		if err != nil {
+			s.log.Errorf("Failed to get user info: %v", err)
+			return nil, exception.ErrUnauthorized
+		}
+
+		ssoIdentity, err := s.userRepo.FindBySSOIdentity(ctx, providerName, userInfo.ProviderID)
+
+		var usr *entity.User
+
+		if err == nil {
+			usr, err = s.userRepo.FindByID(ctx, ssoIdentity.UserID)
+			if err != nil {
+				s.log.WithContext(ctx).WithError(err).Error("Failed to find user for SSO identity")
+				return nil, exception.ErrUnauthorized
+			}
+		} else {
+			usr, err = s.userRepo.FindByEmail(ctx, userInfo.Email)
+			if err != nil {
+				usrID, _ := uuid.NewV7()
+				usr = &entity.User{
+					ID:       usrID.String(),
+					Email:    userInfo.Email,
+					Name:     userInfo.Name,
+					Password: "",
+					Status:   entity.UserStatusActive,
 				}
 
-				if s.authz != nil {
-					if err := s.authz.AssignDefaultRole(txCtx, usr.ID); err != nil {
+				err = s.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
+					if err := s.userRepo.Create(txCtx, usr); err != nil {
 						return err
 					}
-				}
 
-				defaultOrgName := fmt.Sprintf("%s's Workspace", usr.Name)
-				slug := pkg.Slugify(fmt.Sprintf("%s-%s", defaultOrgName, usr.ID[:8]))
-				defaultOrg := &orgEntity.Organization{
-					ID:      uuid.New().String(),
-					Name:    defaultOrgName,
-					Slug:    slug,
-					OwnerID: usr.ID,
-					Status:  "active",
-				}
+					if s.authz != nil {
+						if err := s.authz.AssignDefaultRole(txCtx, usr.ID); err != nil {
+							return err
+						}
+					}
 
-				if err := s.orgRepo.Create(txCtx, defaultOrg, "owner"); err != nil {
-					return err
-				}
-				return nil
-			})
+					defaultOrgName := fmt.Sprintf("%s's Workspace", usr.Name)
+					slug := pkg.Slugify(fmt.Sprintf("%s-%s", defaultOrgName, usr.ID[:8]))
+					defaultOrg := &orgEntity.Organization{
+						ID:      uuid.New().String(),
+						Name:    defaultOrgName,
+						Slug:    slug,
+						OwnerID: usr.ID,
+						Status:  "active",
+					}
 
-			if err != nil {
-				s.log.WithContext(ctx).WithError(err).Error("Failed to auto-provision user during SSO callback")
-				return nil, "", fmt.Errorf("failed to provision user")
+					if err := s.orgRepo.Create(txCtx, defaultOrg, "owner"); err != nil {
+						return err
+					}
+					return nil
+				})
+
+				if err != nil {
+					s.log.WithContext(ctx).WithError(err).Error("Failed to auto-provision user during SSO callback")
+					return nil, fmt.Errorf("failed to provision user")
+				}
+			}
+
+			newSSOIdentity := entity.UserSSOIdentity{
+				UserID:     usr.ID,
+				Provider:   providerName,
+				ProviderID: userInfo.ProviderID,
+			}
+			if err := s.userRepo.CreateSSOIdentity(ctx, &newSSOIdentity); err != nil {
+				s.log.WithContext(ctx).WithError(err).Error("Failed to create SSO identity")
+				return nil, fmt.Errorf("failed to link SSO identity")
 			}
 		}
 
-		newSSOIdentity := entity.UserSSOIdentity{
-			UserID:     usr.ID,
-			Provider:   providerName,
-			ProviderID: userInfo.ProviderID,
+		if usr.Status != entity.UserStatusActive {
+			return nil, ErrAccountSuspended
 		}
-		if err := s.userRepo.CreateSSOIdentity(ctx, &newSSOIdentity); err != nil {
-			s.log.WithContext(ctx).WithError(err).Error("Failed to create SSO identity")
-			return nil, "", fmt.Errorf("failed to link SSO identity")
+
+		var userRole string
+		if s.authz != nil {
+			roles, err := s.authz.GetRolesForUser(ctx, usr.ID, "")
+			if err != nil {
+				s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during SSO login")
+				return nil, fmt.Errorf("failed to get user roles: %w", err)
+			}
+			if len(roles) > 0 {
+				userRole = roles[0]
+			}
 		}
-	}
 
-	if usr.Status != entity.UserStatusActive {
-		return nil, "", ErrAccountSuspended
-	}
-
-	var userRole string
-	if s.authz != nil {
-		roles, err := s.authz.GetRolesForUser(ctx, usr.ID, "")
+		accessToken, refreshToken, _, err := s.generateAndStoreTokenPair(ctx, model.UserSessionContext{UserID: usr.ID, Role: userRole, Username: usr.Username})
 		if err != nil {
-			s.log.WithContext(ctx).WithError(err).Error("Failed to get roles for user during SSO login")
-			return nil, "", fmt.Errorf("failed to get user roles: %w", err)
+			s.log.WithContext(ctx).WithError(err).Error("Failed to create SSO session")
+			return nil, err
 		}
-		if len(roles) > 0 {
-			userRole = roles[0]
-		}
-	}
 
-	accessToken, refreshToken, _, err := s.generateAndStoreTokenPair(ctx, model.UserSessionContext{UserID: usr.ID, Role: userRole, Username: usr.Username})
+		_ = s.tokenRepo.ResetLoginAttempts(ctx, usr.Email)
+
+		if s.taskDistributor != nil {
+			_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{UserID: usr.ID, Action: "SSO_LOGIN", Entity: "User", EntityID: usr.ID})
+		}
+
+		s.log.Infof("SSO Login successful for user %s via %s", usr.Email, providerName)
+
+		return &ssoCallbackResult{
+			loginResponse: &model.LoginResponse{
+				AccessToken:  accessToken,
+				RefreshToken: refreshToken,
+				TokenType:    "Bearer",
+				ExpiresIn:    int64(s.jwtManager.GetAccessTokenDuration().Seconds()),
+				ExpiresAt:    time.Now().Add(s.jwtManager.GetAccessTokenDuration()),
+				User:         model.UserInfo{ID: usr.ID, Name: usr.Name, Email: usr.Email, Role: userRole},
+			},
+			refreshToken: refreshToken,
+		}, nil
+	})
 	if err != nil {
-		s.log.WithContext(ctx).WithError(err).Error("Failed to create SSO session")
 		return nil, "", err
 	}
 
-	_ = s.tokenRepo.ResetLoginAttempts(ctx, usr.Email)
-
-	if s.taskDistributor != nil {
-		_ = s.taskDistributor.DistributeTaskAuditLog(ctx, auditModel.CreateAuditLogRequest{UserID: usr.ID, Action: "SSO_LOGIN", Entity: "User", EntityID: usr.ID})
+	res, ok := result.(*ssoCallbackResult)
+	if !ok || res == nil || res.loginResponse == nil {
+		return nil, "", fmt.Errorf("failed to complete SSO callback")
 	}
 
-	s.log.Infof("SSO Login successful for user %s via %s", usr.Email, providerName)
-
-	return &model.LoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    int64(s.jwtManager.GetAccessTokenDuration().Seconds()),
-		ExpiresAt:    time.Now().Add(s.jwtManager.GetAccessTokenDuration()),
-		User:         model.UserInfo{ID: usr.ID, Name: usr.Name, Email: usr.Email, Role: userRole},
-	}, refreshToken, nil
+	respCopy := *res.loginResponse
+	return &respCopy, res.refreshToken, nil
 }

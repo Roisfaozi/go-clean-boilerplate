@@ -320,6 +320,7 @@ func (uc *organizationUseCase) RestoreOrganization(ctx context.Context, id strin
 	restoreCtx := database.SetAllowDeletedOrganizations(ctx, true)
 
 	var response *model.OrganizationResponse
+	restored := false
 	err := uc.TM.WithinTransaction(restoreCtx, func(txCtx context.Context) error {
 		org, err := uc.OrgRepo.FindByID(txCtx, id)
 		if err != nil {
@@ -341,6 +342,7 @@ func (uc *organizationUseCase) RestoreOrganization(ctx context.Context, id strin
 			return exception.ErrInternalServer
 		}
 
+		restored = true
 		org.DeletedAt = 0
 		response = converter.OrganizationToResponse(org)
 		return nil
@@ -349,7 +351,7 @@ func (uc *organizationUseCase) RestoreOrganization(ctx context.Context, id strin
 		return nil, err
 	}
 
-	if uc.OrgReader != nil {
+	if restored && uc.OrgReader != nil {
 		if invalidateErr := uc.OrgReader.InvalidateOrganizationCache(ctx, id); invalidateErr != nil {
 			uc.Log.WithContext(ctx).WithError(invalidateErr).Warn("Failed to invalidate organization membership cache after restore")
 		}
@@ -366,6 +368,7 @@ func (uc *organizationUseCase) HardDeleteOrganization(ctx context.Context, id st
 	}
 
 	deleteCtx := database.SetAllowDeletedOrganizations(ctx, true)
+	deleted := false
 	err := uc.TM.WithinTransaction(deleteCtx, func(txCtx context.Context) error {
 		org, err := uc.OrgRepo.FindByID(txCtx, id)
 		if err != nil {
@@ -383,13 +386,14 @@ func (uc *organizationUseCase) HardDeleteOrganization(ctx context.Context, id st
 			uc.Log.WithContext(txCtx).Errorf("Failed to hard delete organization: %v", err)
 			return exception.ErrInternalServer
 		}
+		deleted = true
 		return nil
 	})
 	if err != nil {
 		return err
 	}
 
-	if uc.OrgReader != nil {
+	if deleted && uc.OrgReader != nil {
 		if invalidateErr := uc.OrgReader.InvalidateOrganizationCache(ctx, id); invalidateErr != nil {
 			uc.Log.WithContext(ctx).WithError(invalidateErr).Warn("Failed to invalidate organization membership cache after hard delete")
 		}

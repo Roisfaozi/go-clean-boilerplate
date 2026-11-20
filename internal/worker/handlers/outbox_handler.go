@@ -6,6 +6,7 @@ import (
 
 	auditEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/usecase"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
 )
@@ -33,6 +34,8 @@ func (h *OutboxTaskHandler) ProcessAuditOutbox(ctx context.Context, t *asynq.Tas
 		h.log.WithError(err).Error("Failed to fetch pending outbox entries")
 		return err
 	}
+
+	telemetry.SetAuditOutboxPending(int64(len(entries)))
 
 	if len(entries) == 0 {
 		h.log.Debug("No pending audit outbox entries found.")

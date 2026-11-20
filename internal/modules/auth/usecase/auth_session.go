@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
@@ -330,6 +331,9 @@ func (s *Service) RevokeToken(ctx context.Context, userID, sessionID string) err
 
 	currentSession, err := s.tokenRepo.GetToken(ctx, userID, sessionID)
 	if err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			return nil
+		}
 		return err
 	}
 	if currentSession == nil {

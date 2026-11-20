@@ -15,6 +15,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker/tasks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
@@ -43,6 +44,10 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 	}
 
 	start := time.Now()
+	outcome := "error"
+	defer func() {
+		telemetry.RecordWebhookDelivery(outcome, time.Since(start))
+	}()
 
 	// Create signature
 	h_mac := hmac.New(sha256.New, []byte(payload.Secret))
@@ -53,6 +58,7 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, payload.URL, bytes.NewBuffer([]byte(payload.Payload)))
 	if err != nil {
+		outcome = "permanent_error"
 		h.log.WithError(err).Error("Failed to create webhook request")
 		return err
 	}
@@ -77,6 +83,7 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 	}
 
 	if err != nil {
+		outcome = "retryable_error"
 		logEntry.ErrorMessage = err.Error()
 		if logErr := h.saveWebhookLog(ctx, logEntry); logErr != nil {
 			return fmt.Errorf("webhook request failed: %w; failed to save webhook log: %v", err, logErr)
@@ -99,14 +106,22 @@ func (h *WebhookHandler) ProcessTaskWebhookTrigger(ctx context.Context, t *asynq
 
 	if err := h.saveWebhookLog(ctx, logEntry); err != nil {
 		if resp.StatusCode >= 500 {
+			outcome = "retryable_error"
 			return fmt.Errorf("upstream server error: %d; failed to save webhook log: %w", resp.StatusCode, err)
 		}
 	}
 
 	if resp.StatusCode >= 500 {
+		outcome = "retryable_error"
 		return fmt.Errorf("upstream server error: %d", resp.StatusCode)
 	}
 
+	if resp.StatusCode >= 400 {
+		outcome = "permanent_error"
+		return nil
+	}
+
+	outcome = "success"
 	return nil
 }
 

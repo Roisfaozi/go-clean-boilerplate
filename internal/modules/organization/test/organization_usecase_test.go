@@ -1014,3 +1014,81 @@ func TestDeleteOrganization_NotFound(t *testing.T) {
 
 	tm.AssertExpectations(t)
 }
+
+func TestOrganizationUseCase_RestoreAndHardDelete_Idempotency(t *testing.T) {
+	t.Run("RestoreOrganization restores deleted org then repeat restore is no-op", func(t *testing.T) {
+		deps, uc := setupOrganizationTest(t)
+		ctx := usecase.WithActorRole(context.Background(), "role:superadmin")
+		orgID := "org-restore-1"
+
+		deletedOrg := &entity.Organization{ID: orgID, Name: "Acme", Slug: "acme", OwnerID: "owner-1", Status: entity.OrgStatusActive, DeletedAt: 1700000000000}
+		activeOrg := &entity.Organization{ID: orgID, Name: "Acme", Slug: "acme", OwnerID: "owner-1", Status: entity.OrgStatusActive, DeletedAt: 0}
+
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+		deps.OrgRepo.On("FindByID", mock.Anything, orgID).Return(deletedOrg, nil).Once()
+		deps.OrgRepo.On("Restore", mock.Anything, orgID).Return(nil).Once()
+		deps.OrgRepo.On("FindByID", mock.Anything, orgID).Return(activeOrg, nil).Once()
+
+		// First restore actually restores and invalidates cache.
+		res1, err := uc.RestoreOrganization(ctx, orgID)
+		assert.NoError(t, err)
+		assert.NotNil(t, res1)
+		assert.Equal(t, orgID, res1.ID)
+
+		// Second restore on already-active org succeeds without calling Restore or invalidating cache again.
+		res2, err := uc.RestoreOrganization(ctx, orgID)
+		assert.NoError(t, err)
+		assert.NotNil(t, res2)
+		assert.Equal(t, orgID, res2.ID)
+
+		deps.OrgRepo.AssertNumberOfCalls(t, "Restore", 1)
+		deps.OrgReader.AssertNumberOfCalls(t, "InvalidateOrganizationCache", 1)
+	})
+
+	t.Run("RestoreOrganization missing org returns nil without error or cache invalidation", func(t *testing.T) {
+		deps, uc := setupOrganizationTest(t)
+		ctx := usecase.WithActorRole(context.Background(), "role:superadmin")
+
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+		deps.OrgRepo.On("FindByID", mock.Anything, "missing-org").Return(nil, nil).Once()
+
+		res, err := uc.RestoreOrganization(ctx, "missing-org")
+		assert.NoError(t, err)
+		assert.Nil(t, res)
+		deps.OrgRepo.AssertNotCalled(t, "Restore", mock.Anything, mock.Anything)
+		deps.OrgReader.AssertNotCalled(t, "InvalidateOrganizationCache", mock.Anything, mock.Anything)
+	})
+
+	t.Run("RestoreOrganization forbidden for non-superadmin", func(t *testing.T) {
+		_, uc := setupOrganizationTest(t)
+		ctx := usecase.WithActorRole(context.Background(), "role:admin")
+
+		res, err := uc.RestoreOrganization(ctx, "org-1")
+		assert.ErrorIs(t, err, exception.ErrForbidden)
+		assert.Nil(t, res)
+	})
+
+	t.Run("HardDeleteOrganization repeat when already absent is no-op", func(t *testing.T) {
+		deps, uc := setupOrganizationTest(t)
+		ctx := usecase.WithActorRole(context.Background(), "role:superadmin")
+		orgID := "org-hard-1"
+		deletedOrg := &entity.Organization{ID: orgID, Name: "Acme", DeletedAt: 1700000000000}
+
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+		deps.OrgRepo.On("FindByID", mock.Anything, orgID).Return(deletedOrg, nil).Once()
+		deps.OrgRepo.On("HardDelete", mock.Anything, orgID).Return(nil).Once()
+		deps.OrgRepo.On("FindByID", mock.Anything, orgID).Return(nil, nil).Once()
+
+		assert.NoError(t, uc.HardDeleteOrganization(ctx, orgID))
+		assert.NoError(t, uc.HardDeleteOrganization(ctx, orgID))
+
+		deps.OrgRepo.AssertNumberOfCalls(t, "HardDelete", 1)
+		deps.OrgReader.AssertNumberOfCalls(t, "InvalidateOrganizationCache", 1)
+	})
+}

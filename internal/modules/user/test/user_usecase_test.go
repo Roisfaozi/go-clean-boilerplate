@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	mocking "github.com/Roisfaozi/go-clean-boilerplate/internal/mocking"
 	auditModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/model"
 	auditMocks "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/audit/test/mocks"
@@ -27,7 +28,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	storageMocks "github.com/Roisfaozi/go-clean-boilerplate/pkg/storage/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -1833,8 +1833,6 @@ func setupTestUserUseCase() (
 // --- Merged from user_validation_test.go ---
 
 func TestUserXSSValidation(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
 	v := validator.New()
 	_ = validation.RegisterCustomValidations(v)
 	logger := logrus.New()
@@ -1889,17 +1887,16 @@ func TestUserXSSValidation(t *testing.T) {
 			controller := userHandler.NewUserController(mockUC, logger, v)
 
 			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-
 			jsonBytes, _ := json.Marshal(tt.payload)
-			c.Request, _ = http.NewRequest(tt.method, tt.url, bytes.NewBuffer(jsonBytes))
-			c.Request.Header.Set("Content-Type", "application/json")
-			c.Set("user_id", "1")
+			req, _ := http.NewRequest(tt.method, tt.url, bytes.NewBuffer(jsonBytes))
+			req.Header.Set("Content-Type", "application/json")
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "1")
+			req = req.WithContext(ctx)
 
 			if tt.method == "POST" {
-				controller.RegisterUser(c)
+				controller.HTTPRegisterUser(w, req)
 			} else {
-				controller.UpdateUser(c)
+				controller.HTTPUpdateUser(w, req)
 			}
 
 			assert.Equal(t, tt.expectedCode, w.Code)

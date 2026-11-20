@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1071,5 +1073,255 @@ func TestOrganizationMemberUseCase_AcceptInvitation(t *testing.T) {
 
 		err := uc.AcceptInvitation(ctx, req)
 		require.ErrorIs(t, err, exception.ErrInternalServer)
+	})
+}
+
+func TestOrganizationMemberUseCase_Idempotency_InviteAndAccept(t *testing.T) {
+	t.Run("re-inviting pending email replaces single active token without duplicate member", func(t *testing.T) {
+		deps, uc := setupMemberTest(t)
+		setupDefaultRoleMocks(deps)
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
+		orgID := "org-1"
+		email := "pending@example.com"
+		org := &entity.Organization{ID: orgID, Name: "Org 1", OwnerID: actorID}
+		user := &userEntity.User{ID: "user-pending", Email: email, Status: "invited"}
+
+		var activeInvites []*entity.InvitationToken
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
+		deps.UserRepo.On("FindByEmail", ctx, email).Return(user, nil)
+		deps.MemberRepo.On("GetMemberStatus", ctx, orgID, user.ID).Return("", nil).Once()
+		deps.MemberRepo.On("AddMember", ctx, mock.AnythingOfType("*entity.OrganizationMember")).Return(nil).Once()
+		deps.MemberRepo.On("GetMemberStatus", ctx, orgID, user.ID).Return(entity.MemberStatusInvited, nil).Once()
+		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, user.ID, "role:editor").Return(nil).Once()
+
+		deps.InvitationRepo.On("DeleteByEmailAndOrg", ctx, email, orgID).Run(func(args mock.Arguments) {
+			activeInvites = nil
+		}).Return(nil).Twice()
+		deps.InvitationRepo.On("Create", ctx, mock.AnythingOfType("*entity.InvitationToken")).Run(func(args mock.Arguments) {
+			inv := args.Get(1).(*entity.InvitationToken)
+			activeInvites = append(activeInvites, inv)
+		}).Return(nil).Twice()
+		deps.TaskDistributor.On("DistributeTaskSendEmail", ctx, mock.Anything).Return(nil).Twice()
+
+		res1, err := uc.InviteMember(ctx, orgID, &model.InviteMemberRequest{Email: email, RoleID: "role:viewer"})
+		require.NoError(t, err)
+		require.Equal(t, "role:viewer", res1.RoleID)
+		require.Len(t, activeInvites, 1)
+		firstToken := activeInvites[0].Token
+
+		res2, err := uc.InviteMember(ctx, orgID, &model.InviteMemberRequest{Email: email, RoleID: "role:editor"})
+		require.NoError(t, err)
+		require.Equal(t, "role:editor", res2.RoleID)
+		require.Len(t, activeInvites, 1, "re-inviting same (org, email) must keep exactly one active invite")
+		assert.NotEqual(t, firstToken, activeInvites[0].Token)
+		assert.Equal(t, "role:editor", activeInvites[0].RoleID)
+		deps.MemberRepo.AssertNumberOfCalls(t, "AddMember", 1)
+		deps.MemberRepo.AssertNumberOfCalls(t, "UpdateMemberRole", 1)
+	})
+
+	t.Run("concurrent invites for same (org, email) serialize cleanly without multiplying invites", func(t *testing.T) {
+		deps, uc := setupMemberTest(t)
+		setupDefaultRoleMocks(deps)
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
+		orgID := "org-race"
+		email := "race@example.com"
+		org := &entity.Organization{ID: orgID, Name: "Race Org", OwnerID: actorID}
+		user := &userEntity.User{ID: "user-race", Email: email, Status: "invited"}
+
+		var stateMu sync.Mutex
+		memberStatus := ""
+		var activeInvites []*entity.InvitationToken
+		var inFlightTx atomic.Int32
+		var maxConcurrentTx atomic.Int32
+
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			cur := inFlightTx.Add(1)
+			for {
+				prev := maxConcurrentTx.Load()
+				if cur <= prev || maxConcurrentTx.CompareAndSwap(prev, cur) {
+					break
+				}
+			}
+			defer inFlightTx.Add(-1)
+			time.Sleep(15 * time.Millisecond)
+			return fn(ctx)
+		})
+		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
+		deps.UserRepo.On("FindByEmail", ctx, email).Return(user, nil)
+		deps.MemberRepo.On("GetMemberStatus", ctx, orgID, user.ID).Return(func(context.Context, string, string) string {
+			stateMu.Lock()
+			defer stateMu.Unlock()
+			return memberStatus
+		}, nil)
+		deps.MemberRepo.On("AddMember", ctx, mock.AnythingOfType("*entity.OrganizationMember")).Run(func(args mock.Arguments) {
+			stateMu.Lock()
+			memberStatus = entity.MemberStatusInvited
+			stateMu.Unlock()
+		}).Return(nil).Once()
+		deps.MemberRepo.On("UpdateMemberRole", ctx, orgID, user.ID, "role:member").Return(nil)
+		deps.InvitationRepo.On("DeleteByEmailAndOrg", ctx, email, orgID).Run(func(args mock.Arguments) {
+			stateMu.Lock()
+			activeInvites = nil
+			stateMu.Unlock()
+		}).Return(nil)
+		deps.InvitationRepo.On("Create", ctx, mock.AnythingOfType("*entity.InvitationToken")).Run(func(args mock.Arguments) {
+			inv := args.Get(1).(*entity.InvitationToken)
+			stateMu.Lock()
+			activeInvites = append(activeInvites, inv)
+			stateMu.Unlock()
+		}).Return(nil)
+		deps.TaskDistributor.On("DistributeTaskSendEmail", ctx, mock.Anything).Return(nil)
+
+		const workers = 4
+		var wg sync.WaitGroup
+		wg.Add(workers)
+		errs := make(chan error, workers)
+		for i := 0; i < workers; i++ {
+			go func() {
+				defer wg.Done()
+				_, err := uc.InviteMember(ctx, orgID, &model.InviteMemberRequest{Email: email, RoleID: "role:member"})
+				errs <- err
+			}()
+		}
+		wg.Wait()
+		close(errs)
+
+		for err := range errs {
+			require.NoError(t, err)
+		}
+		assert.Equal(t, int32(1), maxConcurrentTx.Load(), "same (org, email) invites must serialize")
+		stateMu.Lock()
+		assert.Len(t, activeInvites, 1, "exactly one active invite token must remain")
+		stateMu.Unlock()
+	})
+
+	t.Run("accept invitation on already active member is idempotent without duplicate Casbin policy", func(t *testing.T) {
+		deps, uc := setupMemberTest(t)
+		setupDefaultRoleMocks(deps)
+		ctx := context.Background()
+		req := &model.AcceptInvitationRequest{Token: "stale-active-token"}
+		inv := &entity.InvitationToken{
+			ID:             "inv-stale",
+			Email:          "active@example.com",
+			OrganizationID: "org-1",
+			RoleID:         "role:member",
+			ExpiresAt:      time.Now().Add(1 * time.Hour).UnixMilli(),
+		}
+		user := &userEntity.User{ID: "user-active", Email: "active@example.com", Status: "active"}
+
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+		deps.InvitationRepo.On("FindByToken", ctx, req.Token).Return(inv, nil).Once()
+		deps.UserRepo.On("FindByEmail", ctx, inv.Email).Return(user, nil).Once()
+		deps.MemberRepo.On("GetMemberStatus", ctx, inv.OrganizationID, user.ID).Return(entity.MemberStatusActive, nil).Once()
+		deps.InvitationRepo.On("Delete", ctx, inv.ID).Return(nil).Once()
+
+		require.NoError(t, uc.AcceptInvitation(ctx, req))
+
+		deps.MemberRepo.AssertNotCalled(t, "UpdateMemberStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+		deps.MemberRepo.AssertNotCalled(t, "AddMember", mock.Anything, mock.Anything)
+		deps.Enforcer.AssertNotCalled(t, "AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything)
+		deps.Enforcer.AssertNotCalled(t, "LoadPolicy")
+	})
+
+	t.Run("concurrent accept invitation with same token executes once", func(t *testing.T) {
+		deps, uc := setupMemberTest(t)
+		setupDefaultRoleMocks(deps)
+		ctx := context.Background()
+		req := &model.AcceptInvitationRequest{Token: "concurrent-accept-token", Password: "Password123!", Name: "New User"}
+		inv := &entity.InvitationToken{
+			ID:             "inv-concurrent",
+			Email:          "concurrent@example.com",
+			OrganizationID: "org-1",
+			RoleID:         "role:member",
+			ExpiresAt:      time.Now().Add(1 * time.Hour).UnixMilli(),
+		}
+		user := &userEntity.User{ID: "user-concurrent", Email: "concurrent@example.com", Status: "invited"}
+
+		started := make(chan struct{})
+		release := make(chan struct{})
+
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			close(started)
+			<-release
+			return fn(ctx)
+		}).Once()
+		deps.InvitationRepo.On("FindByToken", ctx, req.Token).Return(inv, nil).Once()
+		deps.UserRepo.On("FindByEmail", ctx, inv.Email).Return(user, nil).Once()
+		deps.UserRepo.On("Update", ctx, mock.AnythingOfType("*entity.User")).Return(nil).Once()
+		deps.MemberRepo.On("GetMemberStatus", ctx, inv.OrganizationID, user.ID).Return(entity.MemberStatusInvited, nil).Once()
+		deps.MemberRepo.On("UpdateMemberStatus", ctx, inv.OrganizationID, user.ID, entity.MemberStatusActive).Return(nil).Once()
+		deps.Enforcer.On("WithContext", mock.Anything).Return(deps.Enforcer).Once()
+		deps.Enforcer.On("AddGroupingPolicy", user.ID, "role:member", inv.OrganizationID).Return(true, nil).Once()
+		deps.InvitationRepo.On("Delete", ctx, inv.ID).Return(nil).Once()
+
+		var wg sync.WaitGroup
+		errs := make(chan error, 3)
+		wg.Add(3)
+		go func() {
+			defer wg.Done()
+			errs <- uc.AcceptInvitation(ctx, req)
+		}()
+		<-started
+		for i := 0; i < 2; i++ {
+			go func() {
+				defer wg.Done()
+				errs <- uc.AcceptInvitation(ctx, req)
+			}()
+		}
+		time.Sleep(20 * time.Millisecond)
+		close(release)
+		wg.Wait()
+		close(errs)
+
+		for err := range errs {
+			require.NoError(t, err)
+		}
+		deps.Enforcer.AssertNumberOfCalls(t, "AddGroupingPolicy", 1)
+		deps.InvitationRepo.AssertNumberOfCalls(t, "Delete", 1)
+	})
+
+	t.Run("update member with unchanged role and status skips Casbin and write churn", func(t *testing.T) {
+		deps, uc := setupMemberTest(t)
+		setupDefaultRoleMocks(deps)
+		actorID := "owner-1"
+		ctx := usecase.WithActorUserID(context.Background(), actorID)
+		orgID := "org-1"
+		userID := "user-1"
+		org := &entity.Organization{ID: orgID, OwnerID: actorID}
+		member := &entity.OrganizationMember{
+			OrganizationID: orgID,
+			UserID:         userID,
+			RoleID:         "role:member",
+			Status:         entity.MemberStatusActive,
+		}
+
+		deps.TM.On("WithinTransaction", mock.Anything, mock.Anything).Return(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+		deps.OrgRepo.On("FindByID", ctx, orgID).Return(org, nil)
+		deps.MemberRepo.On("FindMemberForUpdate", ctx, orgID, userID).Return(member, nil)
+		deps.MemberRepo.On("GetMemberRoleName", ctx, orgID, userID).Return("role:member", nil)
+		deps.MemberRepo.On("FindMembers", ctx, orgID).Return([]*entity.OrganizationMember{member}, nil)
+
+		res, err := uc.UpdateMember(ctx, orgID, userID, &model.UpdateMemberRequest{
+			RoleID: "role:member",
+			Status: entity.MemberStatusActive,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.Equal(t, "role:member", res.RoleID)
+
+		deps.MemberRepo.AssertNotCalled(t, "UpdateMemberRole", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+		deps.MemberRepo.AssertNotCalled(t, "UpdateMemberStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+		deps.Enforcer.AssertNotCalled(t, "RemoveFilteredGroupingPolicy", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+		deps.Enforcer.AssertNotCalled(t, "AddGroupingPolicy", mock.Anything, mock.Anything, mock.Anything)
+		deps.OrgReader.AssertNotCalled(t, "InvalidateMembershipCache", mock.Anything, mock.Anything, mock.Anything)
 	})
 }

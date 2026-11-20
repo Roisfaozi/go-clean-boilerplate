@@ -10,8 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/telemetry"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/gorilla/websocket"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -309,4 +311,29 @@ func TestBroadcastToChannel(t *testing.T) {
 	var msg ws.ServerMessage
 	err = c3.ReadJSON(&msg)
 	assert.Error(t, err) // Should timeout or EOF
+}
+
+func TestWebSocketManager_BroadcastDropIncrementsMetric(t *testing.T) {
+	logger := logrus.New()
+	logger.SetOutput(&NoOpWriter{})
+	manager := ws.NewWebSocketManager(&ws.WebSocketConfig{}, logger, nil, &NoOpPresenceManager{})
+	go manager.Run()
+	defer manager.Stop()
+
+	// Buffer size 1, pre-filled so the next broadcast drops.
+	client := &ws.Client{ID: "full-buffer-client", Send: make(chan []byte, 1)}
+	client.Send <- []byte(`{"prefill":true}`)
+
+	manager.RegisterClient(client)
+	require.Eventually(t, func() bool { return manager.ClientCount() == 1 }, time.Second, 10*time.Millisecond)
+
+	manager.SubscribeToChannel(client, "drop-channel")
+	require.Eventually(t, func() bool { return manager.GetChannelClients("drop-channel") == 1 }, time.Second, 10*time.Millisecond)
+
+	before := testutil.ToFloat64(telemetry.WSSendDropsTotal)
+	manager.BroadcastToChannel("drop-channel", []byte(`{"event":"dropped"}`))
+
+	require.Eventually(t, func() bool {
+		return testutil.ToFloat64(telemetry.WSSendDropsTotal) == before+1
+	}, time.Second, 10*time.Millisecond)
 }
