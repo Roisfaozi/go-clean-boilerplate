@@ -94,8 +94,11 @@ func TestAccessE2E_AccessRightsCRUD(t *testing.T) {
 	})
 
 	t.Run("Negative - Delete Non-existent", func(t *testing.T) {
-		resp := server.Client.DELETE("/api/v1/access-rights/nonexistent-id", setup.WithAuth(adminToken))
-		assert.Equal(t, 404, resp.StatusCode)
+		resp := server.Client.DELETE("/api/v1/access-rights/"+createdID, setup.WithAuth(adminToken))
+		assert.Equal(t, 200, resp.StatusCode)
+
+		resp = server.Client.DELETE("/api/v1/access-rights/nonexistent-id", setup.WithAuth(adminToken))
+		assert.Equal(t, 200, resp.StatusCode)
 	})
 }
 

@@ -460,13 +460,21 @@ func (u *userUseCaseImpl) DeleteUser(ctx context.Context, actorUserID string, re
 	user, err := u.Repo.FindByID(ctx, request.ID)
 	if err != nil {
 		if err.Error() == "user not found" || errors.Is(err, exception.ErrNotFound) {
-			return exception.ErrNotFound
+			u.Log.WithContext(ctx).Warnf("User with ID %s already absent; treating delete as success", request.ID)
+			return nil
 		}
 		return err
+	}
+	if user == nil {
+		return nil
 	}
 
 	return u.DB.WithinTransaction(ctx, func(txCtx context.Context) error {
 		if err := u.Repo.Delete(txCtx, user.ID); err != nil {
+			if err.Error() == "user not found" || errors.Is(err, exception.ErrNotFound) {
+				u.Log.WithContext(txCtx).Warnf("User with ID %s already absent during delete; treating delete as success", user.ID)
+				return nil
+			}
 			u.Log.Errorf("Failed to delete user: %v", err)
 			return err
 		}

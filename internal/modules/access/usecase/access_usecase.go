@@ -166,14 +166,18 @@ func (uc *AccessUseCase) DeleteAccessRight(ctx context.Context, id string) error
 	_, err := uc.repo.GetAccessRightByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, exception.ErrNotFound) {
-			uc.log.WithContext(ctx).Warnf("Access right with ID %s not found for deletion", id)
-			return exception.ErrNotFound
+			uc.log.WithContext(ctx).Warnf("Access right with ID %s already absent; treating delete as success", id)
+			return nil
 		}
 		uc.log.WithContext(ctx).WithError(err).Errorf("Failed to find access right with ID %s: %v", id, err)
 		return exception.ErrInternalServer
 	}
 
 	if err := uc.repo.DeleteAccessRight(ctx, id); err != nil {
+		if errors.Is(err, exception.ErrNotFound) {
+			uc.log.WithContext(ctx).Warnf("Access right with ID %s already absent; treating delete as success", id)
+			return nil
+		}
 		uc.log.WithContext(ctx).WithError(err).Errorf("Failed to delete access right with ID %s: %v", id, err)
 		return exception.ErrInternalServer
 	}

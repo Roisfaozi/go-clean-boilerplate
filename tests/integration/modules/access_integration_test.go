@@ -65,6 +65,10 @@ func TestAccessIntegration_DeleteAccessRight_Success(t *testing.T) {
 
 	err = uc.DeleteAccessRight(context.Background(), ar.ID)
 	assert.NoError(t, err)
+
+	// Repeat delete is an idempotent no-op success
+	err = uc.DeleteAccessRight(context.Background(), ar.ID)
+	assert.NoError(t, err)
 }
 
 func TestAccessIntegration_DeleteAccessRight_Fail_NotFound(t *testing.T) {
@@ -73,7 +77,7 @@ func TestAccessIntegration_DeleteAccessRight_Fail_NotFound(t *testing.T) {
 
 	uc := setupAccessIntegration(env)
 	err := uc.DeleteAccessRight(context.Background(), "ghost-id")
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 func TestAccessIntegration_CreateEndpoint_LinkToAccessRight(t *testing.T) {

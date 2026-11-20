@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"net/url"
 	"strings"
 	"sync"
@@ -29,6 +30,21 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+const defaultInviteResendCooldown = 60 * time.Second
+
+type pendingInvitationFinder interface {
+	FindPendingByEmailAndOrg(ctx context.Context, email, orgID string) (*entity.InvitationToken, error)
+}
+
+type pendingInviteRecord struct {
+	memberID       string
+	userID         string
+	organizationID string
+	roleID         string
+	sentAt         time.Time
+	expiresAt      time.Time
+}
+
 type keyedInviteMutex struct {
 	mu   sync.Mutex
 	refs int
@@ -51,10 +67,108 @@ type organizationMemberUseCase struct {
 	inviteLocksMu sync.Mutex
 	inviteLocks   map[string]*keyedInviteMutex
 	acceptGroup   singleflight.Group
+
+	inviteStateMu        sync.Mutex
+	inviteResendCooldown time.Duration
+	pendingInvites       map[string]pendingInviteRecord
+}
+
+func inviteTargetKey(orgID, email string) string {
+	return orgID + ":" + strings.ToLower(strings.TrimSpace(email))
+}
+
+func (uc *organizationMemberUseCase) SetInviteResendCooldown(d time.Duration) {
+	uc.inviteStateMu.Lock()
+	uc.inviteResendCooldown = d
+	uc.inviteStateMu.Unlock()
+}
+
+func (uc *organizationMemberUseCase) getInviteResendCooldown() time.Duration {
+	uc.inviteStateMu.Lock()
+	defer uc.inviteStateMu.Unlock()
+	return uc.inviteResendCooldown
+}
+
+func (uc *organizationMemberUseCase) getPendingInvite(key string) (pendingInviteRecord, bool) {
+	uc.inviteStateMu.Lock()
+	defer uc.inviteStateMu.Unlock()
+	if uc.pendingInvites == nil {
+		return pendingInviteRecord{}, false
+	}
+	rec, ok := uc.pendingInvites[key]
+	return rec, ok
+}
+
+func (uc *organizationMemberUseCase) setPendingInvite(key string, rec pendingInviteRecord) {
+	uc.inviteStateMu.Lock()
+	defer uc.inviteStateMu.Unlock()
+	if uc.pendingInvites == nil {
+		uc.pendingInvites = make(map[string]pendingInviteRecord)
+	}
+	if len(uc.pendingInvites) > 1024 {
+		now := time.Now()
+		for k, existing := range uc.pendingInvites {
+			if !existing.expiresAt.After(now) {
+				delete(uc.pendingInvites, k)
+			}
+		}
+	}
+	uc.pendingInvites[key] = rec
+}
+
+func (uc *organizationMemberUseCase) clearPendingInvite(orgID, email string) {
+	if orgID == "" || email == "" {
+		return
+	}
+	key := inviteTargetKey(orgID, email)
+	uc.inviteStateMu.Lock()
+	delete(uc.pendingInvites, key)
+	uc.inviteStateMu.Unlock()
+}
+
+func (uc *organizationMemberUseCase) clearPendingInviteByUser(orgID, userID string) {
+	if orgID == "" || userID == "" {
+		return
+	}
+	uc.inviteStateMu.Lock()
+	for k, rec := range uc.pendingInvites {
+		if rec.organizationID == orgID && rec.userID == userID {
+			delete(uc.pendingInvites, k)
+		}
+	}
+	uc.inviteStateMu.Unlock()
+}
+
+func (uc *organizationMemberUseCase) findActivePendingInvite(ctx context.Context, orgID, email, targetUserID string) (pendingInviteRecord, bool, error) {
+	key := inviteTargetKey(orgID, email)
+	if finder, ok := uc.invitationRepo.(pendingInvitationFinder); ok {
+		inv, err := finder.FindPendingByEmailAndOrg(ctx, email, orgID)
+		if err != nil {
+			if errors.Is(err, exception.ErrNotFound) {
+				return pendingInviteRecord{}, false, nil
+			}
+			return pendingInviteRecord{}, false, err
+		}
+		if inv == nil {
+			return pendingInviteRecord{}, false, nil
+		}
+		cached, _ := uc.getPendingInvite(key)
+		return pendingInviteRecord{
+			memberID:       cached.memberID,
+			userID:         targetUserID,
+			organizationID: inv.OrganizationID,
+			roleID:         inv.RoleID,
+			sentAt:         time.UnixMilli(inv.CreatedAt),
+			expiresAt:      time.UnixMilli(inv.ExpiresAt),
+		}, true, nil
+	}
+
+	rec, ok := uc.getPendingInvite(key)
+	return rec, ok, nil
 }
 
 func (uc *organizationMemberUseCase) lockInviteTarget(orgID, email string) func() {
-	key := orgID + ":" + strings.ToLower(strings.TrimSpace(email))
+	key := inviteTargetKey(orgID, email)
 
 	uc.inviteLocksMu.Lock()
 	if uc.inviteLocks == nil {
@@ -101,18 +215,20 @@ func NewOrganizationMemberUseCase(
 	roleRepo roleRepo.RoleRepository,
 ) OrganizationMemberUseCase {
 	return &organizationMemberUseCase{
-		log:             log,
-		tm:              tm,
-		memberRepo:      memberRepo,
-		orgRepo:         orgRepo,
-		invitationRepo:  invitationRepo,
-		userRepo:        userRepo,
-		taskDistributor: taskDistributor,
-		enforcer:        enforcer,
-		presence:        presence,
-		orgReader:       orgReader,
-		frontendBaseURL: frontendBaseURL,
-		roleRepo:        roleRepo,
+		log:                  log,
+		tm:                   tm,
+		memberRepo:           memberRepo,
+		orgRepo:              orgRepo,
+		invitationRepo:       invitationRepo,
+		userRepo:             userRepo,
+		taskDistributor:      taskDistributor,
+		enforcer:             enforcer,
+		presence:             presence,
+		orgReader:            orgReader,
+		frontendBaseURL:      frontendBaseURL,
+		roleRepo:             roleRepo,
+		inviteResendCooldown: defaultInviteResendCooldown,
+		pendingInvites:       make(map[string]pendingInviteRecord),
 	}
 }
 
@@ -136,6 +252,10 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 
 	var result *model.MemberResponse
 	var targetUserID string
+	var newPending *pendingInviteRecord
+	suppressed := false
+	cooldown := uc.getInviteResendCooldown()
+	inviteKey := inviteTargetKey(orgID, request.Email)
 
 	err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
 		org, _, _, err := uc.authorizeMemberManagement(txCtx, orgID)
@@ -184,6 +304,33 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 			return exception.ErrConflict
 		}
 
+		now := time.Now()
+		if existingStatus == entity.MemberStatusInvited && cooldown > 0 {
+			pending, found, err := uc.findActivePendingInvite(txCtx, orgID, targetUser.Email, targetUser.ID)
+			if err != nil {
+				return err
+			}
+			if found &&
+				pending.expiresAt.After(now) &&
+				now.Sub(pending.sentAt) < cooldown &&
+				pending.roleID == targetRole.ID &&
+				(pending.userID == "" || pending.userID == targetUser.ID) {
+				memberID := pending.memberID
+				if memberID == "" {
+					memberID = uuid.New().String()
+				}
+				result = converter.MemberToResponse(&entity.OrganizationMember{
+					ID:             memberID,
+					OrganizationID: orgID,
+					UserID:         targetUser.ID,
+					RoleID:         targetRole.ID,
+					Status:         entity.MemberStatusInvited,
+				})
+				suppressed = true
+				return nil
+			}
+		}
+
 		// 4. Create or update member record for invited status
 		member := &entity.OrganizationMember{
 			ID:             uuid.New().String(),
@@ -211,14 +358,15 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 		}
 		tokenString := hex.EncodeToString(tokenBytes)
 
+		expiresAt := now.Add(48 * time.Hour)
 		invitation := &entity.InvitationToken{
 			ID:             uuid.New().String(),
 			OrganizationID: orgID,
 			Email:          targetUser.Email,
 			Token:          tokenString,
 			RoleID:         targetRole.ID,
-			ExpiresAt:      time.Now().Add(48 * time.Hour).UnixMilli(), // 48 hours expiry
-			CreatedAt:      time.Now().UnixMilli(),
+			ExpiresAt:      expiresAt.UnixMilli(), // 48 hours expiry
+			CreatedAt:      now.UnixMilli(),
 		}
 
 		// Clean up old invitations for this email/org
@@ -245,6 +393,14 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 			}
 		}
 
+		newPending = &pendingInviteRecord{
+			memberID:       member.ID,
+			userID:         targetUser.ID,
+			organizationID: orgID,
+			roleID:         targetRole.ID,
+			sentAt:         now,
+			expiresAt:      expiresAt,
+		}
 		result = converter.MemberToResponse(member)
 		return nil
 	})
@@ -253,6 +409,13 @@ func (uc *organizationMemberUseCase) InviteMember(ctx context.Context, orgID str
 		return nil, err
 	}
 
+	if suppressed {
+		return result, nil
+	}
+
+	if newPending != nil {
+		uc.setPendingInvite(inviteKey, *newPending)
+	}
 	uc.invalidateMembershipCache(ctx, orgID, targetUserID)
 
 	return result, nil
@@ -383,6 +546,7 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 	_, err, _ := uc.acceptGroup.Do(request.Token, func() (interface{}, error) {
 		var orgID string
 		var userID string
+		var invitedEmail string
 		policyChanged := false
 
 		err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
@@ -483,6 +647,7 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 			// If already active, do not add duplicate policy, just clean up token.
 			orgID = invitation.OrganizationID
 			userID = user.ID
+			invitedEmail = invitation.Email
 
 			// 6. Delete Invitation
 			if err := uc.invitationRepo.Delete(txCtx, invitation.ID); err != nil {
@@ -495,6 +660,7 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 			return nil, err
 		}
 
+		uc.clearPendingInvite(orgID, invitedEmail)
 		if policyChanged {
 			uc.reloadPolicyAfterCommit(ctx)
 		}
@@ -506,6 +672,7 @@ func (uc *organizationMemberUseCase) AcceptInvitation(ctx context.Context, reque
 
 // RemoveMember removes a member from an organization
 func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, userID string) error {
+	removed := false
 	err := uc.tm.WithinTransaction(ctx, func(txCtx context.Context) error {
 		org, _, _, err := uc.authorizeMemberManagement(txCtx, orgID)
 		if err != nil {
@@ -515,10 +682,13 @@ func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, us
 		// Check if member exists and lock row
 		member, err := uc.memberRepo.FindMemberForUpdate(txCtx, orgID, userID)
 		if err != nil {
+			if errors.Is(err, exception.ErrNotFound) {
+				return nil
+			}
 			return err
 		}
 		if member == nil {
-			return exception.ErrNotFound
+			return nil
 		}
 
 		// Prevent removing owner
@@ -540,12 +710,24 @@ func (uc *organizationMemberUseCase) RemoveMember(ctx context.Context, orgID, us
 			}
 		}
 
-		return uc.memberRepo.RemoveMember(txCtx, orgID, userID)
+		if err := uc.memberRepo.RemoveMember(txCtx, orgID, userID); err != nil {
+			if errors.Is(err, exception.ErrNotFound) {
+				return nil
+			}
+			return err
+		}
+		removed = true
+		return nil
 	})
 	if err != nil {
 		return err
 	}
 
+	if !removed {
+		return nil
+	}
+
+	uc.clearPendingInviteByUser(orgID, userID)
 	uc.reloadPolicyAfterCommit(ctx)
 	uc.invalidateMembershipCache(ctx, orgID, userID)
 	return nil

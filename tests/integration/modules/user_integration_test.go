@@ -66,6 +66,10 @@ func TestUserIntegration_Positive_Delete(t *testing.T) {
 
 	_, err = userRepo.FindByID(context.Background(), testUser.ID)
 	assert.Error(t, err)
+
+	// Repeat delete is an idempotent no-op success
+	err = userUC.DeleteUser(context.Background(), "admin-id", deleteReq)
+	require.NoError(t, err)
 }
 
 func TestUserIntegration_Positive_GetByID(t *testing.T) {
@@ -250,7 +254,7 @@ func TestUserIntegration_Delete_Negative_NonExistentUser(t *testing.T) {
 
 	err := userUC.DeleteUser(context.Background(), "admin-id", deleteReq)
 
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 func TestUserIntegration_Create_Edge_MinimumUsernameLength(t *testing.T) {

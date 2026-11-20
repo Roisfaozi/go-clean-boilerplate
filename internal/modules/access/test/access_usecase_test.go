@@ -203,6 +203,7 @@ func TestDeleteAccessRight(t *testing.T) {
 		name         string
 		findResult   *entity.AccessRight
 		findErr      error
+		deleteErr    error
 		expectDelete bool
 		expectedErr  error
 	}{
@@ -212,9 +213,26 @@ func TestDeleteAccessRight(t *testing.T) {
 			expectDelete: true,
 		},
 		{
-			name:        "Error - Not Found",
-			findErr:     exception.ErrNotFound,
-			expectedErr: exception.ErrNotFound,
+			name:    "No-op - Not Found on lookup (idempotent delete behavior)",
+			findErr: exception.ErrNotFound,
+		},
+		{
+			name:         "No-op - Not Found on delete race (idempotent delete behavior)",
+			findResult:   &entity.AccessRight{ID: id},
+			expectDelete: true,
+			deleteErr:    exception.ErrNotFound,
+		},
+		{
+			name:        "Error - Database Error on lookup",
+			findErr:     errors.New("db error"),
+			expectedErr: exception.ErrInternalServer,
+		},
+		{
+			name:         "Error - Database Error on delete",
+			findResult:   &entity.AccessRight{ID: id},
+			expectDelete: true,
+			deleteErr:    errors.New("db error"),
+			expectedErr:  exception.ErrInternalServer,
 		},
 	}
 
@@ -225,7 +243,7 @@ func TestDeleteAccessRight(t *testing.T) {
 
 			deps.Repo.On("GetAccessRightByID", ctx, id).Return(tt.findResult, tt.findErr).Once()
 			if tt.expectDelete {
-				deps.Repo.On("DeleteAccessRight", ctx, id).Return(nil).Once()
+				deps.Repo.On("DeleteAccessRight", ctx, id).Return(tt.deleteErr).Once()
 			}
 
 			err := uc.DeleteAccessRight(ctx, id)
@@ -234,9 +252,27 @@ func TestDeleteAccessRight(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+			if !tt.expectDelete {
+				deps.Repo.AssertNotCalled(t, "DeleteAccessRight", mock.Anything, mock.Anything)
+			}
 			deps.Repo.AssertExpectations(t)
 		})
 	}
+
+	t.Run("Idempotent - Repeat DeleteAccessRight returns nil with zero extra delete calls", func(t *testing.T) {
+		deps, uc := setupAccessTest()
+		ctx := context.Background()
+
+		deps.Repo.On("GetAccessRightByID", ctx, id).Return(&entity.AccessRight{ID: id}, nil).Once()
+		deps.Repo.On("DeleteAccessRight", ctx, id).Return(nil).Once()
+		deps.Repo.On("GetAccessRightByID", ctx, id).Return(nil, exception.ErrNotFound).Once()
+
+		assert.NoError(t, uc.DeleteAccessRight(ctx, id))
+		assert.NoError(t, uc.DeleteAccessRight(ctx, id))
+
+		deps.Repo.AssertNumberOfCalls(t, "DeleteAccessRight", 1)
+		deps.Repo.AssertExpectations(t)
+	})
 }
 
 func TestDeleteEndpoint(t *testing.T) {
