@@ -9,11 +9,11 @@ Live code remains the final authority. Use this document to understand the syste
 | Concern | File | Scope |
 | --- | --- | --- |
 | API process startup | `cmd/api/main.go` | load config, create application, start/stop HTTP server and background services |
-| dependency composition | `internal/config/app.go` | construct DB, Redis, JWT, Casbin, storage, realtime managers, modules, middleware, router, worker, scheduler |
-| route and middleware topology | `internal/router/router.go` | define `/api/v1`, public/authenticated/tenant/admin route groups, upload, metrics, realtime endpoints |
+| dependency composition | `internal/config/fx.go` & `internal/config/app.go` | Fx DI modules and lifecycle (`InfraFxModule`, `AppModulesFxModule`, `RuntimeFxModule`) constructing DB (`sqlx`), Redis, JWT, Casbin, storage, realtime managers, modules, middleware, router, worker, scheduler |
+| route and middleware topology | `internal/router/http_router.go` | define `/api/v1`, public/authenticated/tenant/admin route groups, upload, metrics, Swagger UI, realtime endpoints |
 | environment config mapping | `internal/config/config.go` | map env/defaults into `AppConfig`; define config structs and defaults |
 
-Developer rule: when behavior seems unclear, read files in this order: `cmd/api/main.go`, `internal/config/app.go`, `internal/router/router.go`, then the target module.
+Developer rule: when behavior seems unclear, read files in this order: `cmd/api/main.go`, `internal/config/fx.go` / `internal/config/app.go`, `internal/router/http_router.go`, then the target module.
 
 ## 2. High-Level System Shape
 
@@ -26,12 +26,12 @@ clients
   └─ external API clients
        │
        ▼
-Gin HTTP API
+Stdlib `net/http` API (`http.ServeMux`)
        │
        ├─ middleware layer       auth, API key, tenant, Casbin, rate limit, observability
-       ├─ delivery layer         HTTP controllers
+       ├─ delivery layer         HTTP controllers (`internal/delivery/http_handler.go` + module handlers)
        ├─ usecase layer          business orchestration
-       ├─ repository layer       GORM / Redis persistence
+       ├─ repository layer       `sqlx` (parameterized SQL) / Redis persistence
        ├─ infrastructure layer   JWT, storage, TUS, SSE, WS, SSO, Asynq, telemetry
        └─ worker layer           async cleanup, audit sync, webhook dispatch, scheduled jobs
 ```
@@ -74,11 +74,11 @@ The backend follows Clean Architecture boundaries, but not in a dogmatic way. Mo
 
 ### 3.2 Router / Access Segmentation Layer
 
-**File:** `internal/router/router.go`
+**File:** `internal/router/http_router.go`
 
 **Scope:**
 
-- global Gin middleware
+- global `net/http` middleware (`internal/middleware/http_*.go`)
 - route grouping
 - route registration
 - access-level separation
@@ -205,7 +205,7 @@ Important repo rule: usecase constructors should receive only needed dependencie
 
 **Scope:**
 
-- GORM persistence
+- `sqlx` parameterized SQL persistence (`internal/config/sqlx.go`)
 - Redis persistence/cache where domain-owned
 - query construction
 - tenant-scoped filtering
@@ -397,7 +397,7 @@ Audit, webhook, cleanup, and email-like effects can run through workers. Treat e
 
 A typical protected tenant request follows this order:
 
-1. Gin global middleware: recovery, request ID, metrics, logger, security headers, CORS, optional rate limit.
+1. Global `net/http` middleware: recovery, request ID, `otelhttp`, `HTTPPrometheusMiddleware`, logger, security headers, CORS, optional rate limit.
 2. API-key middleware: authenticate API key if present.
 3. Auth middleware: validate user token/session.
 4. Scope middleware: auto or explicit API-key scope enforcement.
@@ -406,7 +406,7 @@ A typical protected tenant request follows this order:
 7. Casbin middleware: enforce domain-aware permission.
 8. Controller: parse request, validate input, call usecase.
 9. Usecase: execute business rule, open transaction if needed, call repositories/infrastructure.
-10. Repository: persist/read data through GORM or Redis.
+10. Repository: persist/read data through `sqlx` or Redis.
 11. Side effects: audit, webhook, realtime broadcast, worker enqueue, storage/TUS hook as needed.
 12. Controller: return HTTP response.
 
@@ -420,7 +420,7 @@ A typical protected tenant request follows this order:
 ## 8. Documentation Map
 
 - `SYSTEM_ARCHITECTURE.md` — shorter compatibility summary.
-- `MULTI_TENANCY.md` — tenant, membership, GORM scope, Casbin domain architecture.
+- `MULTI_TENANCY.md` — tenant, membership, SQL organization clause, Casbin domain architecture.
 - `ARCHITECTURE_VISUAL_AND_SEQUENCE.md` — visual diagrams and core request sequences.
 - `../guides/DEVELOPER_FLOW.md` — reading and verification workflow.
 - `../guides/API_ACCESS_WORKFLOW.md` — API auth/RBAC workflow.

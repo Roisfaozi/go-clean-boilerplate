@@ -4,8 +4,8 @@
 
 Confirmed contract sources:
 
-- Swagger/OpenAPI generated files under `docs/swagger.json`, `docs/swagger.yaml`, `docs/docs.go`.
-- Backend route registration in `internal/router/router.go` and module route files.
+- Swagger/OpenAPI generated files under `docs/swagger.json`, `docs/swagger.yaml`, `docs/docs.go` (served via `internal/router/swagger_handler.go`).
+- Centralized backend route registration in `internal/router/http_router.go` (dead per-module `*_routes.go` files were removed).
 - Frontend proxy and API client paths in `apps/web/src/app/api/v1/[...path]/route.ts`, `apps/client/app/routes/api-proxy.ts`, and frontend `lib/api` folders.
 - Shared package `packages/api-types` exists for frontend-facing types.
 
@@ -52,7 +52,7 @@ Authenticated auth endpoints include:
 
 ## Module endpoint families
 
-Observed route families in backend route files:
+Observed route families in `internal/router/http_router.go`:
 
 - `/users`
 - `/organizations`
@@ -93,7 +93,7 @@ Backend routes may require combinations of:
 - organization/tenant context
 - Casbin policy allow
 
-Route protection is defined in `internal/router/router.go` and module route files, not in generated frontend types.
+Route protection is defined in `internal/router/http_router.go`, not in generated frontend types.
 
 ## Contract confidence notes
 

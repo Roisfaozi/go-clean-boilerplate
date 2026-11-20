@@ -71,46 +71,45 @@ data: {"message_id": "msg_999", "usage": {"prompt_tokens": 50, "completion_token
 
 ## 4. Backend Implementation Guide (Go)
 
-### Example Implementation (Gin)
+### Example Implementation (Go `net/http`)
 
 ```go
-func HandleAIChat(c *gin.Context) {
+func HandleAIChat(w http.ResponseWriter, r *http.Request) {
     // 1. Set SSE Headers
-    c.Writer.Header().Set("Content-Type", "text/event-stream")
-    c.Writer.Header().Set("Cache-Control", "no-cache")
-    c.Writer.Header().Set("Connection", "keep-alive")
-    c.Writer.Header().Set("Transfer-Encoding", "chunked")
+    w.Header().Set("Content-Type", "text/event-stream")
+    w.Header().Set("Cache-Control", "no-cache")
+    w.Header().Set("Connection", "keep-alive")
+    w.Header().Set("Transfer-Encoding", "chunked")
 
-    // 2. Bind JSON Request
+    // 2. Decode JSON Request
     var req AIChatRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(400, gin.H{"error": "invalid request"})
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, `{"error":"invalid request"}`, http.StatusBadRequest)
         return
     }
 
     // 3. Setup LLM Stream (e.g., OpenAI or Gemini)
     // Ensure you inject the system prompt based on req.Context
-    stream, err := llmProvider.GetStream(c.Request.Context(), req)
+    stream, err := llmProvider.GetStream(r.Context(), req)
     if err != nil {
-        c.JSON(500, gin.H{"error": "ai service unavailable"})
+        http.Error(w, `{"error":"ai service unavailable"}`, http.StatusInternalServerError)
         return
     }
 
+    flusher, _ := w.(http.Flusher)
+
     // 4. Stream Loop
-    c.Stream(func(w io.Writer) bool {
-        if chunk, ok := <-stream; ok {
-            payload, _ := json.Marshal(map[string]string{"text": chunk})
-            fmt.Fprintf(w, "data: %s
-
-", string(payload))
-            return true
+    for chunk := range stream {
+        payload, _ := json.Marshal(map[string]string{"text": chunk})
+        fmt.Fprintf(w, "data: %s\n\n", string(payload))
+        if flusher != nil {
+            flusher.Flush()
         }
-        fmt.Fprintf(w, "event: finish
-data: {}
-
-")
-        return false
-    })
+    }
+    fmt.Fprint(w, "event: finish\ndata: {}\n\n")
+    if flusher != nil {
+        flusher.Flush()
+    }
 }
 ```
 

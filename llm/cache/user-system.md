@@ -15,7 +15,7 @@ Use this file before changing `internal/modules/user`, avatar flow, user list/se
 
 ## Primary source of truth
 
-1. `internal/modules/user/delivery/http/user_routes.go`
+1. `internal/router/http_router.go`
 2. `internal/modules/user/delivery/http/user_controller.go`
 3. `internal/modules/user/usecase/user_usecase.go`
 4. `internal/modules/user/repository/user_repository.go`
@@ -47,17 +47,13 @@ Implication:
 
 ### Route ownership
 
-User routes live in three access strata.
+User routes are centrally registered in `internal/router/http_router.go` across three access strata.
 
-#### Public
-
-`RegisterPublicRoutes`:
+#### Public (`publicChain`)
 
 - `POST /users/register`
 
-#### Authenticated self-service
-
-`RegisterAuthenticatedRoutes`:
+#### Authenticated self-service (`authChain`)
 
 - `GET /users/me`
 - `PUT /users/me`
@@ -65,17 +61,15 @@ User routes live in three access strata.
 
 These are human-session routes, not admin surfaces.
 
-#### Authorized/admin-style
-
-`RegisterAuthorizedRoutes`:
+#### Authorized/admin-style (`adminChain`)
 
 - `GET /users`
 - `POST /users/search`
-- `GET /users/:id`
-- `PATCH /users/:id/status`
-- `DELETE /users/:id`
+- `GET /users/{id}`
+- `PATCH /users/{id}/status`
+- `DELETE /users/{id}`
 
-These run under `authorized` group in `internal/router/router.go`, so they inherit:
+These run under `adminChain` in `internal/router/http_router.go`, so they inherit:
 
 1. API-key authenticate
 2. token validate

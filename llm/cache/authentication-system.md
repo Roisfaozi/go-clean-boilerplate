@@ -7,20 +7,20 @@ Durable map for backend authentication, session verification, SSO, WebSocket tic
 ## Runtime truth
 
 - `internal/modules/auth` owns login, register, token, password reset, verification, SSO, logout, and ticket flows.
-- `internal/middleware/auth_middleware.go` owns bearer and cookie token extraction plus Redis-backed session verification.
+- `internal/middleware/http_auth_middleware.go` owns bearer and cookie token extraction plus Redis-backed session verification.
 - `internal/config/app.go` wires JWT manager, auth module, ticket manager, SSO providers, Redis, audit, worker, WS/SSE managers, and organization repository into auth.
-- `internal/router/router.go` defines public and authenticated auth route registration.
+- `internal/router/http_router.go` defines public and authenticated auth route registration.
 
 ## Protected request authentication flow
 
-On protected route groups the effective flow is:
+On protected route chains the effective flow is:
 
-1. `apiKeyMiddleware.Authenticate()` may establish API-key actor first.
-2. `authMiddleware.ValidateToken()` runs next and skips JWT token validation when API-key auth is already present.
+1. `HTTPAuthenticate` (`http_api_key_middleware.go`) may establish API-key actor first.
+2. `HTTPValidateToken` (`http_auth_middleware.go`) runs next and skips JWT token validation when API-key auth is already present.
 3. JWT token is read from `Authorization: Bearer ...` or `access_token` cookie.
 4. `AuthUseCase.ValidateAccessToken()` parses claims.
 5. `AuthUseCase.Verify(ctx, userID, sessionID)` checks backing session state in Redis or session store semantics.
-6. user, session, role, and username are placed into Gin context and request context via `pkg/authcontext`.
+6. user, session, role, and username are placed into request context via `internal/delivery` and `pkg/authcontext`.
 
 This means parsed JWT is not enough by itself for protected JWT routes.
 
@@ -37,7 +37,7 @@ Public auth routes under `/api/v1/auth` include:
 - SSO login
 - SSO callback
 
-`internal/router/router.go` gives login special critical rate limiting when configured.
+`internal/router/http_router.go` gives login special critical rate limiting when configured.
 
 ## Authenticated auth surfaces
 
@@ -82,7 +82,7 @@ These run under authenticated route layering, not public route layering.
 
 - `internal/modules/auth/test/*`
 - `internal/modules/auth/repository/token_repository_test.go`
-- `internal/middleware/auth_middleware.go`
+- `internal/middleware/http_auth_middleware.go`
 - `pkg/ws/ticket_manager_test.go`
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 - `internal/config/app.go`

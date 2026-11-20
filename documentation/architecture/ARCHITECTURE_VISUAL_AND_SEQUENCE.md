@@ -19,7 +19,7 @@ Dokumen ini melengkapi [ARCHITECTURE.md](./ARCHITECTURE.md) dengan fokus pada:
 ```mermaid
 flowchart LR
     Client[Web App or API Client]
-    API[Gin HTTP API]
+    API[Stdlib net/http API]
     WS[WebSocket and SSE]
     Worker[Asynq Worker and Scheduler]
     MySQL[(MySQL)]
@@ -53,7 +53,7 @@ flowchart TD
     AppConfig[AppConfig]
     Logger[Logger]
     Validator[Validator]
-    DB[(MySQL via GORM)]
+    DB[(MySQL via sqlx)]
     Redis[(Redis)]
     JWT[JWT Manager]
     Enforcer[Transactional Casbin Enforcer]
@@ -173,7 +173,7 @@ flowchart TB
     end
 
     subgraph Infra
-        GORM[GORM]
+        SQLX[sqlx]
         Redis[Redis]
         Asynq[Asynq]
         Casbin[Casbin]
@@ -187,7 +187,7 @@ flowchart TB
     Controllers --> UseCase
     UseCase --> Repository
     UseCase --> Infra
-    Repository --> GORM
+    Repository --> SQLX
     Repository --> Redis
 ```
 
@@ -413,7 +413,7 @@ flowchart LR
     Cache[CachedOrgReader Redis]
     RepoCheck[Member Repository]
     Ctx[Context with organization_id]
-    Scope[GORM OrganizationScope]
+    Scope[SQLOrganizationClause]
     Query[Scoped DB Query]
 
     Req --> TenantMW

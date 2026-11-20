@@ -13,7 +13,7 @@ Use before changing `internal/modules/project`, `/api/v1/projects` routes, proje
 
 ## Primary source of truth
 
-1. `internal/router/router.go`
+1. `internal/router/http_router.go`
 2. `internal/modules/project/delivery/http/project_controller.go`
 3. `internal/modules/project/usecase/project_usecase.go`
 4. `internal/modules/project/repository/project_repository.go`
@@ -88,7 +88,7 @@ Before editing project code, prove:
 - `internal/modules/project/test/project_usecase_test.go`
 - `internal/modules/project/test/mocks/mock_project_repository.go`
 - `internal/modules/project/usecase/project_usecase.go`
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 - integration route test if tenant or scope behavior changed
 
 ## Hard rules

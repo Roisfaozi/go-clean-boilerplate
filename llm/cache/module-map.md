@@ -15,15 +15,15 @@ This file is for fast ownership decisions before deep code reads.
 
 ## Primary source of truth
 
-1. `internal/config/app.go`
-2. `internal/config/app_helpers.go`
-2. `internal/router/router.go`
-3. `internal/modules/*/module.go`
-4. relevant `llm/cache/*` domain files
+1. `internal/config/fx.go` (Fx module composition and lifecycle)
+2. `internal/config/app.go` and `internal/config/app_helpers.go`
+3. `internal/router/http_router.go` (centralized stdlib `http.ServeMux` route registration; per-module route files were removed)
+4. `internal/modules/*/module.go`
+5. relevant `llm/cache/*` domain files
 
 ## Composition-root facts
 
-`internal/config/app.go` plus `internal/config/app_helpers.go` is real dependency graph.
+`internal/config/fx.go` boots `internal/config/app.go` plus `internal/config/app_helpers.go`, which hold the real dependency graph.
 
 It wires:
 
@@ -122,7 +122,7 @@ These often own real behavior even when issue appears module-local:
 
 Use these fast rules:
 
-- if route protection changed, start in `internal/router/router.go` before module code
+- if route protection changed, start in `internal/router/http_router.go` before module code
 - if DB + Casbin must commit together, owner is usecase + transactional enforcer, not repository only
 - if async side effect exists, inspect module plus worker/task distributor
 - if frontend breaks after backend patch, inspect `llm/cache/api-contracts.md` and frontend proxy files before blaming frontend alone

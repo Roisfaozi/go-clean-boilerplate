@@ -20,7 +20,7 @@
 - circuit breaker config
 - OpenTelemetry tracer
 - validator
-- `sqlx` database connection (`*sqlx.DB` via `NewSQLXDatabase` in `internal/config/sqlx.go`)
+- `sqlx` database connection (`*sqlx.DB` via `NewSQLXDatabase` in `internal/config/sqlx.go` with `otelsql` instrumentation)
 - Redis client
 - Asynq task distributor and processor
 - `sqlx` transaction manager (`tx.NewSQLXTransactionManager`)
@@ -42,7 +42,7 @@ The composition root also initializes production safety around Casbin and shared
 
 ## HTTP boundary
 
-`internal/router/http_router.go` wires routes on a Go `http.ServeMux` (`SetupStdRouter`) using `delivery.Chain` middleware chains and `HTTP*` controller handlers (wrapping with `otelhttp.NewHandler` when OTEL is enabled).
+`internal/router/http_router.go` centrally registers all routes on a Go `http.ServeMux` (`SetupStdRouter`) using `delivery.Chain` middleware chains and stdlib `HTTP*` controller handlers (wrapping with `otelhttp.NewHandler` when OTEL is enabled, and mounting Swagger UI via `internal/router/swagger_handler.go`). Per-module route registration files are no longer used.
 
 Top-level surfaces:
 
@@ -114,7 +114,7 @@ The upload boundary is intentionally separate from standard CRUD routes so uploa
 
 ## Database boundary
 
-- `sqlx` (`*sqlx.DB` initialized in `internal/config/sqlx.go`) with parameterized raw SQL is the runtime database layer; GORM has been removed.
+- `sqlx` (`*sqlx.DB` initialized in `internal/config/sqlx.go` with `otelsql` tracing) with parameterized raw SQL is the runtime database layer.
 - `pkg/tx` provides `SQLXTransactionManager`, `DBTX`, and `DBTXFromContext` (`DBFromContext` delegates to `DBTXFromContext`).
 - `pkg/database` provides tenant/visibility SQL clause helpers (`SQLOrganizationClause`, `SQLOrganizationVisibilityClause`).
 - `pkg/casbinadapter` provides `SQLXCasbinAdapter` for Casbin policy persistence.

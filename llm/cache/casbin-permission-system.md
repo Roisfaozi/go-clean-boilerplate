@@ -11,13 +11,13 @@ Durable map for authorization behavior in this repo:
 - user, role, access-right, and domain coupling
 - batch permission checks and admin routes
 
-Use this file before changing `internal/modules/permission`, `internal/middleware/casbin_middleware.go`, route groups, access-right registry, or any authz-sensitive write flow.
+Use this file before changing `internal/modules/permission`, `internal/middleware/http_casbin_middleware.go`, route chains, access-right registry, or any authz-sensitive write flow.
 
 ## Primary source of truth
 
 1. `internal/config/app.go`
-2. `internal/middleware/casbin_middleware.go`
-3. `internal/router/router.go`
+2. `internal/middleware/http_casbin_middleware.go`
+3. `internal/router/http_router.go`
 4. `internal/modules/permission/*`
 5. `internal/modules/permission/usecase/transactional_enforcer.go`
 6. `llm/cache/access-right-system.md`
@@ -39,7 +39,7 @@ This is repo-critical safety logic. Do not bypass it in docs or code.
 
 ### Middleware ownership
 
-`internal/middleware/casbin_middleware.go` owns HTTP request enforcement.
+`internal/middleware/http_casbin_middleware.go` owns HTTP request enforcement.
 
 Important behavior:
 
@@ -65,7 +65,7 @@ Do not split effective ownership across controllers or unrelated modules.
 
 ### `tenantAuthorized`
 
-Current order in `internal/router/router.go`:
+Current order in `internal/router/http_router.go`:
 
 1. API-key authenticate
 2. token validate
@@ -170,9 +170,9 @@ Narrow first:
 
 - `internal/modules/permission/test/*`
 - `internal/modules/auth/repository/casbin_adapter_test.go`
-- `internal/middleware/casbin_middleware.go`
+- `internal/middleware/http_casbin_middleware.go`
 - `internal/modules/permission/usecase/transactional_enforcer.go`
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 - `internal/config/app.go`
 
 Broader when route behavior changed:

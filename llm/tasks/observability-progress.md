@@ -47,11 +47,11 @@ Implementation complete and 100% verified across unit, integration, and E2E test
 
 | Slice | Work | Status | Verification |
 |---|---|---|---|
-| P2-1 | normalized HTTP log schema | verified | `route` added to `request_logger.go`, middleware tests PASS |
-| P2-2 | single panic recovery owner | verified | redundant `gin.Recovery()` removed from router |
+| P2-1 | normalized HTTP log schema | verified | `route` added to `http_request_logger.go`, middleware tests PASS |
+| P2-2 | single panic recovery owner | verified | single stdlib `HTTPRecoveryMiddleware` in `internal/router/http_router.go` |
 | P2-3 | frontend/proxy request correlation | verified | Next.js API proxy forwards `X-Request-ID` |
 | P2-4 | PII and secret redaction | verified | email masking in `email_handler.go`, `TestMaskEmail` PASS |
-| P2-5 | dependency/realtime metric expansion | deferred | documented for future iteration |
+| P2-5 | dependency/realtime metric expansion | verified | `pkg/telemetry/metrics.go` DB pool stats collector, realtime SSE/WS collector, webhook/email/outbox metrics, WS send drop counter, plus `otelsql` DB tracing & `HTTPPrometheusMiddleware` stdlib restoration PASS |
 | P2-6 | structured lifecycle logging | verified | application startup/shutdown logs structured |
 
 ## Audit Verification Run

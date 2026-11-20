@@ -16,7 +16,7 @@ Use this file before changing `pkg/tus`, upload routes, storage drivers, avatar 
 
 ## Primary source of truth
 
-1. `internal/router/router.go`
+1. `internal/router/http_router.go`
 2. `internal/config/app.go`
 3. `pkg/tus/handler.go`
 4. `pkg/tus/auth.go`
@@ -29,16 +29,16 @@ Use this file before changing `pkg/tus`, upload routes, storage drivers, avatar 
 
 ### Route ownership
 
-- upload route is separate group: `/api/v1/upload`
-- upload route is not under normal `authenticated`, `tenantAuthorized`, or `authorized` CRUD groups
-- route is `Any("/files/*any", ...)` and wrapped with `http.StripPrefix("/api/v1/upload/files/", tusHandler)`
+- upload route is mounted separately at `/api/v1/upload/files/` in `internal/router/http_router.go`
+- upload route is not under normal `authChain`, `tenantChain`, or `adminChain` CRUD chains
+- handler is wrapped with `http.StripPrefix("/api/v1/upload/files/", tusHandler)`
 
 ### Middleware ownership
 
-Upload group currently uses:
+Upload route currently uses:
 
-1. `authMiddleware.ValidateToken()`
-2. `UserStatusMiddleware`
+1. `HTTPValidateToken` (`http_auth_middleware.go`)
+2. `HTTPUserStatusMiddleware` (`http_user_status.go`)
 
 Implication:
 
@@ -146,7 +146,7 @@ Narrow first:
 - `pkg/tus/*_test.go`
 - `internal/modules/user/test/avatar_hook_test.go`
 - `pkg/storage/*_test.go`
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 - `internal/config/app.go`
 
 Broader when auth or avatar flow changed:

@@ -19,7 +19,7 @@ Use before changing `internal/modules/access`, access-right seed/registry data, 
 4. `internal/modules/access/entity/*`
 5. `internal/modules/access/model/*`
 6. `internal/modules/permission/usecase/access_right_assignment.go`
-7. `internal/router/router.go`
+7. `internal/router/http_router.go`
 
 ## Runtime ownership
 
@@ -29,14 +29,12 @@ Use before changing `internal/modules/access`, access-right seed/registry data, 
 
 ## Route ownership
 
-Access routes are registered under authorized group through:
-
-`accessHttp.RegisterAccessRoutes(authorized.Group("", tenantMiddleware.OptionalOrganization()), accessModule.AccessController)`
+Access routes are centrally registered in `internal/router/http_router.go` under `adminChain` (which includes `HTTPOptionalOrganization` and `HTTPCasbinMiddleware`).
 
 Implications:
 
 - route inherits admin-style authorization stack
-- subgroup adds optional organization middleware again
+- optional organization middleware runs before Casbin
 - org context can matter when listing or scoping access data
 
 ## Contract semantics
@@ -87,7 +85,7 @@ Before editing access-right code/data, prove:
 - `internal/modules/access/usecase/access_usecase.go`
 - `internal/modules/permission/usecase/access_right_assignment.go`
 - `internal/modules/permission/test/*`
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 
 ## Hard rules
 

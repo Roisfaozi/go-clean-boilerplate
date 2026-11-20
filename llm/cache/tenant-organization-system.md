@@ -6,9 +6,9 @@ Durable map for organization tenant boundary, membership, invitations, cached re
 
 ## Runtime truth
 
-- `internal/middleware/tenant_middleware.go` owns required and optional organization context at HTTP middleware boundary.
+- `internal/middleware/http_tenant_middleware.go` owns required and optional organization context at HTTP middleware boundary.
 - `internal/modules/organization` owns organization lifecycle, membership, invitations, cached reader behavior, restore or hard-delete style flows, and tenant-sensitive usecases.
-- `internal/router/router.go` applies tenant middleware before Casbin on tenant-authorized routes.
+- `internal/router/http_router.go` applies tenant middleware before Casbin on tenant-authorized routes.
 - `internal/config/app.go` wires organization module with DB, Redis, task distributor, user repo, transaction manager, enforcer, presence manager, and frontend base URL.
 
 ## Route layering
@@ -60,9 +60,9 @@ Organization routes also exist across public, authenticated, tenant, and admin s
 
 ## Verification and evidence paths
 
-- `internal/middleware/tenant_middleware.go`
+- `internal/middleware/http_tenant_middleware.go`
 - `internal/modules/organization/usecase/*`
 - `internal/modules/organization/repository/*`
 - `internal/modules/organization/test/*`
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 - `internal/config/app.go`

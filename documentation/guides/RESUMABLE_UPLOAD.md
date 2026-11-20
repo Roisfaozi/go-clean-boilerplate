@@ -151,4 +151,4 @@ Tus requires several specific headers to be exposed to the browser. These are au
 - **Allowed Headers**: `Tus-Resumable`, `Upload-Length`, `Upload-Metadata`, `Upload-Offset`, `Upload-Protocol`.
 - **Exposed Headers**: `Location`, `Tus-Version`, `Tus-Resumable`, `Upload-Offset`, `Upload-Length`.
 
-**Common Issue**: If you get a `404 Not Found` on a PATCH request, ensure your `TUS_BASE_PATH` env variable exactly matches the route registered in `router.go` and that `http.StripPrefix` is used correctly.
+**Common Issue**: If you get a `404 Not Found` on a PATCH request, ensure your `TUS_BASE_PATH` env variable exactly matches the route registered in `internal/router/http_router.go` and that `http.StripPrefix` is used correctly.

@@ -5,12 +5,12 @@
 - API binary: `cmd/api/main.go` (boots `config.CoreFxModule` via `go.uber.org/fx` in `internal/config/fx.go`)
 - Generator binary: `cmd/gen/main.go`
 - Composition root: `internal/config/app.go` with extracted helper wiring in `internal/config/app_helpers.go`
-- Router: `internal/router/http_router.go` (`SetupStdRouter`)
+- Router: `internal/router/http_router.go` (`SetupStdRouter`, centralized route registration; Swagger UI in `internal/router/swagger_handler.go`)
 
 ## Shared infrastructure
 
 - config loading: `internal/config/config.go`
-- DB: `internal/config/sqlx.go` (`NewSQLXDatabase` returning `*sqlx.DB`)
+- DB: `internal/config/sqlx.go` (`NewSQLXDatabase` returning `*sqlx.DB` with `otelsql` tracing)
 - Redis: `internal/config/redis.go`
 - Casbin: `internal/config/casbin.go`, `internal/config/casbin_model.conf`, `pkg/casbinadapter`
 - storage: `internal/config/storage.go`, `pkg/storage/*`
@@ -83,11 +83,11 @@ This pattern is visible in module constructors and route/controller/repository f
 
 Controller pattern:
 
-- bind JSON via `response.DecodeJSON` or read path/query params via `r.PathValue(...)` / `r.URL.Query()` (legacy Gin handler methods remain alongside `HTTP*` handlers during phased cutover)
+- bind JSON via `response.DecodeJSON` or read path/query params via `r.PathValue(...)` / `r.URL.Query()`
 - validate with injected validator where applicable
 - read auth/tenant context keys via `internal/delivery` (`delivery.GetContextString`)
 - call usecase with `r.Context()`
-- return `pkg/response` stdlib helpers (`response.WriteSuccess`, `response.WriteSuccessWithPaging`, `response.WriteHTTPError`, `response.WriteJSON`)
+- return `pkg/response/http_response.go` stdlib helpers (`response.WriteSuccess`, `response.WriteSuccessWithPaging`, `response.WriteHTTPError`, `response.WriteJSON`)
 
 Repository pattern:
 
@@ -115,11 +115,11 @@ Worker change checklist:
 
 ## Middleware map
 
-- auth token/session: `internal/middleware/auth_middleware.go`
-- tenant organization: `internal/middleware/tenant_middleware.go`
-- Casbin authorization: `internal/middleware/casbin_middleware.go`
-- API key: `internal/middleware/api_key_middleware.go`
-- CORS/security headers/rate limit/recovery/request logging/user status/prometheus: `internal/middleware/*`
+- auth token/session: `internal/middleware/http_auth_middleware.go`
+- tenant organization: `internal/middleware/http_tenant_middleware.go`
+- Casbin authorization: `internal/middleware/http_casbin_middleware.go`
+- API key: `internal/middleware/http_api_key_middleware.go`
+- CORS/security headers/rate limit/recovery/request logging/user status/prometheus: `internal/middleware/http_*.go`
 
 Observed middleware layering in `internal/router/http_router.go`:
 

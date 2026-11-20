@@ -14,10 +14,10 @@ Use this file before changing `internal/modules/api_key`, route protection, scop
 
 ## Primary source of truth
 
-1. `internal/router/router.go`
-2. `internal/middleware/api_key_middleware.go`
+1. `internal/router/http_router.go`
+2. `internal/middleware/http_api_key_middleware.go`
 3. `internal/modules/api_key/usecase/api_key_usecase.go`
-4. `internal/modules/api_key/delivery/http/api_key_routes.go`
+4. `internal/modules/api_key/delivery/http/api_key_controller.go`
 5. `internal/modules/api_key/repository/*`
 6. `llm/cache/project-system.md` for project route coupling
 7. `llm/cache/authentication-system.md` and `llm/cache/tenant-organization-system.md`
@@ -26,14 +26,14 @@ Use this file before changing `internal/modules/api_key`, route protection, scop
 
 ### Route ownership
 
-- API-key management routes are registered by `api_keyHttp.RegisterApiKeyRoutes(authenticated, ...)`.
-- this means API-key CRUD itself is not public and not pure machine-auth; caller still enters authenticated route group.
-- project routes under `tenantAuthorized` add explicit API-key scopes like `project:view` and `project:manage` on top of auto scope middleware.
-- admin route group `authorized` requires explicit `admin:manage` API-key scope before optional org context and Casbin middleware.
+- API-key management routes are centrally registered in `internal/router/http_router.go` under `apiKeyChain` (`authChain` + `HTTPRequireUserSession` + `HTTPRequireOrganization`).
+- this means API-key CRUD itself is not public and not pure machine-auth; caller still enters authenticated user-session route chain.
+- project routes under `tenantChain` add explicit API-key scopes like `project:view` and `project:manage` on top of auto scope middleware.
+- admin route chain `adminChain` requires explicit `admin:manage` API-key scope before optional org context and Casbin middleware.
 
 ### Middleware layering
 
-`internal/router/router.go` proves layering order matters:
+`internal/router/http_router.go` proves layering order matters:
 
 #### `authenticated`
 
@@ -78,7 +78,7 @@ Implication:
 
 ## Identity injection behavior
 
-`internal/middleware/api_key_middleware.go` proves successful API-key auth injects:
+`internal/middleware/http_api_key_middleware.go` proves successful API-key auth injects:
 
 - `user_id`
 - `organization_id`
@@ -125,7 +125,7 @@ Audit any future use carefully; current route wiring should prove when AND seman
 
 ### Wildcards
 
-Tests in `internal/middleware/api_key_middleware_test.go` prove wildcard behavior exists:
+Tests in `internal/middleware/http_middlewares_test.go` prove wildcard behavior exists:
 
 - `project:*` can satisfy `project:manage`
 - `*` can satisfy arbitrary scopes
@@ -185,9 +185,9 @@ Before editing API-key code, prove these answers:
 
 Narrow first:
 
-- `internal/middleware/api_key_middleware_test.go`
+- `internal/middleware/http_middlewares_test.go`
 - `internal/modules/api_key/test/*`
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 - `internal/modules/api_key/usecase/api_key_usecase.go`
 
 Broader when route layering changed:

@@ -150,8 +150,8 @@ Read:
 
 Then verify against live code:
 
-- `internal/router/router.go`
-- `internal/config/app.go`
+- `internal/router/http_router.go`
+- `internal/config/fx.go` & `internal/config/app.go`
 - target module under `internal/modules/*`
 
 ## 5. If You Change Tenant Or Auth Behavior
@@ -178,7 +178,7 @@ Then verify against live code:
 
 - `pkg/ws`
 - `pkg/sse`
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 
 ## 7. If You Change Upload Or Storage
 

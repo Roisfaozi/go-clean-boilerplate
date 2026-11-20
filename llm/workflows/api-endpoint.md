@@ -24,16 +24,15 @@ This workflow exists to preserve route strata, auth layering, API-key scope beha
 1. `AGENTS.md`
 2. `llm/cache/api-contracts.md`
 3. relevant domain cache file
-4. `internal/router/router.go`
-5. target module route/controller/usecase files
+4. `internal/router/http_router.go`
+5. target module controller/usecase files
 6. `llm/workflows/cross-stack-change.md` if frontend consumers exist
 
 ## Live Code to Inspect
 
-- `internal/router/router.go`
-- target `*_routes.go`
-- target controller/usecase/model files
-- middleware files for auth, tenant, API key, Casbin
+- `internal/router/http_router.go` (centralized stdlib `http.ServeMux` route registration)
+- target `*_controller.go` (`HTTP*` handlers), usecase, and model files
+- middleware files under `internal/middleware/http_*.go` for auth, tenant, API key, Casbin
 - frontend proxies and consumer files if active contract consumer exists
 
 ## Workflow Steps

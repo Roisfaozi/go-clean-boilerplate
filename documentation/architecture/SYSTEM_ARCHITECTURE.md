@@ -13,9 +13,9 @@ The project follows **Clean Architecture** principles to ensure independence fro
 - **Entities**: Core business objects (e.g., `User`, `Role`). Located in `internal/modules/*/entity/`.
 - **Use Cases**: Application-specific business logic. Coordinates data flow. Located in `internal/modules/*/usecase/`.
 - **Interface Adapters**:
-  - **Repositories**: Data access (GORM, Redis).
-  - **Controllers**: HTTP Handlers (Gin).
-- **Frameworks & Drivers**: The outermost layer (Gin, MySQL, Redis, Asynq).
+  - **Repositories**: Data access (`sqlx` parameterized SQL, Redis).
+  - **Controllers**: HTTP Handlers (stdlib `net/http` + `internal/delivery/http_handler.go`).
+- **Frameworks & Drivers**: The outermost layer (`net/http`, Uber `fx`, MySQL/`sqlx`, Redis, Asynq).
 
 ---
 
@@ -70,7 +70,7 @@ The project includes a modern frontend built with **Next.js 14**, providing a se
 
 ## 3. Communication Patterns
 
-- **Synchronous**: Standard RESTful API via Gin.
+- **Synchronous**: Standard RESTful API via Go stdlib `net/http` (`http.ServeMux`).
 - **Asynchronous**: Event-driven background tasks via Asynq.
 - **Real-time**:
   - **WebSockets**: Bidirectional, distributed scaling via Redis Pub/Sub.
@@ -102,4 +102,4 @@ All methods in `pkg/storage.Provider` MUST accept `context.Context`. This ensure
 
 ### 🛡 Casbin Transactional Integrity
 
-Casbin operations must be wrapped in the `TransactionalEnforcer` when part of a GORM transaction. The enforcer MUST propagate the transaction handle via `.WithContext(ctx)` to ensure that policy changes are committed or rolled back atomically with other database operations.
+Casbin operations must be wrapped in the `TransactionalEnforcer` when part of a SQL transaction (`pkg/tx.SQLXTransactionManager`). The enforcer MUST propagate the transaction handle via `.WithContext(ctx)` to ensure that policy changes are committed or rolled back atomically with other database operations.

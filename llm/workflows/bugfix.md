@@ -28,7 +28,7 @@ Primary workflow for fixing incorrect behavior, regressions, security drift, or 
 
 - exact failing route, module, test, or error path
 - `internal/config/app.go` when lifecycle/dependency involved
-- `internal/router/router.go` if behavior is HTTP-visible
+- `internal/router/http_router.go` if behavior is HTTP-visible
 - target controller/usecase/repository
 - frontend proxy/client if bug crosses browser/backend boundary
 

@@ -34,7 +34,7 @@ Goal: keep producer and consumer in sync across this monorepo.
 ## Live Code to Inspect
 
 - backend route/controller/usecase files
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 - `apps/web/src/app/api/v1/[...path]/route.ts`
 - `apps/client/app/routes/api-proxy.ts`
 - `packages/api-types/*`

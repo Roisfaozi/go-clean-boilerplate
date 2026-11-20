@@ -15,15 +15,14 @@ Use before changing `internal/modules/permission`, permission API routes, access
 
 ## Primary source of truth
 
-1. `internal/modules/permission/delivery/http/permission_routes.go`
+1. `internal/router/http_router.go`
 2. `internal/modules/permission/delivery/http/permission_controller.go`
 3. `internal/modules/permission/usecase/permission_usecase.go`
 4. `internal/modules/permission/usecase/access_right_assignment.go`
 5. `internal/modules/permission/usecase/inheritance_tree.go`
 6. `internal/modules/permission/usecase/transactional_enforcer.go`
-7. `internal/router/router.go`
-8. `llm/cache/access-right-system.md`
-9. `llm/cache/casbin-permission-system.md`
+7. `llm/cache/access-right-system.md`
+8. `llm/cache/casbin-permission-system.md`
 
 ## Runtime ownership
 
@@ -38,13 +37,13 @@ Two route strata exist:
 
 ### Authenticated batch check
 
-- registered with `permissionHttp.RegisterBatchCheckRoute(authenticated, ...)`
+- centrally registered in `internal/router/http_router.go` under `authChain`
 - app-facing permission check behavior
 - not same as admin CRUD
 
 ### Authorized permission management
 
-- registered with `permissionHttp.RegisterPermissionRoutes(authorized, ...)`
+- centrally registered in `internal/router/http_router.go` under `adminChain`
 - admin-style policy CRUD and assignment behavior
 - inherits `admin:manage` API-key scope, optional org, and Casbin middleware
 
@@ -107,7 +106,7 @@ Before editing permission code, prove:
 - `internal/modules/permission/usecase/transactional_enforcer.go`
 - `internal/modules/permission/usecase/access_right_assignment.go`
 - `internal/modules/permission/usecase/inheritance_tree.go`
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 
 ## Hard rules
 

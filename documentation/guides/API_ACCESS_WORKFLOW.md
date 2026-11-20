@@ -39,7 +39,7 @@ The system supports a complex role hierarchy where a single role can inherit per
 
 Authorization policies are kept in sync with the database using a **Transactional Enforcer**.
 
-- **Context Propagation**: All permission operations must use `.WithContext(ctx)` to ensure they use the correct GORM transaction handle.
+- **Context Propagation**: All permission operations must use `.WithContext(ctx)` to ensure they use the correct `sqlx` transaction handle (`pkg/tx.DBTX`).
 - **Atomicity**: If a business operation fails (e.g., user creation), the associated Casbin policy changes (e.g., role assignment) are automatically rolled back along with the database transaction.
 
 ---

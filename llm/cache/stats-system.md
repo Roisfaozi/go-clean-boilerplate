@@ -19,7 +19,7 @@ Use before changing `internal/modules/stats`, dashboard metrics payloads, or rea
 3. `internal/modules/stats/model/stats_model.go`
 4. `internal/modules/stats/module.go`
 5. `internal/config/app.go`
-6. `internal/router/router.go`
+6. `internal/router/http_router.go`
 7. `llm/cache/realtime-system.md`
 
 ## Runtime ownership

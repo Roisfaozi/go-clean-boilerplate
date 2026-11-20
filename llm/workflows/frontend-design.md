@@ -120,7 +120,7 @@ For every meaningful UI surface, prove expected handling for:
 
 If surface reads or mutates backend data, inspect:
 
-- backend route family in `internal/router/router.go`
+- backend route family in `internal/router/http_router.go`
 - proxy owner file
 - app-local API helper
 - shared type package if used

@@ -14,14 +14,13 @@ Use before changing `internal/modules/webhook`, webhook event names, subscriptio
 
 ## Primary source of truth
 
-1. `internal/modules/webhook/delivery/http/webhook_routes.go`
+1. `internal/router/http_router.go`
 2. `internal/modules/webhook/delivery/http/webhook_controller.go`
 3. `internal/modules/webhook/usecase/webhook_usecase.go`
 4. `internal/modules/webhook/repository/webhook_repository.go`
 5. `internal/worker/tasks/webhook.go`
 6. `internal/worker/handlers/webhook_handler.go`
 7. `internal/worker/processor.go`
-8. `internal/router/router.go`
 
 ## Runtime ownership
 
@@ -94,10 +93,10 @@ Before editing webhook code, prove:
 
 - `internal/modules/webhook/test/*`
 - `internal/modules/webhook/usecase/webhook_usecase.go`
-- `internal/modules/webhook/delivery/http/webhook_routes.go`
+- `internal/modules/webhook/delivery/http/webhook_controller.go`
 - `internal/worker/tasks/webhook.go`
 - `internal/worker/handlers/*webhook*`
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 
 ## Hard rules
 

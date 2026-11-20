@@ -38,24 +38,24 @@ Fast routing by task type:
 
 - backend feature: read `llm/workflows/go-service.md`, `llm/cache/backend-map.md`, `llm/cache/module-map.md`.
 - benchmarking/refactor/improve before code change: read `llm/workflows/benchmarking.md`, `llm/conventions/testing.md`, then target package tests.
-- API route change: read `llm/workflows/api-endpoint.md`, `llm/cache/api-contracts.md`, `internal/router/router.go`.
+- API route change: read `llm/workflows/api-endpoint.md`, `llm/cache/api-contracts.md`, `internal/router/http_router.go`.
 - frontend change: read `llm/cache/frontend-map.md`, `llm/cache/frontend-proxy-system.md`, `llm/conventions/typescript.md`, then the target app package.
 - frontend design/new UI flow: read `llm/workflows/frontend-design.md`, `llm/references/frontend-skill-map.md`, then target app package.
 - frontend redesign flow: read `llm/workflows/frontend-redesign.md`, `llm/references/frontend-skill-map.md`, then target existing app surface.
 - image-led frontend implementation: read `llm/workflows/image-to-frontend.md`, `llm/references/frontend-skill-map.md`, then target app package.
 - cross-stack change: read `llm/workflows/cross-stack-change.md`, `llm/cache/api-contracts.md`, `llm/cache/frontend-proxy-system.md`, both frontend proxy files.
 - DB/schema change: read `llm/workflows/database-migration.md`, `llm/conventions/database.md`, `db/migrations`.
-- auth/session change: read `llm/cache/authentication-system.md`, `llm/cache/domain-rules.md`, `internal/middleware/auth_middleware.go`.
-- tenant/organization change: read `llm/cache/tenant-organization-system.md`, `llm/cache/user-system.md`, `internal/middleware/tenant_middleware.go`, target organization usecase.
-- Casbin/permission change: read `llm/cache/casbin-permission-system.md`, `llm/cache/permission-system.md`, `llm/cache/role-system.md`, `llm/cache/access-right-system.md`, `internal/middleware/casbin_middleware.go`, `internal/modules/permission`.
-- API-key change: read `llm/cache/api-key-system.md`, `internal/middleware/api_key_middleware.go`, `internal/modules/api_key`.
+- auth/session change: read `llm/cache/authentication-system.md`, `llm/cache/domain-rules.md`, `internal/middleware/http_auth_middleware.go`.
+- tenant/organization change: read `llm/cache/tenant-organization-system.md`, `llm/cache/user-system.md`, `internal/middleware/http_tenant_middleware.go`, target organization usecase.
+- Casbin/permission change: read `llm/cache/casbin-permission-system.md`, `llm/cache/permission-system.md`, `llm/cache/role-system.md`, `llm/cache/access-right-system.md`, `internal/middleware/http_casbin_middleware.go`, `internal/modules/permission`.
+- API-key change: read `llm/cache/api-key-system.md`, `internal/middleware/http_api_key_middleware.go`, `internal/modules/api_key`.
 - upload/storage change: read `llm/cache/tus-upload-system.md`, `pkg/tus`, `pkg/storage`.
 - worker/audit/webhook change: read `llm/cache/worker-audit-webhook-system.md`, `llm/cache/audit-system.md`, `llm/cache/webhook-system.md`, `internal/worker`, target audit/webhook module.
 - query/filter/sort change: read `llm/cache/querybuilder-security.md`, `llm/cache/user-system.md`, `pkg/querybuilder`.
-- realtime change: read `llm/cache/realtime-system.md`, `llm/cache/stats-system.md`, `pkg/ws`, `pkg/sse`, `internal/router/router.go`.
+- realtime change: read `llm/cache/realtime-system.md`, `llm/cache/stats-system.md`, `pkg/ws`, `pkg/sse`, `internal/router/http_router.go`.
 - user/profile/avatar/list change: read `llm/cache/user-system.md`, `llm/cache/querybuilder-security.md`, `pkg/tus`, `internal/modules/user`.
 - role/permission change: read `llm/cache/role-system.md`, `llm/cache/access-right-system.md`, `llm/cache/permission-system.md`, `llm/cache/casbin-permission-system.md`, `internal/modules/role`, `internal/modules/permission`.
-- project change: read `llm/cache/project-system.md`, `llm/cache/api-key-system.md`, `llm/cache/tenant-organization-system.md`, `internal/modules/project`, `internal/router/router.go`.
+- project change: read `llm/cache/project-system.md`, `llm/cache/api-key-system.md`, `llm/cache/tenant-organization-system.md`, `internal/modules/project`, `internal/router/http_router.go`.
 - stats change: read `llm/cache/stats-system.md`, `internal/modules/stats`, `internal/config/app.go`.
 - security/auth/tenant/Casbin change: read `llm/cache/domain-rules.md`, the matching domain cache, `internal/middleware/*`, target usecase.
 
@@ -65,7 +65,8 @@ Primary runtime files:
 
 - `cmd/api/main.go`
 - `internal/config/app.go`
-- `internal/router/router.go`
+- `internal/config/fx.go`
+- `internal/router/http_router.go`
 - `internal/config/config.go`
 
 These files define startup, dependency wiring, route strata, middleware layering, env mapping, and service composition.
@@ -208,13 +209,13 @@ Before making claims in docs or patches:
 
 - verify commands against `package.json`, `Makefile`, package scripts, or CI
 - verify paths exist in filesystem
-- verify route/auth/tenant behavior against `internal/router/router.go` and middleware/usecase code
+- verify route/auth/tenant behavior against `internal/router/http_router.go` and middleware/usecase code
 - prefer live code over README when they differ
 
 When task touches architecture-heavy areas:
 
 - inspect `internal/config/app.go` first
-- inspect `internal/router/router.go` second
+- inspect `internal/router/http_router.go` second
 - inspect target module constructor and usecase/repository/controller flow third
 
 When editing docs or AI context:

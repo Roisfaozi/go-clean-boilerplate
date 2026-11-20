@@ -10,7 +10,7 @@ This file does not replace live code. It tells you which invariants must survive
 
 ## Primary source of truth
 
-1. `internal/router/router.go`
+1. `internal/router/http_router.go`
 2. `internal/config/app.go`
 3. relevant middleware under `internal/middleware/*`
 4. relevant module usecases

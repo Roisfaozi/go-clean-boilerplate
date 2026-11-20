@@ -1,15 +1,16 @@
-# Observability Guide (OpenTelemetry & Jaeger)
+# Observability Guide (OpenTelemetry, Jaeger & Prometheus)
 
-This project integrates **OpenTelemetry (OTEL)** to provide deep visibility into request lifecycles across different layers: HTTP (Gin), Database (GORM), and Background Workers (Asynq).
+This project integrates **OpenTelemetry (OTEL)** and **Prometheus** to provide deep visibility into request lifecycles across different layers: HTTP (`net/http` via `otelhttp` and `HTTPPrometheusMiddleware`), Database (`sqlx` via `otelsql` and `NewDBStatsCollector`), Realtime (`NewRealtimeStatsCollector`), and Background Workers (`Asynq`, webhook/email/outbox metrics).
 
 ## Architecture
 
-1.  **OTEL SDK**: Initialized at application startup in `internal/config/app.go`.
+1.  **OTEL SDK & Metrics**: Initialized at application startup via `internal/config/fx.go` (`provideTracerShutdown`, `registerPrometheusCollectors`) and `internal/config/app.go`.
 2.  **Instrumentation**:
-    - **Gin**: Middleware tracks incoming requests and generates `TraceID`.
-    - **GORM**: Plugin tracks SQL query execution time and errors.
+    - **HTTP (`otelhttp` + `HTTPPrometheusMiddleware`)**: Wraps `net/http` handlers to track incoming requests, generate `TraceID`, and record Prometheus HTTP metrics.
+    - **Database (`otelsql` + `NewDBStatsCollector`)**: Instruments `sqlx` (`internal/config/sqlx.go`) SQL query execution spans/errors and exports DB connection pool stats.
+    - **Realtime & Workers**: `NewRealtimeStatsCollector` exports WebSocket/SSE stats, alongside webhook, email, and outbox metrics.
     - **Propagation**: The `TraceID` is automatically passed via `context.Context`.
-3.  **Exporter**: Data is sent via gRPC to an OTLP-compatible collector (Jaeger).
+3.  **Exporter**: Traces are sent via gRPC to an OTLP-compatible collector (Jaeger), and Prometheus metrics are exposed at `/metrics`.
 
 ## Setup & Visualization
 

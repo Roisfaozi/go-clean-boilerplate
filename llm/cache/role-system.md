@@ -15,13 +15,12 @@ Use before changing `internal/modules/role`, role API contracts, role validation
 
 ## Primary source of truth
 
-1. `internal/modules/role/delivery/http/role_routes.go`
+1. `internal/router/http_router.go`
 2. `internal/modules/role/delivery/http/role_controller.go`
 3. `internal/modules/role/usecase/role_usecase.go`
 4. `internal/modules/role/repository/role_repository.go`
 5. `internal/modules/role/module.go`
 6. `internal/modules/permission/usecase/*`
-7. `internal/router/router.go`
 
 ## Runtime ownership
 
@@ -90,7 +89,7 @@ Before editing role code, prove:
 - `internal/modules/role/delivery/http/role_controller_test.go`
 - `internal/modules/role/model/*_test.go`
 - `internal/modules/permission/test/*` when cleanup changes
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 
 ## Hard rules
 

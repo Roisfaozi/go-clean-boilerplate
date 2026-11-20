@@ -15,14 +15,13 @@ Use before changing `internal/modules/audit`, audit side effects in other module
 
 ## Primary source of truth
 
-1. `internal/modules/audit/delivery/http/audit_routes.go`
+1. `internal/router/http_router.go`
 2. `internal/modules/audit/delivery/http/audit_controller.go`
 3. `internal/modules/audit/usecase/audit_usecase.go`
 4. `internal/modules/audit/repository/audit_repository.go`
 5. `internal/modules/audit/entity/audit_log.go`
 6. `internal/modules/audit/entity/audit_outbox.go`
 7. `internal/worker/*`
-8. `internal/router/router.go`
 
 ## Runtime ownership
 
@@ -59,9 +58,8 @@ This means audit behavior is part of request transaction semantics.
 
 Repository dynamic list/search uses:
 
-- `database.OrganizationScope(ctx)`
-- `database.OrganizationVisibilityScope(ctx, "audit_logs.organization_id")`
-- `pkg/querybuilder` for dynamic filters/sorts
+- `database.SQLOrganizationClause` / `database.SQLOrganizationVisibilityClause`
+- `pkg/querybuilder` (`BuildRawQuery`) for dynamic filters/sorts
 
 Do not weaken visibility scope while changing search behavior.
 
@@ -112,7 +110,7 @@ Before editing audit code, prove:
 - `internal/modules/audit/usecase/audit_usecase.go`
 - `internal/modules/audit/delivery/http/audit_controller.go`
 - `internal/worker/*audit*`
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 
 ## Hard rules
 

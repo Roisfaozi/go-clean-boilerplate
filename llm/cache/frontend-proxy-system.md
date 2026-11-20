@@ -20,7 +20,7 @@ Use this file before changing frontend API calls, auth cookies, proxy headers, f
 4. `apps/client/app/routes/api-proxy.ts`
 5. target app API helper files
 6. target form implementation files
-7. `internal/router/router.go` if backend route/auth behavior changed
+7. `internal/router/http_router.go` if backend route/auth behavior changed
 
 ## Surface ownership
 

@@ -13,8 +13,8 @@ Enterprise-ready Go boilerplate implementing Clean Architecture, RBAC with Casbi
 ## 🚀 Core Features
 
 - **Clean Architecture**: Strict separation of concerns (Delivery, UseCase, Repository, Entity).
-- **Advanced RBAC with Casbin**: Fine-grained access control using GORM adapter. Policies are stored in the database for dynamic updates.
-- **Multi-Tenancy (Organization Module)**: Complete organization-based data isolation with member management, tenant middleware, and GORM scopes for secure multi-tenant operations.
+- **Advanced RBAC with Casbin**: Fine-grained access control using `sqlx` (`pkg/casbinadapter.SQLXCasbinAdapter`). Policies are stored in the database for dynamic updates.
+- **Multi-Tenancy (Organization Module)**: Complete organization-based data isolation with member management, tenant middleware, and SQL organization clauses (`pkg/database.SQLOrganizationClause` / `SQLOrganizationVisibilityClause`) for secure multi-tenant operations.
 - **Distributed WebSockets**: Scalable WebSocket management using **Redis Pub/Sub** backplane, allowing multi-node synchronization.
 - **Modular Audit Logging**: Synchronous activity tracking (LOGIN, REGISTER, UPDATE, DELETE) integrated directly into business UseCases.
 - **Multi-Provider File Storage**: Pluggable storage abstraction supporting **Local Disk**, **AWS S3**, **MinIO**, and **Cloudflare R2**.
@@ -116,8 +116,9 @@ SERVER_TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12  # IPs of your LB/Ingress
 | Category          | Technology                                                  | Description                            |
 | :---------------- | :---------------------------------------------------------- | :------------------------------------- |
 | **Language**      | [Go 1.25.5+](https://go.dev/)                               | Core programming language              |
-| **Framework**     | [Gin Gonic](https://github.com/gin-gonic/gin)               | High-performance HTTP framework        |
-| **Database**      | [MySQL 8.0](https://www.mysql.com/)                         | Primary relational database            |
+| **HTTP Router**   | Go stdlib `net/http` (`http.ServeMux`)                      | Standard library HTTP router & server  |
+| **Database**      | [MySQL 8.0](https://www.mysql.com/) + [sqlx](https://github.com/jmoiron/sqlx) | Primary relational database & SQL toolkit |
+| **DI / Lifecycle**| [Uber Fx](https://github.com/uber-go/fx)                    | Dependency injection & app lifecycle   |
 | **Cache/Session** | [Redis 7](https://redis.io/)                                | Session storage & WS Pub/Sub backplane |
 | **Authorization** | [Casbin](https://casbin.org/)                               | RBAC model & Policy enforcement        |
 | **Migrations**    | [golang-migrate](https://github.com/golang-migrate/migrate) | Database schema management             |
@@ -285,7 +286,8 @@ We use a layered testing strategy optimized for both speed and reliability.
 
 | Command                 | Type            | Description                                       |
 | :---------------------- | :-------------- | :------------------------------------------------ |
-| `make test-unit`        | **Unit**        | Runs mock-based tests for internal/pkg logic.     |
+| `make test`             | **Unit**        | Runs unit tests (`go test ./internal/... ./pkg/...`). |
+| `make test-unit`        | **Unit**        | Alias for `make test`.                            |
 | `make test-integration` | **Integration** | Uses **Singleton Containers** for DB/Redis logic. |
 | `make test-e2e`         | **E2E**         | Validates full HTTP request/response flows.       |
 | `make test-all`         | **Full Suite**  | Executes all test layers sequentially.            |
@@ -336,9 +338,10 @@ The project follows a standard Go project layout suitable for scalable microserv
 │   └── ...
 │
 └───internal/           # Private application code (not importable by other apps)
-    ├── config/         # Configuration loading & app initialization wiring
-    ├── middleware/     # HTTP Middlewares (Auth, Casbin Enforcer, CORS, OTEL)
-    ├── router/         # Gin router setup and route registration
+    ├── config/         # Configuration loading, Fx DI wiring & sqlx/Redis setup
+    ├── delivery/       # Shared HTTP handler helpers & response utilities
+    ├── middleware/     # HTTP Middlewares (Auth, API key, Tenant, Casbin, OTEL, Prometheus)
+    ├── router/         # Stdlib net/http router (`http_router.go`) and Swagger UI handler
     ├── worker/         # Background tasks, handlers & scheduler
     │
     └── modules/        # Domain-specific modules following Clean Architecture

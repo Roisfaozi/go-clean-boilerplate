@@ -1,6 +1,6 @@
 # Multi-Tenancy Architecture
 
-This document describes the multi-tenancy implementation used in the Go Clean Boilerplate. We use a **"Global User, Local Member"** strategy combined with **Row-Level Security (RLS)** via GORM scopes and **Domain-scoped RBAC** via Casbin to ensure strict isolation.
+This document describes the multi-tenancy implementation used in the Go Clean Boilerplate. We use a **"Global User, Local Member"** strategy combined with **Row-Level Security (RLS)** via parameterized SQL organization clauses (`pkg/database.SQLOrganizationClause` and `SQLOrganizationVisibilityClause`) and **Domain-scoped RBAC** via Casbin to ensure strict isolation.
 
 ## 1. Core Concept: Global User, Local Member
 
@@ -83,19 +83,17 @@ To streamline development, the Frontend `ApiClient` (`web/src/lib/api/client.ts`
 - **Client-Side**: Retrieves the active organization from `useOrganizationStore` and injects `X-Organization-ID` and `X-Organization-Slug` into every outgoing request.
 - **Server-Side (Next.js)**: Reads organization context from cookies (`organization_id`, `organization_slug`) during Server Component rendering or Server Actions to ensure consistent headers are sent to the Backend.
 
-### 2.3. GORM Scopes (Row-Level Security)
+### 2.3. SQL Organization Clauses (Row-Level Security)
 
-To prevent accidental data leaks, _every_ database query within a tenant context must apply a scope.
+To prevent accidental data leaks, _every_ database query within a tenant context must apply the organization isolation clause from `pkg/database/sql_scopes.go`.
 
 **Implementation:**
 
 ```go
-// Scope to filter by Organization ID
-func ScopeOrganization(orgID string) func(db *gorm.DB) *gorm.DB {
-    return func(db *gorm.DB) *gorm.DB {
-        return db.Where("organization_id = ?", orgID)
-    }
-}
+// Build WHERE fragment and bound args to filter by Organization ID
+clause, args := database.SQLOrganizationClause(ctx, "organization_id")
+// And to ensure the parent organization is active:
+visClause, visArgs := database.SQLOrganizationVisibilityClause(ctx, "projects.organization_id")
 ```
 
 ### 2.4. Casbin Domains (Tenant RBAC)

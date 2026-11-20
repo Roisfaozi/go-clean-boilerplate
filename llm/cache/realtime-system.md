@@ -18,7 +18,7 @@ Use this file before changing `pkg/ws`, `pkg/sse`, auth ticket flow, metrics bro
 Read these first, then verify target code:
 
 1. `internal/config/app.go`
-2. `internal/router/router.go`
+2. `internal/router/http_router.go`
 3. `pkg/ws/ws_controller.go`
 4. `pkg/ws/ticket_manager.go`
 5. `pkg/ws/ws_manager.go`
@@ -30,9 +30,9 @@ Read these first, then verify target code:
 
 ### Router ownership
 
-- `internal/router/router.go` registers authenticated `/api/v1/auth/ticket` under `authenticated` routes.
-- `internal/router/router.go` registers `/api/v1/upload/*` separately from realtime; do not confuse upload long-lived requests with realtime channels.
-- `internal/router/router.go` wires `/api/v1/events` for SSE and `/api/v1/ws` for WebSocket behavior through shared app wiring.
+- `internal/router/http_router.go` registers authenticated `/api/v1/auth/ticket` under `authChain` routes.
+- `internal/router/http_router.go` registers `/api/v1/upload/*` separately from realtime; do not confuse upload long-lived requests with realtime channels.
+- `internal/router/http_router.go` wires `/api/v1/events` for SSE and `/api/v1/ws` for WebSocket behavior through shared app wiring.
 
 ### App wiring ownership
 
@@ -73,7 +73,7 @@ Read these first, then verify target code:
 
 ## Auth and trust boundaries
 
-- ticket issuance is protected by authenticated route group in `internal/router/router.go`.
+- ticket issuance is protected by authenticated route chain in `internal/router/http_router.go`.
 - WebSocket auth is short-lived Redis ticket flow; do not replace with unsigned query params or raw user IDs.
 - `pkg/ws/ws_controller.go` origin checks compare `Origin` header against configured allowed origins.
 - if allowed origins list is empty, upgrader check becomes nil; treat this as security-sensitive config behavior, not harmless convenience.
@@ -130,7 +130,7 @@ Narrow evidence first:
 - `pkg/ws/ws_controller_test.go`
 - `pkg/ws/ws_manager_test.go`
 - `pkg/ws/ticket_manager.go`
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 - `internal/config/app.go`
 
 If frontend consumer changed too:

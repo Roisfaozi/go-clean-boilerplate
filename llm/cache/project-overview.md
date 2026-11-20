@@ -21,14 +21,14 @@ This repository is a hybrid monorepo with a Go API backend as the operational co
 
 ## Confirmed backend stack
 
-- HTTP router & lifecycle: Go `net/http` (`http.ServeMux` in `internal/router/http_router.go`) + `go.uber.org/fx` (`internal/config/fx.go`); legacy Gin handler methods remain alongside `HTTP*` stdlib handlers during phased cutover.
-- Database access: `sqlx` (`github.com/jmoiron/sqlx`) with parameterized raw SQL.
+- HTTP router & lifecycle: Go `net/http` (`http.ServeMux` in `internal/router/http_router.go`, Swagger UI in `internal/router/swagger_handler.go`) + `go.uber.org/fx` (`internal/config/fx.go`).
+- Database access: `sqlx` (`github.com/jmoiron/sqlx`) with parameterized raw SQL and `otelsql` tracing.
 - Database driver in module dependencies: MySQL (`github.com/go-sql-driver/mysql`), plus pure-Go SQLite (`github.com/glebarez/go-sqlite`) for repository unit tests.
 - Authorization library: Casbin (backed by `pkg/casbinadapter` SQLX adapter).
 - Cache / session / worker backend: Redis.
 - Background jobs: Asynq.
 - Upload protocol: TUS (`tusd`).
-- Observability: OpenTelemetry (`otelhttp` HTTP instrumentation + OTLP exporter).
+- Observability: OpenTelemetry (`otelhttp` HTTP instrumentation, `otelsql` DB instrumentation, OTLP exporter) and Prometheus (`HTTPPrometheusMiddleware` + `pkg/telemetry/metrics.go`).
 - API documentation: Swagger (`swag`).
 
 These are confirmed from `go.mod`, `cmd/api/main.go`, `internal/config/`, and `internal/router/http_router.go`, not inferred from naming.
