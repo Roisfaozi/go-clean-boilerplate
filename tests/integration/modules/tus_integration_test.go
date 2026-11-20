@@ -18,7 +18,6 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -101,12 +100,11 @@ func TestTUS_Integration_Lifecycle(t *testing.T) {
 
 	tusHandler, _, userID := setupTUSDeps(t, env, s3Client, s3URL)
 
-	gin.SetMode(gin.TestMode)
-
-	router := gin.New()
-	router.POST("/files/", gin.WrapH(http.StripPrefix("/files/", tusHandler)))
-	router.PATCH("/files/*any", gin.WrapH(http.StripPrefix("/files/", tusHandler)))
-	router.HEAD("/files/*any", gin.WrapH(http.StripPrefix("/files/", tusHandler)))
+	mux := http.NewServeMux()
+	filesHandler := http.StripPrefix("/files/", tusHandler)
+	mux.Handle("POST /files/", filesHandler)
+	mux.Handle("PATCH /files/{id...}", filesHandler)
+	mux.Handle("HEAD /files/{id...}", filesHandler)
 
 	t.Run("Create Upload", func(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/files/", nil)
@@ -118,7 +116,7 @@ func TestTUS_Integration_Lifecycle(t *testing.T) {
 		req.Header.Set("Upload-Metadata", fmt.Sprintf("filename dGVzdC50eHQ=,type YXZhdGFy,user_id %s", userIDBase64))
 
 		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
+		mux.ServeHTTP(w, req)
 
 		require.Equal(t, http.StatusCreated, w.Code)
 		location := w.Header().Get("Location")
@@ -137,7 +135,7 @@ func TestTUS_Integration_Lifecycle(t *testing.T) {
 			req.Header.Set("Content-Type", "application/offset+octet-stream")
 
 			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
+			mux.ServeHTTP(w, req)
 
 			require.Equal(t, http.StatusNoContent, w.Code)
 			offset := w.Header().Get("Upload-Offset")
@@ -163,7 +161,7 @@ func TestTUS_Integration_Lifecycle(t *testing.T) {
 			req.Header.Set("Content-Type", "application/offset+octet-stream")
 
 			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
+			mux.ServeHTTP(w, req)
 
 			assert.Equal(t, http.StatusConflict, w.Code)
 		})

@@ -25,8 +25,8 @@ type UserOrganizationsResponse struct {
 }
 
 type CreateOrganizationRequest struct {
-	Name string `json:"name" binding:"required,min=3,max=100" validate:"xss"`
-	Slug string `json:"slug" binding:"omitempty,min=3,max=100" validate:"omitempty,slug"`
+	Name string `json:"name" validate:"required,min=3,max=100,xss"`
+	Slug string `json:"slug" validate:"omitempty,min=3,max=100,slug"`
 }
 
 func (r *CreateOrganizationRequest) Sanitize() {
@@ -35,9 +35,9 @@ func (r *CreateOrganizationRequest) Sanitize() {
 }
 
 type UpdateOrganizationRequest struct {
-	Name     string                 `json:"name" binding:"omitempty,min=3,max=100" validate:"xss"`
+	Name     string                 `json:"name" validate:"omitempty,min=3,max=100,xss"`
 	Settings map[string]interface{} `json:"settings"`
-	Status   string                 `json:"status" binding:"omitempty,oneof=active suspended"`
+	Status   string                 `json:"status" validate:"omitempty,oneof=active suspended"`
 }
 
 func (r *UpdateOrganizationRequest) Sanitize() {
@@ -54,20 +54,20 @@ func (r *UpdateOrganizationRequest) Sanitize() {
 }
 
 type InviteMemberRequest struct {
-	Email  string `json:"email" binding:"required,email"`
+	Email  string `json:"email" validate:"required,email"`
 	UserID string `json:"user_id"` // Optional, if inviting generic email
-	RoleID string `json:"role_id" binding:"required"`
+	RoleID string `json:"role_id" validate:"required"`
 }
 
 type AcceptInvitationRequest struct {
-	Token    string `json:"token" binding:"required"`
+	Token    string `json:"token" validate:"required"`
 	Password string `json:"password"` // Required for new users
 	Name     string `json:"name"`     // Optional
 }
 
 type UpdateMemberRequest struct {
 	RoleID string `json:"role_id"`
-	Status string `json:"status" binding:"omitempty,oneof=active suspended"`
+	Status string `json:"status" validate:"omitempty,oneof=active suspended"`
 }
 
 type MemberResponse struct {

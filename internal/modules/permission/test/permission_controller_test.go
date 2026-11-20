@@ -8,11 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	permHandler "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/permission/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -20,14 +21,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupPermissionTestRouter() *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	router.Use(func(c *gin.Context) {
-		c.Set("user_id", "test-user-id")
-		c.Next()
+func wrapWithTestUser(h http.HandlerFunc) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := delivery.SetContextValue(r.Context(), delivery.UserIDKey, "test-user-id")
+		h(w, r.WithContext(ctx))
 	})
-	return router
 }
 
 func newTestPermissionController(mockUseCase *mocks.MockIPermissionUseCase) *permHandler.PermissionController {
@@ -41,8 +39,8 @@ func newTestPermissionController(mockUseCase *mocks.MockIPermissionUseCase) *per
 func TestGrantPermission_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockIPermissionUseCase)
 	handler := newTestPermissionController(mockUseCase)
-	router := setupPermissionTestRouter()
-	router.POST("/permissions/grant", handler.GrantPermission)
+	mux := http.NewServeMux()
+	mux.Handle("POST /permissions/grant", wrapWithTestUser(handler.HTTPGrantPermission))
 
 	reqBody := model.GrantPermissionRequest{
 		Role:   "editor",
@@ -53,11 +51,11 @@ func TestGrantPermission_Success(t *testing.T) {
 	mockUseCase.On("GrantPermissionToRole", mock.Anything, reqBody.Role, reqBody.Path, reqBody.Method, "global").Return(nil)
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	var responseBody map[string]interface{}
@@ -74,14 +72,14 @@ func TestGrantPermission_Success(t *testing.T) {
 func TestGrantPermission_InvalidBody(t *testing.T) {
 	mockUseCase := new(mocks.MockIPermissionUseCase)
 	handler := newTestPermissionController(mockUseCase)
-	router := setupPermissionTestRouter()
-	router.POST("/permissions/grant", handler.GrantPermission)
+	mux := http.NewServeMux()
+	mux.Handle("POST /permissions/grant", wrapWithTestUser(handler.HTTPGrantPermission))
 
-	req, _ := http.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBufferString(`{"role": "editor",`))
+	req := httptest.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBufferString(`{"role": "editor",`))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -89,8 +87,8 @@ func TestGrantPermission_InvalidBody(t *testing.T) {
 func TestGrantPermission_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockIPermissionUseCase)
 	handler := newTestPermissionController(mockUseCase)
-	router := setupPermissionTestRouter()
-	router.POST("/permissions/grant", handler.GrantPermission)
+	mux := http.NewServeMux()
+	mux.Handle("POST /permissions/grant", wrapWithTestUser(handler.HTTPGrantPermission))
 
 	reqBody := model.GrantPermissionRequest{
 		Role:   "editor",
@@ -102,11 +100,11 @@ func TestGrantPermission_UseCaseError(t *testing.T) {
 	mockUseCase.On("GrantPermissionToRole", mock.Anything, reqBody.Role, reqBody.Path, reqBody.Method, "global").Return(mockError)
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/permissions/grant", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -115,8 +113,8 @@ func TestGrantPermission_UseCaseError(t *testing.T) {
 func TestAddRoleInheritance_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockIPermissionUseCase)
 	handler := newTestPermissionController(mockUseCase)
-	router := setupPermissionTestRouter()
-	router.POST("/permissions/inheritance", handler.AddRoleInheritance)
+	mux := http.NewServeMux()
+	mux.Handle("POST /permissions/inheritance", wrapWithTestUser(handler.HTTPAddRoleInheritance))
 
 	reqBody := model.RoleInheritanceRequest{
 		ChildRole:  "editor",
@@ -127,11 +125,11 @@ func TestAddRoleInheritance_Success(t *testing.T) {
 	mockUseCase.On("AddParentRole", mock.Anything, reqBody.ChildRole, reqBody.ParentRole, "global").Return(nil)
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/permissions/inheritance", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/permissions/inheritance", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -151,22 +149,19 @@ func setupPermissionControllerTest() (*mocks.MockIPermissionUseCase, *permHandle
 func TestPermissionController_AssignRole(t *testing.T) {
 	mockUC, controller := setupPermissionControllerTest()
 
-	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Set("user_id", "u1")
-
 	req := model.AssignRoleRequest{
 		UserID: "u1",
 		Role:   "role:admin",
 		Domain: "global",
 	}
 	body, _ := json.Marshal(req)
-	c.Request, _ = http.NewRequest("POST", "/permission/assign-role", bytes.NewBuffer(body))
+	reqHTTP := httptest.NewRequest(http.MethodPost, "/permission/assign-role", bytes.NewBuffer(body))
+	reqHTTP = reqHTTP.WithContext(delivery.SetContextValue(reqHTTP.Context(), delivery.UserIDKey, "u1"))
 
 	mockUC.On("AssignRoleToUser", mock.Anything, "u1", "role:admin", "global").Return(nil)
 
-	controller.AssignRole(c)
+	controller.HTTPAssignRole(w, reqHTTP)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
@@ -174,21 +169,18 @@ func TestPermissionController_AssignRole(t *testing.T) {
 func TestPermissionController_RevokeRole(t *testing.T) {
 	mockUC, controller := setupPermissionControllerTest()
 
-	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-
 	req := model.AssignRoleRequest{
 		UserID: "u1",
 		Role:   "role:admin",
 		Domain: "global",
 	}
 	body, _ := json.Marshal(req)
-	c.Request, _ = http.NewRequest("POST", "/permission/revoke-role", bytes.NewBuffer(body))
+	reqHTTP := httptest.NewRequest(http.MethodDelete, "/permission/revoke-role", bytes.NewBuffer(body))
 
-	mockUC.On("RevokeRoleFromUser", c.Request.Context(), "u1", "role:admin", "global").Return(nil)
+	mockUC.On("RevokeRoleFromUser", reqHTTP.Context(), "u1", "role:admin", "global").Return(nil)
 
-	controller.RevokeRole(c)
+	controller.HTTPRevokeRole(w, reqHTTP)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
@@ -196,10 +188,7 @@ func TestPermissionController_RevokeRole(t *testing.T) {
 func TestPermissionController_BatchCheck(t *testing.T) {
 	mockUC, controller := setupPermissionControllerTest()
 
-	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-
 	req := model.BatchPermissionCheckRequest{
 		Items: []model.PermissionCheckItem{
 			{Resource: "/api/v1/users", Action: "GET"},
@@ -207,22 +196,19 @@ func TestPermissionController_BatchCheck(t *testing.T) {
 	}
 	body, err := json.Marshal(req)
 	require.NoError(t, err)
-	reqHttp, err := http.NewRequest("POST", "/permission/batch-check", bytes.NewBuffer(body))
-	require.NoError(t, err)
-	c.Request = reqHttp
-
+	reqHTTP := httptest.NewRequest(http.MethodPost, "/permission/batch-check", bytes.NewBuffer(body))
 	// Simulate middleware setting user_id
-	c.Set("user_id", "u1")
+	reqHTTP = reqHTTP.WithContext(delivery.SetContextValue(reqHTTP.Context(), delivery.UserIDKey, "u1"))
 
 	results := map[string]bool{"/api/v1/users:GET": true}
 	mockUC.On("BatchCheckPermission", mock.Anything, "u1", req.Items).Return(results, nil)
 
-	controller.BatchCheck(c)
+	controller.HTTPBatchCheck(w, reqHTTP)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// Verify response body
-	var resp map[string]interface{} // Using generic map to avoid model import cycling if it happens
+	var resp map[string]interface{}
 	err = json.Unmarshal(w.Body.Bytes(), &resp)
 	require.NoError(t, err)
 	// data.results
@@ -236,20 +222,17 @@ func TestPermissionController_BatchCheck(t *testing.T) {
 func TestPermissionController_BatchCheck_Unauthorized(t *testing.T) {
 	_, controller := setupPermissionControllerTest()
 
-	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-
 	req := model.BatchPermissionCheckRequest{
 		Items: []model.PermissionCheckItem{
 			{Resource: "/api/v1/test", Action: "GET"},
 		},
 	}
 	body, _ := json.Marshal(req)
-	c.Request, _ = http.NewRequest("POST", "/permission/batch-check", bytes.NewBuffer(body))
+	reqHTTP := httptest.NewRequest(http.MethodPost, "/permission/batch-check", bytes.NewBuffer(body))
 	// NO user_id set
 
-	controller.BatchCheck(c)
+	controller.HTTPBatchCheck(w, reqHTTP)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
@@ -257,18 +240,18 @@ func TestPermissionController_BatchCheck_Unauthorized(t *testing.T) {
 func TestPermissionController_GetAllPermissions_FiltersTenantDomain(t *testing.T) {
 	mockUC, controller := setupPermissionControllerTest()
 
-	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request, _ = http.NewRequest("GET", "/permissions", nil)
-	c.Set("organization_id", "org-123")
+	reqHTTP := httptest.NewRequest(http.MethodGet, "/permissions", nil)
+	ctx := delivery.SetContextValue(reqHTTP.Context(), delivery.OrganizationIDKey, "org-123")
+	ctx = database.SetOrganizationContext(ctx, "org-123")
+	reqHTTP = reqHTTP.WithContext(ctx)
 
-	mockUC.On("GetAllPermissions", c.Request.Context()).Return([][]string{
+	mockUC.On("GetAllPermissions", reqHTTP.Context()).Return([][]string{
 		{"role:admin", "global", "/api/v1/users", "GET"},
 		{"role:admin", "org-123", "/api/v1/projects", "GET"},
 	}, nil).Once()
 
-	controller.GetAllPermissions(c)
+	controller.HTTPGetAllPermissions(w, reqHTTP)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotContains(t, w.Body.String(), "\"global\"")
@@ -278,16 +261,16 @@ func TestPermissionController_GetAllPermissions_FiltersTenantDomain(t *testing.T
 func TestPermissionController_GetUsersForRole_UsesResolvedTenantDomain(t *testing.T) {
 	mockUC, controller := setupPermissionControllerTest()
 
-	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request, _ = http.NewRequest("GET", "/permissions/roles/role:admin/users?domain=global", nil)
-	c.Params = gin.Params{{Key: "role", Value: "role:admin"}}
-	c.Set("organization_id", "org-123")
+	reqHTTP := httptest.NewRequest(http.MethodGet, "/permissions/roles/role:admin/users?domain=global", nil)
+	reqHTTP.SetPathValue("role", "role:admin")
+	ctx := delivery.SetContextValue(reqHTTP.Context(), delivery.OrganizationIDKey, "org-123")
+	ctx = database.SetOrganizationContext(ctx, "org-123")
+	reqHTTP = reqHTTP.WithContext(ctx)
 
-	mockUC.On("GetUsersForRole", c.Request.Context(), "role:admin", "org-123").Return([]string{"u1"}, nil).Once()
+	mockUC.On("GetUsersForRole", reqHTTP.Context(), "role:admin", "org-123").Return([]string{"u1"}, nil).Once()
 
-	controller.GetUsersForRole(c)
+	controller.HTTPGetUsersForRole(w, reqHTTP)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	mockUC.AssertExpectations(t)

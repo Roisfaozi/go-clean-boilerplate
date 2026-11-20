@@ -6,9 +6,9 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"time"
 
 	_ "github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
@@ -110,13 +110,25 @@ func (m *Manager) UnregisterClient(client *Client) {
 	m.unregister <- client
 }
 
-// ServeHTTP returns standard net/http handler.
+// ServeHTTP godoc
+// @Summary      SSE connection
+// @Description  Establishes a Server-Sent Events connection for unidirectional real-time notifications.
+// @Tags         realtime
+// @Security     BearerAuth
+// @Produce      text/event-stream
+// @Success      200  {string}  string "Event stream"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Router       /events [get]
 func (m *Manager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
 		return
 	}
+
+	// Disable per-request write deadline for long-lived SSE streams when server WriteTimeout is configured.
+	rc := http.NewResponseController(w)
+	_ = rc.SetWriteDeadline(time.Time{})
 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -153,12 +165,5 @@ func (m *Manager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			flusher.Flush()
 		}
-	}
-}
-
-// GinServeHTTP returns gin-compatible handler wrapper.
-func (m *Manager) GinServeHTTP() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		m.ServeHTTP(c.Writer, c.Request)
 	}
 }

@@ -7,7 +7,6 @@ import (
 	_ "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/stats/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
-	"github.com/gin-gonic/gin"
 )
 
 type StatsController struct {
@@ -20,7 +19,7 @@ func NewStatsController(useCase usecase.StatsUseCase) *StatsController {
 	}
 }
 
-// GetSummary godoc
+// HTTPSummary godoc
 // @Summary      Get dashboard summary
 // @Description  Returns high-level system statistics (total users, roles, audit logs, etc.)
 // @Tags         stats
@@ -30,15 +29,6 @@ func NewStatsController(useCase usecase.StatsUseCase) *StatsController {
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /stats/summary [get]
-func (h *StatsController) GetSummary(c *gin.Context) {
-	res, err := h.useCase.GetDashboardSummary(c.Request.Context())
-	if err != nil {
-		response.HandleError(c, err, "failed to get dashboard summary")
-		return
-	}
-	response.Success(c, res)
-}
-
 func (h *StatsController) HTTPSummary(w http.ResponseWriter, r *http.Request) {
 	res, err := h.useCase.GetDashboardSummary(r.Context())
 	if err != nil {
@@ -48,7 +38,7 @@ func (h *StatsController) HTTPSummary(w http.ResponseWriter, r *http.Request) {
 	response.WriteSuccess(w, http.StatusOK, res)
 }
 
-// GetActivity godoc
+// HTTPActivity godoc
 // @Summary      Get activity chart data
 // @Description  Returns daily activity metrics (logins, audit events) for a given period.
 // @Tags         stats
@@ -59,18 +49,6 @@ func (h *StatsController) HTTPSummary(w http.ResponseWriter, r *http.Request) {
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /stats/activity [get]
-func (h *StatsController) GetActivity(c *gin.Context) {
-	daysStr := c.DefaultQuery("days", "7")
-	days, _ := strconv.Atoi(daysStr)
-
-	res, err := h.useCase.GetDashboardActivity(c.Request.Context(), days)
-	if err != nil {
-		response.HandleError(c, err, "failed to get activity data")
-		return
-	}
-	response.Success(c, res)
-}
-
 func (h *StatsController) HTTPActivity(w http.ResponseWriter, r *http.Request) {
 	daysStr := r.URL.Query().Get("days")
 	if daysStr == "" {
@@ -86,7 +64,7 @@ func (h *StatsController) HTTPActivity(w http.ResponseWriter, r *http.Request) {
 	response.WriteSuccess(w, http.StatusOK, res)
 }
 
-// GetInsights godoc
+// HTTPInsights godoc
 // @Summary      Get system health insights
 // @Description  Returns high-level user activity insights derived from audit log state.
 // @Tags         stats
@@ -96,15 +74,6 @@ func (h *StatsController) HTTPActivity(w http.ResponseWriter, r *http.Request) {
 // @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
 // @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
 // @Router       /stats/insights [get]
-func (h *StatsController) GetInsights(c *gin.Context) {
-	res, err := h.useCase.GetSystemInsights(c.Request.Context())
-	if err != nil {
-		response.HandleError(c, err, "failed to get system insights")
-		return
-	}
-	response.Success(c, res)
-}
-
 func (h *StatsController) HTTPInsights(w http.ResponseWriter, r *http.Request) {
 	res, err := h.useCase.GetSystemInsights(r.Context())
 	if err != nil {

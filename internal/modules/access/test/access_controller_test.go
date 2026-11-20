@@ -15,17 +15,14 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-func setupAccessTestRouter() *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	return router
+func setupAccessTestMux() *http.ServeMux {
+	return http.NewServeMux()
 }
 
 func newTestAccessController(mockUseCase *mocks.MockIAccessUseCase) *accessHandler.AccessController {
@@ -39,8 +36,8 @@ func newTestAccessController(mockUseCase *mocks.MockIAccessUseCase) *accessHandl
 func TestAccessHandler_CreateAccessRight_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/access-rights", handler.CreateAccessRight)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /access-rights", handler.HTTPCreateAccessRight)
 
 	reqBody := model.CreateAccessRightRequest{
 		Name:        "test_access_right",
@@ -54,11 +51,11 @@ func TestAccessHandler_CreateAccessRight_Success(t *testing.T) {
 	mockUseCase.On("CreateAccessRight", mock.Anything, reqBody).Return(resBody, nil)
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/access-rights", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/access-rights", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -67,14 +64,14 @@ func TestAccessHandler_CreateAccessRight_Success(t *testing.T) {
 func TestAccessHandler_CreateAccessRight_InvalidBody(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/access-rights", handler.CreateAccessRight)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /access-rights", handler.HTTPCreateAccessRight)
 
-	req, _ := http.NewRequest(http.MethodPost, "/access-rights", bytes.NewBufferString(`{"name":`)) // Malformed JSON
+	req := httptest.NewRequest(http.MethodPost, "/access-rights", bytes.NewBufferString(`{"name":`)) // Malformed JSON
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	mockUseCase.AssertNotCalled(t, "CreateAccessRight", mock.Anything, mock.Anything)
@@ -83,19 +80,19 @@ func TestAccessHandler_CreateAccessRight_InvalidBody(t *testing.T) {
 func TestAccessHandler_CreateAccessRight_ValidationErrors(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/access-rights", handler.CreateAccessRight)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /access-rights", handler.HTTPCreateAccessRight)
 
 	reqBody := model.CreateAccessRightRequest{
 		Name: "",
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/access-rights", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/access-rights", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 	mockUseCase.AssertNotCalled(t, "CreateAccessRight", mock.Anything, mock.Anything)
@@ -104,8 +101,8 @@ func TestAccessHandler_CreateAccessRight_ValidationErrors(t *testing.T) {
 func TestAccessHandler_CreateAccessRight_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/access-rights", handler.CreateAccessRight)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /access-rights", handler.HTTPCreateAccessRight)
 
 	reqBody := model.CreateAccessRightRequest{
 		Name: "test_access_right",
@@ -113,11 +110,11 @@ func TestAccessHandler_CreateAccessRight_UseCaseError(t *testing.T) {
 	mockUseCase.On("CreateAccessRight", mock.Anything, reqBody).Return(nil, errors.New("db error"))
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/access-rights", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/access-rights", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -126,8 +123,8 @@ func TestAccessHandler_CreateAccessRight_UseCaseError(t *testing.T) {
 func TestAccessHandler_GetAllAccessRights_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.GET("/access-rights", handler.GetAllAccessRights)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("GET /access-rights", handler.HTTPGetAllAccessRights)
 
 	resBody := &model.AccessRightListResponse{
 		Data: []model.AccessRightResponse{
@@ -137,9 +134,9 @@ func TestAccessHandler_GetAllAccessRights_Success(t *testing.T) {
 	}
 	mockUseCase.On("GetAllAccessRights", mock.Anything).Return(resBody, nil)
 
-	req, _ := http.NewRequest(http.MethodGet, "/access-rights", nil)
+	req := httptest.NewRequest(http.MethodGet, "/access-rights", nil)
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -148,14 +145,14 @@ func TestAccessHandler_GetAllAccessRights_Success(t *testing.T) {
 func TestAccessHandler_GetAllAccessRights_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.GET("/access-rights", handler.GetAllAccessRights)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("GET /access-rights", handler.HTTPGetAllAccessRights)
 
 	mockUseCase.On("GetAllAccessRights", mock.Anything).Return(nil, errors.New("db error"))
 
-	req, _ := http.NewRequest(http.MethodGet, "/access-rights", nil)
+	req := httptest.NewRequest(http.MethodGet, "/access-rights", nil)
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -164,8 +161,8 @@ func TestAccessHandler_GetAllAccessRights_UseCaseError(t *testing.T) {
 func TestAccessHandler_CreateEndpoint_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/endpoints", handler.CreateEndpoint)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /endpoints", handler.HTTPCreateEndpoint)
 
 	reqBody := model.CreateEndpointRequest{
 		Path:   "/test/path",
@@ -180,11 +177,11 @@ func TestAccessHandler_CreateEndpoint_Success(t *testing.T) {
 	mockUseCase.On("CreateEndpoint", mock.Anything, reqBody).Return(resBody, nil)
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/endpoints", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/endpoints", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -193,14 +190,14 @@ func TestAccessHandler_CreateEndpoint_Success(t *testing.T) {
 func TestAccessHandler_CreateEndpoint_InvalidBody(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/endpoints", handler.CreateEndpoint)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /endpoints", handler.HTTPCreateEndpoint)
 
-	req, _ := http.NewRequest(http.MethodPost, "/endpoints", bytes.NewBufferString(`{"path":`)) // Malformed JSON
+	req := httptest.NewRequest(http.MethodPost, "/endpoints", bytes.NewBufferString(`{"path":`)) // Malformed JSON
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	mockUseCase.AssertNotCalled(t, "CreateEndpoint", mock.Anything, mock.Anything)
@@ -209,19 +206,19 @@ func TestAccessHandler_CreateEndpoint_InvalidBody(t *testing.T) {
 func TestAccessHandler_CreateEndpoint_ValidationErrors(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/endpoints", handler.CreateEndpoint)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /endpoints", handler.HTTPCreateEndpoint)
 
 	reqBody := model.CreateEndpointRequest{
 		Path: "",
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/endpoints", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/endpoints", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 	mockUseCase.AssertNotCalled(t, "CreateEndpoint", mock.Anything, mock.Anything)
@@ -230,8 +227,8 @@ func TestAccessHandler_CreateEndpoint_ValidationErrors(t *testing.T) {
 func TestAccessHandler_CreateEndpoint_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/endpoints", handler.CreateEndpoint)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /endpoints", handler.HTTPCreateEndpoint)
 
 	reqBody := model.CreateEndpointRequest{
 		Path:   "/test/path",
@@ -240,11 +237,11 @@ func TestAccessHandler_CreateEndpoint_UseCaseError(t *testing.T) {
 	mockUseCase.On("CreateEndpoint", mock.Anything, reqBody).Return(nil, errors.New("db error"))
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/endpoints", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/endpoints", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -253,8 +250,8 @@ func TestAccessHandler_CreateEndpoint_UseCaseError(t *testing.T) {
 func TestAccessHandler_LinkEndpointToAccessRight_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/access-rights/link", handler.LinkEndpointToAccessRight)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /access-rights/link", handler.HTTPLinkEndpointToAccessRight)
 
 	reqBody := model.LinkEndpointRequest{
 		AccessRightID: "1",
@@ -264,11 +261,11 @@ func TestAccessHandler_LinkEndpointToAccessRight_Success(t *testing.T) {
 	mockUseCase.On("LinkEndpointToAccessRight", mock.Anything, reqBody).Return(nil)
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -277,14 +274,14 @@ func TestAccessHandler_LinkEndpointToAccessRight_Success(t *testing.T) {
 func TestAccessHandler_LinkEndpointToAccessRight_InvalidBody(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/access-rights/link", handler.LinkEndpointToAccessRight)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /access-rights/link", handler.HTTPLinkEndpointToAccessRight)
 
-	req, _ := http.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBufferString(`{"access_right_id":`))
+	req := httptest.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBufferString(`{"access_right_id":`))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	mockUseCase.AssertNotCalled(t, "LinkEndpointToAccessRight", mock.Anything, mock.Anything)
@@ -293,8 +290,8 @@ func TestAccessHandler_LinkEndpointToAccessRight_InvalidBody(t *testing.T) {
 func TestAccessHandler_LinkEndpointToAccessRight_ValidationErrors(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/access-rights/link", handler.LinkEndpointToAccessRight)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /access-rights/link", handler.HTTPLinkEndpointToAccessRight)
 
 	reqBody := model.LinkEndpointRequest{
 		AccessRightID: "",
@@ -302,11 +299,11 @@ func TestAccessHandler_LinkEndpointToAccessRight_ValidationErrors(t *testing.T) 
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 	mockUseCase.AssertNotCalled(t, "LinkEndpointToAccessRight", mock.Anything, mock.Anything)
@@ -315,8 +312,8 @@ func TestAccessHandler_LinkEndpointToAccessRight_ValidationErrors(t *testing.T) 
 func TestAccessHandler_LinkEndpointToAccessRight_UseCaseError(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/access-rights/link", handler.LinkEndpointToAccessRight)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /access-rights/link", handler.HTTPLinkEndpointToAccessRight)
 
 	reqBody := model.LinkEndpointRequest{
 		AccessRightID: "1",
@@ -325,11 +322,11 @@ func TestAccessHandler_LinkEndpointToAccessRight_UseCaseError(t *testing.T) {
 	mockUseCase.On("LinkEndpointToAccessRight", mock.Anything, reqBody).Return(errors.New("db error"))
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -338,8 +335,8 @@ func TestAccessHandler_LinkEndpointToAccessRight_UseCaseError(t *testing.T) {
 func TestAccessHandler_LinkEndpointToAccessRight_Noop(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/access-rights/link", handler.LinkEndpointToAccessRight)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /access-rights/link", handler.HTTPLinkEndpointToAccessRight)
 
 	reqBody := model.LinkEndpointRequest{
 		AccessRightID: "1",
@@ -348,11 +345,11 @@ func TestAccessHandler_LinkEndpointToAccessRight_Noop(t *testing.T) {
 	mockUseCase.On("LinkEndpointToAccessRight", mock.Anything, reqBody).Return(usecase.NewNoopError("endpoint already linked to access right"))
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBuffer(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/access-rights/link", bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -361,15 +358,15 @@ func TestAccessHandler_LinkEndpointToAccessRight_Noop(t *testing.T) {
 func TestAccessHandler_DeleteAccessRight_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.DELETE("/access-rights/:id", handler.DeleteAccessRight)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("DELETE /access-rights/{id}", handler.HTTPDeleteAccessRight)
 
 	accessRightID := "1"
 	mockUseCase.On("DeleteAccessRight", mock.Anything, accessRightID).Return(nil)
 
-	req, _ := http.NewRequest(http.MethodDelete, "/access-rights/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/access-rights/1", nil)
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -378,15 +375,15 @@ func TestAccessHandler_DeleteAccessRight_Success(t *testing.T) {
 func TestAccessHandler_DeleteAccessRight_NotFound(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.DELETE("/access-rights/:id", handler.DeleteAccessRight)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("DELETE /access-rights/{id}", handler.HTTPDeleteAccessRight)
 
 	accessRightID := "1"
 	mockUseCase.On("DeleteAccessRight", mock.Anything, accessRightID).Return(exception.ErrNotFound)
 
-	req, _ := http.NewRequest(http.MethodDelete, "/access-rights/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/access-rights/1", nil)
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -395,15 +392,15 @@ func TestAccessHandler_DeleteAccessRight_NotFound(t *testing.T) {
 func TestAccessHandler_DeleteEndpoint_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.DELETE("/endpoints/:id", handler.DeleteEndpoint)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("DELETE /endpoints/{id}", handler.HTTPDeleteEndpoint)
 
 	endpointID := "1"
 	mockUseCase.On("DeleteEndpoint", mock.Anything, endpointID).Return(nil)
 
-	req, _ := http.NewRequest(http.MethodDelete, "/endpoints/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/endpoints/1", nil)
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -412,15 +409,15 @@ func TestAccessHandler_DeleteEndpoint_Success(t *testing.T) {
 func TestAccessHandler_DeleteEndpoint_NotFound(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.DELETE("/endpoints/:id", handler.DeleteEndpoint)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("DELETE /endpoints/{id}", handler.HTTPDeleteEndpoint)
 
 	endpointID := "1"
 	mockUseCase.On("DeleteEndpoint", mock.Anything, endpointID).Return(exception.ErrNotFound)
 
-	req, _ := http.NewRequest(http.MethodDelete, "/endpoints/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/endpoints/1", nil)
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -429,8 +426,8 @@ func TestAccessHandler_DeleteEndpoint_NotFound(t *testing.T) {
 func TestAccessHandler_GetEndpointsDynamic_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/endpoints/search", handler.GetEndpointsDynamic)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /endpoints/search", handler.HTTPGetEndpointsDynamic)
 
 	filter := querybuilder.DynamicFilter{
 		Filter: map[string]querybuilder.Filter{
@@ -444,10 +441,10 @@ func TestAccessHandler_GetEndpointsDynamic_Success(t *testing.T) {
 	}
 	mockUseCase.On("GetEndpointsDynamic", mock.Anything, &filter).Return(expectedEndpoints, int64(1), nil)
 
-	req, _ := http.NewRequest(http.MethodPost, "/endpoints/search", bytes.NewBuffer(reqBody))
+	req := httptest.NewRequest(http.MethodPost, "/endpoints/search", bytes.NewBuffer(reqBody))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	mockUseCase.AssertExpectations(t)
@@ -456,8 +453,8 @@ func TestAccessHandler_GetEndpointsDynamic_Success(t *testing.T) {
 func TestAccessHandler_GetAccessRightsDynamic_Success(t *testing.T) {
 	mockUseCase := new(mocks.MockIAccessUseCase)
 	handler := newTestAccessController(mockUseCase)
-	router := setupAccessTestRouter()
-	router.POST("/access-rights/search", handler.GetAccessRightsDynamic)
+	mux := setupAccessTestMux()
+	mux.HandleFunc("POST /access-rights/search", handler.HTTPGetAccessRightsDynamic)
 
 	filter := querybuilder.DynamicFilter{
 		Filter: map[string]querybuilder.Filter{
@@ -473,18 +470,16 @@ func TestAccessHandler_GetAccessRightsDynamic_Success(t *testing.T) {
 	}
 	mockUseCase.On("GetAccessRightsDynamic", mock.Anything, &filter).Return(expectedResponse, int64(1), nil)
 
-	req, _ := http.NewRequest(http.MethodPost, "/access-rights/search", bytes.NewBuffer(reqBody))
+	req := httptest.NewRequest(http.MethodPost, "/access-rights/search", bytes.NewBuffer(reqBody))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	mockUseCase.AssertExpectations(t)
 }
 
 func TestAccessHandler_CreateAccessRight_XSS(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
 	tests := []struct {
 		name         string
 		payload      model.CreateAccessRightRequest
@@ -531,13 +526,11 @@ func TestAccessHandler_CreateAccessRight_XSS(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-
 			jsonBytes, _ := json.Marshal(tt.payload)
-			c.Request, _ = http.NewRequest("POST", "/access-rights", bytes.NewBuffer(jsonBytes))
-			c.Request.Header.Set("Content-Type", "application/json")
+			req := httptest.NewRequest(http.MethodPost, "/access-rights", bytes.NewBuffer(jsonBytes))
+			req.Header.Set("Content-Type", "application/json")
 
-			controller.CreateAccessRight(c)
+			controller.HTTPCreateAccessRight(w, req)
 
 			assert.Equal(t, tt.expectedCode, w.Code)
 		})
@@ -545,8 +538,6 @@ func TestAccessHandler_CreateAccessRight_XSS(t *testing.T) {
 }
 
 func TestAccessHandler_CreateEndpoint_XSS(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
 	tests := []struct {
 		name         string
 		payload      model.CreateEndpointRequest
@@ -593,13 +584,11 @@ func TestAccessHandler_CreateEndpoint_XSS(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-
 			jsonBytes, _ := json.Marshal(tt.payload)
-			c.Request, _ = http.NewRequest("POST", "/endpoints", bytes.NewBuffer(jsonBytes))
-			c.Request.Header.Set("Content-Type", "application/json")
+			req := httptest.NewRequest(http.MethodPost, "/endpoints", bytes.NewBuffer(jsonBytes))
+			req.Header.Set("Content-Type", "application/json")
 
-			controller.CreateEndpoint(c)
+			controller.HTTPCreateEndpoint(w, req)
 
 			assert.Equal(t, tt.expectedCode, w.Code)
 		})
@@ -610,8 +599,8 @@ func TestAccessHandler_UnlinkEndpointFromAccessRight(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockUseCase := new(mocks.MockIAccessUseCase)
 		handler := newTestAccessController(mockUseCase)
-		router := setupAccessTestRouter()
-		router.POST("/access-rights/unlink", handler.UnlinkEndpointFromAccessRight)
+		mux := setupAccessTestMux()
+		mux.HandleFunc("POST /access-rights/unlink", handler.HTTPUnlinkEndpointFromAccessRight)
 
 		reqBody := model.LinkEndpointRequest{
 			AccessRightID: "1",
@@ -621,11 +610,11 @@ func TestAccessHandler_UnlinkEndpointFromAccessRight(t *testing.T) {
 		mockUseCase.On("UnlinkEndpointFromAccessRight", mock.Anything, reqBody).Return(nil)
 
 		bodyBytes, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest(http.MethodPost, "/access-rights/unlink", bytes.NewBuffer(bodyBytes))
+		req := httptest.NewRequest(http.MethodPost, "/access-rights/unlink", bytes.NewBuffer(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 
 		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
+		mux.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		mockUseCase.AssertExpectations(t)
@@ -634,14 +623,14 @@ func TestAccessHandler_UnlinkEndpointFromAccessRight(t *testing.T) {
 	t.Run("InvalidBody", func(t *testing.T) {
 		mockUseCase := new(mocks.MockIAccessUseCase)
 		handler := newTestAccessController(mockUseCase)
-		router := setupAccessTestRouter()
-		router.POST("/access-rights/unlink", handler.UnlinkEndpointFromAccessRight)
+		mux := setupAccessTestMux()
+		mux.HandleFunc("POST /access-rights/unlink", handler.HTTPUnlinkEndpointFromAccessRight)
 
-		req, _ := http.NewRequest(http.MethodPost, "/access-rights/unlink", bytes.NewBufferString(`{"access_right_id":`))
+		req := httptest.NewRequest(http.MethodPost, "/access-rights/unlink", bytes.NewBufferString(`{"access_right_id":`))
 		req.Header.Set("Content-Type", "application/json")
 
 		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
+		mux.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		mockUseCase.AssertNotCalled(t, "UnlinkEndpointFromAccessRight", mock.Anything, mock.Anything)
@@ -650,8 +639,8 @@ func TestAccessHandler_UnlinkEndpointFromAccessRight(t *testing.T) {
 	t.Run("ValidationErrors", func(t *testing.T) {
 		mockUseCase := new(mocks.MockIAccessUseCase)
 		handler := newTestAccessController(mockUseCase)
-		router := setupAccessTestRouter()
-		router.POST("/access-rights/unlink", handler.UnlinkEndpointFromAccessRight)
+		mux := setupAccessTestMux()
+		mux.HandleFunc("POST /access-rights/unlink", handler.HTTPUnlinkEndpointFromAccessRight)
 
 		reqBody := model.LinkEndpointRequest{
 			AccessRightID: "",
@@ -659,11 +648,11 @@ func TestAccessHandler_UnlinkEndpointFromAccessRight(t *testing.T) {
 		}
 
 		bodyBytes, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest(http.MethodPost, "/access-rights/unlink", bytes.NewBuffer(bodyBytes))
+		req := httptest.NewRequest(http.MethodPost, "/access-rights/unlink", bytes.NewBuffer(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 
 		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
+		mux.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 		mockUseCase.AssertNotCalled(t, "UnlinkEndpointFromAccessRight", mock.Anything, mock.Anything)
@@ -672,8 +661,8 @@ func TestAccessHandler_UnlinkEndpointFromAccessRight(t *testing.T) {
 	t.Run("UseCaseError", func(t *testing.T) {
 		mockUseCase := new(mocks.MockIAccessUseCase)
 		handler := newTestAccessController(mockUseCase)
-		router := setupAccessTestRouter()
-		router.POST("/access-rights/unlink", handler.UnlinkEndpointFromAccessRight)
+		mux := setupAccessTestMux()
+		mux.HandleFunc("POST /access-rights/unlink", handler.HTTPUnlinkEndpointFromAccessRight)
 
 		reqBody := model.LinkEndpointRequest{
 			AccessRightID: "1",
@@ -682,11 +671,11 @@ func TestAccessHandler_UnlinkEndpointFromAccessRight(t *testing.T) {
 		mockUseCase.On("UnlinkEndpointFromAccessRight", mock.Anything, reqBody).Return(errors.New("db error"))
 
 		bodyBytes, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest(http.MethodPost, "/access-rights/unlink", bytes.NewBuffer(bodyBytes))
+		req := httptest.NewRequest(http.MethodPost, "/access-rights/unlink", bytes.NewBuffer(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 
 		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
+		mux.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 		mockUseCase.AssertExpectations(t)

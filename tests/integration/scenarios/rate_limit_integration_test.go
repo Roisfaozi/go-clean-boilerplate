@@ -7,11 +7,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,14 +21,15 @@ func TestScenario_RateLimit_Redis_Distributed(t *testing.T) {
 	setup.CleanupDatabase(t, env.DB)
 
 	rps := 3
-	window := 60 * time.Second
+	windowSeconds := 60
 
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	router.Use(middleware.RateLimitMiddlewareRedis(env.Redis, env.Logger, middleware.LimiterTypeIP, rps, window))
-	router.GET("/test", func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
+	router := http.NewServeMux()
+	router.Handle("GET /test", delivery.Chain(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}),
+		middleware.HTTPRateLimitMiddlewareRedis(env.Redis, env.Logger, middleware.LimiterTypeIP, rps, windowSeconds),
+	))
 
 	for i := 0; i < rps; i++ {
 		w := httptest.NewRecorder()

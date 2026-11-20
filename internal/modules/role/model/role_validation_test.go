@@ -11,7 +11,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/role/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -19,8 +18,6 @@ import (
 )
 
 func TestRoleXSSValidation(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
 	v := validator.New()
 	_ = validation.RegisterCustomValidations(v)
 	logger := logrus.New()
@@ -84,19 +81,17 @@ func TestRoleXSSValidation(t *testing.T) {
 			controller := roleHandler.NewRoleController(mockUC, logger, v)
 
 			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-
 			jsonBytes, _ := json.Marshal(tt.payload)
-			c.Request, _ = http.NewRequest(tt.method, tt.url, bytes.NewBuffer(jsonBytes))
-			c.Request.Header.Set("Content-Type", "application/json")
+			req, _ := http.NewRequest(tt.method, tt.url, bytes.NewBuffer(jsonBytes))
+			req.Header.Set("Content-Type", "application/json")
 			if tt.method == "PUT" {
-				c.Params = []gin.Param{{Key: "id", Value: "1"}}
+				req.SetPathValue("id", "1")
 			}
 
 			if tt.method == "POST" {
-				controller.Create(c)
+				controller.HTTPCreate(w, req)
 			} else {
-				controller.Update(c)
+				controller.HTTPUpdate(w, req)
 			}
 
 			assert.Equal(t, tt.expectedCode, w.Code)

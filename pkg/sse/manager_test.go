@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/sse"
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -86,11 +85,10 @@ func TestManager_ServeHTTP(t *testing.T) {
 	manager := sse.NewManager()
 	defer manager.Stop()
 
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	r.GET("/events", manager.GinServeHTTP())
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /events", manager.ServeHTTP)
 
-	server := httptest.NewServer(r)
+	server := httptest.NewServer(mux)
 	defer server.Close()
 
 	// Connect to the server

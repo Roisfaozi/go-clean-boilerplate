@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -150,17 +149,7 @@ func TestWebSocketOrigin(t *testing.T) {
 
 			// Start a test server
 			r := http.NewServeMux()
-			r.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-				// We need to convert http.Request to Gin context?
-				// Or we can just manually invoke the upgrader if we could access it.
-				// But `ctrl.HandleWebSocket` expects `*gin.Context`.
-
-				// Let's create a Gin engine and pass the request to it.
-				gin.SetMode(gin.ReleaseMode)
-				engine := gin.New()
-				engine.GET("/ws", ctrl.HandleWebSocket)
-				engine.ServeHTTP(w, r)
-			})
+			r.HandleFunc("GET /ws", ctrl.HandleWebSocketHTTP)
 
 			server := httptest.NewServer(r)
 			defer server.Close()

@@ -475,13 +475,14 @@ func (uc *{{.ModuleNameCamel}}UseCase) GetAllDynamic(ctx context.Context, filter
 const controllerTemplate = `package http
 
 import (
+	"net/http"
+
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/{{.ModuleName}}/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/{{.ModuleName}}/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
@@ -500,105 +501,102 @@ func New{{.ModuleNameTitle}}Controller(useCase usecase.{{.ModuleNameTitle}}UseCa
 	}
 }
 
-func (c *{{.ModuleNameTitle}}Controller) Create(ctx *gin.Context) {
+func (c *{{.ModuleNameTitle}}Controller) Create(w http.ResponseWriter, r *http.Request) {
 	var req model.Create{{.ModuleNameTitle}}Request
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, exception.ErrBadRequest, "Invalid request body")
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "Invalid request body")
 		return
 	}
 
 	if err := c.Validate.Struct(req); err != nil {
 		msg := validation.FormatValidationErrors(err)
-		response.ValidationError(ctx, exception.ErrValidationError, msg)
+		response.WriteHTTPError(w, exception.ErrValidationError, msg)
 		return
 	}
 
-	resp, err := c.UseCase.Create(ctx.Request.Context(), req)
+	resp, err := c.UseCase.Create(r.Context(), req)
 	if err != nil {
-		response.HandleError(ctx, err, "Failed to create {{.ModuleName}}")
+		response.WriteHTTPError(w, err, "Failed to create {{.ModuleName}}")
 		return
 	}
 
-	response.Created(ctx, resp)
+	response.WriteSuccess(w, http.StatusCreated, resp)
 }
 
-func (c *{{.ModuleNameTitle}}Controller) GetByID(ctx *gin.Context) {
-	id := ctx.Param("id")
-	resp, err := c.UseCase.GetByID(ctx.Request.Context(), id)
+func (c *{{.ModuleNameTitle}}Controller) GetByID(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	resp, err := c.UseCase.GetByID(r.Context(), id)
 	if err != nil {
-		response.HandleError(ctx, err, "Failed to get {{.ModuleName}}")
+		response.WriteHTTPError(w, err, "Failed to get {{.ModuleName}}")
 		return
 	}
 
-	response.Success(ctx, resp)
+	response.WriteSuccess(w, http.StatusOK, resp)
 }
 
-func (c *{{.ModuleNameTitle}}Controller) Update(ctx *gin.Context) {
-	id := ctx.Param("id")
+func (c *{{.ModuleNameTitle}}Controller) Update(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
 	var req model.Update{{.ModuleNameTitle}}Request
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, exception.ErrBadRequest, "Invalid request body")
+	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "Invalid request body")
 		return
 	}
 	req.ID = id
 
 	if err := c.Validate.Struct(req); err != nil {
 		msg := validation.FormatValidationErrors(err)
-		response.ValidationError(ctx, exception.ErrValidationError, msg)
+		response.WriteHTTPError(w, exception.ErrValidationError, msg)
 		return
 	}
 
-	resp, err := c.UseCase.Update(ctx.Request.Context(), req)
+	resp, err := c.UseCase.Update(r.Context(), req)
 	if err != nil {
-		response.HandleError(ctx, err, "Failed to update {{.ModuleName}}")
+		response.WriteHTTPError(w, err, "Failed to update {{.ModuleName}}")
 		return
 	}
 
-	response.Success(ctx, resp)
+	response.WriteSuccess(w, http.StatusOK, resp)
 }
 
-func (c *{{.ModuleNameTitle}}Controller) Delete(ctx *gin.Context) {
-	id := ctx.Param("id")
-	if err := c.UseCase.Delete(ctx.Request.Context(), id); err != nil {
-		response.HandleError(ctx, err, "Failed to delete {{.ModuleName}}")
+func (c *{{.ModuleNameTitle}}Controller) Delete(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if err := c.UseCase.Delete(r.Context(), id); err != nil {
+		response.WriteHTTPError(w, err, "Failed to delete {{.ModuleName}}")
 		return
 	}
 
-	response.Success(ctx, gin.H{"message": "{{.ModuleNameTitle}} deleted successfully"})
+	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "{{.ModuleNameTitle}} deleted successfully"})
 }
 
-func (c *{{.ModuleNameTitle}}Controller) GetDynamic(ctx *gin.Context) {
+func (c *{{.ModuleNameTitle}}Controller) GetDynamic(w http.ResponseWriter, r *http.Request) {
 	var filter querybuilder.DynamicFilter
-	if err := ctx.ShouldBindJSON(&filter); err != nil {
-		response.BadRequest(ctx, exception.ErrBadRequest, "Invalid filter format")
+	if err := response.DecodeJSON(r, &filter, 1024*1024); err != nil {
+		response.WriteHTTPError(w, exception.ErrBadRequest, "Invalid filter format")
 		return
 	}
 
-	resp, err := c.UseCase.GetAllDynamic(ctx.Request.Context(), &filter)
+	resp, err := c.UseCase.GetAllDynamic(r.Context(), &filter)
 	if err != nil {
-		response.HandleError(ctx, err, "Failed to get {{.ModuleName}} list")
+		response.WriteHTTPError(w, err, "Failed to get {{.ModuleName}} list")
 		return
 	}
 
-	response.Success(ctx, resp)
+	response.WriteSuccess(w, http.StatusOK, resp)
 }
 `
 
 const routesTemplate = `package http
 
 import (
-	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
-func RegisterRoutes(router *gin.RouterGroup, controller *{{.ModuleNameTitle}}Controller) {
-	group := router.Group("/{{.ModuleName}}s")
-	{
-		group.POST("", controller.Create)
-		group.GET("/:id", controller.GetByID)
-		group.PUT("/:id", controller.Update)
-		group.DELETE("/:id", controller.Delete)
-		group.POST("/search", controller.GetDynamic)
-	}
+func RegisterRoutes(mux *http.ServeMux, controller *{{.ModuleNameTitle}}Controller) {
+	mux.HandleFunc("POST /{{.ModuleName}}s", controller.Create)
+	mux.HandleFunc("GET /{{.ModuleName}}s/{id}", controller.GetByID)
+	mux.HandleFunc("PUT /{{.ModuleName}}s/{id}", controller.Update)
+	mux.HandleFunc("DELETE /{{.ModuleName}}s/{id}", controller.Delete)
+	mux.HandleFunc("POST /{{.ModuleName}}s/search", controller.GetDynamic)
 }
 `
 

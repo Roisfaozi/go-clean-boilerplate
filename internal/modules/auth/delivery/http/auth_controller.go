@@ -15,7 +15,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
@@ -44,13 +43,6 @@ func NewAuthController(useCase usecase.AuthUseCase, log *logrus.Logger, validate
 	}
 }
 
-func (h *AuthController) resolveSecure(c *gin.Context) bool {
-	if h.cookieCfg.Secure != nil {
-		return *h.cookieCfg.Secure
-	}
-	return c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https"
-}
-
 func (h *AuthController) sameSite() http.SameSite {
 	switch strings.ToLower(h.cookieCfg.SameSite) {
 	case "none":
@@ -62,523 +54,6 @@ func (h *AuthController) sameSite() http.SameSite {
 	}
 }
 
-func (h *AuthController) setAuthCookie(c *gin.Context, name, value string, maxAge int) {
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     name,
-		Value:    value,
-		Path:     "/",
-		Domain:   h.cookieCfg.Domain,
-		MaxAge:   maxAge,
-		HttpOnly: true,
-		Secure:   h.resolveSecure(c),
-		SameSite: h.sameSite(),
-	})
-}
-
-func (h *AuthController) setCsrfCookie(c *gin.Context, maxAge int) {
-	csrfToken := uuid.NewString()
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "csrf_token",
-		Value:    csrfToken,
-		Path:     "/",
-		Domain:   h.cookieCfg.Domain,
-		MaxAge:   maxAge,
-		HttpOnly: false,
-		Secure:   h.resolveSecure(c),
-		SameSite: h.sameSite(),
-	})
-}
-
-func (h *AuthController) clearCsrfCookie(c *gin.Context) {
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "csrf_token",
-		Value:    "",
-		Path:     "/",
-		Domain:   h.cookieCfg.Domain,
-		MaxAge:   -1,
-		HttpOnly: false,
-		Secure:   h.resolveSecure(c),
-		SameSite: h.sameSite(),
-	})
-}
-
-func (h *AuthController) clearAuthCookie(c *gin.Context, name string) {
-	h.setAuthCookie(c, name, "", -1)
-}
-
-// Login godoc
-// @Summary      User login
-// @Description  Authenticates a user and returns access token and user info.
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Param        request body model.LoginRequest true "Login request"
-// @Success      200  {object}  response.SwaggerLoginResponseWrapper
-// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
-// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
-// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
-// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/login [post]
-func (h *AuthController) Login(c *gin.Context) {
-	var req model.LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.log.WithContext(c.Request.Context()).WithError(err).Error("Login failed: could not bind request")
-		response.BadRequest(c, exception.ErrBadRequest, "could not bind request")
-		return
-	}
-
-	if err := h.validate.Struct(req); err != nil {
-		h.log.WithContext(c.Request.Context()).WithError(err).Error("Login failed: validation error")
-		msg := validation.FormatValidationErrors(err)
-		response.ValidationError(c, errors.New("validation error"), msg)
-		return
-	}
-
-	req.IPAddress = c.ClientIP()
-	req.UserAgent = c.Request.UserAgent()
-
-	res, refreshToken, err := h.AuthUseCase.Login(c.Request.Context(), req)
-	if err != nil {
-		h.log.WithContext(c.Request.Context()).Errorf("Login failed for user: %s", req.Username)
-		response.HandleError(c, err, "Login failed")
-		return
-	}
-
-	// Set refresh token in HttpOnly cookie
-	h.setAuthCookie(c, "refresh_token", refreshToken, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
-	// Set access token in HttpOnly cookie (short lived)
-	h.setAuthCookie(c, "access_token", res.AccessToken, int(res.ExpiresIn))
-	h.setCsrfCookie(c, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
-
-	response.Success(c, res)
-}
-
-// RefreshToken godoc
-// @Summary      Refresh access token
-// @Description  Refreshes access and refresh tokens using the refresh token cookie.
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Success      200  {object}  response.SwaggerTokenResponseWrapper
-// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
-// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/refresh [post]
-func (h *AuthController) RefreshToken(c *gin.Context) {
-	refreshToken, err := c.Cookie("refresh_token")
-	if err != nil {
-		h.log.WithContext(c.Request.Context()).Warn("Refresh token not found in cookie")
-		response.Unauthorized(c, exception.ErrUnauthorized, "refresh token not found")
-		return
-	}
-
-	res, newRefreshToken, err := h.AuthUseCase.RefreshToken(c.Request.Context(), refreshToken)
-	if err != nil {
-		response.HandleError(c, err, "Refresh token failed")
-		return
-	}
-
-	h.setAuthCookie(c, "refresh_token", newRefreshToken, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
-	h.setAuthCookie(c, "access_token", res.AccessToken, int(res.ExpiresIn))
-	h.setCsrfCookie(c, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
-	response.Success(c, res)
-}
-
-// Logout godoc
-// @Summary      Logout user
-// @Description  Revokes the current session and clears refresh token cookie.
-// @Tags         auth
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
-// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
-// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/logout [post]
-func (h *AuthController) Logout(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-	sessionID, _ := c.Get("session_id")
-
-	if userID == nil || sessionID == nil {
-		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
-		return
-	}
-
-	err := h.AuthUseCase.RevokeToken(c.Request.Context(), userID.(string), sessionID.(string))
-	if err != nil {
-		response.HandleError(c, err, "Logout failed")
-		return
-	}
-
-	h.clearAuthCookie(c, "refresh_token")
-	h.clearAuthCookie(c, "access_token")
-	h.clearCsrfCookie(c)
-	response.Success(c, gin.H{"message": "logged out successfully"})
-}
-
-// ForgotPassword godoc
-// @Summary      Request password reset
-// @Description  Sends a password reset email if the account exists.
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Param        request body model.ForgotPasswordRequest true "Forgot password request"
-// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
-// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
-// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
-// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/forgot-password [post]
-func (h *AuthController) ForgotPassword(c *gin.Context) {
-	var req model.ForgotPasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
-		return
-	}
-
-	if err := h.validate.Struct(req); err != nil {
-		msg := validation.FormatValidationErrors(err)
-		response.ValidationError(c, errors.New("validation failed"), msg)
-		return
-	}
-
-	err := h.AuthUseCase.ForgotPassword(c.Request.Context(), req.Email)
-	if err != nil {
-		response.HandleError(c, err, "failed to process forgot password request")
-		return
-	}
-
-	// Always return success for security reasons (don't reveal if email exists)
-	response.Success(c, gin.H{"message": "If the email is registered, a reset link will be sent shortly."})
-}
-
-// ResetPassword godoc
-// @Summary      Reset password
-// @Description  Resets the user's password using a valid reset token.
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Param        request body model.ResetPasswordRequest true "Reset password request"
-// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
-// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
-// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
-// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/reset-password [post]
-func (h *AuthController) ResetPassword(c *gin.Context) {
-	var req model.ResetPasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
-		return
-	}
-
-	if err := h.validate.Struct(req); err != nil {
-		msg := validation.FormatValidationErrors(err)
-		response.ValidationError(c, errors.New("validation failed"), msg)
-		return
-	}
-
-	err := h.AuthUseCase.ResetPassword(c.Request.Context(), req.Token, req.NewPassword)
-	if err != nil {
-		response.HandleError(c, err, "failed to reset password")
-		return
-	}
-
-	response.Success(c, gin.H{"message": "password reset successfully"})
-}
-
-// VerifyEmail godoc
-// @Summary      Verify email address
-// @Description  Verifies the user's email address using a verification token.
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Param        request body model.VerifyEmailRequest true "Verify email request"
-// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
-// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
-// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
-// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/verify-email [post]
-func (h *AuthController) VerifyEmail(c *gin.Context) {
-	var req model.VerifyEmailRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, exception.ErrBadRequest, "invalid request body")
-		return
-	}
-
-	if err := h.validate.Struct(req); err != nil {
-		msg := validation.FormatValidationErrors(err)
-		response.ValidationError(c, errors.New("validation failed"), msg)
-		return
-	}
-
-	err := h.AuthUseCase.VerifyEmail(c.Request.Context(), req.Token)
-	if err != nil {
-		response.HandleError(c, err, "failed to verify email")
-		return
-	}
-
-	response.Success(c, gin.H{"message": "email verified successfully"})
-}
-
-// ResendVerification godoc
-// @Summary      Resend verification email
-// @Description  Resends the email verification link to the authenticated user.
-// @Tags         auth
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
-// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Already verified or request failed"
-// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
-// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/resend-verification [post]
-func (h *AuthController) ResendVerification(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists || userID == nil {
-		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
-		return
-	}
-
-	err := h.AuthUseCase.RequestVerification(c.Request.Context(), userID.(string))
-	if err != nil {
-		response.HandleError(c, err, "failed to request verification email")
-		return
-	}
-
-	response.Success(c, gin.H{"message": "verification email sent successfully"})
-}
-
-// Register godoc
-// @Summary      Register new user
-// @Description  Creates a new user account and auto-provisions a default workspace.
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Param        request body model.RegisterRequest true "Registration request"
-// @Success      201  {object}  response.SwaggerLoginResponseWrapper
-// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
-// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
-// @Failure      409  {object}  response.SwaggerErrorResponseWrapper "Username or Email already exists"
-// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/register [post]
-func (h *AuthController) Register(c *gin.Context) {
-	var req model.RegisterRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.log.WithContext(c.Request.Context()).WithError(err).Error("Register failed: could not bind request")
-		response.BadRequest(c, exception.ErrBadRequest, "could not bind request")
-		return
-	}
-
-	if err := h.validate.Struct(req); err != nil {
-		h.log.WithContext(c.Request.Context()).WithError(err).Error("Register failed: validation error")
-		msg := validation.FormatValidationErrors(err)
-		response.ValidationError(c, errors.New("validation error"), msg)
-		return
-	}
-
-	req.IPAddress = c.ClientIP()
-	req.UserAgent = c.Request.UserAgent()
-
-	res, refreshToken, err := h.AuthUseCase.Register(c.Request.Context(), req)
-	if err != nil {
-		h.log.WithContext(c.Request.Context()).Errorf("Register failed for user: %s\n with error: %v", req.Username, err)
-		response.HandleError(c, err, "Register failed")
-		return
-	}
-
-	// Set refresh token in HttpOnly cookie
-	h.setAuthCookie(c, "refresh_token", refreshToken, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
-	h.setAuthCookie(c, "access_token", res.AccessToken, int(res.ExpiresIn))
-	h.setCsrfCookie(c, int(h.AuthUseCase.GetRefreshTokenDuration().Seconds()))
-
-	response.Created(c, res)
-}
-
-// Me godoc
-// @Summary      Get current user
-// @Description  Returns the currently authenticated user's information.
-// @Tags         auth
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
-// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
-// @Router       /auth/me [get]
-func (h *AuthController) Me(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-	username, _ := c.Get("username")
-	role, _ := c.Get("user_role")
-
-	if userID == nil {
-		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
-		return
-	}
-
-	response.Success(c, gin.H{
-		"user": gin.H{
-			"id":       userID,
-			"username": username,
-			"role":     role,
-		},
-	})
-}
-
-// GetTicket godoc
-// @Summary      Get WebSocket Ticket
-// @Description  Generates a one-time ticket for WebSocket authentication.
-// @Tags         auth
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Param        org_id query string false "Organization ID"
-// @Param        organization_id query string false "Alternative Organization ID"
-// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
-// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
-// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
-// @Router       /auth/ticket [post]
-func (h *AuthController) GetTicket(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-	if userID == nil {
-		response.Unauthorized(c, exception.ErrUnauthorized, "user not authenticated")
-		return
-	}
-
-	sessionID, _ := GetSessionIDFromContext(c)
-	role, _ := GetRoleFromContext(c)
-	username, _ := GetUsernameFromContext(c)
-
-	orgID := c.Query("org_id")
-	if orgID == "" {
-		orgID = c.Query("organization_id")
-	}
-
-	// If orgID is still empty, try checking if user has a default context or require it depending on logic.
-	// For now, we allow empty orgID if the ticket is just for connection, but usually we need context.
-	// However, the TicketManager supports storing it.
-
-	ticket, err := h.AuthUseCase.GetTicket(
-		c.Request.Context(),
-		model.UserSessionContext{
-			UserID:    userID.(string),
-			OrgID:     orgID,
-			SessionID: sessionID,
-			Role:      role,
-			Username:  username,
-		},
-	)
-	if err != nil {
-		h.log.WithError(err).Error("Failed to generate WebSocket ticket")
-		response.InternalServerError(c, errors.New("failed to generate ticket"), "internal server error")
-		return
-	}
-
-	response.Success(c, gin.H{
-		"ticket":     ticket,
-		"expires_in": 30, // seconds
-	})
-}
-
-// Helper functions to get data from context safely (duplicated from middleware for now, or ensure middleware sets them)
-func GetSessionIDFromContext(c *gin.Context) (string, bool) {
-	sessionID, exists := c.Get("session_id")
-	if !exists {
-		return "", false
-	}
-	sessionIDStr, ok := sessionID.(string)
-	if !ok || sessionIDStr == "" {
-		return "", false
-	}
-	return sessionIDStr, true
-}
-
-func GetRoleFromContext(c *gin.Context) (string, bool) {
-	role, exists := c.Get("user_role")
-	if !exists {
-		return "", false
-	}
-	roleStr, ok := role.(string)
-	if !ok || roleStr == "" {
-		return "", false
-	}
-	return roleStr, true
-}
-
-func GetUsernameFromContext(c *gin.Context) (string, bool) {
-	username, exists := c.Get("username")
-	if !exists {
-		return "", false
-	}
-	usernameStr, ok := username.(string)
-	if !ok || usernameStr == "" {
-		return "", false
-	}
-	return usernameStr, true
-}
-
-// SSOLogin godoc
-// @Summary      Initiate SSO Login
-// @Description  Redirects the user to the specific OAuth2 provider (google, microsoft).
-// @Tags         auth
-// @Param        provider path string true "Provider Name" Enums(google, microsoft, github)
-// @Success      302
-// @Router       /auth/sso/{provider} [get]
-func (ac *AuthController) SSOLogin(c *gin.Context) {
-	provider := c.Param("provider")
-	state, err := generateSSOState()
-	if err != nil {
-		response.InternalServerError(c, err, "failed to generate SSO state")
-		return
-	}
-
-	url, err := ac.AuthUseCase.GetSSORedirectURL(c.Request.Context(), provider, state)
-	if err != nil {
-		response.HandleError(c, err, "Failed to initiate SSO")
-		return
-	}
-
-	setStateCookie(c, ssoStateCookieName, state, 300)
-	c.Redirect(http.StatusTemporaryRedirect, url)
-}
-
-// SSOCallback godoc
-// @Summary      SSO Callback Handler
-// @Description  Handles the OAuth2 callback, exchanges code for token, and authenticates user.
-// @Tags         auth
-// @Param        provider path string true "Provider Name" Enums(google, microsoft, github)
-// @Param        code query string true "Authorization Code"
-// @Param        state query string false "State"
-// @Success      200  {object}  response.SwaggerGeneralResponseWrapper{data=model.LoginResponse}
-// @Failure      400  {object}  response.SwaggerErrorResponseWrapper
-// @Router       /auth/sso/{provider}/callback [get]
-func (ac *AuthController) SSOCallback(c *gin.Context) {
-	provider := c.Param("provider")
-	code := c.Query("code")
-	state := c.Query("state")
-
-	if code == "" {
-		response.BadRequest(c, exception.ErrBadRequest, "authorization code is required")
-		return
-	}
-
-	expectedState, err := c.Cookie(ssoStateCookieName)
-	if err != nil || expectedState == "" || state == "" || state != expectedState {
-		clearStateCookie(c, ssoStateCookieName)
-		response.Unauthorized(c, exception.ErrUnauthorized, "invalid SSO state")
-		return
-	}
-
-	clearStateCookie(c, ssoStateCookieName)
-	res, refreshToken, err := ac.AuthUseCase.HandleSSOCallback(c.Request.Context(), provider, code)
-	if err != nil {
-		response.HandleError(c, err, "Failed to handle SSO callback")
-		return
-	}
-
-	ac.setAuthCookie(c, "refresh_token", refreshToken, int(ac.AuthUseCase.GetRefreshTokenDuration().Seconds()))
-	ac.setAuthCookie(c, "access_token", res.AccessToken, int(res.ExpiresIn))
-	ac.setCsrfCookie(c, int(ac.AuthUseCase.GetRefreshTokenDuration().Seconds()))
-
-	response.Success(c, res)
-}
-
 func generateSSOState() (string, error) {
 	buf := make([]byte, 32)
 	if _, err := rand.Read(buf); err != nil {
@@ -586,18 +61,6 @@ func generateSSOState() (string, error) {
 	}
 
 	return base64.RawURLEncoding.EncodeToString(buf), nil
-}
-
-func setStateCookie(c *gin.Context, name, value string, maxAge int) {
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     name,
-		Value:    value,
-		Path:     "/",
-		MaxAge:   maxAge,
-		HttpOnly: true,
-		Secure:   c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https",
-		SameSite: http.SameSiteLaxMode,
-	})
 }
 
 func (h *AuthController) resolveSecureHTTP(r *http.Request) bool {
@@ -675,6 +138,19 @@ func clearStateCookieHTTP(w http.ResponseWriter, r *http.Request, name string) {
 	})
 }
 
+// HTTPLogin godoc
+// @Summary      User login
+// @Description  Authenticates a user and returns access token and user info.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.LoginRequest true "Login request"
+// @Success      200  {object}  response.SwaggerLoginResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/login [post]
 func (h *AuthController) HTTPLogin(w http.ResponseWriter, r *http.Request) {
 	var req model.LoginRequest
 	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
@@ -706,6 +182,16 @@ func (h *AuthController) HTTPLogin(w http.ResponseWriter, r *http.Request) {
 	response.WriteSuccess(w, http.StatusOK, res)
 }
 
+// HTTPRefreshToken godoc
+// @Summary      Refresh access token
+// @Description  Refreshes access and refresh tokens using the refresh token cookie.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  response.SwaggerTokenResponseWrapper
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/refresh [post]
 func (h *AuthController) HTTPRefreshToken(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil || cookie.Value == "" {
@@ -726,9 +212,20 @@ func (h *AuthController) HTTPRefreshToken(w http.ResponseWriter, r *http.Request
 	response.WriteSuccess(w, http.StatusOK, res)
 }
 
+// HTTPLogout godoc
+// @Summary      Logout user
+// @Description  Revokes the current session and clears refresh token cookie.
+// @Tags         auth
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/logout [post]
 func (h *AuthController) HTTPLogout(w http.ResponseWriter, r *http.Request) {
 	userID, okUserID := delivery.GetContextString(r.Context(), delivery.UserIDKey)
-	sessionID, okSessionID := delivery.GetContextString(r.Context(), "session_id")
+	sessionID, okSessionID := delivery.GetContextString(r.Context(), delivery.SessionIDKey)
 
 	if !okUserID || !okSessionID || userID == "" || sessionID == "" {
 		response.WriteHTTPError(w, exception.ErrUnauthorized, "user not authenticated")
@@ -747,6 +244,18 @@ func (h *AuthController) HTTPLogout(w http.ResponseWriter, r *http.Request) {
 	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "logged out successfully"})
 }
 
+// HTTPForgotPassword godoc
+// @Summary      Request password reset
+// @Description  Sends a password reset email if the account exists.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.ForgotPasswordRequest true "Forgot password request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/forgot-password [post]
 func (h *AuthController) HTTPForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var req model.ForgotPasswordRequest
 	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
@@ -768,6 +277,18 @@ func (h *AuthController) HTTPForgotPassword(w http.ResponseWriter, r *http.Reque
 	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "If the email is registered, a reset link will be sent shortly."})
 }
 
+// HTTPResetPassword godoc
+// @Summary      Reset password
+// @Description  Resets the user's password using a valid reset token.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.ResetPasswordRequest true "Reset password request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/reset-password [post]
 func (h *AuthController) HTTPResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req model.ResetPasswordRequest
 	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
@@ -789,6 +310,18 @@ func (h *AuthController) HTTPResetPassword(w http.ResponseWriter, r *http.Reques
 	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "password reset successfully"})
 }
 
+// HTTPVerifyEmail godoc
+// @Summary      Verify email address
+// @Description  Verifies the user's email address using a verification token.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.VerifyEmailRequest true "Verify email request"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/verify-email [post]
 func (h *AuthController) HTTPVerifyEmail(w http.ResponseWriter, r *http.Request) {
 	var req model.VerifyEmailRequest
 	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
@@ -810,6 +343,18 @@ func (h *AuthController) HTTPVerifyEmail(w http.ResponseWriter, r *http.Request)
 	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "email verified successfully"})
 }
 
+// HTTPResendVerification godoc
+// @Summary      Resend verification email
+// @Description  Resends the email verification link to the authenticated user.
+// @Tags         auth
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Already verified or request failed"
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/resend-verification [post]
 func (h *AuthController) HTTPResendVerification(w http.ResponseWriter, r *http.Request) {
 	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
 	if !ok || userID == "" {
@@ -826,6 +371,19 @@ func (h *AuthController) HTTPResendVerification(w http.ResponseWriter, r *http.R
 	response.WriteSuccess(w, http.StatusOK, map[string]string{"message": "verification email sent successfully"})
 }
 
+// HTTPRegister godoc
+// @Summary      Register new user
+// @Description  Creates a new user account and auto-provisions a default workspace.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body model.RegisterRequest true "Registration request"
+// @Success      201  {object}  response.SwaggerLoginResponseWrapper
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper "Invalid request body"
+// @Failure      422  {object}  response.SwaggerErrorResponseWrapper "Validation Error"
+// @Failure      409  {object}  response.SwaggerErrorResponseWrapper "Username or Email already exists"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/register [post]
 func (h *AuthController) HTTPRegister(w http.ResponseWriter, r *http.Request) {
 	var req model.RegisterRequest
 	if err := response.DecodeJSON(r, &req, 1024*1024); err != nil {
@@ -857,6 +415,16 @@ func (h *AuthController) HTTPRegister(w http.ResponseWriter, r *http.Request) {
 	response.WriteSuccess(w, http.StatusCreated, res)
 }
 
+// HTTPMe godoc
+// @Summary      Get current user
+// @Description  Returns the currently authenticated user's information.
+// @Tags         auth
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Router       /auth/me [get]
 func (h *AuthController) HTTPMe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
 	username, _ := delivery.GetContextString(r.Context(), delivery.UsernameKey)
@@ -876,6 +444,19 @@ func (h *AuthController) HTTPMe(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// HTTPGetTicket godoc
+// @Summary      Get WebSocket Ticket
+// @Description  Generates a one-time ticket for WebSocket authentication.
+// @Tags         auth
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        org_id query string false "Organization ID"
+// @Param        organization_id query string false "Alternative Organization ID"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper
+// @Failure      401  {object}  response.SwaggerErrorResponseWrapper "Unauthorized"
+// @Failure      500  {object}  response.SwaggerErrorResponseWrapper "Internal server error"
+// @Router       /auth/ticket [post]
 func (h *AuthController) HTTPGetTicket(w http.ResponseWriter, r *http.Request) {
 	userID, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
 	if !ok || userID == "" {
@@ -883,7 +464,7 @@ func (h *AuthController) HTTPGetTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID, _ := delivery.GetContextString(r.Context(), "session_id")
+	sessionID, _ := delivery.GetContextString(r.Context(), delivery.SessionIDKey)
 	role, _ := delivery.GetContextString(r.Context(), delivery.RoleKey)
 	username, _ := delivery.GetContextString(r.Context(), delivery.UsernameKey)
 
@@ -914,6 +495,13 @@ func (h *AuthController) HTTPGetTicket(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// HTTPSSOLogin godoc
+// @Summary      Initiate SSO Login
+// @Description  Redirects the user to the specific OAuth2 provider (google, microsoft).
+// @Tags         auth
+// @Param        provider path string true "Provider Name" Enums(google, microsoft, github)
+// @Success      302
+// @Router       /auth/sso/{provider} [get]
 func (ac *AuthController) HTTPSSOLogin(w http.ResponseWriter, r *http.Request) {
 	provider := r.PathValue("provider")
 	state, err := generateSSOState()
@@ -932,6 +520,16 @@ func (ac *AuthController) HTTPSSOLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
+// HTTPSSOCallback godoc
+// @Summary      SSO Callback Handler
+// @Description  Handles the OAuth2 callback, exchanges code for token, and authenticates user.
+// @Tags         auth
+// @Param        provider path string true "Provider Name" Enums(google, microsoft, github)
+// @Param        code query string true "Authorization Code"
+// @Param        state query string false "State"
+// @Success      200  {object}  response.SwaggerGeneralResponseWrapper{data=model.LoginResponse}
+// @Failure      400  {object}  response.SwaggerErrorResponseWrapper
+// @Router       /auth/sso/{provider}/callback [get]
 func (ac *AuthController) HTTPSSOCallback(w http.ResponseWriter, r *http.Request) {
 	provider := r.PathValue("provider")
 	code := r.URL.Query().Get("code")
@@ -961,16 +559,4 @@ func (ac *AuthController) HTTPSSOCallback(w http.ResponseWriter, r *http.Request
 	ac.setCsrfCookieHTTP(w, r, int(ac.AuthUseCase.GetRefreshTokenDuration().Seconds()))
 
 	response.WriteSuccess(w, http.StatusOK, res)
-}
-
-func clearStateCookie(c *gin.Context, name string) {
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     name,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https",
-		SameSite: http.SameSiteLaxMode,
-	})
 }

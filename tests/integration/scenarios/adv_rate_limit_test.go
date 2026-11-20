@@ -7,11 +7,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
-	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -48,34 +47,31 @@ func TestScenario_AdvancedRateLimit_Tiers(t *testing.T) {
 	logger.SetOutput(io.Discard) // Keep output clean
 
 	// 2. Setup Router with middleware using the NEW tiered logic
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
+	router := http.NewServeMux()
 
-	// Define limiters exactly as in router.go
-	publicLimiter := middleware.RateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeIP, 2, 60*time.Second)   // 2 RPS for test
-	criticalLimiter := middleware.RateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeIP, 1, 60*time.Second) // 1 RPM for test
-	authLimiter := middleware.RateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeUser, 5, 60*time.Second)   // 5 RPS for test
+	// Define limiters exactly as in http_router.go
+	publicLimiter := middleware.HTTPRateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeIP, 2, 60)   // 2 RPS for test
+	criticalLimiter := middleware.HTTPRateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeIP, 1, 60) // 1 RPM for test
+	authLimiter := middleware.HTTPRateLimitMiddlewareRedis(redisClient, logger, middleware.LimiterTypeUser, 5, 60)   // 5 RPS for test
+
+	okHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 
 	// Mock Routes
-	router.GET("/public", publicLimiter, func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
-
-	router.POST("/login", criticalLimiter, func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
+	router.Handle("GET /public", delivery.Chain(okHandler, publicLimiter))
+	router.Handle("POST /login", delivery.Chain(okHandler, criticalLimiter))
 
 	// For auth route, we need to mock setting the userID in context (simulating AuthMiddleware)
-	router.GET("/dashboard", func(c *gin.Context) {
-		// Mock Auth Middleware
-		userID := c.GetHeader("X-User-ID")
-		if userID != "" {
-			c.Set("user_id", userID)
-		}
-		c.Next()
-	}, authLimiter, func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
+	mockAuth := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if userID := r.Header.Get("X-User-ID"); userID != "" {
+				r = r.WithContext(delivery.SetContextValue(r.Context(), delivery.UserIDKey, userID))
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+	router.Handle("GET /dashboard", delivery.Chain(okHandler, mockAuth, authLimiter))
 
 	// 3. Test Tier 1: Public API (IP Based)
 	t.Run("Public_API_Limit", func(t *testing.T) {

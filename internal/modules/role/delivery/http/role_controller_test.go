@@ -16,7 +16,6 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/response"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation" // Import validation pkg
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -33,28 +32,25 @@ func (w *NoOpWriter) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
-func setupRoleTestRouter(uc usecase.RoleUseCase) *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
+func setupRoleTestRouter(uc usecase.RoleUseCase) http.Handler {
+	mux := http.NewServeMux()
 
 	v := validator.New()
 	_ = validation.RegisterCustomValidations(v)
 
 	handler := roleHttp.NewRoleController(uc, logrus.New(), v)
-	apiV1 := router.Group("/api/v1")
-	{
-		apiV1.POST("/roles", handler.Create)
-		apiV1.GET("/roles", handler.GetAll)
-		apiV1.PUT("/roles/:id", handler.Update)
-		apiV1.DELETE("/roles/:id", handler.Delete)
-		apiV1.POST("/roles/search", handler.GetRolesDynamic)
+	mux.HandleFunc("POST /api/v1/roles", handler.HTTPCreate)
+	mux.HandleFunc("GET /api/v1/roles", handler.HTTPGetAll)
+	mux.HandleFunc("PUT /api/v1/roles/{id}", handler.HTTPUpdate)
+	mux.HandleFunc("DELETE /api/v1/roles/{id}", handler.HTTPDelete)
+	mux.HandleFunc("POST /api/v1/roles/search", handler.HTTPGetRolesDynamic)
 
-		apiV1.POST("/organizations/:id/roles", handler.CreateOrganizationRole)
-		apiV1.GET("/organizations/:id/roles", handler.GetOrganizationRoles)
-		apiV1.PUT("/organizations/:id/roles/:roleId", handler.UpdateOrganizationRole)
-		apiV1.DELETE("/organizations/:id/roles/:roleId", handler.DeleteOrganizationRole)
-	}
-	return router
+	mux.HandleFunc("POST /api/v1/organizations/{id}/roles", handler.HTTPCreateOrganizationRole)
+	mux.HandleFunc("GET /api/v1/organizations/{id}/roles", handler.HTTPGetOrganizationRoles)
+	mux.HandleFunc("PUT /api/v1/organizations/{id}/roles/{roleId}", handler.HTTPUpdateOrganizationRole)
+	mux.HandleFunc("DELETE /api/v1/organizations/{id}/roles/{roleId}", handler.HTTPDeleteOrganizationRole)
+
+	return mux
 }
 
 func TestRoleHandler_Create_Success(t *testing.T) {
@@ -371,16 +367,16 @@ func TestRoleHandler_HandleError_Variants(t *testing.T) {
 	roleID := "test-uuid"
 
 	tests := []struct {
-		err          error
-		expectedCode int
+		err                  error
+		expectedCode         int
 		expectedBodyContains string
 	}{
-		{exception.ErrBadRequest, http.StatusBadRequest,"failed to delete role"},
-		{exception.ErrUnauthorized, http.StatusUnauthorized,"failed to delete role"},
-		{exception.ErrForbidden, http.StatusForbidden,"failed to delete role"},
-		{exception.ErrNotFound, http.StatusNotFound,"failed to delete role"},
-		{exception.ErrConflict, http.StatusConflict,"failed to delete role"},
-		{errors.New("unknown error"), http.StatusInternalServerError, "something went wrong"},
+		{exception.ErrBadRequest, http.StatusBadRequest, "failed to delete role"},
+		{exception.ErrUnauthorized, http.StatusUnauthorized, "failed to delete role"},
+		{exception.ErrForbidden, http.StatusForbidden, "failed to delete role"},
+		{exception.ErrNotFound, http.StatusNotFound, "failed to delete role"},
+		{exception.ErrConflict, http.StatusConflict, "failed to delete role"},
+		{errors.New("unknown error"), http.StatusInternalServerError, "failed to delete role"},
 	}
 
 	for _, tt := range tests {
@@ -392,7 +388,7 @@ func TestRoleHandler_HandleError_Variants(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, tt.expectedCode, w.Code, "Expected code %d for error %v", tt.expectedCode, tt.err)
-		assert.Contains(t, w.Body.String(), tt.expectedBodyContains)  
+		assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
 	}
 }
 
@@ -453,31 +449,14 @@ func TestRoleHandler_CreateOrganizationRole_MissingOrgID(t *testing.T) {
 	createRequest := model.CreateRoleRequest{Name: "custom_role"}
 	requestBody, _ := json.Marshal(createRequest)
 
-	// In the test router setup, if we hit a path without id, it might hit a different route.
-	// But let's simulate the router matching with an empty orgID or direct invocation if needed.
-	// We can test this by making a request to an endpoint where ID is somehow empty.
-	// Gin's router usually doesn't allow empty param in path `/organizations//roles`, so it returns 404.
-	// Alternatively, we can mock `GetOrganizationIDFromContext`.
-	// The implementation checks: `orgID := c.Param("id")`. If it's an empty string, it fails.
-	// Let's just create a custom route to test this specific logic.
-
-	gin.SetMode(gin.TestMode)
-	testRouter := gin.New()
 	v := validator.New()
 	_ = validation.RegisterCustomValidations(v)
 	handler := roleHttp.NewRoleController(mockUseCase, logrus.New(), v)
 
-	// Create a route that doesn't provide the 'id' param
-	testRouter.POST("/organizations/empty-id/roles", func(c *gin.Context) {
-		// Override id param to empty string
-		c.Params = []gin.Param{{Key: "id", Value: ""}}
-		handler.CreateOrganizationRole(c)
-	})
-
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/organizations/empty-id/roles", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
-	testRouter.ServeHTTP(w, req)
+	handler.HTTPCreateOrganizationRole(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "organization context required")
@@ -550,20 +529,13 @@ func TestRoleHandler_GetOrganizationRoles_Success(t *testing.T) {
 func TestRoleHandler_GetOrganizationRoles_MissingOrgID(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
 
-	gin.SetMode(gin.TestMode)
-	testRouter := gin.New()
 	v := validator.New()
 	_ = validation.RegisterCustomValidations(v)
 	handler := roleHttp.NewRoleController(mockUseCase, logrus.New(), v)
 
-	testRouter.GET("/organizations/empty-id/roles", func(c *gin.Context) {
-		c.Params = []gin.Param{{Key: "id", Value: ""}}
-		handler.GetOrganizationRoles(c)
-	})
-
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/organizations/empty-id/roles", nil)
-	testRouter.ServeHTTP(w, req)
+	handler.HTTPGetOrganizationRoles(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "organization context required")
@@ -624,17 +596,9 @@ func TestRoleHandler_UpdateOrganizationRole_InvalidBody(t *testing.T) {
 func TestRoleHandler_UpdateOrganizationRole_MissingIDs(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
 
-	gin.SetMode(gin.TestMode)
-	testRouter := gin.New()
 	v := validator.New()
 	_ = validation.RegisterCustomValidations(v)
 	handler := roleHttp.NewRoleController(mockUseCase, logrus.New(), v)
-
-	testRouter.PUT("/organizations/empty/roles/empty", func(c *gin.Context) {
-		// Test missing orgID
-		c.Params = []gin.Param{{Key: "id", Value: ""}, {Key: "roleId", Value: "role-1"}}
-		handler.UpdateOrganizationRole(c)
-	})
 
 	updateRequest := model.UpdateRoleRequest{Description: "Updated desc"}
 	requestBody, _ := json.Marshal(updateRequest)
@@ -642,7 +606,8 @@ func TestRoleHandler_UpdateOrganizationRole_MissingIDs(t *testing.T) {
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPut, "/organizations/empty/roles/empty", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
-	testRouter.ServeHTTP(w, req)
+	req.SetPathValue("roleId", "role-1")
+	handler.HTTPUpdateOrganizationRole(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "organization and role ID required")
@@ -710,21 +675,14 @@ func TestRoleHandler_DeleteOrganizationRole_Success(t *testing.T) {
 func TestRoleHandler_DeleteOrganizationRole_MissingIDs(t *testing.T) {
 	mockUseCase := new(mocks.MockRoleUseCase)
 
-	gin.SetMode(gin.TestMode)
-	testRouter := gin.New()
 	v := validator.New()
 	_ = validation.RegisterCustomValidations(v)
 	handler := roleHttp.NewRoleController(mockUseCase, logrus.New(), v)
 
-	testRouter.DELETE("/organizations/empty/roles/empty", func(c *gin.Context) {
-		// Test missing orgID
-		c.Params = []gin.Param{{Key: "id", Value: ""}, {Key: "roleId", Value: "role-1"}}
-		handler.DeleteOrganizationRole(c)
-	})
-
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodDelete, "/organizations/empty/roles/empty", nil)
-	testRouter.ServeHTTP(w, req)
+	req.SetPathValue("roleId", "role-1")
+	handler.HTTPDeleteOrganizationRole(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "organization and role ID required")

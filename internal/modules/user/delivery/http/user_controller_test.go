@@ -10,13 +10,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	userHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/querybuilder"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -27,8 +27,7 @@ type userTestDeps struct {
 	UC *mocks.MockUserUseCase
 }
 
-func setupTest() (*userTestDeps, *userHttp.UserController, *gin.Engine) {
-	gin.SetMode(gin.TestMode)
+func setupTest() (*userTestDeps, *userHttp.UserController, *http.ServeMux) {
 	deps := &userTestDeps{UC: new(mocks.MockUserUseCase)}
 
 	log := logrus.New()
@@ -39,7 +38,7 @@ func setupTest() (*userTestDeps, *userHttp.UserController, *gin.Engine) {
 
 	controller := userHttp.NewUserController(deps.UC, log, validate)
 
-	r := gin.New()
+	r := http.NewServeMux()
 
 	return deps, controller, r
 }
@@ -56,7 +55,7 @@ func TestRegisterUser(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.POST("/users/register", c.RegisterUser)
+		r.HandleFunc("POST /users/register", c.HTTPRegisterUser)
 
 		reqBody := model.RegisterUserRequest{
 			Username: "testuser",
@@ -88,7 +87,7 @@ func TestRegisterUser(t *testing.T) {
 
 	t.Run("Invalid Body", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.POST("/users/register", c.RegisterUser)
+		r.HandleFunc("POST /users/register", c.HTTPRegisterUser)
 
 		req, _ := http.NewRequest(http.MethodPost, "/users/register", bytes.NewBuffer([]byte("{invalid json")))
 		req.Header.Set("Content-Type", "application/json")
@@ -100,7 +99,7 @@ func TestRegisterUser(t *testing.T) {
 
 	t.Run("Validation Error", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.POST("/users/register", c.RegisterUser)
+		r.HandleFunc("POST /users/register", c.HTTPRegisterUser)
 
 		reqBody := model.RegisterUserRequest{
 			Username: "", // Invalid username
@@ -120,7 +119,7 @@ func TestRegisterUser(t *testing.T) {
 	t.Run("UseCase Error", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.POST("/users/register", c.RegisterUser)
+		r.HandleFunc("POST /users/register", c.HTTPRegisterUser)
 
 		reqBody := model.RegisterUserRequest{
 			Username: "testuser",
@@ -146,9 +145,9 @@ func TestGetCurrentUser(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.GET("/users/me", func(ctx *gin.Context) {
-			ctx.Set("user_id", "123")
-			c.GetCurrentUser(ctx)
+		r.HandleFunc("GET /users/me", func(w http.ResponseWriter, req *http.Request) {
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "123")
+			c.HTTPGetCurrentUser(w, req.WithContext(ctx))
 		})
 
 		mockRes := &model.UserResponse{
@@ -169,7 +168,7 @@ func TestGetCurrentUser(t *testing.T) {
 
 	t.Run("Unauthorized - Missing Context", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.GET("/users/me", c.GetCurrentUser)
+		r.HandleFunc("GET /users/me", c.HTTPGetCurrentUser)
 
 		req, _ := http.NewRequest(http.MethodGet, "/users/me", nil)
 		w := httptest.NewRecorder()
@@ -181,9 +180,9 @@ func TestGetCurrentUser(t *testing.T) {
 	t.Run("UseCase Error", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.GET("/users/me", func(ctx *gin.Context) {
-			ctx.Set("user_id", "123")
-			c.GetCurrentUser(ctx)
+		r.HandleFunc("GET /users/me", func(w http.ResponseWriter, req *http.Request) {
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "123")
+			c.HTTPGetCurrentUser(w, req.WithContext(ctx))
 		})
 
 		uc.EXPECT().Current(mock.Anything, &model.GetUserRequest{ID: "123"}).Return(nil, exception.ErrNotFound).Once()
@@ -201,9 +200,9 @@ func TestUpdateUser(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.PUT("/users/me", func(ctx *gin.Context) {
-			ctx.Set("user_id", "123")
-			c.UpdateUser(ctx)
+		r.HandleFunc("PUT /users/me", func(w http.ResponseWriter, req *http.Request) {
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "123")
+			c.HTTPUpdateUser(w, req.WithContext(ctx))
 		})
 
 		reqBody := model.UpdateUserRequest{
@@ -233,7 +232,7 @@ func TestUpdateUser(t *testing.T) {
 
 	t.Run("Unauthorized - Missing Context", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.PUT("/users/me", c.UpdateUser)
+		r.HandleFunc("PUT /users/me", c.HTTPUpdateUser)
 
 		req, _ := http.NewRequest(http.MethodPut, "/users/me", bytes.NewBuffer([]byte(`{}`)))
 		req.Header.Set("Content-Type", "application/json")
@@ -245,9 +244,9 @@ func TestUpdateUser(t *testing.T) {
 
 	t.Run("Invalid Body", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.PUT("/users/me", func(ctx *gin.Context) {
-			ctx.Set("user_id", "123")
-			c.UpdateUser(ctx)
+		r.HandleFunc("PUT /users/me", func(w http.ResponseWriter, req *http.Request) {
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "123")
+			c.HTTPUpdateUser(w, req.WithContext(ctx))
 		})
 
 		req, _ := http.NewRequest(http.MethodPut, "/users/me", bytes.NewBuffer([]byte("{invalid json")))
@@ -260,9 +259,9 @@ func TestUpdateUser(t *testing.T) {
 
 	t.Run("Validation Error", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.PUT("/users/me", func(ctx *gin.Context) {
-			ctx.Set("user_id", "123")
-			c.UpdateUser(ctx)
+		r.HandleFunc("PUT /users/me", func(w http.ResponseWriter, req *http.Request) {
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "123")
+			c.HTTPUpdateUser(w, req.WithContext(ctx))
 		})
 
 		reqBody := model.UpdateUserRequest{
@@ -281,9 +280,9 @@ func TestUpdateUser(t *testing.T) {
 	t.Run("UseCase Error", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.PUT("/users/me", func(ctx *gin.Context) {
-			ctx.Set("user_id", "123")
-			c.UpdateUser(ctx)
+		r.HandleFunc("PUT /users/me", func(w http.ResponseWriter, req *http.Request) {
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "123")
+			c.HTTPUpdateUser(w, req.WithContext(ctx))
 		})
 
 		reqBody := model.UpdateUserRequest{
@@ -308,9 +307,9 @@ func TestUpdateAvatar(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.PATCH("/users/me/avatar", func(ctx *gin.Context) {
-			ctx.Set("user_id", "123")
-			c.UpdateAvatar(ctx)
+		r.HandleFunc("PATCH /users/me/avatar", func(w http.ResponseWriter, req *http.Request) {
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "123")
+			c.HTTPUpdateAvatar(w, req.WithContext(ctx))
 		})
 
 		body := new(bytes.Buffer)
@@ -337,7 +336,7 @@ func TestUpdateAvatar(t *testing.T) {
 
 	t.Run("Unauthorized - Missing Context", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.PATCH("/users/me/avatar", c.UpdateAvatar)
+		r.HandleFunc("PATCH /users/me/avatar", c.HTTPUpdateAvatar)
 
 		req, _ := http.NewRequest(http.MethodPatch, "/users/me/avatar", nil)
 		w := httptest.NewRecorder()
@@ -348,9 +347,9 @@ func TestUpdateAvatar(t *testing.T) {
 
 	t.Run("No File", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.PATCH("/users/me/avatar", func(ctx *gin.Context) {
-			ctx.Set("user_id", "123")
-			c.UpdateAvatar(ctx)
+		r.HandleFunc("PATCH /users/me/avatar", func(w http.ResponseWriter, req *http.Request) {
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "123")
+			c.HTTPUpdateAvatar(w, req.WithContext(ctx))
 		})
 
 		body := new(bytes.Buffer)
@@ -367,9 +366,9 @@ func TestUpdateAvatar(t *testing.T) {
 
 	t.Run("File Too Large", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.PATCH("/users/me/avatar", func(ctx *gin.Context) {
-			ctx.Set("user_id", "123")
-			c.UpdateAvatar(ctx)
+		r.HandleFunc("PATCH /users/me/avatar", func(w http.ResponseWriter, req *http.Request) {
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "123")
+			c.HTTPUpdateAvatar(w, req.WithContext(ctx))
 		})
 
 		body := new(bytes.Buffer)
@@ -391,9 +390,9 @@ func TestUpdateAvatar(t *testing.T) {
 	t.Run("UseCase Error", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.PATCH("/users/me/avatar", func(ctx *gin.Context) {
-			ctx.Set("user_id", "123")
-			c.UpdateAvatar(ctx)
+		r.HandleFunc("PATCH /users/me/avatar", func(w http.ResponseWriter, req *http.Request) {
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "123")
+			c.HTTPUpdateAvatar(w, req.WithContext(ctx))
 		})
 
 		body := new(bytes.Buffer)
@@ -418,7 +417,7 @@ func TestUpdateUserStatus(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.PATCH("/users/:id/status", c.UpdateUserStatus)
+		r.HandleFunc("PATCH /users/{id}/status", c.HTTPUpdateUserStatus)
 
 		reqBody := model.UpdateUserStatusRequest{
 			Status: "suspended",
@@ -438,7 +437,7 @@ func TestUpdateUserStatus(t *testing.T) {
 
 	t.Run("Invalid Body", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.PATCH("/users/:id/status", c.UpdateUserStatus)
+		r.HandleFunc("PATCH /users/{id}/status", c.HTTPUpdateUserStatus)
 
 		req, _ := http.NewRequest(http.MethodPatch, "/users/123/status", bytes.NewBuffer([]byte("{invalid json")))
 		req.Header.Set("Content-Type", "application/json")
@@ -450,7 +449,7 @@ func TestUpdateUserStatus(t *testing.T) {
 
 	t.Run("Validation Error", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.PATCH("/users/:id/status", c.UpdateUserStatus)
+		r.HandleFunc("PATCH /users/{id}/status", c.HTTPUpdateUserStatus)
 
 		reqBody := model.UpdateUserStatusRequest{
 			Status: "invalid_status", // Not in oneof
@@ -468,7 +467,7 @@ func TestUpdateUserStatus(t *testing.T) {
 	t.Run("UseCase Error", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.PATCH("/users/:id/status", c.UpdateUserStatus)
+		r.HandleFunc("PATCH /users/{id}/status", c.HTTPUpdateUserStatus)
 
 		reqBody := model.UpdateUserStatusRequest{
 			Status: "banned",
@@ -491,7 +490,7 @@ func TestGetAllUsers(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.GET("/users", c.GetAllUsers)
+		r.HandleFunc("GET /users", c.HTTPGetAllUsers)
 
 		mockRes := []*model.UserResponse{
 			{ID: "1", Username: "user1"},
@@ -512,7 +511,7 @@ func TestGetAllUsers(t *testing.T) {
 
 	t.Run("Invalid Query Parameters", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.GET("/users", c.GetAllUsers)
+		r.HandleFunc("GET /users", c.HTTPGetAllUsers)
 
 		req, _ := http.NewRequest(http.MethodGet, "/users?page=invalid", nil)
 		w := httptest.NewRecorder()
@@ -523,7 +522,7 @@ func TestGetAllUsers(t *testing.T) {
 
 	t.Run("Validation Error", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.GET("/users", c.GetAllUsers)
+		r.HandleFunc("GET /users", c.HTTPGetAllUsers)
 
 		req, _ := http.NewRequest(http.MethodGet, "/users?page=-1", nil) // Invalid page
 		w := httptest.NewRecorder()
@@ -535,7 +534,7 @@ func TestGetAllUsers(t *testing.T) {
 	t.Run("UseCase Error", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.GET("/users", c.GetAllUsers)
+		r.HandleFunc("GET /users", c.HTTPGetAllUsers)
 
 		uc.EXPECT().GetAllUsers(mock.Anything, mock.Anything).Return(nil, int64(0), exception.ErrInternalServer).Once()
 
@@ -552,7 +551,7 @@ func TestGetUserByID(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.GET("/users/:id", c.GetUserByID)
+		r.HandleFunc("GET /users/{id}", c.HTTPGetUserByID)
 
 		mockRes := &model.UserResponse{
 			ID:       "123",
@@ -572,7 +571,7 @@ func TestGetUserByID(t *testing.T) {
 	t.Run("UseCase Error", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.GET("/users/:id", c.GetUserByID)
+		r.HandleFunc("GET /users/{id}", c.HTTPGetUserByID)
 
 		uc.EXPECT().GetUserByID(mock.Anything, "123").Return(nil, exception.ErrNotFound).Once()
 
@@ -589,9 +588,9 @@ func TestDeleteUser(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.DELETE("/users/:id", func(ctx *gin.Context) {
-			ctx.Set("user_id", "admin_id")
-			c.DeleteUser(ctx)
+		r.HandleFunc("DELETE /users/{id}", func(w http.ResponseWriter, req *http.Request) {
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "admin_id")
+			c.HTTPDeleteUser(w, req.WithContext(ctx))
 		})
 
 		uc.EXPECT().DeleteUser(mock.Anything, "admin_id", mock.MatchedBy(func(req *model.DeleteUserRequest) bool {
@@ -608,7 +607,7 @@ func TestDeleteUser(t *testing.T) {
 
 	t.Run("Unauthorized - Missing Context", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.DELETE("/users/:id", c.DeleteUser)
+		r.HandleFunc("DELETE /users/{id}", c.HTTPDeleteUser)
 
 		req, _ := http.NewRequest(http.MethodDelete, "/users/123", nil)
 		w := httptest.NewRecorder()
@@ -620,9 +619,9 @@ func TestDeleteUser(t *testing.T) {
 	t.Run("UseCase Error", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.DELETE("/users/:id", func(ctx *gin.Context) {
-			ctx.Set("user_id", "admin_id")
-			c.DeleteUser(ctx)
+		r.HandleFunc("DELETE /users/{id}", func(w http.ResponseWriter, req *http.Request) {
+			ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "admin_id")
+			c.HTTPDeleteUser(w, req.WithContext(ctx))
 		})
 
 		uc.EXPECT().DeleteUser(mock.Anything, "admin_id", mock.Anything).Return(exception.ErrNotFound).Once()
@@ -640,7 +639,7 @@ func TestGetUsersDynamic(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.POST("/users/search", c.GetUsersDynamic)
+		r.HandleFunc("POST /users/search", c.HTTPGetUsersDynamic)
 
 		reqBody := querybuilder.DynamicFilter{
 			Page:     1,
@@ -668,7 +667,7 @@ func TestGetUsersDynamic(t *testing.T) {
 
 	t.Run("Invalid Body", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.POST("/users/search", c.GetUsersDynamic)
+		r.HandleFunc("POST /users/search", c.HTTPGetUsersDynamic)
 
 		req, _ := http.NewRequest(http.MethodPost, "/users/search", bytes.NewBuffer([]byte("{invalid json")))
 		req.Header.Set("Content-Type", "application/json")
@@ -680,7 +679,7 @@ func TestGetUsersDynamic(t *testing.T) {
 
 	t.Run("Validation Error", func(t *testing.T) {
 		_, c, r := setupTest()
-		r.POST("/users/search", c.GetUsersDynamic)
+		r.HandleFunc("POST /users/search", c.HTTPGetUsersDynamic)
 
 		reqBody := querybuilder.DynamicFilter{
 			Page: -1, // Invalid page
@@ -698,7 +697,7 @@ func TestGetUsersDynamic(t *testing.T) {
 	t.Run("UseCase Error", func(t *testing.T) {
 		deps, c, r := setupTest()
 		uc := deps.UC
-		r.POST("/users/search", c.GetUsersDynamic)
+		r.HandleFunc("POST /users/search", c.HTTPGetUsersDynamic)
 
 		reqBody := querybuilder.DynamicFilter{
 			Page:     1,
@@ -718,34 +717,9 @@ func TestGetUsersDynamic(t *testing.T) {
 	})
 }
 
-func TestRoutes(t *testing.T) {
-	_, c, r := setupTest()
-	group := r.Group("/api/v1")
-
-	userHttp.RegisterPublicRoutes(group, c)
-	userHttp.RegisterAuthenticatedRoutes(group, c)
-	userHttp.RegisterAuthorizedRoutes(group, c)
-
-	routes := r.Routes()
-	var paths []string
-	for _, route := range routes {
-		paths = append(paths, route.Method+" "+route.Path)
-	}
-
-	assert.Contains(t, paths, "POST /api/v1/users/register")
-	assert.Contains(t, paths, "GET /api/v1/users/me")
-	assert.Contains(t, paths, "PUT /api/v1/users/me")
-	assert.Contains(t, paths, "PATCH /api/v1/users/me/avatar")
-	assert.Contains(t, paths, "GET /api/v1/users")
-	assert.Contains(t, paths, "POST /api/v1/users/search")
-	assert.Contains(t, paths, "GET /api/v1/users/:id")
-	assert.Contains(t, paths, "PATCH /api/v1/users/:id/status")
-	assert.Contains(t, paths, "DELETE /api/v1/users/:id")
-}
-
 func TestVulnerability_RegisterUser_XSS(t *testing.T) {
 	_, c, r := setupTest()
-	r.POST("/users/register", c.RegisterUser)
+	r.HandleFunc("POST /users/register", c.HTTPRegisterUser)
 
 	reqBody := model.RegisterUserRequest{
 		Username: "testuser",
@@ -766,7 +740,7 @@ func TestVulnerability_RegisterUser_XSS(t *testing.T) {
 
 func TestEdgeCase_RegisterUser_LongUsername(t *testing.T) {
 	_, c, r := setupTest()
-	r.POST("/users/register", c.RegisterUser)
+	r.HandleFunc("POST /users/register", c.HTTPRegisterUser)
 
 	reqBody := model.RegisterUserRequest{
 		Username: strings.Repeat("a", 101), // Exceeds max length of 100
@@ -786,9 +760,9 @@ func TestEdgeCase_RegisterUser_LongUsername(t *testing.T) {
 
 func TestVulnerability_UpdateUser_XSS(t *testing.T) {
 	_, c, r := setupTest()
-	r.PUT("/users/me", func(ctx *gin.Context) {
-		ctx.Set("user_id", "123")
-		c.UpdateUser(ctx)
+	r.HandleFunc("PUT /users/me", func(w http.ResponseWriter, req *http.Request) {
+		ctx := delivery.SetContextValue(req.Context(), delivery.UserIDKey, "123")
+		c.HTTPUpdateUser(w, req.WithContext(ctx))
 	})
 
 	reqBody := model.UpdateUserRequest{

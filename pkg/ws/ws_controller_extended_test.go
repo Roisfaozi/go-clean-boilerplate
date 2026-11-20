@@ -2,14 +2,16 @@ package ws_test
 
 import (
 	"errors"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/test/mocks"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/authcontext"
+	"github.com/Roisfaozi/go-clean-boilerplate/pkg/database"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
-	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -17,9 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestWebSocketController_HandleWebSocket_WithUser(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
+func TestWebSocketController_HandleWebSocketHTTP_WithUser(t *testing.T) {
 	// Setup Mocks
 	mockUserRepo := mocks.NewMockUserRepository(t)
 	mockUserRepo.On("FindByID", mock.Anything, "u1").Return(&entity.User{
@@ -37,15 +37,15 @@ func TestWebSocketController_HandleWebSocket_WithUser(t *testing.T) {
 	controller := ws.NewWebSocketController(logger, manager, []string{"*"}, mockUserRepo, nil)
 
 	// Setup Router
-	r := gin.New()
-	r.GET("/ws", func(c *gin.Context) {
-		c.Set("user_id", "u1")
-		c.Set("organization_id", "org1")
-		controller.HandleWebSocket(c)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /ws", func(w http.ResponseWriter, r *http.Request) {
+		ctx := authcontext.WithUserID(r.Context(), "u1")
+		ctx = database.SetOrganizationContext(ctx, "org1")
+		controller.HandleWebSocketHTTP(w, r.WithContext(ctx))
 	})
 
 	// Create Server
-	ts := httptest.NewServer(r)
+	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
 	// Connect
@@ -64,9 +64,7 @@ func TestWebSocketController_HandleWebSocket_WithUser(t *testing.T) {
 	mockUserRepo.AssertExpectations(t)
 }
 
-func TestWebSocketController_HandleWebSocket_UserNotFound(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
+func TestWebSocketController_HandleWebSocketHTTP_UserNotFound(t *testing.T) {
 	// Setup Mocks
 	mockUserRepo := mocks.NewMockUserRepository(t)
 	mockUserRepo.On("FindByID", mock.Anything, "u1").Return(nil, errors.New("not found"))
@@ -81,13 +79,13 @@ func TestWebSocketController_HandleWebSocket_UserNotFound(t *testing.T) {
 	controller := ws.NewWebSocketController(logger, manager, []string{"*"}, mockUserRepo, nil)
 
 	// Setup Router
-	r := gin.New()
-	r.GET("/ws", func(c *gin.Context) {
-		c.Set("user_id", "u1")
-		controller.HandleWebSocket(c)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /ws", func(w http.ResponseWriter, r *http.Request) {
+		ctx := authcontext.WithUserID(r.Context(), "u1")
+		controller.HandleWebSocketHTTP(w, r.WithContext(ctx))
 	})
 
-	ts := httptest.NewServer(r)
+	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
 	wsURL := "ws" + ts.URL[4:] + "/ws"

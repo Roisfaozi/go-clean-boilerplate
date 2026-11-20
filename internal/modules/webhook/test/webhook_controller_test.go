@@ -7,25 +7,23 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	webhookHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/test/mocks"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 func TestWebhookController_Create(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 	uc := new(mocks.MockWebhookUseCase)
 	controller := webhookHttp.NewWebhookController(uc)
 
-	r := gin.Default()
-	r.Use(func(c *gin.Context) {
-		c.Set("organization_id", "org-1")
-		c.Next()
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /webhooks", func(w http.ResponseWriter, r *http.Request) {
+		ctx := delivery.SetContextValue(r.Context(), delivery.OrganizationIDKey, "org-1")
+		controller.HTTPCreate(w, r.WithContext(ctx))
 	})
-	r.POST("/webhooks", controller.Create)
 
 	reqPayload := model.CreateWebhookRequest{
 		Name:           "Test Webhook",
@@ -42,24 +40,23 @@ func TestWebhookController_Create(t *testing.T) {
 
 	body, _ := json.Marshal(reqPayload)
 	req, _ := http.NewRequest("POST", "/webhooks", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	uc.AssertExpectations(t)
 }
 
 func TestWebhookController_FindByID(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 	uc := new(mocks.MockWebhookUseCase)
 	controller := webhookHttp.NewWebhookController(uc)
 
-	r := gin.Default()
-	r.Use(func(c *gin.Context) {
-		c.Set("organization_id", "org-1")
-		c.Next()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /webhooks/{id}", func(w http.ResponseWriter, r *http.Request) {
+		ctx := delivery.SetContextValue(r.Context(), delivery.OrganizationIDKey, "org-1")
+		controller.HTTPFindByID(w, r.WithContext(ctx))
 	})
-	r.GET("/webhooks/:id", controller.FindByID)
 
 	webhookID := "wh-1"
 	orgID := "org-1"
@@ -71,7 +68,7 @@ func TestWebhookController_FindByID(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "/webhooks/"+webhookID, nil)
 	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	uc.AssertExpectations(t)

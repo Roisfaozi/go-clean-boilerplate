@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/middleware"
 	apiKeyModel "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/model"
 	apiKeyRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/api_key/repository"
@@ -21,7 +22,6 @@ import (
 	userEntity "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/entity"
 	userRepo "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/user/repository"
 	"github.com/Roisfaozi/go-clean-boilerplate/tests/integration/setup"
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -98,33 +98,49 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 	require.NotEmpty(t, createRes.Key)
 	apiKey := createRes.Key
 
-	// 4. Setup Gin Router with Middleware to test the flow
-	r := gin.New()
-	r.Use(akMiddleware.Authenticate())
-	r.GET("/protected", func(c *gin.Context) {
-		uid, exists := c.Get("user_id")
-		if !exists {
-			c.String(http.StatusInternalServerError, "missing user_id")
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"user_id": uid})
-	})
-	r.GET("/scoped/projects", akMiddleware.RequireScopes("project:view"), func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
-	r.POST("/scoped/projects", akMiddleware.RequireScopes("project:manage"), func(c *gin.Context) {
-		c.Status(http.StatusCreated)
-	})
-	r.GET("/session-only", akMiddleware.RequireUserSession(), func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
+	// 4. Setup net/http Router with Middleware to test the flow
+	router := http.NewServeMux()
+	router.Handle("GET /protected", delivery.Chain(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			uid, ok := delivery.GetContextString(r.Context(), delivery.UserIDKey)
+			if !ok {
+				http.Error(w, "missing user_id", http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]string{"user_id": uid})
+		}),
+		akMiddleware.HTTPAuthenticate(),
+	))
+	router.Handle("GET /scoped/projects", delivery.Chain(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}),
+		akMiddleware.HTTPAuthenticate(),
+		akMiddleware.HTTPRequireScopes("project:view"),
+	))
+	router.Handle("POST /scoped/projects", delivery.Chain(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusCreated)
+		}),
+		akMiddleware.HTTPAuthenticate(),
+		akMiddleware.HTTPRequireScopes("project:manage"),
+	))
+	router.Handle("GET /session-only", delivery.Chain(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}),
+		akMiddleware.HTTPAuthenticate(),
+		akMiddleware.HTTPRequireUserSession(),
+	))
 
 	// 5. Test Successful Access
 	t.Run("Access with Valid API Key", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/protected", nil)
 		req.Header.Set("X-API-Key", apiKey)
 		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
@@ -138,7 +154,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/scoped/projects", nil)
 		req.Header.Set("X-API-Key", apiKey)
 		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -147,7 +163,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/scoped/projects", nil)
 		req.Header.Set("X-API-Key", apiKey)
 		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
@@ -156,7 +172,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/session-only", nil)
 		req.Header.Set("X-API-Key", apiKey)
 		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
@@ -166,7 +182,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/protected", nil)
 		req.Header.Set("X-API-Key", "sk_live_wrong_key")
 		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
@@ -178,7 +194,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/protected", nil)
 		req.Header.Set("X-API-Key", apiKey)
 		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
@@ -190,7 +206,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/protected", nil)
 		req.Header.Set("X-API-Key", apiKey)
 		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -203,7 +219,7 @@ func TestApiKeyLifecycle_Integration(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/protected", nil)
 		req.Header.Set("X-API-Key", apiKey)
 		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})

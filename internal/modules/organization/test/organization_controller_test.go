@@ -8,12 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Roisfaozi/go-clean-boilerplate/internal/delivery"
 	orgHttp "github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/delivery/http"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/model"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/organization/test/mocks"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/exception"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/validation"
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -24,12 +24,9 @@ type controllerTestDeps struct {
 	OrgUseCase    *mocks.MockOrganizationUseCase
 	MemberUseCase *mocks.MockOrganizationMemberUseCase
 	Controller    *orgHttp.OrganizationController
-	Router        *gin.Engine
 }
 
 func setupControllerTest() *controllerTestDeps {
-	gin.SetMode(gin.TestMode)
-
 	deps := &controllerTestDeps{
 		OrgUseCase:    new(mocks.MockOrganizationUseCase),
 		MemberUseCase: new(mocks.MockOrganizationMemberUseCase),
@@ -44,32 +41,17 @@ func setupControllerTest() *controllerTestDeps {
 	}
 
 	deps.Controller = orgHttp.NewOrganizationController(deps.OrgUseCase, deps.MemberUseCase, log, validate)
-
-	deps.Router = gin.New()
-	// Mock Auth Middleware by manually setting user_id in context
-	deps.Router.Use(func(c *gin.Context) {
-		c.Set("user_id", "user-123")
-		c.Next()
-	})
-
-	// Setup routes manually for testing
-	deps.Router.POST("/organizations", deps.Controller.CreateOrganization)
-	deps.Router.GET("/organizations/:id", deps.Controller.GetOrganization)
-	deps.Router.GET("/organizations/slug/:slug", deps.Controller.GetOrganizationBySlug)
-	deps.Router.PUT("/organizations/:id", deps.Controller.UpdateOrganization)
-	deps.Router.DELETE("/organizations/:id", deps.Controller.DeleteOrganization)
-	deps.Router.POST("/organizations/:id/restore", deps.Controller.RestoreOrganization)
-	deps.Router.DELETE("/organizations/:id/hard", deps.Controller.HardDeleteOrganization)
-	deps.Router.GET("/organizations/me", deps.Controller.GetMyOrganizations)
-
-	deps.Router.POST("/organizations/invitations/accept", deps.Controller.AcceptInvitation)
-	deps.Router.POST("/organizations/:id/members", deps.Controller.InviteMember)
-	deps.Router.GET("/organizations/:id/members", deps.Controller.GetMembers)
-	deps.Router.PATCH("/organizations/:id/members/:userId", deps.Controller.UpdateMemberRole)
-	deps.Router.DELETE("/organizations/:id/members/:userId", deps.Controller.RemoveMember)
-	deps.Router.GET("/organizations/:id/presence", deps.Controller.GetPresence)
-
 	return deps
+}
+
+func newAuthedOrgRequest(method, target string, body []byte) *http.Request {
+	var req *http.Request
+	if body != nil {
+		req = httptest.NewRequest(method, target, bytes.NewBuffer(body))
+	} else {
+		req = httptest.NewRequest(method, target, nil)
+	}
+	return req.WithContext(delivery.SetContextValue(req.Context(), delivery.UserIDKey, "user-123"))
 }
 
 func TestOrganizationController_CreateOrganization(t *testing.T) {
@@ -82,8 +64,8 @@ func TestOrganizationController_CreateOrganization(t *testing.T) {
 
 		body, _ := json.Marshal(req)
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("POST", "/organizations", bytes.NewBuffer(body))
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodPost, "/organizations", body)
+		deps.Controller.HTTPCreateOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 	})
@@ -97,8 +79,8 @@ func TestOrganizationController_CreateOrganization(t *testing.T) {
 
 		body, _ := json.Marshal(req)
 		w := httptest.NewRecorder()
-		reqHTTP, _ := http.NewRequest("POST", "/organizations", bytes.NewBuffer(body))
-		deps.Router.ServeHTTP(w, reqHTTP)
+		reqHTTP := newAuthedOrgRequest(http.MethodPost, "/organizations", body)
+		deps.Controller.HTTPCreateOrganization(w, reqHTTP)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 	})
@@ -111,8 +93,8 @@ func TestOrganizationController_CreateOrganization(t *testing.T) {
 
 		body, _ := json.Marshal(req)
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("POST", "/organizations", bytes.NewBuffer(body))
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodPost, "/organizations", body)
+		deps.Controller.HTTPCreateOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusConflict, w.Code)
 	})
@@ -125,8 +107,8 @@ func TestOrganizationController_CreateOrganization(t *testing.T) {
 
 		body, _ := json.Marshal(req)
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("POST", "/organizations", bytes.NewBuffer(body))
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodPost, "/organizations", body)
+		deps.Controller.HTTPCreateOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
@@ -140,8 +122,9 @@ func TestOrganizationController_GetOrganization(t *testing.T) {
 		deps.OrgUseCase.On("GetOrganization", mock.Anything, "org-1").Return(res, nil)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("GET", "/organizations/org-1", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodGet, "/organizations/org-1", nil)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPGetOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -151,8 +134,9 @@ func TestOrganizationController_GetOrganization(t *testing.T) {
 		deps.OrgUseCase.On("GetOrganization", mock.Anything, "org-1").Return(nil, exception.ErrNotFound)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("GET", "/organizations/org-1", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodGet, "/organizations/org-1", nil)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPGetOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
@@ -166,8 +150,9 @@ func TestOrganizationController_GetOrganizationBySlug(t *testing.T) {
 		deps.OrgUseCase.On("GetOrganizationBySlug", mock.Anything, "slug-1").Return(res, nil)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("GET", "/organizations/slug/slug-1", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodGet, "/organizations/slug/slug-1", nil)
+		reqHttp.SetPathValue("slug", "slug-1")
+		deps.Controller.HTTPGetOrganizationBySlug(w, reqHttp)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -177,8 +162,9 @@ func TestOrganizationController_GetOrganizationBySlug(t *testing.T) {
 		deps.OrgUseCase.On("GetOrganizationBySlug", mock.Anything, "slug-1").Return(nil, exception.ErrNotFound)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("GET", "/organizations/slug/slug-1", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodGet, "/organizations/slug/slug-1", nil)
+		reqHttp.SetPathValue("slug", "slug-1")
+		deps.Controller.HTTPGetOrganizationBySlug(w, reqHttp)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
@@ -194,8 +180,9 @@ func TestOrganizationController_UpdateOrganization(t *testing.T) {
 
 		body, _ := json.Marshal(req)
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("PUT", "/organizations/org-1", bytes.NewBuffer(body))
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodPut, "/organizations/org-1", body)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPUpdateOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -207,8 +194,9 @@ func TestOrganizationController_UpdateOrganization(t *testing.T) {
 
 		body, _ := json.Marshal(req)
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("PUT", "/organizations/org-1", bytes.NewBuffer(body))
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodPut, "/organizations/org-1", body)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPUpdateOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
@@ -220,8 +208,9 @@ func TestOrganizationController_DeleteOrganization(t *testing.T) {
 		deps.OrgUseCase.On("DeleteOrganization", mock.Anything, "org-1", "user-123").Return(nil)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("DELETE", "/organizations/org-1", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodDelete, "/organizations/org-1", nil)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPDeleteOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -231,8 +220,9 @@ func TestOrganizationController_DeleteOrganization(t *testing.T) {
 		deps.OrgUseCase.On("DeleteOrganization", mock.Anything, "org-1", "user-123").Return(exception.ErrForbidden)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("DELETE", "/organizations/org-1", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodDelete, "/organizations/org-1", nil)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPDeleteOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
@@ -245,8 +235,9 @@ func TestOrganizationController_RestoreOrganization(t *testing.T) {
 		deps.OrgUseCase.On("RestoreOrganization", mock.Anything, "org-1").Return(res, nil)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("POST", "/organizations/org-1/restore", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodPost, "/organizations/org-1/restore", nil)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPRestoreOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -256,8 +247,9 @@ func TestOrganizationController_RestoreOrganization(t *testing.T) {
 		deps.OrgUseCase.On("RestoreOrganization", mock.Anything, "org-1").Return(nil, exception.ErrForbidden)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("POST", "/organizations/org-1/restore", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodPost, "/organizations/org-1/restore", nil)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPRestoreOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
@@ -269,8 +261,9 @@ func TestOrganizationController_HardDeleteOrganization(t *testing.T) {
 		deps.OrgUseCase.On("HardDeleteOrganization", mock.Anything, "org-1").Return(nil)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("DELETE", "/organizations/org-1/hard", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodDelete, "/organizations/org-1/hard", nil)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPHardDeleteOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -280,8 +273,9 @@ func TestOrganizationController_HardDeleteOrganization(t *testing.T) {
 		deps.OrgUseCase.On("HardDeleteOrganization", mock.Anything, "org-1").Return(exception.ErrBadRequest)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("DELETE", "/organizations/org-1/hard", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodDelete, "/organizations/org-1/hard", nil)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPHardDeleteOrganization(w, reqHttp)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
@@ -295,8 +289,8 @@ func TestOrganizationController_GetMyOrganizations(t *testing.T) {
 		deps.OrgUseCase.On("GetUserOrganizations", mock.Anything, "user-123").Return(res, nil)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("GET", "/organizations/me", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodGet, "/organizations/me", nil)
+		deps.Controller.HTTPGetMyOrganizations(w, reqHttp)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -312,8 +306,9 @@ func TestOrganizationController_InviteMember(t *testing.T) {
 
 		body, _ := json.Marshal(req)
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("POST", "/organizations/org-1/members", bytes.NewBuffer(body))
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodPost, "/organizations/org-1/members", body)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPInviteMember(w, reqHttp)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 	})
@@ -325,8 +320,9 @@ func TestOrganizationController_InviteMember(t *testing.T) {
 
 		body, _ := json.Marshal(req)
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("POST", "/organizations/org-1/members", bytes.NewBuffer(body))
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodPost, "/organizations/org-1/members", body)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPInviteMember(w, reqHttp)
 
 		assert.Equal(t, http.StatusConflict, w.Code)
 	})
@@ -340,8 +336,9 @@ func TestOrganizationController_GetMembers(t *testing.T) {
 		deps.MemberUseCase.On("GetMembers", mock.Anything, "org-1").Return(res, nil)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("GET", "/organizations/org-1/members", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodGet, "/organizations/org-1/members", nil)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPGetMembers(w, reqHttp)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -357,8 +354,10 @@ func TestOrganizationController_UpdateMemberRole(t *testing.T) {
 
 		body, _ := json.Marshal(req)
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("PATCH", "/organizations/org-1/members/user-1", bytes.NewBuffer(body))
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodPatch, "/organizations/org-1/members/user-1", body)
+		reqHttp.SetPathValue("id", "org-1")
+		reqHttp.SetPathValue("userId", "user-1")
+		deps.Controller.HTTPUpdateMemberRole(w, reqHttp)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -370,8 +369,10 @@ func TestOrganizationController_RemoveMember(t *testing.T) {
 		deps.MemberUseCase.On("RemoveMember", mock.Anything, "org-1", "user-1").Return(nil)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("DELETE", "/organizations/org-1/members/user-1", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodDelete, "/organizations/org-1/members/user-1", nil)
+		reqHttp.SetPathValue("id", "org-1")
+		reqHttp.SetPathValue("userId", "user-1")
+		deps.Controller.HTTPRemoveMember(w, reqHttp)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -386,8 +387,8 @@ func TestOrganizationController_AcceptInvitation(t *testing.T) {
 
 		body, _ := json.Marshal(req)
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("POST", "/organizations/invitations/accept", bytes.NewBuffer(body))
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodPost, "/organizations/invitations/accept", body)
+		deps.Controller.HTTPAcceptInvitation(w, reqHttp)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -398,8 +399,8 @@ func TestOrganizationController_AcceptInvitation(t *testing.T) {
 
 		body, _ := json.Marshal(req)
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("POST", "/organizations/invitations/accept", bytes.NewBuffer(body))
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodPost, "/organizations/invitations/accept", body)
+		deps.Controller.HTTPAcceptInvitation(w, reqHttp)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
@@ -413,8 +414,9 @@ func TestOrganizationController_GetPresence(t *testing.T) {
 		deps.MemberUseCase.On("GetPresence", mock.Anything, "org-1").Return(res, nil)
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("GET", "/organizations/org-1/presence", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodGet, "/organizations/org-1/presence", nil)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPGetPresence(w, reqHttp)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -424,8 +426,9 @@ func TestOrganizationController_GetPresence(t *testing.T) {
 		deps.MemberUseCase.On("GetPresence", mock.Anything, "org-1").Return(nil, errors.New("error"))
 
 		w := httptest.NewRecorder()
-		reqHttp, _ := http.NewRequest("GET", "/organizations/org-1/presence", nil)
-		deps.Router.ServeHTTP(w, reqHttp)
+		reqHttp := newAuthedOrgRequest(http.MethodGet, "/organizations/org-1/presence", nil)
+		reqHttp.SetPathValue("id", "org-1")
+		deps.Controller.HTTPGetPresence(w, reqHttp)
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
