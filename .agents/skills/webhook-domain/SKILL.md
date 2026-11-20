@@ -25,15 +25,15 @@ Use this skill when:
 1. `AGENTS.md`
 2. `llm/cache/webhook-system.md`
 3. `llm/cache/worker-audit-webhook-system.md`
-4. `internal/router/router.go`
+4. `internal/router/http_router.go`
 5. `internal/modules/webhook/module.go`
-6. `internal/modules/webhook/delivery/http/webhook_routes.go`
+6. `internal/modules/webhook/delivery/http/webhook_controller.go`
 7. `internal/modules/webhook/usecase/webhook_usecase.go`
 8. `internal/worker/tasks/webhook.go`
 
 ## Runtime Truth To Preserve
 
-- webhook routes are registered under `tenantAuthorized` group via `webhookHttp.RegisterWebhookRoutes(...)`
+- webhook routes are registered in `internal/router/http_router.go` under the `tenantAuthorized` middleware group
 - webhook operations are organization-scoped
 - trigger dispatch is async through worker path, not synchronous inline delivery
 

@@ -147,11 +147,11 @@ Backend / Makefile:
 Frontend packages:
 
 - `apps/web`: `dev`, `build`, `start`, `lint`, `typecheck`, `format`
-- `apps/client`: `dev`, `build`, `start`, `typecheck`, `test:e2e`
+- `apps/client`: `dev`, `build`, `start`, `lint`, `typecheck`, `format`, `test:e2e`
 
 Note:
 
-- `apps/client` lint script is currently placeholder-only and should not be treated as strong verification.
+- `apps/client` lint script runs real Biome validation (`biome lint --write .`).
 
 ## 7. Testing expectations
 
@@ -231,7 +231,7 @@ When editing frontend:
 
 - remember `apps/web` and `apps/client` are both active surfaces
 - check which app owns the route/component before changing shared packages
-- do not treat `apps/client` lint as strong verification while its lint script is placeholder-only
+- use `apps/client` Biome lint (`pnpm --filter casbin-client lint`) for validation
 
 ## 11. If you need more context
 

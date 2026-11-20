@@ -31,7 +31,7 @@ Do not use this skill when:
 2. relevant `llm/cache/*`
 3. relevant `llm/workflows/*`
 4. closest live code precedent
-5. `internal/router/router.go` if route or middleware is involved
+5. `internal/router/http_router.go` if route or middleware is involved
 6. `internal/config/app.go` if wiring or worker dependencies matter
 
 ## Brainstorm Workflow

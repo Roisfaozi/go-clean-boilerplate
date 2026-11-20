@@ -26,7 +26,7 @@ Use this skill when:
 2. `llm/cache/project-system.md`
 3. `llm/cache/api-key-system.md`
 4. `llm/cache/tenant-organization-system.md`
-5. `internal/router/router.go`
+5. `internal/router/http_router.go`
 6. `internal/modules/project/module.go`
 7. `internal/modules/project/usecase/project_usecase.go`
 8. `internal/modules/project/repository/project_repository.go`
@@ -34,7 +34,7 @@ Use this skill when:
 
 ## Runtime Truth To Preserve
 
-- project routes are defined directly in `internal/router/router.go`
+- project routes are defined directly in `internal/router/http_router.go`
 - they live under `tenantAuthorized` group
 - route scopes are explicit:
   - `project:manage` for create, update, delete

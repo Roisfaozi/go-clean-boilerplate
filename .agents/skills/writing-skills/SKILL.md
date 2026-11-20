@@ -51,7 +51,7 @@ Check whether current `SKILL.md` has only any of these weak patterns:
 - no stop conditions
 - no distinction between similar skills
 - no output contract
-- no mention of `apps/web`, `apps/client`, `internal/router/router.go`, `internal/config/app.go`, or target module paths when they matter
+- no mention of `apps/web`, `apps/client`, `internal/router/http_router.go`, `internal/config/app.go`, or target module paths when they matter
 
 If yes, rewrite instead of lightly editing.
 
@@ -73,7 +73,7 @@ Bad:
 
 Put operational rules in skill body, not only in cache:
 
-- real composition roots: `cmd/api/main.go`, `internal/config/app.go`, `internal/router/router.go`
+- real composition roots: `cmd/api/main.go`, `internal/config/app.go`, `internal/config/fx.go`, `internal/router/http_router.go`
 - active frontend surfaces: `apps/web`, `apps/client`
 - shared API boundary: `packages/api-types`
 - high-risk middleware boundaries: auth, tenant, API key, Casbin, upload, worker

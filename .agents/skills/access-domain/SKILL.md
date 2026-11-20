@@ -30,9 +30,9 @@ Do not use this skill for:
 2. `llm/cache/access-right-system.md`
 3. `llm/cache/casbin-permission-system.md`
 4. `llm/cache/permission-system.md`
-5. `internal/router/router.go`
+5. `internal/router/http_router.go`
 6. `internal/modules/access/module.go`
-7. `internal/modules/access/delivery/http/access_routes.go`
+7. `internal/modules/access/delivery/http/access_controller.go`
 8. `internal/modules/access/usecase/access_usecase.go`
 9. `internal/modules/access/repository/access_repository.go`
 10. `internal/modules/permission/usecase/access_right_assignment.go`
@@ -40,8 +40,8 @@ Do not use this skill for:
 ## Runtime Truth To Preserve
 
 - access module lives under `internal/modules/access/`
-- access routes are registered through `accessHttp.RegisterAccessRoutes(...)` inside authorized routing in `internal/router/router.go`
-- router passes `authorized.Group("", tenantMiddleware.OptionalOrganization())`, so access endpoints sit in admin-style authorized flow with optional organization context
+- access routes are registered directly in `internal/router/http_router.go` using `adminChain(...)`
+- `adminChain` applies optional organization context (`tenantMiddleware.OptionalOrganization`), so access endpoints sit in admin-style authorized flow with optional organization context
 - access registry changes can alter permission expansion inputs used by permission usecase
 
 ## Workflow

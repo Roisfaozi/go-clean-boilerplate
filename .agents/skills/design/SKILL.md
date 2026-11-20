@@ -36,7 +36,7 @@ Do not use this skill for:
 6. relevant domain cache files
 7. relevant workflow file under `llm/workflows/`
 8. `internal/config/app.go`
-9. `internal/router/router.go`
+9. `internal/router/http_router.go`
 10. target module constructor, controller, usecase, repository paths
 
 Add these when relevant:
@@ -62,7 +62,7 @@ Write down:
 
 Prove live flow before proposing changes:
 
-- route registration in `internal/router/router.go`
+- route registration in `internal/router/http_router.go`
 - dependency wiring in `internal/config/app.go`
 - target module constructor and delivery/usecase/repository boundaries
 - frontend proxy and shared type consumers if contract may move

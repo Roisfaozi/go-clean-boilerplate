@@ -24,7 +24,7 @@ Use this skill when:
 1. `AGENTS.md`
 2. `llm/cache/stats-system.md`
 3. `llm/cache/realtime-system.md`
-4. `internal/router/router.go`
+4. `internal/router/http_router.go`
 5. `internal/config/app.go`
 6. `internal/modules/stats/module.go`
 7. `internal/modules/stats/usecase/stats_usecase.go`
@@ -32,7 +32,7 @@ Use this skill when:
 
 ## Runtime Truth To Preserve
 
-- stats routes live under `authenticated` group in `internal/router/router.go`
+- stats routes live under `authenticated` group in `internal/router/http_router.go`
 - exposed endpoints are `/api/v1/stats/summary`, `/activity`, and `/insights`
 - `internal/config/app.go` uses stats usecase in realtime metrics broadcasting path
 

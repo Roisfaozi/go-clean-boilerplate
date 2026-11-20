@@ -17,7 +17,7 @@ Do not patch from intuition. Reproduce, trace, prove, then fix.
 2. `AGENTS.md`
 3. relevant `llm/cache/*`
 4. `internal/config/app.go` if wiring may matter
-5. `internal/router/router.go` if request path or middleware may matter
+5. `internal/router/http_router.go` if request path or middleware may matter
 6. target module and nearest tests
 
 ## Workflow

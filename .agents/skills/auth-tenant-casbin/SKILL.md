@@ -35,11 +35,11 @@ Use this skill when:
 4. `llm/cache/tenant-organization-system.md`
 5. `llm/cache/casbin-permission-system.md`
 6. `llm/cache/role-system.md`
-7. `internal/router/router.go`
-8. `internal/middleware/auth_middleware.go`
-9. `internal/middleware/tenant_middleware.go`
-10. `internal/middleware/casbin_middleware.go`
-11. `internal/middleware/api_key_middleware.go` when protected route also accepts API-key actor
+7. `internal/router/http_router.go`
+8. `internal/middleware/http_auth_middleware.go`
+9. `internal/middleware/http_tenant_middleware.go`
+10. `internal/middleware/http_casbin_middleware.go`
+11. `internal/middleware/http_api_key_middleware.go` when protected route also accepts API-key actor
 12. target auth, organization, permission, or role usecase paths
 
 ## Runtime Truth To Preserve

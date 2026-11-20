@@ -30,16 +30,16 @@ Do not use this skill for:
 1. `AGENTS.md`
 2. `llm/cache/audit-system.md`
 3. `llm/cache/worker-audit-webhook-system.md`
-4. `internal/router/router.go`
+4. `internal/router/http_router.go`
 5. `internal/modules/audit/module.go`
-6. `internal/modules/audit/delivery/http/audit_routes.go`
+6. `internal/modules/audit/delivery/http/audit_controller.go`
 7. `internal/modules/audit/usecase/audit_usecase.go`
 8. `internal/modules/audit/repository/audit_repository.go`
 
 ## Runtime Truth To Preserve
 
 - audit module lives under `internal/modules/audit/`
-- audit routes are registered through `auditHttp.RegisterAuthorizedRoutes(authorized, ...)` in `internal/router/router.go`
+- audit routes are registered directly in `internal/router/http_router.go` using `adminChain(...)`
 - repository applies organization visibility scoping when listing audit logs
 - audit repository also manages outbox persistence and status transitions
 

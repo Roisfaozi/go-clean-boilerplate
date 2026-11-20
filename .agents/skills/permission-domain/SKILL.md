@@ -31,9 +31,9 @@ Do not use this skill for:
 2. `llm/cache/permission-system.md`
 3. `llm/cache/access-right-system.md`
 4. `llm/cache/casbin-permission-system.md`
-5. `internal/router/router.go`
+5. `internal/router/http_router.go`
 6. `internal/modules/permission/module.go`
-7. `internal/modules/permission/delivery/http/permission_routes.go`
+7. `internal/modules/permission/delivery/http/permission_controller.go`
 8. `internal/modules/permission/usecase/permission_usecase.go`
 9. `internal/modules/permission/usecase/access_right_assignment.go`
 10. `internal/modules/permission/usecase/inheritance_tree.go`
@@ -41,8 +41,8 @@ Do not use this skill for:
 
 ## Runtime Truth To Preserve
 
-- batch permission check route is registered under `authenticated` group via `permissionHttp.RegisterBatchCheckRoute(...)`
-- full permission admin routes are registered under `authorized` group via `permissionHttp.RegisterPermissionRoutes(...)`
+- batch permission check route (`POST /api/v1/permissions/check-batch`) is registered directly in `internal/router/http_router.go` using `authChain(...)`
+- full permission admin routes are registered directly in `internal/router/http_router.go` using `adminChain(...)`
 - permission logic depends on access-right expansion and transactional enforcer behavior
 
 ## Workflow

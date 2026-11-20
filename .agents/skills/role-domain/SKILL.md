@@ -26,16 +26,16 @@ Use this skill when:
 2. `llm/cache/role-system.md`
 3. `llm/cache/casbin-permission-system.md`
 4. `llm/cache/access-right-system.md`
-5. `internal/router/router.go`
+5. `internal/router/http_router.go`
 6. `internal/modules/role/module.go`
-7. `internal/modules/role/delivery/http/role_routes.go`
+7. `internal/modules/role/delivery/http/role_controller.go`
 8. `internal/modules/role/usecase/role_usecase.go`
 9. `internal/modules/role/model/converter/converter.go`
 10. `internal/modules/permission/usecase/permission_usecase.go`
 
 ## Runtime Truth To Preserve
 
-- role routes are registered under `authorized` group via `roleHttp.RegisterAuthorizedRoutes(...)`
+- role routes are registered in `internal/router/http_router.go` under the `authorized` middleware group
 - role module has dedicated converter and validation tests
 - role changes can require permission cleanup or orchestration review
 

@@ -32,7 +32,7 @@ Do not use this skill when:
 3. relevant `llm/cache/*`
 4. relevant `llm/workflows/*`
 5. `internal/config/app.go` if wiring matters
-6. `internal/router/router.go` if route/middleware matters
+6. `internal/router/http_router.go` if route/middleware matters
 7. target module and consumer paths
 
 ## Plan Workflow
@@ -71,7 +71,7 @@ State which step depends on which:
 
 For each step, name exact file groups or modules, such as:
 
-- `internal/router/router.go`
+- `internal/router/http_router.go`
 - `internal/modules/<name>/delivery/http/*`
 - `internal/modules/<name>/usecase/*`
 - `apps/web/src/app/api/v1/[...path]/route.ts`

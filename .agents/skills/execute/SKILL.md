@@ -56,7 +56,7 @@ Before editing, restate:
 
 For current slice, re-read only live paths that matter:
 
-- route layer in `internal/router/router.go`
+- route layer in `internal/router/http_router.go`
 - wiring in `internal/config/app.go`
 - target module constructor and boundaries
 - frontend proxies and shared types if contract is touched

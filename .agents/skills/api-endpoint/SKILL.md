@@ -15,7 +15,7 @@ Every endpoint decision can affect route strata, middleware layering, API-key sc
 
 Use this skill when:
 
-- adding or changing Gin routes
+- adding or changing stdlib `net/http` routes in `internal/router/http_router.go`
 - moving route between protection strata
 - changing request or response contract used by frontend
 - changing endpoint scope behavior, tenant semantics, or Swagger-visible API
@@ -34,8 +34,8 @@ Use another skill when:
 3. `llm/cache/backend-map.md`
 4. `llm/cache/domain-rules.md`
 5. `llm/workflows/api-endpoint.md`
-6. `internal/router/router.go`
-7. target `internal/modules/*/delivery/http/*routes.go`
+6. `internal/router/http_router.go`
+7. target `internal/modules/*/delivery/http/*_controller.go`
 8. target controller, request/response structs, usecase, repository
 9. `apps/web/src/app/api/v1/[...path]/route.ts` if `apps/web` can consume endpoint
 10. `apps/client/app/routes/api-proxy.ts` if `apps/client` can consume endpoint
@@ -67,8 +67,8 @@ Choose intentionally:
 
 ## Runtime Truth To Preserve
 
-- route strata and middleware layering are defined centrally in `internal/router/router.go`
-- some module routes are registered via module route helpers, while some protected groups like project routes are declared directly in router
+- route strata and middleware layering are defined centrally in `internal/router/http_router.go`
+- all module routes are registered directly on `http.ServeMux` in `internal/router/http_router.go` using middleware chains
 - frontend consumers may depend on backend endpoints through `apps/web` proxy, `apps/client` proxy, and `packages/api-types`
 - Swagger-visible public API changes can require docs regeneration through `pnpm go:docs`
 
@@ -78,7 +78,7 @@ Choose intentionally:
 
 Find nearest precedent in same module.
 
-Trace route registration from `internal/router/router.go` to module routes or direct route group.
+Trace route registration in `internal/router/http_router.go` to the target controller handler.
 
 Identify consumers in:
 
@@ -102,7 +102,7 @@ Before patching, write down:
 
 - request parsing and validation in controller
 - business rules in usecase
-- GORM/query details in repository
+- `sqlx`/raw SQL query details in repository
 - router owns route exposure and protection
 - shared type or proxy updates when consumers depend on contract
 

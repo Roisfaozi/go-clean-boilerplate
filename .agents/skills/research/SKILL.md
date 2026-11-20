@@ -31,7 +31,7 @@ Do not use this skill when:
 2. relevant `llm/cache/*`
 3. relevant `llm/workflows/*`
 4. `internal/config/app.go` when composition matters
-5. `internal/router/router.go` when route or middleware matters
+5. `internal/router/http_router.go` when route or middleware matters
 6. target module code and adjacent precedent modules
 7. tests near affected code
 8. supporting docs only after runtime code
@@ -53,7 +53,7 @@ List exact questions such as:
 Look for:
 
 - same pattern in another `internal/modules/*`
-- same middleware layering in `internal/router/router.go`
+- same middleware layering in `internal/router/http_router.go`
 - same dependency wiring in `internal/config/app.go`
 - same frontend proxy or type shape in `apps/web`, `apps/client`, `packages/api-types`
 

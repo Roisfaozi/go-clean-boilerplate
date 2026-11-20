@@ -16,7 +16,7 @@ It spans route middleware, TUS handler, storage provider abstraction, metadata, 
 1. `AGENTS.md`
 2. `llm/cache/tus-upload-system.md`
 3. `llm/cache/user-system.md` when avatar flow is involved
-4. `internal/router/router.go`
+4. `internal/router/http_router.go`
 5. `internal/config/app.go`
 6. `pkg/tus/*`
 7. `pkg/storage/*`

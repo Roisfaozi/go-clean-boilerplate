@@ -31,9 +31,9 @@ description: Use when changing Go backend module logic, usecases, repositories, 
 
 - controller: bind/validate/request-response only
 - usecase: business rules, transaction orchestration, side-effect decisions
-- repository: GORM/query details only
+- repository: `sqlx`/raw SQL query details only
 - `internal/config/app.go`: dependency graph and constructor wiring
-- `internal/router/router.go`: HTTP route/middleware placement
+- `internal/router/http_router.go`: HTTP route/middleware placement
 
 ## Workflow
 
@@ -78,7 +78,7 @@ Load matching project-specific skill if any boundary is touched.
 - [ ] dependency ownership clear
 - [ ] no full config object passed into usecase
 - [ ] context propagation intact
-- [ ] repository hides GORM details
+- [ ] repository hides `sqlx`/SQL query details
 - [ ] side effects intentionally sync/async
 - [ ] tests or code trace cover changed behavior
 

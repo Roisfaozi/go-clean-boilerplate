@@ -65,7 +65,7 @@ Be explicit about skipped coverage:
 
 ## Common Targets In This Repo
 
-- routes registered through `internal/router/router.go`
+- routes registered through `internal/router/http_router.go`
 - frontend proxies in `apps/web/src/app/api/v1/[...path]/route.ts`
 - frontend proxies in `apps/client/app/routes/api-proxy.ts`
 - auth or tenant sensitive pages in active app owner

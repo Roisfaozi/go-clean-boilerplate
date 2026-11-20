@@ -32,7 +32,7 @@ If bug is already localized and proven, use narrower domain skill for patching.
 2. `AGENTS.md`
 3. relevant `llm/cache/*`
 4. relevant `llm/workflows/*`
-5. `internal/router/router.go` for HTTP path issues
+5. `internal/router/http_router.go` for HTTP path issues
 6. `internal/config/app.go` when wiring, async workers, or broadcasters may matter
 7. target module, proxy, or package tests
 

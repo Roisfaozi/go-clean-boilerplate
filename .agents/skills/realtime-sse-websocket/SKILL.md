@@ -16,7 +16,7 @@ Small changes can break auth, origin checks, or distributed presence behavior.
 1. `AGENTS.md`
 2. `llm/cache/realtime-system.md`
 3. `llm/cache/stats-system.md` when metrics broadcasting is involved
-4. `internal/router/router.go`
+4. `internal/router/http_router.go`
 5. `internal/config/app.go`
 6. `pkg/ws/*`
 7. `pkg/sse/*`

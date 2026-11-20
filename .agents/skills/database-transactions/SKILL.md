@@ -1,6 +1,6 @@
 ---
 name: database-transactions
-description: Use when changing GORM transactions, all-or-nothing writes, schema-sensitive persistence flows, seed-like data coupling, or Casbin policy writes tied to database state in this Casbin repo.
+description: Use when changing `sqlx` transactions, all-or-nothing writes, schema-sensitive persistence flows, seed-like data coupling, or Casbin policy writes tied to database state in this Casbin repo.
 ---
 
 # Database Transactions
@@ -17,7 +17,7 @@ Use this skill when:
 
 - multiple writes must succeed or fail together
 - usecase now spans repository plus side-effect or policy write
-- GORM transaction manager or context-carried DB is involved
+- `sqlx` transaction manager (`pkg/tx.SQLXTransactionManager`) or context-carried `tx.DBTX` is involved
 - schema-sensitive persistence logic changes behavior
 
 ## Read Order

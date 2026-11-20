@@ -27,9 +27,9 @@ Use this skill when:
 3. `llm/cache/querybuilder-security.md`
 4. `llm/cache/authentication-system.md`
 5. `llm/cache/tenant-organization-system.md` when org context matters
-6. `internal/router/router.go`
+6. `internal/router/http_router.go`
 7. `internal/modules/user/module.go`
-8. `internal/modules/user/delivery/http/user_routes.go`
+8. `internal/modules/user/delivery/http/user_controller.go`
 9. `internal/modules/user/usecase/user_usecase.go`
 10. `internal/modules/user/usecase/avatar_hook.go`
 11. `internal/modules/user/repository/user_repository.go`

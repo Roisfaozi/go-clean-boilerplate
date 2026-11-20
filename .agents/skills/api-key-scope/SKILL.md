@@ -26,10 +26,10 @@ Use this skill when:
 2. `llm/cache/api-key-system.md`
 3. `llm/cache/domain-rules.md`
 4. `llm/workflows/api-endpoint.md`
-5. `internal/router/router.go`
-6. `internal/middleware/api_key_middleware.go`
-7. `internal/middleware/auth_middleware.go`
-8. `internal/middleware/tenant_middleware.go` when org-scoped behavior matters
+5. `internal/router/http_router.go`
+6. `internal/middleware/http_api_key_middleware.go`
+7. `internal/middleware/http_auth_middleware.go`
+8. `internal/middleware/http_tenant_middleware.go` when org-scoped behavior matters
 9. `internal/modules/api_key/`
 10. affected controller or route tests
 
