@@ -7,7 +7,7 @@ import {
 	type FieldDef,
 } from "@/features/shared";
 import type { AccessRight } from "@/lib/api/types";
-import { NexusBadge, NexusButton } from "@casbin/ui";
+import { NexusButton } from "@casbin/ui";
 import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { z } from "zod";
@@ -27,32 +27,16 @@ const columns: CrudColumnDef<AccessRight>[] = [
 		minWidth: 180,
 	},
 	{
-		id: "resource",
-		header: "Resource",
-		accessorKey: "resource",
-		sortable: true,
-		minWidth: 180,
-	},
-	{
-		id: "action",
-		header: "Action",
-		accessorKey: "action",
-		sortable: true,
-		filterable: true,
-		filterOptions: [
-			{ label: "Create", value: "create" },
-			{ label: "Read", value: "read" },
-			{ label: "Update", value: "update" },
-			{ label: "Delete", value: "delete" },
-		],
-		cell: (row) => <NexusBadge variant="neutral">{row.action}</NexusBadge>,
+		id: "description",
+		header: "Description",
+		accessorKey: "description",
+		minWidth: 240,
 	},
 ];
 
 const createSchema = z.object({
-	name: z.string().trim().min(1, "Name is required").max(100),
-	resource: z.string().trim().min(1, "Resource is required").max(100),
-	action: z.string().trim().min(1, "Action is required").max(50),
+	name: z.string().trim().min(3, "Name must be at least 3 characters").max(100),
+	description: z.string().trim().max(255).optional(),
 });
 
 const editSchema = createSchema;
@@ -66,23 +50,10 @@ const createFields: FieldDef[] = [
 		placeholder: "e.g. manage_users",
 	},
 	{
-		name: "resource",
-		label: "Resource",
-		type: "text",
-		required: true,
-		placeholder: "e.g. users",
-	},
-	{
-		name: "action",
-		label: "Action",
-		type: "select",
-		required: true,
-		options: [
-			{ label: "Create", value: "create" },
-			{ label: "Read", value: "read" },
-			{ label: "Update", value: "update" },
-			{ label: "Delete", value: "delete" },
-		],
+		name: "description",
+		label: "Description",
+		type: "textarea",
+		placeholder: "What this access right grants",
 	},
 ];
 

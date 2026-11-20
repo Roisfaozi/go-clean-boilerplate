@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { createResource, loginAsAdmin } from "./helpers";
+import {
+	createResource,
+	deleteResourceByName,
+	loginAsAdmin,
+	logout,
+} from "./helpers";
 
 test.describe("RBAC Flow - End to End", () => {
 	test.beforeEach(async ({ page }) => {
@@ -30,37 +35,43 @@ test.describe("RBAC Flow - End to End", () => {
 			const resourceRow = page.locator("tr").filter({ hasText: resourceName });
 			await expect(resourceRow).toBeVisible({ timeout: 15000 });
 
-			// Find the switch and click it
-			const userRoleSwitch = page
-				.locator(`tr:has-text("${resourceName}") button[role="switch"]`)
+			// Find an unassigned switch on an access right that has endpoints.
+			// A freshly created access right has no endpoints, so it cannot be assigned.
+			const candidateSwitch = page
+				.locator("tbody tr")
+				.filter({ hasNot: page.getByText("0 Endpoints", { exact: true }) })
+				.locator(
+					'[role="switch"][aria-checked="false"]:not([aria-disabled="true"])',
+				)
 				.first();
+			await expect(candidateSwitch).toBeVisible({ timeout: 15000 });
+			const switchId = await candidateSwitch.getAttribute("id");
+			const userRoleSwitch = page.locator(`[id="${switchId}"]`);
 			await userRoleSwitch.scrollIntoViewIfNeeded();
 
-			const isCheckedBefore =
-				(await userRoleSwitch.getAttribute("aria-checked")) === "true";
 			await userRoleSwitch.click({ force: true });
+			await expect(userRoleSwitch).toHaveAttribute("aria-checked", "true", {
+				timeout: 10000,
+			});
 
-			// Verify toggle state changed
-			const expectedValue = isCheckedBefore ? "false" : "true";
-			await expect(userRoleSwitch).toHaveAttribute(
-				"aria-checked",
-				expectedValue,
-				{
-					timeout: 10000,
-				},
-			);
+			// Restore original state to keep the DB clean
+			await userRoleSwitch.click({ force: true });
+			await expect(userRoleSwitch).toHaveAttribute("aria-checked", "false", {
+				timeout: 10000,
+			});
 
 			// 5. Verify inheritance view
 			await page.click('button[role="tab"]:has-text("Role Inheritance")');
-			await expect(page.getByText(/Select a Role/i)).toBeVisible();
+			await expect(
+				page.getByRole("heading", { name: /Select a Role/i }),
+			).toBeVisible();
 
 			// Select the first role from the tree
-			await page.locator(".role-node-container").first().click();
+			await page.getByRole("button", { name: /perms/i }).first().click();
 			await expect(page.getByText(/Effective Permissions/i)).toBeVisible();
 		} finally {
-			// Cleanup: Attempt to delete the resource to keep the DB clean
-			// We can do this via API or UI, but let's just leave it for now to avoid complexity in test
-			// Actually, we should delete it.
+			await deleteResourceByName(page, resourceName).catch(() => {});
+			await logout(page).catch(() => {});
 		}
 	});
 });

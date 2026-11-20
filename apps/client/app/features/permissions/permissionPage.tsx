@@ -36,6 +36,7 @@ import {
 import { useMemo, useState } from "react";
 import { z } from "zod";
 import { useRoles } from "../roles/roleHooks";
+import { useResources } from "../resources/resourceHooks";
 import {
 	useAddInheritance,
 	useCreatePermission,
@@ -43,7 +44,6 @@ import {
 	useInheritanceTree,
 	usePermissions,
 	useRemoveInheritance,
-	useResourceAggregation,
 	useRoleAccessRights,
 	useToggleAccessRight,
 	useUpdatePermission,
@@ -394,7 +394,7 @@ export default function PermissionsPage() {
 	} = usePermissions();
 	const { data: rolesResponse, isLoading: rolesLoading } = useRoles();
 	const { data: resourcesResponse, isLoading: resourcesLoading } =
-		useResourceAggregation();
+		useResources();
 	const { data: inheritanceResponse, isLoading: inheritanceLoading } =
 		useInheritanceTree();
 
@@ -412,7 +412,12 @@ export default function PermissionsPage() {
 		[rolesResponse],
 	);
 	const resources = useMemo(
-		() => (resourcesResponse?.resources || []) as any[],
+		() =>
+			((resourcesResponse?.data || []) as any[]).map((ar) => ({
+				id: ar.id,
+				name: ar.name,
+				endpoint_count: ar.endpoints?.length ?? 0,
+			})),
 		[resourcesResponse],
 	);
 	const inheritanceTree = useMemo(

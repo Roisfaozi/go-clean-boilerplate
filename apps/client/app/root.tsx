@@ -6,7 +6,7 @@ import {
 	Scripts,
 	ScrollRestoration,
 } from "react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
@@ -46,27 +46,24 @@ function SessionInitializer({ children }: { children: React.ReactNode }) {
 	const initialized = useAuthStore((s) => s.initialized);
 	const setUser = useAuthStore((s) => s.setUser);
 	const setInitialized = useAuthStore((s) => s.setInitialized);
-	const hasBootstrapped = useRef(false);
 
 	useEffect(() => {
-		if (hasBootstrapped.current) {
+		if (initialized) {
 			return;
 		}
 
-		hasBootstrapped.current = true;
-
-		let mounted = true;
+		let cancelled = false;
 
 		const bootstrapSession = async () => {
 			try {
 				const user = await authApi.getCurrentUser();
-				if (mounted) {
+				if (!cancelled) {
 					setUser(user);
 				}
 			} catch {
 				// No active session or session expired.
 			} finally {
-				if (mounted) {
+				if (!cancelled) {
 					setInitialized(true);
 				}
 			}
@@ -75,9 +72,9 @@ function SessionInitializer({ children }: { children: React.ReactNode }) {
 		bootstrapSession();
 
 		return () => {
-			mounted = false;
+			cancelled = true;
 		};
-	}, [setInitialized, setUser]);
+	}, [initialized, setInitialized, setUser]);
 
 	if (!initialized) {
 		return (

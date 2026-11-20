@@ -1,25 +1,30 @@
 import { test, expect } from "@playwright/test";
+import { logout } from "./helpers";
 
 test.describe("Authentication Flow", () => {
 	test("should login successfully with admin credentials", async ({ page }) => {
-		// Navigate to login page
-		await page.goto("/login");
+		try {
+			// Navigate to login page
+			await page.goto("/login");
 
-		// Check if we are on the login page
-		await page.waitForSelector('input[name="username"]', { timeout: 30000 });
+			// Check if we are on the login page
+			await page.waitForSelector('input[name="username"]', { timeout: 30000 });
 
-		// Fill in credentials
-		await page.fill('input[name="username"]', "superadmin");
-		await page.fill('input[name="password"]', "Password0!");
-		await page.getByRole("button", { name: /Sign In/i }).click();
+			// Fill in credentials
+			await page.fill('input[name="username"]', "superadmin");
+			await page.fill('input[name="password"]', "Password0!");
+			await page.getByRole("button", { name: /Sign In/i }).click();
 
-		// Should redirect to dashboard
-		await expect(page).toHaveURL(/\/dashboard/);
+			// Should redirect to dashboard
+			await expect(page).toHaveURL(/\/dashboard/);
 
-		// Check for success toast or dashboard content
-		await expect(
-			page.getByRole("heading", { name: /Dashboard/i }),
-		).toBeVisible();
+			// Check for success toast or dashboard content
+			await expect(
+				page.getByRole("heading", { name: /Dashboard/i }),
+			).toBeVisible();
+		} finally {
+			await logout(page);
+		}
 	});
 
 	test("should show error on invalid credentials", async ({ page }) => {

@@ -56,7 +56,31 @@ const axiosInstance = axios.create({
 	},
 });
 
+const MUTATING_METHODS = new Set(["post", "put", "patch", "delete"]);
+
+function readCookie(name: string): string | undefined {
+	if (typeof document === "undefined") {
+		return undefined;
+	}
+	const prefix = `${name}=`;
+	for (const part of document.cookie.split(";")) {
+		const trimmed = part.trim();
+		if (trimmed.startsWith(prefix)) {
+			return decodeURIComponent(trimmed.slice(prefix.length));
+		}
+	}
+	return undefined;
+}
+
 axiosInstance.interceptors.request.use((config) => {
+	const method = (config.method ?? "get").toLowerCase();
+	if (MUTATING_METHODS.has(method) && config.headers) {
+		const csrfToken = readCookie("csrf_token");
+		if (csrfToken && !config.headers["X-CSRF-Token"]) {
+			config.headers["X-CSRF-Token"] = csrfToken;
+		}
+	}
+
 	const activeOrganization = useOrganizationStore.getState().activeOrganization;
 	if (activeOrganization && config.headers) {
 		if (!config.headers["X-Organization-ID"]) {

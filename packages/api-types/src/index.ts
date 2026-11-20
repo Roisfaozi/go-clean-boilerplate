@@ -89,6 +89,7 @@ export interface Endpoint {
 export interface AccessRight {
 	id: string;
 	name: string;
+	description?: string;
 	resource: string;
 	action: string;
 	conditions?: Record<string, unknown>;
