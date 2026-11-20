@@ -439,7 +439,7 @@ func TestDeleteRole_DefersPolicyReloadInsideTransaction(t *testing.T) {
 
 	sqlDB, mockSQL, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 	mockSQL.ExpectBegin()
 	mockSQL.ExpectCommit()
 

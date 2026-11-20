@@ -72,7 +72,7 @@ func TestLogActivity(t *testing.T) {
 		// Simulate being inside a transaction using real TransactionManager
 		db, mockSQL, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 		sqlxDB := sqlx.NewDb(db, "sqlmock")
 		tm := tx.NewSQLXTransactionManager(sqlxDB, logrus.New())
 

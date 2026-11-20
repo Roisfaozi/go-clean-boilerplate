@@ -18,7 +18,7 @@ test.describe("RBAC Flow - End to End", () => {
 
 			// 3. Ensure we are on the Matrix tab (default)
 			await expect(
-				page.locator('button[role="tab"]:has-texttext("Matrix View")'),
+				page.locator('button[role="tab"]:has-text("Matrix View")'),
 			).toBeVisible();
 
 			// 4. Find our resource in the table and toggle a role (e.g., "role:user")
