@@ -6,6 +6,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/modules/webhook/usecase"
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,7 +17,7 @@ type WebhookModule struct {
 }
 
 func NewWebhookModule(
-	db any,
+	db *sqlx.DB,
 	log *logrus.Logger,
 	validate *validator.Validate,
 	taskDistributor worker.TaskDistributor,

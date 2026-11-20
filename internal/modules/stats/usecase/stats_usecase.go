@@ -26,9 +26,9 @@ type statsUseCase struct {
 	log *logrus.Logger
 }
 
-func NewStatsUseCase(db any, log *logrus.Logger) StatsUseCase {
+func NewStatsUseCase(db *sqlx.DB, log *logrus.Logger) StatsUseCase {
 	return &statsUseCase{
-		db:  tx.ExtractSQLX(db),
+		db:  db,
 		log: log,
 	}
 }

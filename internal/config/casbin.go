@@ -4,22 +4,21 @@ import (
 	"fmt"
 
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/casbinadapter"
-	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/casbin/casbin/v3"
 	rediswatcher "github.com/casbin/redis-watcher/v2"
+	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
 // NewCasbinEnforcer creates a new Casbin enforcer using SQLXCasbinAdapter.
-func NewCasbinEnforcer(cfg *AppConfig, db any, log *logrus.Logger) (*casbin.Enforcer, error) {
+func NewCasbinEnforcer(cfg *AppConfig, db *sqlx.DB, log *logrus.Logger) (*casbin.Enforcer, error) {
 	if !cfg.Casbin.Enabled {
 		log.Info("Casbin is disabled.")
 		return nil, nil
 	}
 
-	sqlxDB := tx.ExtractSQLX(db)
-	adapter := casbinadapter.NewSQLXCasbinAdapter(sqlxDB)
+	adapter := casbinadapter.NewSQLXCasbinAdapter(db)
 
 	enforcer, err := casbin.NewEnforcer(cfg.Casbin.Model, adapter)
 	if err != nil {

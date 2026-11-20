@@ -20,13 +20,13 @@ type organizationRepository struct {
 	redis *redis.Client
 }
 
-func NewOrganizationRepository(db any, redisClients ...*redis.Client) OrganizationRepository {
+func NewOrganizationRepository(db *sqlx.DB, redisClients ...*redis.Client) OrganizationRepository {
 	var redisClient *redis.Client
 	if len(redisClients) > 0 {
 		redisClient = redisClients[0]
 	}
 	return &organizationRepository{
-		db:    tx.ExtractSQLX(db),
+		db:    db,
 		redis: redisClient,
 	}
 }

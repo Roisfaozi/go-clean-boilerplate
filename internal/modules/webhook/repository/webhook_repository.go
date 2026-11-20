@@ -19,9 +19,9 @@ type webhookRepository struct {
 	log *logrus.Logger
 }
 
-func NewWebhookRepository(db any, log *logrus.Logger) WebhookRepository {
+func NewWebhookRepository(db *sqlx.DB, log *logrus.Logger) WebhookRepository {
 	return &webhookRepository{
-		db:  tx.ExtractSQLX(db),
+		db:  db,
 		log: log,
 	}
 }

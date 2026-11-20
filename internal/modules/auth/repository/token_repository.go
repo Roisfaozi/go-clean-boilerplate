@@ -22,11 +22,11 @@ type tokenRepositoryRedis struct {
 	clock  util.Clock
 }
 
-func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger, db any, clock util.Clock) TokenRepository {
+func NewTokenRepositoryRedis(client *redis.Client, log *logrus.Logger, db *sqlx.DB, clock util.Clock) TokenRepository {
 	return &tokenRepositoryRedis{
 		client: client,
 		log:    log,
-		db:     tx.ExtractSQLX(db),
+		db:     db,
 		clock:  clock,
 	}
 }

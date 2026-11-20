@@ -29,9 +29,9 @@ type apiKeyRepository struct {
 	db *sqlx.DB
 }
 
-func NewApiKeyRepository(db any) ApiKeyRepository {
+func NewApiKeyRepository(db *sqlx.DB) ApiKeyRepository {
 	return &apiKeyRepository{
-		db: tx.ExtractSQLX(db),
+		db: db,
 	}
 }
 

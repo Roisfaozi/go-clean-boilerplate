@@ -19,6 +19,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/util"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
@@ -34,7 +35,7 @@ func NewAuthModule(
 	lockoutDuration time.Duration,
 	maxConcurrentSessions int,
 	jwtManager *jwt.JWTManager,
-	db any,
+	db *sqlx.DB,
 	redisClient *redis.Client,
 	log *logrus.Logger,
 	validate *validator.Validate,

@@ -21,9 +21,9 @@ type auditRepository struct {
 	log *logrus.Logger
 }
 
-func NewAuditRepository(db any, log *logrus.Logger) usecase.AuditRepository {
+func NewAuditRepository(db *sqlx.DB, log *logrus.Logger) usecase.AuditRepository {
 	return &auditRepository{
-		db:  tx.ExtractSQLX(db),
+		db:  db,
 		log: log,
 	}
 }

@@ -24,9 +24,9 @@ type userRepositoryData struct {
 	log *logrus.Logger
 }
 
-func NewUserRepository(db any, log *logrus.Logger) UserRepository {
+func NewUserRepository(db *sqlx.DB, log *logrus.Logger) UserRepository {
 	return &userRepositoryData{
-		db:  tx.ExtractSQLX(db),
+		db:  db,
 		log: log,
 	}
 }

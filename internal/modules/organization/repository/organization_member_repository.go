@@ -17,9 +17,9 @@ type organizationMemberRepository struct {
 	db *sqlx.DB
 }
 
-func NewOrganizationMemberRepository(db any) OrganizationMemberRepository {
+func NewOrganizationMemberRepository(db *sqlx.DB) OrganizationMemberRepository {
 	return &organizationMemberRepository{
-		db: tx.ExtractSQLX(db),
+		db: db,
 	}
 }
 

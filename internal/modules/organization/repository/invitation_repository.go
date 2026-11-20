@@ -21,9 +21,9 @@ type invitationRepository struct {
 	db *sqlx.DB
 }
 
-func NewInvitationRepository(db any) InvitationRepository {
+func NewInvitationRepository(db *sqlx.DB) InvitationRepository {
 	return &invitationRepository{
-		db: tx.ExtractSQLX(db),
+		db: db,
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
@@ -26,7 +27,7 @@ type OrganizationModule struct {
 
 // NewOrganizationModule creates a new OrganizationModule with all dependencies wired
 func NewOrganizationModule(
-	db any,
+	db *sqlx.DB,
 	redisClient *redis.Client,
 	taskDistributor worker.TaskDistributor,
 	userRepo userRepo.UserRepository,

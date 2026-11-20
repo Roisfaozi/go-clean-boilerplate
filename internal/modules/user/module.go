@@ -11,6 +11,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/storage"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/tx"
 	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +22,7 @@ type UserModule struct {
 }
 
 func NewUserModule(
-	db any,
+	db *sqlx.DB,
 	log *logrus.Logger,
 	validator *validator.Validate,
 	tm tx.WithTransactionManager,

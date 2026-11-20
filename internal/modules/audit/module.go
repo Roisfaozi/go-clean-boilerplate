@@ -7,6 +7,7 @@ import (
 	"github.com/Roisfaozi/go-clean-boilerplate/internal/worker"
 	"github.com/Roisfaozi/go-clean-boilerplate/pkg/ws"
 	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,7 +18,7 @@ type AuditModule struct {
 }
 
 // NewAuditModule creates a new instance of AuditModule.
-func NewAuditModule(db any, log *logrus.Logger, validate *validator.Validate, wsManager ws.Manager, taskDistributor worker.TaskDistributor) *AuditModule {
+func NewAuditModule(db *sqlx.DB, log *logrus.Logger, validate *validator.Validate, wsManager ws.Manager, taskDistributor worker.TaskDistributor) *AuditModule {
 	repo := repository.NewAuditRepository(db, log)
 	uc := usecase.NewAuditUseCase(repo, log, wsManager, taskDistributor)
 	controller := http.NewAuditController(uc, validate, log)

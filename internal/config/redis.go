@@ -2,9 +2,9 @@ package config
 
 import (
 	"context"
+	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
@@ -17,7 +17,7 @@ func (l silentLogger) Printf(ctx context.Context, format string, v ...interface{
 
 func NewRedisConfig(cfg *AppConfig, log *logrus.Logger) *redis.Client {
 	// Silence redis internal logger in test mode to avoid handshake warnings
-	if gin.Mode() == gin.TestMode {
+	if cfg.Server.AppEnv == defaultAppEnvTest || cfg.Server.AppEnv == defaultAppEnvTesting || testing.Testing() {
 		redis.SetLogger(silentLogger{})
 	}
 
