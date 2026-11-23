@@ -335,6 +335,7 @@ export function CrudTable<T extends { id: string | number }>({
 															variant="ghost"
 															size="icon"
 															className="h-8 w-8"
+															aria-label="Row actions"
 														>
 															<MoreHorizontal className="h-4 w-4" />
 														</NexusButton>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { PageHeader } from "@/components/layout/page-header";
 import { NexusButton } from "@casbin/ui";
@@ -20,60 +20,7 @@ import {
 import type { Organization } from "@/lib/api/schemas";
 import { Skeleton } from "@casbin/ui";
 
-interface OrgRow extends Organization {
-	id: string;
-	members: number;
-}
-
-const mockOrgs: OrgRow[] = [
-	{
-		id: "1",
-		name: "Acme Corp",
-		slug: "acme",
-		status: "active",
-		owner_id: "u1",
-		members: 45,
-		created_at: 1700000000,
-	},
-	{
-		id: "2",
-		name: "Globex Inc",
-		slug: "globex",
-		status: "active",
-		owner_id: "u2",
-		members: 23,
-		created_at: 1700100000,
-	},
-	{
-		id: "3",
-		name: "Initech",
-		slug: "initech",
-		status: "suspended",
-		owner_id: "u3",
-		members: 12,
-		created_at: 1700200000,
-	},
-	{
-		id: "4",
-		name: "Umbrella Corp",
-		slug: "umbrella",
-		status: "active",
-		owner_id: "u4",
-		members: 67,
-		created_at: 1700300000,
-	},
-	{
-		id: "5",
-		name: "Stark Industries",
-		slug: "stark",
-		status: "active",
-		owner_id: "u5",
-		members: 150,
-		created_at: 1700400000,
-	},
-];
-
-const columns: CrudColumnDef<OrgRow>[] = [
+const columns: CrudColumnDef<Organization>[] = [
 	{
 		id: "name",
 		header: "Organization",
@@ -82,7 +29,6 @@ const columns: CrudColumnDef<OrgRow>[] = [
 		minWidth: 180,
 	},
 	{ id: "slug", header: "Slug", accessorKey: "slug" },
-	{ id: "members", header: "Members", accessorKey: "members", sortable: true },
 	{
 		id: "status",
 		header: "Status",
@@ -112,12 +58,6 @@ const createSchema = z.object({
 
 const editSchema = z.object({
 	name: z.string().trim().min(1, "Name is required").max(100),
-	slug: z
-		.string()
-		.trim()
-		.min(1, "Slug is required")
-		.max(50)
-		.regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, hyphens only"),
 	status: z.string().min(1, "Status is required"),
 });
 
@@ -140,7 +80,7 @@ const createFields: FieldDef[] = [
 ];
 
 const editFields: FieldDef[] = [
-	...createFields,
+	createFields[0],
 	{
 		name: "status",
 		label: "Status",
@@ -155,19 +95,13 @@ const editFields: FieldDef[] = [
 
 export default function OrganizationsPage() {
 	const [createOpen, setCreateOpen] = useState(false);
-	const [editItem, setEditItem] = useState<OrgRow | null>(null);
-	const [deleteItem, setDeleteItem] = useState<OrgRow | null>(null);
+	const [editItem, setEditItem] = useState<Organization | null>(null);
+	const [deleteItem, setDeleteItem] = useState<Organization | null>(null);
 
 	const { data: orgsResponse, isLoading, isError } = useOrganizations();
 	const createOrg = useCreateOrganization();
 	const updateOrg = useUpdateOrganization();
 	const deleteOrg = useDeleteOrganization();
-
-	const orgs: OrgRow[] = useMemo(() => {
-		if (orgsResponse?.data) return orgsResponse.data as OrgRow[];
-		if (isError) return mockOrgs;
-		return mockOrgs;
-	}, [orgsResponse, isError]);
 
 	return (
 		<div className="space-y-6">
@@ -187,10 +121,12 @@ export default function OrganizationsPage() {
 						<Skeleton key={i} className="h-14 w-full rounded-lg" />
 					))}
 				</div>
+			) : isError ? (
+				<p role="alert">Failed to load organizations.</p>
 			) : (
 				<CrudTable
 					columns={columns}
-					data={orgs}
+					data={orgsResponse?.organizations ?? []}
 					selectable
 					onEdit={setEditItem}
 					onDelete={setDeleteItem}
@@ -233,7 +169,7 @@ export default function OrganizationsPage() {
 					if (editItem) {
 						updateOrg.mutate({
 							id: editItem.id,
-							data: values as any,
+							data: { name: values.name, status: values.status },
 						});
 						setEditItem(null);
 					}

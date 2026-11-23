@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { organizationService } from "./organizationService";
+import type { Organization } from "@/lib/api/schemas";
 import { toast } from "@casbin/ui";
 
 const KEY = ["organizations"];
@@ -26,8 +27,13 @@ export function useCreateOrganization() {
 export function useUpdateOrganization() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, data }: { id: string; data: Partial<any> }) =>
-			organizationService.update(id, data),
+		mutationFn: ({
+			id,
+			data,
+		}: {
+			id: string;
+			data: Pick<Organization, "name" | "status">;
+		}) => organizationService.update(id, data),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: KEY });
 			toast.success("Organization updated");
