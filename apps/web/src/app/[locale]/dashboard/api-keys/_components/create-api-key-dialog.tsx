@@ -81,7 +81,7 @@ export function CreateApiKeyDialog() {
 				name: values.name,
 				scopes: values.scopes,
 				expires_at: values.expires_at
-					? new Date(values.expires_at).toISOString()
+					? new Date(values.expires_at).getTime()
 					: null,
 			});
 			setCreatedKey(created);

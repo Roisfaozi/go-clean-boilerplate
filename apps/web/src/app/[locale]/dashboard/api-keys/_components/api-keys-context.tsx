@@ -17,7 +17,7 @@ interface ApiKeysContextType {
 	createApiKey: (data: {
 		name: string;
 		scopes: string[];
-		expires_at?: string | null;
+		expires_at?: number | null;
 	}) => Promise<ApiKeyCreated>;
 	revokeApiKey: (id: string) => Promise<void>;
 }
@@ -51,7 +51,7 @@ export function ApiKeysProvider({
 		async (data: {
 			name: string;
 			scopes: string[];
-			expires_at?: string | null;
+			expires_at?: number | null;
 		}) => {
 			if (!currentOrganization) {
 				throw new Error("Organization context required");

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CreateApiKeyDialog } from "./create-api-key-dialog";
@@ -78,6 +78,25 @@ describe("CreateApiKeyDialog", () => {
 
 		await user.click(screen.getByRole("button", { name: /^done$/i }));
 		expect(screen.queryByRole("dialog")).toBeNull();
+	});
+
+	it("submits an optional expiry as Unix milliseconds", async () => {
+		contextMock.createApiKey.mockResolvedValue({
+			api_key: "test-key",
+			scopes: [],
+		});
+		const user = userEvent.setup();
+		render(<CreateApiKeyDialog />);
+		await openDialog(user);
+		await user.type(screen.getByPlaceholderText("CI/CD token"), "Expiring key");
+		const expiry = "2031-06-15T13:45";
+		fireEvent.change(screen.getByLabelText("Expires At (optional)"), {
+			target: { value: expiry },
+		});
+		await user.click(screen.getByRole("button", { name: /create api key$/i }));
+		expect(contextMock.createApiKey).toHaveBeenCalledWith(
+			expect.objectContaining({ expires_at: new Date(expiry).getTime() }),
+		);
 	});
 
 	it("does not submit without a name", async () => {

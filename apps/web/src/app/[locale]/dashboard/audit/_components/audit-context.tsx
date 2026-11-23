@@ -64,7 +64,7 @@ export function AuditProvider({ children }: { children: ReactNode }) {
 
 			if (searchTerm) {
 				filter.filter = {
-					action: { type: "contains", filter: searchTerm },
+					action: { type: "contains", from: searchTerm },
 				};
 			}
 

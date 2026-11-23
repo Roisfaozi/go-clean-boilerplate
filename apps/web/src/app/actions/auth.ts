@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 import { loginSchema } from "~/lib/api/auth";
 import { actionClient } from "~/lib/client/safe-action";
@@ -49,12 +50,22 @@ export const loginAction = actionClient
 						result.message || "Gagal terhubung ke server (Backend Offline).",
 					);
 				}
-				console.log("ini response", response);
 				throw new Error(result.error || result.message || "Login failed");
 			}
 
 			const { data } = result;
 			const cookieStore = await cookies();
+			const upstream = new NextResponse(null, { headers: response.headers })
+				.cookies;
+			const csrf = upstream.get("csrf_token");
+			const refresh = upstream.get("refresh_token");
+			if (!csrf || !refresh) throw new Error("Missing session cookies");
+			cookieStore.set("csrf_token", csrf.value, {
+				secure: isSecure,
+				sameSite: "lax",
+				path: "/",
+				maxAge: REFRESH_TOKEN_MAX_AGE,
+			});
 
 			cookieStore.set("access_token", data.access_token, {
 				httpOnly: true,
@@ -64,15 +75,13 @@ export const loginAction = actionClient
 				maxAge: ACCESS_TOKEN_MAX_AGE,
 			});
 
-			if (data.refresh_token) {
-				cookieStore.set("refresh_token", data.refresh_token, {
-					httpOnly: true,
-					secure: isSecure,
-					sameSite: "lax",
-					path: "/",
-					maxAge: REFRESH_TOKEN_MAX_AGE,
-				});
-			}
+			cookieStore.set("refresh_token", refresh.value, {
+				httpOnly: true,
+				secure: isSecure,
+				sameSite: "lax",
+				path: "/",
+				maxAge: REFRESH_TOKEN_MAX_AGE,
+			});
 
 			return { success: true, user: data.user };
 		} catch (error: any) {
@@ -84,5 +93,6 @@ export const logoutAction = async () => {
 	const cookieStore = await cookies();
 	cookieStore.delete("access_token");
 	cookieStore.delete("refresh_token");
+	cookieStore.delete("csrf_token");
 	redirect("/login");
 };

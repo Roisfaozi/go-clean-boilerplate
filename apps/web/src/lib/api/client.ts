@@ -9,6 +9,19 @@ type FetchOptions = RequestInit & {
 
 const isServer = typeof window === "undefined";
 
+function readCookie(name: string) {
+	const part = document.cookie
+		.split(";")
+		.map((entry) => entry.trim())
+		.find((entry) => entry.startsWith(`${name}=`));
+	return part?.slice(name.length + 1);
+}
+
+function browserCsrfHeaders(): Record<string, string> {
+	const token = readCookie("csrf_token");
+	return token ? { "X-CSRF-Token": token } : {};
+}
+
 const getBaseUrl = () => {
 	if (!isServer) return "/api/v1";
 	return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080/api/v1";
@@ -26,9 +39,13 @@ class ApiClient {
 		const url = `${getBaseUrl()}${endpoint}`;
 
 		const isFormData = options.body instanceof FormData;
+		const mutating = ["POST", "PUT", "PATCH", "DELETE"].includes(
+			(options.method ?? "GET").toUpperCase(),
+		);
 
 		const headers: Record<string, string> = {
 			...options.headers,
+			...(!isServer && mutating ? browserCsrfHeaders() : {}),
 		};
 
 		if (!isFormData) {
@@ -52,6 +69,8 @@ class ApiClient {
 			try {
 				const { cookies } = await import("next/headers");
 				const cookieStore = await cookies();
+				const csrf = cookieStore.get("csrf_token")?.value;
+				if (mutating && csrf) headers["X-CSRF-Token"] = csrf;
 
 				// Pass all cookies
 				const cookieStrings = cookieStore
@@ -93,25 +112,24 @@ class ApiClient {
 			const response = await fetch(url, config);
 
 			if (response.status === 401) {
-				if (endpoint === "/auth/refresh") {
-					return response as any;
+				if (endpoint === "/auth/refresh" || endpoint === "/auth/login") {
+					return this.parseResponse<T>(response);
 				}
-
-				// Jika silent mode, lempar error biasa tanpa redirect
-				if (silent) {
+				if (isServer || (silent && !readCookie("csrf_token")))
 					throw new Error("Unauthenticated");
-				}
 
 				const refreshed = await this.tryRefresh();
 
 				if (refreshed) {
+					if (mutating) Object.assign(headers, browserCsrfHeaders());
 					return await fetch(url, config).then((res) => {
-						if (res.status === 401) {
+						if (res.status === 401 && !silent) {
 							this.handleHardLogout();
 						}
 						return this.parseResponse<T>(res);
 					});
 				} else {
+					if (silent) throw new Error("Unauthenticated");
 					this.handleHardLogout();
 					throw new Error("Session expired");
 				}
@@ -142,6 +160,7 @@ class ApiClient {
 				const refreshResponse = await fetch(`${getBaseUrl()}/auth/refresh`, {
 					method: "POST",
 					credentials: "include",
+					headers: browserCsrfHeaders(),
 				});
 				return refreshResponse.ok;
 			} catch {

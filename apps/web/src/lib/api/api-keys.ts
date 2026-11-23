@@ -19,7 +19,7 @@ export interface ApiKeyCreated extends ApiKey {
 export interface CreateApiKeyRequest {
 	name: string;
 	scopes: string[];
-	expires_at?: string | null;
+	expires_at?: number | null;
 }
 
 export interface ApiKeyListResponse {
