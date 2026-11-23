@@ -64,6 +64,36 @@ Open **[http://localhost:16686](http://localhost:16686)** in your browser.
 - Select your service name (default: `go-clean-api`).
 - Click **Find Traces**.
 
+## Database and Redis pool tuning with k6
+
+Use a dedicated test organization. Export `USERNAME`, `PASSWORD`, and `ORG_ID`
+for a member with project read, create, and delete access. Start the API and run:
+
+```bash
+k6 run --vus 5 --duration 10s scripts/loadtest/smoke-and-load.js
+```
+
+`BASE_URL` defaults to `http://127.0.0.1:8080/api/v1`. Setup logs in once.
+Each VU reads health, identity, memberships, and projects, then creates and
+replays one project on its first iteration and deletes it. Teardown revokes
+the shared session. A passing run requires fewer than 1% HTTP failures, p95
+below 200 ms, and every functional check passing.
+
+Use the short run for smoke verification. For tuning, hold load steady beyond
+the dashboard's five-minute rate window and within the access token lifetime.
+Compare runs at the same VU count. In **Database Pool**, inspect in-use versus
+maximum connections per instance alongside wait count and cumulative wait
+seconds per second. Rising wait rates at the connection limit indicate pool
+contention. Inspect slow queries and MySQL capacity before increasing
+`MYSQL_MAX_CONNECTION` across replicas.
+
+In **Redis Operations**, compare p95 by command with operations per second by
+status. A cache miss is distinct from a Redis error. These metrics include
+command latency but do not isolate time waiting for a Redis connection.
+Check Redis server latency and client connection capacity before changing
+`REDIS_POOL_SIZE`. Change one pool setting per run and compare HTTP p95,
+errors and wait rates.
+
 ## Manual Instrumentation
 
 To add custom spans within your business logic (UseCase):
