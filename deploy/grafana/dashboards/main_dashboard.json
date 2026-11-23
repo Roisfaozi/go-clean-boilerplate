@@ -127,6 +127,100 @@
       ],
       "title": "Worker Task Execution Status",
       "type": "timeseries"
+    },
+    { "id": 9, "type": "row", "title": "Database Pool", "gridPos": { "x": 0, "y": 27, "w": 24, "h": 1 } },
+    {
+      "id": 10, "type": "timeseries", "datasource": "Prometheus", "title": "Connections per pool",
+      "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 },
+      "targets": [
+        { "refId": "A", "expr": "app_db_pool_open_connections", "legendFormat": "{{instance}} {{db}} open" },
+        { "refId": "B", "expr": "app_db_pool_in_use_connections", "legendFormat": "{{instance}} {{db}} in use" },
+        { "refId": "C", "expr": "app_db_pool_idle_connections", "legendFormat": "{{instance}} {{db}} idle" },
+        { "refId": "D", "expr": "app_db_pool_max_open_connections", "legendFormat": "{{instance}} {{db}} limit" }
+      ]
+    },
+    {
+      "id": 11, "type": "timeseries", "datasource": "Prometheus", "title": "Connection waits per second",
+      "gridPos": { "x": 12, "y": 28, "w": 6, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "rate(app_db_pool_wait_count_total[5m])", "legendFormat": "{{instance}} {{db}}" }]
+    },
+    {
+      "id": 12, "type": "timeseries", "datasource": "Prometheus", "title": "Connection wait seconds per second",
+      "gridPos": { "x": 18, "y": 28, "w": 6, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "rate(app_db_pool_wait_duration_seconds_total[5m])", "legendFormat": "{{instance}} {{db}}" }]
+    },
+    { "id": 13, "type": "row", "title": "Redis Operations", "gridPos": { "x": 0, "y": 36, "w": 24, "h": 1 } },
+    {
+      "id": 14, "type": "timeseries", "datasource": "Prometheus", "title": "Redis operations per second",
+      "gridPos": { "x": 0, "y": 37, "w": 12, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "sum by (cmd, status) (rate(app_redis_operations_total[5m]))", "legendFormat": "{{cmd}} {{status}}" }]
+    },
+    {
+      "id": 15, "type": "timeseries", "datasource": "Prometheus", "title": "Redis p95 latency (s)",
+      "gridPos": { "x": 12, "y": 37, "w": 12, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, cmd) (rate(app_redis_operation_duration_seconds_bucket[5m])))", "legendFormat": "{{cmd}}" }]
+    },
+    { "id": 16, "type": "row", "title": "Realtime", "gridPos": { "x": 0, "y": 45, "w": 24, "h": 1 } },
+    {
+      "id": 17, "type": "timeseries", "datasource": "Prometheus", "title": "Active connections",
+      "gridPos": { "x": 0, "y": 46, "w": 12, "h": 8 },
+      "targets": [
+        { "refId": "A", "expr": "app_sse_active_connections", "legendFormat": "SSE {{instance}}" },
+        { "refId": "B", "expr": "app_websocket_active_connections", "legendFormat": "WS {{instance}}" }
+      ]
+    },
+    {
+      "id": 18, "type": "timeseries", "datasource": "Prometheus", "title": "WebSocket send drops per second",
+      "gridPos": { "x": 12, "y": 46, "w": 12, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "rate(app_ws_send_drops_total[5m])", "legendFormat": "{{instance}}" }]
+    },
+    { "id": 19, "type": "row", "title": "Async Workers & Outbox", "gridPos": { "x": 0, "y": 54, "w": 24, "h": 1 } },
+    {
+      "id": 20, "type": "timeseries", "datasource": "Prometheus", "title": "Pending audit entries in last batch",
+      "gridPos": { "x": 0, "y": 55, "w": 6, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "app_audit_outbox_pending", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "id": 21, "type": "timeseries", "datasource": "Prometheus", "title": "Oldest pending audit entry (s)",
+      "gridPos": { "x": 6, "y": 55, "w": 6, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "app_audit_outbox_oldest_age_seconds", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "id": 22, "type": "timeseries", "datasource": "Prometheus", "title": "Delivery attempts per second",
+      "gridPos": { "x": 12, "y": 55, "w": 6, "h": 8 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (outcome) (rate(app_webhook_deliveries_total[5m]))", "legendFormat": "Webhook {{outcome}}" },
+        { "refId": "B", "expr": "sum by (outcome) (rate(app_email_deliveries_total[5m]))", "legendFormat": "Email {{outcome}}" }
+      ]
+    },
+    {
+      "id": 23, "type": "timeseries", "datasource": "Prometheus", "title": "Delivery p95 duration (s)",
+      "gridPos": { "x": 18, "y": 55, "w": 6, "h": 8 },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(app_webhook_delivery_duration_seconds_bucket[5m])))", "legendFormat": "Webhook" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by (le) (rate(app_email_delivery_duration_seconds_bucket[5m])))", "legendFormat": "Email" }
+      ]
+    },
+    { "id": 24, "type": "row", "title": "Security & Uploads", "gridPos": { "x": 0, "y": 63, "w": 24, "h": 1 } },
+    {
+      "id": 25, "type": "timeseries", "datasource": "Prometheus", "title": "Rate-limit rejections per second",
+      "gridPos": { "x": 0, "y": 64, "w": 6, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "sum by (limiter) (rate(app_rate_limit_rejections_total[5m]))", "legendFormat": "{{limiter}}" }]
+    },
+    {
+      "id": 26, "type": "timeseries", "datasource": "Prometheus", "title": "Storage uploads per second",
+      "gridPos": { "x": 6, "y": 64, "w": 6, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "sum by (driver, status) (rate(app_storage_uploads_total[5m]))", "legendFormat": "{{driver}} {{status}}" }]
+    },
+    {
+      "id": 27, "type": "timeseries", "datasource": "Prometheus", "title": "TUS completion p95 duration (s)",
+      "gridPos": { "x": 12, "y": 64, "w": 6, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, driver) (rate(app_tus_upload_duration_seconds_bucket[5m])))", "legendFormat": "{{driver}}" }]
+    },
+    {
+      "id": 28, "type": "timeseries", "datasource": "Prometheus", "title": "TUS upload p95 size (bytes)",
+      "gridPos": { "x": 18, "y": 64, "w": 6, "h": 8 },
+      "targets": [{ "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, driver) (rate(app_tus_upload_size_bytes_bucket[5m])))", "legendFormat": "{{driver}}" }]
     }
   ],
   "schemaVersion": 30,
@@ -138,5 +232,5 @@
   "timezone": "",
   "title": "Go Clean Boilerplate - Main Dashboard",
   "uid": "main_dashboard",
-  "version": 1
+  "version": 2
 }

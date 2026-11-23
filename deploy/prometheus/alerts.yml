@@ -1,0 +1,43 @@
+groups:
+  - name: api-runtime
+    rules:
+      - alert: HighHTTPServerErrorRate
+        expr: sum by (job) (rate(http_requests_total{status=~"5.."}[5m])) / sum by (job) (rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels: { severity: critical }
+        annotations: { summary: "More than 5% of HTTP requests return 5xx" }
+      - alert: HighHTTPP95Latency
+        expr: histogram_quantile(0.95, sum by (job, le) (rate(http_request_duration_seconds_bucket[5m]))) > 1
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "HTTP p95 exceeds one second" }
+      - alert: DatabasePoolSaturated
+        expr: app_db_pool_in_use_connections / (app_db_pool_max_open_connections > 0) > 0.85
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "Database pool exceeds 85% utilization" }
+      - alert: HighRedisErrorRate
+        expr: sum by (job) (rate(app_redis_operations_total{status="error"}[5m])) / sum by (job) (rate(app_redis_operations_total[5m])) > 0.02
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "More than 2% of Redis operations fail" }
+      - alert: AuditOutboxBacklog
+        expr: app_audit_outbox_oldest_age_seconds > 300 or app_audit_outbox_pending >= 50
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "Audit outbox batch stays full or oldest entry exceeds five minutes" }
+      - alert: WebSocketSendDrops
+        expr: sum by (job) (rate(app_ws_send_drops_total[5m])) > 1
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "WebSocket send queues drop more than one message per second" }
+      - alert: HighWebhookFailureRate
+        expr: sum by (job) (rate(app_webhook_deliveries_total{outcome=~"error|retryable_error|permanent_error"}[10m])) / sum by (job) (rate(app_webhook_deliveries_total[10m])) > 0.10
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "More than 10% of webhook delivery attempts fail" }
+      - alert: HighEmailFailureRate
+        expr: sum by (job) (rate(app_email_deliveries_total{outcome="error"}[10m])) / sum by (job) (rate(app_email_deliveries_total[10m])) > 0.10
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "More than 10% of email delivery attempts fail" }
