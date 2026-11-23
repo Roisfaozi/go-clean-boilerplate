@@ -62,7 +62,7 @@ export function CreateApiKeyDialog() {
 		defaultValues: {
 			name: "",
 			scopes: [],
-			expires_at: undefined,
+			expires_at: "",
 		},
 	});
 

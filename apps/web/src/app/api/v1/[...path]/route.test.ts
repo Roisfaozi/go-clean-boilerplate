@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { NextRequest } from "next/server";
 import { afterEach, expect, it, vi } from "vitest";
-import { GET, POST } from "./route";
+import { GET, HEAD, POST } from "./route";
 
 const params = Promise.resolve({ path: ["events"] });
 const url = "http://localhost/api/v1/events";
@@ -98,4 +98,26 @@ it("preserves download bytes and filename", async () => {
 	const result = await GET(new NextRequest(url), { params });
 	expect(result.headers.get("content-disposition")).toBe(disposition);
 	expect(new Uint8Array(await result.arrayBuffer())).toEqual(bytes);
+});
+
+it("forwards HEAD requests without a body and preserves safe headers", async () => {
+	const upstream = new Response(null, {
+		status: 200,
+		headers: {
+			"cache-control": "no-store",
+			"x-request-id": "head-trace",
+		},
+	});
+	const fetchMock = vi
+		.fn<typeof globalThis.fetch>()
+		.mockResolvedValue(upstream);
+	vi.stubGlobal("fetch", fetchMock);
+	const result = await HEAD(new NextRequest(url, { method: "HEAD" }), {
+		params,
+	});
+	expect(fetchMock.mock.calls[0][1]?.method).toBe("HEAD");
+	expect(fetchMock.mock.calls[0][1]?.body).toBeUndefined();
+	expect(result.status).toBe(200);
+	expect(result.headers.get("x-request-id")).toBe("head-trace");
+	expect(result.headers.get("cache-control")).toBe("no-store");
 });

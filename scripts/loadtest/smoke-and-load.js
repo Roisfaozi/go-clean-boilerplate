@@ -31,7 +31,7 @@ export default function (headers) {
 		check(res, { [`GET ${path} returns 200`]: (r) => r.status === 200 });
 	}
 	if (__ITER === 0) {
-		const key = crypto.randomUUID();
+		const key = `vu-${__VU}-iter-${__ITER}-${Date.now()}`;
 		const body = JSON.stringify({ name: `load-${key}`, domain: `${key}.example.test` });
 		const params = { headers: { ...headers, "Content-Type": "application/json", "Idempotency-Key": key } };
 		const ids = new Set();
@@ -43,7 +43,9 @@ export default function (headers) {
 				if (!check(id, { "project ID returned": (value) => typeof value === "string" && !!value })) break;
 				ids.add(id);
 				if (attempt === 1) check(res, {
-					"same project replayed": (r) => ids.size === 1 && r.headers["X-Cache-Lookup"] === "HIT - Idempotency Replay",
+					"same project replayed": (r) =>
+						ids.size === 1 &&
+						(r.headers["X-Cache-Lookup"] || r.headers["x-cache-lookup"]) === "HIT - Idempotency Replay",
 				});
 			}
 		} finally {

@@ -166,7 +166,7 @@
       "gridPos": { "x": 0, "y": 46, "w": 12, "h": 8 },
       "targets": [
         { "refId": "A", "expr": "app_sse_active_connections", "legendFormat": "SSE {{instance}}" },
-        { "refId": "B", "expr": "app_websocket_active_connections", "legendFormat": "WS {{instance}}" }
+        { "refId": "B", "expr": "app_ws_active_connections", "legendFormat": "WS {{instance}}" }
       ]
     },
     {

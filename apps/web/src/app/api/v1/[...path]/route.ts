@@ -1,8 +1,27 @@
-import { splitCookiesString } from "next/dist/server/web/utils";
 import { type NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL =
 	process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080/api/v1";
+
+function splitSetCookieHeader(header: string): string[] {
+	if (!header) return [];
+	const cookies: string[] = [];
+	let start = 0;
+	let pos = 0;
+	while (pos < header.length) {
+		const commaIdx = header.indexOf(",", pos);
+		if (commaIdx === -1) break;
+		const afterComma = header.slice(commaIdx + 1).trimStart();
+		if (/^[^\s;=,]+=/.test(afterComma)) {
+			cookies.push(header.slice(start, commaIdx).trim());
+			start = header.length - afterComma.length;
+		}
+		pos = commaIdx + 1;
+	}
+	const tail = header.slice(start).trim();
+	if (tail) cookies.push(tail);
+	return cookies;
+}
 
 async function ALL(
 	request: NextRequest,
@@ -50,7 +69,7 @@ async function ALL(
 
 		const cookies =
 			response.headers.getSetCookie?.() ??
-			splitCookiesString(response.headers.get("set-cookie") ?? "");
+			splitSetCookieHeader(response.headers.get("set-cookie") ?? "");
 		for (const cookie of cookies) {
 			responseHeaders.append("set-cookie", cookie);
 		}
@@ -73,4 +92,11 @@ async function ALL(
 	}
 }
 
-export { ALL as DELETE, ALL as GET, ALL as PATCH, ALL as POST, ALL as PUT };
+export {
+	ALL as DELETE,
+	ALL as GET,
+	ALL as HEAD,
+	ALL as PATCH,
+	ALL as POST,
+	ALL as PUT,
+};
