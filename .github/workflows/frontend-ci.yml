@@ -52,6 +52,9 @@ jobs:
       - name: Run frontend typecheck
         run: pnpm typecheck
 
+      - name: Run web unit tests
+        run: pnpm --filter casbin-web test
+
       - name: Build web app
         run: pnpm --filter casbin-web build
         env:

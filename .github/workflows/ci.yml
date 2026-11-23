@@ -8,6 +8,9 @@ on:
       - "internal/**"
       - "pkg/**"
       - "cmd/**"
+      - "tests/**"
+      - "scripts/**"
+      - "db/**"
       - "go.mod"
       - "go.sum"
       - "Makefile"
@@ -22,6 +25,9 @@ on:
       - "internal/**"
       - "pkg/**"
       - "cmd/**"
+      - "tests/**"
+      - "scripts/**"
+      - "db/**"
       - "go.mod"
       - "go.sum"
       - "Makefile"
@@ -44,6 +50,9 @@ jobs:
         with:
           go-version: "1.26.0"
           cache: true
+
+      - name: Check time conventions
+        run: bash scripts/guard-time-conventions.sh
 
       - name: Run Linter
         uses: golangci/golangci-lint-action@v9.2.0
@@ -72,6 +81,9 @@ jobs:
         env:
           GOFLAGS: -p=2 -parallel=2
         run: make test-coverage
+
+      - name: Run race detector
+        run: go test -race -count=1 ./pkg/... ./internal/config/... ./internal/middleware/... ./internal/router/... ./internal/worker/... ./internal/delivery/...
 
       - name: Upload Unit Coverage
         uses: actions/upload-artifact@v7
@@ -161,4 +173,6 @@ jobs:
           cache: true
 
       - name: Dry Run Build
-        run: go build -v -o /dev/null ./cmd/api/main.go
+        run: |
+          go build -v -o /dev/null ./cmd/api
+          go build -v -o /dev/null ./cmd/gen
